@@ -95,6 +95,9 @@ export async function GET(req: NextRequest) {
     const subscription = tenant.subscription;
     const plan = subscription?.plan;
 
+    // Verificar si necesita completar perfil (no tiene contraseña)
+    const needsProfile = !user.password;
+
     return NextResponse.json({
       id: user.id,
       nombre: user.name || '',
@@ -109,6 +112,7 @@ export async function GET(req: NextRequest) {
       fechaInicioTrial: subscription?.fechaInicio?.toISOString() || new Date().toISOString(),
       subscriptionEstado: subscription?.estado || 'trial',
       subscriptionVencimiento: subscription?.fechaVencimiento?.toISOString() || null,
+      needsProfile,
     });
 
   } catch (error: unknown) {

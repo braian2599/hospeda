@@ -2,12 +2,13 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import AuthProvider from '@/components/providers/SessionProvider';
 import { useHotelStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { LogOut, Hotel, ChevronRight, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import ProfileSetup from '@/components/ProfileSetup';
 
 // ========== SELECTOR DE HOTEL ==========
 function HotelSelector({ hoteles, userName, onSelected }: {
@@ -28,8 +29,7 @@ function HotelSelector({ hoteles, userName, onSelected }: {
         setLoadingId(null);
         return;
       }
-      const { loginFromSession } = await import('@/lib/store');
-      const store = (await import('@/lib/store')).useHotelStore.getState();
+      const store = useHotelStore.getState();
       store.loginFromSession(data);
       onSelected();
       router.push('/app');
@@ -111,7 +111,20 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     hoteles: { tenantId: string; tenantNombre: string; tenantSlug: string; rol: string; plan: string }[];
     userName: string;
   } | null>(null);
+  const [profileSetup, setProfileSetup] = useState<{
+    email: string;
+    nombre: string;
+    sessionData: Record<string, any>;
+  } | null>(null);
   const router = useRouter();
+
+  const handleProfileComplete = useCallback(() => {
+    // Después de completar perfil, cargar sesión normalmente
+    if (profileSetup?.sessionData) {
+      loginFromSession(profileSetup.sessionData);
+    }
+    setProfileSetup(null);
+  }, [profileSetup, loginFromSession]);
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.email && !usuarioActual) {
@@ -139,6 +152,16 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
             setLoading(false);
             return;
           }
+          // Necesita completar perfil (no tiene contraseña)
+          if (data.needsProfile) {
+            setProfileSetup({
+              email: data.email,
+              nombre: data.nombreCompleto || data.nombre || '',
+              sessionData: data,
+            });
+            setLoading(false);
+            return;
+          }
           loginFromSession(data);
           setLoading(false);
         })
@@ -161,6 +184,17 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
   }, [needsSetup, router, pathname]);
 
   // === RENDER STATES ===
+
+  // Completar perfil (post-login)
+  if (profileSetup) {
+    return (
+      <ProfileSetup
+        email={profileSetup.email}
+        currentName={profileSetup.nombre}
+        onComplete={handleProfileComplete}
+      />
+    );
+  }
 
   // Selector de hotel
   if (hotelSelection) {
@@ -198,6 +232,11 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
                     return;
                   }
                   if (data.needsSetup) { router.push('/setup-hotel'); return; }
+                  if (data.needsProfile) {
+                    setProfileSetup({ email: data.email, nombre: data.nombreCompleto || '', sessionData: data });
+                    setLoading(false);
+                    return;
+                  }
                   if (data.error) { setError(data.error); setDebugInfo(data._debug || null); setLoading(false); return; }
                   loginFromSession(data);
                   setLoading(false);

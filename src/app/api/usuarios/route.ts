@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import type { RolTenant } from '@prisma/client';
 
 const VALID_ROLES: RolTenant[] = ['owner', 'admin', 'recepcion', 'limpieza'];
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/usuarios — Invitar usuario (crear User si no existe + TenantUser)
+// POST /api/usuarios — Invitar usuario (crear User si no existe + TenantUser + enviar email)
 export async function POST(req: NextRequest) {
   try {
     const tenantId = await requireTenantId();
@@ -62,6 +63,18 @@ export async function POST(req: NextRequest) {
     if (!Array.isArray(permisos)) {
       return NextResponse.json({ error: 'Los permisos deben ser un array' }, { status: 400 });
     }
+
+    // Obtener datos del tenant y del invitador
+    const tenant = await db.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) {
+      return NextResponse.json({ error: 'Hotel no encontrado' }, { status: 404 });
+    }
+
+    // Obtener nombre del usuario que invita (owner/admin actual)
+    const session = await (await import('next-auth')).getServerSession(
+      (await import('@/lib/auth/config')).authOptions
+    );
+    const inviterName = (session?.user?.name || 'Alguien');
 
     // Verificar que no exista un TenantUser con el mismo email en este tenant
     const existingUser = await db.user.findUnique({ where: { email: emailLower } });
@@ -93,16 +106,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Crear User si no existe (placeholder password)
-    const placeholderPassword = await bcrypt.hash(
-      crypto.randomUUID().replace(/-/g, '').slice(0, 24),
-      12
-    );
-
+    // Crear User si no existe (SIN password — el invitado lo seteará via email)
     const user = existingUser || await db.user.create({
       data: {
         email: emailLower,
-        password: placeholderPassword,
         name: nombreCompleto?.trim() || null,
       },
     });
@@ -122,7 +129,32 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // TODO: Enviar email de invitación con link para setear contraseña
+    // Generar token de invitación (48 horas)
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 48 * 60 * 60 * 1000);
+
+    await db.verificationToken.upsert({
+      where: {
+        identifier_token: {
+          identifier: `invite-${emailLower}`,
+          token,
+        },
+      },
+      create: {
+        identifier: `invite-${emailLower}`,
+        token,
+        expires,
+      },
+      update: {
+        expires,
+      },
+    });
+
+    // Enviar email de invitación (fire-and-forget, no bloquea la respuesta)
+    const { sendInvitationEmail, isEmailConfigured } = await import('@/lib/email');
+    sendInvitationEmail(emailLower, token, tenant.nombre, inviterName).catch((err: any) => {
+      console.error('Error enviando email de invitacion:', err.message);
+    });
 
     return NextResponse.json(tenantUser, { status: 201 });
   } catch (error) {
