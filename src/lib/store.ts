@@ -12,32 +12,15 @@ import { type PlanTipo, modulosEfectivos as calcModulosEfectivos } from './plan-
 
 const defaultHabitaciones: Record<string, Habitacion> = {};
 
-const defaultReservas: Reserva[] = [
-  { id: 1, idCliente: 1, huesped: 'Juan Pérez', dni: '12.345.678', telefono: '+54 11 5555-0101', email: 'juan.perez@email.com', habitacion: '102', checkin: '2026-06-12', checkout: '2026-06-15', personas: 1, estadoPago: 'Pagado', notas: '', estado: 'Confirmada' },
-  { id: 2, idCliente: 2, huesped: 'María Gómez', dni: '98.765.432', telefono: '+54 11 5555-0202', email: 'maria.gomez@email.com', habitacion: '105', checkin: '2026-06-14', checkout: '2026-06-18', personas: 2, estadoPago: 'Parcial', notas: 'Llegada tarde', estado: 'Confirmada' },
-];
+const defaultReservas: Reserva[] = [];
 
-const defaultClientes: Cliente[] = [
-  { id: 1, nombre: 'Juan Pérez', dni: '12.345.678', telefono: '+54 11 5555-0101', email: 'juan.perez@email.com', nacionalidad: 'Argentina', preferencias: 'Habitación silenciosa, piso alto', historialEstadias: [{ fechaCheckin: '2025-08-10', fechaCheckout: '2025-08-13', habitacion: '201', gastoTotal: 255 }, { fechaCheckin: '2025-12-20', fechaCheckout: '2025-12-22', habitacion: '101', gastoTotal: 160 }, { fechaCheckin: '2026-06-12', fechaCheckout: '2026-06-15', habitacion: '102', gastoTotal: 360 }], fechaCreacion: '2025-01-15' },
-  { id: 2, nombre: 'María Gómez', dni: '98.765.432', telefono: '+54 11 5555-0202', email: 'maria.gomez@email.com', nacionalidad: 'Argentina', preferencias: 'Piso alto', historialEstadias: [{ fechaCheckin: '2026-02-14', fechaCheckout: '2026-02-18', habitacion: '202', gastoTotal: 1000 }], fechaCreacion: '2025-06-10' },
-];
+const defaultClientes: Cliente[] = [];
 
-const defaultPagos: Pago[] = [
-  { id: 1, idReserva: 1, monto: 360, metodo: 'Tarjeta de Crédito', fecha: '2026-06-12', nota: 'Pago completo' },
-  { id: 2, idReserva: 2, monto: 200, metodo: 'Mercado Pago', fecha: '2026-06-10', nota: 'Adelanto' },
-];
+const defaultPagos: Pago[] = [];
 
-const defaultUsuarios: Usuario[] = [
-  { id: 1, nombre: 'admin', contrasena: 'admin123', nombreCompleto: 'Gerente', permisos: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'facturacion', 'limpieza', 'caja', 'clientes', 'reportes', 'usuarios', 'tarifas'] },
-  { id: 2, nombre: 'recepcion', contrasena: 'recepcion123', nombreCompleto: 'Recepcionista Ejemplo', permisos: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'facturacion', 'limpieza', 'caja', 'clientes'] },
-];
+const defaultUsuarios: Usuario[] = [];
 
-const defaultGastos: Gasto[] = [
-  { id: 1, tipo: 'Servicios', descripcion: 'Luz', monto: 15000, fecha: '2026-06-05', empleado: 'admin' },
-  { id: 2, tipo: 'Sueldos', descripcion: 'Sueldo junio - María', monto: 200000, fecha: '2026-06-01', empleado: 'admin' },
-  { id: 3, tipo: 'Desayuno', descripcion: 'Panadería y fiambres', monto: 45000, fecha: '2026-06-08', empleado: 'admin' },
-  { id: 4, tipo: 'Productos de Limpieza', descripcion: 'Reposición de amenities', monto: 22000, fecha: '2026-06-10', empleado: 'admin' },
-];
+const defaultGastos: Gasto[] = [];
 
 const defaultTarifas: Record<string, TarifaPrecios> = {
   normal: { 1: 35000, 2: 30000, 3: 27000, 4: 25000, camposPersonalizados: [], choferCortesia: false, habitacionChofer: null },
@@ -942,22 +925,17 @@ export const useHotelStore = create<HotelStore>()(
     }),
     {
       name: 'hospeda-storage',
-      version: 3,
+      version: 4,
       migrate: (persisted: any, version: number) => {
-        // version 2: forzar limpieza de habitaciones default
-        if (version < 2) {
-          persisted.habitaciones = {};
-        }
-        // version 3: migrar desde key antigua 'hotel-ruta40-storage'
-        if (version < 3) {
-          try {
-            const oldData = typeof window !== 'undefined' ? localStorage.getItem('hotel-ruta40-storage') : null;
-            if (oldData) {
-              const parsed = JSON.parse(oldData);
-              persisted = { ...persisted, ...parsed };
-              localStorage.removeItem('hotel-ruta40-storage');
-            }
-          } catch { /* ignorar error de migración */ }
+        // version 4: limpiar datos de prueba hardcodeados
+        if (version < 4) {
+          persisted.reservas = [];
+          persisted.clientes = [];
+          persisted.pagos = [];
+          persisted.usuarios = [];
+          persisted.gastos = [];
+          persisted.auditoria = [];
+          persisted.historialMantenimiento = [];
         }
         return persisted;
       },
