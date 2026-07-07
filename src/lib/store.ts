@@ -23,8 +23,7 @@ const defaultUsuarios: Usuario[] = [];
 const defaultGastos: Gasto[] = [];
 
 const defaultTarifas: Record<string, TarifaPrecios> = {
-  normal: { 1: 35000, 2: 30000, 3: 27000, 4: 25000, camposPersonalizados: [], choferCortesia: false, habitacionChofer: null },
-  agencia: { 1: 28000, 2: 24000, 3: 21000, 4: 19000, camposPersonalizados: [{ nombre: 'Nombre de la Agencia', tipo: 'texto', requerido: true }, { nombre: 'Nº de Convenio', tipo: 'texto', requerido: false }, { nombre: 'Vendedor / Agente', tipo: 'texto', requerido: false }], choferCortesia: true, habitacionChofer: null },
+  compartida: { 1: 0, 2: 0, 3: 0, 4: 0, camposPersonalizados: [], choferCortesia: false, habitacionChofer: null },
 };
 
 const defaultMetodosPago: MetodoPago[] = [
@@ -198,7 +197,7 @@ export const useHotelStore = create<HotelStore>()(
       caja: { estado: 'cerrada', apertura: null, movimientos: [], historial: [] },
       historialMantenimiento: [],
       tarifas: defaultTarifas,
-      tiposTarifa: ['normal', 'agencia'],
+      tiposTarifa: ['compartida'],
       metodosPago: defaultMetodosPago,
       categoriasGastos: defaultCategoriasGastos,
 
@@ -845,7 +844,7 @@ export const useHotelStore = create<HotelStore>()(
       agregarTipoTarifa: (tipo) => {
         const { tarifas, tiposTarifa } = get();
         if (tiposTarifa.includes(tipo)) return;
-        set({ tarifas: { ...tarifas, [tipo]: { 1: 25000, 2: 22000, 3: 19000, 4: 17000, camposPersonalizados: [], choferCortesia: false, habitacionChofer: null } }, tiposTarifa: [...tiposTarifa, tipo] });
+        set({ tarifas: { ...tarifas, [tipo]: { 1: 0, 2: 0, 3: 0, 4: 0, camposPersonalizados: [], choferCortesia: false, habitacionChofer: null } }, tiposTarifa: [...tiposTarifa, tipo] });
       },
 
       eliminarTipoTarifa: (tipo) => {
@@ -918,7 +917,7 @@ export const useHotelStore = create<HotelStore>()(
         caja: { estado: 'cerrada', apertura: null, movimientos: [], historial: [] },
         historialMantenimiento: [],
         tarifas: defaultTarifas,
-        tiposTarifa: ['normal', 'agencia'],
+        tiposTarifa: ['compartida'],
         metodosPago: defaultMetodosPago,
         categoriasGastos: defaultCategoriasGastos,
       }),
