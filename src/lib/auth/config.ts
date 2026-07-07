@@ -13,7 +13,7 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      allowDangerousEmailAccountLinking: true, // Permite linkear misma cuenta
+      // allowDangerousEmailAccountLinking deshabilitado: cada email = un solo hotel
     }),
 
     // ── Email + Password (credentials) ──
