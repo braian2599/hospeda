@@ -102,10 +102,14 @@ export interface Usuario {
 }
 
 export interface UsuarioSesion {
-  id: number;
+  id: string;
   nombre: string;
   nombreCompleto: string;
   permisos: string[];
+  rol?: string;
+  tenantId?: string;
+  tenantNombre?: string;
+  email?: string;
 }
 
 export interface Gasto {

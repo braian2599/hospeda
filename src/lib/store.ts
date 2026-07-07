@@ -235,6 +235,10 @@ export const useHotelStore = create<HotelStore>()(
           nombre: sessionData.nombre,
           nombreCompleto: sessionData.nombreCompleto,
           permisos: sessionData.permisos || [],
+          rol: sessionData.rol,
+          tenantId: sessionData.tenantId,
+          tenantNombre: sessionData.tenantNombre,
+          email: sessionData.email,
         };
         // Apply start module preference
         let startModule: string = 'dashboard';
@@ -924,7 +928,7 @@ export const useHotelStore = create<HotelStore>()(
     }),
     {
       name: 'hospeda-storage',
-      version: 5,
+      version: 6,
       migrate: (persisted: any, version: number) => {
         // version 5: limpiar datos de prueba y tarifas viejas
         if (version < 5) {
@@ -938,6 +942,10 @@ export const useHotelStore = create<HotelStore>()(
           persisted.tarifas = { compartida: { 1: 0, 2: 0, 3: 0, 4: 0, camposPersonalizados: [], choferCortesia: false, habitacionChofer: null } };
           persisted.tiposTarifa = ['compartida'];
           persisted.habitaciones = {};
+        }
+        // version 6: limpiar usuarioActual para re-fetch con campo 'rol'
+        if (version < 6) {
+          persisted.usuarioActual = null;
         }
         return persisted;
       },
