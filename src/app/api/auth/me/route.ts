@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
                 subscription: {
                   include: { plan: true },
                 },
-                config: true,
+                configuracion: true,
               },
             },
           },
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
     }
 
     const tenant = tenantUser.tenant;
-    const subscription = tenant.subscription[0];
+    const subscription = tenant.subscription;
     const plan = subscription?.plan;
 
     return NextResponse.json({
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
       tenantNombre: tenant.nombre,
       tenantSlug: tenant.slug,
       planActual: plan?.type || 'trial',
-      fechaInicioTrial: subscription?.fechaCreacion?.toISOString() || new Date().toISOString(),
+      fechaInicioTrial: subscription?.fechaInicio?.toISOString() || new Date().toISOString(),
       subscriptionEstado: subscription?.estado || 'trial',
       subscriptionVencimiento: subscription?.fechaVencimiento?.toISOString() || null,
     });
