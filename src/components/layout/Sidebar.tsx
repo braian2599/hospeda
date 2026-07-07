@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect, forwardRef } from 'react';
+import { signOut } from 'next-auth/react';
 import { useHotelStore } from '@/lib/store';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 import { modulosEfectivos } from '@/lib/plan-config';
@@ -10,6 +11,11 @@ import {
   LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles,
   Wallet, Users, BarChart3, UserCog, Tags, LogOut, Hotel, X, Lock,
 } from 'lucide-react';
+
+const handleLogout = () => {
+  useHotelStore.getState().logout();
+  signOut({ callbackUrl: '/login' });
+};
 
 /* ── Icon map ── */
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -102,7 +108,7 @@ const NavItem = forwardRef<HTMLButtonElement, { m: (typeof MODULOS_SISTEMA)[numb
 );
 
 export default function Sidebar() {
-  const { usuarioActual, moduloActivo, setModulo, logout, sidebarOpen, setSidebarOpen, planActual } = useHotelStore();
+  const { usuarioActual, moduloActivo, setModulo, sidebarOpen, setSidebarOpen, planActual } = useHotelStore();
   const [desktopExpanded, setDesktopExpanded] = useState(false);
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navRef = useRef<HTMLElement>(null);
@@ -228,7 +234,7 @@ export default function Sidebar() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={logout}
+          onClick={handleLogout}
           className={`
             text-muted-foreground hover:text-destructive transition-colors
             ${desktopExpanded ? 'w-full justify-start gap-3 px-3 h-10' : 'w-full'}
@@ -342,7 +348,7 @@ export default function Sidebar() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={logout}
+            onClick={handleLogout}
             className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive"
           >
             <LogOut className="w-4 h-4" />
