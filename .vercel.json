@@ -1,0 +1,14 @@
+{
+  "framework": "nextjs",
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/payments/**/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/auth/sms/**/*.ts": {
+      "maxDuration": 15
+    }
+  }
+}

@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.gitignore
+db/
+*.log
+.env
+*.tar.gz
+download/
+scripts/
+README.md

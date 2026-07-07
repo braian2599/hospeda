@@ -1,0 +1,557 @@
+// ==================== HOSPEDÁ — SCHEMA MULTI-TENANT ====================
+// Cada tabla tiene tenantId para aislar datos por hotel/empresa.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════════════════
+// TENANT & AUTH
+// ═══════════════════════════════════════════════════════════
+
+model Tenant {
+  id             String   @id @default(cuid())
+  nombre         String   // Nombre del hotel / empresa
+  slug           String   @unique // URL amigable: hospeda.com/app/[slug]
+  email          String   // Email de contacto del hotel
+  telefono       String?
+  direccion      String?
+  pais           String   @default("Argentina")
+  moneda         String   @default("ARS")
+  timezone       String   @default("America/Argentina/Buenos_Aires")
+  logoUrl        String?
+  activo         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relaciones
+  subscription   Subscription?
+  users          TenantUser[]
+  habitaciones   Habitacion[]
+  clientes       Cliente[]
+  reservas       Reserva[]
+  pagos          Pago[]
+  tarifas        Tarifa[]
+  metodosPago    MetodoPago[]
+  gastos         Gasto[]
+  categoriasGasto CategoriaGasto[]
+  movimientosCaja MovimientoCaja[]
+  turnosCaja     TurnoCaja[]
+  mantenimientos  Mantenimiento[]
+  auditoria      Auditoria[]
+  tareasLimpieza TareaLimpieza[]
+  configuracion  TenantConfig?
+}
+
+// ═══════════════════════════════════════════════════════════
+// PLANES & SUSCRIPCIONES
+// ═══════════════════════════════════════════════════════════
+
+/// Tipos de plan disponibles
+enum PlanType {
+  basico
+  profesional
+  premium
+  trial
+}
+
+model Plan {
+  id              String   @id @default(cuid())
+  type            PlanType @unique
+  nombre          String
+  precioMensual   Int      // En centavos para evitar floats
+  moneda          String   @default("ARS")
+  maxHabitaciones Int
+  maxUsuarios     Int
+  maxTarifas      Int
+  maxReservasMes  Int      // 0 = ilimitado
+  modulos         Json     // Array de ModuloId permitidos
+  activo          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  subscriptions   Subscription[]
+}
+
+model Subscription {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planId        String
+  plan          Plan     @relation(fields: [planId], references: [id])
+  estado        String   @default("trial") // trial | activa | cancelada | vencida | suspensa
+  fechaInicio   DateTime @default(now())
+  fechaVencimiento DateTime
+  trialUsado    Boolean  @default(false)
+  paymentProviderId String? // ID en Mercado Pago / Stripe
+  canceladaAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════════════════
+// USUARIOS & AUTH
+// ═══════════════════════════════════════════════════════════
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String  // oauth | credentials | phone
+  provider          String  // google | email | phone
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  tenantId     String   // Para saber a qué hotel pertenece esta sesión
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?   // Null si solo usa OAuth
+  phone         String?   @unique
+  phoneVerified DateTime?
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts  Account[]
+  sessions  Session[]
+  tenants   TenantUser[]
+}
+
+/// Roles dentro de un hotel
+enum RolTenant {
+  owner
+  admin
+  recepcion
+  limpieza
+}
+
+model TenantUser {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rol           RolTenant @default(recepcion)
+  nombreUsuario  String?  // Nombre corto para login local (legacy)
+  nombreCompleto String?
+  permisos      String[]  // Array de ModuloId
+  activo        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([tenantId, userId])
+}
+
+// ═══════════════════════════════════════════════════════════
+// HABITACIONES
+// ═══════════════════════════════════════════════════════════
+
+enum EstadoHabitacion {
+  Disponible
+  Ocupada
+  Limpieza
+  Mantenimiento
+  Reservada
+  FueraDeServicio
+}
+
+model Habitacion {
+  id               String   @id @default(cuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  numero           String   // "101", "201A", etc.
+  tipo             String   // Doble, Triple, Cuádruple, Compartida, etc.
+  capacidad        Int
+  camasMatrimoniales Int
+  camasSimples     Int
+  estado           EstadoHabitacion @default(Disponible)
+  problema         String?
+  precioPorCama    Int?     // Solo para compartidas (en centavos)
+  piso             Int?
+  orden            Int      @default(0) // Para ordenar visualmente
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLIENTES
+// ═══════════════════════════════════════════════════════════
+
+model Cliente {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  nombre          String
+  dni             String
+  telefono        String
+  email           String?
+  fechaNacimiento DateTime?
+  nacionalidad    String?
+  preferencias    String   @default("") // Texto libre
+  domicilio       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  reservas        Reserva[]
+  estadias        Estadia[]
+
+  @@unique([tenantId, dni])
+}
+
+model Estadia {
+  id             String   @id @default(cuid())
+  tenantId       String
+  clienteId      String
+  cliente        Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  fechaCheckin   DateTime
+  fechaCheckout  DateTime
+  habitacion     String
+  gastoTotal     Int      // Centavos
+  createdAt      DateTime @default(now())
+}
+
+// ═══════════════════════════════════════════════════════════
+// RESERVAS
+// ═══════════════════════════════════════════════════════════
+
+enum EstadoReserva {
+  Confirmada
+  Cancelada
+  CheckIn_realizado
+  Checkout_realizado
+}
+
+enum EstadoPago {
+  Pendiente
+  Parcial
+  Pagado
+}
+
+model Reserva {
+  id                String        @id @default(cuid())
+  tenantId          String
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clienteId         String?
+  cliente           Cliente?      @relation(fields: [clienteId], references: [id])
+  huesped           String        // Nombre del huésped (denormalizado para queries rápidas)
+  dni               String
+  telefono          String
+  email             String?
+  domicilio         String?
+  habitacion        String
+  checkin           DateTime
+  checkout          DateTime
+  personas          Int
+  estadoPago        EstadoPago    @default(Pendiente)
+  estado            EstadoReserva @default(Confirmada)
+  tipoTarifa        String?       // "normal", "agencia", etc.
+  metodoPagoId      String?
+  cuotas            Int?
+  recargoPorcentaje Int?          // En centésimas (ej: 10 = 10%)
+  notas             String        @default("")
+  observacionesHuesped String?    @db.Text
+  agenciaNombre     String?
+  agenciaConvenio   String?
+  agenciaVendedor   String?
+  contactoEmergenciaNombre String?
+  contactoEmergenciaTel    String?
+  llaveEntregada     String?
+  documentoVerificado Boolean @default(false)
+  firmaConformidad  Boolean @default(false)
+  horaCheckin       String?  // "14:30"
+  horaCheckout      String?  // "11:00"
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  pagos             Pago[]
+  acompanantes      Acompanante[]
+
+  @@index([tenantId, estado])
+  @@index([tenantId, habitacion, checkin, checkout])
+}
+
+model Acompanante {
+  id       String @id @default(cuid())
+  reservaId String
+  reserva  Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  nombre   String
+  dni      String
+  celular  String?
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGOS
+// ═══════════════════════════════════════════════════════════
+
+model Pago {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reservaId String
+  reserva   Reserva  @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  monto     Int      // Centavos
+  metodo    String   // ID del método de pago o nombre
+  nota      String   @default("")
+  fecha     DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, reservaId])
+}
+
+// ═══════════════════════════════════════════════════════════
+// TARIFAS
+// ═══════════════════════════════════════════════════════════
+
+model Tarifa {
+  id               String   @id @default(cuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  nombre           String   // "normal", "agencia", "corporativo", etc.
+  precios          Json     // { "1": 35000, "2": 30000, ... } en centavos
+  camposPersonalizados Json?  // [{ nombre, tipo, requerido }]
+  choferCortesia   Boolean  @default(false)
+  habitacionChofer String?
+  activa           Boolean  @default(true)
+  orden            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, nombre])
+}
+
+// ═══════════════════════════════════════════════════════════
+// MÉTODOS DE PAGO
+// ═══════════════════════════════════════════════════════════
+
+enum TipoMetodoPago {
+  efectivo
+  tarjeta
+  transferencia
+  otro
+}
+
+model MetodoPago {
+  id        String         @id @default(cuid())
+  tenantId  String
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  nombre    String
+  tipo      TipoMetodoPago
+  recargo   Boolean        @default(false)
+  cuotas    Json?          // [{ cantidad: 1, porcentaje: 0 }, ...]
+  activo    Boolean        @default(true)
+  orden     Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([tenantId, nombre])
+}
+
+// ═══════════════════════════════════════════════════════════
+// CAJA
+// ═══════════════════════════════════════════════════════════
+
+enum TipoMovimientoCaja {
+  ingreso
+  egreso
+}
+
+model TurnoCaja {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  estado         String   @default("abierta") // abierta | cerrada
+  montoInicial   Int      // Centavos
+  empleadoId     String   // TenantUser.id
+  empleadoNombre String
+  fechaApertura  DateTime @default(now())
+  fechaCierre    DateTime?
+  saldoEsperado  Int?
+  saldoContado   Int?
+  diferencia     Int?
+  billetes       Json?    // { "20000": 3, "10000": 5, ... }
+  totalOtrosMetodos Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  movimientos    MovimientoCaja[]
+}
+
+model MovimientoCaja {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  turnoId      String
+  turno        TurnoCaja @relation(fields: [turnoId], references: [id], onDelete: Cascade)
+  tipo         TipoMovimientoCaja
+  monto        Int      // Centavos
+  descripcion  String   @default("")
+  metodo       String   @default("Efectivo")
+  empleadoId   String?
+  empleadoNombre String
+  reservaId    String?  // Si el ingreso viene de un pago de reserva
+  fecha        DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, turnoId])
+}
+
+// ═══════════════════════════════════════════════════════════
+// GASTOS (Reportes)
+// ═══════════════════════════════════════════════════════════
+
+model Gasto {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tipo        String
+  descripcion String
+  monto       Int      // Centavos
+  fecha       DateTime
+  empleadoId  String?
+  empleado    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, fecha])
+}
+
+model CategoriaGasto {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  nombre   String
+  orden    Int    @default(0)
+
+  @@unique([tenantId, nombre])
+}
+
+// ═══════════════════════════════════════════════════════════
+// MANTENIMIENTO
+// ═══════════════════════════════════════════════════════════
+
+model Mantenimiento {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  habitacion  String
+  problema    String
+  reparacion  String?
+  monto       Int?     // Centavos
+  fecha       DateTime @default(now())
+  empleado    String
+  resuelto    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, resuelto])
+}
+
+// ═══════════════════════════════════════════════════════════
+// LIMPIEZA
+// ═══════════════════════════════════════════════════════════
+
+enum EstadoTareaLimpieza {
+  pendiente
+  en_progreso
+  completada
+}
+
+model TareaLimpieza {
+  id          String              @id @default(cuid())
+  tenantId    String
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  habitacion  String
+  estado      EstadoTareaLimpieza @default(pendiente)
+  empleadoId  String?
+  empleado    String?
+  nota        String?
+  fechaCreacion DateTime          @default(now())
+  fechaCompletado DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([tenantId, estado])
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUDITORÍA
+// ═══════════════════════════════════════════════════════════
+
+model Auditoria {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tipo      String   // "reserva_creada", "checkin_realizado", etc.
+  detalle   String   @db.Text
+  empleadoId String?
+  empleado  String
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONFIGURACIÓN DEL TENANT
+// ═══════════════════════════════════════════════════════════
+
+model TenantConfig {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Preferencias generales
+  tema            String   @default("system") // light | dark | system
+  sidebarFijo     Boolean  @default(true)
+  moduloInicio    String   @default("dashboard")
+  // Datos del hotel para comprobos
+  hotelNombre     String?
+  hotelDireccion  String?
+  hotelCiudad     String?
+  hotelPais       String?
+  hotelTelefono   String?
+  hotelEmail      String?
+  hotelCuit       String?
+  hotelIva        String?  // "Responsable Inscripto", "Monotributo", etc.
+  hotelLogoUrl    String?
+  // Facturación
+  puntoVenta      Int?
+  numeroFactura   Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
