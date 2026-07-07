@@ -35,3 +35,32 @@ Stage Summary:
 - Webhooks preparados para ambos providers con handlers para los eventos principales
 - UI integrada en landing page, trial banner y module locked dialog
 - TODO para producción: configurar API keys reales, implementar verificación de firma MP, conectar actualización de DB en webhooks
+
+---
+Task ID: 8
+Agent: Main Agent
+Task: Fix 6 problemas post-deploy (Google OAuth, password recovery, setup hotel)
+
+Work Log:
+- Analizado error redirect_uri_mismatch: es configuración en Google Cloud Console
+- Creado flujo completo de recuperación de contraseña:
+  - API POST /api/auth/forgot-password (genera token, envía email)
+  - API POST /api/auth/reset-password (valida token, cambia contraseña)
+  - Página /forgot-password (form email → success)
+  - Página /reset-password (nueva contraseña con confirmación → success)
+  - Función sendPasswordResetEmail() en src/lib/email/index.ts
+- Actualizado enlace "¿Olvidaste tu contraseña?" en LoginContent.tsx (ahora linkea a /forgot-password)
+- Creado flujo setup-hotel para usuarios Google OAuth sin hotel:
+  - API POST /api/auth/setup-hotel (crea Tenant + TenantUser + Subscription trial)
+  - Página /setup-hotel (formulario simple: nombre del hotel)
+  - Actualizado (app)/layout.tsx: SessionLoader redirige a /setup-hotel si needsSetup=true
+- Mejorado manejo de errores OAuth: getErrorMessage() mapea códigos de error a mensajes claros en español
+- Verificado: build exitoso, todas las rutas nuevas aparecen correctamente
+
+Stage Summary:
+- Problema 1 (Google en registro): Ya existía en el código, el botón está presente
+- Problema 2 (Recuperar contraseña): Flujo completo implementado con páginas y APIs
+- Problema 3 (Sistema no aparece post-Google login): Fix con redirección a /setup-hotel
+- Problema 4 (Google OAuth redirect_uri_mismatch): Error de config en Google Cloud Console (instrucciones para el usuario)
+- Problema 5 (Pagos): Pendiente explicación al usuario
+- Problema 6 (Logo/colores): Pendiente imagen del usuario

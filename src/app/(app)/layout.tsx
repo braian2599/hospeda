@@ -11,7 +11,9 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
   const loginFromSession = useHotelStore(s => s.loginFromSession);
   const usuarioActual = useHotelStore(s => s.usuarioActual);
   const [loading, setLoading] = useState(true);
+  const [needsSetup, setNeedsSetup] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.email && !usuarioActual) {
@@ -20,7 +22,8 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         .then(res => res.json())
         .then(data => {
           if (data.error && data.needsSetup) {
-            setError('Tenés que crear un hotel primero.');
+            // No tiene hotel -> redirigir a setup
+            setNeedsSetup(true);
             setLoading(false);
             return;
           }
@@ -41,7 +44,14 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     } else if (status === 'unauthenticated') {
       setLoading(false);
     }
-  }, [status, session, usuarioActual, loginFromSession]);
+  }, [status, session, usuarioActual, loginFromSession, router]);
+
+  // Redirigir a setup-hotel si no tiene hotel
+  useEffect(() => {
+    if (needsSetup) {
+      router.push('/setup-hotel');
+    }
+  }, [needsSetup, router]);
 
   if (error) {
     return (

@@ -17,6 +17,26 @@ export default function LoginContent() {
   const verified = searchParams.get('verified');
   const errorParam = searchParams.get('error');
 
+  // Mapear errores de OAuth a mensajes claros
+  const getErrorMessage = (error: string | null) => {
+    switch (error) {
+      case 'OAuthAccountNotLinked':
+        return 'Ese email ya está registrado con otra cuenta. Iniciá sesión con email y contraseña.';
+      case 'invalid_token':
+        return 'El enlace de verificación es inválido o expiró.';
+      case 'missing_params':
+        return 'Faltan parámetros de verificación.';
+      case 'server_error':
+        return 'Error del servidor. Intentá de nuevo.';
+      case 'Configuration':
+        return 'Error de configuración de Google. Falta GOOGLE_CLIENT_ID o GOOGLE_CLIENT_SECRET en Vercel.';
+      default:
+        return error ? 'Error de autenticación. Intentá de nuevo.' : null;
+    }
+  };
+
+  const errorMessage = getErrorMessage(errorParam);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -106,11 +126,9 @@ export default function LoginContent() {
             )}
 
             {/* Error messages */}
-            {errorParam && (
+            {errorMessage && (
               <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-700/50 p-3 text-sm text-red-700 dark:text-red-300 text-center">
-                {errorParam === 'invalid_token' && 'El enlace de verificación es inválido o expiró.'}
-                {errorParam === 'missing_params' && 'Faltan parámetros de verificación.'}
-                {errorParam === 'server_error' && 'Error del servidor. Intentá de nuevo.'}
+                {errorMessage}
               </div>
             )}
 
@@ -153,13 +171,12 @@ export default function LoginContent() {
             </div>
 
             <div className="text-center">
-              <button
-                type="button"
-                onClick={() => toast.info('Pronto disponible: recuperación por email')}
+              <Link
+                href="/forgot-password"
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 ¿Olvidaste tu contraseña?
-              </button>
+              </Link>
             </div>
 
             <p className="text-[10px] text-center text-muted-foreground">
