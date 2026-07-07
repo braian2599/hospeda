@@ -924,10 +924,10 @@ export const useHotelStore = create<HotelStore>()(
     }),
     {
       name: 'hospeda-storage',
-      version: 4,
+      version: 5,
       migrate: (persisted: any, version: number) => {
-        // version 4: limpiar datos de prueba hardcodeados
-        if (version < 4) {
+        // version 5: limpiar datos de prueba y tarifas viejas
+        if (version < 5) {
           persisted.reservas = [];
           persisted.clientes = [];
           persisted.pagos = [];
@@ -935,6 +935,9 @@ export const useHotelStore = create<HotelStore>()(
           persisted.gastos = [];
           persisted.auditoria = [];
           persisted.historialMantenimiento = [];
+          persisted.tarifas = { compartida: { 1: 0, 2: 0, 3: 0, 4: 0, camposPersonalizados: [], choferCortesia: false, habitacionChofer: null } };
+          persisted.tiposTarifa = ['compartida'];
+          persisted.habitaciones = {};
         }
         return persisted;
       },
