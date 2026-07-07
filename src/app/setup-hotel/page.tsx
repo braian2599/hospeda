@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession, SessionProvider } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,10 +10,25 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Hotel, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function SetupHotelPage() {
+function SetupHotelForm() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [hotelNombre, setHotelNombre] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,12 +53,7 @@ export default function SetupHotelPage() {
         return;
       }
 
-      toast.success('Hotel creado! Cargando tu sistema...');
-
-      // Forzar refresh de la sesión para que incluya el tenantId
-      // Usamos update() de next-auth para refrescar el JWT
-      const { useSession, SessionProvider } = await import('next-auth/react');
-      // Simplemente redirigimos al app - el SessionLoader va a refrescar los datos
+      toast.success('Hotel creado!');
       setTimeout(() => {
         router.push('/app');
         router.refresh();
@@ -79,7 +90,7 @@ export default function SetupHotelPage() {
                 autoFocus
               />
               <p className="text-xs text-muted-foreground">
-                Es el nombre que aparecerá en tu sistema y comprobantes.
+                Es el nombre que aparecera en tu sistema y comprobantes.
               </p>
             </div>
 
@@ -93,10 +104,18 @@ export default function SetupHotelPage() {
           </form>
 
           <p className="text-[10px] text-center text-muted-foreground mt-4">
-            Empezás con 30 dias de prueba gratuita. Sin tarjeta de credito.
+            Empezas con 30 dias de prueba gratuita. Sin tarjeta de credito.
           </p>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function SetupHotelPage() {
+  return (
+    <SessionProvider>
+      <SetupHotelForm />
+    </SessionProvider>
   );
 }
