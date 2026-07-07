@@ -1,0 +1,887 @@
+     1→'use client';
+     2→
+     3→import { useState, useMemo } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+     6→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     7→import { Button } from '@/components/ui/button';
+     8→import { Input } from '@/components/ui/input';
+     9→import { Label } from '@/components/ui/label';
+    10→import { Badge } from '@/components/ui/badge';
+    11→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+    12→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    13→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+    14→import {
+    15→  Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext,
+    16→} from '@/components/ui/pagination';
+    17→import { Textarea } from '@/components/ui/textarea';
+    18→import {
+    19→  BarChart3, DollarSign, TrendingDown, TrendingUp, CalendarDays, Plus,
+    20→  Search, ChevronDown, ChevronUp, Eye, BedDouble, Users, UserCog, Wallet,
+    21→  FileText, Building2,
+    22→} from 'lucide-react';
+    23→import EmptyState from '@/components/ui/empty-state';
+    24→
+    25→// ==================== HELPERS ====================
+    26→
+    27→const formatFecha = (f: string) => {
+    28→  if (!f) return '—';
+    29→  const d = new Date(f + 'T12:00:00');
+    30→  return d.toLocaleDateString('es-AR');
+    31→};
+    32→
+    33→const formatFechaHora = (f: string) => {
+    34→  if (!f) return '—';
+    35→  const d = new Date(f);
+    36→  return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    37→};
+    38→
+    39→const formatMoneda = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
+    40→
+    41→const hoy = () => new Date().toISOString().split('T')[0];
+    42→
+    43→const haceNDias = (n: number) => {
+    44→  const d = new Date();
+    45→  d.setDate(d.getDate() - n);
+    46→  return d.toISOString().split('T')[0];
+    47→};
+    48→
+    49→// ==================== COMPONENT ====================
+    50→
+    51→export default function ReportesModule() {
+    52→  const { reservas, pagos, gastos, auditoria, habitaciones, caja, clientes, usuarios, categoriasGastos, agregarGasto } = useHotelStore();
+    53→
+    54→  // Date range state
+    55→  const [desde, setDesde] = useState(haceNDias(30));
+    56→  const [hasta, setHasta] = useState(hoy());
+    57→
+    58→  const setRango = (dias: number) => {
+    59→    setDesde(haceNDias(dias));
+    60→    setHasta(hoy());
+    61→  };
+    62→
+    63→  // Gasto dialog state
+    64→  const [gastoModal, setGastoModal] = useState(false);
+    65→  const [gastoForm, setGastoForm] = useState({ tipo: '', descripcion: '', monto: '', fecha: hoy() });
+    66→
+    67→  // Caja detail dialog
+    68→  const [cajaDetailIdx, setCajaDetailIdx] = useState<number | null>(null);
+    69→
+    70→  // Auditoria pagination
+    71→  const [auditPage, setAuditPage] = useState(1);
+    72→  const AUDIT_PER_PAGE = 15;
+    73→
+    74→  // Filter states
+    75→  const [finMetodo, setFinMetodo] = useState('todos');
+    76→  const [gastoTipo, setGastoTipo] = useState('todos');
+    77→  const [gastoEmpleado, setGastoEmpleado] = useState('todos');
+    78→  const [gastoSearch, setGastoSearch] = useState('');
+    79→  const [gastoMontoMin, setGastoMontoMin] = useState('');
+    80→  const [gastoMontoMax, setGastoMontoMax] = useState('');
+    81→  const [auditTipo, setAuditTipo] = useState('todos');
+    82→  const [auditEmpleado, setAuditEmpleado] = useState('todos');
+    83→  const [auditSearch, setAuditSearch] = useState('');
+    84→  const [auditTurno, setAuditTurno] = useState('todos');
+    85→  const [clienteMinEstadias, setClienteMinEstadias] = useState('0');
+    86→
+    87→  // ==================== COMPUTED ====================
+    88→
+    89→  const pagosEnPeriodo = useMemo(() => {
+    90→    const d = new Date(desde + 'T00:00:00');
+    91→    const h = new Date(hasta + 'T23:59:59');
+    92→    return pagos.filter(p => {
+    93→      const fp = new Date(p.fecha + 'T12:00:00');
+    94→      return fp >= d && fp <= h;
+    95→    });
+    96→  }, [pagos, desde, hasta]);
+    97→
+    98→  const gastosEnPeriodo = useMemo(() => {
+    99→    const d = new Date(desde + 'T00:00:00');
+   100→    const h = new Date(hasta + 'T23:59:59');
+   101→    return gastos.filter(g => {
+   102→      const fg = new Date(g.fecha + 'T12:00:00');
+   103→      return fg >= d && fg <= h;
+   104→    });
+   105→  }, [gastos, desde, hasta]);
+   106→
+   107→  const auditoriaEnPeriodo = useMemo(() => {
+   108→    const d = new Date(desde + 'T00:00:00');
+   109→    const h = new Date(hasta + 'T23:59:59');
+   110→    return auditoria.filter(a => {
+   111→      const fa = new Date(a.fecha);
+   112→      return fa >= d && fa <= h;
+   113→    });
+   114→  }, [auditoria, desde, hasta]);
+   115→
+   116→  const reservasEnPeriodo = useMemo(() => {
+   117→    const d = new Date(desde + 'T00:00:00');
+   118→    const h = new Date(hasta + 'T23:59:59');
+   119→    return reservas.filter(r => {
+   120→      const fr = new Date(r.checkin + 'T12:00:00');
+   121→      return fr >= d && fr <= h;
+   122→    });
+   123→  }, [reservas, desde, hasta]);
+   124→
+   125→  // Unique values for filters
+   126→  const metodosUnicos = useMemo(() => [...new Set(pagosEnPeriodo.map(p => p.metodo))], [pagosEnPeriodo]);
+   127→  const gastosTiposUnicos = useMemo(() => [...new Set(gastos.map(g => g.tipo))], [gastos]);
+   128→  const gastosEmpleadosUnicos = useMemo(() => [...new Set(gastosEnPeriodo.map(g => g.empleado))], [gastosEnPeriodo]);
+   129→  const auditTiposUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.tipo))], [auditoriaEnPeriodo]);
+   130→  const auditEmpleadosUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.empleado))], [auditoriaEnPeriodo]);
+   131→
+   132→  // Financial summaries
+   133→  const totalIngresos = useMemo(() => pagosEnPeriodo.reduce((s, p) => s + p.monto, 0), [pagosEnPeriodo]);
+   134→  const totalGastos = useMemo(() => gastosEnPeriodo.reduce((s, g) => s + g.monto, 0), [gastosEnPeriodo]);
+   135→  const gananciaNeta = totalIngresos - totalGastos;
+   136→
+   137→  // Filtered financial payments
+   138→  const pagosFiltrados = useMemo(() => {
+   139→    if (finMetodo === 'todos') return pagosEnPeriodo;
+   140→    return pagosEnPeriodo.filter(p => p.metodo === finMetodo);
+   141→  }, [pagosEnPeriodo, finMetodo]);
+   142→
+   143→  // Filtered gastos
+   144→  const gastosFiltrados = useMemo(() => {
+   145→    let list = gastosEnPeriodo;
+   146→    if (gastoTipo !== 'todos') list = list.filter(g => g.tipo === gastoTipo);
+   147→    if (gastoEmpleado !== 'todos') list = list.filter(g => g.empleado === gastoEmpleado);
+   148→    if (gastoSearch) {
+   149→      const s = gastoSearch.toLowerCase();
+   150→      list = list.filter(g => g.descripcion.toLowerCase().includes(s));
+   151→    }
+   152→    if (gastoMontoMin) list = list.filter(g => g.monto >= Number(gastoMontoMin));
+   153→    if (gastoMontoMax) list = list.filter(g => g.monto <= Number(gastoMontoMax));
+   154→    return list;
+   155→  }, [gastosEnPeriodo, gastoTipo, gastoEmpleado, gastoSearch, gastoMontoMin, gastoMontoMax]);
+   156→
+   157→  const gastosTotalFiltrado = useMemo(() => gastosFiltrados.reduce((s, g) => s + g.monto, 0), [gastosFiltrados]);
+   158→
+   159→  // Filtered auditoria
+   160→  const auditFiltrada = useMemo(() => {
+   161→    let list = auditoriaEnPeriodo;
+   162→    if (auditTipo !== 'todos') list = list.filter(a => a.tipo === auditTipo);
+   163→    if (auditEmpleado !== 'todos') list = list.filter(a => a.empleado === auditEmpleado);
+   164→    if (auditSearch) {
+   165→      const s = auditSearch.toLowerCase();
+   166→      list = list.filter(a => a.detalle.toLowerCase().includes(s));
+   167→    }
+   168→    if (auditTurno !== 'todos') {
+   169→      list = list.filter(a => {
+   170→        const h = new Date(a.fecha).getHours();
+   171→        if (auditTurno === 'mañana') return h >= 6 && h < 14;
+   172→        if (auditTurno === 'tarde') return h >= 14 && h < 22;
+   173→        if (auditTurno === 'noche') return h >= 22 || h < 6;
+   174→        return true;
+   175→      });
+   176→    }
+   177→    return list;
+   178→  }, [auditoriaEnPeriodo, auditTipo, auditEmpleado, auditSearch, auditTurno]);
+   179→
+   180→  const auditTotalPages = Math.max(1, Math.ceil(auditFiltrada.length / AUDIT_PER_PAGE));
+   181→  const auditPaged = auditFiltrada.slice((auditPage - 1) * AUDIT_PER_PAGE, auditPage * AUDIT_PER_PAGE);
+   182→
+   183→  // Clientes frecuentes
+   184→  const clientesFrecuentes = useMemo(() => {
+   185→    const minEst = Number(clienteMinEstadias) || 0;
+   186→    return clientes
+   187→      .map(c => ({
+   188→        ...c,
+   189→        totalGastado: c.historialEstadias.reduce((s, e) => s + e.gastoTotal, 0),
+   190→        cantidadEstadias: c.historialEstadias.length,
+   191→        ultimaVisita: c.historialEstadias.length > 0
+   192→          ? c.historialEstadias.reduce((latest, e) => e.fechaCheckout > latest ? e.fechaCheckout : latest, c.historialEstadias[0].fechaCheckout)
+   193→          : '—',
+   194→      }))
+   195→      .filter(c => c.cantidadEstadias >= minEst)
+   196→      .sort((a, b) => b.totalGastado - a.totalGastado);
+   197→  }, [clientes, clienteMinEstadias]);
+   198→
+   199→  // Empleados summary
+   200→  const empleadosResumen = useMemo(() => {
+   201→    const resumen: Record<string, { nombre: string; checkins: number; checkouts: number; pagos: number; gastos: number; reservas: number; auditorias: number }> = {};
+   202→    usuarios.forEach(u => {
+   203→      resumen[u.nombre] = { nombre: u.nombreCompleto || u.nombre, checkins: 0, checkouts: 0, pagos: 0, gastos: 0, reservas: 0, auditorias: 0 };
+   204→    });
+   205→    auditoriaEnPeriodo.forEach(a => {
+   206→      if (!resumen[a.empleado]) {
+   207→        resumen[a.empleado] = { nombre: a.empleado, checkins: 0, checkouts: 0, pagos: 0, gastos: 0, reservas: 0, auditorias: 0 };
+   208→      }
+   209→      resumen[a.empleado].auditorias++;
+   210→      if (a.tipo === 'Check-In') resumen[a.empleado].checkins++;
+   211→      if (a.tipo === 'Check-Out') resumen[a.empleado].checkouts++;
+   212→      if (a.tipo === 'Pago') resumen[a.empleado].pagos++;
+   213→      if (a.tipo === 'Gasto') resumen[a.empleado].gastos++;
+   214→      if (a.tipo === 'Reserva') resumen[a.empleado].reservas++;
+   215→    });
+   216→    return Object.values(resumen).sort((a, b) => b.auditorias - a.auditorias);
+   217→  }, [auditoriaEnPeriodo, usuarios]);
+   218→
+   219→  // Habitaciones resumen
+   220→  const habResumen = useMemo(() => {
+   221→    const habs = Object.values(habitaciones);
+   222→    const total = habs.length;
+   223→    const porEstado: Record<string, number> = {};
+   224→    habs.forEach(h => {
+   225→      porEstado[h.estado] = (porEstado[h.estado] || 0) + 1;
+   226→    });
+   227→    const ocupadas = porEstado['Ocupada'] || 0;
+   228→    const disponibles = porEstado['Disponible'] || 0;
+   229→    const reservadas = porEstado['Reservada'] || 0;
+   230→    const limpieza = porEstado['Limpieza'] || 0;
+   231→    const mantenimiento = porEstado['Mantenimiento'] || 0;
+   232→    const fueraServicio = porEstado['Fuera de servicio'] || 0;
+   233→    const tasaOcupacion = total > 0 ? Math.round((ocupadas / total) * 100) : 0;
+   234→
+   235→    // Ocupación en el periodo (reservas activas)
+   236→    const reservasActivas = reservas.filter(r => {
+   237→      const ci = new Date(r.checkin + 'T00:00:00');
+   238→      const co = new Date(r.checkout + 'T23:59:59');
+   239→      const d = new Date(desde + 'T00:00:00');
+   240→      const h = new Date(hasta + 'T23:59:59');
+   241→      return ci <= h && co >= d;
+   242→    });
+   243→    const nochesOcupadas = reservasActivas.reduce((s, r) => {
+   244→      const ci = new Date(r.checkin + 'T00:00:00');
+   245→      const co = new Date(r.checkout + 'T23:59:59');
+   246→      const inicio = ci < new Date(desde) ? new Date(desde) : ci;
+   247→      const fin = co > new Date(hasta) ? new Date(hasta + 'T23:59:59') : co;
+   248→      return s + Math.max(0, Math.ceil((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24)));
+   249→    }, 0);
+   250→    const diasPeriodo = Math.max(1, Math.ceil((new Date(hasta + 'T23:59:59').getTime() - new Date(desde + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24)));
+   251→    const tasaOcupacionPeriodo = Math.round((nochesOcupadas / (total * diasPeriodo)) * 100);
+   252→
+   253→    return { total, ocupadas, disponibles, reservadas, limpieza, mantenimiento, fueraServicio, tasaOcupacion, tasaOcupacionPeriodo, habs, nochesOcupadas, diasPeriodo };
+   254→  }, [habitaciones, reservas, desde, hasta]);
+   255→
+   256→  // Gasto submit handler
+   257→  const handleAgregarGasto = () => {
+   258→    if (!gastoForm.tipo || !gastoForm.descripcion || !gastoForm.monto) return;
+   259→    agregarGasto({
+   260→      tipo: gastoForm.tipo,
+   261→      descripcion: gastoForm.descripcion,
+   262→      monto: Number(gastoForm.monto),
+   263→      fecha: gastoForm.fecha,
+   264→    });
+   265→    setGastoForm({ tipo: '', descripcion: '', monto: '', fecha: hoy() });
+   266→    setGastoModal(false);
+   267→  };
+   268→
+   269→  // Reset audit page when filters change
+   270→  const handleAuditFilterChange = (setter: (v: string) => void, value: string) => {
+   271→    setter(value);
+   272→    setAuditPage(1);
+   273→  };
+   274→
+   275→  const selectedCajaTurno = cajaDetailIdx !== null ? caja.historial[cajaDetailIdx] : null;
+   276→
+   277→  // ==================== RENDER ====================
+   278→
+   279→  return (
+   280→    <div className="space-y-6">
+   281→      {/* Header */}
+   282→      <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500/10"><BarChart3 className="w-5 h-5 text-orange-500" /></span> Reportes</h2>
+   283→
+   284→      {/* Date Range Filter */}
+   285→      <Card>
+   286→        <CardContent className="p-4">
+   287→          <div className="flex flex-wrap items-end gap-3">
+   288→            <div className="grid gap-1.5">
+   289→              <Label className="text-xs text-muted-foreground">Desde</Label>
+   290→              <Input type="date" value={desde} onChange={e => setDesde(e.target.value)} className="w-40" />
+   291→            </div>
+   292→            <div className="grid gap-1.5">
+   293→              <Label className="text-xs text-muted-foreground">Hasta</Label>
+   294→              <Input type="date" value={hasta} onChange={e => setHasta(e.target.value)} className="w-40" />
+   295→            </div>
+   296→            <div className="flex gap-2 flex-wrap">
+   297→              <Button size="sm" variant="outline" onClick={() => setRango(7)}>7 días</Button>
+   298→              <Button size="sm" variant="outline" onClick={() => setRango(30)}>30 días</Button>
+   299→              <Button size="sm" variant="outline" onClick={() => setRango(365)}>1 año</Button>
+   300→            </div>
+   301→          </div>
+   302→        </CardContent>
+   303→      </Card>
+   304→
+   305→      {/* Tabs */}
+   306→      <Tabs defaultValue="financiero" className="space-y-4">
+   307→        <TabsList className="flex flex-wrap h-auto gap-1">
+   308→          <TabsTrigger value="financiero" className="gap-1.5"><DollarSign className="w-3.5 h-3.5" />Financiero</TabsTrigger>
+   309→          <TabsTrigger value="gastos" className="gap-1.5"><TrendingDown className="w-3.5 h-3.5" />Gastos</TabsTrigger>
+   310→          <TabsTrigger value="auditoria" className="gap-1.5"><FileText className="w-3.5 h-3.5" />Auditoría</TabsTrigger>
+   311→          <TabsTrigger value="historial-caja" className="gap-1.5"><Wallet className="w-3.5 h-3.5" />Historial Caja</TabsTrigger>
+   312→          <TabsTrigger value="habitaciones" className="gap-1.5"><BedDouble className="w-3.5 h-3.5" />Habitaciones</TabsTrigger>
+   313→          <TabsTrigger value="clientes" className="gap-1.5"><Users className="w-3.5 h-3.5" />Clientes</TabsTrigger>
+   314→          <TabsTrigger value="empleados" className="gap-1.5"><UserCog className="w-3.5 h-3.5" />Empleados</TabsTrigger>
+   315→        </TabsList>
+   316→
+   317→        {/* ==================== FINANCIERO ==================== */}
+   318→        <TabsContent value="financiero" className="space-y-4">
+   319→          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   320→            <Card>
+   321→              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-emerald-500" />Total Ingresos</CardTitle></CardHeader>
+   322→              <CardContent><p className="text-2xl font-bold text-emerald-600">{formatMoneda(totalIngresos)}</p></CardContent>
+   323→            </Card>
+   324→            <Card>
+   325→              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><TrendingDown className="w-4 h-4 text-red-500" />Total Gastos</CardTitle></CardHeader>
+   326→              <CardContent><p className="text-2xl font-bold text-red-600">{formatMoneda(totalGastos)}</p></CardContent>
+   327→            </Card>
+   328→            <Card>
+   329→              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><DollarSign className="w-4 h-4" />Ganancia Neta</CardTitle></CardHeader>
+   330→              <CardContent><p className={`text-2xl font-bold ${gananciaNeta >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{formatMoneda(gananciaNeta)}</p></CardContent>
+   331→            </Card>
+   332→            <Card>
+   333→              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><CalendarDays className="w-4 h-4" />Reservas</CardTitle></CardHeader>
+   334→              <CardContent><p className="text-2xl font-bold">{reservasEnPeriodo.length}</p></CardContent>
+   335→            </Card>
+   336→          </div>
+   337→
+   338→          {/* Payment method filter */}
+   339→          <div className="flex flex-wrap items-center gap-3">
+   340→            <Label className="text-sm">Método de pago:</Label>
+   341→            <Select value={finMetodo} onValueChange={setFinMetodo}>
+   342→              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+   343→              <SelectContent>
+   344→                <SelectItem value="todos">Todos</SelectItem>
+   345→                {metodosUnicos.map(m => (
+   346→                  <SelectItem key={m} value={m}>{m}</SelectItem>
+   347→                ))}
+   348→              </SelectContent>
+   349→            </Select>
+   350→            <Badge variant="secondary">{pagosFiltrados.length} pagos</Badge>
+   351→          </div>
+   352→
+   353→          <Card>
+   354→            <Table>
+   355→              <TableHeader>
+   356→                <TableRow>
+   357→                  <TableHead>Fecha</TableHead>
+   358→                  <TableHead>Método</TableHead>
+   359→                  <TableHead>Reserva</TableHead>
+   360→                  <TableHead className="text-right">Monto</TableHead>
+   361→                  <TableHead className="hidden sm:table-cell">Nota</TableHead>
+   362→                </TableRow>
+   363→              </TableHeader>
+   364→              <TableBody>
+   365→                {pagosFiltrados.length === 0 ? (
+   366→                  <TableRow><TableCell colSpan={5}><EmptyState variant="pagos" title="No hay pagos en este periodo" compact /></TableCell></TableRow>
+   367→                ) : (
+   368→                  pagosFiltrados.map(p => {
+   369→                    const reserva = reservas.find(r => r.id === p.idReserva);
+   370→                    return (
+   371→                      <TableRow key={p.id}>
+   372→                        <TableCell>{formatFecha(p.fecha)}</TableCell>
+   373→                        <TableCell><Badge variant="outline">{p.metodo}</Badge></TableCell>
+   374→                        <TableCell>#{p.idReserva}{reserva ? ` — ${reserva.huesped}` : ''}</TableCell>
+   375→                        <TableCell className="text-right font-medium">{formatMoneda(p.monto)}</TableCell>
+   376→                        <TableCell className="hidden sm:table-cell text-muted-foreground">{p.nota || '—'}</TableCell>
+   377→                      </TableRow>
+   378→                    );
+   379→                  })
+   380→                )}
+   381→              </TableBody>
+   382→            </Table>
+   383→          </Card>
+   384→        </TabsContent>
+   385→
+   386→        {/* ==================== GASTOS ==================== */}
+   387→        <TabsContent value="gastos" className="space-y-4">
+   388→          <div className="flex flex-wrap items-end gap-3">
+   389→            <div className="grid gap-1.5">
+   390→              <Label className="text-xs text-muted-foreground">Tipo</Label>
+   391→              <Select value={gastoTipo} onValueChange={setGastoTipo}>
+   392→                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+   393→                <SelectContent>
+   394→                  <SelectItem value="todos">Todos</SelectItem>
+   395→                  {gastosTiposUnicos.map(t => (
+   396→                    <SelectItem key={t} value={t}>{t}</SelectItem>
+   397→                  ))}
+   398→                </SelectContent>
+   399→              </Select>
+   400→            </div>
+   401→            <div className="grid gap-1.5">
+   402→              <Label className="text-xs text-muted-foreground">Empleado</Label>
+   403→              <Select value={gastoEmpleado} onValueChange={setGastoEmpleado}>
+   404→                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+   405→                <SelectContent>
+   406→                  <SelectItem value="todos">Todos</SelectItem>
+   407→                  {gastosEmpleadosUnicos.map(e => (
+   408→                    <SelectItem key={e} value={e}>{e}</SelectItem>
+   409→                  ))}
+   410→                </SelectContent>
+   411→              </Select>
+   412→            </div>
+   413→            <div className="relative">
+   414→              <Label className="text-xs text-muted-foreground">Buscar descripción</Label>
+   415→              <Search className="absolute left-3 bottom-2 w-4 h-4 text-muted-foreground" />
+   416→              <Input placeholder="Buscar..." value={gastoSearch} onChange={e => setGastoSearch(e.target.value)} className="pl-9 w-48" />
+   417→            </div>
+   418→            <div className="grid gap-1.5">
+   419→              <Label className="text-xs text-muted-foreground">Monto mín.</Label>
+   420→              <Input type="number" placeholder="0" value={gastoMontoMin} onChange={e => setGastoMontoMin(e.target.value)} className="w-28" />
+   421→            </div>
+   422→            <div className="grid gap-1.5">
+   423→              <Label className="text-xs text-muted-foreground">Monto máx.</Label>
+   424→              <Input type="number" placeholder="∞" value={gastoMontoMax} onChange={e => setGastoMontoMax(e.target.value)} className="w-28" />
+   425→            </div>
+   426→            <Button onClick={() => setGastoModal(true)}><Plus className="w-4 h-4 mr-1" />Agregar Gasto</Button>
+   427→          </div>
+   428→
+   429→          <div className="flex gap-4 text-sm text-muted-foreground">
+   430→            <span>{gastosFiltrados.length} gastos encontrados</span>
+   431→            <span>Total filtrado: <strong className="text-foreground">{formatMoneda(gastosTotalFiltrado)}</strong></span>
+   432→          </div>
+   433→
+   434→          <Card>
+   435→            <Table>
+   436→              <TableHeader>
+   437→                <TableRow>
+   438→                  <TableHead>Fecha</TableHead>
+   439→                  <TableHead>Tipo</TableHead>
+   440→                  <TableHead>Descripción</TableHead>
+   441→                  <TableHead className="text-right">Monto</TableHead>
+   442→                  <TableHead className="hidden md:table-cell">Empleado</TableHead>
+   443→                </TableRow>
+   444→              </TableHeader>
+   445→              <TableBody>
+   446→                {gastosFiltrados.length === 0 ? (
+   447→                  <TableRow><TableCell colSpan={5}><EmptyState variant="pagos" title="No hay gastos que coincidan" compact /></TableCell></TableRow>
+   448→                ) : (
+   449→                  gastosFiltrados.map(g => (
+   450→                    <TableRow key={g.id}>
+   451→                      <TableCell>{formatFecha(g.fecha)}</TableCell>
+   452→                      <TableCell><Badge variant="secondary">{g.tipo}</Badge></TableCell>
+   453→                      <TableCell>{g.descripcion}</TableCell>
+   454→                      <TableCell className="text-right font-medium text-red-600">-{formatMoneda(g.monto)}</TableCell>
+   455→                      <TableCell className="hidden md:table-cell">{g.empleado}</TableCell>
+   456→                    </TableRow>
+   457→                  ))
+   458→                )}
+   459→              </TableBody>
+   460→            </Table>
+   461→          </Card>
+   462→        </TabsContent>
+   463→
+   464→        {/* ==================== AUDITORÍA ==================== */}
+   465→        <TabsContent value="auditoria" className="space-y-4">
+   466→          <div className="flex flex-wrap items-end gap-3">
+   467→            <div className="grid gap-1.5">
+   468→              <Label className="text-xs text-muted-foreground">Tipo</Label>
+   469→              <Select value={auditTipo} onValueChange={v => handleAuditFilterChange(setAuditTipo, v)}>
+   470→                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+   471→                <SelectContent>
+   472→                  <SelectItem value="todos">Todos</SelectItem>
+   473→                  {auditTiposUnicos.map(t => (
+   474→                    <SelectItem key={t} value={t}>{t}</SelectItem>
+   475→                  ))}
+   476→                </SelectContent>
+   477→              </Select>
+   478→            </div>
+   479→            <div className="grid gap-1.5">
+   480→              <Label className="text-xs text-muted-foreground">Empleado</Label>
+   481→              <Select value={auditEmpleado} onValueChange={v => handleAuditFilterChange(setAuditEmpleado, v)}>
+   482→                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+   483→                <SelectContent>
+   484→                  <SelectItem value="todos">Todos</SelectItem>
+   485→                  {auditEmpleadosUnicos.map(e => (
+   486→                    <SelectItem key={e} value={e}>{e}</SelectItem>
+   487→                  ))}
+   488→                </SelectContent>
+   489→              </Select>
+   490→            </div>
+   491→            <div className="grid gap-1.5">
+   492→              <Label className="text-xs text-muted-foreground">Turno</Label>
+   493→              <Select value={auditTurno} onValueChange={v => handleAuditFilterChange(setAuditTurno, v)}>
+   494→                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+   495→                <SelectContent>
+   496→                  <SelectItem value="todos">Todos</SelectItem>
+   497→                  <SelectItem value="mañana">Mañana (6-14)</SelectItem>
+   498→                  <SelectItem value="tarde">Tarde (14-22)</SelectItem>
+   499→                  <SelectItem value="noche">Noche (22-6)</SelectItem>
+   500→                </SelectContent>
+   501→              </Select>
+   502→            </div>
+   503→            <div className="relative">
+   504→              <Label className="text-xs text-muted-foreground">Buscar</Label>
+   505→              <Search className="absolute left-3 bottom-2 w-4 h-4 text-muted-foreground" />
+   506→              <Input placeholder="Buscar en detalle..." value={auditSearch} onChange={e => handleAuditFilterChange(setAuditSearch, e.target.value)} className="pl-9 w-56" />
+   507→            </div>
+   508→          </div>
+   509→
+   510→          <div className="text-sm text-muted-foreground">
+   511→            {auditFiltrada.length} registros encontrados — Página {auditPage} de {auditTotalPages}
+   512→          </div>
+   513→
+   514→          <Card>
+   515→            <Table>
+   516→              <TableHeader>
+   517→                <TableRow>
+   518→                  <TableHead>Fecha y Hora</TableHead>
+   519→                  <TableHead>Tipo</TableHead>
+   520→                  <TableHead>Detalle</TableHead>
+   521→                  <TableHead className="hidden sm:table-cell">Empleado</TableHead>
+   522→                </TableRow>
+   523→              </TableHeader>
+   524→              <TableBody>
+   525→                {auditPaged.length === 0 ? (
+   526→                  <TableRow><TableCell colSpan={4}><EmptyState variant="audit" title="No hay registros de auditoría" compact /></TableCell></TableRow>
+   527→                ) : (
+   528→                  auditPaged.map(a => (
+   529→                    <TableRow key={a.id}>
+   530→                      <TableCell className="whitespace-nowrap text-sm">{formatFechaHora(a.fecha)}</TableCell>
+   531→                      <TableCell><Badge variant="outline">{a.tipo}</Badge></TableCell>
+   532→                      <TableCell className="max-w-md truncate">{a.detalle}</TableCell>
+   533→                      <TableCell className="hidden sm:table-cell">{a.empleado}</TableCell>
+   534→                    </TableRow>
+   535→                  ))
+   536→                )}
+   537→              </TableBody>
+   538→            </Table>
+   539→          </Card>
+   540→
+   541→          {auditTotalPages > 1 && (
+   542→            <Pagination>
+   543→              <PaginationContent>
+   544→                <PaginationItem>
+   545→                  <PaginationPrevious onClick={() => setAuditPage(p => Math.max(1, p - 1))} className={auditPage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'} />
+   546→                </PaginationItem>
+   547→                {Array.from({ length: auditTotalPages }, (_, i) => i + 1).map(p => (
+   548→                  <PaginationItem key={p}>
+   549→                    <PaginationLink isActive={p === auditPage} onClick={() => setAuditPage(p)} className="cursor-pointer">{p}</PaginationLink>
+   550→                  </PaginationItem>
+   551→                ))}
+   552→                <PaginationItem>
+   553→                  <PaginationNext onClick={() => setAuditPage(p => Math.min(auditTotalPages, p + 1))} className={auditPage >= auditTotalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'} />
+   554→                </PaginationItem>
+   555→              </PaginationContent>
+   556→            </Pagination>
+   557→          )}
+   558→        </TabsContent>
+   559→
+   560→        {/* ==================== HISTORIAL CAJA ==================== */}
+   561→        <TabsContent value="historial-caja" className="space-y-4">
+   562→          <Card>
+   563→            <Table>
+   564→              <TableHeader>
+   565→                <TableRow>
+   566→                  <TableHead>Empleado</TableHead>
+   567→                  <TableHead>Apertura</TableHead>
+   568→                  <TableHead>Cierre</TableHead>
+   569→                  <TableHead className="text-right">Diferencia</TableHead>
+   570→                  <TableHead className="text-right">Movimientos</TableHead>
+   571→                  <TableHead></TableHead>
+   572→                </TableRow>
+   573→              </TableHeader>
+   574→              <TableBody>
+   575→                {caja.historial.length === 0 ? (
+   576→                  <TableRow><TableCell colSpan={6}><EmptyState variant="audit" title="No hay turnos de caja registrados" compact /></TableCell></TableRow>
+   577→                ) : (
+   578→                  caja.historial.map((turno, idx) => (
+   579→                    <TableRow key={idx}>
+   580→                      <TableCell className="font-medium">{turno.apertura.empleado}</TableCell>
+   581→                      <TableCell className="whitespace-nowrap text-sm">{formatFechaHora(turno.apertura.fecha)}</TableCell>
+   582→                      <TableCell className="whitespace-nowrap text-sm">{formatFechaHora(turno.cierre.fecha)}</TableCell>
+   583→                      <TableCell className={`text-right font-medium ${turno.cierre.diferencia === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+   584→                        {formatMoneda(turno.cierre.diferencia)}
+   585→                      </TableCell>
+   586→                      <TableCell className="text-right"><Badge variant="secondary">{turno.movimientos.length}</Badge></TableCell>
+   587→                      <TableCell>
+   588→                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setCajaDetailIdx(idx)}>
+   589→                          <Eye className="w-3.5 h-3.5" />
+   590→                        </Button>
+   591→                      </TableCell>
+   592→                    </TableRow>
+   593→                  ))
+   594→                )}
+   595→              </TableBody>
+   596→            </Table>
+   597→          </Card>
+   598→        </TabsContent>
+   599→
+   600→        {/* ==================== HABITACIONES ==================== */}
+   601→        <TabsContent value="habitaciones" className="space-y-4">
+   602→          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+   603→            {[
+   604→              { label: 'Total', value: habResumen.total, color: '' },
+   605→              { label: 'Disponible', value: habResumen.disponibles, color: 'bg-emerald-100 text-emerald-700' },
+   606→              { label: 'Ocupada', value: habResumen.ocupadas, color: 'bg-red-100 text-red-700' },
+   607→              { label: 'Reservada', value: habResumen.reservadas, color: 'bg-amber-100 text-amber-700' },
+   608→              { label: 'Limpieza', value: habResumen.limpieza, color: 'bg-sky-100 text-sky-700' },
+   609→              { label: 'Mantenimiento', value: habResumen.mantenimiento, color: 'bg-orange-100 text-orange-700' },
+   610→              { label: 'Fuera serv.', value: habResumen.fueraServicio, color: 'bg-gray-100 text-gray-700' },
+   611→            ].map(item => (
+   612→              <Card key={item.label}>
+   613→                <CardHeader className="pb-1"><CardTitle className="text-xs font-medium text-muted-foreground">{item.label}</CardTitle></CardHeader>
+   614→                <CardContent><p className={`text-2xl font-bold ${item.color}`}>{item.value}</p></CardContent>
+   615→              </Card>
+   616→            ))}
+   617→          </div>
+   618→
+   619→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   620→            <Card>
+   621→              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Tasa de ocupación actual</CardTitle></CardHeader>
+   622→              <CardContent>
+   623→                <div className="flex items-center gap-3">
+   624→                  <div className="text-3xl font-bold">{habResumen.tasaOcupacion}%</div>
+   625→                  <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+   626→                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${habResumen.tasaOcupacion}%` }} />
+   627→                  </div>
+   628→                </div>
+   629→              </CardContent>
+   630→            </Card>
+   631→            <Card>
+   632→              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Tasa de ocupación en el periodo</CardTitle></CardHeader>
+   633→              <CardContent>
+   634→                <div className="flex items-center gap-3">
+   635→                  <div className="text-3xl font-bold">{habResumen.tasaOcupacionPeriodo}%</div>
+   636→                  <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+   637→                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${habResumen.tasaOcupacionPeriodo}%` }} />
+   638→                  </div>
+   639→                </div>
+   640→                <p className="text-xs text-muted-foreground mt-1">{habResumen.nochesOcupadas} noches ocupadas de {habResumen.diasPeriodo} días × {habResumen.total} hab.</p>
+   641→              </CardContent>
+   642→            </Card>
+   643→          </div>
+   644→
+   645→          <Card>
+   646→            <CardHeader><CardTitle className="text-base">Estado de habitaciones</CardTitle></CardHeader>
+   647→            <CardContent>
+   648→              <Table>
+   649→                <TableHeader>
+   650→                  <TableRow>
+   651→                    <TableHead>Nº</TableHead>
+   652→                    <TableHead>Tipo</TableHead>
+   653→                    <TableHead>Capacidad</TableHead>
+   654→                    <TableHead>Estado</TableHead>
+   655→                  </TableRow>
+   656→                </TableHeader>
+   657→                <TableBody>
+   658→                  {habResumen.habs.map(h => (
+   659→                    <TableRow key={h.numero}>
+   660→                      <TableCell className="font-medium">{h.numero}</TableCell>
+   661→                      <TableCell>{h.tipo}</TableCell>
+   662→                      <TableCell>{h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</TableCell>
+   663→                      <TableCell>
+   664→                        <Badge variant={
+   665→                          h.estado === 'Disponible' ? 'default' :
+   666→                          h.estado === 'Ocupada' ? 'destructive' :
+   667→                          h.estado === 'Reservada' ? 'secondary' :
+   668→                          'outline'
+   669→                        }>
+   670→                          {h.estado}
+   671→                        </Badge>
+   672→                      </TableCell>
+   673→                    </TableRow>
+   674→                  ))}
+   675→                </TableBody>
+   676→              </Table>
+   677→            </CardContent>
+   678→          </Card>
+   679→        </TabsContent>
+   680→
+   681→        {/* ==================== CLIENTES ==================== */}
+   682→        <TabsContent value="clientes" className="space-y-4">
+   683→          <div className="flex flex-wrap items-end gap-3">
+   684→            <div className="grid gap-1.5">
+   685→              <Label className="text-xs text-muted-foreground">Mínimo de estadías</Label>
+   686→              <Input type="number" min="0" value={clienteMinEstadias} onChange={e => setClienteMinEstadias(e.target.value)} className="w-32" />
+   687→            </div>
+   688→            <Badge variant="secondary">{clientesFrecuentes.length} clientes</Badge>
+   689→          </div>
+   690→
+   691→          <Card>
+   692→            <Table>
+   693→              <TableHeader>
+   694→                <TableRow>
+   695→                  <TableHead>Cliente</TableHead>
+   696→                  <TableHead>DNI</TableHead>
+   697→                  <TableHead className="text-right">Estadías</TableHead>
+   698→                  <TableHead className="text-right hidden sm:table-cell">Total Gastado</TableHead>
+   699→                  <TableHead className="hidden md:table-cell">Última Visita</TableHead>
+   700→                </TableRow>
+   701→              </TableHeader>
+   702→              <TableBody>
+   703→                {clientesFrecuentes.length === 0 ? (
+   704→                  <TableRow><TableCell colSpan={5}><EmptyState variant="search" title="No hay clientes que coincidan" compact /></TableCell></TableRow>
+   705→                ) : (
+   706→                  clientesFrecuentes.map(c => (
+   707→                    <TableRow key={c.id}>
+   708→                      <TableCell className="font-medium">{c.nombre}</TableCell>
+   709→                      <TableCell>{c.dni}</TableCell>
+   710→                      <TableCell className="text-right"><Badge variant="secondary">{c.cantidadEstadias}</Badge></TableCell>
+   711→                      <TableCell className="text-right font-medium hidden sm:table-cell">{formatMoneda(c.totalGastado)}</TableCell>
+   712→                      <TableCell className="hidden md:table-cell">{c.ultimaVisita !== '—' ? formatFecha(c.ultimaVisita) : '—'}</TableCell>
+   713→                    </TableRow>
+   714→                  ))
+   715→                )}
+   716→              </TableBody>
+   717→            </Table>
+   718→          </Card>
+   719→        </TabsContent>
+   720→
+   721→        {/* ==================== EMPLEADOS ==================== */}
+   722→        <TabsContent value="empleados" className="space-y-4">
+   723→          <Card>
+   724→            <Table>
+   725→              <TableHeader>
+   726→                <TableRow>
+   727→                  <TableHead>Empleado</TableHead>
+   728→                  <TableHead className="text-center">Check-Ins</TableHead>
+   729→                  <TableHead className="text-center">Check-Outs</TableHead>
+   730→                  <TableHead className="text-center hidden sm:table-cell">Pagos</TableHead>
+   731→                  <TableHead className="text-center hidden sm:table-cell">Gastos</TableHead>
+   732→                  <TableHead className="text-center hidden md:table-cell">Reservas</TableHead>
+   733→                  <TableHead className="text-right">Total Acciones</TableHead>
+   734→                </TableRow>
+   735→              </TableHeader>
+   736→              <TableBody>
+   737→                {empleadosResumen.length === 0 ? (
+   738→                  <TableRow><TableCell colSpan={7}><EmptyState variant="audit" title="No hay actividad en este periodo" compact /></TableCell></TableRow>
+   739→                ) : (
+   740→                  empleadosResumen.map(emp => (
+   741→                    <TableRow key={emp.nombre}>
+   742→                      <TableCell className="font-medium">{emp.nombre}</TableCell>
+   743→                      <TableCell className="text-center">{emp.checkins}</TableCell>
+   744→                      <TableCell className="text-center">{emp.checkouts}</TableCell>
+   745→                      <TableCell className="text-center hidden sm:table-cell">{emp.pagos}</TableCell>
+   746→                      <TableCell className="text-center hidden sm:table-cell">{emp.gastos}</TableCell>
+   747→                      <TableCell className="text-center hidden md:table-cell">{emp.reservas}</TableCell>
+   748→                      <TableCell className="text-right"><Badge variant="secondary">{emp.auditorias}</Badge></TableCell>
+   749→                    </TableRow>
+   750→                  ))
+   751→                )}
+   752→              </TableBody>
+   753→            </Table>
+   754→          </Card>
+   755→        </TabsContent>
+   756→      </Tabs>
+   757→
+   758→      {/* ==================== DIALOG: Agregar Gasto ==================== */}
+   759→      <Dialog open={gastoModal} onOpenChange={setGastoModal}>
+   760→        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
+   761→          <DialogHeader>
+   762→            <DialogTitle>Agregar Gasto</DialogTitle>
+   763→          </DialogHeader>
+   764→          <div className="grid gap-4 py-2">
+   765→            <div className="grid gap-1.5">
+   766→              <Label>Tipo *</Label>
+   767→              <Select value={gastoForm.tipo} onValueChange={v => setGastoForm({ ...gastoForm, tipo: v })}>
+   768→                <SelectTrigger><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
+   769→                <SelectContent>
+   770→                  {categoriasGastos.map(c => (
+   771→                    <SelectItem key={c} value={c}>{c}</SelectItem>
+   772→                  ))}
+   773→                </SelectContent>
+   774→              </Select>
+   775→            </div>
+   776→            <div className="grid gap-1.5">
+   777→              <Label>Descripción *</Label>
+   778→              <Textarea value={gastoForm.descripcion} onChange={e => setGastoForm({ ...gastoForm, descripcion: e.target.value })} placeholder="Descripción del gasto..." rows={2} />
+   779→            </div>
+   780→            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   781→              <div className="grid gap-1.5">
+   782→                <Label>Monto *</Label>
+   783→                <Input type="number" value={gastoForm.monto} onChange={e => setGastoForm({ ...gastoForm, monto: e.target.value })} placeholder="0" />
+   784→              </div>
+   785→              <div className="grid gap-1.5">
+   786→                <Label>Fecha</Label>
+   787→                <Input type="date" value={gastoForm.fecha} onChange={e => setGastoForm({ ...gastoForm, fecha: e.target.value })} />
+   788→              </div>
+   789→            </div>
+   790→          </div>
+   791→          <DialogFooter>
+   792→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   793→            <Button onClick={handleAgregarGasto} disabled={!gastoForm.tipo || !gastoForm.descripcion || !gastoForm.monto}>Guardar</Button>
+   794→          </DialogFooter>
+   795→        </DialogContent>
+   796→      </Dialog>
+   797→
+   798→      {/* ==================== DIALOG: Detalle Caja ==================== */}
+   799→      <Dialog open={cajaDetailIdx !== null} onOpenChange={() => setCajaDetailIdx(null)}>
+   800→        <DialogContent className="sm:max-w-5xl max-h-[80vh] overflow-y-auto">
+   801→          {selectedCajaTurno && (
+   802→            <>
+   803→              <DialogHeader>
+   804→                <DialogTitle className="flex items-center gap-2"><Wallet className="w-5 h-5" />Detalle de Turno de Caja</DialogTitle>
+   805→              </DialogHeader>
+   806→              <div className="space-y-4">
+   807→                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+   808→                  <div>
+   809→                    <span className="text-muted-foreground">Empleado:</span>
+   810→                    <p className="font-medium">{selectedCajaTurno.apertura.empleado}</p>
+   811→                  </div>
+   812→                  <div>
+   813→                    <span className="text-muted-foreground">Apertura:</span>
+   814→                    <p className="font-medium">{formatFechaHora(selectedCajaTurno.apertura.fecha)}</p>
+   815→                  </div>
+   816→                  <div>
+   817→                    <span className="text-muted-foreground">Monto Inicial:</span>
+   818→                    <p className="font-medium">{formatMoneda(selectedCajaTurno.apertura.montoInicial)}</p>
+   819→                  </div>
+   820→                  <div>
+   821→                    <span className="text-muted-foreground">Cierre:</span>
+   822→                    <p className="font-medium">{formatFechaHora(selectedCajaTurno.cierre.fecha)}</p>
+   823→                  </div>
+   824→                  <div>
+   825→                    <span className="text-muted-foreground">Saldo Esperado:</span>
+   826→                    <p className="font-medium">{formatMoneda(selectedCajaTurno.cierre.saldoEsperado)}</p>
+   827→                  </div>
+   828→                  <div>
+   829→                    <span className="text-muted-foreground">Saldo Contado:</span>
+   830→                    <p className="font-medium">{formatMoneda(selectedCajaTurno.cierre.saldoContado)}</p>
+   831→                  </div>
+   832→                  <div className="col-span-3">
+   833→                    <span className="text-muted-foreground">Diferencia:</span>
+   834→                    <p className={`font-bold text-lg ${selectedCajaTurno.cierre.diferencia === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+   835→                      {formatMoneda(selectedCajaTurno.cierre.diferencia)}
+   836→                    </p>
+   837→                  </div>
+   838→                </div>
+   839→
+   840→                <div>
+   841→                  <h4 className="font-semibold mb-2">Movimientos ({selectedCajaTurno.movimientos.length})</h4>
+   842→                  {selectedCajaTurno.movimientos.length === 0 ? (
+   843→                    <EmptyState variant="pagos" title="Sin movimientos" compact />
+   844→                  ) : (
+   845→                    <div className="max-h-60 overflow-y-auto">
+   846→                      <Table>
+   847→                        <TableHeader>
+   848→                          <TableRow>
+   849→                            <TableHead>Fecha</TableHead>
+   850→                            <TableHead>Tipo</TableHead>
+   851→                            <TableHead>Descripción</TableHead>
+   852→                            <TableHead>Método</TableHead>
+   853→                            <TableHead className="text-right">Monto</TableHead>
+   854→                          </TableRow>
+   855→                        </TableHeader>
+   856→                        <TableBody>
+   857→                          {selectedCajaTurno.movimientos.map((m, i) => (
+   858→                            <TableRow key={i}>
+   859→                              <TableCell className="whitespace-nowrap text-sm">{formatFechaHora(m.fecha)}</TableCell>
+   860→                              <TableCell>
+   861→                                <Badge variant={m.tipo === 'ingreso' ? 'default' : 'destructive'}>
+   862→                                  {m.tipo === 'ingreso' ? '+' : '-'}
+   863→                                </Badge>
+   864→                              </TableCell>
+   865→                              <TableCell>{m.descripcion}</TableCell>
+   866→                              <TableCell className="text-muted-foreground">{m.metodo}</TableCell>
+   867→                              <TableCell className={`text-right font-medium ${m.tipo === 'ingreso' ? 'text-emerald-600' : 'text-red-600'}`}>
+   868→                                {m.tipo === 'ingreso' ? '+' : '-'}{formatMoneda(m.monto)}
+   869→                              </TableCell>
+   870→                            </TableRow>
+   871→                          ))}
+   872→                        </TableBody>
+   873→                      </Table>
+   874→                    </div>
+   875→                  )}
+   876→                </div>
+   877→              </div>
+   878→              <DialogFooter>
+   879→                <DialogClose asChild><Button variant="secondary">Cerrar</Button></DialogClose>
+   880→              </DialogFooter>
+   881→            </>
+   882→          )}
+   883→        </DialogContent>
+   884→      </Dialog>
+   885→    </div>
+   886→  );
+   887→}

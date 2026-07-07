@@ -1,0 +1,1011 @@
+     1→'use client';
+     2→
+     3→import { useHotelStore } from '@/lib/store';
+     4→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     5→import { Button } from '@/components/ui/button';
+     6→import { Badge } from '@/components/ui/badge';
+     7→import {
+     8→  Bed, DollarSign, LogIn, LogOut, SprayCan, Wrench,
+     9→  CalendarCheck, TrendingUp, AlertTriangle, BarChart3,
+    10→  Bell, CheckCircle, LockOpen, ChevronLeft, ChevronRight,
+    11→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+    12→} from 'lucide-react';
+    13→import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+    14→import { format } from 'date-fns';
+    15→import { es } from 'date-fns/locale';
+    16→
+    17→// ==================== HELPERS ====================
+    18→
+    19→const DIAS_GANTT = 14;
+    20→const ROW_H = 46;
+    21→const BAR_H = 26;
+    22→const BAR_TOP = (ROW_H - BAR_H) / 2;
+    23→const COL_PCT = 100 / DIAS_GANTT;
+    24→const MITAD_COL_PCT = COL_PCT / 2;
+    25→const NOMBRES_DIAS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
+    26→
+    27→const formatMoney = (n: number) =>
+    28→  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n);
+    29→
+    30→function formatearFecha(fechaStr: string): string {
+    31→  if (!fechaStr) return '';
+    32→  const d = new Date(fechaStr + 'T00:00:00');
+    33→  return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+    34→}
+    35→
+    36→// ==================== ANIMATED NUMBER HOOK ====================
+    37→
+    38→function useCountUp(target: number, duration = 800, enabled = true) {
+    39→  const [value, setValue] = useState(0);
+    40→  const prevTarget = useRef(target);
+    41→
+    42→  useEffect(() => {
+    43→    if (!enabled) { setValue(target); return; }
+    44→    const startValue = prevTarget.current;
+    45→    const diff = target - startValue;
+    46→    if (Math.abs(diff) < 1) { setValue(target); prevTarget.current = target; return; }
+    47→    const startTime = performance.now();
+    48→    let raf: number;
+    49→    const animate = (now: number) => {
+    50→      const elapsed = now - startTime;
+    51→      const progress = Math.min(elapsed / duration, 1);
+    52→      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    53→      setValue(Math.round(startValue + diff * eased));
+    54→      if (progress < 1) { raf = requestAnimationFrame(animate); }
+    55→      else { prevTarget.current = target; }
+    56→    };
+    57→    raf = requestAnimationFrame(animate);
+    58→    return () => cancelAnimationFrame(raf);
+    59→  }, [target, duration, enabled]);
+    60→
+    61→  return value;
+    62→}
+    63→
+    64→// ==================== ANIMATED KPI ====================
+    65→
+    66→function KPIAnimated({ icon: Icon, label, value, sub, color, numeric = false }: {
+    67→  icon: React.ComponentType<{ className?: string }>;
+    68→  label: string;
+    69→  value: string;
+    70→  sub?: string;
+    71→  color: string;
+    72→  numeric?: boolean;
+    73→}) {
+    74→  const numVal = numeric ? parseInt(value.replace(/[^0-9]/g, '')) || 0 : 0;
+    75→  const animated = useCountUp(numVal, 600, numeric && numVal > 0);
+    76→  const displayValue = numeric ? value.replace(/\d+/, String(animated)) : value;
+    77→
+    78→  return (
+    79→    <Card className="overflow-hidden group hover:shadow-md transition-shadow duration-200">
+    80→      <CardContent className="p-4">
+    81→        <div className="flex items-center gap-3">
+    82→          <div className={`p-2.5 rounded-xl bg-muted/80 group-hover:scale-110 transition-transform duration-200 ${color}`}>
+    83→            <Icon className="w-5 h-5" />
+    84→          </div>
+    85→          <div className="min-w-0">
+    86→            <p className="text-xs text-muted-foreground font-medium">{label}</p>
+    87→            <p className="text-xl font-bold truncate">{displayValue}</p>
+    88→            {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+    89→          </div>
+    90→        </div>
+    91→      </CardContent>
+    92→    </Card>
+    93→  );
+    94→}
+    95→
+    96→// ==================== WEATHER ICON ====================
+    97→
+    98→function WeatherIcon({ code }: { code: number }) {
+    99→  const size = 20;
+   100→  if (code === 0) return <Sun className="w-5 h-5 text-amber-500" />;
+   101→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-slate-400" />;
+   102→  if (code >= 45 && code <= 48) return <CloudFog className="w-5 h-5 text-slate-400" />;
+   103→  if (code >= 51 && code <= 55) return <CloudDrizzle className="w-5 h-5 text-blue-400" />;
+   104→  if (code >= 56 && code <= 57) return <CloudDrizzle className="w-5 h-5 text-blue-300" />;
+   105→  if (code >= 61 && code <= 67) return <CloudRain className="w-5 h-5 text-blue-500" />;
+   106→  if (code >= 71 && code <= 77) return <CloudSnow className="w-5 h-5 text-blue-300" />;
+   107→  if (code >= 80 && code <= 82) return <CloudLightning className="w-5 h-5 text-yellow-600" />;
+   108→  if (code >= 95) return <CloudLightning className="w-5 h-5 text-purple-600" />;
+   109→  return <Thermometer className="w-5 h-5 text-slate-400" />;
+   110→}
+   111→
+   112→// ==================== LIVE CLOCK + WEATHER ====================
+   113→
+   114→function LiveClockWeather() {
+   115→  const [time, setTime] = useState('');
+   116→  const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null);
+   117→
+   118→  useEffect(() => {
+   119→    const update = () => {
+   120→      setTime(new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+   121→    };
+   122→    update();
+   123→    const id = setInterval(update, 1000);
+   124→    return () => clearInterval(id);
+   125→  }, []);
+   126→
+   127→  useEffect(() => {
+   128→    const fetchWeather = async () => {
+   129→      try {
+   130→        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-27.65&longitude=-67.03&current_weather=true&timezone=America/Argentina/Catamarca');
+   131→        if (!res.ok) return;
+   132→        const data = await res.json();
+   133→        setWeather({ temp: data.current_weather.temperature, code: data.current_weather.weathercode });
+   134→      } catch { /* ignore */ }
+   135→    };
+   136→    fetchWeather();
+   137→    const id = setInterval(fetchWeather, 30 * 60 * 1000);
+   138→    return () => clearInterval(id);
+   139→  }, []);
+   140→
+   141→  return (
+   142→    <div className="flex items-center gap-4">
+   143→      {weather && (
+   144→        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+   145→          <WeatherIcon code={weather.code} />
+   146→          <span className="font-semibold">{weather.temp}°C</span>
+   147→        </div>
+   148→      )}
+   149→      <div className="font-mono text-lg font-semibold tabular-nums tracking-wide text-slate-700">
+   150→        {time}
+   151→      </div>
+   152→    </div>
+   153→  );
+   154→}
+   155→
+   156→// ==================== POPOVER COMPONENT (enhanced) ====================
+   157→
+   158→interface PopoverData {
+   159→  estado: string;
+   160→  habitacion: string;
+   161→  huesped: string;
+   162→  checkin: string;
+   163→  checkout: string;
+   164→  problema?: string;
+   165→  tarifa?: string;
+   166→  monto?: number;
+   167→  estadoPago?: string;
+   168→}
+   169→
+   170→function GanttPopover({ data, position, onClose }: {
+   171→  data: PopoverData | null;
+   172→  position: { top: number; left: number };
+   173→  onClose: () => void;
+   174→}) {
+   175→  const ref = useRef<HTMLDivElement>(null);
+   176→
+   177→  useEffect(() => {
+   178→    function handleClick(e: MouseEvent) {
+   179→      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+   180→    }
+   181→    if (data) document.addEventListener('mousedown', handleClick);
+   182→    return () => document.removeEventListener('mousedown', handleClick);
+   183→  }, [data, onClose]);
+   184→
+   185→  if (!data) return null;
+   186→
+   187→  const iconoMap: Record<string, { icon: React.ReactNode; color: string }> = {
+   188→    Reservada: { icon: <CalendarCheck className="w-3.5 h-3.5 text-blue-500" />, color: '' },
+   189→    Ocupada: { icon: <Bed className="w-3.5 h-3.5 text-red-500" />, color: '' },
+   190→    Limpieza: { icon: <SprayCan className="w-3.5 h-3.5 text-yellow-500" />, color: '' },
+   191→    Mantenimiento: { icon: <Wrench className="w-3.5 h-3.5 text-slate-400" />, color: '' },
+   192→  };
+   193→  const icono = iconoMap[data.estado] || { icon: <CheckCircle className="w-3.5 h-3.5 text-green-500" />, color: '' };
+   194→
+   195→  const estadoColors: Record<string, string> = {
+   196→    Reservada: 'bg-blue-100 text-blue-700',
+   197→    Ocupada: 'bg-green-100 text-green-700',
+   198→    Limpieza: 'bg-yellow-100 text-yellow-700',
+   199→    Mantenimiento: 'bg-slate-100 text-slate-600',
+   200→  };
+   201→
+   202→  return (
+   203→    <div
+   204→      ref={ref}
+   205→      className="fixed z-[9999] bg-white border-2 border-slate-200 rounded-xl p-3.5 shadow-2xl min-w-[220px] max-w-[280px] text-sm animate-in fade-in-0 zoom-in-95 duration-150"
+   206→      style={{ top: position.top, left: Math.max(position.left, 10) }}
+   207→    >
+   208→      <div className="flex items-center gap-2 mb-2">
+   209→        {icono.icon}
+   210→        <span className="font-bold">Hab. {data.habitacion}</span>
+   211→        <span className={`ml-auto text-[11px] px-1.5 py-0.5 rounded font-medium ${estadoColors[data.estado] || 'bg-gray-100 text-gray-600'}`}>
+   212→          {data.estado}
+   213→        </span>
+   214→      </div>
+   215→
+   216→      {data.huesped && data.estado !== 'Disponible' && data.estado !== 'Limpieza' && (
+   217→        <div className="font-semibold text-[13px] mb-1.5">{data.huesped}</div>
+   218→      )}
+   219→
+   220→      {data.checkin && data.checkout && (
+   221→        <div className="flex gap-3 text-[11px] text-slate-500 mb-2">
+   222→          <span className="flex items-center gap-1">
+   223→            <LogIn className="w-3 h-3 text-sky-500" />
+   224→            {formatearFecha(data.checkin)} 14:00
+   225→          </span>
+   226→          <span>→</span>
+   227→          <span className="flex items-center gap-1">
+   228→            <LogOut className="w-3 h-3 text-rose-500" />
+   229→            {formatearFecha(data.checkout)} 09:00
+   230→          </span>
+   231→        </div>
+   232→      )}
+   233→
+   234→      {/* Extra info: tarifa, monto, estado pago */}
+   235→      {(data.tarifa || data.monto !== undefined || data.estadoPago) && (
+   236→        <div className="border-t border-slate-100 pt-1.5 mt-1 space-y-0.5">
+   237→          {data.tarifa && (
+   238→            <div className="flex justify-between text-[11px]">
+   239→              <span className="text-slate-400">Tarifa</span>
+   240→              <span className="font-medium capitalize">{data.tarifa}</span>
+   241→            </div>
+   242→          )}
+   243→          {data.monto !== undefined && data.monto > 0 && (
+   244→            <div className="flex justify-between text-[11px]">
+   245→              <span className="text-slate-400">Total</span>
+   246→              <span className="font-bold text-emerald-700">{formatMoney(data.monto)}</span>
+   247→            </div>
+   248→          )}
+   249→          {data.estadoPago && (
+   250→            <div className="flex justify-between text-[11px]">
+   251→              <span className="text-slate-400">Pago</span>
+   252→              <span className={`font-medium ${data.estadoPago === 'Pagado' ? 'text-green-600' : data.estadoPago === 'Parcial' ? 'text-orange-600' : 'text-red-500'}`}>
+   253→                {data.estadoPago}
+   254→              </span>
+   255→            </div>
+   256→          )}
+   257→        </div>
+   258→      )}
+   259→
+   260→      {data.estado === 'Limpieza' && (
+   261→        <p className="text-yellow-600 text-xs flex items-center gap-1 mt-1"><SprayCan className="w-3 h-3" /> Pendiente de limpieza</p>
+   262→      )}
+   263→      {data.estado === 'Mantenimiento' && (
+   264→        <p className="text-slate-500 text-xs flex items-center gap-1 mt-1"><Wrench className="w-3 h-3" /> {data.problema || 'En mantenimiento'}</p>
+   265→      )}
+   266→      {data.estado === 'Disponible' && (
+   267→        <p className="text-green-600 text-xs flex items-center gap-1 mt-1"><CheckCircle className="w-3 h-3" /> Disponible</p>
+   268→      )}
+   269→    </div>
+   270→  );
+   271→}
+   272→
+   273→// ==================== TOOLTIP ====================
+   274→
+   275→function Tooltip({ children, text }: { children: React.ReactNode; text: string }) {
+   276→  const [show, setShow] = useState(false);
+   277→  return (
+   278→    <div className="relative" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+   279→      {children}
+   280→      {show && (
+   281→        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-slate-800 text-white text-[11px] rounded-lg whitespace-nowrap z-50 shadow-lg pointer-events-none animate-in fade-in-0 zoom-in-95 duration-100">
+   282→          {text}
+   283→          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+   284→        </div>
+   285→      )}
+   286→    </div>
+   287→  );
+   288→}
+   289→
+   290→// ==================== GRAFICO INGRESOS VS EGRESOS (con tooltips y animación) ====================
+   291→
+   292→function GraficoIngresosEgresos({ pagos, gastos }: { pagos: { fecha: string; monto: number }[]; gastos: { fecha: string; monto: number }[] }) {
+   293→  const [mounted, setMounted] = useState(false);
+   294→  useEffect(() => { const t = setTimeout(() => setMounted(true), 50); return () => clearTimeout(t); }, []);
+   295→
+   296→  const datos = useMemo(() => {
+   297→    const hoy = new Date();
+   298→    const dias: string[] = [];
+   299→    for (let i = 6; i >= 0; i--) {
+   300→      const d = new Date(hoy);
+   301→      d.setDate(d.getDate() - i);
+   302→      dias.push(d.toISOString().split('T')[0]);
+   303→    }
+   304→    return dias.map(dia => {
+   305→      const ing = pagos.filter(p => p.fecha === dia).reduce((s, p) => s + p.monto, 0);
+   306→      const egr = gastos.filter(g => g.fecha === dia).reduce((s, g) => s + g.monto, 0);
+   307→      const d = new Date(dia + 'T00:00:00');
+   308→      return { dia: d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' }).replace(/^\w/, c => c.toUpperCase()), ing, egr, fullDate: formatearFecha(dia) };
+   309→    });
+   310→  }, [pagos, gastos]);
+   311→
+   312→  const maxVal = Math.max(...datos.map(d => Math.max(d.ing, d.egr)), 1);
+   313→
+   314→  return (
+   315→    <Card>
+   316→      <CardHeader className="pb-3">
+   317→        <CardTitle className="text-base flex items-center gap-2">
+   318→          <BarChart3 className="w-4 h-4 text-blue-500" />
+   319→          Ingresos vs Egresos (7 días)
+   320→        </CardTitle>
+   321→      </CardHeader>
+   322→      <CardContent>
+   323→        <div className="flex items-end gap-2" style={{ height: 140 }}>
+   324→          {datos.map((d, i) => (
+   325→            <div key={i} className="flex-1 flex flex-col items-center h-full">
+   326→              <Tooltip text={`Ingresos: ${formatMoney(d.ing)}`}>
+   327→                <div
+   328→                  className="w-4 rounded-t-md transition-all duration-700 ease-out hover:opacity-80 cursor-default"
+   329→                  style={{
+   330→                    height: mounted ? `${(d.ing / maxVal) * 100}%` : '0%',
+   331→                    backgroundColor: '#6b8f71',
+   332→                    transitionDelay: `${i * 80}ms`,
+   333→                  }}
+   334→                />
+   335→              </Tooltip>
+   336→              <Tooltip text={`Egresos: ${formatMoney(d.egr)}`}>
+   337→                <div
+   338→                  className="w-4 rounded-t-md transition-all duration-700 ease-out hover:opacity-80 cursor-default mt-0.5"
+   339→                  style={{
+   340→                    height: mounted ? `${(d.egr / maxVal) * 100}%` : '0%',
+   341→                    backgroundColor: '#c06b5e',
+   342→                    transitionDelay: `${i * 80 + 40}ms`,
+   343→                  }}
+   344→                />
+   345→              </Tooltip>
+   346→              <span className="text-[9px] text-muted-foreground mt-1.5 font-medium">{d.dia.slice(0, 3)}</span>
+   347→            </div>
+   348→          ))}
+   349→        </div>
+   350→        <div className="flex justify-end gap-4 mt-3">
+   351→          <span className="text-xs text-green-700 flex items-center gap-1.5 font-medium">
+   352→            <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: '#6b8f71' }} />
+   353→            Ingresos
+   354→          </span>
+   355→          <span className="text-xs text-red-700 flex items-center gap-1.5 font-medium">
+   356→            <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: '#c06b5e' }} />
+   357→            Egresos
+   358→          </span>
+   359→        </div>
+   360→      </CardContent>
+   361→    </Card>
+   362→  );
+   363→}
+   364→
+   365→// ==================== CALENDARIO GANTT (con navegación y popover mejorado) ====================
+   366→
+   367→interface GanttReserva {
+   368→  tipo: string;
+   369→  checkin: string;
+   370→  checkout: string;
+   371→  huesped: string;
+   372→  horaCheckin: Date;
+   373→  horaCheckout: Date;
+   374→  tarifa?: string;
+   375→  monto?: number;
+   376→  estadoPago?: string;
+   377→}
+   378→
+   379→function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
+   380→  habitaciones: Record<string, { tipo: string; estado: string; problema?: string }>;
+   381→  reservas: { habitacion: string; estado: string; checkin: string; checkout: string; huesped: string; horaCheckin?: string; horaCheckout?: string; tipoTarifa?: string; total?: number; estadoPago?: string }[];
+   382→  fechaInicioBase: Date;
+   383→}) {
+   384→  const [offset, setOffset] = useState(0);
+   385→  const [popoverData, setPopoverData] = useState<PopoverData | null>(null);
+   386→  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
+   387→
+   388→  const fechaInicio = useMemo(() => {
+   389→    const d = new Date(fechaInicioBase);
+   390→    d.setDate(d.getDate() + offset * DIAS_GANTT);
+   391→    return d;
+   392→  }, [fechaInicioBase, offset]);
+   393→
+   394→  const columnas = useMemo(() => {
+   395→    const cols: string[] = [];
+   396→    for (let i = 0; i < DIAS_GANTT; i++) {
+   397→      const f = new Date(fechaInicio);
+   398→      f.setDate(f.getDate() + i);
+   399→      cols.push(f.toISOString().split('T')[0]);
+   400→    }
+   401→    return cols;
+   402→  }, [fechaInicio]);
+   403→
+   404→  const colIdx = useMemo(() => {
+   405→    const idx: Record<string, number> = {};
+   406→    columnas.forEach((c, i) => idx[c] = i);
+   407→    return idx;
+   408→  }, [columnas]);
+   409→
+   410→  const hoyStr = new Date().toISOString().split('T')[0];
+   411→
+   412→  const handleBarClick = useCallback((e: React.MouseEvent, res: GanttReserva, num: string) => {
+   413→    e.stopPropagation();
+   414→    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+   415→    let left = rect.left + window.scrollX;
+   416→    if (left + 280 > window.innerWidth) left = window.innerWidth - 290;
+   417→    setPopoverPos({ top: rect.bottom + window.scrollY + 6, left });
+   418→    setPopoverData({
+   419→      estado: res.tipo,
+   420→      habitacion: num,
+   421→      huesped: res.huesped,
+   422→      checkin: res.checkin,
+   423→      checkout: res.checkout,
+   424→      problema: res.tipo === 'Mantenimiento' ? res.huesped : undefined,
+   425→      tarifa: res.tarifa,
+   426→      monto: res.monto,
+   427→      estadoPago: res.estadoPago,
+   428→    });
+   429→  }, []);
+   430→
+   431→  const rows = useMemo(() => {
+   432→    const habNumbers = Object.keys(habitaciones).sort();
+   433→    const result: React.ReactNode[] = [];
+   434→
+   435→    habNumbers.forEach((num, rowIndex) => {
+   436→      const hab = habitaciones[num];
+   437→      const reservasHab: GanttReserva[] = [];
+   438→
+   439→      reservas.forEach(r => {
+   440→        if (r.habitacion !== num || r.estado === 'Cancelada') return;
+   441→        if (r.checkin > columnas[DIAS_GANTT - 1] || r.checkout < columnas[0]) return;
+   442→
+   443→        const horaCheckin = r.horaCheckin ? new Date(r.horaCheckin) : new Date(r.checkin + 'T14:00:00');
+   444→        const horaCheckout = r.horaCheckout ? new Date(r.horaCheckout) : new Date(r.checkout + 'T09:00:00');
+   445→
+   446→        const estado = (r.estado === 'Check-In realizado' || r.estado === 'Check-Out realizado') ? 'Ocupada' : 'Reservada';
+   447→        reservasHab.push({
+   448→          tipo: estado, checkin: r.checkin, checkout: r.checkout, huesped: r.huesped,
+   449→          horaCheckin, horaCheckout, tarifa: r.tipoTarifa, monto: r.total, estadoPago: r.estadoPago,
+   450→        });
+   451→      });
+   452→
+   453→      if (hab.estado === 'Limpieza' && columnas.includes(hoyStr)) {
+   454→        reservasHab.push({ tipo: 'Limpieza', checkin: hoyStr, checkout: hoyStr, huesped: 'Limpieza', horaCheckin: new Date(hoyStr + 'T00:00:00'), horaCheckout: new Date(hoyStr + 'T23:59:59') });
+   455→      }
+   456→
+   457→      if (hab.estado === 'Mantenimiento') {
+   458→        reservasHab.push({ tipo: 'Mantenimiento', checkin: columnas[0], checkout: columnas[DIAS_GANTT - 1], huesped: hab.problema || 'Mantenimiento', horaCheckin: new Date(columnas[0] + 'T00:00:00'), horaCheckout: new Date(columnas[DIAS_GANTT - 1] + 'T23:59:59') });
+   459→      }
+   460→
+   461→      // Habitaciones compartidas: carriles múltiples
+   462→      if (hab.tipo === 'Compartida' && reservasHab.length > 0) {
+   463→        const reservasActivas = reservasHab.filter(r => r.tipo !== 'Limpieza' && r.tipo !== 'Mantenimiento');
+   464→        const numCarriles = reservasActivas.length || 1;
+   465→        const FILA_H = Math.max(ROW_H, numCarriles * (BAR_H + 4) + 8);
+   466→
+   467→        const bgCells = columnas.map((col, ci) => {
+   468→          const d = new Date(col + 'T00:00:00');
+   469→          const esFS = d.getDay() === 0 || d.getDay() === 6;
+   470→          const isHoy = col === hoyStr;
+   471→          return <div key={ci} className={`flex-1 h-full border-l-2 border-slate-200 box-border ${esFS ? 'bg-rose-50/40' : ''} ${isHoy ? 'bg-blue-50/30' : ''}`} style={{ height: FILA_H }} />;
+   472→        });
+   473→
+   474→        const barras = reservasActivas.map((res, idx) => {
+   475→          const carrilTop = 4 + idx * (BAR_H + 4);
+   476→          const barData = calcularBarra(res, colIdx, columnas, DIAS_GANTT);
+   477→          if (!barData) return null;
+   478→          return (
+   479→            <div
+   480→              key={idx}
+   481→              className={`absolute rounded-md flex items-center px-2.5 cursor-pointer overflow-hidden transition-all duration-150 z-[4] box-border hover:brightness-110 hover:shadow-lg hover:scale-y-105 ${getBarColorClass(res.tipo)}`}
+   482→              style={{ left: `calc(${barData.leftPct}% + 2px)`, width: `calc(${barData.widthPct}% - 4px)`, top: carrilTop, height: BAR_H }}
+   483→              onClick={(e) => handleBarClick(e, res, num)}
+   484→            >
+   485→              <span className="text-[11px] font-semibold text-white whitespace-nowrap overflow-hidden text-ellipsis pointer-events-none drop-shadow-sm">
+   486→                {res.huesped}
+   487→              </span>
+   488→            </div>
+   489→          );
+   490→        });
+   491→
+   492→        result.push(
+   493→          <div key={num} className={`flex items-stretch border-b-2 border-slate-200 last:border-b-0 ${rowIndex % 2 !== 0 ? 'bg-slate-50/50' : ''}`} style={{ height: FILA_H }}>
+   494→            <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-slate-200 bg-white z-[5]" style={{ height: FILA_H }}>
+   495→              <span className="text-[12px] font-bold text-slate-800 leading-tight">{num}</span>
+   496→              <span className="text-[10px] text-slate-500 font-medium mt-0.5">{hab.tipo}</span>
+   497→            </div>
+   498→            <div className="flex-1 relative overflow-hidden min-w-0">
+   499→              <div className="absolute top-0 left-0 w-full h-full flex pointer-events-none">{bgCells}</div>
+   500→              {barras}
+   501→            </div>
+   502→          </div>
+   503→        );
+   504→        return;
+   505→      }
+   506→
+   507→      // Habitaciones normales
+   508→      const bgCells = columnas.map((col, ci) => {
+   509→        const d = new Date(col + 'T00:00:00');
+   510→        const esFS = d.getDay() === 0 || d.getDay() === 6;
+   511→        const isHoy = col === hoyStr;
+   512→        return <div key={ci} className={`flex-1 h-full border-l-2 border-slate-200 box-border ${esFS ? 'bg-rose-50/40' : ''} ${isHoy ? 'bg-blue-50/30' : ''}`} />;
+   513→      });
+   514→
+   515→      const barras = reservasHab.map((res, idx) => {
+   516→        const barData = calcularBarra(res, colIdx, columnas, DIAS_GANTT);
+   517→        if (!barData) return null;
+   518→        return (
+   519→          <div
+   520→            key={idx}
+   521→            className={`absolute rounded-md flex items-center px-2.5 cursor-pointer overflow-hidden transition-all duration-150 z-[4] box-border hover:brightness-110 hover:shadow-lg hover:scale-y-105 ${getBarColorClass(res.tipo)}`}
+   522→            style={{ left: `calc(${barData.leftPct}% + 2px)`, width: `calc(${barData.widthPct}% - 4px)`, top: BAR_TOP, height: BAR_H }}
+   523→            onClick={(e) => handleBarClick(e, res, num)}
+   524→          >
+   525→            <span className="text-[11px] font-semibold text-white whitespace-nowrap overflow-hidden text-ellipsis pointer-events-none drop-shadow-sm">
+   526→              {res.huesped}
+   527→            </span>
+   528→          </div>
+   529→        );
+   530→      });
+   531→
+   532→      result.push(
+   533→        <div key={num} className={`flex items-stretch border-b-2 border-slate-200 last:border-b-0 ${rowIndex % 2 !== 0 ? 'bg-slate-50/50' : ''}`} style={{ height: ROW_H }}>
+   534→          <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-slate-200 bg-white z-[5]" style={{ height: ROW_H }}>
+   535→            <span className="text-[12px] font-bold text-slate-800 leading-tight">{num}</span>
+   536→            <span className="text-[10px] text-slate-500 font-medium mt-0.5">{hab.tipo}</span>
+   537→          </div>
+   538→          <div className="flex-1 relative overflow-hidden min-w-0">
+   539→            <div className="absolute top-0 left-0 w-full h-full flex pointer-events-none">{bgCells}</div>
+   540→            {barras}
+   541→          </div>
+   542→        </div>
+   543→      );
+   544→    });
+   545→
+   546→    return result;
+   547→  }, [habitaciones, reservas, columnas, colIdx, handleBarClick, hoyStr]);
+   548→
+   549→  const headerCols = useMemo(() => {
+   550→    return columnas.map((col, i) => {
+   551→      const d = new Date(col + 'T00:00:00');
+   552→      const esFS = d.getDay() === 0 || d.getDay() === 6;
+   553→      const isHoy = col === hoyStr;
+   554→      return (
+   555→        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-slate-200 min-w-0 ${esFS ? 'bg-rose-50/50' : ''} ${isHoy ? 'bg-blue-100/60' : ''}`}>
+   556→          <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-rose-500' : 'text-slate-500'} ${isHoy ? '!text-blue-600' : ''}`}>
+   557→            {NOMBRES_DIAS[d.getDay()]}
+   558→          </span>
+   559→          <span className={`text-[15px] font-bold leading-none mt-0.5 ${esFS ? 'text-rose-500' : 'text-slate-800'} ${isHoy ? '!text-blue-700 underline decoration-2 underline-offset-2' : ''}`}>
+   560→            {d.getDate()}
+   561→          </span>
+   562→        </div>
+   563→      );
+   564→    });
+   565→  }, [columnas, hoyStr]);
+   566→
+   567→  const legendItems = [
+   568→    { label: 'Disponible', color: 'bg-slate-200 border border-slate-300' },
+   569→    { label: 'Reservada', color: 'bg-blue-500' },
+   570→    { label: 'Ocupada', color: 'bg-emerald-500' },
+   571→    { label: 'Limpieza', color: 'bg-amber-500' },
+   572→    { label: 'Mantenimiento', color: 'bg-slate-400' },
+   573→  ];
+   574→
+   575→  const rangeLabel = `${formatearFecha(columnas[0])} — ${formatearFecha(columnas[columnas.length - 1])}`;
+   576→
+   577→  return (
+   578→    <>
+   579→      <Card className="overflow-hidden">
+   580→        <CardHeader className="pb-2">
+   581→          <div className="flex items-center justify-between">
+   582→            <CardTitle className="text-base flex items-center gap-2">
+   583→              <CalendarCheck className="w-4 h-4 text-blue-500" />
+   584→              Calendario de Ocupación
+   585→            </CardTitle>
+   586→            <div className="flex items-center gap-2">
+   587→              <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setOffset(o => o - 1)} disabled={offset <= -2}>
+   588→                <ChevronLeft className="w-4 h-4" />
+   589→              </Button>
+   590→              <span className="text-xs text-muted-foreground font-medium min-w-[180px] text-center">{rangeLabel}</span>
+   591→              <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setOffset(o => o + 1)}>
+   592→                <ChevronRight className="w-4 h-4" />
+   593→              </Button>
+   594→              {offset !== 0 && (
+   595→                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setOffset(0)}>Hoy</Button>
+   596→              )}
+   597→            </div>
+   598→          </div>
+   599→        </CardHeader>
+   600→        <CardContent className="p-0">
+   601→          <div className="bg-white border-2 border-slate-200 rounded-lg overflow-hidden shadow-sm">
+   602→            <div className="flex border-b-2 border-slate-200 bg-slate-50">
+   603→              <div className="w-[130px] min-w-[130px] shrink-0 border-r-2 border-slate-200" />
+   604→              <div className="flex flex-1">{headerCols}</div>
+   605→            </div>
+   606→            <div className="overflow-x-auto">{rows}</div>
+   607→            <div className="flex gap-4 flex-wrap px-3.5 py-2.5 border-t-2 border-slate-200">
+   608→              {legendItems.map(item => (
+   609→                <span key={item.label} className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+   610→                  <span className={`inline-block w-3.5 h-2.5 rounded-sm ${item.color}`} />
+   611→                  {item.label}
+   612→                </span>
+   613→              ))}
+   614→            </div>
+   615→          </div>
+   616→        </CardContent>
+   617→      </Card>
+   618→      <GanttPopover data={popoverData} position={popoverPos} onClose={() => setPopoverData(null)} />
+   619→    </>
+   620→  );
+   621→}
+   622→
+   623→function getBarColorClass(tipo: string): string {
+   624→  const map: Record<string, string> = {
+   625→    Reservada: 'bg-blue-500 shadow-[0_2px_6px_rgba(59,130,246,0.35)]',
+   626→    Ocupada: 'bg-emerald-500 shadow-[0_2px_6px_rgba(16,185,129,0.35)]',
+   627→    Limpieza: 'bg-amber-500 shadow-[0_2px_6px_rgba(245,158,11,0.30)]',
+   628→    Mantenimiento: 'bg-slate-400 shadow-[0_2px_6px_rgba(100,116,139,0.25)]',
+   629→  };
+   630→  return map[tipo] || map.Reservada;
+   631→}
+   632→
+   633→function calcularBarra(res: GanttReserva, colIdx: Record<string, number>, columnas: string[], DIAS: number) {
+   634→  let startCol = Math.max(colIdx[res.checkin] ?? 0, 0);
+   635→  let endCol = Math.min(colIdx[res.checkout] !== undefined ? colIdx[res.checkout] : DIAS - 1, DIAS - 1);
+   636→
+   637→  const esCheckinTarde = res.tipo !== 'Limpieza' && res.tipo !== 'Mantenimiento' && res.horaCheckin && res.horaCheckin.getHours() >= 12;
+   638→  const esCheckoutManana = res.tipo !== 'Limpieza' && res.tipo !== 'Mantenimiento' && res.horaCheckout && res.horaCheckout.getHours() < 12;
+   639→
+   640→  let leftPct: number, widthPct: number;
+   641→
+   642→  if (esCheckinTarde && startCol >= 0 && !(res.checkin < columnas[0])) {
+   643→    leftPct = startCol * COL_PCT + MITAD_COL_PCT;
+   644→  } else {
+   645→    leftPct = startCol * COL_PCT;
+   646→  }
+   647→
+   648→  if (esCheckoutManana && endCol >= 0 && !(res.checkout > columnas[DIAS - 1])) {
+   649→    widthPct = ((endCol - startCol) * COL_PCT) + (esCheckinTarde ? MITAD_COL_PCT : COL_PCT) - (esCheckoutManana ? MITAD_COL_PCT : 0);
+   650→  } else {
+   651→    widthPct = (endCol - startCol + 1) * COL_PCT;
+   652→  }
+   653→
+   654→  return { leftPct, widthPct };
+   655→}
+   656→
+   657→// ==================== ROOM HEATMAP (mejorado) ====================
+   658→
+   659→function RoomHeatmap({ habitaciones, reservas }: {
+   660→  habitaciones: Record<string, { tipo: string; estado: string; capacidad: number; problema?: string }>;
+   661→  reservas: { habitacion: string; estado: string; huesped: string; checkin: string; checkout: string }[];
+   662→}) {
+   663→  const hoyStr = new Date().toISOString().split('T')[0];
+   664→
+   665→  const habInfo = useMemo(() => {
+   666→    const map: Record<string, { huesped: string; estado: string }> = {};
+   667→    reservas.forEach(r => {
+   668→      if (r.estado === 'Check-In realizado' && r.checkin <= hoyStr && r.checkout >= hoyStr) {
+   669→        map[r.habitacion] = { huesped: r.huesped, estado: r.estado };
+   670→      }
+   671→    });
+   672→    return map;
+   673→  }, [reservas, hoyStr]);
+   674→
+   675→  const colors: Record<string, string> = {
+   676→    Disponible: 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200',
+   677→    Ocupada: 'bg-red-100 text-red-800 border-red-300 hover:bg-red-200',
+   678→    Limpieza: 'bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200',
+   679→    Mantenimiento: 'bg-slate-200 text-slate-700 border-slate-400 hover:bg-slate-300',
+   680→    Reservada: 'bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200',
+   681→  };
+   682→  const dots: Record<string, string> = {
+   683→    Disponible: 'bg-emerald-500', Ocupada: 'bg-red-500', Limpieza: 'bg-yellow-500', Mantenimiento: 'bg-slate-500', Reservada: 'bg-blue-500',
+   684→  };
+   685→
+   686→  return (
+   687→    <Card>
+   688→      <CardHeader className="pb-3">
+   689→        <CardTitle className="text-base">Estado de habitaciones</CardTitle>
+   690→      </CardHeader>
+   691→      <CardContent>
+   692→        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
+   693→          {Object.entries(habitaciones).sort(([a], [b]) => a.localeCompare(b)).map(([num, hab]) => {
+   694→            const info = habInfo[num];
+   695→            const tooltip = info
+   696→              ? `${num} - ${info.huesped} (Ocupada)`
+   697→              : hab.estado === 'Mantenimiento'
+   698→                ? `${num} - ${hab.problema || 'Mantenimiento'}`
+   699→                : `${num} - ${hab.estado} · Cap. ${hab.capacidad} · ${hab.tipo}`;
+   700→            return (
+   701→              <Tooltip key={num} text={tooltip}>
+   702→                <div className={`rounded-lg border-2 p-2 text-center text-xs font-semibold transition-colors duration-150 cursor-default ${colors[hab.estado] || colors.Disponible}`}>
+   703→                  <div className={`w-2 h-2 rounded-full ${dots[hab.estado] || dots.Disponible} mx-auto mb-1`} />
+   704→                  <div>{num}</div>
+   705→                  {info && <div className="text-[9px] font-normal opacity-70 truncate mt-0.5">{info.huesped}</div>}
+   706→                </div>
+   707→              </Tooltip>
+   708→            );
+   709→          })}
+   710→        </div>
+   711→        <div className="flex flex-wrap gap-4 mt-4 text-xs text-muted-foreground">
+   712→          {Object.entries({ Disponible: 'bg-emerald-500', Ocupada: 'bg-red-500', Reservada: 'bg-blue-500', Limpieza: 'bg-yellow-500', Mantenimiento: 'bg-slate-500' }).map(([label, dot]) => (
+   713→            <span key={label} className="flex items-center gap-1.5"><span className={`w-2.5 h-2.5 rounded-full ${dot}`} />{label}</span>
+   714→          ))}
+   715→        </div>
+   716→      </CardContent>
+   717→    </Card>
+   718→  );
+   719→}
+   720→
+   721→// ==================== DASHBOARD PRINCIPAL ====================
+   722→
+   723→export default function DashboardModule() {
+   724→  const { habitaciones, reservas, pagos, gastos, caja, setModulo, realizarCheckIn, realizarCheckOut, calcularTotalReserva, calcularTotalPagado } = useHotelStore();
+   725→  const hoy = new Date();
+   726→  const hoyStr = hoy.toISOString().split('T')[0];
+   727→
+   728→  const totalHabitaciones = Object.keys(habitaciones).length;
+   729→  const ocupadas = Object.values(habitaciones).filter(h => h.estado === 'Ocupada').length;
+   730→  const enLimpieza = Object.values(habitaciones).filter(h => h.estado === 'Limpieza').length;
+   731→  const enMantenimiento = Object.values(habitaciones).filter(h => h.estado === 'Mantenimiento').length;
+   732→  const reservadas = Object.values(habitaciones).filter(h => h.estado === 'Reservada').length;
+   733→  const tasaOcupacion = totalHabitaciones > 0 ? Math.round((ocupadas / totalHabitaciones) * 100) : 0;
+   734→
+   735→  const ingresosHoy = pagos.filter(p => p.fecha === hoyStr).reduce((s, p) => s + p.monto, 0);
+   736→  const checkinsHoy = reservas.filter(r => r.estado === 'Confirmada' && r.checkin === hoyStr);
+   737→  const checkoutsHoy = reservas.filter(r => r.estado === 'Check-In realizado' && r.checkout === hoyStr);
+   738→  const ingresosMes = pagos.filter(p => p.fecha.startsWith(hoyStr.substring(0, 7))).reduce((s, p) => s + p.monto, 0);
+   739→
+   740→  // Animated values
+   741→  const animOcupacion = useCountUp(tasaOcupacion, 800);
+   742→  const animIngresosHoy = useCountUp(ingresosHoy, 1000);
+   743→  const animCheckins = useCountUp(checkinsHoy.length, 400, true);
+   744→  const animCheckouts = useCountUp(checkoutsHoy.length, 400, true);
+   745→
+   746→  // Alerta de caja abierta
+   747→  const cajaAbiertaHoras = useMemo(() => {
+   748→    if (caja.estado === 'abierta' && caja.apertura) {
+   749→      return Math.round((new Date() - new Date(caja.apertura.fecha)) / (1000 * 60 * 60));
+   750→    }
+   751→    return 0;
+   752→  }, [caja]);
+   753→
+   754→  const tieneAlertas = enLimpieza > 0 || checkinsHoy.length > 0 || checkoutsHoy.length > 0 || enMantenimiento > 0 || cajaAbiertaHoras >= 8;
+   755→
+   756→  // Inline actions
+   757→  const [actionLog, setActionLog] = useState<string[]>([]);
+   758→
+   759→  const handleCheckIn = useCallback((id: number, huesped: string) => {
+   760→    const ok = realizarCheckIn(id, {});
+   761→    if (ok) setActionLog(prev => [`Check-in realizado: ${huesped}`, ...prev].slice(0, 3));
+   762→  }, [realizarCheckIn]);
+   763→
+   764→  const handleCheckOut = useCallback((id: number, huesped: string) => {
+   765→    const result = realizarCheckOut(id);
+   766→    if (result) setActionLog(prev => [`Check-out realizado: ${huesped}`, ...prev].slice(0, 3));
+   767→  }, [realizarCheckOut]);
+   768→
+   769→  return (
+   770→    <div className="space-y-6">
+   771→      {/* Header con reloj y clima */}
+   772→      <div className="flex items-center justify-between flex-wrap gap-3">
+   773→        <div>
+   774→          <h2 className="text-2xl font-bold flex items-center gap-2">
+   775→            <BarChart3 className="w-6 h-6 text-blue-500" />
+   776→            Panel Ejecutivo
+   777→          </h2>
+   778→          <p className="text-sm text-muted-foreground mt-0.5">
+   779→            {hoy.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+   780→          </p>
+   781→        </div>
+   782→        <LiveClockWeather />
+   783→      </div>
+   784→
+   785→      {/* Action log toasts */}
+   786→      {actionLog.length > 0 && (
+   787→        <div className="fixed top-4 right-4 z-50 space-y-2">
+   788→          {actionLog.map((msg, i) => (
+   789→            <div key={i} className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium flex items-center gap-2 animate-in slide-in-from-right-full fade-in-0 duration-300">
+   790→              <CheckCircle className="w-4 h-4" />
+   791→              {msg}
+   792→            </div>
+   793→          ))}
+   794→        </div>
+   795→      )}
+   796→
+   797→      {/* KPIs Fila 1 — animados */}
+   798→      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+   799→        <KPIAnimated icon={Bed} label="Ocupación" value={`${animOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-emerald-600" numeric />
+   800→        <KPIAnimated icon={DollarSign} label="Ingresos hoy" value={formatMoney(animIngresosHoy)} color="text-green-600" />
+   801→        <KPIAnimated icon={LogIn} label="Check-ins" value={String(animCheckins)} sub="pendientes hoy" color="text-blue-600" numeric />
+   802→        <KPIAnimated icon={LogOut} label="Check-outs" value={String(animCheckouts)} sub="pendientes hoy" color="text-orange-600" numeric />
+   803→      </div>
+   804→
+   805→      {/* KPIs Fila 2 */}
+   806→      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+   807→        <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} color="text-violet-600" numeric />
+   808→        <KPIAnimated icon={SprayCan} label="Limpieza" value={String(enLimpieza)} color="text-yellow-600" numeric />
+   809→        <KPIAnimated icon={Wrench} label="Mantenimiento" value={String(enMantenimiento)} color="text-slate-500" numeric />
+   810→        <KPIAnimated icon={TrendingUp} label="Ingresos mes" value={`$${(ingresosMes / 1000).toFixed(0)}K`} color="text-emerald-600" />
+   811→      </div>
+   812→
+   813→      {/* Room Heatmap */}
+   814→      <RoomHeatmap habitaciones={habitaciones} reservas={reservas} />
+   815→
+   816→      {/* Estado General + Alertas con acciones rápidas */}
+   817→      <div className="grid md:grid-cols-4 gap-4">
+   818→        <Card className="md:col-span-1">
+   819→          <CardHeader className="pb-2">
+   820→            <CardTitle className="text-sm flex items-center gap-1.5">
+   821→              <SprayCan className="w-3.5 h-3.5 text-slate-400" />
+   822→              <Wrench className="w-3.5 h-3.5 text-slate-400" />
+   823→              Estado General
+   824→            </CardTitle>
+   825→          </CardHeader>
+   826→          <CardContent className="space-y-2">
+   827→            <div className="flex items-center justify-between p-2.5 rounded-lg bg-yellow-50 border border-yellow-200">
+   828→              <span className="text-xs font-medium text-yellow-800">Para limpiar</span>
+   829→              <span className="bg-yellow-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enLimpieza}</span>
+   830→            </div>
+   831→            <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-100 border border-slate-300">
+   832→              <span className="text-xs font-medium text-slate-600">En mantenimiento</span>
+   833→              <span className="bg-slate-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enMantenimiento}</span>
+   834→            </div>
+   835→            {enLimpieza === 0 && enMantenimiento === 0 && (
+   836→              <div className="flex items-center justify-center p-3 rounded-lg bg-green-50 border border-green-200">
+   837→                <span className="text-xs font-medium text-green-700 flex items-center gap-1.5">
+   838→                  <CheckCircle className="w-4 h-4" />
+   839→                  Todo al día
+   840→                </span>
+   841→              </div>
+   842→            )}
+   843→          </CardContent>
+   844→        </Card>
+   845→
+   846→        <Card className="md:col-span-3">
+   847→          <CardHeader className="pb-2">
+   848→            <CardTitle className="text-base flex items-center gap-2">
+   849→              <Bell className="w-4 h-4" />
+   850→              Alertas Pendientes
+   851→              {tieneAlertas && <Badge variant="destructive" className="ml-auto text-[10px] px-1.5">!</Badge>}
+   852→            </CardTitle>
+   853→          </CardHeader>
+   854→          <CardContent className="space-y-2">
+   855→            {!tieneAlertas && (
+   856→              <div className="flex items-center gap-2 p-3 text-green-600 text-sm rounded-lg bg-green-50 border border-green-200">
+   857→                <CheckCircle className="w-4 h-4" />
+   858→                Sin alertas pendientes
+   859→              </div>
+   860→            )}
+   861→
+   862→            {enLimpieza > 0 && (
+   863→              <div className="flex items-center justify-between p-2.5 rounded-lg bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 transition-colors">
+   864→                <span className="flex items-center gap-2 text-sm text-yellow-800">
+   865→                  <SprayCan className="w-4 h-4 text-yellow-600" />
+   866→                  {enLimpieza} habitación(es) pendientes de limpieza
+   867→                </span>
+   868→                <div className="flex items-center gap-2">
+   869→                  <span className="bg-yellow-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+   870→                    {Object.entries(habitaciones).filter(([, h]) => h.estado === 'Limpieza').map(([n]) => n).join(', ')}
+   871→                  </span>
+   872→                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('habitaciones')}>Ir</Button>
+   873→                </div>
+   874→              </div>
+   875→            )}
+   876→
+   877→            {checkinsHoy.length > 0 && (
+   878→              <div className="flex items-center justify-between p-2.5 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors">
+   879→                <span className="flex items-center gap-2 text-sm text-blue-800">
+   880→                  <LogIn className="w-4 h-4 text-blue-600" />
+   881→                  {checkinsHoy.length} check-in(s) pendiente(s) hoy
+   882→                </span>
+   883→                <div className="flex items-center gap-2">
+   884→                  <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded max-w-[200px] truncate">
+   885→                    {checkinsHoy.map(r => r.huesped).join(', ')}
+   886→                  </span>
+   887→                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('checkin')}>Ver todos</Button>
+   888→                </div>
+   889→              </div>
+   890→            )}
+   891→
+   892→            {checkoutsHoy.length > 0 && (
+   893→              <div className="flex items-center justify-between p-2.5 rounded-lg bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors">
+   894→                <span className="flex items-center gap-2 text-sm text-orange-800">
+   895→                  <LogOut className="w-4 h-4 text-orange-600" />
+   896→                  {checkoutsHoy.length} check-out(s) pendiente(s) hoy
+   897→                </span>
+   898→                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('checkin')}>Ver todos</Button>
+   899→              </div>
+   900→            )}
+   901→
+   902→            {cajaAbiertaHoras >= 8 && (
+   903→              <div className="flex items-center justify-between p-2.5 rounded-lg bg-red-50 border border-red-200">
+   904→                <span className="flex items-center gap-2 text-sm text-red-800">
+   905→                  <LockOpen className="w-4 h-4 text-red-600" />
+   906→                  Caja abierta hace {cajaAbiertaHoras} horas ({caja.apertura?.empleado})
+   907→                </span>
+   908→                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">Atención</span>
+   909→              </div>
+   910→            )}
+   911→
+   912→            {enMantenimiento > 0 && (
+   913→              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-100 border border-slate-300 hover:bg-slate-200 transition-colors">
+   914→                <span className="flex items-center gap-2 text-sm text-slate-600">
+   915→                  <Wrench className="w-4 h-4 text-slate-500" />
+   916→                  {enMantenimiento} habitación(es) en mantenimiento
+   917→                </span>
+   918→                <div className="flex items-center gap-2">
+   919→                  <span className="bg-slate-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+   920→                    {Object.entries(habitaciones).filter(([, h]) => h.estado === 'Mantenimiento').map(([n]) => n).join(', ')}
+   921→                  </span>
+   922→                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('habitaciones')}>Ir</Button>
+   923→                </div>
+   924→              </div>
+   925→            )}
+   926→          </CardContent>
+   927→        </Card>
+   928→      </div>
+   929→
+   930→      {/* Próximos Check-ins / Check-outs con acciones inline */}
+   931→      <div className="grid md:grid-cols-2 gap-4">
+   932→        <Card>
+   933→          <CardHeader className="pb-3">
+   934→            <CardTitle className="text-base flex items-center gap-2">
+   935→              <LogIn className="w-4 h-4 text-blue-500" />
+   936→              Check-ins de hoy
+   937→              {checkinsHoy.length > 0 && <Badge className="bg-blue-500 ml-auto">{checkinsHoy.length}</Badge>}
+   938→            </CardTitle>
+   939→          </CardHeader>
+   940→          <CardContent>
+   941→            {checkinsHoy.length === 0 ? (
+   942→              <p className="text-sm text-muted-foreground py-2">Sin check-ins pendientes hoy.</p>
+   943→            ) : (
+   944→              <div className="space-y-2">
+   945→                {checkinsHoy.map(r => (
+   946→                  <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border border-blue-100 bg-blue-50/50 hover:bg-blue-50 transition-colors">
+   947→                    <div className="min-w-0">
+   948→                      <p className="text-sm font-semibold truncate">{r.huesped}</p>
+   949→                      <p className="text-xs text-muted-foreground">Hab. {r.habitacion} · DNI: {r.dni}</p>
+   950→                    </div>
+   951→                    <Button
+   952→                      size="sm"
+   953→                      className="bg-emerald-600 hover:bg-emerald-700 h-8 text-xs shrink-0 ml-2"
+   954→                      onClick={() => handleCheckIn(r.id, r.huesped)}
+   955→                    >
+   956→                      <LogIn className="w-3 h-3 mr-1" />Check-In
+   957→                    </Button>
+   958→                  </div>
+   959→                ))}
+   960→              </div>
+   961→            )}
+   962→          </CardContent>
+   963→        </Card>
+   964→
+   965→        <Card>
+   966→          <CardHeader className="pb-3">
+   967→            <CardTitle className="text-base flex items-center gap-2">
+   968→              <LogOut className="w-4 h-4 text-orange-500" />
+   969→              Check-outs de hoy
+   970→              {checkoutsHoy.length > 0 && <Badge className="bg-orange-500 ml-auto">{checkoutsHoy.length}</Badge>}
+   971→            </CardTitle>
+   972→          </CardHeader>
+   973→          <CardContent>
+   974→            {checkoutsHoy.length === 0 ? (
+   975→              <p className="text-sm text-muted-foreground py-2">Sin check-outs pendientes hoy.</p>
+   976→            ) : (
+   977→              <div className="space-y-2">
+   978→                {checkoutsHoy.map(r => {
+   979→                  const saldo = calcularTotalReserva(r.id) - calcularTotalPagado(r.id);
+   980→                  return (
+   981→                    <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border border-orange-100 bg-orange-50/50 hover:bg-orange-50 transition-colors">
+   982→                      <div className="min-w-0">
+   983→                        <p className="text-sm font-semibold truncate">{r.huesped}</p>
+   984→                        <p className="text-xs text-muted-foreground">Hab. {r.habitacion} · 09:00</p>
+   985→                        {saldo > 0 && <p className="text-xs text-red-500 font-medium">Saldo: {formatMoney(saldo)}</p>}
+   986→                      </div>
+   987→                      <Button
+   988→                        size="sm"
+   989→                        variant="destructive"
+   990→                        className="h-8 text-xs shrink-0 ml-2"
+   991→                        onClick={() => handleCheckOut(r.id, r.huesped)}
+   992→                      >
+   993→                        <LogOut className="w-3 h-3 mr-1" />Check-Out
+   994→                      </Button>
+   995→                    </div>
+   996→                  );
+   997→                })}
+   998→              </div>
+   999→            )}
+  1000→          </CardContent>
+  1001→        </Card>
+  1002→      </div>
+  1003→
+  1004→      {/* Gráfico Ingresos vs Egresos */}
+  1005→      <GraficoIngresosEgresos pagos={pagos} gastos={gastos} />
+  1006→
+  1007→      {/* Calendario Gantt de Ocupación */}
+  1008→      <CalendarioGantt habitaciones={habitaciones} reservas={reservas} fechaInicioBase={hoy} />
+  1009→    </div>
+  1010→  );
+  1011→}

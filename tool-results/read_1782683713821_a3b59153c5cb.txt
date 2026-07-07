@@ -1,0 +1,1297 @@
+     1→'use client';
+     2→
+     3→import { useState, useMemo, useCallback } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import type { Reserva, HabitacionDisponible, Cliente, CampoPersonalizado } from '@/lib/types';
+     6→import { Card, CardContent } from '@/components/ui/card';
+     7→import { Button } from '@/components/ui/button';
+     8→import { Input } from '@/components/ui/input';
+     9→import { Label } from '@/components/ui/label';
+    10→import { Badge } from '@/components/ui/badge';
+    11→import { Separator } from '@/components/ui/separator';
+    12→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    13→import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+    14→import { Checkbox } from '@/components/ui/checkbox';
+    15→import {
+    16→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    17→} from '@/components/ui/dialog';
+    18→import {
+    19→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    20→} from '@/components/ui/select';
+    21→import {
+    22→  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+    23→} from '@/components/ui/table';
+    24→import {
+    25→  CalendarDays, Plus, Pencil, XCircle, Search, BedDouble, Users, Eye,
+    26→  LogIn, LogOut, AlertTriangle, ChevronDown, ChevronUp,
+    27→} from 'lucide-react';
+    28→
+    29→// ==================== HELPERS ====================
+    30→
+    31→const s = (n: number) => n !== 1 ? 's' : '';
+    32→
+    33→const formatFecha = (f: string) => {
+    34→  if (!f) return '—';
+    35→  const d = new Date(f + 'T12:00:00');
+    36→  return d.toLocaleDateString('es-AR');
+    37→};
+    38→
+    39→const formatMoney = (n: number) =>
+    40→  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n);
+    41→
+    42→const estadoReservaBadge: Record<string, string> = {
+    43→  Confirmada: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    44→  Cancelada: 'bg-red-100 text-red-800 border-red-300',
+    45→  'Check-In realizado': 'bg-blue-100 text-blue-800 border-blue-300',
+    46→  'Check-Out realizado': 'bg-slate-200 text-slate-700 border-slate-400',
+    47→};
+    48→
+    49→const estadoPagoBadge: Record<string, string> = {
+    50→  Pendiente: 'bg-amber-100 text-amber-800 border-amber-300',
+    51→  Parcial: 'bg-orange-100 text-orange-800 border-orange-300',
+    52→  Pagado: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    53→};
+    54→
+    55→const estadosReserva = ['Confirmada', 'Cancelada', 'Check-In realizado', 'Check-Out realizado'];
+    56→
+    57→// ==================== TYPES ====================
+    58→
+    59→type PagoRadio = 'ninguno' | 'parcial' | 'total';
+    60→
+    61→interface NuevaReservaForm {
+    62→  checkin: string;
+    63→  checkout: string;
+    64→  personas: string;
+    65→  tipoTarifa: string;
+    66→  habitacion: string;
+    67→  filtroMatrimonial: boolean;
+    68→  // Client
+    69→  clienteId: number | null;
+    70→  huesped: string;
+    71→  dni: string;
+    72→  telefono: string;
+    73→  email: string;
+    74→  domicilio: string;
+    75→  // Custom fields
+    76→  datosAdicionales: Record<string, string>;
+    77→  // Payment
+    78→  pagoTipo: PagoRadio;
+    79→  pagoMonto: string;
+    80→  pagoMetodo: string;
+    81→  pagoCuotas: string;
+    82→}
+    83→
+    84→const emptyForm: NuevaReservaForm = {
+    85→  checkin: '',
+    86→  checkout: '',
+    87→  personas: '1',
+    88→  tipoTarifa: 'normal',
+    89→  habitacion: '',
+    90→  filtroMatrimonial: false,
+    91→  clienteId: null,
+    92→  huesped: '',
+    93→  dni: '',
+    94→  telefono: '',
+    95→  email: '',
+    96→  domicilio: '',
+    97→  datosAdicionales: {},
+    98→  pagoTipo: 'total',
+    99→  pagoMonto: '',
+   100→  pagoMetodo: '',
+   101→  pagoCuotas: '1|0',
+   102→};
+   103→
+   104→// ==================== COMBINATION SUGGESTION TYPE ====================
+   105→
+   106→interface CombinacionSugerencia {
+   107→  habitaciones: string[];
+   108→  capacidadTotal: number;
+   109→}
+   110→
+   111→// ==================== MAIN COMPONENT ====================
+   112→
+   113→export default function ReservasModule() {
+   114→  const {
+   115→    reservas, habitaciones, tarifas, tiposTarifa, metodosPago, pagos, caja,
+   116→    crearReserva, modificarReserva, cancelarReserva,
+   117→    buscarDisponibilidad, calcularTotalSegunTarifa, nochesEntre,
+   118→    buscarCliente, registrarPago, registrarMovimientoCaja,
+   119→    realizarCheckIn, realizarCheckOut, calcularTotalReserva, calcularTotalPagado,
+   120→  } = useHotelStore();
+   121→
+   122→  // ==================== FILTERS ====================
+   123→  const [filtroEstado, setFiltroEstado] = useState('todos');
+   124→  const [filtroTipo, setFiltroTipo] = useState('todos');
+   125→  const [filtroEstadoPago, setFiltroEstadoPago] = useState('todos');
+   126→  const [filtroDesde, setFiltroDesde] = useState('');
+   127→  const [filtroHasta, setFiltroHasta] = useState('');
+   128→
+   129→  // ==================== MODAL STATES ====================
+   130→  const [modalOpen, setModalOpen] = useState(false);
+   131→  const [modalCancelOpen, setModalCancelOpen] = useState(false);
+   132→  const [modalDetalleOpen, setModalDetalleOpen] = useState(false);
+   133→  const [modalChoferOpen, setModalChoferOpen] = useState(false);
+   134→  const [editingId, setEditingId] = useState<number | null>(null);
+   135→  const [cancelId, setCancelId] = useState<number | null>(null);
+   136→  const [detalleReserva, setDetalleReserva] = useState<Reserva | null>(null);
+   137→
+   138→  // ==================== FORM STATE ====================
+   139→  const [form, setForm] = useState<NuevaReservaForm>(emptyForm);
+   140→  const [tab, setTab] = useState('disponibilidad');
+   141→  const [disponibles, setDisponibles] = useState<HabitacionDisponible[]>([]);
+   142→  const [busquedaCliente, setBusquedaCliente] = useState('');
+   143→  const [clientesEncontrados, setClientesEncontrados] = useState<Cliente[]>([]);
+   144→  const [sugerenciasOpen, setSugerenciasOpen] = useState(false);
+   145→
+   146→  // ==================== CHOFER CORTESÍA STATE ====================
+   147→  const [choferHabitacion, setChoferHabitacion] = useState('');
+   148→  const [choferNombre, setChoferNombre] = useState('');
+   149→  const [choferDni, setChoferDni] = useState('');
+   150→  const [choferReservaId, setChoferReservaId] = useState<number | null>(null);
+   151→
+   152→  // ==================== VALIDATION ERRORS ====================
+   153→  const [errors, setErrors] = useState<string[]>([]);
+   154→
+   155→  // ==================== COMPUTED: CAMPOS PERSONALIZADOS ====================
+   156→  const camposPersonalizados: CampoPersonalizado[] = useMemo(() => {
+   157→    const tarifa = tarifas[form.tipoTarifa];
+   158→    return tarifa?.camposPersonalizados || [];
+   159→  }, [tarifas, form.tipoTarifa]);
+   160→
+   161→  // ==================== COMPUTED: PRICE ====================
+   162→  const computed = useMemo(() => {
+   163→    if (!form.checkin || !form.checkout || !form.personas) {
+   164→      return { noches: 1, precioCalculado: 0, subtotal: 0, recargo: 0, totalFinal: 0 };
+   165→    }
+   166→    const noches = nochesEntre(form.checkin, form.checkout);
+   167→    const p = parseInt(form.personas) || 1;
+   168→    const esCompartida = form.habitacion && habitaciones[form.habitacion]?.tipo === 'Compartida';
+   169→    const precioPorCama = form.habitacion ? habitaciones[form.habitacion]?.precioPorCama : undefined;
+   170→    const subtotal = calcularTotalSegunTarifa(form.tipoTarifa, p, noches, esCompartida, precioPorCama);
+   171→
+   172→    // Parse cuotas
+   173→    let recargo = 0;
+   174→    if (form.pagoCuotas) {
+   175→      const parts = form.pagoCuotas.split('|');
+   176→      const porcentaje = parseFloat(parts[1]) || 0;
+   177→      recargo = Math.round(subtotal * (porcentaje / 100));
+   178→    }
+   179→    const totalFinal = subtotal + recargo;
+   180→
+   181→    return { noches, precioCalculado: subtotal, subtotal, recargo, totalFinal };
+   182→  }, [form.checkin, form.checkout, form.personas, form.tipoTarifa, form.habitacion, form.pagoCuotas, habitaciones, calcularTotalSegunTarifa, nochesEntre]);
+   183→
+   184→  // ==================== COMPUTED: SELECTED MÉTODO DE PAGO ====================
+   185→  const selectedMetodo = metodosPago.find(m => m.id === form.pagoMetodo);
+   186→
+   187→  // ==================== COMPUTED: PAGO MÍNIMO (30%) ====================
+   188→  const pagoMinimo = Math.ceil(computed.totalFinal * 0.3);
+   189→
+   190→  // ==================== FILTERED RESERVAS ====================
+   191→  const roomTypes = Array.from(new Set(Object.values(habitaciones).map(h => h.tipo)));
+   192→
+   193→  const filteredReservas = reservas.filter(r => {
+   194→    if (filtroEstado !== 'todos' && r.estado !== filtroEstado) return false;
+   195→    if (filtroTipo !== 'todos') {
+   196→      const hab = habitaciones[r.habitacion];
+   197→      if (!hab || hab.tipo !== filtroTipo) return false;
+   198→    }
+   199→    if (filtroEstadoPago !== 'todos' && r.estadoPago !== filtroEstadoPago) return false;
+   200→    if (filtroDesde && r.checkin < filtroDesde) return false;
+   201→    if (filtroHasta && r.checkin > filtroHasta) return false;
+   202→    return true;
+   203→  }).sort((a, b) => b.checkin.localeCompare(a.checkin));
+   204→
+   205→  // ==================== COMPUTED: SALDO POR RESERVA ====================
+   206→  const getSaldo = useCallback((r: Reserva) => {
+   207→    const total = calcularTotalReserva(r.id);
+   208→    const pagado = calcularTotalPagado(r.id);
+   209→    return total - pagado;
+   210→  }, [calcularTotalReserva, calcularTotalPagado]);
+   211→
+   212→  // ==================== COMPUTED: FILTRO DISponibilidad ====================
+   213→  const disponiblesFiltradas = useMemo(() => {
+   214→    if (!form.filtroMatrimonial) return disponibles;
+   215→    return disponibles.filter(h => h.camasMatrimoniales > 0);
+   216→  }, [disponibles, form.filtroMatrimonial]);
+   217→
+   218→  // ==================== COMPUTED: SUGERENCIAS DE COMBINACIÓN ====================
+   219→  const sugerenciasCombinacion: CombinacionSugerencia[] = useMemo(() => {
+   220→    const personas = parseInt(form.personas) || 1;
+   221→    if (personas <= 1) return [];
+   222→    const sinMatrimonial = disponibles.filter(h => h.camasMatrimoniales === 0 && h.tipo !== 'Compartida');
+   223→    if (sinMatrimonial.length < 2) return [];
+   224→    const results: CombinacionSugerencia[] = [];
+   225→    for (let i = 0; i < sinMatrimonial.length && results.length < 3; i++) {
+   226→      for (let j = i + 1; j < sinMatrimonial.length && results.length < 3; j++) {
+   227→        const a = sinMatrimonial[i];
+   228→        const b = sinMatrimonial[j];
+   229→        const cap = a.capacidad + b.capacidad;
+   230→        if (cap >= personas) {
+   231→          results.push({ habitaciones: [a.numero, b.numero], capacidadTotal: cap });
+   232→        }
+   233→      }
+   234→    }
+   235→    return results;
+   236→  }, [disponibles, form.personas]);
+   237→
+   238→  // ==================== HANDLERS ====================
+   239→
+   240→  const handleSearchDisponibilidad = () => {
+   241→    if (!form.checkin || !form.checkout) return;
+   242→    const res = buscarDisponibilidad(form.checkin, form.checkout);
+   243→    setDisponibles(res);
+   244→  };
+   245→
+   246→  const handleSearchCliente = () => {
+   247→    if (busquedaCliente.length < 2) return;
+   248→    const res = buscarCliente(busquedaCliente);
+   249→    setClientesEncontrados(res);
+   250→  };
+   251→
+   252→  const selectCliente = (c: Cliente) => {
+   253→    setForm(prev => ({
+   254→      ...prev,
+   255→      clienteId: c.id,
+   256→      huesped: c.nombre,
+   257→      dni: c.dni,
+   258→      telefono: c.telefono,
+   259→      email: c.email,
+   260→    }));
+   261→    setClientesEncontrados([]);
+   262→    setBusquedaCliente('');
+   263→  };
+   264→
+   265→  const selectRoom = (hab: HabitacionDisponible) => {
+   266→    setForm(prev => ({ ...prev, habitacion: hab.numero }));
+   267→  };
+   268→
+   269→  const openNew = () => {
+   270→    setEditingId(null);
+   271→    setForm(emptyForm);
+   272→    setDisponibles([]);
+   273→    setTab('disponibilidad');
+   274→    setErrors([]);
+   275→    setModalOpen(true);
+   276→  };
+   277→
+   278→  const openEdit = (r: Reserva) => {
+   279→    setEditingId(r.id);
+   280→    const cuotaVal = r.cuotas && r.recargoPorcentaje !== undefined
+   281→      ? `${r.cuotas}|${r.recargoPorcentaje}`
+   282→      : '1|0';
+   283→    setForm({
+   284→      checkin: r.checkin,
+   285→      checkout: r.checkout,
+   286→      personas: String(r.personas),
+   287→      tipoTarifa: r.tipoTarifa || 'normal',
+   288→      habitacion: r.habitacion,
+   289→      filtroMatrimonial: false,
+   290→      clienteId: r.idCliente,
+   291→      huesped: r.huesped,
+   292→      dni: r.dni,
+   293→      telefono: r.telefono,
+   294→      email: r.email,
+   295→      domicilio: r.domicilio || '',
+   296→      datosAdicionales: (r as Reserva & { datosAdicionales?: Record<string, string> }).datosAdicionales || {},
+   297→      pagoTipo: 'ninguno',
+   298→      pagoMonto: '',
+   299→      pagoMetodo: r.metodoPagoId || '',
+   300→      pagoCuotas: cuotaVal,
+   301→    });
+   302→    setTab('disponibilidad');
+   303→    setErrors([]);
+   304→    setModalOpen(true);
+   305→  };
+   306→
+   307→  const openDetalle = (r: Reserva) => {
+   308→    setDetalleReserva(r);
+   309→    setModalDetalleOpen(true);
+   310→  };
+   311→
+   312→  const openCancel = (id: number) => {
+   313→    setCancelId(id);
+   314→    setModalCancelOpen(true);
+   315→  };
+   316→
+   317→  const handleCancel = () => {
+   318→    if (cancelId) cancelarReserva(cancelId);
+   319→    setModalCancelOpen(false);
+   320→    setCancelId(null);
+   321→  };
+   322→
+   323→  const handleCheckIn = (id: number) => {
+   324→    realizarCheckIn(id, {});
+   325→  };
+   326→
+   327→  const handleCheckOut = (id: number) => {
+   328→    realizarCheckOut(id);
+   329→  };
+   330→
+   331→  // ==================== SAVE LOGIC ====================
+   332→
+   333→  const handleSave = () => {
+   334→    const errs: string[] = [];
+   335→    if (!form.habitacion) errs.push('Debe seleccionar una habitación');
+   336→    if (!form.huesped.trim()) errs.push('El nombre del huésped es obligatorio');
+   337→    if (!form.dni.trim()) errs.push('El DNI es obligatorio');
+   338→    if (!form.telefono.trim()) errs.push('El teléfono es obligatorio');
+   339→
+   340→    // Validate custom fields
+   341→    for (const campo of camposPersonalizados) {
+   342→      if (campo.requerido) {
+   343→        const val = form.datosAdicionales[campo.nombre];
+   344→        if (!val || val.trim() === '') {
+   345→          errs.push(`El campo "${campo.nombre}" es obligatorio`);
+   346→        }
+   347→      }
+   348→    }
+   349→
+   350→    if (errs.length > 0) {
+   351→      setErrors(errs);
+   352→      return;
+   353→    }
+   354→    setErrors([]);
+   355→
+   356→    const personas = parseInt(form.personas) || 1;
+   357→    const esCompartida = form.habitacion && habitaciones[form.habitacion]?.tipo === 'Compartida';
+   358→    const precioPorCama = form.habitacion ? habitaciones[form.habitacion]?.precioPorCama : undefined;
+   359→    const noches = nochesEntre(form.checkin, form.checkout);
+   360→
+   361→    // Calculate total with recargo if cuotas
+   362→    let totalConRecargo = computed.subtotal;
+   363→    let cuotasNum = 0;
+   364→    let recargoPorcentaje = 0;
+   365→
+   366→    if (form.pagoCuotas) {
+   367→      const parts = form.pagoCuotas.split('|');
+   368→      cuotasNum = parseInt(parts[0]) || 1;
+   369→      recargoPorcentaje = parseFloat(parts[1]) || 0;
+   370→      if (recargoPorcentaje > 0) {
+   371→        totalConRecargo = computed.subtotal + Math.round(computed.subtotal * (recargoPorcentaje / 100));
+   372→      }
+   373→    }
+   374→
+   375→    // Build datosAdicionales and agencia
+   376→    let datosAdicionales: Record<string, string> | undefined;
+   377→    let agenciaData: { nombre: string; convenio?: string; vendedor?: string; [key: string]: string | undefined } | undefined;
+   378→
+   379→    if (form.tipoTarifa === 'agencia' && form.datosAdicionales) {
+   380→      datosAdicionales = { ...form.datosAdicionales };
+   381→      agenciaData = {
+   382→        nombre: form.datosAdicionales['Nombre de la Agencia'] || '',
+   383→        convenio: form.datosAdicionales['Nº de Convenio'] || undefined,
+   384→        vendedor: form.datosAdicionales['Vendedor / Agente'] || undefined,
+   385→      };
+   386→    } else if (Object.keys(form.datosAdicionales).length > 0) {
+   387→      datosAdicionales = { ...form.datosAdicionales };
+   388→    }
+   389→
+   390→    const baseDatos: Parameters<typeof crearReserva>[0] = {
+   391→      checkin: form.checkin,
+   392→      checkout: form.checkout,
+   393→      habitacion: form.habitacion,
+   394→      huesped: form.huesped.trim(),
+   395→      dni: form.dni.trim(),
+   396→      personas,
+   397→      telefono: form.telefono.trim(),
+   398→      email: form.email.trim(),
+   399→      domicilio: form.domicilio.trim(),
+   400→      tipoTarifa: form.tipoTarifa,
+   401→      total: totalConRecargo,
+   402→      metodoPagoId: (form.pagoTipo === 'parcial' || form.pagoTipo === 'total') ? form.pagoMetodo : undefined,
+   403→      cuotas: cuotasNum > 1 ? cuotasNum : undefined,
+   404→      recargoPorcentaje: recargoPorcentaje > 0 ? recargoPorcentaje : undefined,
+   405→      agencia: agenciaData,
+   406→    };
+   407→
+   408→    // Extend with datosAdicionales
+   409→    const extendedDatos = { ...baseDatos, datosAdicionales } as Parameters<typeof crearReserva>[0] & { datosAdicionales?: Record<string, string> };
+   410→
+   411→    let reservaCreada: Reserva | null = null;
+   412→
+   413→    if (editingId) {
+   414→      // For editing, we need to merge datosAdicionales
+   415→      modificarReserva(editingId, {
+   416→        ...extendedDatos,
+   417→        datosAdicionales: extendedDatos.datosAdicionales as any,
+   418→      } as any);
+   419→    } else {
+   420→      reservaCreada = crearReserva(extendedDatos as any);
+   421→    }
+   422→
+   423→    const targetId = editingId || reservaCreada?.id;
+   424→    if (!targetId) {
+   425→      closeModal();
+   426→      return;
+   427→    }
+   428→
+   429→    // Handle payment
+   430→    if (form.pagoTipo === 'parcial' || form.pagoTipo === 'total') {
+   431→      let montoPago = 0;
+   432→      if (form.pagoTipo === 'total') {
+   433→        montoPago = totalConRecargo;
+   434→      } else {
+   435→        montoPago = parseFloat(form.pagoMonto) || 0;
+   436→      }
+   437→      if (montoPago > 0 && form.pagoMetodo) {
+   438→        const metodoObj = metodosPago.find(m => m.id === form.pagoMetodo);
+   439→        const metodoNombre = metodoObj?.nombre || form.pagoMetodo;
+   440→        registrarPago(targetId, montoPago, metodoNombre, form.pagoTipo === 'parcial' ? 'Pago parcial' : 'Pago total');
+   441→
+   442→        // If efectivo and caja abierta, register movimiento
+   443→        if (metodoObj?.tipo === 'efectivo' && caja.estado === 'abierta') {
+   444→          registrarMovimientoCaja('ingreso', montoPago, `Pago de ${form.huesped.trim()} (Reserva #${targetId})`, 'Efectivo');
+   445→        }
+   446→      }
+   447→    }
+   448→
+   449→    // Chofer cortesía check
+   450→    const tarifa = tarifas[form.tipoTarifa];
+   451→    if (!editingId && tarifa?.choferCortesia && personas === 4 && tarifa.habitacionChofer) {
+   452→      setChoferHabitacion(tarifa.habitacionChofer);
+   453→      setChoferNombre('');
+   454→      setChoferDni('');
+   455→      setChoferReservaId(targetId);
+   456→      setModalChoferOpen(true);
+   457→    } else {
+   458→      closeModal();
+   459→    }
+   460→  };
+   461→
+   462→  const handleChoferSi = () => {
+   463→    if (!choferReservaId || !choferNombre.trim() || !choferDni.trim()) return;
+   464→    crearReserva({
+   465→      checkin: form.checkin,
+   466→      checkout: form.checkout,
+   467→      habitacion: choferHabitacion,
+   468→      huesped: choferNombre.trim(),
+   469→      dni: choferDni.trim(),
+   470→      personas: 1,
+   471→      telefono: '',
+   472→      email: '',
+   473→      tipoTarifa: form.tipoTarifa,
+   474→      total: 0,
+   475→      estadoPago: 'Pagado',
+   476→    });
+   477→    setModalChoferOpen(false);
+   478→    closeModal();
+   479→  };
+   480→
+   481→  const handleChoferNo = () => {
+   482→    setModalChoferOpen(false);
+   483→    closeModal();
+   484→  };
+   485→
+   486→  const closeModal = () => {
+   487→    setModalOpen(false);
+   488→    setEditingId(null);
+   489→    setForm(emptyForm);
+   490→    setDisponibles([]);
+   491→    setErrors([]);
+   492→    setClientesEncontrados([]);
+   493→    setBusquedaCliente('');
+   494→  };
+   495→
+   496→  const updateForm = (partial: Partial<NuevaReservaForm>) => {
+   497→    setForm(prev => ({ ...prev, ...partial }));
+   498→  };
+   499→
+   500→  const updateDatosAdicionales = (campo: string, valor: string) => {
+   501→    setForm(prev => ({
+   502→      ...prev,
+   503→      datosAdicionales: { ...prev.datosAdicionales, [campo]: valor },
+   504→    }));
+   505→  };
+   506→
+   507→  // ==================== CANCEL RESERVA INFO ====================
+   508→  const cancelReserva = cancelId ? reservas.find(r => r.id === cancelId) : null;
+   509→
+   510→  // ==================== RENDER ====================
+   511→
+   512→  return (
+   513→    <div className="space-y-6">
+   514→      <div className="flex items-center justify-between flex-wrap gap-2">
+   515→        <h2 className="text-2xl font-bold flex items-center gap-2">
+   516→          <CalendarDays className="w-6 h-6" /> Reservas
+   517→        </h2>
+   518→        <Button onClick={openNew}>
+   519→          <Plus className="w-4 h-4 mr-1" />Nueva Reserva
+   520→        </Button>
+   521→      </div>
+   522→
+   523→      {/* ==================== FILTER BAR ==================== */}
+   524→      <Card>
+   525→        <CardContent className="p-4">
+   526→          <div className="flex flex-wrap gap-3 items-end">
+   527→            <div className="grid gap-1.5">
+   528→              <Label className="text-xs text-muted-foreground">Estado</Label>
+   529→              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+   530→                <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+   531→                <SelectContent>
+   532→                  <SelectItem value="todos">Todas</SelectItem>
+   533→                  {estadosReserva.map(e => (
+   534→                    <SelectItem key={e} value={e}>{e}</SelectItem>
+   535→                  ))}
+   536→                </SelectContent>
+   537→              </Select>
+   538→            </div>
+   539→            <div className="grid gap-1.5">
+   540→              <Label className="text-xs text-muted-foreground">Tipo habitación</Label>
+   541→              <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+   542→                <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+   543→                <SelectContent>
+   544→                  <SelectItem value="todos">Todos</SelectItem>
+   545→                  {roomTypes.map(t => (
+   546→                    <SelectItem key={t} value={t}>{t}</SelectItem>
+   547→                  ))}
+   548→                </SelectContent>
+   549→              </Select>
+   550→            </div>
+   551→            <div className="grid gap-1.5">
+   552→              <Label className="text-xs text-muted-foreground">Estado de pago</Label>
+   553→              <Select value={filtroEstadoPago} onValueChange={setFiltroEstadoPago}>
+   554→                <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+   555→                <SelectContent>
+   556→                  <SelectItem value="todos">Todas</SelectItem>
+   557→                  <SelectItem value="Pendiente">Pendiente</SelectItem>
+   558→                  <SelectItem value="Parcial">Parcial</SelectItem>
+   559→                  <SelectItem value="Pagado">Pagado</SelectItem>
+   560→                </SelectContent>
+   561→              </Select>
+   562→            </div>
+   563→            <div className="grid gap-1.5">
+   564→              <Label className="text-xs text-muted-foreground">Fecha desde</Label>
+   565→              <Input type="date" value={filtroDesde} onChange={e => setFiltroDesde(e.target.value)} className="w-[150px]" />
+   566→            </div>
+   567→            <div className="grid gap-1.5">
+   568→              <Label className="text-xs text-muted-foreground">Fecha hasta</Label>
+   569→              <Input type="date" value={filtroHasta} onChange={e => setFiltroHasta(e.target.value)} className="w-[150px]" />
+   570→            </div>
+   571→            <Button variant="outline" size="sm" onClick={() => { setFiltroEstado('todos'); setFiltroTipo('todos'); setFiltroEstadoPago('todos'); setFiltroDesde(''); setFiltroHasta(''); }}>
+   572→              <XCircle className="w-3.5 h-3.5 mr-1" />Limpiar
+   573→            </Button>
+   574→          </div>
+   575→        </CardContent>
+   576→      </Card>
+   577→
+   578→      {/* ==================== TABLE ==================== */}
+   579→      <Card>
+   580→        <CardContent className="p-0">
+   581→          <div className="overflow-x-auto">
+   582→            <Table>
+   583→              <TableHeader>
+   584→                <TableRow>
+   585→                  <TableHead>Huésped</TableHead>
+   586→                  <TableHead>Habitación</TableHead>
+   587→                  <TableHead className="hidden md:table-cell">Check-in</TableHead>
+   588→                  <TableHead className="hidden md:table-cell">Check-out</TableHead>
+   589→                  <TableHead>Estado</TableHead>
+   590→                  <TableHead>Pago</TableHead>
+   591→                  <TableHead>Saldo</TableHead>
+   592→                  <TableHead className="text-right">Acciones</TableHead>
+   593→                </TableRow>
+   594→              </TableHeader>
+   595→              <TableBody>
+   596→                {filteredReservas.length === 0 ? (
+   597→                  <TableRow>
+   598→                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+   599→                      No se encontraron reservas.
+   600→                    </TableCell>
+   601→                  </TableRow>
+   602→                ) : (
+   603→                  filteredReservas.map(r => {
+   604→                    const saldo = getSaldo(r);
+   605→                    return (
+   606→                      <TableRow key={r.id}>
+   607→                        <TableCell className="font-medium">
+   608→                          <button
+   609→                            className="hover:underline text-left cursor-pointer"
+   610→                            onClick={() => openDetalle(r)}
+   611→                          >
+   612→                            <div>{r.huesped}</div>
+   613→                            <div className="text-xs text-muted-foreground">{r.dni}</div>
+   614→                          </button>
+   615→                        </TableCell>
+   616→                        <TableCell>
+   617→                          <Badge variant="outline">{r.habitacion}</Badge>
+   618→                        </TableCell>
+   619→                        <TableCell className="hidden md:table-cell">{formatFecha(r.checkin)}</TableCell>
+   620→                        <TableCell className="hidden md:table-cell">{formatFecha(r.checkout)}</TableCell>
+   621→                        <TableCell>
+   622→                          <Badge className={estadoReservaBadge[r.estado] || ''}>{r.estado}</Badge>
+   623→                        </TableCell>
+   624→                        <TableCell>
+   625→                          <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+   626→                        </TableCell>
+   627→                        <TableCell>
+   628→                          <div className="flex items-center gap-1">
+   629→                            {saldo > 0 && <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />}
+   630→                            <span className={saldo > 0 ? 'text-red-600 font-medium' : 'text-muted-foreground'}>
+   631→                              {formatMoney(saldo)}
+   632→                            </span>
+   633→                          </div>
+   634→                        </TableCell>
+   635→                        <TableCell className="text-right">
+   636→                          <div className="flex justify-end gap-1 flex-wrap">
+   637→                            {r.estado === 'Confirmada' && (
+   638→                              <Button
+   639→                                size="sm"
+   640→                                variant="default"
+   641→                                className="bg-emerald-600 hover:bg-emerald-700 h-7 text-xs px-2"
+   642→                                onClick={() => handleCheckIn(r.id)}
+   643→                              >
+   644→                                <LogIn className="w-3 h-3 mr-1" />Check-In
+   645→                              </Button>
+   646→                            )}
+   647→                            {r.estado === 'Confirmada' && (
+   648→                              <Button
+   649→                                size="sm"
+   650→                                variant="outline"
+   651→                                className="border-amber-400 text-amber-700 hover:bg-amber-50 h-7 text-xs px-2"
+   652→                                onClick={() => openEdit(r)}
+   653→                              >
+   654→                                <Pencil className="w-3 h-3 mr-1" />Editar
+   655→                              </Button>
+   656→                            )}
+   657→                            {r.estado === 'Confirmada' && (
+   658→                              <Button
+   659→                                size="sm"
+   660→                                variant="outline"
+   661→                                className="border-red-400 text-red-600 hover:bg-red-50 h-7 text-xs px-2"
+   662→                                onClick={() => openCancel(r.id)}
+   663→                              >
+   664→                                <XCircle className="w-3 h-3 mr-1" />Cancelar
+   665→                              </Button>
+   666→                            )}
+   667→                            {r.estado === 'Check-In realizado' && (
+   668→                              <Button
+   669→                                size="sm"
+   670→                                variant="default"
+   671→                                className="bg-red-600 hover:bg-red-700 h-7 text-xs px-2"
+   672→                                onClick={() => handleCheckOut(r.id)}
+   673→                              >
+   674→                                <LogOut className="w-3 h-3 mr-1" />Check-Out
+   675→                              </Button>
+   676→                            )}
+   677→                          </div>
+   678→                        </TableCell>
+   679→                      </TableRow>
+   680→                    );
+   681→                  })
+   682→                )}
+   683→              </TableBody>
+   684→            </Table>
+   685→          </div>
+   686→        </CardContent>
+   687→      </Card>
+   688→
+   689→      {/* ==================== MODAL DETALLE ==================== */}
+   690→      <Dialog open={modalDetalleOpen} onOpenChange={setModalDetalleOpen}>
+   691→        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+   692→          <DialogHeader>
+   693→            <DialogTitle>Detalle de Reserva #{detalleReserva?.id}</DialogTitle>
+   694→          </DialogHeader>
+   695→          {detalleReserva && (
+   696→            <div className="space-y-4">
+   697→              <div className="grid grid-cols-2 gap-3 text-sm">
+   698→                <div>
+   699→                  <span className="text-muted-foreground">Huésped:</span>
+   700→                  <p className="font-medium">{detalleReserva.huesped}</p>
+   701→                </div>
+   702→                <div>
+   703→                  <span className="text-muted-foreground">DNI:</span>
+   704→                  <p className="font-medium">{detalleReserva.dni}</p>
+   705→                </div>
+   706→                <div>
+   707→                  <span className="text-muted-foreground">Teléfono:</span>
+   708→                  <p className="font-medium">{detalleReserva.telefono || '—'}</p>
+   709→                </div>
+   710→                <div>
+   711→                  <span className="text-muted-foreground">Email:</span>
+   712→                  <p className="font-medium">{detalleReserva.email || '—'}</p>
+   713→                </div>
+   714→                {detalleReserva.domicilio && (
+   715→                  <div className="col-span-2">
+   716→                    <span className="text-muted-foreground">Domicilio:</span>
+   717→                    <p className="font-medium">{detalleReserva.domicilio}</p>
+   718→                  </div>
+   719→                )}
+   720→              </div>
+   721→              <Separator />
+   722→              <div className="grid grid-cols-2 gap-3 text-sm">
+   723→                <div>
+   724→                  <span className="text-muted-foreground">Habitación:</span>
+   725→                  <p className="font-medium">{detalleReserva.habitacion}</p>
+   726→                </div>
+   727→                <div>
+   728→                  <span className="text-muted-foreground">Personas:</span>
+   729→                  <p className="font-medium">{detalleReserva.personas}</p>
+   730→                </div>
+   731→                <div>
+   732→                  <span className="text-muted-foreground">Check-in:</span>
+   733→                  <p className="font-medium">{formatFecha(detalleReserva.checkin)}</p>
+   734→                </div>
+   735→                <div>
+   736→                  <span className="text-muted-foreground">Check-out:</span>
+   737→                  <p className="font-medium">{formatFecha(detalleReserva.checkout)}</p>
+   738→                </div>
+   739→                <div>
+   740→                  <span className="text-muted-foreground">Noches:</span>
+   741→                  <p className="font-medium">{nochesEntre(detalleReserva.checkin, detalleReserva.checkout)}</p>
+   742→                </div>
+   743→                <div>
+   744→                  <span className="text-muted-foreground">Tarifa:</span>
+   745→                  <p className="font-medium capitalize">{detalleReserva.tipoTarifa || 'Normal'}</p>
+   746→                </div>
+   747→              </div>
+   748→
+   749→              {/* Datos adicionales */}
+   750→              {(detalleReserva as any).datosAdicionales && Object.keys((detalleReserva as any).datosAdicionales).length > 0 && (
+   751→                <>
+   752→                  <Separator />
+   753→                  <div className="text-sm space-y-1">
+   754→                    <p className="font-semibold mb-2">Datos adicionales</p>
+   755→                    {Object.entries((detalleReserva as any).datosAdicionales).map(([key, val]) => (
+   756→                      <div key={key}>
+   757→                        <span className="text-muted-foreground">{key}:</span>{' '}
+   758→                        <span className="font-medium">{String(val)}</span>
+   759→                      </div>
+   760→                    ))}
+   761→                  </div>
+   762→                </>
+   763→              )}
+   764→
+   765→              {/* Agencia */}
+   766→              {detalleReserva.agencia && (
+   767→                <>
+   768→                  <Separator />
+   769→                  <div className="text-sm space-y-1">
+   770→                    <p className="font-semibold mb-2">Agencia</p>
+   771→                    {detalleReserva.agencia.nombre && (
+   772→                      <div><span className="text-muted-foreground">Nombre:</span> <span className="font-medium">{detalleReserva.agencia.nombre}</span></div>
+   773→                    )}
+   774→                    {detalleReserva.agencia.convenio && (
+   775→                      <div><span className="text-muted-foreground">Convenio:</span> <span className="font-medium">{detalleReserva.agencia.convenio}</span></div>
+   776→                    )}
+   777→                    {detalleReserva.agencia.vendedor && (
+   778→                      <div><span className="text-muted-foreground">Vendedor:</span> <span className="font-medium">{detalleReserva.agencia.vendedor}</span></div>
+   779→                    )}
+   780→                  </div>
+   781→                </>
+   782→              )}
+   783→
+   784→              <Separator />
+   785→              <div className="grid grid-cols-3 gap-3 text-sm">
+   786→                <div>
+   787→                  <span className="text-muted-foreground">Total:</span>
+   788→                  <p className="font-bold text-base">{formatMoney(calcularTotalReserva(detalleReserva.id))}</p>
+   789→                </div>
+   790→                <div>
+   791→                  <span className="text-muted-foreground">Pagado:</span>
+   792→                  <p className="font-medium">{formatMoney(calcularTotalPagado(detalleReserva.id))}</p>
+   793→                </div>
+   794→                <div>
+   795→                  <span className="text-muted-foreground">Saldo:</span>
+   796→                  <p className={`font-medium ${getSaldo(detalleReserva) > 0 ? 'text-red-600' : ''}`}>
+   797→                    {formatMoney(getSaldo(detalleReserva))}
+   798→                  </p>
+   799→                </div>
+   800→              </div>
+   801→              <div className="flex gap-2">
+   802→                <Badge className={estadoPagoBadge[detalleReserva.estadoPago] || ''}>{detalleReserva.estadoPago}</Badge>
+   803→                <Badge className={estadoReservaBadge[detalleReserva.estado] || ''}>{detalleReserva.estado}</Badge>
+   804→              </div>
+   805→
+   806→              {detalleReserva.notas && (
+   807→                <div className="text-sm">
+   808→                  <span className="text-muted-foreground">Notas:</span>
+   809→                  <p>{detalleReserva.notas}</p>
+   810→                </div>
+   811→              )}
+   812→
+   813→              {detalleReserva.estado === 'Confirmada' && (
+   814→                <Button
+   815→                  className="bg-emerald-600 hover:bg-emerald-700"
+   816→                  onClick={() => {
+   817→                    handleCheckIn(detalleReserva.id);
+   818→                    setModalDetalleOpen(false);
+   819→                  }}
+   820→                >
+   821→                  <LogIn className="w-4 h-4 mr-1" />Realizar Check-In
+   822→                </Button>
+   823→              )}
+   824→            </div>
+   825→          )}
+   826→        </DialogContent>
+   827→      </Dialog>
+   828→
+   829→      {/* ==================== MODAL NUEVA/EDITAR RESERVA ==================== */}
+   830→      <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
+   831→        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+   832→          <DialogHeader>
+   833→            <DialogTitle>{editingId ? `Editar Reserva #${editingId}` : 'Nueva Reserva'}</DialogTitle>
+   834→          </DialogHeader>
+   835→
+   836→          {errors.length > 0 && (
+   837→            <div className="rounded-lg border border-red-300 bg-red-50 p-3 space-y-1">
+   838→              {errors.map((err, i) => (
+   839→                <p key={i} className="text-sm text-red-700 flex items-center gap-1">
+   840→                  <AlertTriangle className="w-3.5 h-3.5" /> {err}
+   841→                </p>
+   842→              ))}
+   843→            </div>
+   844→          )}
+   845→
+   846→          <Tabs value={tab} onValueChange={setTab}>
+   847→            <TabsList className="w-full">
+   848→              <TabsTrigger value="disponibilidad" className="flex-1">
+   849→                <BedDouble className="w-4 h-4 mr-1" />Disponibilidad
+   850→              </TabsTrigger>
+   851→              <TabsTrigger value="cliente" className="flex-1">
+   852→                <Users className="w-4 h-4 mr-1" />Cliente
+   853→              </TabsTrigger>
+   854→              <TabsTrigger value="pago" className="flex-1">
+   855→                <Eye className="w-4 h-4 mr-1" />Pago
+   856→              </TabsTrigger>
+   857→            </TabsList>
+   858→
+   859→            {/* ==================== TAB: DISPONIBILIDAD ==================== */}
+   860→            <TabsContent value="disponibilidad" className="space-y-4 mt-4">
+   861→              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+   862→                <div className="grid gap-1.5">
+   863→                  <Label>Check-in *</Label>
+   864→                  <Input type="date" value={form.checkin} onChange={e => updateForm({ checkin: e.target.value })} />
+   865→                </div>
+   866→                <div className="grid gap-1.5">
+   867→                  <Label>Check-out *</Label>
+   868→                  <Input type="date" value={form.checkout} onChange={e => updateForm({ checkout: e.target.value })} />
+   869→                </div>
+   870→                <div className="grid gap-1.5">
+   871→                  <Label>Personas</Label>
+   872→                  <Input
+   873→                    type="number"
+   874→                    min="1"
+   875→                    max="10"
+   876→                    value={form.personas}
+   877→                    onChange={e => updateForm({ personas: e.target.value })}
+   878→                  />
+   879→                </div>
+   880→                <div className="grid gap-1.5">
+   881→                  <Label>Tarifa</Label>
+   882→                  <Select value={form.tipoTarifa} onValueChange={v => {
+   883→                    updateForm({ tipoTarifa: v, datosAdicionales: {} });
+   884→                  }}>
+   885→                    <SelectTrigger><SelectValue /></SelectTrigger>
+   886→                    <SelectContent>
+   887→                      {tiposTarifa.map(t => (
+   888→                        <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>
+   889→                      ))}
+   890→                    </SelectContent>
+   891→                  </Select>
+   892→                </div>
+   893→              </div>
+   894→
+   895→              {/* Dynamic custom fields from tarifa */}
+   896→              {camposPersonalizados.length > 0 && (
+   897→                <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+   898→                  <p className="text-sm font-medium">Campos adicionales</p>
+   899→                  {camposPersonalizados.map(campo => (
+   900→                    <div key={campo.nombre} className="grid gap-1.5">
+   901→                      <Label className="text-sm">
+   902→                        {campo.nombre} {campo.requerido && <span className="text-red-500">*</span>}
+   903→                      </Label>
+   904→                      {campo.tipo === 'numero' ? (
+   905→                        <Input
+   906→                          type="number"
+   907→                          value={form.datosAdicionales[campo.nombre] || ''}
+   908→                          onChange={e => updateDatosAdicionales(campo.nombre, e.target.value)}
+   909→                          placeholder={campo.nombre}
+   910→                        />
+   911→                      ) : (
+   912→                        <Input
+   913→                          type="text"
+   914→                          value={form.datosAdicionales[campo.nombre] || ''}
+   915→                          onChange={e => updateDatosAdicionales(campo.nombre, e.target.value)}
+   916→                          placeholder={campo.nombre}
+   917→                        />
+   918→                      )}
+   919→                    </div>
+   920→                  ))}
+   921→                </div>
+   922→              )}
+   923→
+   924→              {/* Filtro cama matrimonial */}
+   925→              <div className="flex items-center gap-2">
+   926→                <Checkbox
+   927→                  id="filtro-matrimonial"
+   928→                  checked={form.filtroMatrimonial}
+   929→                  onCheckedChange={(checked) => updateForm({ filtroMatrimonial: !!checked })}
+   930→                />
+   931→                <Label htmlFor="filtro-matrimonial" className="text-sm cursor-pointer">
+   932→                  Solo habitaciones con cama matrimonial
+   933→                </Label>
+   934→              </div>
+   935→
+   936→              <Button onClick={handleSearchDisponibilidad} disabled={!form.checkin || !form.checkout}>
+   937→                <Search className="w-4 h-4 mr-1" />Buscar habitaciones
+   938→              </Button>
+   939→
+   940→              {/* Room cards */}
+   941→              {disponibles.length > 0 && (
+   942→                <div className="space-y-2">
+   943→                  <div className="flex items-center justify-between">
+   944→                    <p className="text-sm text-muted-foreground">
+   945→                      {disponiblesFiltradas.length} de {disponibles.length} habitación(es) disponible(s)
+   946→                    </p>
+   947→                    {form.filtroMatrimonial && (
+   948→                      <p className="text-xs text-muted-foreground">
+   949→                        (Filtrando: solo con cama matrimonial)
+   950→                      </p>
+   951→                    )}
+   952→                  </div>
+   953→                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
+   954→                    {disponiblesFiltradas.map(hab => {
+   955→                      const isSelected = form.habitacion === hab.numero;
+   956→                      return (
+   957→                        <Card
+   958→                          key={hab.numero}
+   959→                          className={`cursor-pointer transition-all p-3 ${
+   960→                            isSelected
+   961→                              ? 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50'
+   962→                              : 'hover:bg-muted/50'
+   963→                          }`}
+   964→                          onClick={() => selectRoom(hab)}
+   965→                        >
+   966→                          <div className="flex items-center justify-between">
+   967→                            <span className="font-bold text-lg">{hab.numero}</span>
+   968→                            <Badge variant="outline">{hab.tipo}</Badge>
+   969→                          </div>
+   970→                          <div className="text-xs text-muted-foreground mt-1">
+   971→                            Cap. {hab.capacidad} · {hab.camasMatrimoniales}M / {hab.camasSimples}S
+   972→                            {hab.camasLibres !== undefined && (
+   973→                              <span> · {hab.camasLibres} cama{s(hab.camasLibres)} libre{s(hab.camasLibres)}</span>
+   974→                            )}
+   975→                          </div>
+   976→                          {isSelected && (
+   977→                            <div className="mt-2">
+   978→                              <div className="text-xs text-emerald-700 font-medium">✓ Seleccionada</div>
+   979→                              <div className="mt-2 grid gap-1.5">
+   980→                                <Label className="text-xs">Personas en esta habitación</Label>
+   981→                                <Input
+   982→                                  type="number"
+   983→                                  min="1"
+   984→                                  max={hab.capacidad}
+   985→                                  value={form.personas}
+   986→                                  onChange={e => updateForm({ personas: e.target.value })}
+   987→                                  className="h-7 text-xs"
+   988→                                  onClick={e => e.stopPropagation()}
+   989→                                />
+   990→                              </div>
+   991→                            </div>
+   992→                          )}
+   993→                        </Card>
+   994→                      );
+   995→                    })}
+   996→                  </div>
+   997→                </div>
+   998→              )}
+   999→
+  1000→              {/* Sugerencias de combinación */}
+  1001→              {sugerenciasCombinacion.length > 0 && (
+  1002→                <div className="border rounded-lg p-3 bg-muted/20">
+  1003→                  <button
+  1004→                    className="flex items-center gap-2 text-sm font-medium w-full text-left cursor-pointer"
+  1005→                    onClick={() => setSugerenciasOpen(!sugerenciasOpen)}
+  1006→                  >
+  1007→                    {sugerenciasOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+  1008→                    Sugerencias de combinación ({sugerenciasCombinacion.length})
+  1009→                  </button>
+  1010→                  {sugerenciasOpen && (
+  1011→                    <div className="mt-2 space-y-2">
+  1012→                      {sugerenciasCombinacion.map((sug, i) => (
+  1013→                        <div key={i} className="text-xs border rounded p-2 bg-background">
+  1014→                          <span className="font-medium">Combinación {i + 1}:</span>{' '}
+  1015→                          {sug.habitaciones.join(' + ')}{' '}
+  1016→                          <span className="text-muted-foreground">(Cap. total: {sug.capacidadTotal})</span>
+  1017→                        </div>
+  1018→                      ))}
+  1019→                    </div>
+  1020→                  )}
+  1021→                </div>
+  1022→              )}
+  1023→
+  1024→              {disponibles.length === 0 && form.checkin && form.checkout && (
+  1025→                <p className="text-sm text-muted-foreground text-center py-4">
+  1026→                  Ingrese fechas y presione buscar para ver disponibilidad.
+  1027→                </p>
+  1028→              )}
+  1029→
+  1030→              {/* Price summary */}
+  1031→              {computed.precioCalculado > 0 && (
+  1032→                <div className="rounded-lg border p-3 bg-muted/30">
+  1033→                  <div className="flex justify-between text-sm">
+  1034→                    <span className="text-muted-foreground">Subtotal ({form.personas} persona{s(parseInt(form.personas))} × {computed.noches} noche{s(computed.noches)})</span>
+  1035→                    <span className="font-bold text-base">{formatMoney(computed.subtotal)}</span>
+  1036→                  </div>
+  1037→                  {computed.recargo > 0 && (
+  1038→                    <div className="flex justify-between text-sm mt-1">
+  1039→                      <span className="text-muted-foreground">Recargo por cuotas</span>
+  1040→                      <span className="text-amber-600">{formatMoney(computed.recargo)}</span>
+  1041→                    </div>
+  1042→                  )}
+  1043→                  {computed.recargo > 0 && (
+  1044→                    <div className="flex justify-between text-sm mt-1 pt-1 border-t">
+  1045→                      <span className="font-medium">Total final</span>
+  1046→                      <span className="font-bold text-base">{formatMoney(computed.totalFinal)}</span>
+  1047→                    </div>
+  1048→                  )}
+  1049→                </div>
+  1050→              )}
+  1051→            </TabsContent>
+  1052→
+  1053→            {/* ==================== TAB: CLIENTE ==================== */}
+  1054→            <TabsContent value="cliente" className="space-y-4 mt-4">
+  1055→              <div className="grid gap-2">
+  1056→                <Label>Buscar cliente existente</Label>
+  1057→                <div className="flex gap-2">
+  1058→                  <Input
+  1059→                    placeholder="Nombre, DNI o email..."
+  1060→                    value={busquedaCliente}
+  1061→                    onChange={e => setBusquedaCliente(e.target.value)}
+  1062→                    onKeyDown={e => e.key === 'Enter' && handleSearchCliente()}
+  1063→                  />
+  1064→                  <Button variant="outline" onClick={handleSearchCliente}>
+  1065→                    <Search className="w-4 h-4" />
+  1066→                  </Button>
+  1067→                </div>
+  1068→              </div>
+  1069→
+  1070→              {clientesEncontrados.length > 0 && (
+  1071→                <div className="border rounded-lg max-h-40 overflow-y-auto">
+  1072→                  {clientesEncontrados.map(c => (
+  1073→                    <button
+  1074→                      key={c.id}
+  1075→                      className="w-full text-left px-4 py-2 hover:bg-muted/50 border-b last:border-b-0 text-sm transition-colors"
+  1076→                      onClick={() => selectCliente(c)}
+  1077→                    >
+  1078→                      <span className="font-medium">{c.nombre}</span>
+  1079→                      <span className="text-muted-foreground ml-2">({c.dni})</span>
+  1080→                      {c.telefono && <span className="text-muted-foreground ml-2">{c.telefono}</span>}
+  1081→                    </button>
+  1082→                  ))}
+  1083→                </div>
+  1084→              )}
+  1085→
+  1086→              <Separator />
+  1087→              <p className="text-xs text-muted-foreground">Datos del huésped (se autocompletan al seleccionar un cliente)</p>
+  1088→
+  1089→              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  1090→                <div className="grid gap-1.5 sm:col-span-2">
+  1091→                  <Label>Nombre completo *</Label>
+  1092→                  <Input value={form.huesped} onChange={e => updateForm({ huesped: e.target.value })} />
+  1093→                </div>
+  1094→                <div className="grid gap-1.5">
+  1095→                  <Label>DNI / Pasaporte *</Label>
+  1096→                  <Input value={form.dni} onChange={e => updateForm({ dni: e.target.value })} />
+  1097→                </div>
+  1098→                <div className="grid gap-1.5">
+  1099→                  <Label>Teléfono *</Label>
+  1100→                  <Input value={form.telefono} onChange={e => updateForm({ telefono: e.target.value })} />
+  1101→                </div>
+  1102→                <div className="grid gap-1.5 sm:col-span-2">
+  1103→                  <Label>Email</Label>
+  1104→                  <Input type="email" value={form.email} onChange={e => updateForm({ email: e.target.value })} />
+  1105→                </div>
+  1106→                <div className="grid gap-1.5 sm:col-span-2">
+  1107→                  <Label>Domicilio</Label>
+  1108→                  <Input value={form.domicilio} onChange={e => updateForm({ domicilio: e.target.value })} />
+  1109→                </div>
+  1110→              </div>
+  1111→            </TabsContent>
+  1112→
+  1113→            {/* ==================== TAB: PAGO ==================== */}
+  1114→            <TabsContent value="pago" className="space-y-4 mt-4">
+  1115→              {/* Desglose */}
+  1116→              <div className="rounded-lg border p-4 space-y-2 bg-muted/30">
+  1117→                <h4 className="font-semibold text-sm">Desglose de precio</h4>
+  1118→                <div className="grid grid-cols-2 gap-3 text-sm">
+  1119→                  <div>
+  1120→                    <span className="text-muted-foreground">Tarifa</span>
+  1121→                    <p className="font-medium capitalize">{form.tipoTarifa}</p>
+  1122→                  </div>
+  1123→                  <div>
+  1124→                    <span className="text-muted-foreground">Noches</span>
+  1125→                    <p className="font-medium">{computed.noches}</p>
+  1126→                  </div>
+  1127→                  <div>
+  1128→                    <span className="text-muted-foreground">Personas</span>
+  1129→                    <p className="font-medium">{form.personas}</p>
+  1130→                  </div>
+  1131→                  <div>
+  1132→                    <span className="text-muted-foreground">Subtotal</span>
+  1133→                    <p className="font-bold">{formatMoney(computed.subtotal)}</p>
+  1134→                  </div>
+  1135→                </div>
+  1136→                {computed.recargo > 0 && (
+  1137→                  <div className="text-sm pt-2 border-t">
+  1138→                    <span className="text-muted-foreground">Recargo por cuotas: </span>
+  1139→                    <span className="text-amber-600 font-medium">{formatMoney(computed.recargo)}</span>
+  1140→                  </div>
+  1141→                )}
+  1142→                <div className="text-sm pt-2 border-t">
+  1143→                  <span className="text-muted-foreground">Total final: </span>
+  1144→                  <span className="font-bold text-base">{formatMoney(computed.totalFinal)}</span>
+  1145→                </div>
+  1146→              </div>
+  1147→
+  1148→              {/* Pago radio */}
+  1149→              <RadioGroup
+  1150→                value={form.pagoTipo}
+  1151→                onValueChange={v => updateForm({ pagoTipo: v as PagoRadio })}
+  1152→                className="flex flex-col sm:flex-row gap-3"
+  1153→              >
+  1154→                <div className="flex items-center gap-2">
+  1155→                  <RadioGroupItem value="ninguno" id="pago-nada" />
+  1156→                  <Label htmlFor="pago-nada" className="text-sm">No abonado</Label>
+  1157→                </div>
+  1158→                <div className="flex items-center gap-2">
+  1159→                  <RadioGroupItem value="parcial" id="pago-parcial" />
+  1160→                  <Label htmlFor="pago-parcial" className="text-sm">Parcial</Label>
+  1161→                </div>
+  1162→                <div className="flex items-center gap-2">
+  1163→                  <RadioGroupItem value="total" id="pago-total" />
+  1164→                  <Label htmlFor="pago-total" className="text-sm">Total</Label>
+  1165→                </div>
+  1166→              </RadioGroup>
+  1167→
+  1168→              {(form.pagoTipo === 'parcial' || form.pagoTipo === 'total') && (
+  1169→                <div className="space-y-3 border rounded-lg p-4">
+  1170→                  {form.pagoTipo === 'parcial' && (
+  1171→                    <div className="grid gap-1.5">
+  1172→                      <Label>Monto del pago</Label>
+  1173→                      <Input
+  1174→                        type="number"
+  1175→                        min={pagoMinimo}
+  1176→                        max={computed.totalFinal}
+  1177→                        value={form.pagoMonto}
+  1178→                        onChange={e => updateForm({ pagoMonto: e.target.value })}
+  1179→                        placeholder="0"
+  1180→                      />
+  1181→                      <p className="text-xs text-muted-foreground">
+  1182→                        Mínimo 30%: {formatMoney(pagoMinimo)} — Máximo: {formatMoney(computed.totalFinal)}
+  1183→                      </p>
+  1184→                    </div>
+  1185→                  )}
+  1186→                  {form.pagoTipo === 'total' && (
+  1187→                    <div className="text-sm">
+  1188→                      <span className="text-muted-foreground">Monto a pagar: </span>
+  1189→                      <span className="font-bold">{formatMoney(computed.totalFinal)}</span>
+  1190→                    </div>
+  1191→                  )}
+  1192→                  <div className="grid grid-cols-2 gap-3">
+  1193→                    <div className="grid gap-1.5">
+  1194→                      <Label>Método de pago</Label>
+  1195→                      <Select value={form.pagoMetodo} onValueChange={v => updateForm({ pagoMetodo: v })}>
+  1196→                        <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+  1197→                        <SelectContent>
+  1198→                          {metodosPago.map(m => (
+  1199→                            <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>
+  1200→                          ))}
+  1201→                        </SelectContent>
+  1202→                      </Select>
+  1203→                    </div>
+  1204→                    {selectedMetodo && selectedMetodo.recargo && selectedMetodo.cuotas.length > 0 && (
+  1205→                      <div className="grid gap-1.5">
+  1206→                        <Label>Cuotas</Label>
+  1207→                        <Select value={form.pagoCuotas} onValueChange={v => updateForm({ pagoCuotas: v })}>
+  1208→                          <SelectTrigger><SelectValue /></SelectTrigger>
+  1209→                          <SelectContent>
+  1210→                            {selectedMetodo.cuotas.map(c => (
+  1211→                              <SelectItem key={`${c.cantidad}|${c.porcentaje}`} value={`${c.cantidad}|${c.porcentaje}`}>
+  1212→                                {c.cantidad} cuota{s(c.cantidad)} ({c.porcentaje}%)
+  1213→                              </SelectItem>
+  1214→                            ))}
+  1215→                          </SelectContent>
+  1216→                        </Select>
+  1217→                      </div>
+  1218→                    )}
+  1219→                  </div>
+  1220→                </div>
+  1221→              )}
+  1222→
+  1223→              {/* Save / Cancel buttons at bottom of Pago tab */}
+  1224→              <div className="flex justify-end gap-2 pt-4 border-t">
+  1225→                <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
+  1226→                <Button
+  1227→                  onClick={handleSave}
+  1228→                  disabled={!form.habitacion || !form.huesped.trim() || !form.dni.trim() || !form.telefono.trim()}
+  1229→                >
+  1230→                  {editingId ? 'Guardar cambios' : 'Crear reserva'} ({formatMoney(computed.totalFinal)})
+  1231→                </Button>
+  1232→              </div>
+  1233→            </TabsContent>
+  1234→          </Tabs>
+  1235→        </DialogContent>
+  1236→      </Dialog>
+  1237→
+  1238→      {/* ==================== MODAL CANCELAR ==================== */}
+  1239→      <Dialog open={modalCancelOpen} onOpenChange={() => setModalCancelOpen(false)}>
+  1240→        <DialogContent>
+  1241→          <DialogHeader>
+  1242→            <DialogTitle className="text-destructive">Cancelar reserva</DialogTitle>
+  1243→          </DialogHeader>
+  1244→          {cancelReserva && (
+  1245→            <div className="space-y-3">
+  1246→              <p>
+  1247→                ¿Está seguro de cancelar la reserva de <strong>{cancelReserva.huesped}</strong>?
+  1248→              </p>
+  1249→              <p className="text-sm text-muted-foreground">
+  1250→                Habitación {cancelReserva.habitacion} · {formatFecha(cancelReserva.checkin)} → {formatFecha(cancelReserva.checkout)}
+  1251→              </p>
+  1252→              <p className="text-sm text-red-600">Esta acción no se puede deshacer.</p>
+  1253→            </div>
+  1254→          )}
+  1255→          <DialogFooter>
+  1256→            <DialogClose asChild><Button variant="secondary">No cancelar</Button></DialogClose>
+  1257→            <Button variant="destructive" onClick={handleCancel}>Sí, cancelar reserva</Button>
+  1258→          </DialogFooter>
+  1259→        </DialogContent>
+  1260→      </Dialog>
+  1261→
+  1262→      {/* ==================== MODAL CHOFER CORTESÍA ==================== */}
+  1263→      <Dialog open={modalChoferOpen} onOpenChange={setModalChoferOpen}>
+  1264→        <DialogContent>
+  1265→          <DialogHeader>
+  1266→            <DialogTitle>Chofer cortesía</DialogTitle>
+  1267→          </DialogHeader>
+  1268→          <div className="space-y-4">
+  1269→            <p className="text-sm">
+  1270→              La tarifa seleccionada incluye cortesía para el chofer.
+  1271→              ¿El chofer se hospedará sin cargo en la habitación <strong>{choferHabitacion}</strong>?
+  1272→            </p>
+  1273→            <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+  1274→              <div className="grid gap-1.5">
+  1275→                <Label>Nombre del chofer *</Label>
+  1276→                <Input value={choferNombre} onChange={e => setChoferNombre(e.target.value)} placeholder="Nombre completo" />
+  1277→              </div>
+  1278→              <div className="grid gap-1.5">
+  1279→                <Label>DNI del chofer *</Label>
+  1280→                <Input value={choferDni} onChange={e => setChoferDni(e.target.value)} placeholder="DNI / Pasaporte" />
+  1281→              </div>
+  1282→            </div>
+  1283→          </div>
+  1284→          <DialogFooter>
+  1285→            <Button variant="secondary" onClick={handleChoferNo}>No</Button>
+  1286→            <Button
+  1287→              onClick={handleChoferSi}
+  1288→              disabled={!choferNombre.trim() || !choferDni.trim()}
+  1289→            >
+  1290→              Sí, hospedar chofer
+  1291→            </Button>
+  1292→          </DialogFooter>
+  1293→        </DialogContent>
+  1294→      </Dialog>
+  1295→    </div>
+  1296→  );
+  1297→}

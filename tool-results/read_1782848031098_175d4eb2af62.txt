@@ -1,0 +1,690 @@
+     1→'use client';
+     2→
+     3→import { useState } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import { Card, CardContent } from '@/components/ui/card';
+     6→import { Button } from '@/components/ui/button';
+     7→import { Input } from '@/components/ui/input';
+     8→import { Label } from '@/components/ui/label';
+     9→import { Badge } from '@/components/ui/badge';
+    10→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    11→import { Checkbox } from '@/components/ui/checkbox';
+    12→import {
+    13→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    14→} from '@/components/ui/dialog';
+    15→import {
+    16→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    17→} from '@/components/ui/select';
+    18→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    19→import { Tags, Plus, Trash2, CreditCard, ListChecks, Users, Pencil, Info } from 'lucide-react';
+    20→import type { CampoPersonalizado, MetodoPago, Cuota } from '@/lib/types';
+    21→
+    22→// ==================== COMPONENTES AUXILIARES ====================
+    23→
+    24→function CampoFila({ campo, onRemove, onUpdate }: {
+    25→  campo: CampoPersonalizado;
+    26→  onRemove: () => void;
+    27→  onUpdate: (c: CampoPersonalizado) => void;
+    28→}) {
+    29→  return (
+    30→    <div className="flex items-center gap-2">
+    31→      <Input
+    32→        placeholder="Nombre del campo"
+    33→        value={campo.nombre}
+    34→        onChange={e => onUpdate({ ...campo, nombre: e.target.value })}
+    35→        className="flex-1 h-8"
+    36→      />
+    37→      <Select value={campo.tipo} onValueChange={v => onUpdate({ ...campo, tipo: v as CampoPersonalizado['tipo'] })}>
+    38→        <SelectTrigger className="w-28 h-8"><SelectValue /></SelectTrigger>
+    39→        <SelectContent>
+    40→          <SelectItem value="texto">Texto</SelectItem>
+    41→          <SelectItem value="numero">Número</SelectItem>
+    42→          <SelectItem value="email">Email</SelectItem>
+    43→        </SelectContent>
+    44→      </Select>
+    45→      <div className="flex items-center gap-1.5 px-2">
+    46→        <Checkbox
+    47→          id={`req-${campo.nombre}`}
+    48→          checked={campo.requerido}
+    49→          onCheckedChange={v => onUpdate({ ...campo, requerido: !!v })}
+    50→        />
+    51→        <Label htmlFor={`req-${campo.nombre}`} className="text-xs whitespace-nowrap">Req.</Label>
+    52→      </div>
+    53→      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive shrink-0" onClick={onRemove}>
+    54→        <Trash2 className="w-3.5 h-3.5" />
+    55→      </Button>
+    56→    </div>
+    57→  );
+    58→}
+    59→
+    60→function CuotaFila({ cuota, onRemove, onUpdate }: {
+    61→  cuota: Cuota;
+    62→  onRemove: () => void;
+    63→  onUpdate: (c: Cuota) => void;
+    64→}) {
+    65→  return (
+    66→    <div className="flex items-center gap-2">
+    67→      <div className="space-y-0.5">
+    68→        <Label className="text-[10px] text-muted-foreground">Cantidad</Label>
+    69→        <Input type="number" min={1} className="w-20 h-8" value={cuota.cantidad} onChange={e => onUpdate({ ...cuota, cantidad: parseInt(e.target.value) || 1 })} />
+    70→      </div>
+    71→      <div className="space-y-0.5">
+    72→        <Label className="text-[10px] text-muted-foreground">% recargo</Label>
+    73→        <Input type="number" step="0.1" className="w-20 h-8" value={cuota.porcentaje} onChange={e => onUpdate({ ...cuota, porcentaje: parseFloat(e.target.value) || 0 })} />
+    74→      </div>
+    75→      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive shrink-0 mt-4" onClick={onRemove}>
+    76→        <Trash2 className="w-3.5 h-3.5" />
+    77→      </Button>
+    78→    </div>
+    79→  );
+    80→}
+    81→
+    82→// ==================== MODULO PRINCIPAL ====================
+    83→
+    84→export default function TarifasModule() {
+    85→  const {
+    86→    tarifas, tiposTarifa, metodosPago, categoriasGastos, gastos,
+    87→    habitaciones, reservas,
+    88→    guardarTarifaCompleta, eliminarTipoTarifa, actualizarPrecioCama,
+    89→    agregarMetodoPago, editarMetodoPago, eliminarMetodoPago,
+    90→    agregarCategoriaGasto, editarCategoriaGasto, eliminarCategoriaGasto,
+    91→  } = useHotelStore();
+    92→
+    93→  const [tab, setTab] = useState('tarifas');
+    94→  const [alerta, setAlerta] = useState<{ tipo: 'success' | 'warning'; msg: string } | null>(null);
+    95→
+    96→  // --- Modal Tarifa ---
+    97→  const [modalTarifa, setModalTarifa] = useState(false);
+    98→  const [editandoTarifa, setEditandoTarifa] = useState<string | null>(null); // null = nueva
+    99→  const [tarifaForm, setTarifaForm] = useState({
+   100→    nombre: '',
+   101→    precios: { 1: 0, 2: 0, 3: 0, 4: 0 },
+   102→    camposPersonalizados: [] as CampoPersonalizado[],
+   103→    choferCortesia: false,
+   104→    habitacionChofer: '' as string,
+   105→  });
+   106→
+   107→  // --- Modal Precio Cama ---
+   108→  const [modalCama, setModalCama] = useState(false);
+   109→  const [precioCama, setPrecioCama] = useState((tarifas as Record<string, number | unknown>)['precioPorCama'] as number || 17000);
+   110→
+   111→  // --- Modal Método Pago ---
+   112→  const [modalMetodo, setModalMetodo] = useState(false);
+   113→  const [editandoMetodo, setEditandoMetodo] = useState<string | null>(null);
+   114→  const [metForm, setMetForm] = useState({ nombre: '', tipo: 'efectivo' as const, recargo: false, cuotas: [] as Cuota[] });
+   115→
+   116→  // --- Modal Categoría ---
+   117→  const [modalCategoria, setModalCategoria] = useState(false);
+   118→  const [editandoCat, setEditandoCat] = useState<string | null>(null);
+   119→  const [catForm, setCatForm] = useState('');
+   120→
+   121→  // --- Confirm Dialog ---
+   122→  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; titulo: string; msg: string; onConfirm: () => void }>({ open: false, titulo: '', msg: '', onConfirm: () => {} });
+   123→
+   124→  // ==================== TARIFAS TAB ====================
+   125→
+   126→  const precioCamaActual = (tarifas as Record<string, number | unknown>)['precioPorCama'] as number || 17000;
+   127→
+   128→  const habitacionesCompartidas = Object.entries(habitaciones)
+   129→    .filter(([, h]) => h.tipo === 'Compartida')
+   130→    .sort(([a], [b]) => a.localeCompare(b));
+   131→
+   132→  const openModalTarifa = (tipo: string | null) => {
+   133→    if (tipo === null) {
+   134→      // Nueva
+   135→      setEditandoTarifa(null);
+   136→      setTarifaForm({ nombre: '', precios: { 1: 0, 2: 0, 3: 0, 4: 0 }, camposPersonalizados: [], choferCortesia: false, habitacionChofer: '' });
+   137→    } else {
+   138→      const t = tarifas[tipo];
+   139→      setEditandoTarifa(tipo);
+   140→      setTarifaForm({
+   141→        nombre: tipo,
+   142→        precios: { 1: t?.[1] || 0, 2: t?.[2] || 0, 3: t?.[3] || 0, 4: t?.[4] || 0 },
+   143→        camposPersonalizados: [...(t?.camposPersonalizados || [])],
+   144→        choferCortesia: t?.choferCortesia || false,
+   145→        habitacionChofer: t?.habitacionChofer || '',
+   146→      });
+   147→    }
+   148→    setModalTarifa(true);
+   149→  };
+   150→
+   151→  const handleGuardarTarifa = () => {
+   152→    const nombre = tarifaForm.nombre.trim();
+   153→    if (!nombre) { setAlerta({ tipo: 'warning', msg: 'El nombre de la tarifa no puede estar vacío.' }); return; }
+   154→    const tipoKey = editandoTarifa || 'nueva';
+   155→    if (editandoTarifa === null && tiposTarifa.some(t => t.toLowerCase() === nombre.toLowerCase())) {
+   156→      setAlerta({ tipo: 'warning', msg: `Ya existe una tarifa llamada "${nombre}".` }); return;
+   157→    }
+   158→    if (editandoTarifa !== null && nombre !== editandoTarifa && tiposTarifa.some(t => t.toLowerCase() === nombre.toLowerCase())) {
+   159→      setAlerta({ tipo: 'warning', msg: `Ya existe una tarifa llamada "${nombre}".` }); return;
+   160→    }
+   161→    guardarTarifaCompleta(tipoKey, {
+   162→      nombre,
+   163→      precios: tarifaForm.precios,
+   164→      camposPersonalizados: tarifaForm.camposPersonalizados,
+   165→      choferCortesia: tarifaForm.choferCortesia,
+   166→      habitacionChofer: tarifaForm.habitacionChofer || null,
+   167→    });
+   168→    setModalTarifa(false);
+   169→    setAlerta({ tipo: 'success', msg: editandoTarifa ? 'Cambios guardados con éxito.' : `Tarifa "${nombre}" creada con éxito.` });
+   170→  };
+   171→
+   172→  const handleEliminarTarifa = (tipo: string) => {
+   173→    const reservasActivas = reservas.filter(r => r.tipoTarifa === tipo && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'));
+   174→    if (reservasActivas.length > 0) {
+   175→      setAlerta({ tipo: 'warning', msg: `No se puede eliminar la tarifa "${tipo}". Hay ${reservasActivas.length} reserva(s) activa(s) que la están usando.` });
+   176→      return;
+   177→    }
+   178→    setConfirmDialog({
+   179→      open: true,
+   180→      titulo: 'Eliminar tarifa',
+   181→      msg: `¿Eliminar la tarifa "${tipo}"? Esta acción no se puede deshacer.`,
+   182→      onConfirm: () => {
+   183→        eliminarTipoTarifa(tipo);
+   184→        setConfirmDialog({ ...confirmDialog, open: false });
+   185→        setModalTarifa(false);
+   186→        setAlerta({ tipo: 'success', msg: `Tarifa "${tipo}" eliminada correctamente.` });
+   187→      },
+   188→    });
+   189→  };
+   190→
+   191→  const handleGuardarPrecioCama = () => {
+   192→    if (precioCama < 0) { setAlerta({ tipo: 'warning', msg: 'El precio no puede ser negativo.' }); return; }
+   193→    actualizarPrecioCama(precioCama);
+   194→    setModalCama(false);
+   195→    setAlerta({ tipo: 'success', msg: 'Precio por cama actualizado correctamente.' });
+   196→  };
+   197→
+   198→  // ==================== MÉTODOS TAB ====================
+   199→
+   200→  const openModalMetodo = (id: string | null) => {
+   201→    if (id === null) {
+   202→      setEditandoMetodo(null);
+   203→      setMetForm({ nombre: '', tipo: 'efectivo', recargo: false, cuotas: [] });
+   204→    } else {
+   205→      const m = metodosPago.find(met => met.id === id);
+   206→      if (!m) return;
+   207→      setEditandoMetodo(id);
+   208→      setMetForm({ nombre: m.nombre, tipo: m.tipo as 'efectivo', recargo: m.recargo, cuotas: [...m.cuotas] });
+   209→    }
+   210→    setModalMetodo(true);
+   211→  };
+   212→
+   213→  const handleGuardarMetodo = () => {
+   214→    const nombre = metForm.nombre.trim();
+   215→    if (!nombre) { setAlerta({ tipo: 'warning', msg: 'Ingrese un nombre.' }); return; }
+   216→
+   217→    if (editandoMetodo === null) {
+   218→      const nuevoId = nombre.toLowerCase().replace(/\s+/g, '_');
+   219→      if (metodosPago.some(m => m.id === nuevoId)) { setAlerta({ tipo: 'warning', msg: 'Ya existe un método con ese nombre.' }); return; }
+   220→      agregarMetodoPago({ id: nuevoId, nombre, tipo: metForm.tipo, recargo: metForm.recargo, cuotas: metForm.cuotas });
+   221→    } else {
+   222→      editarMetodoPago(editandoMetodo, { id: editandoMetodo, nombre, tipo: metForm.tipo, recargo: metForm.recargo, cuotas: metForm.cuotas });
+   223→    }
+   224→    setModalMetodo(false);
+   225→  };
+   226→
+   227→  const handleEliminarMetodo = (id: string) => {
+   228→    if (id === 'efectivo') { setAlerta({ tipo: 'warning', msg: 'No se puede eliminar el método Efectivo.' }); return; }
+   229→    const metodo = metodosPago.find(m => m.id === id);
+   230→    if (!metodo) return;
+   231→    const pagosAsociados = gastos.length === 0 ? [] : []; // pagos con este método
+   232→    if (pagos.some(p => p.metodo === metodo.nombre)) {
+   233→      setAlerta({ tipo: 'warning', msg: `No se puede eliminar "${metodo.nombre}". Hay pago(s) registrado(s) con este método.` }); return;
+   234→    }
+   235→    if (reservas.some(r => r.metodoPagoId === id && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'))) {
+   236→      setAlerta({ tipo: 'warning', msg: `No se puede eliminar "${metodo.nombre}". Hay reserva(s) activa(s) que lo están usando.` }); return;
+   237→    }
+   238→    setConfirmDialog({
+   239→      open: true, titulo: 'Eliminar método de pago', msg: `¿Eliminar este método de pago?`,
+   240→      onConfirm: () => {
+   241→        eliminarMetodoPago(id);
+   242→        setConfirmDialog({ ...confirmDialog, open: false });
+   243→        setAlerta({ tipo: 'success', msg: 'Método de pago eliminado.' });
+   244→      },
+   245→    });
+   246→  };
+   247→
+   248→  // ==================== CATEGORÍAS TAB ====================
+   249→
+   250→  const openModalCategoria = (nombre: string | null) => {
+   251→    if (nombre === null) {
+   252→      setEditandoCat(null);
+   253→      setCatForm('');
+   254→    } else {
+   255→      setEditandoCat(nombre);
+   256→      setCatForm(nombre);
+   257→    }
+   258→    setModalCategoria(true);
+   259→  };
+   260→
+   261→  const handleGuardarCategoria = () => {
+   262→    const nombre = catForm.trim();
+   263→    if (!nombre) { setAlerta({ tipo: 'warning', msg: 'Ingrese un nombre.' }); return; }
+   264→    if (editandoCat === null) {
+   265→      if (categoriasGastos.includes(nombre)) { setAlerta({ tipo: 'warning', msg: 'Ya existe una categoría con ese nombre.' }); return; }
+   266→      agregarCategoriaGasto(nombre);
+   267→    } else {
+   268→      editarCategoriaGasto(editandoCat, nombre);
+   269→    }
+   270→    setModalCategoria(false);
+   271→  };
+   272→
+   273→  const handleEliminarCategoria = (nombre: string) => {
+   274→    const gastosAsociados = gastos.filter(g => g.tipo === nombre);
+   275→    if (gastosAsociados.length > 0) {
+   276→      setAlerta({ tipo: 'warning', msg: `No se puede eliminar "${nombre}". Hay ${gastosAsociados.length} gasto(s) registrado(s) con esta categoría.` }); return;
+   277→    }
+   278→    setConfirmDialog({
+   279→      open: true, titulo: 'Eliminar categoría', msg: `¿Eliminar la categoría "${nombre}"?`,
+   280→      onConfirm: () => {
+   281→        eliminarCategoriaGasto(nombre);
+   282→        setConfirmDialog({ ...confirmDialog, open: false });
+   283→        setAlerta({ tipo: 'success', msg: 'Categoría eliminada.' });
+   284→      },
+   285→    });
+   286→  };
+   287→
+   288→  // ==================== RENDER ====================
+   289→
+   290→  return (
+   291→    <div className="space-y-6">
+   292→      <h2 className="text-2xl font-bold flex items-center gap-2">
+   293→        <Tags className="w-6 h-6" /> Gestión de Tarifas y Pagos
+   294→      </h2>
+   295→
+   296→      {/* Alerta */}
+   297→      {alerta && (
+   298→        <div className={`flex items-center gap-2 p-3 rounded-lg border ${alerta.tipo === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800'}`}>
+   299→          {alerta.tipo === 'success' ? <CreditCard className="w-4 h-4" /> : <Info className="w-4 h-4" />}
+   300→          <span className="text-sm flex-1">{alerta.msg}</span>
+   301→          <button onClick={() => setAlerta(null)} className="text-lg leading-none">&times;</button>
+   302→        </div>
+   303→      )}
+   304→
+   305→      <Tabs value={tab} onValueChange={setTab}>
+   306→        <TabsList>
+   307→          <TabsTrigger value="tarifas"><Tags className="w-4 h-4 mr-1" />Tarifas</TabsTrigger>
+   308→          <TabsTrigger value="metodos"><CreditCard className="w-4 h-4 mr-1" />Métodos de Pago</TabsTrigger>
+   309→          <TabsTrigger value="categorias"><ListChecks className="w-4 h-4 mr-1" />Categorías de Gastos</TabsTrigger>
+   310→        </TabsList>
+   311→
+   312→        {/* ==================== TAB: TARIFAS ==================== */}
+   313→        <TabsContent value="tarifas" className="space-y-5">
+   314→          <div className="flex justify-between items-center">
+   315→            <h3 className="text-lg font-semibold">Tarifas</h3>
+   316→            <Button onClick={() => openModalTarifa(null)}><Plus className="w-4 h-4 mr-1" />Nueva Tarifa</Button>
+   317→          </div>
+   318→
+   319→          <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 text-sm">
+   320→            <Info className="w-4 h-4 mt-0.5 shrink-0" />
+   321→            Haga clic en una tarifa para editarla. Los cambios se guardan automáticamente al confirmar.
+   322→          </div>
+   323→
+   324→          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+   325→            {tiposTarifa.map(tipo => {
+   326→              const t = tarifas[tipo];
+   327→              if (!t) return null;
+   328→              const campos = (t.camposPersonalizados || []).length;
+   329→              const tieneChofer = t.choferCortesia;
+   330→              return (
+   331→                <Card
+   332→                  key={tipo}
+   333→                  className="cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg border-2 border-slate-200"
+   334→                  onClick={() => openModalTarifa(tipo)}
+   335→                >
+   336→                  <CardContent className="p-4">
+   337→                    <div className="flex justify-between items-center mb-2">
+   338→                      <h4 className="font-bold text-base">{tipo}</h4>
+   339→                      <div className="flex gap-1">
+   340→                        {tieneChofer && <Badge className="bg-green-100 text-green-800 border-0">Chofer</Badge>}
+   341→                        <Badge className="bg-blue-100 text-blue-800 border-0">{campos} campo(s)</Badge>
+   342→                      </div>
+   343→                    </div>
+   344→                    <hr className="my-2 border-slate-200" />
+   345→                    <div className="grid grid-cols-4 text-center gap-2">
+   346→                      {[1, 2, 3, 4].map(p => (
+   347→                        <div key={p}>
+   348→                          <p className="text-[10px] text-muted-foreground">{p}p</p>
+   349→                          <p className="font-bold text-sm">${(t[p] || 0).toLocaleString('es-AR')}</p>
+   350→                        </div>
+   351→                      ))}
+   352→                    </div>
+   353→                    {tieneChofer && (
+   354→                      <p className="mt-2 text-xs text-muted-foreground">
+   355→                        Hab. chofer: {t.habitacionChofer || '—'}
+   356→                      </p>
+   357→                    )}
+   358→                  </CardContent>
+   359→                </Card>
+   360→              );
+   361→            })}
+   362→            {tiposTarifa.length === 0 && (
+   363→              <p className="text-muted-foreground col-span-full">No hay tarifas definidas.</p>
+   364→            )}
+   365→          </div>
+   366→
+   367→          {/* Precio por cama */}
+   368→          <div>
+   369→            <h3 className="text-lg font-semibold mb-3">Habitaciones Compartidas</h3>
+   370→            <Card
+   371→              className="cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg border-2 border-slate-200 max-w-sm"
+   372→              onClick={() => { setPrecioCama(precioCamaActual); setModalCama(true); }}
+   373→            >
+   374→              <CardContent className="p-4 text-center">
+   375→                <h4 className="font-bold flex items-center justify-center gap-2"><Users className="w-4 h-4" />Precio por cama</h4>
+   376→                <hr className="my-2 border-slate-200" />
+   377→                <p className="text-2xl font-bold text-blue-600">${precioCamaActual.toLocaleString('es-AR')}</p>
+   378→                <p className="text-xs text-muted-foreground">por persona / noche</p>
+   379→                <Badge className="mt-2 bg-blue-100 text-blue-800 border-0">Haga clic para editar</Badge>
+   380→              </CardContent>
+   381→            </Card>
+   382→          </div>
+   383→        </TabsContent>
+   384→
+   385→        {/* ==================== TAB: MÉTODOS DE PAGO ==================== */}
+   386→        <TabsContent value="metodos" className="space-y-4">
+   387→          <div className="flex justify-between items-center">
+   388→            <h3 className="text-lg font-semibold">Métodos de Pago</h3>
+   389→            <Button onClick={() => openModalMetodo(null)}><Plus className="w-4 h-4 mr-1" />Agregar Método</Button>
+   390→          </div>
+   391→          <Card>
+   392→            <Table>
+   393→              <TableHeader>
+   394→                <TableRow>
+   395→                  <TableHead>Nombre</TableHead>
+   396→                  <TableHead>Tipo</TableHead>
+   397→                  <TableHead>Recargo</TableHead>
+   398→                  <TableHead>Cuotas</TableHead>
+   399→                  <TableHead></TableHead>
+   400→                </TableRow>
+   401→              </TableHeader>
+   402→              <TableBody>
+   403→                {metodosPago.length === 0 ? (
+   404→                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No hay métodos de pago definidos.</TableCell></TableRow>
+   405→                ) : metodosPago.map(m => (
+   406→                  <TableRow key={m.id}>
+   407→                    <TableCell className="font-medium">{m.nombre}</TableCell>
+   408→                    <TableCell><Badge variant="outline">{m.tipo}</Badge></TableCell>
+   409→                    <TableCell>{m.recargo ? <Badge className="bg-amber-100 text-amber-800 border-0">Sí</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
+   410→                    <TableCell className="text-xs">
+   411→                      {m.recargo && m.cuotas.length > 0
+   412→                        ? m.cuotas.map(c => `${c.cantidad} ctas (${c.porcentaje}%)`).join(', ')
+   413→                        : '—'}
+   414→                    </TableCell>
+   415→                    <TableCell>
+   416→                      <div className="flex gap-1">
+   417→                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openModalMetodo(m.id)}>
+   418→                          <Pencil className="w-3.5 h-3.5" />
+   419→                        </Button>
+   420→                        {m.id !== 'efectivo' && (
+   421→                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleEliminarMetodo(m.id)}>
+   422→                            <Trash2 className="w-3.5 h-3.5" />
+   423→                          </Button>
+   424→                        )}
+   425→                      </div>
+   426→                    </TableCell>
+   427→                  </TableRow>
+   428→                ))}
+   429→              </TableBody>
+   430→            </Table>
+   431→          </Card>
+   432→        </TabsContent>
+   433→
+   434→        {/* ==================== TAB: CATEGORÍAS DE GASTOS ==================== */}
+   435→        <TabsContent value="categorias" className="space-y-4">
+   436→          <div className="flex justify-between items-center">
+   437→            <h3 className="text-lg font-semibold">Categorías de Gastos</h3>
+   438→            <Button onClick={() => openModalCategoria(null)}><Plus className="w-4 h-4 mr-1" />Agregar Categoría</Button>
+   439→          </div>
+   440→          <Card>
+   441→            <Table>
+   442→              <TableHeader>
+   443→                <TableRow>
+   444→                  <TableHead>Nombre</TableHead>
+   445→                  <TableHead>Gastos asociados</TableHead>
+   446→                  <TableHead></TableHead>
+   447→                </TableRow>
+   448→              </TableHeader>
+   449→              <TableBody>
+   450→                {categoriasGastos.length === 0 ? (
+   451→                  <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No hay categorías definidas.</TableCell></TableRow>
+   452→                ) : categoriasGastos.map(cat => {
+   453→                  const cantidad = gastos.filter(g => g.tipo === cat).length;
+   454→                  return (
+   455→                    <TableRow key={cat}>
+   456→                      <TableCell className="font-medium">{cat}</TableCell>
+   457→                      <TableCell>{cantidad} gasto(s)</TableCell>
+   458→                      <TableCell>
+   459→                        <div className="flex gap-1">
+   460→                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openModalCategoria(cat)}>
+   461→                            <Pencil className="w-3.5 h-3.5" />
+   462→                          </Button>
+   463→                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleEliminarCategoria(cat)}>
+   464→                            <Trash2 className="w-3.5 h-3.5" />
+   465→                          </Button>
+   466→                        </div>
+   467→                      </TableCell>
+   468→                    </TableRow>
+   469→                  );
+   470→                })}
+   471→              </TableBody>
+   472→            </Table>
+   473→          </Card>
+   474→        </TabsContent>
+   475→      </Tabs>
+   476→
+   477→      {/* ==================== MODAL: TARIFA (CREAR/EDITAR) ==================== */}
+   478→      <Dialog open={modalTarifa} onOpenChange={setModalTarifa}>
+   479→        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+   480→          <DialogHeader>
+   481→            <DialogTitle>{editandoTarifa ? `Editar - ${editandoTarifa}` : 'Nueva Tarifa'}</DialogTitle>
+   482→          </DialogHeader>
+   483→          <div className="space-y-4">
+   484→            <div className="space-y-1.5">
+   485→              <Label>Nombre de la tarifa *</Label>
+   486→              <Input value={tarifaForm.nombre} onChange={e => setTarifaForm({ ...tarifaForm, nombre: e.target.value })} placeholder="Ej: Corporativo" />
+   487→            </div>
+   488→
+   489→            <div>
+   490→              <Label className="text-sm font-medium">Precios por cantidad de personas</Label>
+   491→              <div className="grid grid-cols-4 gap-3 mt-2">
+   492→                {[1, 2, 3, 4].map(p => (
+   493→                  <div key={p} className="space-y-1">
+   494→                    <Label className="text-[10px] text-muted-foreground">{p} persona(s)</Label>
+   495→                    <Input
+   496→                      type="number"
+   497→                      min={0}
+   498→                      step="0.01"
+   499→                      className="h-8 text-right"
+   500→                      value={tarifaForm.precios[p]}
+   501→                      onChange={e => setTarifaForm({ ...tarifaForm, precios: { ...tarifaForm.precios, [p]: parseFloat(e.target.value) || 0 } })}
+   502→                    />
+   503→                  </div>
+   504→                ))}
+   505→              </div>
+   506→            </div>
+   507→
+   508→            <div className="flex items-center gap-2">
+   509→              <Checkbox
+   510→                id="chofer-check"
+   511→                checked={tarifaForm.choferCortesia}
+   512→                onCheckedChange={v => setTarifaForm({ ...tarifaForm, choferCortesia: !!v, habitacionChofer: !v ? '' : tarifaForm.habitacionChofer })}
+   513→              />
+   514→              <Label htmlFor="chofer-check">¿Incluye chofer sin cargo? (solo para reservas de 4 personas)</Label>
+   515→            </div>
+   516→
+   517→            {tarifaForm.choferCortesia && (
+   518→              <div className="space-y-1.5">
+   519→                <Label>Habitación para el chofer</Label>
+   520→                <Select value={tarifaForm.habitacionChofer} onValueChange={v => setTarifaForm({ ...tarifaForm, habitacionChofer: v })}>
+   521→                  <SelectTrigger><SelectValue placeholder="-- Seleccione una --" /></SelectTrigger>
+   522→                  <SelectContent>
+   523→                    {habitacionesCompartidas.map(([num, hab]) => (
+   524→                      <SelectItem key={num} value={num}>{num} ({hab.capacidad} camas)</SelectItem>
+   525→                    ))}
+   526→                    {habitacionesCompartidas.length === 0 && (
+   527→                      <p className="text-xs text-muted-foreground py-2 px-2">No hay habitaciones compartidas disponibles.</p>
+   528→                    )}
+   529→                  </SelectContent>
+   530→                </Select>
+   531→                <p className="text-xs text-muted-foreground">Elegí una habitación compartida. Si no hay, creala en Habitaciones.</p>
+   532→              </div>
+   533→            )}
+   534→
+   535→            <hr />
+   536→
+   537→            <div>
+   538→              <p className="text-sm text-muted-foreground mb-2">Campos adicionales que se pedirán al elegir esta tarifa.</p>
+   539→              <div className="space-y-2">
+   540→                {tarifaForm.camposPersonalizados.length === 0 && (
+   541→                  <p className="text-xs text-muted-foreground">Sin campos definidos.</p>
+   542→                )}
+   543→                {tarifaForm.camposPersonalizados.map((c, i) => (
+   544→                  <CampoFila
+   545→                    key={i}
+   546→                    campo={c}
+   547→                    onRemove={() => setTarifaForm({ ...tarifaForm, camposPersonalizados: tarifaForm.camposPersonalizados.filter((_, j) => j !== i) })}
+   548→                    onUpdate={nuevo => {
+   549→                      const nuevos = [...tarifaForm.camposPersonalizados];
+   550→                      nuevos[i] = nuevo;
+   551→                      setTarifaForm({ ...tarifaForm, camposPersonalizados: nuevos });
+   552→                    }}
+   553→                  />
+   554→                ))}
+   555→              </div>
+   556→              <Button size="sm" variant="outline" className="mt-2" onClick={() => setTarifaForm({ ...tarifaForm, camposPersonalizados: [...tarifaForm.camposPersonalizados, { nombre: '', tipo: 'texto', requerido: false }] })}>
+   557→                <Plus className="w-3.5 h-3.5 mr-1" />Agregar campo
+   558→              </Button>
+   559→            </div>
+   560→          </div>
+   561→          <DialogFooter className="flex justify-between sm:justify-between">
+   562→            {editandoTarifa ? (
+   563→              <Button variant="destructive" onClick={() => handleEliminarTarifa(editandoTarifa)}>
+   564→                <Trash2 className="w-4 h-4 mr-1" />Eliminar tarifa
+   565→              </Button>
+   566→            ) : <span />}
+   567→            <div className="flex gap-2">
+   568→              <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   569→              <Button onClick={handleGuardarTarifa}>{editandoTarifa ? 'Guardar Cambios' : 'Crear Tarifa'}</Button>
+   570→            </div>
+   571→          </DialogFooter>
+   572→        </DialogContent>
+   573→      </Dialog>
+   574→
+   575→      {/* ==================== MODAL: PRECIO POR CAMA ==================== */}
+   576→      <Dialog open={modalCama} onOpenChange={setModalCama}>
+   577→        <DialogContent className="max-w-sm">
+   578→          <DialogHeader>
+   579→            <DialogTitle className="flex items-center gap-2"><Users className="w-4 h-4" />Precio por cama</DialogTitle>
+   580→          </DialogHeader>
+   581→          <div className="space-y-3">
+   582→            <p className="text-sm text-muted-foreground">
+   583→              Precio que se cobra <strong>por persona y por noche</strong> en cualquier habitación compartida.
+   584→            </p>
+   585→            <div className="space-y-1.5">
+   586→              <Label>Precio por cama</Label>
+   587→              <Input type="number" min={0} step="0.01" value={precioCama} onChange={e => setPrecioCama(parseFloat(e.target.value) || 0)} />
+   588→            </div>
+   589→          </div>
+   590→          <DialogFooter>
+   591→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   592→            <Button onClick={handleGuardarPrecioCama}>Guardar</Button>
+   593→          </DialogFooter>
+   594→        </DialogContent>
+   595→      </Dialog>
+   596→
+   597→      {/* ==================== MODAL: MÉTODO DE PAGO ==================== */}
+   598→      <Dialog open={modalMetodo} onOpenChange={setModalMetodo}>
+   599→        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+   600→          <DialogHeader>
+   601→            <DialogTitle>{editandoMetodo ? 'Editar Método de Pago' : 'Nuevo Método de Pago'}</DialogTitle>
+   602→          </DialogHeader>
+   603→          <div className="space-y-4">
+   604→            <div className="space-y-1.5">
+   605→              <Label>Nombre *</Label>
+   606→              <Input value={metForm.nombre} onChange={e => setMetForm({ ...metForm, nombre: e.target.value })} placeholder="Ej: Mercado Pago" />
+   607→            </div>
+   608→            <div className="space-y-1.5">
+   609→              <Label>Tipo</Label>
+   610→              <Select value={metForm.tipo} onValueChange={v => setMetForm({ ...metForm, tipo: v as 'efectivo' | 'tarjeta' | 'transferencia' | 'otro' })}>
+   611→                <SelectTrigger><SelectValue /></SelectTrigger>
+   612→                <SelectContent>
+   613→                  <SelectItem value="efectivo">Efectivo</SelectItem>
+   614→                  <SelectItem value="tarjeta">Tarjeta</SelectItem>
+   615→                  <SelectItem value="transferencia">Transferencia</SelectItem>
+   616→                  <SelectItem value="otro">Otro</SelectItem>
+   617→                </SelectContent>
+   618→              </Select>
+   619→            </div>
+   620→            <div className="flex items-center gap-2">
+   621→              <Checkbox id="met-recargo" checked={metForm.recargo} onCheckedChange={v => setMetForm({ ...metForm, recargo: !!v, cuotas: !v ? [] : metForm.cuotas })} />
+   622→              <Label htmlFor="met-recargo">Permite recargo (cuotas)</Label>
+   623→            </div>
+   624→
+   625→            {metForm.recargo && (
+   626→              <div className="space-y-2">
+   627→                <Label>Cuotas</Label>
+   628→                {metForm.cuotas.length === 0 && <p className="text-xs text-muted-foreground">Sin cuotas definidas.</p>}
+   629→                <div className="space-y-2">
+   630→                  {metForm.cuotas.map((c, i) => (
+   631→                    <CuotaFila
+   632→                      key={i}
+   633→                      cuota={c}
+   634→                      onRemove={() => setMetForm({ ...metForm, cuotas: metForm.cuotas.filter((_, j) => j !== i) })}
+   635→                      onUpdate={nuevo => {
+   636→                        const nuevos = [...metForm.cuotas];
+   637→                        nuevos[i] = nuevo;
+   638→                        setMetForm({ ...metForm, cuotas: nuevos });
+   639→                      }}
+   640→                    />
+   641→                  ))}
+   642→                </div>
+   643→                <Button size="sm" variant="outline" onClick={() => setMetForm({ ...metForm, cuotas: [...metForm.cuotas, { cantidad: 1, porcentaje: 0 }] })}>
+   644→                  <Plus className="w-3.5 h-3.5 mr-1" />Agregar cuota
+   645→                </Button>
+   646→              </div>
+   647→            )}
+   648→          </div>
+   649→          <DialogFooter>
+   650→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   651→            <Button onClick={handleGuardarMetodo}>Guardar</Button>
+   652→          </DialogFooter>
+   653→        </DialogContent>
+   654→      </Dialog>
+   655→
+   656→      {/* ==================== MODAL: CATEGORÍA DE GASTO ==================== */}
+   657→      <Dialog open={modalCategoria} onOpenChange={setModalCategoria}>
+   658→        <DialogContent className="max-w-sm">
+   659→          <DialogHeader>
+   660→            <DialogTitle>{editandoCat ? 'Editar Categoría' : 'Nueva Categoría'}</DialogTitle>
+   661→          </DialogHeader>
+   662→          <div className="space-y-3">
+   663→            <div className="space-y-1.5">
+   664→              <Label>Nombre de la categoría *</Label>
+   665→              <Input value={catForm} onChange={e => setCatForm(e.target.value)} placeholder="Ej: Proveedores" />
+   666→            </div>
+   667→          </div>
+   668→          <DialogFooter>
+   669→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   670→            <Button onClick={handleGuardarCategoria}>Guardar</Button>
+   671→          </DialogFooter>
+   672→        </DialogContent>
+   673→      </Dialog>
+   674→
+   675→      {/* ==================== DIALOG: CONFIRMACIÓN ==================== */}
+   676→      <Dialog open={confirmDialog.open} onOpenChange={v => setConfirmDialog({ ...confirmDialog, open: v })}>
+   677→        <DialogContent className="max-w-sm">
+   678→          <DialogHeader>
+   679→            <DialogTitle>{confirmDialog.titulo}</DialogTitle>
+   680→          </DialogHeader>
+   681→          <p className="text-sm text-muted-foreground">{confirmDialog.msg}</p>
+   682→          <DialogFooter>
+   683→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   684→            <Button variant="destructive" onClick={confirmDialog.onConfirm}>Eliminar</Button>
+   685→          </DialogFooter>
+   686→        </DialogContent>
+   687→      </Dialog>
+   688→    </div>
+   689→  );
+   690→}

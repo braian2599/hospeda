@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 794px; height: 1123px; overflow: hidden; background: #ffffff; font-family: 'Inter', sans-serif; }
+    .cover-page { position: relative; width: 794px; height: 1123px; }
+    /* Layer 1 - Background */
+    .cover-layer-1 { position: absolute; inset: 0; overflow: hidden; z-index: 1; }
+    .grid-bg {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(58,83,70,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(58,83,70,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+    .accent-bar { position: absolute; left: 0; top: 0; width: 8px; height: 100%; background: #3a5346; }
+    /* Layer 2 - Structure */
+    .cover-layer-2 { position: absolute; inset: 0; z-index: 2; }
+    .divider-line { position: absolute; left: 100px; top: 15%; width: 1px; height: 70%; background: #a8cab9; opacity: 0.4; }
+    /* Layer 3 - Content */
+    .cover-layer-3 { position: absolute; inset: 0; z-index: 3; padding: 100px 60px 60px 130px; }
+    .kicker { position: absolute; top: 16%; left: 130px; font-size: 13px; font-weight: 400; letter-spacing: 3px; text-transform: uppercase; color: #848d89; opacity: 0.7; }
+    .title { position: absolute; top: 28%; left: 130px; font-size: 42px; font-weight: 800; color: #1a1c1b; line-height: 1.15; max-width: 520px; }
+    .summary { position: absolute; top: 52%; left: 130px; font-size: 15px; font-weight: 300; color: #848d89; line-height: 1.6; max-width: 500px; opacity: 0.85; }
+    .meta { position: absolute; bottom: 14%; left: 130px; font-size: 13px; font-weight: 400; color: #848d89; }
+    .meta-item { margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .meta-dot { width: 5px; height: 5px; border-radius: 50%; background: #2b8659; }
+    .footer-tag { position: absolute; bottom: 8%; right: 60px; font-size: 11px; font-weight: 400; letter-spacing: 1.5px; color: #a8cab9; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="cover-page">
+    <div class="cover-layer-1">
+      <div class="grid-bg"></div>
+      <div class="accent-bar"></div>
+    </div>
+    <div class="cover-layer-2">
+      <div class="divider-line"></div>
+    </div>
+    <div class="cover-layer-3">
+      <div class="kicker">Analisis Tecnico</div>
+      <div class="title">Sistema Hotelero<br>Hospedá</div>
+      <div class="summary">Informe de analisis de arquitectura, estabilidad, comunicacion entre modulos y estructura visual. Incluye recomendaciones priorizadas y hoja de ruta de implementacion.</div>
+      <div class="meta">
+        <div class="meta-item"><div class="meta-dot"></div>Hospedá - Argentina</div>
+        <div class="meta-item"><div class="meta-dot"></div>Junio 2026</div>
+        <div class="meta-item"><div class="meta-dot"></div>Versión de analisis: 1.0</div>
+      </div>
+    </div>
+    <div class="footer-tag">Documento Confidencial</div>
+  </div>
+</body>
+</html>

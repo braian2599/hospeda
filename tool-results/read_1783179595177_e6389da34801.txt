@@ -1,0 +1,915 @@
+     1→     1→import { create } from 'zustand';
+     2→     2→import { persist } from 'zustand/middleware';
+     3→     3→import type {
+     4→     4→  Habitacion, Cliente, Reserva, Pago, Usuario, Gasto,
+     5→     5→  AuditoriaEntry, CajaState, TarifaPrecios, MetodoPago,
+     6→     6→  HistorialMantenimientoEntry, UsuarioSesion, ModuloId,
+     7→     7→  HabitacionDisponible, MovimientoCaja, CierreCaja, Estadia
+     8→     8→} from './types';
+     9→     9→
+    10→    10→// ==================== DEFAULT DATA ====================
+    11→    11→
+    12→    12→const defaultHabitaciones: Record<string, Habitacion> = {};
+    13→    13→
+    14→    14→const defaultReservas: Reserva[] = [
+    15→    15→  { id: 1, idCliente: 1, huesped: 'Juan Pérez', dni: '12.345.678', telefono: '+54 11 5555-0101', email: 'juan.perez@email.com', habitacion: '102', checkin: '2026-06-12', checkout: '2026-06-15', personas: 1, estadoPago: 'Pagado', notas: '', estado: 'Confirmada' },
+    16→    16→  { id: 2, idCliente: 2, huesped: 'María Gómez', dni: '98.765.432', telefono: '+54 11 5555-0202', email: 'maria.gomez@email.com', habitacion: '105', checkin: '2026-06-14', checkout: '2026-06-18', personas: 2, estadoPago: 'Parcial', notas: 'Llegada tarde', estado: 'Confirmada' },
+    17→    17→];
+    18→    18→
+    19→    19→const defaultClientes: Cliente[] = [
+    20→    20→  { id: 1, nombre: 'Juan Pérez', dni: '12.345.678', telefono: '+54 11 5555-0101', email: 'juan.perez@email.com', nacionalidad: 'Argentina', preferencias: 'Habitación silenciosa, piso alto', historialEstadias: [{ fechaCheckin: '2025-08-10', fechaCheckout: '2025-08-13', habitacion: '201', gastoTotal: 255 }, { fechaCheckin: '2025-12-20', fechaCheckout: '2025-12-22', habitacion: '101', gastoTotal: 160 }, { fechaCheckin: '2026-06-12', fechaCheckout: '2026-06-15', habitacion: '102', gastoTotal: 360 }], fechaCreacion: '2025-01-15' },
+    21→    21→  { id: 2, nombre: 'María Gómez', dni: '98.765.432', telefono: '+54 11 5555-0202', email: 'maria.gomez@email.com', nacionalidad: 'Argentina', preferencias: 'Piso alto', historialEstadias: [{ fechaCheckin: '2026-02-14', fechaCheckout: '2026-02-18', habitacion: '202', gastoTotal: 1000 }], fechaCreacion: '2025-06-10' },
+    22→    22→];
+    23→    23→
+    24→    24→const defaultPagos: Pago[] = [
+    25→    25→  { id: 1, idReserva: 1, monto: 360, metodo: 'Tarjeta de Crédito', fecha: '2026-06-12', nota: 'Pago completo' },
+    26→    26→  { id: 2, idReserva: 2, monto: 200, metodo: 'Mercado Pago', fecha: '2026-06-10', nota: 'Adelanto' },
+    27→    27→];
+    28→    28→
+    29→    29→const defaultUsuarios: Usuario[] = [
+    30→    30→  { id: 1, nombre: 'admin', contrasena: 'admin123', nombreCompleto: 'Gerente', permisos: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'facturacion', 'limpieza', 'caja', 'clientes', 'reportes', 'usuarios', 'tarifas'] },
+    31→    31→  { id: 2, nombre: 'recepcion', contrasena: 'recepcion123', nombreCompleto: 'Recepcionista Ejemplo', permisos: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'facturacion', 'limpieza', 'caja', 'clientes'] },
+    32→    32→];
+    33→    33→
+    34→    34→const defaultGastos: Gasto[] = [
+    35→    35→  { id: 1, tipo: 'Servicios', descripcion: 'Luz', monto: 15000, fecha: '2026-06-05', empleado: 'admin' },
+    36→    36→  { id: 2, tipo: 'Sueldos', descripcion: 'Sueldo junio - María', monto: 200000, fecha: '2026-06-01', empleado: 'admin' },
+    37→    37→  { id: 3, tipo: 'Desayuno', descripcion: 'Panadería y fiambres', monto: 45000, fecha: '2026-06-08', empleado: 'admin' },
+    38→    38→  { id: 4, tipo: 'Productos de Limpieza', descripcion: 'Reposición de amenities', monto: 22000, fecha: '2026-06-10', empleado: 'admin' },
+    39→    39→];
+    40→    40→
+    41→    41→const defaultTarifas: Record<string, TarifaPrecios> = {
+    42→    42→  normal: { 1: 35000, 2: 30000, 3: 27000, 4: 25000, camposPersonalizados: [], choferCortesia: false, habitacionChofer: null },
+    43→    43→  agencia: { 1: 28000, 2: 24000, 3: 21000, 4: 19000, camposPersonalizados: [{ nombre: 'Nombre de la Agencia', tipo: 'texto', requerido: true }, { nombre: 'Nº de Convenio', tipo: 'texto', requerido: false }, { nombre: 'Vendedor / Agente', tipo: 'texto', requerido: false }], choferCortesia: true, habitacionChofer: null },
+    44→    44→};
+    45→    45→
+    46→    46→const defaultMetodosPago: MetodoPago[] = [
+    47→    47→  { id: 'efectivo', nombre: 'Efectivo', tipo: 'efectivo', recargo: false, cuotas: [] },
+    48→    48→  { id: 'tarjeta', nombre: 'Tarjeta de Crédito', tipo: 'tarjeta', recargo: true, cuotas: [{ cantidad: 1, porcentaje: 0 }, { cantidad: 2, porcentaje: 3 }, { cantidad: 3, porcentaje: 5 }, { cantidad: 5, porcentaje: 10 }, { cantidad: 9, porcentaje: 15 }, { cantidad: 12, porcentaje: 20 }] },
+    49→    49→  { id: 'transferencia', nombre: 'Transferencia', tipo: 'transferencia', recargo: false, cuotas: [] },
+    50→    50→  { id: 'mercadopago', nombre: 'Mercado Pago', tipo: 'otro', recargo: false, cuotas: [] },
+    51→    51→  { id: 'pix', nombre: 'Pix', tipo: 'otro', recargo: false, cuotas: [] },
+    52→    52→  { id: 'paypal', nombre: 'PayPal', tipo: 'otro', recargo: false, cuotas: [] },
+    53→    53→];
+    54→    54→
+    55→    55→const defaultCategoriasGastos: string[] = ['Sueldos', 'Servicios', 'Mantenimiento', 'Desayuno', 'Productos de Limpieza', 'Otros'];
+    56→    56→
+    57→    57→// ==================== HELPER ====================
+    58→    58→
+    59→    59→function generarId(coleccion: { id: number }[]): number {
+    60→    60→  if (coleccion.length === 0) return 1;
+    61→    61→  return Math.max(...coleccion.map(item => item.id)) + 1;
+    62→    62→}
+    63→    63→
+    64→    64→function nochesEntre(checkin: string, checkout: string): number {
+    65→    65→  const fechaIn = new Date(checkin + 'T12:00:00');
+    66→    66→  const fechaOut = new Date(checkout + 'T12:00:00');
+    67→    67→  return Math.max(1, Math.ceil((fechaOut.getTime() - fechaIn.getTime()) / (1000 * 60 * 60 * 24)));
+    68→    68→}
+    69→    69→
+    70→    70→function calcularTotalSegunTarifa(
+    71→    71→  tarifas: Record<string, TarifaPrecios>,
+    72→    72→  tipoTarifa: string,
+    73→    73→  personas: number,
+    74→    74→  noches: number,
+    75→    75→  esCompartida: boolean,
+    76→    76→  precioPorCama?: number
+    77→    77→): number {
+    78→    78→  if (esCompartida) {
+    79→    79→    const precio = precioPorCama || (tarifas as Record<string, TarifaPrecios & { precioPorCama?: number }>)['_global']?.precioPorCama || 17000;
+    80→    80→    return noches * personas * precio;
+    81→    81→  }
+    82→    82→  const tarifa = tarifas[tipoTarifa];
+    83→    83→  if (tarifa) {
+    84→    84→    const precioPorPersona = tarifa[personas] || tarifa[Object.keys(tarifa).find(k => !isNaN(Number(k))) as unknown as number] || 0;
+    85→    85→    return noches * personas * precioPorPersona;
+    86→    86→  }
+    87→    87→  const normal = tarifas?.normal;
+    88→    88→  if (normal) {
+    89→    89→    const precioPorPersona = normal[personas] || normal[Object.keys(normal).find(k => !isNaN(Number(k))) as unknown as number] || 0;
+    90→    90→    return noches * personas * precioPorPersona;
+    91→    91→  }
+    92→    92→  return 0;
+    93→    93→}
+    94→    94→
+    95→    95→// ==================== STORE INTERFACE ====================
+    96→    96→
+    97→    97→interface HotelStore {
+    98→    98→  // Data
+    99→    99→  habitaciones: Record<string, Habitacion>;
+   100→   100→  reservas: Reserva[];
+   101→   101→  clientes: Cliente[];
+   102→   102→  pagos: Pago[];
+   103→   103→  usuarios: Usuario[];
+   104→   104→  gastos: Gasto[];
+   105→   105→  auditoria: AuditoriaEntry[];
+   106→   106→  caja: CajaState;
+   107→   107→  historialMantenimiento: HistorialMantenimientoEntry[];
+   108→   108→  tarifas: Record<string, TarifaPrecios>;
+   109→   109→  tiposTarifa: string[];
+   110→   110→  metodosPago: MetodoPago[];
+   111→   111→  categoriasGastos: string[];
+   112→   112→
+   113→   113→  // UI State
+   114→   114→  usuarioActual: UsuarioSesion | null;
+   115→   115→  moduloActivo: ModuloId;
+   116→   116→  sidebarOpen: boolean;
+   117→   117→  perfilOpen: boolean;
+   118→   118→  setModulo: (modulo: ModuloId) => void;
+   119→   119→  setSidebarOpen: (open: boolean) => void;
+   120→   120→  setPerfilOpen: (open: boolean) => void;
+   121→   121→
+   122→   122→  // Auth
+   123→   123→  login: (nombre: string, contrasena: string) => boolean;
+   124→   124→  logout: () => void;
+   125→   125→
+   126→   126→  // Auditoria
+   127→   127→  _registrarAuditoria: (tipo: string, detalle: string) => void;
+   128→   128→
+   129→   129→  // Habitaciones
+   130→   130→  agregarHabitacion: (numero: string, tipo: string, capacidad: number, camasMatrimoniales: number, camasSimples: number) => boolean;
+   131→   131→  editarHabitacion: (numeroOriginal: string, numeroNuevo: string, tipo: string, capacidad: number, camasMatrimoniales: number, camasSimples: number) => boolean;
+   132→   132→  eliminarHabitacion: (numero: string) => boolean;
+   133→   133→
+   134→   134→  // Clientes
+   135→   135→  agregarCliente: (datos: { nombre: string; dni: string; telefono?: string; email?: string; preferencias?: string }) => Cliente;
+   136→   136→  actualizarCliente: (id: number, datos: Partial<Cliente>) => void;
+   137→   137→  eliminarCliente: (id: number) => boolean;
+   138→   138→  buscarCliente: (termino: string) => Cliente[];
+   139→   139→
+   140→   140→  // Reservas
+   141→   141→  crearReserva: (datos: Partial<Reserva> & { checkin: string; checkout: string; habitacion: string; huesped: string; dni: string; personas: number }) => Reserva | null;
+   142→   142→  modificarReserva: (id: number, datos: Partial<Reserva>) => void;
+   143→   143→  cancelarReserva: (id: number) => void;
+   144→   144→  buscarDisponibilidad: (desde: string, hasta: string) => HabitacionDisponible[];
+   145→   145→  calcularTotalReserva: (idReserva: number) => number;
+   146→   146→  calcularTotalPagado: (idReserva: number) => number;
+   147→   147→  nochesEntre: (checkin: string, checkout: string) => number;
+   148→   148→  calcularTotalSegunTarifa: (tipoTarifa: string, personas: number, noches: number, esCompartida: boolean, precioPorCama?: number) => number;
+   149→   149→
+   150→   150→  // Check-in/Check-out
+   151→   151→  realizarCheckIn: (idReserva: number, datos: { contactoEmergencia?: { nombre: string; telefono: string }; observacionesHuesped?: string; llaveEntregada?: string; documentoVerificado?: boolean; firmaConformidad?: boolean; acompanantes?: { nombre: string; dni: string; celular: string }[] }) => boolean;
+   152→   152→  realizarCheckOut: (idReserva: number) => { noches: number; total: number } | null;
+   153→   153→
+   154→   154→  // Pagos
+   155→   155→  registrarPago: (idReserva: number, monto: number, metodo: string, nota?: string) => Pago | null;
+   156→   156→
+   157→   157→  // Limpieza
+   158→   158→  marcarComoLimpia: (numero: string) => void;
+   159→   159→  reportarMantenimiento: (numero: string, descripcion: string) => void;
+   160→   160→  resolverMantenimiento: (numero: string, reparacion: string, monto: number) => void;
+   161→   161→
+   162→   162→  // Caja
+   163→   163→  abrirCaja: (montoInicial: number) => boolean;
+   164→   164→  registrarMovimientoCaja: (tipo: 'ingreso' | 'egreso', monto: number, descripcion: string, metodo: string) => boolean;
+   165→   165→  cerrarCaja: (billetes: Record<number, number>, totalOtros: number) => CierreCaja | null;
+   166→   166→  saldoActualCaja: () => number;
+   167→   167→
+   168→   168→  // Gastos
+   169→   169→  agregarGasto: (datos: { tipo: string; descripcion: string; monto: number; fecha?: string }) => Gasto;
+   170→   170→  eliminarGasto: (id: number) => void;
+   171→   171→
+   172→   172→  // Usuarios
+   173→   173→  crearUsuario: (datos: { nombre: string; contrasena: string; nombreCompleto?: string; permisos?: string[] }) => Usuario;
+   174→   174→  actualizarUsuario: (id: number, datos: Partial<Usuario>) => void;
+   175→   175→  eliminarUsuario: (id: number) => boolean;
+   176→   176→
+   177→   177→  // Tarifas
+   178→   178→  actualizarPrecioTarifa: (tipo: string, personas: number, precio: number) => void;
+   179→   179→  guardarTarifaCompleta: (tipoOriginal: string, datos: { nombre: string; precios: Record<number, number>; camposPersonalizados: CampoPersonalizado[]; choferCortesia: boolean; habitacionChofer: string | null }) => void;
+   180→   180→  agregarTipoTarifa: (tipo: string) => void;
+   181→   181→  eliminarTipoTarifa: (tipo: string) => boolean;
+   182→   182→  agregarMetodoPago: (metodo: MetodoPago) => void;
+   183→   183→  editarMetodoPago: (idOriginal: string, metodo: MetodoPago) => void;
+   184→   184→  eliminarMetodoPago: (id: string) => boolean;
+   185→   185→  agregarCategoriaGasto: (categoria: string) => void;
+   186→   186→  editarCategoriaGasto: (nombreOriginal: string, nombreNuevo: string) => void;
+   187→   187→  eliminarCategoriaGasto: (categoria: string) => boolean;
+   188→   188→  actualizarPrecioCama: (precio: number) => void;
+   189→   189→
+   190→   190→  // Reset
+   191→   191→  resetData: () => void;
+   192→   192→}
+   193→   193→
+   194→   194→// ==================== STORE ====================
+   195→   195→
+   196→   196→export const useHotelStore = create<HotelStore>()(
+   197→   197→  persist(
+   198→   198→    (set, get) => ({
+   199→   199→      // Default data
+   200→   200→      habitaciones: defaultHabitaciones,
+   201→   201→      reservas: defaultReservas,
+   202→   202→      clientes: defaultClientes,
+   203→   203→      pagos: defaultPagos,
+   204→   204→      usuarios: defaultUsuarios,
+   205→   205→      gastos: defaultGastos,
+   206→   206→      auditoria: [],
+   207→   207→      caja: { estado: 'cerrada', apertura: null, movimientos: [], historial: [] },
+   208→   208→      historialMantenimiento: [],
+   209→   209→      tarifas: defaultTarifas,
+   210→   210→      tiposTarifa: ['normal', 'agencia'],
+   211→   211→      metodosPago: defaultMetodosPago,
+   212→   212→      categoriasGastos: defaultCategoriasGastos,
+   213→   213→
+   214→   214→      // UI
+   215→   215→      usuarioActual: null,
+   216→   216→      moduloActivo: 'dashboard',
+   217→   217→      sidebarOpen: false,
+   218→   218→      perfilOpen: false,
+   219→   219→
+   220→   220→      setModulo: (modulo) => set({ moduloActivo: modulo, sidebarOpen: false }),
+   221→   221→      setSidebarOpen: (open) => set({ sidebarOpen: open }),
+   222→   222→      setPerfilOpen: (open) => set({ perfilOpen: open }),
+   223→   223→
+   224→   224→      // Auth
+   225→   225→      login: (nombre, contrasena) => {
+   226→   226→        const usuario = get().usuarios.find(u => u.nombre === nombre && u.contrasena === contrasena);
+   227→   227→        if (!usuario) return false;
+   228→   228→        const sesion: UsuarioSesion = {
+   229→   229→          id: usuario.id,
+   230→   230→          nombre: usuario.nombre,
+   231→   231→          nombreCompleto: usuario.nombreCompleto,
+   232→   232→          permisos: usuario.permisos,
+   233→   233→        };
+   234→   234→        get()._registrarAuditoria('Login', `Inicio de sesión: ${usuario.nombre}`);
+   235→   235→        // Apply start module preference
+   236→   236→        let startModule: string = 'dashboard';
+   237→   237→        try {
+   238→   238→          const prefs = JSON.parse(localStorage.getItem('hotel-perfil-prefs') || '{}');
+   239→   239→          if (prefs.startModule && usuario.permisos.includes(prefs.startModule)) {
+   240→   240→            startModule = prefs.startModule;
+   241→   241→          }
+   242→   242→        } catch { /* ignore */ }
+   243→   243→        set({ usuarioActual: sesion, moduloActivo: startModule as any });
+   244→   244→        return true;
+   245→   245→      },
+   246→   246→
+   247→   247→      logout: () => {
+   248→   248→        const { usuarioActual } = get();
+   249→   249→        if (usuarioActual) {
+   250→   250→          get()._registrarAuditoria('Logout', `Cierre de sesión: ${usuarioActual.nombre}`);
+   251→   251→        }
+   252→   252→        set({ usuarioActual: null, moduloActivo: 'dashboard' });
+   253→   253→      },
+   254→   254→
+   255→   255→      // Auditoria
+   256→   256→      _registrarAuditoria: (tipo, detalle) => {
+   257→   257→        const { usuarioActual, auditoria } = get();
+   258→   258→        const empleado = usuarioActual?.nombreCompleto || usuarioActual?.nombre || 'Sistema';
+   259→   259→        set({
+   260→   260→          auditoria: [...auditoria, {
+   261→   261→            id: generarId(auditoria),
+   262→   262→            tipo,
+   263→   263→            detalle,
+   264→   264→            empleado,
+   265→   265→            fecha: new Date().toISOString(),
+   266→   266→          }],
+   267→   267→        });
+   268→   268→      },
+   269→   269→
+   270→   270→      // ===== HABITACIONES =====
+   271→   271→      agregarHabitacion: (numero, tipo, capacidad, camasMatrimoniales, camasSimples) => {
+   272→   272→        const { habitaciones } = get();
+   273→   273→        if (habitaciones[numero]) return false;
+   274→   274→        set({
+   275→   275→          habitaciones: {
+   276→   276→            ...habitaciones,
+   277→   277→            [numero]: { numero, tipo, capacidad: parseInt(String(capacidad)), camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0, estado: 'Disponible' },
+   278→   278→          },
+   279→   279→        });
+   280→   280→        get()._registrarAuditoria('Habitación', `Creación: habitación ${numero} (${tipo})`);
+   281→   281→        return true;
+   282→   282→      },
+   283→   283→
+   284→   284→      editarHabitacion: (numeroOriginal, numeroNuevo, tipo, capacidad, camasMatrimoniales, camasSimples) => {
+   285→   285→        const { habitaciones, reservas, historialMantenimiento } = get();
+   286→   286→        const hab = habitaciones[numeroOriginal];
+   287→   287→        if (!hab) return false;
+   288→   288→
+   289→   289→        const nuevaCapacidad = parseInt(String(capacidad));
+   290→   290→        const reservasAfectadas = reservas.filter(
+   291→   291→          r => r.habitacion === numeroOriginal && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado') && r.personas > nuevaCapacidad
+   292→   292→        );
+   293→   293→        if (reservasAfectadas.length > 0) return false;
+   294→   294→
+   295→   295→        const datosNuevos: Habitacion = { ...hab, tipo, capacidad: nuevaCapacidad, camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0 };
+   296→   296→
+   297→   297→        if (numeroOriginal !== numeroNuevo) {
+   298→   298→          if (habitaciones[numeroNuevo] && numeroNuevo !== numeroOriginal) return false;
+   299→   299→          const newHabs = { ...habitaciones };
+   300→   300→          delete newHabs[numeroOriginal];
+   301→   301→          newHabs[numeroNuevo] = datosNuevos;
+   302→   302→          newHabs[numeroNuevo].numero = numeroNuevo;
+   303→   303→          const updatedReservas = reservas.map(r => r.habitacion === numeroOriginal ? { ...r, habitacion: numeroNuevo } : r);
+   304→   304→          const updatedHist = historialMantenimiento.map(h => h.habitacion === numeroOriginal ? { ...h, habitacion: numeroNuevo } : h);
+   305→   305→          set({ habitaciones: newHabs, reservas: updatedReservas, historialMantenimiento: updatedHist });
+   306→   306→        } else {
+   307→   307→          set({ habitaciones: { ...habitaciones, [numeroOriginal]: datosNuevos } });
+   308→   308→        }
+   309→   309→        get()._registrarAuditoria('Habitación', `Edición: ${numeroOriginal}${numeroOriginal !== numeroNuevo ? ` → ${numeroNuevo}` : ''}`);
+   310→   310→        return true;
+   311→   311→      },
+   312→   312→
+   313→   313→      eliminarHabitacion: (numero) => {
+   314→   314→        const { habitaciones, reservas } = get();
+   315→   315→        const hab = habitaciones[numero];
+   316→   316→        if (!hab || hab.estado === 'Ocupada') return false;
+   317→   317→        const reservasActivas = reservas.filter(r => r.habitacion === numero && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'));
+   318→   318→        if (reservasActivas.length > 0) return false;
+   319→   319→
+   320→   320→        const newHabs = { ...habitaciones };
+   321→   321→        delete newHabs[numero];
+   322→   322→        const updatedReservas = reservas.map(r => r.habitacion === numero && !['Cancelada', 'Check-Out realizado', 'Check-In realizado', 'Confirmada'].includes(r.estado) ? { ...r, estado: 'Cancelada' as const } : r);
+   323→   323→        set({ habitaciones: newHabs, reservas: updatedReservas });
+   324→   324→        get()._registrarAuditoria('Habitación', `Eliminación: habitación ${numero}`);
+   325→   325→        return true;
+   326→   326→      },
+   327→   327→
+   328→   328→      // ===== CLIENTES =====
+   329→   329→      agregarCliente: (datos) => {
+   330→   330→        const { clientes } = get();
+   331→   331→        const nuevo: Cliente = { id: generarId(clientes), ...datos, telefono: datos.telefono || '', email: datos.email || '', preferencias: datos.preferencias || '', historialEstadias: [], fechaCreacion: new Date().toISOString().split('T')[0] };
+   332→   332→        set({ clientes: [...clientes, nuevo] });
+   333→   333→        get()._registrarAuditoria('Cliente', `Creación: ${datos.nombre} (DNI: ${datos.dni})`);
+   334→   334→        return nuevo;
+   335→   335→      },
+   336→   336→
+   337→   337→      actualizarCliente: (id, datos) => {
+   338→   338→        const { clientes } = get();
+   339→   339→        set({ clientes: clientes.map(c => c.id === id ? { ...c, ...datos } : c) });
+   340→   340→        const cliente = clientes.find(c => c.id === id);
+   341→   341→        if (cliente) get()._registrarAuditoria('Cliente', `Edición: ${cliente.nombre} (DNI: ${cliente.dni})`);
+   342→   342→      },
+   343→   343→
+   344→   344→      eliminarCliente: (id) => {
+   345→   345→        const { clientes, reservas } = get();
+   346→   346→        const cliente = clientes.find(c => c.id === id);
+   347→   347→        if (!cliente) return false;
+   348→   348→        const reservasActivas = reservas.filter(r => r.idCliente === id && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'));
+   349→   349→        if (reservasActivas.length > 0) return false;
+   350→   350→        set({ clientes: clientes.filter(c => c.id !== id) });
+   351→   351→        get()._registrarAuditoria('Cliente', `Eliminación: ${cliente.nombre} (DNI: ${cliente.dni})`);
+   352→   352→        return true;
+   353→   353→      },
+   354→   354→
+   355→   355→      buscarCliente: (termino) => {
+   356→   356→        const term = termino.toLowerCase();
+   357→   357→        return get().clientes.filter(c => c.nombre.toLowerCase().includes(term) || c.dni.includes(term) || c.email.toLowerCase().includes(term));
+   358→   358→      },
+   359→   359→
+   360→   360→      // ===== RESERVAS =====
+   361→   361→      buscarDisponibilidad: (desde, hasta) => {
+   362→   362→        const { habitaciones, reservas } = get();
+   363→   363→        const fechaDesde = new Date(desde + 'T12:00:00');
+   364→   364→        const fechaHasta = new Date(hasta + 'T12:00:00');
+   365→   365→        const disponibles: HabitacionDisponible[] = [];
+   366→   366→
+   367→   367→        for (const num in habitaciones) {
+   368→   368→          const hab = habitaciones[num];
+   369→   369→          if (hab.estado === 'Mantenimiento' || hab.estado === 'Fuera de servicio') continue;
+   370→   370→
+   371→   371→          if (hab.tipo === 'Compartida') {
+   372→   372→            const personasOcupadas = reservas
+   373→   373→              .filter(r => r.habitacion === num && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado')
+   374→   374→              .filter(r => { const rD = new Date(r.checkin + 'T12:00:00'); const rH = new Date(r.checkout + 'T12:00:00'); return rD < fechaHasta && rH > fechaDesde; })
+   375→   375→              .reduce((sum, r) => sum + (r.personas || 1), 0);
+   376→   376→            const camasLibres = hab.capacidad - personasOcupadas;
+   377→   377→            if (camasLibres > 0) disponibles.push({ numero: num, tipo: hab.tipo, capacidad: hab.capacidad, camasMatrimoniales: hab.camasMatrimoniales, camasSimples: hab.camasSimples, precioPorCama: hab.precioPorCama, camasLibres });
+   378→   378→            continue;
+   379→   379→          }
+   380→   380→
+   381→   381→          const conflicto = reservas.some(r => {
+   382→   382→            if (r.habitacion !== num || r.estado === 'Cancelada' || r.estado === 'Check-Out realizado') return false;
+   383→   383→            const rD = new Date(r.checkin + 'T12:00:00'); const rH = new Date(r.checkout + 'T12:00:00');
+   384→   384→            return rD < fechaHasta && rH > fechaDesde;
+   385→   385→          });
+   386→   386→          if (!conflicto) disponibles.push({ numero: num, tipo: hab.tipo, capacidad: hab.capacidad, camasMatrimoniales: hab.camasMatrimoniales, camasSimples: hab.camasSimples, precioPorCama: hab.precioPorCama });
+   387→   387→        }
+   388→   388→        return disponibles;
+   389→   389→      },
+   390→   390→
+   391→   391→      crearReserva: (datos) => {
+   392→   392→        const state = get();
+   393→   393→        const disponibles = state.buscarDisponibilidad(datos.checkin, datos.checkout);
+   394→   394→        const habElegida = disponibles.find(h => h.numero === datos.habitacion);
+   395→   395→        if (!habElegida) return null;
+   396→   396→
+   397→   397→        let idCliente = datos.idCliente;
+   398→   398→        if (!idCliente) {
+   399→   399→          const nuevo = state.agregarCliente({ nombre: datos.huesped, dni: datos.dni, telefono: datos.telefono, email: datos.email });
+   400→   400→          idCliente = nuevo.id;
+   401→   401→        }
+   402→   402→
+   403→   403→        if (habElegida.tipo !== 'Compartida' && datos.personas > habElegida.capacidad) return null;
+   404→   404→        if (habElegida.tipo === 'Compartida' && datos.personas > (habElegida.camasLibres || 0)) return null;
+   405→   405→
+   406→   406→        const noches = nochesEntre(datos.checkin, datos.checkout);
+   407→   407→        const esCompartida = habElegida.tipo === 'Compartida';
+   408→   408→        const total = calcularTotalSegunTarifa(state.tarifas, datos.tipoTarifa || 'normal', datos.personas, noches, esCompartida, habElegida.precioPorCama);
+   409→   409→
+   410→   410→        const reserva: Reserva = {
+   411→   411→          id: generarId(state.reservas),
+   412→   412→          idCliente,
+   413→   413→          huesped: datos.huesped,
+   414→   414→          dni: datos.dni,
+   415→   415→          telefono: datos.telefono || '',
+   416→   416→          email: datos.email || '',
+   417→   417→          domicilio: datos.domicilio || '',
+   418→   418→          habitacion: datos.habitacion,
+   419→   419→          checkin: datos.checkin,
+   420→   420→          checkout: datos.checkout,
+   421→   421→          personas: datos.personas,
+   422→   422→          estadoPago: datos.estadoPago || 'Pendiente',
+   423→   423→          notas: datos.notas || '',
+   424→   424→          estado: 'Confirmada',
+   425→   425→          tipoTarifa: datos.tipoTarifa || 'normal',
+   426→   426→          metodoPagoId: datos.metodoPagoId,
+   427→   427→          cuotas: datos.cuotas,
+   428→   428→          recargoPorcentaje: datos.recargoPorcentaje,
+   429→   429→          agencia: datos.agencia,
+   430→   430→          total,
+   431→   431→          acompanantes: datos.acompanantes || [],
+   432→   432→        };
+   433→   433→
+   434→   434→        const newReservas = [...state.reservas, reserva];
+   435→   435→        const newHabitaciones = { ...state.habitaciones };
+   436→   436→
+   437→   437→        if (!esCompartida && newHabitaciones[datos.habitacion]) {
+   438→   438→          newHabitaciones[datos.habitacion] = { ...newHabitaciones[datos.habitacion], estado: 'Reservada' };
+   439→   439→        }
+   440→   440→
+   441→   441→        set({ reservas: newReservas, habitaciones: newHabitaciones });
+   442→   442→        state._registrarAuditoria('Reserva', `Creación: ${datos.huesped} - Hab ${datos.habitacion} - Total: $${total}`);
+   443→   443→        return reserva;
+   444→   444→      },
+   445→   445→
+   446→   446→      modificarReserva: (id, datos) => {
+   447→   447→        const state = get();
+   448→   448→        const reserva = state.reservas.find(r => r.id === id);
+   449→   449→        if (!reserva) return;
+   450→   450→
+   451→   451→        if (datos.habitacion || datos.checkin || datos.checkout) {
+   452→   452→          const checkin = datos.checkin || reserva.checkin;
+   453→   453→          const checkout = datos.checkout || reserva.checkout;
+   454→   454→          const habitacion = datos.habitacion || reserva.habitacion;
+   455→   455→          const disponibles = state.buscarDisponibilidad(checkin, checkout);
+   456→   456→          if (!disponibles.find(h => h.numero === habitacion)) return;
+   457→   457→        }
+   458→   458→
+   459→   459→        if (datos.habitacion && datos.habitacion !== reserva.habitacion) {
+   460→   460→          const newHabs = { ...state.habitaciones };
+   461→   461→          const habAnterior = newHabs[reserva.habitacion];
+   462→   462→          if (habAnterior && habAnterior.tipo !== 'Compartida' && habAnterior.estado === 'Reservada') {
+   463→   463→            newHabs[reserva.habitacion] = { ...habAnterior, estado: 'Disponible' };
+   464→   464→          }
+   465→   465→          if (newHabs[datos.habitacion] && newHabs[datos.habitacion].tipo !== 'Compartida') {
+   466→   466→            newHabs[datos.habitacion] = { ...newHabs[datos.habitacion], estado: 'Reservada' };
+   467→   467→          }
+   468→   468→          set({ habitaciones: newHabs });
+   469→   469→        }
+   470→   470→
+   471→   471→        const updatedReservas = state.reservas.map(r => {
+   472→   472→          if (r.id !== id) return r;
+   473→   473→          const updated = { ...r, ...datos };
+   474→   474→          if (datos.checkin || datos.checkout || datos.personas || datos.tipoTarifa || datos.habitacion) {
+   475→   475→            const hab = state.habitaciones[updated.habitacion || r.habitacion];
+   476→   476→            updated.total = calcularTotalSegunTarifa(state.tarifas, updated.tipoTarifa || 'normal', updated.personas || 1, nochesEntre(updated.checkin, updated.checkout), hab?.tipo === 'Compartida', hab?.precioPorCama);
+   477→   477→          }
+   478→   478→          return updated;
+   479→   479→        });
+   480→   480→        set({ reservas: updatedReservas });
+   481→   481→        state._registrarAuditoria('Reserva', `Modificación #${id}: ${reserva.huesped}`);
+   482→   482→      },
+   483→   483→
+   484→   484→      cancelarReserva: (id) => {
+   485→   485→        const state = get();
+   486→   486→        const reserva = state.reservas.find(r => r.id === id);
+   487→   487→        if (!reserva || reserva.estado !== 'Confirmada') return;
+   488→   488→        const newReservas = state.reservas.map(r => r.id === id ? { ...r, estado: 'Cancelada' as const } : r);
+   489→   489→        const newHabs = { ...state.habitaciones };
+   490→   490→        const hab = newHabs[reserva.habitacion];
+   491→   491→        if (hab && hab.tipo !== 'Compartida' && hab.estado === 'Reservada') {
+   492→   492→          newHabs[reserva.habitacion] = { ...hab, estado: 'Disponible' };
+   493→   493→        }
+   494→   494→        set({ reservas: newReservas, habitaciones: newHabs });
+   495→   495→        state._registrarAuditoria('Reserva', `Cancelación #${id}: ${reserva.huesped} - Hab ${reserva.habitacion}`);
+   496→   496→      },
+   497→   497→
+   498→   498→      calcularTotalReserva: (idReserva) => {
+   499→   499→        const { reservas, tarifas, habitaciones } = get();
+   500→   500→        const reserva = reservas.find(r => r.id === idReserva);
+   501→   501→        if (!reserva) return 0;
+   502→   502→        if (reserva.total !== undefined && reserva.total !== null) return reserva.total;
+   503→   503→        const hab = habitaciones[reserva.habitacion];
+   504→   504→        return calcularTotalSegunTarifa(tarifas, reserva.tipoTarifa || 'normal', reserva.personas || 1, nochesEntre(reserva.checkin, reserva.checkout), hab?.tipo === 'Compartida', hab?.precioPorCama);
+   505→   505→      },
+   506→   506→
+   507→   507→      calcularTotalPagado: (idReserva) => {
+   508→   508→        return get().pagos.filter(p => p.idReserva === idReserva).reduce((sum, p) => sum + p.monto, 0);
+   509→   509→      },
+   510→   510→
+   511→   511→      nochesEntre: (checkin, checkout) => nochesEntre(checkin, checkout),
+   512→   512→
+   513→   513→      calcularTotalSegunTarifa: (tipoTarifa, personas, noches, esCompartida, precioPorCama) => {
+   514→   514→        return calcularTotalSegunTarifa(get().tarifas, tipoTarifa, personas, noches, esCompartida, precioPorCama);
+   515→   515→      },
+   516→   516→
+   517→   517→      // ===== CHECK-IN / CHECK-OUT =====
+   518→   518→      realizarCheckIn: (idReserva, datos) => {
+   519→   519→        const state = get();
+   520→   520→        const reserva = state.reservas.find(r => r.id === idReserva);
+   521→   521→        if (!reserva || reserva.estado !== 'Confirmada') return false;
+   522→   522→
+   523→   523→        const updatedReservas = state.reservas.map(r => {
+   524→   524→          if (r.id !== idReserva) return r;
+   525→   525→          return {
+   526→   526→            ...r,
+   527→   527→            ...datos,
+   528→   528→            horaCheckin: new Date().toISOString(),
+   529→   529→            estado: 'Check-In realizado' as const,
+   530→   530→          };
+   531→   531→        });
+   532→   532→
+   533→   533→        const newHabs = { ...state.habitaciones };
+   534→   534→        if (newHabs[reserva.habitacion]) {
+   535→   535→          newHabs[reserva.habitacion] = { ...newHabs[reserva.habitacion], estado: 'Ocupada' };
+   536→   536→        }
+   537→   537→
+   538→   538→        set({ reservas: updatedReservas, habitaciones: newHabs });
+   539→   539→        state._registrarAuditoria('Check-In', `Check-In: ${reserva.huesped} - Hab ${reserva.habitacion}`);
+   540→   540→        return true;
+   541→   541→      },
+   542→   542→
+   543→   543→      realizarCheckOut: (idReserva) => {
+   544→   544→        const state = get();
+   545→   545→        const reserva = state.reservas.find(r => r.id === idReserva);
+   546→   546→        if (!reserva || reserva.estado !== 'Check-In realizado') return null;
+   547→   547→
+   548→   548→        const total = state.calcularTotalReserva(idReserva);
+   549→   549→        const noches = nochesEntre(reserva.checkin, reserva.checkout);
+   550→   550→        const fechaSalida = new Date(reserva.checkout + 'T09:00:00');
+   551→   551→
+   552→   552→        const updatedReservas = state.reservas.map(r => {
+   553→   553→          if (r.id !== idReserva) return r;
+   554→   554→          return { ...r, horaCheckout: fechaSalida.toISOString(), estado: 'Check-Out realizado' as const };
+   555→   555→        });
+   556→   556→
+   557→   557→        const newHabs = { ...state.habitaciones };
+   558→   558→        if (newHabs[reserva.habitacion]) {
+   559→   559→          newHabs[reserva.habitacion] = { ...newHabs[reserva.habitacion], estado: 'Limpieza' };
+   560→   560→        }
+   561→   561→
+   562→   562→        // Registrar estadía en cliente
+   563→   563→        const newClientes = state.clientes.map(c => {
+   564→   564→          if (c.id !== reserva.idCliente) return c;
+   565→   565→          const estadia: Estadia = { fechaCheckin: reserva.checkin, fechaCheckout: reserva.checkout, habitacion: reserva.habitacion, gastoTotal: total };
+   566→   566→          return { ...c, historialEstadias: [...c.historialEstadias, estadia] };
+   567→   567→        });
+   568→   568→
+   569→   569→        set({ reservas: updatedReservas, habitaciones: newHabs, clientes: newClientes });
+   570→   570→        state._registrarAuditoria('Check-Out', `Check-Out: ${reserva.huesped} - Hab ${reserva.habitacion} (Total: $${total})`);
+   571→   571→        return { noches, total };
+   572→   572→      },
+   573→   573→
+   574→   574→      // ===== PAGOS =====
+   575→   575→      registrarPago: (idReserva, monto, metodo, nota = '') => {
+   576→   576→        const state = get();
+   577→   577→        const reserva = state.reservas.find(r => r.id === idReserva);
+   578→   578→        if (!reserva) return null;
+   579→   579→
+   580→   580→        const nuevoPago: Pago = { id: generarId(state.pagos), idReserva, monto: parseFloat(String(monto)), metodo, fecha: new Date().toISOString().split('T')[0], nota };
+   581→   581→        const newPagos = [...state.pagos, nuevoPago];
+   582→   582→
+   583→   583→        const total = state.calcularTotalReserva(idReserva);
+   584→   584→        const pagado = newPagos.filter(p => p.idReserva === idReserva).reduce((s, p) => s + p.monto, 0);
+   585→   585→        let estadoPago: 'Pendiente' | 'Parcial' | 'Pagado' = 'Pendiente';
+   586→   586→        if (pagado >= total) estadoPago = 'Pagado';
+   587→   587→        else if (pagado > 0) estadoPago = 'Parcial';
+   588→   588→
+   589→   589→        const newReservas = state.reservas.map(r => r.id === idReserva ? { ...r, estadoPago } : r);
+   590→   590→
+   591→   591→        // Auto-registrar en caja si efectivo
+   592→   592→        const newCaja = { ...state.caja };
+   593→   593→        if (metodo === 'Efectivo' && newCaja.estado === 'abierta') {
+   594→   594→          const empleado = state.usuarioActual?.nombreCompleto || state.usuarioActual?.nombre || 'Sistema';
+   595→   595→          const mov: MovimientoCaja = { tipo: 'ingreso', monto: parseFloat(String(monto)), descripcion: `Pago de ${reserva.huesped} (Reserva #${idReserva})`, metodo: 'Efectivo', empleado, fecha: new Date().toISOString() };
+   596→   596→          newCaja.movimientos = [...newCaja.movimientos, mov];
+   597→   597→        }
+   598→   598→
+   599→   599→        set({ pagos: newPagos, reservas: newReservas, caja: newCaja });
+   600→   600→        state._registrarAuditoria('Pago', `Pago recibido: ${reserva.huesped} - $${monto} en ${metodo}${nota ? ` (${nota})` : ''}`);
+   601→   601→        return nuevoPago;
+   602→   602→      },
+   603→   603→
+   604→   604→      // ===== LIMPIEZA =====
+   605→   605→      marcarComoLimpia: (numero) => {
+   606→   606→        const { habitaciones } = get();
+   607→   607→        const hab = habitaciones[numero];
+   608→   608→        if (!hab || hab.estado !== 'Limpieza') return;
+   609→   609→        set({ habitaciones: { ...habitaciones, [numero]: { ...hab, estado: 'Disponible' as const } } });
+   610→   610→        get()._registrarAuditoria('Limpieza', `Habitación ${numero} marcada como limpia`);
+   611→   611→      },
+   612→   612→
+   613→   613→      reportarMantenimiento: (numero, descripcion) => {
+   614→   614→        const { habitaciones, reservas } = get();
+   615→   615→        const hab = habitaciones[numero];
+   616→   616→        if (!hab) return;
+   617→   617→
+   618→   618→        const newHabs = { ...habitaciones, [numero]: { ...hab, estado: 'Mantenimiento' as const, problema: descripcion } };
+   619→   619→        const newReservas = reservas.map(r => {
+   620→   620→          if (r.habitacion !== numero || r.estado === 'Cancelada' || r.estado === 'Check-Out realizado') return r;
+   621→   621→          return { ...r, estado: 'Cancelada' as const };
+   622→   622→        });
+   623→   623→
+   624→   624→        set({ habitaciones: newHabs, reservas: newReservas });
+   625→   625→        get()._registrarAuditoria('Mantenimiento', `Reporte: Hab ${numero} - ${descripcion}`);
+   626→   626→      },
+   627→   627→
+   628→   628→      resolverMantenimiento: (numero, reparacion, monto) => {
+   629→   629→        const state = get();
+   630→   630→        const hab = state.habitaciones[numero];
+   631→   631→        if (!hab || hab.estado !== 'Mantenimiento') return;
+   632→   632→
+   633→   633→        state.agregarGasto({ tipo: 'Mantenimiento', descripcion: `Habitación ${numero}: ${reparacion}`, monto: parseFloat(String(monto)) || 0 });
+   634→   634→
+   635→   635→        const newHist = [...state.historialMantenimiento, {
+   636→   636→          id: generarId(state.historialMantenimiento),
+   637→   637→          habitacion: numero,
+   638→   638→          problema: hab.problema || 'Sin descripción',
+   639→   639→          reparacion,
+   640→   640→          monto: parseFloat(String(monto)) || 0,
+   641→   641→          fecha: new Date().toISOString(),
+   642→   642→          empleado: state.usuarioActual?.nombreCompleto || state.usuarioActual?.nombre || 'Sistema',
+   643→   643→        }];
+   644→   644→
+   645→   645→        const newHabs = { ...state.habitaciones };
+   646→   646→        const { problema, ...habSinProblema } = newHabs[numero];
+   647→   647→        newHabs[numero] = { ...habSinProblema, estado: 'Disponible' as const };
+   648→   648→
+   649→   649→        set({ historialMantenimiento: newHist, habitaciones: newHabs });
+   650→   650→        state._registrarAuditoria('Mantenimiento', `Resuelto: Habitación ${numero} - ${reparacion} - $${monto}`);
+   651→   651→      },
+   652→   652→
+   653→   653→      // ===== CAJA =====
+   654→   654→      abrirCaja: (montoInicial) => {
+   655→   655→        const { caja } = get();
+   656→   656→        if (caja.estado === 'abierta') return false;
+   657→   657→        const empleado = get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema';
+   658→   658→        set({
+   659→   659→          caja: {
+   660→   660→            ...caja,
+   661→   661→            estado: 'abierta',
+   662→   662→            apertura: { montoInicial: parseFloat(String(montoInicial)), empleado, fecha: new Date().toISOString() },
+   663→   663→            movimientos: [],
+   664→   664→          },
+   665→   665→        });
+   666→   666→        get()._registrarAuditoria('Caja', `Apertura - ${empleado} - Inicial: $${montoInicial}`);
+   667→   667→        return true;
+   668→   668→      },
+   669→   669→
+   670→   670→      registrarMovimientoCaja: (tipo, monto, descripcion, metodo) => {
+   671→   671→        const { caja } = get();
+   672→   672→        if (caja.estado !== 'abierta') return false;
+   673→   673→        const empleado = get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema';
+   674→   674→        const mov: MovimientoCaja = { tipo, monto: parseFloat(String(monto)), descripcion, metodo, empleado, fecha: new Date().toISOString() };
+   675→   675→        set({ caja: { ...caja, movimientos: [...caja.movimientos, mov] } });
+   676→   676→        get()._registrarAuditoria('Caja', `${tipo}: $${monto} en ${metodo} - ${descripcion}`);
+   677→   677→        return true;
+   678→   678→      },
+   679→   679→
+   680→   680→      cerrarCaja: (billetes, totalOtros) => {
+   681→   681→        const { caja } = get();
+   682→   682→        if (caja.estado !== 'abierta' || !caja.apertura) return null;
+   683→   683→
+   684→   684→        let saldoEsperado = caja.apertura.montoInicial;
+   685→   685→        caja.movimientos.forEach(mov => {
+   686→   686→          if (mov.metodo === 'Efectivo') {
+   687→   687→            saldoEsperado += mov.tipo === 'ingreso' ? mov.monto : -mov.monto;
+   688→   688→          }
+   689→   689→        });
+   690→   690→
+   691→   691→        let saldoContado = 0;
+   692→   692→        for (const [billete, cantidad] of Object.entries(billetes)) {
+   693→   693→          saldoContado += parseInt(billete) * (cantidad || 0);
+   694→   694→        }
+   695→   695→
+   696→   696→        const diferencia = saldoContado - saldoEsperado;
+   697→   697→        const empleado = get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema';
+   698→   698→        const cierre: CierreCaja = { empleado, fecha: new Date().toISOString(), saldoEsperado, saldoContado, diferencia, billetes, totalOtrosMetodos: totalOtros };
+   699→   699→
+   700→   700→        const newCaja: CajaState = {
+   701→   701→          estado: 'cerrada',
+   702→   702→          apertura: null,
+   703→   703→          movimientos: [],
+   704→   704→          historial: [...caja.historial, { apertura: caja.apertura, cierre, movimientos: caja.movimientos }],
+   705→   705→        };
+   706→   706→
+   707→   707→        set({ caja: newCaja });
+   708→   708→        get()._registrarAuditoria('Caja', `Cierre - ${empleado} - Esperado: $${saldoEsperado} Contado: $${saldoContado} Dif: $${diferencia}`);
+   709→   709→        return cierre;
+   710→   710→      },
+   711→   711→
+   712→   712→      saldoActualCaja: () => {
+   713→   713→        const { caja } = get();
+   714→   714→        if (caja.estado !== 'abierta' || !caja.apertura) return 0;
+   715→   715→        let saldo = caja.apertura.montoInicial;
+   716→   716→        caja.movimientos.forEach(mov => {
+   717→   717→          if (mov.metodo === 'Efectivo') saldo += mov.tipo === 'ingreso' ? mov.monto : -mov.monto;
+   718→   718→        });
+   719→   719→        return saldo;
+   720→   720→      },
+   721→   721→
+   722→   722→      // ===== GASTOS =====
+   723→   723→      agregarGasto: (datos) => {
+   724→   724→        const { gastos } = get();
+   725→   725→        const nuevo: Gasto = { id: generarId(gastos), tipo: datos.tipo, descripcion: datos.descripcion, monto: parseFloat(String(datos.monto)), fecha: datos.fecha || new Date().toISOString().split('T')[0], empleado: get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema' };
+   726→   726→        set({ gastos: [...gastos, nuevo] });
+   727→   727→        get()._registrarAuditoria('Gasto', `Registro: ${datos.tipo} - ${datos.descripcion} - $${datos.monto}`);
+   728→   728→        return nuevo;
+   729→   729→      },
+   730→   730→
+   731→   731→      eliminarGasto: (id) => {
+   732→   732→        const { gastos } = get();
+   733→   733→        const gasto = gastos.find(g => g.id === id);
+   734→   734→        if (!gasto) return;
+   735→   735→        set({ gastos: gastos.filter(g => g.id !== id) });
+   736→   736→        get()._registrarAuditoria('Gasto', `Eliminación: ${gasto.tipo} - ${gasto.descripcion} - $${gasto.monto}`);
+   737→   737→      },
+   738→   738→
+   739→   739→      // ===== USUARIOS =====
+   740→   740→      crearUsuario: (datos) => {
+   741→   741→        const { usuarios } = get();
+   742→   742→        const nuevo: Usuario = { id: generarId(usuarios), nombre: datos.nombre, contrasena: datos.contrasena, nombreCompleto: datos.nombreCompleto || datos.nombre, permisos: datos.permisos || [] };
+   743→   743→        set({ usuarios: [...usuarios, nuevo] });
+   744→   744→        return nuevo;
+   745→   745→      },
+   746→   746→
+   747→   747→      actualizarUsuario: (id, datos) => {
+   748→   748→        const { usuarios, usuarioActual } = get();
+   749→   749→        const updated = usuarios.map(u => u.id === id ? { ...u, ...datos } : u);
+   750→   750→        let newSesion = usuarioActual;
+   751→   751→        if (usuarioActual && usuarioActual.id === id && datos.permisos) {
+   752→   752→          newSesion = { ...usuarioActual, permisos: datos.permisos };
+   753→   753→        }
+   754→   754→        set({ usuarios: updated, usuarioActual: newSesion });
+   755→   755→      },
+   756→   756→
+   757→   757→      eliminarUsuario: (id) => {
+   758→   758→        const { usuarios, usuarioActual } = get();
+   759→   759→        if (usuarioActual && usuarioActual.id === id) return false;
+   760→   760→        const usuario = usuarios.find(u => u.id === id);
+   761→   761→        if (!usuario) return false;
+   762→   762→        const adminsRestantes = usuarios.filter(u => u.id !== id && u.permisos.includes('usuarios'));
+   763→   763→        if (usuario.permisos.includes('usuarios') && adminsRestantes.length === 0) return false;
+   764→   764→        set({ usuarios: usuarios.filter(u => u.id !== id) });
+   765→   765→        return true;
+   766→   766→      },
+   767→   767→
+   768→   768→      // ===== TARIFAS =====
+   769→   769→      actualizarPrecioTarifa: (tipo, personas, precio) => {
+   770→   770→        const { tarifas } = get();
+   771→   771→        const tarifa = tarifas[tipo];
+   772→   772→        if (!tarifa) return;
+   773→   773→        set({ tarifas: { ...tarifas, [tipo]: { ...tarifa, [personas]: precio } } });
+   774→   774→      },
+   775→   775→
+   776→   776→      guardarTarifaCompleta: (tipoOriginal, datos) => {
+   777→   777→        const { tarifas, tiposTarifa, reservas } = get();
+   778→   778→        const esNueva = tipoOriginal === 'nueva';
+   779→   779→        const nombre = datos.nombre;
+   780→   780→        const nuevaTarifa: TarifaPrecios = {
+   781→   781→          1: datos.precios[1] || 0,
+   782→   782→          2: datos.precios[2] || 0,
+   783→   783→          3: datos.precios[3] || 0,
+   784→   784→          4: datos.precios[4] || 0,
+   785→   785→          camposPersonalizados: datos.camposPersonalizados,
+   786→   786→          choferCortesia: datos.choferCortesia,
+   787→   787→          habitacionChofer: datos.habitacionChofer,
+   788→   788→        };
+   789→   789→        if (esNueva) {
+   790→   790→          if (tiposTarifa.some(t => t.toLowerCase() === nombre.toLowerCase())) return;
+   791→   791→          set({ tarifas: { ...tarifas, [nombre]: nuevaTarifa }, tiposTarifa: [...tiposTarifa, nombre] });
+   792→   792→        } else {
+   793→   793→          const newTarifas = { ...tarifas };
+   794→   794→          if (nombre !== tipoOriginal) {
+   795→   795→            newTarifas[nombre] = { ...tarifas[tipoOriginal], ...nuevaTarifa };
+   796→   796→            delete newTarifas[tipoOriginal];
+   797→   797→            const newTipos = tiposTarifa.map(t => t === tipoOriginal ? nombre : t);
+   798→   798→            const newReservas = reservas.map(r => r.tipoTarifa === tipoOriginal ? { ...r, tipoTarifa: nombre } : r);
+   799→   799→            set({ tarifas: newTarifas, tiposTarifa: newTipos, reservas: newReservas });
+   800→   800→          } else {
+   801→   801→            newTarifas[nombre] = { ...tarifas[nombre], ...nuevaTarifa };
+   802→   802→            set({ tarifas: newTarifas });
+   803→   803→          }
+   804→   804→        }
+   805→   805→      },
+   806→   806→
+   807→   807→      agregarTipoTarifa: (tipo) => {
+   808→   808→        const { tarifas, tiposTarifa } = get();
+   809→   809→        if (tiposTarifa.includes(tipo)) return;
+   810→   810→        set({ tarifas: { ...tarifas, [tipo]: { 1: 25000, 2: 22000, 3: 19000, 4: 17000, camposPersonalizados: [], choferCortesia: false, habitacionChofer: null } }, tiposTarifa: [...tiposTarifa, tipo] });
+   811→   811→      },
+   812→   812→
+   813→   813→      eliminarTipoTarifa: (tipo) => {
+   814→   814→        const { tarifas, tiposTarifa, reservas } = get();
+   815→   815→        const reservasActivas = reservas.filter(r => r.tipoTarifa === tipo && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'));
+   816→   816→        if (reservasActivas.length > 0) return false;
+   817→   817→        if (tipo === 'normal') return false;
+   818→   818→        const newTarifas = { ...tarifas };
+   819→   819→        delete newTarifas[tipo];
+   820→   820→        set({ tarifas: newTarifas, tiposTarifa: tiposTarifa.filter(t => t !== tipo) });
+   821→   821→        return true;
+   822→   822→      },
+   823→   823→
+   824→   824→      agregarMetodoPago: (metodo) => {
+   825→   825→        const { metodosPago } = get();
+   826→   826→        if (metodosPago.find(m => m.id === metodo.id)) return;
+   827→   827→        set({ metodosPago: [...metodosPago, metodo] });
+   828→   828→      },
+   829→   829→
+   830→   830→      editarMetodoPago: (idOriginal, metodo) => {
+   831→   831→        const { metodosPago } = get();
+   832→   832→        set({ metodosPago: metodosPago.map(m => m.id === idOriginal ? metodo : m) });
+   833→   833→      },
+   834→   834→
+   835→   835→      eliminarMetodoPago: (id) => {
+   836→   836→        const { metodosPago, pagos, reservas } = get();
+   837→   837→        if (id === 'efectivo') return false;
+   838→   838→        const metodo = metodosPago.find(m => m.id === id);
+   839→   839→        if (!metodo) return false;
+   840→   840→        if (pagos.some(p => p.metodo === metodo.nombre)) return false;
+   841→   841→        if (reservas.some(r => r.metodoPagoId === id && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'))) return false;
+   842→   842→        set({ metodosPago: metodosPago.filter(m => m.id !== id) });
+   843→   843→        return true;
+   844→   844→      },
+   845→   845→
+   846→   846→      agregarCategoriaGasto: (categoria) => {
+   847→   847→        const { categoriasGastos } = get();
+   848→   848→        if (categoriasGastos.includes(categoria)) return;
+   849→   849→        set({ categoriasGastos: [...categoriasGastos, categoria] });
+   850→   850→      },
+   851→   851→
+   852→   852→      editarCategoriaGasto: (nombreOriginal, nombreNuevo) => {
+   853→   853→        const { categoriasGastos, gastos } = get();
+   854→   854→        const newCats = categoriasGastos.map(c => c === nombreOriginal ? nombreNuevo : c);
+   855→   855→        const newGastos = gastos.map(g => g.tipo === nombreOriginal ? { ...g, tipo: nombreNuevo } : g);
+   856→   856→        set({ categoriasGastos: newCats, gastos: newGastos });
+   857→   857→      },
+   858→   858→
+   859→   859→      eliminarCategoriaGasto: (categoria) => {
+   860→   860→        const { categoriasGastos, gastos } = get();
+   861→   861→        if (gastos.some(g => g.tipo === categoria)) return false;
+   862→   862→        set({ categoriasGastos: categoriasGastos.filter(c => c !== categoria) });
+   863→   863→        return true;
+   864→   864→      },
+   865→   865→
+   866→   866→      actualizarPrecioCama: (precio) => {
+   867→   867→        const { tarifas } = get();
+   868→   868→        set({ tarifas: { ...tarifas, precioPorCama: precio } });
+   869→   869→      },
+   870→   870→
+   871→   871→      // ===== RESET =====
+   872→   872→      resetData: () => set({
+   873→   873→        habitaciones: defaultHabitaciones,
+   874→   874→        reservas: defaultReservas,
+   875→   875→        clientes: defaultClientes,
+   876→   876→        pagos: defaultPagos,
+   877→   877→        usuarios: defaultUsuarios,
+   878→   878→        gastos: defaultGastos,
+   879→   879→        auditoria: [],
+   880→   880→        caja: { estado: 'cerrada', apertura: null, movimientos: [], historial: [] },
+   881→   881→        historialMantenimiento: [],
+   882→   882→        tarifas: defaultTarifas,
+   883→   883→        tiposTarifa: ['normal', 'agencia'],
+   884→   884→        metodosPago: defaultMetodosPago,
+   885→   885→        categoriasGastos: defaultCategoriasGastos,
+   886→   886→      }),
+   887→   887→    }),
+   888→   888→    {
+   889→   889→      name: 'hotel-ruta40-storage',
+   890→   890→      version: 2,
+   891→   891→      migrate: (persisted: any, version: number) => {
+   892→   892→        // version 2: forzar limpieza de habitaciones default
+   893→   893→        if (version < 2) {
+   894→   894→          persisted.habitaciones = {};
+   895→   895→        }
+   896→   896→        return persisted;
+   897→   897→      },
+   898→   898→      partialize: (state) => ({
+   899→   899→        habitaciones: state.habitaciones,
+   900→   900→        reservas: state.reservas,
+   901→   901→        clientes: state.clientes,
+   902→   902→        pagos: state.pagos,
+   903→   903→        usuarios: state.usuarios,
+   904→   904→        gastos: state.gastos,
+   905→   905→        auditoria: state.auditoria,
+   906→   906→        caja: state.caja,
+   907→   907→        historialMantenimiento: state.historialMantenimiento,
+   908→   908→        tarifas: state.tarifas,
+   909→   909→        tiposTarifa: state.tiposTarifa,
+   910→   910→        metodosPago: state.metodosPago,
+   911→   911→        categoriasGastos: state.categoriasGastos,
+   912→   912→      }),
+   913→   913→    }
+   914→   914→  )
+   915→   915→);

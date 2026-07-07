@@ -1,0 +1,552 @@
+     1→     1→// ==================== MÓDULO RESERVAS - COORDINADOR ====================
+     2→     2→// Dependencias (cargar antes en index.html):
+     3→     3→//   js/modulos/reservas/utilidades.js
+     4→     4→//   js/modulos/reservas/disponibilidad.js
+     5→     5→//   js/modulos/reservas/formulario.js
+     6→     6→//   js/modulos/reservas/pago.js
+     7→     7→// ======================================================================
+     8→     8→
+     9→     9→// ------------- Variables de estado -------------
+    10→    10→if (!window.filtroReservas) window.filtroReservas = 'todas';
+    11→    11→if (!window.filtroTipoHab) window.filtroTipoHab = '';
+    12→    12→if (!window.filtroEstadoPago) window.filtroEstadoPago = '';
+    13→    13→if (!window.filtroFechaDesde) window.filtroFechaDesde = '';
+    14→    14→if (!window.filtroFechaHasta) window.filtroFechaHasta = '';
+    15→    15→
+    16→    16→// ------------- Funciones de gestión de datos -------------
+    17→    17→function obtenerReservas(filtro = null) {
+    18→    18→  let lista = reservas;
+    19→    19→  if (filtro && filtro !== 'todas') lista = lista.filter(r => r.estado === filtro);
+    20→    20→  return lista;
+    21→    21→}
+    22→    22→
+    23→    23→// ------------- Filtros avanzados -------------
+    24→    24→function aplicarFiltros(lista) {
+    25→    25→  const estado = window.filtroReservas;
+    26→    26→  const tipoHab = window.filtroTipoHab;
+    27→    27→  const estadoPago = window.filtroEstadoPago;
+    28→    28→  const fechaDesde = window.filtroFechaDesde;
+    29→    29→  const fechaHasta = window.filtroFechaHasta;
+    30→    30→
+    31→    31→  if (estado && estado !== 'todas') lista = lista.filter(r => r.estado === estado);
+    32→    32→  if (tipoHab) lista = lista.filter(r => estadoHabitaciones[r.habitacion]?.tipo === tipoHab);
+    33→    33→  if (estadoPago) lista = lista.filter(r => r.estadoPago === estadoPago);
+    34→    34→  if (fechaDesde) lista = lista.filter(r => r.checkin >= fechaDesde);
+    35→    35→  if (fechaHasta) lista = lista.filter(r => r.checkin <= fechaHasta);
+    36→    36→  return lista;
+    37→    37→}
+    38→    38→
+    39→    39→// ------------- Renderizado principal -------------
+    40→    40→function renderReservas() {
+    41→    41→  const listaBase = obtenerReservas(window.filtroReservas === 'todas' ? null : window.filtroReservas);
+    42→    42→  const listaFiltrada = aplicarFiltros(listaBase);
+    43→    43→
+    44→    44→  return `
+    45→    45→    <div class="d-flex justify-content-between align-items-center mb-4">
+    46→    46→      <h2><i class="fas fa-calendar-alt text-primary me-2"></i>Reservas</h2>
+    47→    47→      <button class="btn btn-primary" onclick="abrirModalReserva('crear')">
+    48→    48→        <i class="fas fa-plus"></i> Nueva Reserva
+    49→    49→      </button>
+    50→    50→    </div>
+    51→    51→    <div class="card mb-3 filtros-reservas">
+    52→    52→      <div class="card-body">
+    53→    53→        <div class="row g-2 align-items-end">
+    54→    54→          <div class="col-md-2">
+    55→    55→            <label class="form-label small">Estado</label>
+    56→    56→            <select class="form-select form-select-sm" id="filtro-estado" onchange="actualizarFiltroEstado(this.value)">
+    57→    57→              <option value="todas" ${window.filtroReservas === 'todas' ? 'selected' : ''}>Todas</option>
+    58→    58→              <option value="Confirmada" ${window.filtroReservas === 'Confirmada' ? 'selected' : ''}>Confirmadas</option>
+    59→    59→              <option value="Cancelada" ${window.filtroReservas === 'Cancelada' ? 'selected' : ''}>Canceladas</option>
+    60→    60→              <option value="Check-In realizado" ${window.filtroReservas === 'Check-In realizado' ? 'selected' : ''}>Check-In realizado</option>
+    61→    61→              <option value="Check-Out realizado" ${window.filtroReservas === 'Check-Out realizado' ? 'selected' : ''}>Check-Out realizado</option>
+    62→    62→            </select>
+    63→    63→          </div>
+    64→    64→          <div class="col-md-2">
+    65→    65→            <label class="form-label small">Tipo Hab.</label>
+    66→    66→            <select class="form-select form-select-sm" id="filtro-tipo-hab" onchange="actualizarFiltroTipoHab(this.value)">
+    67→    67→              <option value="">Todos</option>
+    68→    68→              <option value="Doble">Doble</option><option value="Triple">Triple</option><option value="Cuádruple">Cuádruple</option><option value="Compartida">Compartida</option>
+    69→    69→            </select>
+    70→    70→          </div>
+    71→    71→          <div class="col-md-2">
+    72→    72→            <label class="form-label small">Estado Pago</label>
+    73→    73→            <select class="form-select form-select-sm" id="filtro-estado-pago" onchange="actualizarFiltroEstadoPago(this.value)">
+    74→    74→              <option value="">Todos</option>
+    75→    75→              <option value="Pendiente">Pendiente</option><option value="Parcial">Parcial</option><option value="Pagado">Pagado</option>
+    76→    76→            </select>
+    77→    77→          </div>
+    78→    78→          <div class="col-md-2"><label class="form-label small">Desde</label><input type="date" class="form-control form-control-sm" id="filtro-fecha-desde" value="${window.filtroFechaDesde}" onchange="actualizarFiltroFechaDesde(this.value)"></div>
+    79→    79→          <div class="col-md-2"><label class="form-label small">Hasta</label><input type="date" class="form-control form-control-sm" id="filtro-fecha-hasta" value="${window.filtroFechaHasta}" onchange="actualizarFiltroFechaHasta(this.value)"></div>
+    80→    80→          <div class="col-md-2"><button class="btn btn-sm btn-outline-secondary w-100" onclick="limpiarFiltrosReservas()"><i class="fas fa-times"></i> Limpiar</button></div>
+    81→    81→        </div>
+    82→    82→      </div>
+    83→    83→    </div>
+    84→    84→    <div id="lista-reservas">${generarTablaReservas(listaFiltrada)}</div>
+    85→    85→
+    86→    86→    <!-- Modal de Reserva -->
+    87→    87→    <div class="modal fade" id="modalReserva" tabindex="-1" aria-hidden="true">
+    88→    88→      <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-md-down">
+    89→    89→        <div class="modal-content" id="modal-reserva-contenido"></div>
+    90→    90→      </div>
+    91→    91→    </div>
+    92→    92→
+    93→    93→    <!-- Modal de Chofer de Agencia -->
+    94→    94→    <div class="modal fade" id="modalChofer" tabindex="-1" aria-hidden="true">
+    95→    95→      <div class="modal-dialog modal-dialog-centered">
+    96→    96→        <div class="modal-content" id="modal-chofer-contenido"></div>
+    97→    97→      </div>
+    98→    98→    </div>
+    99→    99→
+   100→   100→    <!-- Modal de Alerta Genérica -->
+   101→   101→    <div class="modal fade" id="modalAlerta" tabindex="-1" aria-hidden="true">
+   102→   102→      <div class="modal-dialog modal-dialog-centered">
+   103→   103→        <div class="modal-content">
+   104→   104→          <div class="modal-header" id="modal-alerta-header">
+   105→   105→            <!-- Dinámico -->
+   106→   106→          </div>
+   107→   107→          <div class="modal-body" id="modal-alerta-body">
+   108→   108→            <!-- Mensaje dinámico -->
+   109→   109→          </div>
+   110→   110→          <div class="modal-footer">
+   111→   111→            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Entendido</button>
+   112→   112→          </div>
+   113→   113→        </div>
+   114→   114→      </div>
+   115→   115→    </div>
+   116→   116→  `;
+   117→   117→}
+   118→   118→
+   119→   119→// ------------- Función de Alerta -------------
+   120→   120→function mostrarAlerta(mensaje, tipo = 'warning') {
+   121→   121→  const header = document.getElementById('modal-alerta-header');
+   122→   122→  const cuerpo = document.getElementById('modal-alerta-body');
+   123→   123→
+   124→   124→  if (!header || !cuerpo) {
+   125→   125→    if (Array.isArray(mensaje)) alert(mensaje.join('\n'));
+   126→   126→    else alert(mensaje);
+   127→   127→    return;
+   128→   128→  }
+   129→   129→
+   130→   130→  if (tipo === 'success') {
+   131→   131→    header.className = 'modal-header bg-success text-white';
+   132→   132→    header.innerHTML = '<h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>Éxito</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>';
+   133→   133→  } else {
+   134→   134→    header.className = 'modal-header bg-warning text-dark';
+   135→   135→    header.innerHTML = '<h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Atención</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>';
+   136→   136→  }
+   137→   137→
+   138→   138→  let contenido = '';
+   139→   139→  if (Array.isArray(mensaje)) {
+   140→   140→    contenido = '<ul class="mb-0">';
+   141→   141→    mensaje.forEach(m => { contenido += `<li>${m}</li>`; });
+   142→   142→    contenido += '</ul>';
+   143→   143→  } else {
+   144→   144→    contenido = mensaje;
+   145→   145→  }
+   146→   146→
+   147→   147→  cuerpo.innerHTML = contenido;
+   148→   148→  const modal = new bootstrap.Modal(document.getElementById('modalAlerta'));
+   149→   149→  modal.show();
+   150→   150→}
+   151→   151→
+   152→   152→// ------------- Tabla de reservas -------------
+   153→   153→function generarTablaReservas(lista) {
+   154→   154→  if (lista.length === 0) return '<div class="alert alert-info">No hay reservas en esta categoría.</div>';
+   155→   155→  return `
+   156→   156→    <table class="table table-modern table-hover"><thead><tr><th>Huésped</th><th>Habitación</th><th>Check-in</th><th>Check-out</th><th>Estado</th><th>Pago</th><th>Saldo</th><th>Acciones</th></tr></thead>
+   157→   157→    <tbody>${lista.map(r => {
+   158→   158→      let badgeColor = r.estado === 'Confirmada' ? 'success' : r.estado === 'Cancelada' ? 'danger' : r.estado === 'Check-In realizado' ? 'info' : r.estado === 'Check-Out realizado' ? 'dark' : 'secondary';
+   159→   159→      let pagoColor = r.estadoPago === 'Pagado' ? 'success' : r.estadoPago === 'Parcial' ? 'warning' : 'danger';
+   160→   160→      const total = calcularTotalReserva(r.id);
+   161→   161→      const pagado = calcularTotalPagado(r.id);
+   162→   162→      const saldo = total - pagado;
+   163→   163→      return `<tr><td style="cursor:pointer" onclick="abrirModalReserva('detalle',${r.id})">${r.huesped}${saldo>0?' <i class="fas fa-exclamation-circle text-danger"></i>':''}</td><td>${r.habitacion}</td><td>${formatearFecha(r.checkin)}</td><td>${formatearFecha(r.checkout)}</td><td><span class="badge bg-${badgeColor}">${r.estado}</span></td><td><span class="badge bg-${pagoColor}">${r.estadoPago}</span></td><td>${saldo>0?`<span class="text-danger fw-bold">$${saldo}</span>`:saldo===0?`<span class="text-success"><i class="fas fa-check-circle"></i></span>`:'—'}</td>
+   164→   164→      <td>
+   165→   165→        ${r.estado==='Confirmada'?`<button class="btn btn-sm btn-outline-success me-1" onclick="event.stopPropagation();checkInDesdeReserva(${r.id})">Check-In</button>`:''}
+   166→   166→        ${r.estado==='Confirmada'?`<button class="btn btn-sm btn-outline-warning me-1" onclick="event.stopPropagation();abrirModalReserva('editar',${r.id})"><i class="fas fa-pen"></i></button>`:''}
+   167→   167→        ${r.estado==='Check-In realizado'?`<button class="btn btn-sm btn-outline-danger me-1" onclick="event.stopPropagation();checkOutDesdeReserva(${r.id})">Check-Out</button>`:''}
+   168→   168→        ${r.estado==='Confirmada'?`<button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation();abrirModalReserva('cancelar',${r.id})">Cancelar</button>`:''}
+   169→   169→      </td></tr>`;
+   170→   170→    }).join('')}</tbody></table>`;
+   171→   171→}
+   172→   172→
+   173→   173→// ------------- Funciones de filtros -------------
+   174→   174→function actualizarFiltroEstado(valor) { window.filtroReservas = valor; refrescarListaReservas(); }
+   175→   175→function actualizarFiltroTipoHab(valor) { window.filtroTipoHab = valor; refrescarListaReservas(); }
+   176→   176→function actualizarFiltroEstadoPago(valor) { window.filtroEstadoPago = valor; refrescarListaReservas(); }
+   177→   177→function actualizarFiltroFechaDesde(valor) { window.filtroFechaDesde = valor; refrescarListaReservas(); }
+   178→   178→function actualizarFiltroFechaHasta(valor) { window.filtroFechaHasta = valor; refrescarListaReservas(); }
+   179→   179→function limpiarFiltrosReservas() {
+   180→   180→  window.filtroReservas = 'todas'; window.filtroTipoHab = ''; window.filtroEstadoPago = '';
+   181→   181→  window.filtroFechaDesde = ''; window.filtroFechaHasta = '';
+   182→   182→  document.getElementById('main-content').innerHTML = renderReservas();
+   183→   183→}
+   184→   184→function refrescarListaReservas() {
+   185→   185→  const listaBase = obtenerReservas(window.filtroReservas === 'todas' ? null : window.filtroReservas);
+   186→   186→  document.getElementById('lista-reservas').innerHTML = generarTablaReservas(aplicarFiltros(listaBase));
+   187→   187→}
+   188→   188→
+   189→   189→// ------------- Funciones rápidas (Check-In / Check-Out) -------------
+   190→   190→function checkInDesdeReserva(idReserva) {
+   191→   191→  if (window.usuarioActual && !window.usuarioActual.permisos.includes('checkin')) {
+   192→   192→    mostrarAlerta('No tenés permiso para realizar check‑in.');
+   193→   193→    return;
+   194→   194→  }
+   195→   195→  const reserva = reservas.find(r => r.id === idReserva);
+   196→   196→  if (!reserva || reserva.estado !== 'Confirmada') {
+   197→   197→    mostrarAlerta('La reserva no está en estado para hacer check‑in.');
+   198→   198→    return;
+   199→   199→  }
+   200→   200→  cambiarEstadoReserva(idReserva, 'Check-In realizado');
+   201→   201→  if (estadoHabitaciones[reserva.habitacion] && estadoHabitaciones[reserva.habitacion].tipo !== 'Compartida') {
+   202→   202→    estadoHabitaciones[reserva.habitacion].estado = 'Ocupada';
+   203→   203→  }
+   204→   204→  registrarAuditoria('Check-In', `Desde reserva #${idReserva}: ${reserva.huesped} - Hab ${reserva.habitacion}`);
+   205→   205→  guardarDatos();
+   206→   206→  refrescarListaReservas();
+   207→   207→}
+   208→   208→
+   209→   209→function checkOutDesdeReserva(idReserva) {
+   210→   210→  if (window.usuarioActual && !window.usuarioActual.permisos.includes('checkin')) {
+   211→   211→    mostrarAlerta('No tenés permiso para realizar check‑out.');
+   212→   212→    return;
+   213→   213→  }
+   214→   214→  const reserva = reservas.find(r => r.id === idReserva);
+   215→   215→  if (!reserva || reserva.estado !== 'Check-In realizado') return;
+   216→   216→  if (!confirm(`¿Realizar Check‑Out de ${reserva.huesped} (Hab. ${reserva.habitacion})?`)) return;
+   217→   217→
+   218→   218→  const total = calcularTotalReserva(idReserva);
+   219→   219→  cambiarEstadoReserva(idReserva, 'Check-Out realizado');
+   220→   220→  if (estadoHabitaciones[reserva.habitacion] && estadoHabitaciones[reserva.habitacion].tipo !== 'Compartida') {
+   221→   221→    estadoHabitaciones[reserva.habitacion].estado = 'Limpieza';
+   222→   222→  }
+   223→   223→  registrarAuditoria('Check-Out', `Desde reservas #${idReserva}: ${reserva.huesped} - Hab ${reserva.habitacion} - $${total}`);
+   224→   224→  guardarDatos();
+   225→   225→  refrescarListaReservas();
+   226→   226→}
+   227→   227→
+   228→   228→// ------------- Modal de reserva -------------
+   229→   229→function abrirModalReserva(modo, idReserva = null) {
+   230→   230→  const modalEl = document.getElementById('modalReserva');
+   231→   231→  if (!modalEl) return;
+   232→   232→  const modal = new bootstrap.Modal(modalEl);
+   233→   233→  const contenido = document.getElementById('modal-reserva-contenido');
+   234→   234→  switch (modo) {
+   235→   235→    case 'crear':
+   236→   236→      contenido.innerHTML = generarFormularioReserva();
+   237→   237→      setTimeout(() => {
+   238→   238→        configurarBuscadorCliente();
+   239→   239→        actualizarTotalMostrado();
+   240→   240→        // ✅ Forzar recálculo al entrar en la pestaña Pago
+   241→   241→        const tabPagoBtn = document.getElementById('tab-pago');
+   242→   242→        if (tabPagoBtn) {
+   243→   243→          tabPagoBtn.addEventListener('shown.bs.tab', actualizarTotalMostrado);
+   244→   244→        }
+   245→   245→      }, 100);
+   246→   246→      break;
+   247→   247→    case 'editar':
+   248→   248→      const reservaEditar = reservas.find(r => r.id === idReserva);
+   249→   249→      if (reservaEditar) contenido.innerHTML = generarFormularioReserva(reservaEditar);
+   250→   250→      setTimeout(() => {
+   251→   251→        configurarBuscadorCliente();
+   252→   252→        actualizarTotalMostrado();
+   253→   253→        // ✅ Forzar recálculo al entrar en la pestaña Pago
+   254→   254→        const tabPagoBtn = document.getElementById('tab-pago');
+   255→   255→        if (tabPagoBtn) {
+   256→   256→          tabPagoBtn.addEventListener('shown.bs.tab', actualizarTotalMostrado);
+   257→   257→        }
+   258→   258→      }, 100);
+   259→   259→      break;
+   260→   260→    case 'detalle': contenido.innerHTML = generarDetalleReserva(reservas.find(r => r.id === idReserva)); break;
+   261→   261→    case 'cancelar': contenido.innerHTML = generarConfirmacionCancelar(reservas.find(r => r.id === idReserva)); break;
+   262→   262→  }
+   263→   263→  modal.show();
+   264→   264→}
+   265→   265→
+   266→   266→// ==================== GUARDAR RESERVA (CON CAMPOS PERSONALIZADOS Y CHOFER CONFIGURABLE) ====================
+   267→   267→function guardarReserva(event, idReserva) {
+   268→   268→  event.preventDefault();
+   269→   269→  const errores = [];
+   270→   270→
+   271→   271→  const tipoTarifa = document.getElementById('res-tipo-tarifa')?.value || 'normal';
+   272→   272→  const habitacion = document.getElementById('res-habitacion')?.value;
+   273→   273→  if (!habitacion) {
+   274→   274→    errores.push('Debe seleccionar una habitación para continuar.');
+   275→   275→  }
+   276→   276→
+   277→   277→  let personas = 1;
+   278→   278→  if (habitacion) {
+   279→   279→    personas = parseInt(document.getElementById(`personas-hab-${habitacion}`)?.value);
+   280→   280→    if (!personas || personas < 1) personas = parseInt(document.getElementById('res-personas-filtro')?.value || 1);
+   281→   281→
+   282→   282→    const hab = estadoHabitaciones[habitacion];
+   283→   283→    if (hab) {
+   284→   284→      if (hab.tipo !== 'Compartida' && personas > hab.capacidad) {
+   285→   285→        errores.push(`La habitación tiene capacidad para <strong>${hab.capacidad}</strong> persona(s). No puede reservar para ${personas}.`);
+   286→   286→      }
+   287→   287→    }
+   288→   288→  }
+   289→   289→
+   290→   290→  const datos = {
+   291→   291→    huesped: document.getElementById('res-huesped').value.trim(),
+   292→   292→    dni: document.getElementById('res-dni').value.trim(),
+   293→   293→    telefono: document.getElementById('res-telefono').value.trim(),
+   294→   294→    email: document.getElementById('res-email').value.trim(),
+   295→   295→    domicilio: document.getElementById('res-domicilio').value.trim(),
+   296→   296→    checkin: document.getElementById('res-checkin').value,
+   297→   297→    checkout: document.getElementById('res-checkout').value,
+   298→   298→    habitacion: habitacion || '',
+   299→   299→    personas: personas,
+   300→   300→    tipoTarifa: tipoTarifa,
+   301→   301→    estadoPago: 'Pendiente'
+   302→   302→  };
+   303→   303→
+   304→   304→  if (!datos.huesped) errores.push('Falta completar el <strong>Nombre del huésped</strong>.');
+   305→   305→  if (!datos.dni) errores.push('Falta completar el <strong>DNI</strong>.');
+   306→   306→  if (!datos.telefono) errores.push('Falta completar el <strong>Teléfono</strong>.');
+   307→   307→
+   308→   308→  // --- Validar y recolectar campos personalizados de la tarifa ---
+   309→   309→  const camposTarifa = (tarifas[tipoTarifa]?.camposPersonalizados) || [];
+   310→   310→  const datosAdicionales = {};
+   311→   311→
+   312→   312→  camposTarifa.forEach(campo => {
+   313→   313→    const input = document.getElementById(`adicional-${campo.nombre.replace(/\s+/g, '_')}`);
+   314→   314→    const valor = input?.value?.trim() || '';
+   315→   315→
+   316→   316→    if (campo.requerido && !valor) {
+   317→   317→      errores.push(`Falta completar <strong>${campo.nombre}</strong> (requerido para la tarifa seleccionada).`);
+   318→   318→    }
+   319→   319→
+   320→   320→    datosAdicionales[campo.nombre] = valor;
+   321→   321→  });
+   322→   322→
+   323→   323→  if (errores.length > 0) {
+   324→   324→    mostrarAlerta(errores);
+   325→   325→    return;
+   326→   326→  }
+   327→   327→
+   328→   328→  if (Object.keys(datosAdicionales).length > 0) {
+   329→   329→    datos.datosAdicionales = datosAdicionales;
+   330→   330→  }
+   331→   331→
+   332→   332→  const idCliente = document.getElementById('res-huesped').getAttribute('data-idcliente');
+   333→   333→  if (idCliente) datos.idCliente = parseInt(idCliente);
+   334→   334→
+   335→   335→  let nuevaReservaId;
+   336→   336→  if (idReserva) { modificarReserva(idReserva, datos); nuevaReservaId = idReserva; }
+   337→   337→  else { const nueva = crearReserva(datos); if (!nueva) return; nuevaReservaId = nueva.id; }
+   338→   338→
+   339→   339→  // --- Pago ---
+   340→   340→  const tipoPago = document.querySelector('input[name="tipo-pago"]:checked')?.value || 'no-abonado';
+   341→   341→  if (tipoPago === 'parcial' || tipoPago === 'total') {
+   342→   342→    const monto = parseFloat(document.getElementById('res-monto-pago').value) || 0;
+   343→   343→    const metodoId = document.getElementById('res-metodo-pago').value;
+   344→   344→    const metodo = metodosPago.find(m => m.id === metodoId);
+   345→   345→    if (monto > 0 && metodo) {
+   346→   346→      const reservaObj = reservas.find(r => r.id === nuevaReservaId);
+   347→   347→      if (reservaObj) {
+   348→   348→        reservaObj.metodoPagoId = metodoId;
+   349→   349→        const cuotasVal = document.getElementById('res-cuotas')?.value;
+   350→   350→        if (cuotasVal && cuotasVal.includes('|')) {
+   351→   351→          const [cant, porc] = cuotasVal.split('|');
+   352→   352→          reservaObj.cuotas = parseInt(cant);
+   353→   353→          reservaObj.recargoPorcentaje = parseFloat(porc);
+   354→   354→          const subtotal = reservaObj.total;
+   355→   355→          reservaObj.total = subtotal + (subtotal * parseFloat(porc) / 100);
+   356→   356→        }
+   357→   357→      }
+   358→   358→      registrarPago(nuevaReservaId, monto, metodo.nombre, 'Pago en reserva');
+   359→   359→      if (metodo.tipo === 'efectivo' && caja?.estado === 'abierta') {
+   360→   360→        registrarMovimientoCaja('ingreso', monto, `Pago de ${datos.huesped} (Reserva #${nuevaReservaId})`, 'Efectivo');
+   361→   361→      }
+   362→   362→    }
+   363→   363→  }
+   364→   364→
+   365→   365→  // --- LÓGICA DE CHOFER CORTESÍA (CONFIGURABLE POR TARIFA) ---
+   366→   366→  if (tarifas[tipoTarifa]?.choferCortesia && personas === 4) {
+   367→   367→    const datosChofer = {
+   368→   368→      ...datos,
+   369→   369→      nuevaReservaId,
+   370→   370→      modalReservaInstance: bootstrap.Modal.getInstance(document.getElementById('modalReserva'))
+   371→   371→    };
+   372→   372→    mostrarPreguntaChofer(datosChofer);
+   373→   373→    return;
+   374→   374→  }
+   375→   375→
+   376→   376→  // --- RESERVA NORMAL: Confirmación y cierre ---
+   377→   377→  guardarDatos();
+   378→   378→  bootstrap.Modal.getInstance(document.getElementById('modalReserva'))?.hide();
+   379→   379→  mostrarAlerta(`Reserva confirmada para <strong>${datos.personas}</strong> persona(s).`, 'success');
+   380→   380→  refrescarListaReservas();
+   381→   381→}
+   382→   382→
+   383→   383→// ==================== MODAL DE CHOFER ====================
+   384→   384→function mostrarPreguntaChofer(datosChofer) {
+   385→   385→  const modalEl = document.getElementById('modalChofer');
+   386→   386→  const contenido = document.getElementById('modal-chofer-contenido');
+   387→   387→  const modal = new bootstrap.Modal(modalEl);
+   388→   388→
+   389→   389→  const tipoTarifa = datosChofer?.tipoTarifa;
+   390→   390→  const habConfigurada = tarifas[tipoTarifa]?.habitacionChofer || 'la habitación compartida';
+   391→   391→
+   392→   392→  contenido.innerHTML = `
+   393→   393→    <div class="modal-header">
+   394→   394→      <h5 class="modal-title"><i class="fas fa-bus me-2"></i>Chofer de Agencia</h5>
+   395→   395→      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+   396→   396→    </div>
+   397→   397→    <div class="modal-body text-center">
+   398→   398→      <p>¿El chofer se hospedará sin cargo en <strong>${habConfigurada}</strong>?</p>
+   399→   399→      <div class="d-flex justify-content-center gap-3 mt-3">
+   400→   400→        <button class="btn btn-success" onclick="mostrarFormularioChofer()">Sí</button>
+   401→   401→        <button class="btn btn-secondary" onclick="confirmarSinChofer()">No</button>
+   402→   402→      </div>
+   403→   403→    </div>
+   404→   404→  `;
+   405→   405→
+   406→   406→  window._datosChofer = datosChofer;
+   407→   407→  window._modalChoferInstance = modal;
+   408→   408→  modal.show();
+   409→   409→}
+   410→   410→
+   411→   411→function confirmarSinChofer() {
+   412→   412→  const { modalReservaInstance, personas } = window._datosChofer || {};
+   413→   413→  guardarDatos();
+   414→   414→  window._modalChoferInstance?.hide();
+   415→   415→  modalReservaInstance?.hide();
+   416→   416→  mostrarAlerta(`Reserva confirmada para <strong>${personas || 4}</strong> persona(s).`, 'success');
+   417→   417→  refrescarListaReservas();
+   418→   418→}
+   419→   419→
+   420→   420→function mostrarFormularioChofer() {
+   421→   421→  const contenido = document.getElementById('modal-chofer-contenido');
+   422→   422→  const { tipoTarifa, datosAdicionales } = window._datosChofer || {};
+   423→   423→  const campos = (tarifas[tipoTarifa]?.camposPersonalizados) || [];
+   424→   424→
+   425→   425→  let camposHTML = '';
+   426→   426→  if (campos.length > 0) {
+   427→   427→    camposHTML = `
+   428→   428→      <hr>
+   429→   429→      <h6>Datos de la reserva</h6>
+   430→   430→    `;
+   431→   431→    campos.forEach(campo => {
+   432→   432→      const valor = datosAdicionales?.[campo.nombre] || '';
+   433→   433→      camposHTML += `
+   434→   434→        <div class="mb-2">
+   435→   435→          <label class="form-label small">${campo.nombre}</label>
+   436→   436→          <input type="text" class="form-control form-control-sm" value="${valor}" readonly>
+   437→   437→        </div>
+   438→   438→      `;
+   439→   439→    });
+   440→   440→  }
+   441→   441→
+   442→   442→  contenido.innerHTML = `
+   443→   443→    <div class="modal-header">
+   444→   444→      <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Datos del Chofer</h5>
+   445→   445→      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+   446→   446→    </div>
+   447→   447→    <form onsubmit="confirmarConChofer(event)">
+   448→   448→      <div class="modal-body">
+   449→   449→        <div class="mb-3">
+   450→   450→          <label class="form-label">Nombre del chofer *</label>
+   451→   451→          <input type="text" class="form-control" id="chofer-nombre" required>
+   452→   452→        </div>
+   453→   453→        <div class="mb-3">
+   454→   454→          <label class="form-label">DNI del chofer *</label>
+   455→   455→          <input type="text" class="form-control" id="chofer-dni" required>
+   456→   456→        </div>
+   457→   457→        ${camposHTML}
+   458→   458→      </div>
+   459→   459→      <div class="modal-footer">
+   460→   460→        <button type="button" class="btn btn-secondary" onclick="confirmarSinChofer()">Cancelar</button>
+   461→   461→        <button type="submit" class="btn btn-success">Confirmar Chofer</button>
+   462→   462→      </div>
+   463→   463→    </form>
+   464→   464→  `;
+   465→   465→}
+   466→   466→
+   467→   467→function confirmarConChofer(event) {
+   468→   468→  event.preventDefault();
+   469→   469→  const { checkin, checkout, huesped, idCliente, modalReservaInstance, tipoTarifa } = window._datosChofer || {};
+   470→   470→  const nombreChofer = document.getElementById('chofer-nombre').value.trim();
+   471→   471→  const dniChofer = document.getElementById('chofer-dni').value.trim();
+   472→   472→
+   473→   473→  if (!nombreChofer || !dniChofer) {
+   474→   474→    mostrarAlerta('Complete el <strong>Nombre</strong> y <strong>DNI</strong> del chofer.');
+   475→   475→    return;
+   476→   476→  }
+   477→   477→
+   478→   478→  const habConfigurada = tarifas[tipoTarifa]?.habitacionChofer;
+   479→   479→  if (!habConfigurada) {
+   480→   480→    mostrarAlerta('No hay una habitación compartida configurada para esta tarifa.<br>El gerente debe configurarla en Tarifas.');
+   481→   481→    return;
+   482→   482→  }
+   483→   483→
+   484→   484→  const habExiste = estadoHabitaciones[habConfigurada];
+   485→   485→  if (!habExiste || habExiste.tipo !== 'Compartida') {
+   486→   486→    mostrarAlerta(`La habitación <strong>${habConfigurada}</strong> no es una habitación compartida válida.`);
+   487→   487→    return;
+   488→   488→  }
+   489→   489→
+   490→   490→  const disponibles = buscarDisponibilidad(checkin, checkout);
+   491→   491→  const compartida = disponibles.find(h => h.numero === habConfigurada);
+   492→   492→
+   493→   493→  if (!compartida) {
+   494→   494→    mostrarAlerta(`La habitación <strong>${habConfigurada}</strong> no tiene camas libres en estas fechas.<br>Deberá reservar otra habitación manualmente.`);
+   495→   495→    return;
+   496→   496→  }
+   497→   497→
+   498→   498→  const reservaChofer = {
+   499→   499→    id: generarId(reservas),
+   500→   500→    huesped: nombreChofer,
+   501→   501→    dni: dniChofer,
+   502→   502→    telefono: '',
+   503→   503→    email: '',
+   504→   504→    domicilio: '',
+   505→   505→    checkin: checkin,
+   506→   506→    checkout: checkout,
+   507→   507→    habitacion: habConfigurada,
+   508→   508→    personas: 1,
+   509→   509→    tipoTarifa: 'normal',
+   510→   510→    total: 0,
+   511→   511→    estadoPago: 'Pagado',
+   512→   512→    notas: `Cortesía chofer de ${huesped}`,
+   513→   513→    estado: 'Confirmada'
+   514→   514→  };
+   515→   515→  if (idCliente) reservaChofer.idCliente = idCliente;
+   516→   516→
+   517→   517→  reservas.push(reservaChofer);
+   518→   518→  registrarAuditoria('Reserva', `Creación (chofer cortesía): ${reservaChofer.huesped} - Hab ${habConfigurada} (${formatearFecha(checkin)} al ${formatearFecha(checkout)}) - Total: $0`);
+   519→   519→
+   520→   520→  guardarDatos();
+   521→   521→  window._modalChoferInstance?.hide();
+   522→   522→  modalReservaInstance?.hide();
+   523→   523→  mostrarAlerta(`Reserva confirmada para <strong>5</strong> personas (4 pasajeros + chofer en ${habConfigurada}).`, 'success');
+   524→   524→  refrescarListaReservas();
+   525→   525→}
+   526→   526→
+   527→   527→// ==================== DETALLE Y CANCELACIÓN ====================
+   528→   528→function generarDetalleReserva(reserva) {
+   529→   529→  if (!reserva) return '';
+   530→   530→  const total = calcularTotalReserva(reserva.id);
+   531→   531→  let htmlAdicional = '';
+   532→   532→
+   533→   533→  if (reserva.datosAdicionales) {
+   534→   534→    htmlAdicional = '<hr><h6>Datos adicionales</h6>';
+   535→   535→    Object.entries(reserva.datosAdicionales).forEach(([key, value]) => {
+   536→   536→      htmlAdicional += `<p><strong>${key}:</strong> ${value || '—'}</p>`;
+   537→   537→    });
+   538→   538→  } else if (reserva.agencia) {
+   539→   539→    htmlAdicional = `
+   540→   540→      <hr>
+   541→   541→      <p><strong><i class="fas fa-building text-info me-1"></i> Agencia:</strong> ${reserva.agencia.nombre}</p>
+   542→   542→      ${reserva.agencia.convenio ? `<p><strong>Convenio:</strong> ${reserva.agencia.convenio}</p>` : ''}
+   543→   543→      ${reserva.agencia.vendedor ? `<p><strong>Vendedor:</strong> ${reserva.agencia.vendedor}</p>` : ''}
+   544→   544→    `;
+   545→   545→  }
+   546→   546→
+   547→   547→  return `<div class="modal-header"><h5>Detalle #${reserva.id}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p><strong>Huésped:</strong> ${reserva.huesped}</p><p><strong>DNI:</strong> ${reserva.dni}</p><p><strong>Habitación:</strong> ${reserva.habitacion}</p><p><strong>Período:</strong> ${formatearFecha(reserva.checkin)} al ${formatearFecha(reserva.checkout)}</p><p><strong>Personas:</strong> ${reserva.personas}</p><p><strong>Tarifa:</strong> ${reserva.tipoTarifa || 'normal'}</p>${htmlAdicional}<p><strong>Total:</strong> $${total}</p><p><strong>Estado de pago:</strong> ${reserva.estadoPago}</p><p><strong>Estado:</strong> ${reserva.estado}</p></div><div class="modal-footer">${reserva.estado === 'Confirmada' ? `<button class="btn btn-success" onclick="checkInDesdeReserva(${reserva.id}); bootstrap.Modal.getInstance(document.getElementById('modalReserva')).hide();">Check-In</button>` : ''}<button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button></div>`;
+   548→   548→}
+   549→   549→function generarConfirmacionCancelar(reserva) {
+   550→   550→  if (!reserva) return '';
+   551→   551→  return `<div class="modal-header"><h5 class="text-danger">Cancelar Reserva</h5></div><div class="modal-body"><p>¿Cancelar la reserva de <strong>${reserva.huesped}</strong>?</p></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">No</button><button class="btn btn-danger" onclick="cancelarReserva(${reserva.id}); bootstrap.Modal.getInstance(document.getElementById('modalReserva')).hide(); refrescarListaReservas();">Sí, cancelar</button></div>`;
+   552→   552→}

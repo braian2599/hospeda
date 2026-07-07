@@ -1,0 +1,518 @@
+    55→    84→    84→    84→
+    56→    85→    85→    85→    <!-- Alertas y Estado General juntos -->
+    57→    86→    86→    86→    <div class="row g-3 mb-5">
+    58→    87→    87→    87→      <div class="col-md-4">
+    59→    88→    88→    88→        <div class="card p-3 text-center h-100">
+    60→    89→    89→    89→          <h5><i class="fas fa-broom me-1 text-muted"></i><i class="fas fa-tools me-2 text-muted"></i>Estado General</h5>
+    61→    90→    90→    90→          <div class="d-flex flex-column gap-2 mt-3">
+    62→    91→    91→    91→            <span class="badge bg-warning p-2 fs-6">Para limpiar: ${limpiezaPendiente}</span>
+    63→    92→    92→    92→            <span class="badge bg-secondary p-2 fs-6">En mantenimiento: ${mantenimientoPendiente}</span>
+    64→    93→    93→    93→            ${limpiezaPendiente === 0 && mantenimientoPendiente === 0 ? '<span class="badge bg-success p-2 fs-6"><i class="fas fa-check-circle me-1"></i>Todo al día</span>' : ''}
+    65→    94→    94→    94→          </div>
+    66→    95→    95→    95→        </div>
+    67→    96→    96→    96→      </div>
+    68→    97→    97→    97→      <div class="col-md-8">
+    69→    98→    98→    98→        <div class="card h-100">
+    70→    99→    99→    99→          <div class="card-header"><i class="fas fa-bell me-2"></i>Alertas Pendientes</div>
+    71→   100→   100→   100→          <ul class="list-group list-group-flush">${alertasHTML}</ul>
+    72→   101→   101→   101→        </div>
+    73→   102→   102→   102→      </div>
+    74→   103→   103→   103→    </div>
+    75→   104→   104→   104→
+    76→   105→   105→   105→    <!-- Gráfico y Calendario -->
+    77→   106→   106→   106→    <div class="row g-3 mb-5">
+    78→   107→   107→   107→      <div class="col-12">${graficoIngresosSemana}</div>
+    79→   108→   108→   108→    </div>
+    80→   109→   109→   109→
+    81→   110→   110→   110→    <h5 class="mb-3"><i class="fas fa-calendar-alt me-2 text-primary"></i>Ocupación próximos 14 días</h5>
+    82→   111→   111→   111→    ${calendarioHTML}
+    83→   112→   112→   112→
+    84→   113→   113→   113→    <!-- Ventana flotante para el calendario -->
+    85→   114→   114→   114→    <div id="calendario-popover" style="position: absolute; background: white; border-radius: 12px; padding: 1rem; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 9999; display: none; min-width: 220px; max-width: 280px;"></div>
+    86→   115→   115→   115→  `;
+    87→   116→   116→   116→}
+    88→   117→   117→   117→
+    89→   118→   118→   118→// --- Reloj y clima ---
+    90→   119→   119→   119→function iniciarRelojYClima() {
+    91→   120→   120→   120→  const relojEl = document.getElementById('dashboard-reloj');
+    92→   121→   121→   121→  const climaEl = document.getElementById('dashboard-clima');
+    93→   122→   122→   122→  if (!relojEl || !climaEl) return;
+    94→   123→   123→   123→
+    95→   124→   124→   124→  if (window._relojInterval) clearInterval(window._relojInterval);
+    96→   125→   125→   125→  if (window._climaInterval) clearInterval(window._climaInterval);
+    97→   126→   126→   126→
+    98→   127→   127→   127→  const actualizarReloj = () => {
+    99→   128→   128→   128→    const ahora = new Date();
+   100→   129→   129→   129→    relojEl.textContent = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+   101→   130→   130→   130→  };
+   102→   131→   131→   131→  actualizarReloj();
+   103→   132→   132→   132→  window._relojInterval = setInterval(actualizarReloj, 1000);
+   104→   133→   133→   133→
+   105→   134→   134→   134→  const climaEmoji = (code) => {
+   106→   135→   135→   135→    if (code === 0) return '☀️';
+   107→   136→   136→   136→    if (code >= 1 && code <= 3) return '⛅';
+   108→   137→   137→   137→    if (code >= 45 && code <= 48) return '🌫️';
+   109→   138→   138→   138→    if (code >= 51 && code <= 67) return '🌧️';
+   110→   139→   139→   139→    if (code >= 71 && code <= 77) return '❄️';
+   111→   140→   140→   140→    if (code >= 80 && code <= 82) return '🌦️';
+   112→   141→   141→   141→    if (code >= 95) return '⛈️';
+   113→   142→   142→   142→    return '🌡️';
+   114→   143→   143→   143→  };
+   115→   144→   144→   144→
+   116→   145→   145→   145→  const cargarClima = async () => {
+   117→   146→   146→   146→    try {
+   118→   147→   147→   147→      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-27.65&longitude=-67.03&current_weather=true&timezone=America/Argentina/Catamarca');
+   119→   148→   148→   148→      if (!res.ok) throw new Error('sin respuesta');
+   120→   149→   149→   149→      const data = await res.json();
+   121→   150→   150→   150→      const cw = data.current_weather;
+   122→   151→   151→   151→      climaEl.textContent = `${climaEmoji(cw.weathercode)} ${cw.temperature}°C`;
+   123→   152→   152→   152→    } catch (e) {
+   124→   153→   153→   153→      climaEl.textContent = '🌡️ --°C';
+   125→   154→   154→   154→    }
+   126→   155→   155→   155→  };
+   127→   156→   156→   156→
+   128→   157→   157→   157→  cargarClima();
+   129→   158→   158→   158→  window._climaInterval = setInterval(cargarClima, 30 * 60 * 1000);
+   130→   159→   159→   159→}
+   131→   160→   160→   160→
+   132→   161→   161→   161→// --- Gráfico de ingresos (últimos 7 días) ---
+   133→   162→   162→   162→function generarGraficoIngresosSemana(hoy) {
+   134→   163→   163→   163→  const dias = [];
+   135→   164→   164→   164→  for (let i = 6; i >= 0; i--) {
+   136→   165→   165→   165→    const d = new Date(hoy);
+   137→   166→   166→   166→    d.setDate(d.getDate() - i);
+   138→   167→   167→   167→    dias.push(d.toISOString().split('T')[0]);
+   139→   168→   168→   168→  }
+   140→   169→   169→   169→  const datos = dias.map(dia => {
+   141→   170→   170→   170→    const ing = pagos.filter(p => p.fecha === dia).reduce((sum, p) => sum + p.monto, 0);
+   142→   171→   171→   171→    const egr = gastos.filter(g => g.fecha === dia).reduce((sum, g) => sum + g.monto, 0);
+   143→   172→   172→   172→    return { dia: formatearFecha(dia), ing, egr };
+   144→   173→   173→   173→  });
+   145→   174→   174→   174→  const maxVal = Math.max(...datos.map(d => Math.max(d.ing, d.egr)), 1);
+   146→   175→   175→   175→  return `
+   147→   176→   176→   176→    <div class="card p-3">
+   148→   177→   177→   177→      <h5><i class="fas fa-chart-bar me-2 text-primary"></i>Ingresos vs Egresos (7 días)</h5>
+   149→   178→   178→   178→      <div class="d-flex align-items-end gap-1 mt-3" style="height:120px;">
+   150→   179→   179→   179→        ${datos.map(d => {
+   151→   180→   180→   180→          const altIng = (d.ing / maxVal) * 100;
+   152→   181→   181→   181→          const altEgr = (d.egr / maxVal) * 100;
+   153→   182→   182→   182→          return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; height:100%;">
+   154→   183→   183→   183→            <div style="display:flex; gap:2px; align-items:flex-end; height:100%;">
+   155→   184→   184→   184→              <div style="width:14px; height:${altIng}%; background:#6b8f71;" title="Ingresos: $${d.ing}"></div>
+   156→   185→   185→   185→              <div style="width:14px; height:${altEgr}%; background:#c06b5e;" title="Egresos: $${d.egr}"></div>
+   157→   186→   186→   186→            </div>
+   158→   187→   187→   187→            <small style="font-size:0.65rem; writing-mode:vertical-rl;">${d.dia.slice(0,5)}</small>
+   159→   188→   188→   188→          </div>`;
+   160→   189→   189→   189→        }).join('')}
+   161→   190→   190→   190→      </div>
+   162→   191→   191→   191→      <div class="d-flex justify-content-end gap-3 mt-2">
+   163→   192→   192→   192→        <small class="text-success">■ Ingresos</small>
+   164→   193→   193→   193→        <small class="text-danger">■ Egresos</small>
+   165→   194→   194→   194→      </div>
+   166→   195→   195→   195→    </div>
+   167→   196→   196→   196→  `;
+   168→   197→   197→   197→}
+   169→   198→   198→   198→
+   170→   199→   199→   199→// --- Calendario estilo Gantt (soporte para compartidas con múltiples líneas) ---
+   171→   200→   200→   200→function generarCalendarioOcupacion(fechaInicio) {
+   172→   201→   201→   201→  const DIAS   = 14;
+   173→   202→   202→   202→  const ROW_H  = 46;
+   174→   203→   203→   203→  const BAR_H  = 26;
+   175→   204→   204→   204→  const BAR_TOP = (ROW_H - BAR_H) / 2;
+   176→   205→   205→   205→  const COL_PCT = 100 / DIAS;
+   177→   206→   206→   206→  const MITAD_COL_PCT = COL_PCT / 2;
+   178→   207→   207→   207→
+   179→   208→   208→   208→  const habitaciones = Object.keys(estadoHabitaciones).sort();
+   180→   209→   209→   209→  const columnas = [];
+   181→   210→   210→   210→  for (let i = 0; i < DIAS; i++) {
+   182→   211→   211→   211→    const f = new Date(fechaInicio);
+   183→   212→   212→   212→    f.setDate(f.getDate() + i);
+   184→   213→   213→   213→    columnas.push(f.toISOString().split('T')[0]);
+   185→   214→   214→   214→  }
+   186→   215→   215→   215→
+   187→   216→   216→   216→  const colIdx = {};
+   188→   217→   217→   217→  columnas.forEach((c, i) => colIdx[c] = i);
+   189→   218→   218→   218→
+   190→   219→   219→   219→  const nombresDias = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'];
+   191→   220→   220→   220→  let headerCols = '';
+   192→   221→   221→   221→  columnas.forEach(col => {
+   193→   222→   222→   222→    const d = new Date(col + 'T00:00:00');
+   194→   223→   223→   223→    const esFS = d.getDay() === 0 || d.getDay() === 6;
+   195→   224→   224→   224→    headerCols += `
+   196→   225→   225→   225→      <div class="cal-header-cell${esFS ? ' cal-finsemana' : ''}">
+   197→   226→   226→   226→        <span class="cal-diasem">${nombresDias[d.getDay()]}</span>
+   198→   227→   227→   227→        <span class="cal-diaNum">${d.getDate()}</span>
+   199→   228→   228→   228→      </div>`;
+   200→   229→   229→   229→  });
+   201→   230→   230→   230→
+   202→   231→   231→   231→  let rowsHTML = '';
+   203→   232→   232→   232→  habitaciones.forEach((num, rowIndex) => {
+   204→   233→   233→   233→    const hab = estadoHabitaciones[num];
+   205→   234→   234→   234→    const reservasHab = [];
+   206→   235→   235→   235→
+   207→   236→   236→   236→    reservas.forEach(r => {
+   208→   237→   237→   237→      if (r.habitacion !== num || r.estado === 'Cancelada') return;
+   209→   238→   238→   238→      if (r.checkin > columnas[DIAS - 1] || r.checkout < columnas[0]) return;
+   210→   239→   239→   239→
+   211→   240→   240→   240→      const horaCheckin = r.horaCheckin ? new Date(r.horaCheckin) : new Date(r.checkin + 'T14:00:00');
+   212→   241→   241→   241→      const horaCheckout = r.horaCheckout ? new Date(r.horaCheckout) : new Date(r.checkout + 'T09:00:00');
+   213→   242→   242→   242→
+   214→   243→   243→   243→      const estado = (r.estado === 'Check-In realizado' || r.estado === 'Check-Out realizado') ? 'Ocupada' : 'Reservada';
+   215→   244→   244→   244→      reservasHab.push({
+   216→   245→   245→   245→        tipo: estado,
+   217→   246→   246→   246→        checkin: r.checkin,
+   218→   247→   247→   247→        checkout: r.checkout,
+   219→   248→   248→   248→        huesped: r.huesped,
+   220→   249→   249→   249→        horaCheckin,
+   221→   250→   250→   250→        horaCheckout,
+   222→   251→   251→   251→        estadoReserva: r.estado
+   223→   252→   252→   252→      });
+   224→   253→   253→   253→    });
+   225→   254→   254→   254→
+   226→   255→   255→   255→    const hoyStr = new Date().toISOString().split('T')[0];
+   227→   256→   256→   256→    if (hab.estado === 'Limpieza' && columnas.includes(hoyStr)) {
+   228→   257→   257→   257→      reservasHab.push({ tipo: 'Limpieza', checkin: hoyStr, checkout: hoyStr, huesped: 'Limpieza' });
+   229→   258→   258→   258→    }
+   230→   259→   259→   259→
+   231→   260→   260→   260→    if (hab.estado === 'Mantenimiento') {
+   232→   261→   261→   261→      reservasHab.push({ tipo: 'Mantenimiento', checkin: columnas[0], checkout: columnas[DIAS - 1], huesped: hab.problema || 'Mantenimiento' });
+   233→   262→   262→   262→    }
+   234→   263→   263→   263→
+   235→   264→   264→   264→    // ✅ Para habitaciones compartidas, apilamos las reservas en carriles
+   236→   265→   265→   265→    if (hab.tipo === 'Compartida' && reservasHab.length > 0) {
+   237→   266→   266→   266→      // Solo aplicamos para reservas normales (no limpieza/mantenimiento)
+   238→   267→   267→   267→      const reservasActivas = reservasHab.filter(r => r.tipo !== 'Limpieza' && r.tipo !== 'Mantenimiento');
+   239→   268→   268→   268→      const numCarriles = reservasActivas.length || 1;
+   240→   269→   269→   269→
+   241→   270→   270→   270→      // Altura de fila ampliada
+   242→   271→   271→   271→      const FILA_H = Math.max(ROW_H, numCarriles * (BAR_H + 4) + 8);
+   243→   272→   272→   272→
+   244→   273→   273→   273→      // Celdas de fondo
+   245→   274→   274→   274→      let bgCells = '';
+   246→   275→   275→   275→      columnas.forEach(col => {
+   247→   276→   276→   276→        const d = new Date(col + 'T00:00:00');
+   248→   277→   277→   277→        const esFS = d.getDay() === 0 || d.getDay() === 6;
+   249→   278→   278→   278→        bgCells += `<div class="gantt-cell${esFS ? ' gantt-finsemana' : ''}" style="height:${FILA_H}px;"></div>`;
+   250→   279→   279→   279→      });
+   251→   280→   280→   280→
+   252→   281→   281→   281→      // Barras para cada reserva (carril distinto)
+   253→   282→   282→   282→      const barrasHTML = reservasActivas.map((res, idx) => {
+   254→   283→   283→   283→        const carrilTop = 4 + idx * (BAR_H + 4);
+   255→   284→   284→   284→        let startCol = Math.max(colIdx[res.checkin] ?? 0, 0);
+   256→   285→   285→   285→        let endCol   = Math.min(colIdx[res.checkout] !== undefined ? colIdx[res.checkout] : DIAS - 1, DIAS - 1);
+   257→   286→   286→   286→
+   258→   287→   287→   287→        const esCheckinTarde = res.horaCheckin && res.horaCheckin.getHours() >= 12;
+   259→   288→   288→   288→        const esCheckoutManana = res.horaCheckout && res.horaCheckout.getHours() < 12;
+   260→   289→   289→   289→
+   261→   290→   290→   290→        let leftPct, widthPct;
+   262→   291→   291→   291→
+   263→   292→   292→   292→        if (esCheckinTarde && startCol >= 0 && !(res.checkin < columnas[0])) {
+   264→   293→   293→   293→          leftPct = startCol * COL_PCT + MITAD_COL_PCT;
+   265→   294→   294→   294→        } else {
+   266→   295→   295→   295→          leftPct = startCol * COL_PCT;
+   267→   296→   296→   296→        }
+   268→   297→   297→   297→
+   269→   298→   298→   298→        if (esCheckoutManana && endCol >= 0 && !(res.checkout > columnas[DIAS - 1])) {
+   270→   299→   299→   299→          widthPct = ((endCol - startCol) * COL_PCT) + (esCheckinTarde ? MITAD_COL_PCT : COL_PCT) - (esCheckoutManana ? MITAD_COL_PCT : 0);
+   271→   300→   300→   300→        } else {
+   272→   301→   301→   301→          widthPct = (endCol - startCol + 1) * COL_PCT;
+   273→   302→   302→   302→        }
+   274→   303→   303→   303→
+   275→   304→   304→   304→        const leftCalc = `calc(${leftPct}% + 2px)`;
+   276→   305→   305→   305→        const widthCalc = `calc(${widthPct}% - 4px)`;
+   277→   306→   306→   306→
+   278→   307→   307→   307→        return `
+   279→   308→   308→   308→          <div class="gantt-bar ${res.tipo}"
+   280→   309→   309→   309→               style="left:${leftCalc}; width:${widthCalc}; top:${carrilTop}px; height:${BAR_H}px;"
+   281→   310→   310→   310→               title="${res.huesped} · ${res.checkin} → ${res.checkout}"
+   282→   311→   311→   311→               onclick="mostrarPopoverGantt(event, this)"
+   283→   312→   312→   312→               data-estado="${res.tipo}"
+   284→   313→   313→   313→               data-huesped="${res.huesped}"
+   285→   314→   314→   314→               data-checkin="${res.checkin}"
+   286→   315→   315→   315→               data-checkout="${res.checkout}"
+   287→   316→   316→   316→               data-habitacion="${num}">
+   288→   317→   317→   317→            <span class="gantt-bar-label">${res.huesped}</span>
+   289→   318→   318→   318→          </div>`;
+   290→   319→   319→   319→      }).join('');
+   291→   320→   320→   320→
+   292→   321→   321→   321→      const bgStripe = rowIndex % 2 !== 0 ? ' gantt-row-alt' : '';
+   293→   322→   322→   322→
+   294→   323→   323→   323→      rowsHTML += `
+   295→   324→   324→   324→        <div class="gantt-row${bgStripe}" style="height:${FILA_H}px;">
+   296→   325→   325→   325→          <div class="gantt-room-label" style="height:${FILA_H}px;">
+   297→   326→   326→   326→            <span class="gantt-room-num">${num}</span>
+   298→   327→   327→   327→            <span class="gantt-room-tipo">${hab.tipo}</span>
+   299→   328→   328→   328→          </div>
+   300→   329→   329→   329→          <div class="gantt-row-body">
+   301→   330→   330→   330→            <div class="gantt-bg-cells">${bgCells}</div>
+   302→   331→   331→   331→            ${barrasHTML}
+   303→   332→   332→   332→          </div>
+   304→   333→   333→   333→        </div>`;
+   305→   334→   334→   334→
+   306→   335→   335→   335→      // No procesamos más
+   307→   336→   336→   336→      return;
+   308→   337→   337→   337→    }
+   309→   338→   338→   338→
+   310→   339→   339→   339→    // --- Habitaciones normales (código original) ---
+   311→   340→   340→   340→    const barrasHTML = reservasHab.map(res => {
+   312→   341→   341→   341→      let startCol = Math.max(colIdx[res.checkin] ?? 0, 0);
+   313→   342→   342→   342→      let endCol   = Math.min(colIdx[res.checkout] !== undefined ? colIdx[res.checkout] : DIAS - 1, DIAS - 1);
+   314→   343→   343→   343→
+   315→   344→   344→   344→      const esCheckinTarde = res.tipo !== 'Limpieza' && res.tipo !== 'Mantenimiento' && res.horaCheckin && res.horaCheckin.getHours() >= 12;
+   316→   345→   345→   345→      const esCheckoutManana = res.tipo !== 'Limpieza' && res.tipo !== 'Mantenimiento' && res.horaCheckout && res.horaCheckout.getHours() < 12;
+   317→   346→   346→   346→
+   318→   347→   347→   347→      let leftPct, widthPct;
+   319→   348→   348→   348→
+   320→   349→   349→   349→      if (esCheckinTarde && startCol >= 0 && !(res.checkin < columnas[0])) {
+   321→   350→   350→   350→        leftPct = startCol * COL_PCT + MITAD_COL_PCT;
+   322→   351→   351→   351→      } else {
+   323→   352→   352→   352→        leftPct = startCol * COL_PCT;
+   324→   353→   353→   353→      }
+   325→   354→   354→   354→
+   326→   355→   355→   355→      if (esCheckoutManana && endCol >= 0 && !(res.checkout > columnas[DIAS - 1])) {
+   327→   356→   356→   356→        widthPct = ((endCol - startCol) * COL_PCT) + (esCheckinTarde ? MITAD_COL_PCT : COL_PCT) - (esCheckoutManana ? MITAD_COL_PCT : 0);
+   328→   357→   357→   357→      } else {
+   329→   358→   358→   358→        widthPct = (endCol - startCol + 1) * COL_PCT;
+   330→   359→   359→   359→      }
+   331→   360→   360→   360→
+   332→   361→   361→   361→      const leftCalc = `calc(${leftPct}% + 2px)`;
+   333→   362→   362→   362→      const widthCalc = `calc(${widthPct}% - 4px)`;
+   334→   363→   363→   363→
+   335→   364→   364→   364→      return `
+   336→   365→   365→   365→        <div class="gantt-bar ${res.tipo}"
+   337→   366→   366→   366→             style="left:${leftCalc}; width:${widthCalc}; top:${BAR_TOP}px; height:${BAR_H}px;"
+   338→   367→   367→   367→             title="${res.huesped} · ${res.checkin} → ${res.checkout}"
+   339→   368→   368→   368→             onclick="mostrarPopoverGantt(event, this)"
+   340→   369→   369→   369→             data-estado="${res.tipo}"
+   341→   370→   370→   370→             data-huesped="${res.huesped}"
+   342→   371→   371→   371→             data-checkin="${res.checkin}"
+   343→   372→   372→   372→             data-checkout="${res.checkout}"
+   344→   373→   373→   373→             data-habitacion="${num}">
+   345→   374→   374→   374→          <span class="gantt-bar-label">${res.huesped}</span>
+   346→   375→   375→   375→        </div>`;
+   347→   376→   376→   376→    }).join('');
+   348→   377→   377→   377→
+   349→   378→   378→   378→    let bgCells = '';
+   350→   379→   379→   379→    columnas.forEach(col => {
+   351→   380→   380→   380→      const d = new Date(col + 'T00:00:00');
+   352→   381→   381→   381→      const esFS = d.getDay() === 0 || d.getDay() === 6;
+   353→   382→   382→   382→      bgCells += `<div class="gantt-cell${esFS ? ' gantt-finsemana' : ''}"></div>`;
+   354→   383→   383→   383→    });
+   355→   384→   384→   384→
+   356→   385→   385→   385→    const bgStripe = rowIndex % 2 !== 0 ? ' gantt-row-alt' : '';
+   357→   386→   386→   386→
+   358→   387→   387→   387→    rowsHTML += `
+   359→   388→   388→   388→      <div class="gantt-row${bgStripe}" style="height:${ROW_H}px;">
+   360→   389→   389→   389→        <div class="gantt-room-label" style="height:${ROW_H}px;">
+   361→   390→   390→   390→          <span class="gantt-room-num">${num}</span>
+   362→   391→   391→   391→          <span class="gantt-room-tipo">${hab.tipo}</span>
+   363→   392→   392→   392→        </div>
+   364→   393→   393→   393→        <div class="gantt-row-body">
+   365→   394→   394→   394→          <div class="gantt-bg-cells">${bgCells}</div>
+   366→   395→   395→   395→          ${barrasHTML}
+   367→   396→   396→   396→        </div>
+   368→   397→   397→   397→      </div>`;
+   369→   398→   398→   398→  });
+   370→   399→   399→   399→
+   371→   400→   400→   400→  return `
+   372→   401→   401→   401→    <style>
+   373→   402→   402→   402→      .gantt-bar.bar-start-partial {
+   374→   403→   403→   403→        opacity: 0.55;
+   375→   404→   404→   404→        border-left: none !important;
+   376→   405→   405→   405→      }
+   377→   406→   406→   406→      .gantt-bar.bar-end-partial {
+   378→   407→   407→   407→        opacity: 0.55;
+   379→   408→   408→   408→        border-right: none !important;
+   380→   409→   409→   409→      }
+   381→   410→   410→   410→      .gantt-bar.bar-start-partial.bar-end-partial {
+   382→   411→   411→   411→        opacity: 0.45;
+   383→   412→   412→   412→      }
+   384→   413→   413→   413→    </style>
+   385→   414→   414→   414→    <div class="gantt-wrapper">
+   386→   415→   415→   415→      <div class="gantt-header">
+   387→   416→   416→   416→        <div class="gantt-room-label-spacer"></div>
+   388→   417→   417→   417→        <div class="gantt-header-cols">${headerCols}</div>
+   389→   418→   418→   418→      </div>
+   390→   419→   419→   419→      <div class="gantt-body">${rowsHTML}</div>
+   391→   420→   420→   420→      <div class="d-flex gap-3 flex-wrap calendario-leyenda">
+   392→   421→   421→   421→        <small><span></span> Disponible</small>
+   393→   422→   422→   422→        <small><span></span> Reservada</small>
+   394→   423→   423→   423→        <small><span></span> Ocupada</small>
+   395→   424→   424→   424→        <small><span></span> Limpieza</small>
+   396→   425→   425→   425→        <small><span></span> Mantenimiento</small>
+   397→   426→   426→   426→      </div>
+   398→   427→   427→   427→    </div>
+   399→   428→   428→   428→  `;
+   400→   429→   429→   429→}
+   401→   430→   430→   430→
+   402→   431→   431→   431→// --- Lógica de períodos con horas reales: check‑out 09:00 AM, check‑in 14:00 ---
+   403→   432→   432→   432→function obtenerPeriodosDia(numeroHabitacion, fechaStr) {
+   404→   433→   433→   433→  const hab = estadoHabitaciones[numeroHabitacion];
+   405→   434→   434→   434→  if (!hab) return {
+   406→   435→   435→   435→    manana: { estado: '?', color: '#fff', titulo: '' },
+   407→   436→   436→   436→    tarde: { estado: '?', color: '#fff', titulo: '' }
+   408→   437→   437→   437→  };
+   409→   438→   438→   438→
+   410→   439→   439→   439→  if (hab.estado === 'Mantenimiento' || hab.estado === 'Fuera de servicio') {
+   411→   440→   440→   440→    const color = '#e2e3e5';
+   412→   441→   441→   441→    const problema = hab.problema || 'Sin descripción';
+   413→   442→   442→   442→    return {
+   414→   443→   443→   443→      manana: { estado: hab.estado, color, titulo: `Mantenimiento: ${problema}`, problema },
+   415→   444→   444→   444→      tarde: { estado: hab.estado, color, titulo: `Mantenimiento: ${problema}`, problema }
+   416→   445→   445→   445→    };
+   417→   446→   446→   446→  }
+   418→   447→   447→   447→
+   419→   448→   448→   448→  const diaActual = new Date(fechaStr + 'T00:00:00');
+   420→   449→   449→   449→  const mananaFin = new Date(fechaStr + 'T12:00:00');
+   421→   450→   450→   450→  const tardeInicio = new Date(fechaStr + 'T12:00:00');
+   422→   451→   451→   451→  const tardeFin = new Date(fechaStr + 'T23:59:59');
+   423→   452→   452→   452→
+   424→   453→   453→   453→  let mananaEstado = 'Disponible', mananaColor = '#d4edda', mananaTitulo = 'Disponible';
+   425→   454→   454→   454→  let mananaHuesped = '', mananaCheckin = '', mananaCheckout = '';
+   426→   455→   455→   455→  let tardeEstado = 'Disponible', tardeColor = '#d4edda', tardeTitulo = 'Disponible';
+   427→   456→   456→   456→  let tardeHuesped = '', tardeCheckin = '', tardeCheckout = '';
+   428→   457→   457→   457→
+   429→   458→   458→   458→  reservas.forEach(r => {
+   430→   459→   459→   459→    if (r.habitacion !== numeroHabitacion || r.estado === 'Cancelada') return;
+   431→   460→   460→   460→
+   432→   461→   461→   461→    let horaCheckin;
+   433→   462→   462→   462→    if (r.horaCheckin) { horaCheckin = new Date(r.horaCheckin); }
+   434→   463→   463→   463→    else { horaCheckin = new Date(r.checkin + 'T14:00:00'); }
+   435→   464→   464→   464→
+   436→   465→   465→   465→    let horaCheckout;
+   437→   466→   466→   466→    if (r.horaCheckout) { horaCheckout = new Date(r.horaCheckout); }
+   438→   467→   467→   467→    else { horaCheckout = new Date(r.checkout + 'T09:00:00'); }
+   439→   468→   468→   468→
+   440→   469→   469→   469→    if (horaCheckin < mananaFin && horaCheckout > diaActual) {
+   441→   470→   470→   470→      const estado = (r.estado === 'Check-In realizado' || r.estado === 'Check-Out realizado') ? 'Ocupada' : 'Reservada';
+   442→   471→   471→   471→      mananaEstado = estado;
+   443→   472→   472→   472→      mananaColor = estado === 'Ocupada' ? '#f8d7da' : '#cce5ff';
+   444→   473→   473→   473→      mananaTitulo = `${r.huesped} (${estado})`;
+   445→   474→   474→   474→      mananaHuesped = r.huesped;
+   446→   475→   475→   475→      mananaCheckin = r.checkin;
+   447→   476→   476→   476→      mananaCheckout = r.checkout;
+   448→   477→   477→   477→    }
+   449→   478→   478→   478→
+   450→   479→   479→   479→    if (horaCheckin <= tardeFin && horaCheckout > tardeInicio) {
+   451→   480→   480→   480→      const estado = (r.estado === 'Check-In realizado' || r.estado === 'Check-Out realizado') ? 'Ocupada' : 'Reservada';
+   452→   481→   481→   481→      tardeEstado = estado;
+   453→   482→   482→   482→      tardeColor = estado === 'Ocupada' ? '#f8d7da' : '#cce5ff';
+   454→   483→   483→   483→      tardeTitulo = `${r.huesped} (${estado})`;
+   455→   484→   484→   484→      tardeHuesped = r.huesped;
+   456→   485→   485→   485→      tardeCheckin = r.checkin;
+   457→   486→   486→   486→      tardeCheckout = r.checkout;
+   458→   487→   487→   487→    }
+   459→   488→   488→   488→  });
+   460→   489→   489→   489→
+   461→   490→   490→   490→  if (hab.estado === 'Limpieza' && fechaStr === new Date().toISOString().split('T')[0]) {
+   462→   491→   491→   491→    mananaEstado = 'Limpieza'; mananaColor = '#fff3cd'; mananaTitulo = 'Pendiente de limpieza';
+   463→   492→   492→   492→    tardeEstado = 'Limpieza'; tardeColor = '#fff3cd'; tardeTitulo = 'Pendiente de limpieza';
+   464→   493→   493→   493→  }
+   465→   494→   494→   494→
+   466→   495→   495→   495→  return {
+   467→   496→   496→   496→    manana: { estado: mananaEstado, color: mananaColor, titulo: mananaTitulo, huesped: mananaHuesped, checkin: mananaCheckin, checkout: mananaCheckout },
+   468→   497→   497→   497→    tarde: { estado: tardeEstado, color: tardeColor, titulo: tardeTitulo, huesped: tardeHuesped, checkin: tardeCheckin, checkout: tardeCheckout }
+   469→   498→   498→   498→  };
+   470→   499→   499→   499→}
+   471→   500→   500→   500→
+   472→   501→   501→   501→// Popover con información de horarios
+   473→   502→   502→   502→function mostrarPopoverCalendario(event, elemento) {
+   474→   503→   503→   503→  event.stopPropagation();
+   475→   504→   504→   504→  const popover = document.getElementById('calendario-popover');
+   476→   505→   505→   505→  if (!popover) return;
+   477→   506→   506→   506→
+   478→   507→   507→   507→  let target = elemento;
+   479→   508→   508→   508→  if (elemento.querySelector('.reserva-bar')) { target = elemento.querySelector('.reserva-bar'); }
+   480→   509→   509→   509→
+   481→   510→   510→   510→  const estado = target.getAttribute('data-estado') || elemento.getAttribute('data-estado');
+   482→   511→   511→   511→  const habitacion = target.getAttribute('data-habitacion') || elemento.getAttribute('data-habitacion');
+   483→   512→   512→   512→  const periodo = elemento.getAttribute('data-periodo');
+   484→   513→   513→   513→  let contenido = `<div class="fw-bold mb-2">Habitación ${habitacion}`;
+   485→   514→   514→   514→  if (periodo === 'manana') contenido += ' (Mañana)';
+   486→   515→   515→   515→  else if (periodo === 'tarde') contenido += ' (Tarde)';
+   487→   516→   516→   516→  contenido += '</div>';
+   488→   517→   517→   517→
+   489→   518→   518→   518→  if (estado === 'Ocupada' || estado === 'Reservada') {
+   490→   519→   519→   519→    const huesped = target.getAttribute('data-huesped') || elemento.getAttribute('data-huesped');
+   491→   520→   520→   520→    const checkin = target.getAttribute('data-checkin') || elemento.getAttribute('data-checkin');
+   492→   521→   521→   521→    const checkout = target.getAttribute('data-checkout') || elemento.getAttribute('data-checkout');
+   493→   522→   522→   522→    contenido += `
+   494→   523→   523→   523→      <p class="mb-1"><strong>${huesped}</strong></p>
+   495→   524→   524→   524→      <p class="mb-1 text-muted">Estado: ${estado}</p>
+   496→   525→   525→   525→      <p class="mb-1"><i class="fas fa-sign-in-alt text-primary me-1"></i> Check‑in: ${formatearFecha(checkin)} 14:00</p>
+   497→   526→   526→   526→      <p class="mb-1"><i class="fas fa-sign-out-alt text-danger me-1"></i> Check‑out: ${formatearFecha(checkout)} 09:00 AM</p>
+   498→   527→   527→   527→    `;
+   499→   528→   528→   528→  } else if (estado === 'Limpieza') {
+   500→   529→   529→   529→    contenido += `<p class="mb-1 text-warning"><i class="fas fa-broom me-1"></i> Pendiente de limpieza</p>`;
+   501→   530→   530→   530→  } else if (estado === 'Mantenimiento') {
+   502→   531→   531→   531→    const problema = target.getAttribute('data-problema') || elemento.getAttribute('data-problema') || 'Sin descripción';
+   503→   532→   532→   532→    contenido += `<p class="mb-1 text-secondary"><i class="fas fa-tools me-1"></i> En mantenimiento</p><p class="mb-1"><small>${problema}</small></p>`;
+   504→   533→   533→   533→  } else {
+   505→   534→   534→   534→    contenido += `<p class="mb-1 text-success"><i class="fas fa-check-circle me-1"></i> Disponible</p>`;
+   506→   535→   535→   535→  }
+   507→   536→   536→   536→
+   508→   537→   537→   537→  popover.innerHTML = contenido;
+   509→   538→   538→   538→  popover.style.display = 'block';
+   510→   539→   539→   539→
+   511→   540→   540→   540→  const rect = elemento.getBoundingClientRect();
+   512→   541→   541→   541→  let top = rect.bottom + window.scrollY + 5;
+   513→   542→   542→   542→  let left = rect.left + window.scrollX;
+   514→   543→   543→   543→  if (left + 260 > window.innerWidth) left = window.innerWidth - 270;
+   515→   544→   544→   544→  popover.style.top = top + 'px';
+   516→   545→   545→   545→  popover.style.left = left + 'px';
+   517→   546→   546→   546→}
+   518→   547→   547→   547→
+   519→   548→   548→   548→// Popover con información de horarios (Gantt)
+   520→   549→   549→   549→function mostrarPopoverGantt(event, barra) {
+   521→   550→   550→   550→  event.stopPropagation();
+   522→   551→   551→   551→  const popover = document.getElementById('calendario-popover');
+   523→   552→   552→   552→  if (!popover) return;
+   524→   553→   553→   553→
+   525→   554→   554→   554→  const estado     = barra.dataset.estado;
+   526→   555→   555→   555→  const habitacion = barra.dataset.habitacion;
+   527→   556→   556→   556→  const huesped    = barra.dataset.huesped || '';
+   528→   557→   557→   557→  const checkin    = barra.dataset.checkin  || '';
+   529→   558→   558→   558→  const checkout   = barra.dataset.checkout || '';
+   530→   559→   559→   559→
+   531→   560→   560→   560→  let icono = 'fas fa-circle';
+   532→   561→   561→   561→  if (estado === 'Reservada')    icono = 'fas fa-calendar-check text-primary';
+   533→   562→   562→   562→  if (estado === 'Ocupada')      icono = 'fas fa-bed text-danger';
+   534→   563→   563→   563→  if (estado === 'Limpieza')     icono = 'fas fa-broom text-warning';
+   535→   564→   564→   564→  if (estado === 'Mantenimiento')icono = 'fas fa-tools text-secondary';
+   536→   565→   565→   565→
+   537→   566→   566→   566→  let contenido = `
+   538→   567→   567→   567→    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+   539→   568→   568→   568→      <i class="${icono}" style="font-size:14px;"></i>
+   540→   569→   569→   569→      <strong>Hab. ${habitacion}</strong>
+   541→   570→   570→   570→      <span style="font-size:11px; color:#64748b; margin-left:auto;">${estado}</span>
+   542→   571→   571→   571→    </div>`;
+   543→   572→   572→   572→
+   544→   573→   573→   573→  if (huesped && estado !== 'Disponible') {
+   545→   574→   574→   574→    contenido += `<div style="font-size:13px; font-weight:600; margin-bottom:6px;">${huesped}</div>`;
+   546→   575→   575→   575→  }
+   547→   576→   576→   576→  if (checkin) {
+   548→   577→   577→   577→    contenido += `
+   549→   578→   578→   578→      <div style="font-size:11px; color:#64748b; display:flex; gap:12px;">
+   550→   579→   579→   579→        <span><i class="fas fa-sign-in-alt" style="color:#0ea5e9; margin-right:4px;"></i>${formatearFecha(checkin)}</span>
+   551→   580→   580→   580→        <span>→</span>
+   552→   581→   581→   581→        <span><i class="fas fa-sign-out-alt" style="color:#f43f5e; margin-right:4px;"></i>${formatearFecha(checkout)}</span>
+   553→   582→   582→   582→      </div>`;
+   554→   583→   583→   583→  }
+   555→   584→   584→   584→
+   556→   585→   585→   585→  popover.innerHTML = contenido;
+   557→   586→   586→   586→  popover.style.display = 'block';
+   558→   587→   587→   587→
+   559→   588→   588→   588→  const rect = barra.getBoundingClientRect();
+   560→   589→   589→   589→  let top  = rect.bottom + window.scrollY + 6;
+   561→   590→   590→   590→  let left = rect.left   + window.scrollX;
+   562→   591→   591→   591→  if (left + 280 > window.innerWidth) left = window.innerWidth - 290;
+   563→   592→   592→   592→  popover.style.top  = top  + 'px';
+   564→   593→   593→   593→  popover.style.left = left + 'px';
+   565→   594→   594→   594→}
+   566→   595→   595→   595→
+   567→   596→   596→   596→document.addEventListener('click', function(e) {
+   568→   597→   597→   597→  const popover = document.getElementById('calendario-popover');
+   569→   598→   598→   598→  if (popover && !e.target.closest('.gantt-bar') && !e.target.closest('.mitad') && !e.target.closest('.celda-calendario')) {
+   570→   599→   599→   599→    popover.style.display = 'none';
+   571→   600→   600→   600→  }
+   572→   601→   601→   601→});
