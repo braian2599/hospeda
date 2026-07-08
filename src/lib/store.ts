@@ -216,14 +216,15 @@ export const useHotelStore = create<HotelStore>()(
 
       setModulo: (modulo) => {
         const { planActual, usuarioActual, sidebarOpen } = get();
-        if (usuarioActual) {
+        // Configuracion es owner-only, no depende del plan
+        if (modulo !== 'configuracion' && usuarioActual) {
           const efectivos = calcModulosEfectivos(usuarioActual.permisos, planActual);
           if (!efectivos.includes(modulo)) {
             set({ moduloBloqueado: modulo, sidebarOpen: false });
             return;
           }
         }
-        set({ moduloActivo: modulo, moduloBloqueado: null, sidebarOpen: false });
+        set({ moduloActivo: modulo as any, moduloBloqueado: null, sidebarOpen: false });
       },
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setPerfilOpen: (open) => set({ perfilOpen: open }),
