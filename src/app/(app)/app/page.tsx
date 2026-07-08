@@ -14,6 +14,7 @@ import CajaModule from '@/components/modules/CajaModule';
 import TarifasModule from '@/components/modules/TarifasModule';
 import ReportesModule from '@/components/modules/ReportesModule';
 import UsuariosModule from '@/components/modules/UsuariosModule';
+import ConfiguracionModule from '@/components/configuracion/ConfiguracionModule';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import ProfileSettings from '@/components/layout/ProfileSettings';
@@ -64,6 +65,16 @@ export default function AppPage() {
               : 'Este módulo no está incluido en tu plan actual. Upgradeá para acceder.'}
           </p>
         </div>
+        <ModuleLockedDialog />
+      </AppShell>
+    );
+  }
+
+  // Configuracion is owner-only, not a regular module
+  if (moduloActivo === 'configuracion') {
+    return (
+      <AppShell>
+        <ConfiguracionModule />
         <ModuleLockedDialog />
       </AppShell>
     );

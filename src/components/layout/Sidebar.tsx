@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
   LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles,
-  Wallet, Users, BarChart3, UserCog, Tags, LogOut, Hotel, X, Lock,
+  Wallet, Users, BarChart3, UserCog, Tags, LogOut, Hotel, X, Lock, Settings,
 } from 'lucide-react';
 
 const handleLogout = () => {
@@ -206,6 +206,43 @@ export default function Sidebar() {
 
       <Separator />
 
+      {/* Owner-only: Configuracion */}
+      {usuarioActual.rol === 'owner' && (
+        <>
+          <div className="px-2 pb-1">
+            <button
+              onClick={() => setModulo('configuracion' as ModuloId)}
+              className={`
+                w-full flex items-center rounded-lg transition-colors duration-200 relative
+                ${desktopExpanded || sidebarFixed ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5'}
+                ${moduloActivo === 'configuracion'
+                  ? 'bg-slate-500/15'
+                  : 'hover:bg-accent/50'
+                }
+              `}
+              title={!desktopExpanded && !sidebarFixed ? 'Configuración' : undefined}
+            >
+              <span className={`
+                shrink-0 flex items-center justify-center rounded-md
+                ${desktopExpanded || sidebarFixed ? 'w-8 h-8' : 'w-9 h-9'}
+                ${moduloActivo === 'configuracion'
+                  ? 'bg-slate-500/15 text-slate-600 dark:text-slate-400'
+                  : 'bg-slate-100 dark:bg-slate-800 text-muted-foreground'
+                }
+              `}>
+                <Settings className={desktopExpanded || sidebarFixed ? 'w-[18px] h-[18px]' : 'w-5 h-5'} />
+              </span>
+              {(desktopExpanded || sidebarFixed) && (
+                <span className={`text-sm font-medium truncate ${moduloActivo === 'configuracion' ? 'text-slate-600 dark:text-slate-400' : 'text-muted-foreground'}`}>
+                  Configuración
+                </span>
+              )}
+            </button>
+          </div>
+          <Separator />
+        </>
+      )}
+
       {/* User area */}
       <div className="px-2 py-2 space-y-1">
         {/* User name — clickable for future profile */}
@@ -329,6 +366,35 @@ export default function Sidebar() {
             );
           })}
         </nav>
+
+        <Separator />
+
+        {/* Owner-only: Configuracion (mobile) */}
+        {usuarioActual.rol === 'owner' && (
+          <div className="px-2 pb-1">
+            <button
+              onClick={() => { setModulo('configuracion' as ModuloId); setSidebarOpen(false); }}
+              className={`
+                w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                transition-colors duration-200 text-left relative
+                ${moduloActivo === 'configuracion' ? 'bg-slate-500/15' : 'hover:bg-accent/50'}
+              `}
+            >
+              <span className={`
+                shrink-0 flex items-center justify-center w-8 h-8 rounded-md
+                ${moduloActivo === 'configuracion'
+                  ? 'bg-slate-500/15 text-slate-600 dark:text-slate-400'
+                  : 'bg-slate-100 dark:bg-slate-800 text-muted-foreground'
+                }
+              `}>
+                <Settings className="w-4 h-4" />
+              </span>
+              <span className={`flex-1 ${moduloActivo === 'configuracion' ? 'text-slate-600 dark:text-slate-400' : 'text-muted-foreground'}`}>
+                Configuración
+              </span>
+            </button>
+          </div>
+        )}
 
         <Separator />
 
