@@ -10,7 +10,6 @@ const VALID_ROLES: RolTenant[] = ['owner', 'admin', 'recepcion', 'limpieza'];
 // GET /api/usuarios — Listar usuarios del tenant
 export async function GET(req: NextRequest) {
   try {
-    await ensureMigrations();
     const tenantId = await requireTenantId();
     const { searchParams } = req.nextUrl;
     const rolFilter = searchParams.get('rol');
