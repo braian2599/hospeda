@@ -184,6 +184,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     userName: string;
     email: string;
     hotelNombre: string;
+    isPasswordLogin: boolean;
   } | null>(null);
   const [passwordSetup, setPasswordSetup] = useState<Record<string, any> | null>(null);
   const router = useRouter();
@@ -205,6 +206,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         userName: data.name,
         email: data.email,
         hotelNombre: data.tenantNombre,
+        isPasswordLogin: !!data.isPasswordLogin,
       });
       setLoading(false);
       return;
@@ -266,6 +268,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         userName={profileSelection.userName}
         email={profileSelection.email}
         hotelNombre={profileSelection.hotelNombre}
+        isPasswordLogin={profileSelection.isPasswordLogin}
         onSelected={() => setProfileSelection(null)}
       />
     );

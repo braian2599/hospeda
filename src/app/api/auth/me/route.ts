@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/config';
 import { db } from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 // GET /api/auth/me
 export async function GET(req: NextRequest) {
@@ -89,6 +90,7 @@ export async function GET(req: NextRequest) {
       }));
       return NextResponse.json({
         selectProfile: true,
+        isPasswordLogin,
         userId: user.id,
         name: user.name,
         email: user.email,
@@ -144,4 +146,61 @@ function buildSessionResponse(user: any, tenantUser: any) {
     subscriptionVencimiento: subscription?.fechaVencimiento?.toISOString() || null,
     needsPassword,
   });
+}
+
+// POST /api/auth/me?profileId=xxx&verifyPassword=1
+// Verifica la contraseña de un perfil (usado desde el selector con Google login)
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const profileId = searchParams.get('profileId');
+    if (!profileId) {
+      return NextResponse.json({ error: 'Falta profileId' }, { status: 400 });
+    }
+
+    const body = await req.json();
+    const { password } = body;
+    if (!password) {
+      return NextResponse.json({ error: 'Ingresá la contraseña' }, { status: 400 });
+    }
+
+    // Obtener el perfil con su password
+    const tenantUser = await db.tenantUser.findFirst({
+      where: { id: profileId, activo: true },
+      include: {
+        user: true,
+        tenant: {
+          include: {
+            subscription: { include: { plan: true } },
+            configuracion: true,
+          },
+        },
+      },
+    });
+
+    if (!tenantUser || tenantUser.user.email !== session.user.email) {
+      return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 403 });
+    }
+
+    if (!tenantUser.password) {
+      return NextResponse.json({ error: 'Este perfil no tiene contraseña configurada' }, { status: 400 });
+    }
+
+    const isValid = await bcrypt.compare(password, tenantUser.password);
+    if (!isValid) {
+      return NextResponse.json({ error: 'Contraseña incorrecta' }, { status: 401 });
+    }
+
+    return buildSessionResponse(tenantUser.user, tenantUser);
+
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('[/api/auth/me POST] Error:', err.message || error);
+    return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
+  }
 }
