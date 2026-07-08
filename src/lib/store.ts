@@ -232,6 +232,7 @@ export const useHotelStore = create<HotelStore>()(
       loginFromSession: async (sessionData: Record<string, any>) => {
         const sesion: UsuarioSesion = {
           id: sessionData.id,
+          tenantUserId: sessionData.tenantUserId,
           nombre: sessionData.nombre,
           nombreCompleto: sessionData.nombreCompleto,
           permisos: sessionData.permisos || [],

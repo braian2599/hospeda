@@ -103,6 +103,7 @@ export interface Usuario {
 
 export interface UsuarioSesion {
   id: string;
+  tenantUserId?: string;
   nombre: string;
   nombreCompleto: string;
   permisos: string[];

@@ -8,7 +8,7 @@ import { useHotelStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { LogOut, Hotel, ChevronRight, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import ProfileWelcome from '@/components/ProfileWelcome';
+import ProfileSelector from '@/components/ProfileSelector';
 
 // ========== SELECTOR DE HOTEL ==========
 function HotelSelector({ hoteles, userName, onSelected }: {
@@ -29,6 +29,8 @@ function HotelSelector({ hoteles, userName, onSelected }: {
         setLoadingId(null);
         return;
       }
+      // Si al seleccionar hotel hay multiples perfiles, no pasa nada
+      // porque el useEffect va a capturar selectProfile
       const store = useHotelStore.getState();
       store.loginFromSession(data);
       onSelected();
@@ -111,58 +113,57 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     hoteles: { tenantId: string; tenantNombre: string; tenantSlug: string; rol: string; plan: string }[];
     userName: string;
   } | null>(null);
-  const [welcomeData, setWelcomeData] = useState<{
+  const [profileSelection, setProfileSelection] = useState<{
+    perfiles: { profileId: string; nombreCompleto: string; rol: string; tenantId: string; tenantNombre: string }[];
+    userName: string;
     email: string;
-    nombre: string;
-    rol: string;
     hotelNombre: string;
-    sessionData: Record<string, any>;
   } | null>(null);
   const router = useRouter();
 
-  const handleWelcomeComplete = useCallback(() => {
-    if (welcomeData?.sessionData) {
-      loginFromSession(welcomeData.sessionData);
+  const processMeData = useCallback((data: Record<string, any>) => {
+    // Selector de hotel (multiples hoteles)
+    if (data.selectHotel) {
+      setHotelSelection({
+        hoteles: data.hoteles,
+        userName: data.name,
+      });
+      setLoading(false);
+      return;
     }
-    setWelcomeData(null);
-  }, [welcomeData, loginFromSession]);
+    // Needs setup (no hotel)
+    if (data.needsSetup && !data.selectHotel) {
+      setNeedsSetup(true);
+      setLoading(false);
+      return;
+    }
+    // Selector de perfil (multiples perfiles en un mismo hotel)
+    if (data.selectProfile) {
+      setProfileSelection({
+        perfiles: data.perfiles,
+        userName: data.name,
+        email: data.email,
+        hotelNombre: data.tenantNombre,
+      });
+      setLoading(false);
+      return;
+    }
+    if (data.error) {
+      setError(data.error);
+      setDebugInfo(data._debug || null);
+      setLoading(false);
+      return;
+    }
+    // Un solo perfil -> login directo, sin pantalla intermedia
+    loginFromSession(data);
+    setLoading(false);
+  }, [loginFromSession]);
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.email && !usuarioActual) {
       fetch('/api/auth/me')
         .then(res => res.json())
-        .then(data => {
-          // Selector de hotel
-          if (data.selectHotel) {
-            setHotelSelection({
-              hoteles: data.hoteles,
-              userName: data.name,
-            });
-            setLoading(false);
-            return;
-          }
-          // Needs setup (no hotel)
-          if (data.needsSetup && !data.selectHotel) {
-            setNeedsSetup(true);
-            setLoading(false);
-            return;
-          }
-          if (data.error) {
-            setError(data.error);
-            setDebugInfo(data._debug || null);
-            setLoading(false);
-            return;
-          }
-          // Mostrar pantalla de bienvenida con perfil
-          setWelcomeData({
-            email: data.email,
-            nombre: data.nombreCompleto || data.nombre || '',
-            rol: data.rol,
-            hotelNombre: data.tenantNombre || 'Mi Hotel',
-            sessionData: data,
-          });
-          setLoading(false);
-        })
+        .then(data => processMeData(data))
         .catch((err) => {
           setError('No se pudo conectar al servidor.');
           setDebugInfo(err.message);
@@ -173,7 +174,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     } else if (status === 'unauthenticated') {
       setLoading(false);
     }
-  }, [status, session, usuarioActual, loginFromSession, router]);
+  }, [status, session, usuarioActual, loginFromSession, router, processMeData]);
 
   useEffect(() => {
     if (needsSetup && pathname !== '/setup-hotel') {
@@ -183,15 +184,15 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
 
   // === RENDER STATES ===
 
-  // Pantalla de bienvenida con perfil
-  if (welcomeData) {
+  // Selector de perfil
+  if (profileSelection) {
     return (
-      <ProfileWelcome
-        profileName={welcomeData.nombre}
-        email={welcomeData.email}
-        rol={welcomeData.rol}
-        hotelNombre={welcomeData.hotelNombre}
-        onComplete={handleWelcomeComplete}
+      <ProfileSelector
+        perfiles={profileSelection.perfiles}
+        userName={profileSelection.userName}
+        email={profileSelection.email}
+        hotelNombre={profileSelection.hotelNombre}
+        onSelected={() => setProfileSelection(null)}
       />
     );
   }
@@ -225,23 +226,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
               setLoading(true);
               fetch('/api/auth/me')
                 .then(res => res.json())
-                .then(data => {
-                  if (data.selectHotel) {
-                    setHotelSelection({ hoteles: data.hoteles, userName: data.name });
-                    setLoading(false);
-                    return;
-                  }
-                  if (data.needsSetup) { router.push('/setup-hotel'); return; }
-                  if (data.error) { setError(data.error); setDebugInfo(data._debug || null); setLoading(false); return; }
-                  setWelcomeData({
-                    email: data.email,
-                    nombre: data.nombreCompleto || data.nombre || '',
-                    rol: data.rol,
-                    hotelNombre: data.tenantNombre || 'Mi Hotel',
-                    sessionData: data,
-                  });
-                  setLoading(false);
-                })
+                .then(data => processMeData(data))
                 .catch(() => { setError('No se pudo conectar.'); setLoading(false); });
             }}>
               Reintentar

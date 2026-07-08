@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
 import bcrypt from 'bcryptjs';
 import type { RolTenant } from '@prisma/client';
+import { ensureMigrations } from '@/lib/auto-migrate';
 
 const VALID_ROLES: RolTenant[] = ['owner', 'admin', 'recepcion', 'limpieza'];
 
@@ -41,6 +42,7 @@ export async function GET(req: NextRequest) {
 // POST /api/usuarios — Crear usuario directamente con contraseña
 export async function POST(req: NextRequest) {
   try {
+    await ensureMigrations();
     const tenantId = await requireTenantId();
     const body = await req.json();
     const { email, nombreCompleto, password, rol, permisos } = body;
@@ -71,46 +73,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Los permisos deben ser un array' }, { status: 400 });
     }
 
-    // Verificar que no exista un TenantUser con el mismo email en este tenant
-    const existingUser = await db.user.findUnique({ where: { email: emailLower } });
-    if (existingUser) {
-      const existingTenantUser = await db.tenantUser.findFirst({
-        where: { tenantId, userId: existingUser.id },
-      });
-      if (existingTenantUser) {
-        if (existingTenantUser.activo) {
-          return NextResponse.json(
-            { error: 'Este email ya pertenece a tu hotel' },
-            { status: 409 }
-          );
-        }
-        // Reactivar y actualizar contraseña
-        const hashedPassword = await bcrypt.hash(password, 12);
-        const reactivated = await db.tenantUser.update({
-          where: { id: existingTenantUser.id },
-          data: {
-            activo: true,
-            rol,
-            nombreCompleto: nombreCompleto.trim(),
-            permisos,
-          },
-          include: {
-            user: { select: { id: true, email: true, name: true, image: true } },
-          },
-        });
-        // También actualizar la contraseña del User
-        await db.user.update({
-          where: { id: existingUser.id },
-          data: { password: hashedPassword },
-        });
-        return NextResponse.json(reactivated, { status: 200 });
-      }
-    }
-
     // Hashear contraseña
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Crear User si no existe
+    // Crear o reutilizar el User (una cuenta de email puede tener varios perfiles)
+    const existingUser = await db.user.findUnique({ where: { email: emailLower } });
     const user = existingUser || await db.user.create({
       data: {
         email: emailLower,
@@ -119,15 +86,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Si el user ya existía (pero de otro hotel), actualizar la contraseña
-    if (existingUser) {
+    // Si el user ya existía pero no tenía contraseña, actualizarla
+    if (existingUser && !existingUser.password) {
       await db.user.update({
         where: { id: existingUser.id },
         data: { password: hashedPassword },
       });
     }
 
-    // Crear TenantUser
+    // Crear TenantUser (nuevo perfil en este hotel)
     const tenantUser = await db.tenantUser.create({
       data: {
         tenantId,

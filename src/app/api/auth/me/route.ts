@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/config';
 import { db } from '@/lib/db';
+import { ensureMigrations } from '@/lib/auto-migrate';
 
 // GET /api/auth/me
 // Devuelve los datos del usuario logueado para inicializar el store
@@ -9,6 +10,9 @@ import { db } from '@/lib/db';
 // Si se pasa ?tenantId=xxx, devuelve los datos de ese hotel específico
 export async function GET(req: NextRequest) {
   try {
+    // Run auto-migrations (idempotent, runs once)
+    await ensureMigrations();
+
     if (!process.env.NEXTAUTH_SECRET) {
       console.error('[/api/auth/me] FATAL: NEXTAUTH_SECRET no configurada');
       return NextResponse.json({ error: 'Error de configuracion del servidor.', _debug: 'missing_nextauth_secret' }, { status: 500 });
@@ -26,6 +30,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const requestedTenantId = searchParams.get('tenantId');
+    const requestedProfileId = searchParams.get('profileId');
 
     const user = await db.user.findUnique({
       where: { email: session.user.email },
@@ -60,7 +65,7 @@ export async function GET(req: NextRequest) {
       }, { status: 200 });
     }
 
-    // Si tiene un solo hotel (o no pidió uno específico y hay varios), devolver lista
+    // Si tiene multiples hoteles y no pidió uno específico, devolver lista de hoteles
     if (user.tenants.length > 1 && !requestedTenantId) {
       const hoteles = user.tenants.map(tu => ({
         tenantId: tu.tenant.id,
@@ -80,28 +85,59 @@ export async function GET(req: NextRequest) {
     }
 
     // Seleccionar el tenant a usar
-    let tenantUser;
+    let tenantUsersInHotel: typeof user.tenants;
     if (requestedTenantId) {
-      tenantUser = user.tenants.find(tu => tu.tenantId === requestedTenantId);
-      if (!tenantUser) {
+      tenantUsersInHotel = user.tenants.filter(tu => tu.tenantId === requestedTenantId);
+      if (tenantUsersInHotel.length === 0) {
         return NextResponse.json({ error: 'Hotel no encontrado o sin acceso' }, { status: 403 });
       }
     } else {
-      // Un solo hotel -> usarlo directamente
-      tenantUser = user.tenants[0];
+      // Un solo hotel -> todos los perfiles de ese hotel
+      tenantUsersInHotel = user.tenants;
+    }
+
+    // Si tiene multiples perfiles en el mismo hotel y no pidió uno específico
+    if (tenantUsersInHotel.length > 1 && !requestedProfileId) {
+      const perfiles = tenantUsersInHotel.map(tu => ({
+        profileId: tu.id,
+        nombreCompleto: tu.nombreCompleto || tu.user?.name || 'Sin nombre',
+        rol: tu.rol,
+        tenantId: tu.tenant.id,
+        tenantNombre: tu.tenant.nombre,
+      }));
+
+      return NextResponse.json({
+        selectProfile: true,
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        tenantId: tenantUsersInHotel[0].tenant.id,
+        tenantNombre: tenantUsersInHotel[0].tenant.nombre,
+        perfiles,
+      }, { status: 200 });
+    }
+
+    // Seleccionar el perfil específico
+    let tenantUser;
+    if (requestedProfileId) {
+      tenantUser = tenantUsersInHotel.find(tu => tu.id === requestedProfileId);
+      if (!tenantUser) {
+        return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 403 });
+      }
+    } else {
+      // Un solo perfil -> usarlo directamente
+      tenantUser = tenantUsersInHotel[0];
     }
 
     const tenant = tenantUser.tenant;
     const subscription = tenant.subscription;
     const plan = subscription?.plan;
 
-    // Verificar si necesita completar perfil (no tiene contraseña)
-    const needsProfile = !user.password;
-
     return NextResponse.json({
       id: user.id,
-      nombre: user.name || '',
-      nombreCompleto: user.name || '',
+      tenantUserId: tenantUser.id,
+      nombre: tenantUser.nombreCompleto || user.name || '',
+      nombreCompleto: tenantUser.nombreCompleto || user.name || '',
       email: user.email,
       permisos: tenantUser.permisos,
       rol: tenantUser.rol,
@@ -112,7 +148,6 @@ export async function GET(req: NextRequest) {
       fechaInicioTrial: subscription?.fechaInicio?.toISOString() || new Date().toISOString(),
       subscriptionEstado: subscription?.estado || 'trial',
       subscriptionVencimiento: subscription?.fechaVencimiento?.toISOString() || null,
-      needsProfile,
     });
 
   } catch (error: unknown) {
