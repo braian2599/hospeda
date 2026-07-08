@@ -10,32 +10,48 @@ export async function ensureMigrations() {
   if (migrated) return;
   migrated = true;
 
-  // Step 1: Drop unique constraint on (tenantId, userId) only
+  // Step 1: Drop unique constraint on (tenantId, userId)
+  // Try direct name first (Prisma-generated), then scan information_schema
   try {
-    await db.$executeRawUnsafe(`
-      DO $$
-      DECLARE
-        r RECORD;
-      BEGIN
-        FOR r IN (
-          SELECT c.constraint_name
-          FROM information_schema.table_constraints c
-          JOIN information_schema.key_column_usage k
-            ON c.constraint_name = k.constraint_name
-           AND c.table_schema  = k.table_schema
-          WHERE c.table_schema = 'public'
-            AND c.table_name   = 'tenantuser'
-            AND c.constraint_type = 'UNIQUE'
-          GROUP BY c.constraint_name
-          HAVING string_agg(k.column_name, ',' ORDER BY k.column_name) = 'tenantid,userid'
-        ) LOOP
-          EXECUTE 'ALTER TABLE "TenantUser" DROP CONSTRAINT "' || r.constraint_name || '"';
-          RAISE NOTICE 'Dropped constraint: %', r.constraint_name;
-        END LOOP;
-      END
-      $$;
+    // Approach A: Try known Prisma-generated names directly
+    const knownNames = [
+      'TenantUser_tenantId_userId_key',
+      'tenantuser_tenantid_userid_key',
+    ];
+    for (const name of knownNames) {
+      try {
+        await db.$executeRawUnsafe(
+          `ALTER TABLE "TenantUser" DROP CONSTRAINT IF EXISTS "${name}"`
+        );
+        console.log(`[migrate] Dropped constraint by name: ${name}`);
+      } catch {
+        // constraint doesn't exist with this name, try next
+      }
+    }
+
+    // Approach B: Scan pg_constraints for any 2-column unique on TenantUser
+    const rows: any[] = await db.$queryRawUnsafe(`
+      SELECT conname, conkey
+      FROM pg_constraint
+      WHERE conrelid = '"TenantUser"'::regclass
+        AND contype = 'u'
     `);
-    console.log('[migrate] Step 1 OK: unique constraint check done');
+
+    for (const row of rows) {
+      // conkey is an array of column attribute numbers (1-indexed)
+      if (row.conkey && Array.isArray(row.conkey) && row.conkey.length === 2) {
+        try {
+          await db.$executeRawUnsafe(
+            `ALTER TABLE "TenantUser" DROP CONSTRAINT IF EXISTS "${row.conname}"`
+          );
+          console.log(`[migrate] Dropped 2-col unique constraint: ${row.conname}`);
+        } catch {
+          // already gone or can't drop
+        }
+      }
+    }
+
+    console.log('[migrate] Step 1 OK');
   } catch (err: any) {
     console.warn('[migrate] Step 1 skipped:', err.message?.substring(0, 120));
   }
@@ -52,12 +68,11 @@ export async function ensureMigrations() {
             AND column_name = 'password'
         ) THEN
           ALTER TABLE "TenantUser" ADD COLUMN "password" TEXT;
-          RAISE NOTICE 'Added password column';
         END IF;
       END
       $$;
     `);
-    console.log('[migrate] Step 2 OK: password column check done');
+    console.log('[migrate] Step 2 OK');
   } catch (err: any) {
     console.warn('[migrate] Step 2 skipped:', err.message?.substring(0, 120));
   }
@@ -74,12 +89,11 @@ export async function ensureMigrations() {
             AND column_name = 'nombreusuario'
         ) THEN
           ALTER TABLE "TenantUser" DROP COLUMN "nombreUsuario";
-          RAISE NOTICE 'Dropped nombreUsuario column';
         END IF;
       END
       $$;
     `);
-    console.log('[migrate] Step 3 OK: legacy column check done');
+    console.log('[migrate] Step 3 OK');
   } catch (err: any) {
     console.warn('[migrate] Step 3 skipped:', err.message?.substring(0, 120));
   }
