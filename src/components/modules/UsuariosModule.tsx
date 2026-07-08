@@ -315,7 +315,7 @@ export default function UsuariosModule() {
             </div>
 
             {/* Contraseña */}
-            {!editingId || (
+            {true && (
               <div className="space-y-1.5">
                 <Label className="text-xs">{editingId ? 'Nueva contraseña (dejar vacio para no cambiar)' : 'Contraseña'}</Label>
                 <div className="relative">
