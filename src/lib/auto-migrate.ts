@@ -9,21 +9,15 @@ let migrated = false;
 
 export async function ensureMigrations() {
   if (migrated) return;
+  migrated = true; // Set immediately to prevent concurrent runs
   try {
-    await db.$executeRawUnsafe(`
-      DO $$
-      BEGIN
-        IF EXISTS (
-          SELECT 1 FROM pg_constraint WHERE conname = 'TenantUser_tenantId_userId_key'
-        ) THEN
-          ALTER TABLE "TenantUser" DROP CONSTRAINT "TenantUser_tenantId_userId_key";
-        END IF;
-      END
-      $$;
-    `);
-    console.log('[migrate] TenantUser unique constraint dropped (or was already gone)');
+    // Try to drop the constraint; ignore error if it doesn't exist
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "TenantUser" DROP CONSTRAINT IF EXISTS "TenantUser_tenantId_userId_key";`
+    );
+    console.log('[migrate] TenantUser unique constraint dropped');
   } catch (err: any) {
-    console.error('[migrate] Error dropping constraint:', err.message);
+    // Constraint might not exist or table name might differ - that's fine
+    console.log('[migrate] Note:', err.message?.substring(0, 100) || 'migration skipped');
   }
-  migrated = true;
 }

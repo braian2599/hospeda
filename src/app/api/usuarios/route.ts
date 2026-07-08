@@ -3,7 +3,6 @@ import { db } from '@/lib/db';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
 import bcrypt from 'bcryptjs';
 import type { RolTenant } from '@prisma/client';
-import { ensureMigrations } from '@/lib/auto-migrate';
 
 const VALID_ROLES: RolTenant[] = ['owner', 'admin', 'recepcion', 'limpieza'];
 
@@ -42,7 +41,6 @@ export async function GET(req: NextRequest) {
 // POST /api/usuarios — Crear usuario directamente con contraseña
 export async function POST(req: NextRequest) {
   try {
-    await ensureMigrations();
     const tenantId = await requireTenantId();
     const body = await req.json();
     const { email, nombreCompleto, password, rol, permisos } = body;

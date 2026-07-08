@@ -10,8 +10,8 @@ import { ensureMigrations } from '@/lib/auto-migrate';
 // Si se pasa ?tenantId=xxx, devuelve los datos de ese hotel específico
 export async function GET(req: NextRequest) {
   try {
-    // Run auto-migrations (idempotent, runs once)
-    await ensureMigrations();
+    // Run auto-migrations in background (non-blocking)
+    ensureMigrations();
 
     if (!process.env.NEXTAUTH_SECRET) {
       console.error('[/api/auth/me] FATAL: NEXTAUTH_SECRET no configurada');
