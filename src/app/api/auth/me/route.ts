@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
         tenantNombre: tu.tenant.nombre,
         tenantSlug: tu.tenant.slug,
         rol: tu.rol,
-        plan: tu.tenant.subscription?.plan?.type || 'trial',
+        plan: tu.tenant.subscription?.estado === 'trial' ? 'trial' : (tu.tenant.subscription?.plan?.type || 'trial'),
       }));
       return NextResponse.json({ selectHotel: true, userId: user.id, name: user.name, email: user.email, hoteles });
     }
@@ -140,7 +140,7 @@ function buildSessionResponse(user: any, tenantUser: any) {
     tenantId: tenant.id,
     tenantNombre: tenant.nombre,
     tenantSlug: tenant.slug,
-    planActual: plan?.type || 'trial',
+    planActual: subscription?.estado === 'trial' ? 'trial' : (plan?.type || 'trial'),
     fechaInicioTrial: subscription?.fechaInicio?.toISOString() || new Date().toISOString(),
     subscriptionEstado: subscription?.estado || 'trial',
     subscriptionVencimiento: subscription?.fechaVencimiento?.toISOString() || null,
