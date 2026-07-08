@@ -15,10 +15,13 @@ import {
   Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext,
 } from '@/components/ui/pagination';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Progress } from '@/components/ui/progress';
 import {
   BarChart3, DollarSign, TrendingDown, TrendingUp, CalendarDays, Plus,
-  Search, ChevronDown, ChevronUp, Eye, BedDouble, Users, UserCog, Wallet,
-  FileText, Building2,
+  Search, Eye, BedDouble, Users, UserCog, Wallet,
+  FileText, ArrowUpRight, ArrowDownRight, Minus, Hotel,
+  Receipt, Percent, Clock, Moon, Sun, Sunset,
 } from 'lucide-react';
 
 // ==================== HELPERS ====================
@@ -36,41 +39,141 @@ const formatFechaHora = (f: string) => {
 };
 
 const formatMoneda = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
+const formatNumero = (n: number) => new Intl.NumberFormat('es-AR').format(n);
 
 const hoy = () => new Date().toISOString().split('T')[0];
-
 const haceNDias = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
   return d.toISOString().split('T')[0];
 };
 
+const nochesEntre = (ci: string, co: string) => {
+  const a = new Date(ci + 'T12:00:00');
+  const b = new Date(co + 'T12:00:00');
+  return Math.max(0, Math.ceil((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)));
+};
+
+// ==================== KPI CARD ====================
+
+interface KpiProps {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  color: string;
+  bgColor: string;
+  tooltip?: string;
+  subtext?: string;
+  trend?: { value: number; label: string };
+  onClick?: () => void;
+}
+
+function KpiCard({ label, value, icon, color, bgColor, tooltip, subtext, trend, onClick }: KpiProps) {
+  const card = (
+    <Card
+      className={`relative overflow-hidden transition-all duration-200 hover:shadow-md ${onClick ? 'cursor-pointer group' : ''}`}
+      onClick={onClick}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0 text-center">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">{label}</p>
+            <p className={`text-2xl font-bold tracking-tight ${color}`}>{value}</p>
+            {trend && (
+              <div className="flex items-center justify-center gap-1 mt-1.5">
+                {trend.value > 0 ? (
+                  <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
+                ) : trend.value < 0 ? (
+                  <ArrowDownRight className="w-3.5 h-3.5 text-red-500" />
+                ) : (
+                  <Minus className="w-3.5 h-3.5 text-muted-foreground" />
+                )}
+                <span className={`text-xs font-medium ${trend.value > 0 ? 'text-emerald-500' : trend.value < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                  {Math.abs(trend.value)}%
+                </span>
+                {trend.label && <span className="text-xs text-muted-foreground">{trend.label}</span>}
+              </div>
+            )}
+            {subtext && !trend && <p className="text-xs text-muted-foreground mt-1">{subtext}</p>}
+          </div>
+          <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${bgColor}`}>
+            {icon}
+          </div>
+        </div>
+      </CardContent>
+      {onClick && (
+        <div className="absolute inset-x-0 bottom-0 h-0.5 bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+      )}
+    </Card>
+  );
+
+  if (tooltip) {
+    return (
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>{card}</TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs max-w-[220px]">{tooltip}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  return card;
+}
+
+// ==================== SECTION KPI ROW ====================
+
+function KpiRow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {children}
+    </div>
+  );
+}
+
+// ==================== PROGRESS BAR KPI ====================
+
+function ProgressKpi({ label, value, max, color = 'bg-primary', suffix = '%' }: { label: string; value: number; max: number; color?: string; suffix?: string }) {
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+          <span className="text-lg font-bold">{value}{suffix}</span>
+        </div>
+        <Progress value={pct} className="h-2.5" />
+        <p className="text-xs text-muted-foreground mt-1.5 text-center">{pct}% del capacidad total</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ==================== COMPONENT ====================
 
 export default function ReportesModule() {
-  const { reservas, pagos, gastos, auditoria, habitaciones, caja, clientes, usuarios, categoriasGastos, agregarGasto } = useHotelStore();
+  const {
+    reservas, pagos, gastos, auditoria, habitaciones, caja, clientes, usuarios,
+    categoriasGastos, agregarGasto, nochesEntre: storeNoches,
+  } = useHotelStore();
 
-  // Date range state
+  const [activeTab, setActiveTab] = useState('financiero');
   const [desde, setDesde] = useState(haceNDias(30));
   const [hasta, setHasta] = useState(hoy());
 
-  const setRango = (dias: number) => {
-    setDesde(haceNDias(dias));
-    setHasta(hoy());
-  };
+  const setRango = (dias: number) => { setDesde(haceNDias(dias)); setHasta(hoy()); };
 
-  // Gasto dialog state
+  // Gasto dialog
   const [gastoModal, setGastoModal] = useState(false);
   const [gastoForm, setGastoForm] = useState({ tipo: '', descripcion: '', monto: '', fecha: hoy() });
 
   // Caja detail dialog
   const [cajaDetailIdx, setCajaDetailIdx] = useState<number | null>(null);
 
-  // Auditoria pagination
+  // Pagination
   const [auditPage, setAuditPage] = useState(1);
   const AUDIT_PER_PAGE = 15;
 
-  // Filter states
+  // Filters
   const [finMetodo, setFinMetodo] = useState('todos');
   const [gastoTipo, setGastoTipo] = useState('todos');
   const [gastoEmpleado, setGastoEmpleado] = useState('todos');
@@ -83,71 +186,146 @@ export default function ReportesModule() {
   const [auditTurno, setAuditTurno] = useState('todos');
   const [clienteMinEstadias, setClienteMinEstadias] = useState('0');
 
-  // ==================== COMPUTED ====================
+  // ==================== COMPUTED DATA ====================
+
+  const parseDateRange = useMemo(() => ({
+    from: new Date(desde + 'T00:00:00'),
+    to: new Date(hasta + 'T23:59:59'),
+  }), [desde, hasta]);
+
+  // Previous period for trends
+  const diasPeriodo = useMemo(() => {
+    return Math.max(1, Math.ceil((parseDateRange.to.getTime() - parseDateRange.from.getTime()) / (1000 * 60 * 60 * 24)));
+  }, [parseDateRange]);
+
+  const prevDesde = useMemo(() => {
+    const d = new Date(desde + 'T00:00:00');
+    d.setDate(d.getDate() - diasPeriodo);
+    return d.toISOString().split('T')[0];
+  }, [desde, diasPeriodo]);
+
+  const prevHasta = useMemo(() => haceNDias(diasPeriodo + 1), [diasPeriodo]);
 
   const pagosEnPeriodo = useMemo(() => {
-    const d = new Date(desde + 'T00:00:00');
-    const h = new Date(hasta + 'T23:59:59');
     return pagos.filter(p => {
       const fp = new Date(p.fecha + 'T12:00:00');
-      return fp >= d && fp <= h;
+      return fp >= parseDateRange.from && fp <= parseDateRange.to;
     });
-  }, [pagos, desde, hasta]);
+  }, [pagos, parseDateRange]);
+
+  const pagosPrevPeriodo = useMemo(() => {
+    const d = new Date(prevDesde + 'T00:00:00');
+    const h = new Date(prevHasta + 'T23:59:59');
+    return pagos.filter(p => { const fp = new Date(p.fecha + 'T12:00:00'); return fp >= d && fp <= h; });
+  }, [pagos, prevDesde, prevHasta]);
 
   const gastosEnPeriodo = useMemo(() => {
-    const d = new Date(desde + 'T00:00:00');
-    const h = new Date(hasta + 'T23:59:59');
     return gastos.filter(g => {
       const fg = new Date(g.fecha + 'T12:00:00');
-      return fg >= d && fg <= h;
+      return fg >= parseDateRange.from && fg <= parseDateRange.to;
     });
-  }, [gastos, desde, hasta]);
+  }, [gastos, parseDateRange]);
+
+  const gastosPrevPeriodo = useMemo(() => {
+    const d = new Date(prevDesde + 'T00:00:00');
+    const h = new Date(prevHasta + 'T23:59:59');
+    return gastos.filter(g => { const fg = new Date(g.fecha + 'T12:00:00'); return fg >= d && fg <= h; });
+  }, [gastos, prevDesde, prevHasta]);
 
   const auditoriaEnPeriodo = useMemo(() => {
-    const d = new Date(desde + 'T00:00:00');
-    const h = new Date(hasta + 'T23:59:59');
-    return auditoria.filter(a => {
-      const fa = new Date(a.fecha);
-      return fa >= d && fa <= h;
-    });
-  }, [auditoria, desde, hasta]);
+    return auditoria.filter(a => { const fa = new Date(a.fecha); return fa >= parseDateRange.from && fa <= parseDateRange.to; });
+  }, [auditoria, parseDateRange]);
 
   const reservasEnPeriodo = useMemo(() => {
-    const d = new Date(desde + 'T00:00:00');
-    const h = new Date(hasta + 'T23:59:59');
     return reservas.filter(r => {
       const fr = new Date(r.checkin + 'T12:00:00');
-      return fr >= d && fr <= h;
+      return fr >= parseDateRange.from && fr <= parseDateRange.to;
     });
-  }, [reservas, desde, hasta]);
+  }, [reservas, parseDateRange]);
 
-  // Unique values for filters
+  // Reservas activas (checked-in) en el periodo
+  const reservasActivas = useMemo(() => {
+    return reservas.filter(r => {
+      const ci = new Date(r.checkin + 'T00:00:00');
+      const co = new Date(r.checkout + 'T23:59:59');
+      return ci <= parseDateRange.to && co >= parseDateRange.from && r.estado === 'Check-In realizado';
+    });
+  }, [reservas, parseDateRange]);
+
+  // Check-ins y check-outs del periodo
+  const checkinsPeriodo = useMemo(() => {
+    return auditoriaEnPeriodo.filter(a => a.tipo === 'Check-In').length;
+  }, [auditoriaEnPeriodo]);
+
+  const checkoutsPeriodo = useMemo(() => {
+    return auditoriaEnPeriodo.filter(a => a.tipo === 'Check-Out').length;
+  }, [auditoriaEnPeriodo]);
+
+  // Cancelaciones del periodo
+  const cancelacionesPeriodo = useMemo(() => {
+    return reservas.filter(r => {
+      return r.estado === 'Cancelada' && new Date(r.createdAt) >= parseDateRange.from && new Date(r.createdAt) <= parseDateRange.to;
+    }).length;
+  }, [reservas, parseDateRange]);
+
+  // Financial KPIs
+  const totalIngresos = useMemo(() => pagosEnPeriodo.reduce((s, p) => s + p.monto, 0), [pagosEnPeriodo]);
+  const totalGastos = useMemo(() => gastosEnPeriodo.reduce((s, g) => s + g.monto, 0), [gastosEnPeriodo]);
+  const gananciaNeta = totalIngresos - totalGastos;
+
+  const prevIngresos = useMemo(() => pagosPrevPeriodo.reduce((s, p) => s + p.monto, 0), [pagosPrevPeriodo]);
+  const prevGastos = useMemo(() => gastosPrevPeriodo.reduce((s, g) => s + g.monto, 0), [gastosPrevPeriodo]);
+  const prevGanancia = prevIngresos - prevGastos;
+
+  // Trend helpers
+  const trendPct = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Math.round(((current - previous) / previous) * 100);
+  };
+
+  // Noches vendidas en el periodo
+  const nochesVendidas = useMemo(() => {
+    return reservasEnPeriodo.reduce((s, r) => {
+      const ci = new Date(r.checkin + 'T00:00:00');
+      const co = new Date(r.checkout + 'T23:59:59');
+      const inicio = ci < parseDateRange.from ? parseDateRange.from : ci;
+      const fin = co > parseDateRange.to ? parseDateRange.to : co;
+      return s + Math.max(0, Math.ceil((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24)));
+    }, 0);
+  }, [reservasEnPeriodo, parseDateRange]);
+
+  const totalHabs = Object.values(habitaciones).length;
+  const nochesDisponibles = totalHabs * diasPeriodo;
+  const adr = nochesVendidas > 0 ? Math.round(totalIngresos / nochesVendidas) : 0;
+  const revpar = nochesDisponibles > 0 ? Math.round(totalIngresos / nochesDisponibles) : 0;
+  const tasaOcupacion = nochesDisponibles > 0 ? Math.round((nochesVendidas / nochesDisponibles) * 100) : 0;
+  const ticketPromedio = pagosEnPeriodo.length > 0 ? Math.round(totalIngresos / pagosEnPeriodo.length) : 0;
+
+  // Unique filter options
   const metodosUnicos = useMemo(() => [...new Set(pagosEnPeriodo.map(p => p.metodo))], [pagosEnPeriodo]);
   const gastosTiposUnicos = useMemo(() => [...new Set(gastos.map(g => g.tipo))], [gastos]);
   const gastosEmpleadosUnicos = useMemo(() => [...new Set(gastosEnPeriodo.map(g => g.empleado))], [gastosEnPeriodo]);
   const auditTiposUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.tipo))], [auditoriaEnPeriodo]);
   const auditEmpleadosUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.empleado))], [auditoriaEnPeriodo]);
 
-  // Financial summaries
-  const totalIngresos = useMemo(() => pagosEnPeriodo.reduce((s, p) => s + p.monto, 0), [pagosEnPeriodo]);
-  const totalGastos = useMemo(() => gastosEnPeriodo.reduce((s, g) => s + g.monto, 0), [gastosEnPeriodo]);
-  const gananciaNeta = totalIngresos - totalGastos;
+  // Breakdown by payment method
+  const ingresosPorMetodo = useMemo(() => {
+    const map: Record<string, number> = {};
+    pagosEnPeriodo.forEach(p => { map[p.metodo] = (map[p.metodo] || 0) + p.monto; });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [pagosEnPeriodo]);
 
-  // Filtered financial payments
+  // Filtered lists
   const pagosFiltrados = useMemo(() => {
     if (finMetodo === 'todos') return pagosEnPeriodo;
     return pagosEnPeriodo.filter(p => p.metodo === finMetodo);
   }, [pagosEnPeriodo, finMetodo]);
 
-  // Filtered gastos
   const gastosFiltrados = useMemo(() => {
     let list = gastosEnPeriodo;
     if (gastoTipo !== 'todos') list = list.filter(g => g.tipo === gastoTipo);
     if (gastoEmpleado !== 'todos') list = list.filter(g => g.empleado === gastoEmpleado);
-    if (gastoSearch) {
-      const s = gastoSearch.toLowerCase();
-      list = list.filter(g => g.descripcion.toLowerCase().includes(s));
-    }
+    if (gastoSearch) { const s = gastoSearch.toLowerCase(); list = list.filter(g => g.descripcion.toLowerCase().includes(s)); }
     if (gastoMontoMin) list = list.filter(g => g.monto >= Number(gastoMontoMin));
     if (gastoMontoMax) list = list.filter(g => g.monto <= Number(gastoMontoMax));
     return list;
@@ -155,15 +333,18 @@ export default function ReportesModule() {
 
   const gastosTotalFiltrado = useMemo(() => gastosFiltrados.reduce((s, g) => s + g.monto, 0), [gastosFiltrados]);
 
-  // Filtered auditoria
+  // Gastos por categoría
+  const gastosPorCategoria = useMemo(() => {
+    const map: Record<string, number> = {};
+    gastosEnPeriodo.forEach(g => { map[g.tipo] = (map[g.tipo] || 0) + g.monto; });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [gastosEnPeriodo]);
+
   const auditFiltrada = useMemo(() => {
     let list = auditoriaEnPeriodo;
     if (auditTipo !== 'todos') list = list.filter(a => a.tipo === auditTipo);
     if (auditEmpleado !== 'todos') list = list.filter(a => a.empleado === auditEmpleado);
-    if (auditSearch) {
-      const s = auditSearch.toLowerCase();
-      list = list.filter(a => a.detalle.toLowerCase().includes(s));
-    }
+    if (auditSearch) { const s = auditSearch.toLowerCase(); list = list.filter(a => a.detalle.toLowerCase().includes(s)); }
     if (auditTurno !== 'todos') {
       list = list.filter(a => {
         const h = new Date(a.fecha).getHours();
@@ -195,16 +376,14 @@ export default function ReportesModule() {
       .sort((a, b) => b.totalGastado - a.totalGastado);
   }, [clientes, clienteMinEstadias]);
 
-  // Empleados summary
+  // Empleados resumen
   const empleadosResumen = useMemo(() => {
     const resumen: Record<string, { nombre: string; checkins: number; checkouts: number; pagos: number; gastos: number; reservas: number; auditorias: number }> = {};
     usuarios.forEach(u => {
       resumen[u.nombre] = { nombre: u.nombreCompleto || u.nombre, checkins: 0, checkouts: 0, pagos: 0, gastos: 0, reservas: 0, auditorias: 0 };
     });
     auditoriaEnPeriodo.forEach(a => {
-      if (!resumen[a.empleado]) {
-        resumen[a.empleado] = { nombre: a.empleado, checkins: 0, checkouts: 0, pagos: 0, gastos: 0, reservas: 0, auditorias: 0 };
-      }
+      if (!resumen[a.empleado]) resumen[a.empleado] = { nombre: a.empleado, checkins: 0, checkouts: 0, pagos: 0, gastos: 0, reservas: 0, auditorias: 0 };
       resumen[a.empleado].auditorias++;
       if (a.tipo === 'Check-In') resumen[a.empleado].checkins++;
       if (a.tipo === 'Check-Out') resumen[a.empleado].checkouts++;
@@ -220,133 +399,201 @@ export default function ReportesModule() {
     const habs = Object.values(habitaciones);
     const total = habs.length;
     const porEstado: Record<string, number> = {};
-    habs.forEach(h => {
-      porEstado[h.estado] = (porEstado[h.estado] || 0) + 1;
-    });
-    const ocupadas = porEstado['Ocupada'] || 0;
-    const disponibles = porEstado['Disponible'] || 0;
-    const reservadas = porEstado['Reservada'] || 0;
-    const limpieza = porEstado['Limpieza'] || 0;
-    const mantenimiento = porEstado['Mantenimiento'] || 0;
-    const fueraServicio = porEstado['Fuera de servicio'] || 0;
-    const tasaOcupacion = total > 0 ? Math.round((ocupadas / total) * 100) : 0;
+    habs.forEach(h => { porEstado[h.estado] = (porEstado[h.estado] || 0) + 1; });
+    return {
+      total,
+      ocupadas: porEstado['Ocupada'] || 0,
+      disponibles: porEstado['Disponible'] || 0,
+      reservadas: porEstado['Reservada'] || 0,
+      limpieza: porEstado['Limpieza'] || 0,
+      mantenimiento: porEstado['Mantenimiento'] || 0,
+      fueraServicio: porEstado['Fuera de servicio'] || 0,
+      habs,
+    };
+  }, [habitaciones]);
 
-    // Ocupación en el periodo (reservas activas)
-    const reservasActivas = reservas.filter(r => {
-      const ci = new Date(r.checkin + 'T00:00:00');
-      const co = new Date(r.checkout + 'T23:59:59');
-      const d = new Date(desde + 'T00:00:00');
-      const h = new Date(hasta + 'T23:59:59');
-      return ci <= h && co >= d;
-    });
-    const nochesOcupadas = reservasActivas.reduce((s, r) => {
-      const ci = new Date(r.checkin + 'T00:00:00');
-      const co = new Date(r.checkout + 'T23:59:59');
-      const inicio = ci < new Date(desde) ? new Date(desde) : ci;
-      const fin = co > new Date(hasta) ? new Date(hasta + 'T23:59:59') : co;
-      return s + Math.max(0, Math.ceil((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24)));
-    }, 0);
-    const diasPeriodo = Math.max(1, Math.ceil((new Date(hasta + 'T23:59:59').getTime() - new Date(desde + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24)));
-    const tasaOcupacionPeriodo = Math.round((nochesOcupadas / (total * diasPeriodo)) * 100);
-
-    return { total, ocupadas, disponibles, reservadas, limpieza, mantenimiento, fueraServicio, tasaOcupacion, tasaOcupacionPeriodo, habs, nochesOcupadas, diasPeriodo };
-  }, [habitaciones, reservas, desde, hasta]);
-
-  // Gasto submit handler
+  // Handlers
   const handleAgregarGasto = () => {
     if (!gastoForm.tipo || !gastoForm.descripcion || !gastoForm.monto) return;
-    agregarGasto({
-      tipo: gastoForm.tipo,
-      descripcion: gastoForm.descripcion,
-      monto: Number(gastoForm.monto),
-      fecha: gastoForm.fecha,
-    });
+    agregarGasto({ tipo: gastoForm.tipo, descripcion: gastoForm.descripcion, monto: Number(gastoForm.monto), fecha: gastoForm.fecha });
     setGastoForm({ tipo: '', descripcion: '', monto: '', fecha: hoy() });
     setGastoModal(false);
   };
 
-  // Reset audit page when filters change
-  const handleAuditFilterChange = (setter: (v: string) => void, value: string) => {
-    setter(value);
-    setAuditPage(1);
-  };
+  const handleAuditFilterChange = (setter: (v: string) => void, value: string) => { setter(value); setAuditPage(1); };
 
   const selectedCajaTurno = cajaDetailIdx !== null ? caja.historial[cajaDetailIdx] : null;
 
   // ==================== RENDER ====================
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center"><BarChart3 className="w-5 h-5 text-orange-500" /></div>
+      <div className="flex flex-col items-center gap-1.5">
+        <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+          <BarChart3 className="w-5 h-5 text-orange-500" />
+        </div>
         <h2 className="text-2xl font-bold tracking-tight">Reportes</h2>
+        <p className="text-sm text-muted-foreground">Métricas y análisis de tu hotel</p>
       </div>
 
-      {/* Date Range Filter */}
+      {/* Date Range Filter — centered */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-wrap items-end justify-center gap-3">
             <div className="grid gap-1.5">
-              <Label className="text-xs text-muted-foreground">Desde</Label>
+              <Label className="text-xs text-muted-foreground text-center">Desde</Label>
               <Input type="date" value={desde} onChange={e => setDesde(e.target.value)} className="w-40" />
             </div>
             <div className="grid gap-1.5">
-              <Label className="text-xs text-muted-foreground">Hasta</Label>
+              <Label className="text-xs text-muted-foreground text-center">Hasta</Label>
               <Input type="date" value={hasta} onChange={e => setHasta(e.target.value)} className="w-40" />
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Button size="sm" variant="outline" onClick={() => setRango(7)}>7 días</Button>
-              <Button size="sm" variant="outline" onClick={() => setRango(30)}>30 días</Button>
-              <Button size="sm" variant="outline" onClick={() => setRango(365)}>1 año</Button>
+              <Button size="sm" variant={diasPeriodo <= 7 ? 'default' : 'outline'} onClick={() => setRango(7)}>7 días</Button>
+              <Button size="sm" variant={diasPeriodo <= 30 && diasPeriodo > 7 ? 'default' : 'outline'} onClick={() => setRango(30)}>30 días</Button>
+              <Button size="sm" variant={diasPeriodo > 30 ? 'default' : 'outline'} onClick={() => setRango(365)}>1 año</Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabs */}
-      <Tabs defaultValue="financiero" className="space-y-4">
-        <TabsList className="flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="financiero" className="gap-1.5"><DollarSign className="w-3.5 h-3.5" />Financiero</TabsTrigger>
-          <TabsTrigger value="gastos" className="gap-1.5"><TrendingDown className="w-3.5 h-3.5" />Gastos</TabsTrigger>
-          <TabsTrigger value="auditoria" className="gap-1.5"><FileText className="w-3.5 h-3.5" />Auditoría</TabsTrigger>
-          <TabsTrigger value="historial-caja" className="gap-1.5"><Wallet className="w-3.5 h-3.5" />Historial Caja</TabsTrigger>
-          <TabsTrigger value="habitaciones" className="gap-1.5"><BedDouble className="w-3.5 h-3.5" />Habitaciones</TabsTrigger>
-          <TabsTrigger value="clientes" className="gap-1.5"><Users className="w-3.5 h-3.5" />Clientes</TabsTrigger>
-          <TabsTrigger value="empleados" className="gap-1.5"><UserCog className="w-3.5 h-3.5" />Empleados</TabsTrigger>
-        </TabsList>
+      {/* ==================== KPIs GENERALES (always visible) ==================== */}
+      <KpiRow>
+        <KpiCard
+          label="Ingresos"
+          value={formatMoneda(totalIngresos)}
+          icon={<DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
+          color="text-emerald-600 dark:text-emerald-400"
+          bgColor="bg-emerald-100 dark:bg-emerald-900/30"
+          tooltip="Total de pagos recibidos en el periodo seleccionado"
+          trend={{ value: trendPct(totalIngresos, prevIngresos), label: 'vs periodo anterior' }}
+          onClick={() => setActiveTab('financiero')}
+        />
+        <KpiCard
+          label="Gastos"
+          value={formatMoneda(totalGastos)}
+          icon={<TrendingDown className="w-5 h-5 text-red-500" />}
+          color="text-red-500"
+          bgColor="bg-red-100 dark:bg-red-900/30"
+          tooltip="Total de gastos registrados en el periodo"
+          trend={{ value: trendPct(totalGastos, prevGastos), label: 'vs periodo anterior' }}
+          onClick={() => setActiveTab('gastos')}
+        />
+        <KpiCard
+          label="Ganancia Neta"
+          value={formatMoneda(gananciaNeta)}
+          icon={<TrendingUp className="w-5 h-5 text-blue-500" />}
+          color={gananciaNeta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}
+          bgColor={gananciaNeta >= 0 ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-red-100 dark:bg-red-900/30'}
+          tooltip="Ingresos menos gastos. Margen de rentabilidad."
+          trend={{ value: trendPct(gananciaNeta, prevGanancia), label: 'vs periodo anterior' }}
+        />
+        <KpiCard
+          label="Reservas"
+          value={reservasEnPeriodo.length}
+          icon={<CalendarDays className="w-5 h-5 text-amber-500" />}
+          color="text-amber-600 dark:text-amber-400"
+          bgColor="bg-amber-100 dark:bg-amber-900/30"
+          tooltip={`${checkinsPeriodo} check-ins · ${checkoutsPeriodo} check-outs · ${cancelacionesPeriodo} cancelaciones`}
+          subtext={`${checkinsPeriodo} CI · ${checkoutsPeriodo} CO · ${cancelacionesPeriodo} cancel.`}
+          onClick={() => setActiveTab('financiero')}
+        />
+      </KpiRow>
+
+      {/* KPIs operativos */}
+      <KpiRow>
+        <KpiCard
+          label="Ocupación"
+          value={`${tasaOcupacion}%`}
+          icon={<Percent className="w-5 h-5 text-violet-500" />}
+          color="text-violet-600 dark:text-violet-400"
+          bgColor="bg-violet-100 dark:bg-violet-900/30"
+          tooltip={`${nochesVendidas} noches vendidas de ${nochesDisponibles} disponibles (${diasPeriodo} días × ${totalHabs} hab.)`}
+          subtext={`${nochesVendidas} de ${nochesDisponibles} noches`}
+          onClick={() => setActiveTab('habitaciones')}
+        />
+        <KpiCard
+          label="ADR"
+          value={formatMoneda(adr)}
+          icon={<BedDouble className="w-5 h-5 text-sky-500" />}
+          color="text-sky-600 dark:text-sky-400"
+          bgColor="bg-sky-100 dark:bg-sky-900/30"
+          tooltip="Average Daily Rate — ingreso promedio por noche vendida"
+          subtext={nochesVendidas > 0 ? `${formatMoneda(totalIngresos)} ÷ ${nochesVendidas} noches` : 'Sin datos'}
+        />
+        <KpiCard
+          label="RevPAR"
+          value={formatMoneda(revpar)}
+          icon={<Hotel className="w-5 h-5 text-pink-500" />}
+          color="text-pink-600 dark:text-pink-400"
+          bgColor="bg-pink-100 dark:bg-pink-900/30"
+          tooltip="Revenue Per Available Room — ingreso por habitación disponible"
+          subtext={nochesDisponibles > 0 ? `${formatMoneda(totalIngresos)} ÷ ${nochesDisponibles} noches disp.` : 'Sin datos'}
+        />
+        <KpiCard
+          label="Ticket Promedio"
+          value={formatMoneda(ticketPromedio)}
+          icon={<Receipt className="w-5 h-5 text-teal-500" />}
+          color="text-teal-600 dark:text-teal-400"
+          bgColor="bg-teal-100 dark:bg-teal-900/30"
+          tooltip="Monto promedio por pago recibido"
+          subtext={`${pagosEnPeriodo.length} pagos en el periodo`}
+        />
+      </KpiRow>
+
+      {/* ==================== TABS ==================== */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <div className="flex justify-center">
+          <TabsList className="flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="financiero" className="gap-1.5"><DollarSign className="w-3.5 h-3.5" />Financiero</TabsTrigger>
+            <TabsTrigger value="gastos" className="gap-1.5"><TrendingDown className="w-3.5 h-3.5" />Gastos</TabsTrigger>
+            <TabsTrigger value="auditoria" className="gap-1.5"><FileText className="w-3.5 h-3.5" />Auditoría</TabsTrigger>
+            <TabsTrigger value="historial-caja" className="gap-1.5"><Wallet className="w-3.5 h-3.5" />Caja</TabsTrigger>
+            <TabsTrigger value="habitaciones" className="gap-1.5"><BedDouble className="w-3.5 h-3.5" />Habitaciones</TabsTrigger>
+            <TabsTrigger value="clientes" className="gap-1.5"><Users className="w-3.5 h-3.5" />Clientes</TabsTrigger>
+            <TabsTrigger value="empleados" className="gap-1.5"><UserCog className="w-3.5 h-3.5" />Empleados</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ==================== FINANCIERO ==================== */}
         <TabsContent value="financiero" className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Ingresos por método de pago */}
+          {ingresosPorMetodo.length > 0 && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-emerald-500" />Total Ingresos</CardTitle></CardHeader>
-              <CardContent><p className="text-2xl font-bold text-emerald-600">{formatMoneda(totalIngresos)}</p></CardContent>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-2">
+                  <Receipt className="w-4 h-4" />Desglose por Método de Pago
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {ingresosPorMetodo.map(([metodo, monto]) => {
+                  const pct = totalIngresos > 0 ? Math.round((monto / totalIngresos) * 100) : 0;
+                  return (
+                    <div key={metodo} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{metodo}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium">{formatMoneda(monto)}</span>
+                          <Badge variant="secondary" className="w-12 justify-center">{pct}%</Badge>
+                        </div>
+                      </div>
+                      <Progress value={pct} className="h-2" />
+                    </div>
+                  );
+                })}
+              </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><TrendingDown className="w-4 h-4 text-red-500" />Total Gastos</CardTitle></CardHeader>
-              <CardContent><p className="text-2xl font-bold text-red-600">{formatMoneda(totalGastos)}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><DollarSign className="w-4 h-4" />Ganancia Neta</CardTitle></CardHeader>
-              <CardContent><p className={`text-2xl font-bold ${gananciaNeta >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{formatMoneda(gananciaNeta)}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><CalendarDays className="w-4 h-4" />Reservas</CardTitle></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{reservasEnPeriodo.length}</p></CardContent>
-            </Card>
-          </div>
+          )}
 
-          {/* Payment method filter */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Label className="text-sm">Método de pago:</Label>
+          {/* Filter */}
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Label className="text-sm">Método:</Label>
             <Select value={finMetodo} onValueChange={setFinMetodo}>
               <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                {metodosUnicos.map(m => (
-                  <SelectItem key={m} value={m}>{m}</SelectItem>
-                ))}
+                {metodosUnicos.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
               </SelectContent>
             </Select>
             <Badge variant="secondary">{pagosFiltrados.length} pagos</Badge>
@@ -356,11 +603,11 @@ export default function ReportesModule() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Método</TableHead>
-                  <TableHead>Reserva</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
-                  <TableHead className="hidden sm:table-cell">Nota</TableHead>
+                  <TableHead className="text-center">Fecha</TableHead>
+                  <TableHead className="text-center">Método</TableHead>
+                  <TableHead className="text-center">Reserva</TableHead>
+                  <TableHead className="text-center">Monto</TableHead>
+                  <TableHead className="text-center hidden sm:table-cell">Nota</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -371,11 +618,11 @@ export default function ReportesModule() {
                     const reserva = reservas.find(r => r.id === p.idReserva);
                     return (
                       <TableRow key={p.id}>
-                        <TableCell>{formatFecha(p.fecha)}</TableCell>
-                        <TableCell><Badge variant="outline">{p.metodo}</Badge></TableCell>
-                        <TableCell>#{p.idReserva}{reserva ? ` — ${reserva.huesped}` : ''}</TableCell>
-                        <TableCell className="text-right font-medium">{formatMoneda(p.monto)}</TableCell>
-                        <TableCell className="hidden sm:table-cell text-muted-foreground">{p.nota || '—'}</TableCell>
+                        <TableCell className="text-center">{formatFecha(p.fecha)}</TableCell>
+                        <TableCell className="text-center"><Badge variant="outline">{p.metodo}</Badge></TableCell>
+                        <TableCell className="text-center">#{p.idReserva}{reserva ? ` — ${reserva.huesped}` : ''}</TableCell>
+                        <TableCell className="text-center font-medium">{formatMoneda(p.monto)}</TableCell>
+                        <TableCell className="text-center hidden sm:table-cell text-muted-foreground">{p.nota || '—'}</TableCell>
                       </TableRow>
                     );
                   })
@@ -387,61 +634,85 @@ export default function ReportesModule() {
 
         {/* ==================== GASTOS ==================== */}
         <TabsContent value="gastos" className="space-y-4">
-          <div className="flex flex-wrap items-end gap-3">
+          {/* Gastos por categoría */}
+          {gastosPorCategoria.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-2">
+                  <TrendingDown className="w-4 h-4" />Distribución por Categoría
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {gastosPorCategoria.map(([cat, monto]) => {
+                  const pct = totalGastos > 0 ? Math.round((monto / totalGastos) * 100) : 0;
+                  return (
+                    <div key={cat} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{cat}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium text-red-500">-{formatMoneda(monto)}</span>
+                          <Badge variant="secondary" className="w-12 justify-center">{pct}%</Badge>
+                        </div>
+                      </div>
+                      <Progress value={pct} className="h-2" />
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Filters */}
+          <div className="flex flex-wrap items-end justify-center gap-3">
             <div className="grid gap-1.5">
-              <Label className="text-xs text-muted-foreground">Tipo</Label>
+              <Label className="text-xs text-muted-foreground text-center">Tipo</Label>
               <Select value={gastoTipo} onValueChange={setGastoTipo}>
                 <SelectTrigger className="w-full sm:w-auto sm:min-w-[160px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  {gastosTiposUnicos.map(t => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
+                  {gastosTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label className="text-xs text-muted-foreground">Empleado</Label>
+              <Label className="text-xs text-muted-foreground text-center">Empleado</Label>
               <Select value={gastoEmpleado} onValueChange={setGastoEmpleado}>
                 <SelectTrigger className="w-full sm:w-auto sm:min-w-[160px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  {gastosEmpleadosUnicos.map(e => (
-                    <SelectItem key={e} value={e}>{e}</SelectItem>
-                  ))}
+                  {gastosEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="relative">
-              <Label className="text-xs text-muted-foreground">Buscar descripción</Label>
+              <Label className="text-xs text-muted-foreground text-center">Buscar</Label>
               <Search className="absolute left-3 bottom-2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar..." value={gastoSearch} onChange={e => setGastoSearch(e.target.value)} className="pl-9 w-full sm:w-auto sm:min-w-[160px]" />
+              <Input placeholder="Descripción..." value={gastoSearch} onChange={e => setGastoSearch(e.target.value)} className="pl-9 w-full sm:w-auto sm:min-w-[160px]" />
             </div>
             <div className="grid gap-1.5">
-              <Label className="text-xs text-muted-foreground">Monto mín.</Label>
+              <Label className="text-xs text-muted-foreground text-center">Monto mín.</Label>
               <Input type="number" placeholder="0" value={gastoMontoMin} onChange={e => setGastoMontoMin(e.target.value)} className="w-full sm:w-auto sm:min-w-[120px]" />
             </div>
             <div className="grid gap-1.5">
-              <Label className="text-xs text-muted-foreground">Monto máx.</Label>
+              <Label className="text-xs text-muted-foreground text-center">Monto máx.</Label>
               <Input type="number" placeholder="∞" value={gastoMontoMax} onChange={e => setGastoMontoMax(e.target.value)} className="w-full sm:w-auto sm:min-w-[120px]" />
             </div>
-            <Button onClick={() => setGastoModal(true)}><Plus className="w-4 h-4 mr-1" />Agregar Gasto</Button>
+            <Button onClick={() => setGastoModal(true)}><Plus className="w-4 h-4 mr-1" />Agregar</Button>
           </div>
 
-          <div className="flex gap-4 text-sm text-muted-foreground">
-            <span>{gastosFiltrados.length} gastos encontrados</span>
-            <span>Total filtrado: <strong className="text-foreground">{formatMoneda(gastosTotalFiltrado)}</strong></span>
-          </div>
+          <p className="text-sm text-muted-foreground text-center">
+            {gastosFiltrados.length} gastos · Total: <strong className="text-foreground">{formatMoneda(gastosTotalFiltrado)}</strong>
+          </p>
 
           <Card>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
-                  <TableHead className="hidden md:table-cell">Empleado</TableHead>
+                  <TableHead className="text-center">Fecha</TableHead>
+                  <TableHead className="text-center">Tipo</TableHead>
+                  <TableHead className="text-center">Descripción</TableHead>
+                  <TableHead className="text-center">Monto</TableHead>
+                  <TableHead className="text-center hidden md:table-cell">Empleado</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -450,11 +721,11 @@ export default function ReportesModule() {
                 ) : (
                   gastosFiltrados.map(g => (
                     <TableRow key={g.id}>
-                      <TableCell>{formatFecha(g.fecha)}</TableCell>
-                      <TableCell><Badge variant="secondary">{g.tipo}</Badge></TableCell>
-                      <TableCell>{g.descripcion}</TableCell>
-                      <TableCell className="text-right font-medium text-red-600">-{formatMoneda(g.monto)}</TableCell>
-                      <TableCell className="hidden md:table-cell">{g.empleado}</TableCell>
+                      <TableCell className="text-center">{formatFecha(g.fecha)}</TableCell>
+                      <TableCell className="text-center"><Badge variant="secondary">{g.tipo}</Badge></TableCell>
+                      <TableCell className="text-center">{g.descripcion}</TableCell>
+                      <TableCell className="text-center font-medium text-red-500">-{formatMoneda(g.monto)}</TableCell>
+                      <TableCell className="text-center hidden md:table-cell">{g.empleado}</TableCell>
                     </TableRow>
                   ))
                 )}
@@ -465,74 +736,103 @@ export default function ReportesModule() {
 
         {/* ==================== AUDITORÍA ==================== */}
         <TabsContent value="auditoria" className="space-y-4">
-          <div className="flex flex-wrap items-end gap-3">
+          {/* KPIs de auditoría */}
+          <KpiRow>
+            <KpiCard
+              label="Total Acciones"
+              value={auditFiltrada.length}
+              icon={<FileText className="w-5 h-5 text-blue-500" />}
+              color="text-blue-600 dark:text-blue-400"
+              bgColor="bg-blue-100 dark:bg-blue-900/30"
+            />
+            <KpiCard
+              label="Check-Ins"
+              value={auditoriaEnPeriodo.filter(a => a.tipo === 'Check-In').length}
+              icon={<ArrowUpRight className="w-5 h-5 text-emerald-500" />}
+              color="text-emerald-600 dark:text-emerald-400"
+              bgColor="bg-emerald-100 dark:bg-emerald-900/30"
+            />
+            <KpiCard
+              label="Check-Outs"
+              value={auditoriaEnPeriodo.filter(a => a.tipo === 'Check-Out').length}
+              icon={<ArrowDownRight className="w-5 h-5 text-amber-500" />}
+              color="text-amber-600 dark:text-amber-400"
+              bgColor="bg-amber-100 dark:bg-amber-900/30"
+            />
+            <KpiCard
+              label="Pagos Registrados"
+              value={auditoriaEnPeriodo.filter(a => a.tipo === 'Pago').length}
+              icon={<DollarSign className="w-5 h-5 text-violet-500" />}
+              color="text-violet-600 dark:text-violet-400"
+              bgColor="bg-violet-100 dark:bg-violet-900/30"
+            />
+          </KpiRow>
+
+          {/* Filters */}
+          <div className="flex flex-wrap items-end justify-center gap-3">
             <div className="grid gap-1.5">
-              <Label className="text-xs text-muted-foreground">Tipo</Label>
+              <Label className="text-xs text-muted-foreground text-center">Tipo</Label>
               <Select value={auditTipo} onValueChange={v => handleAuditFilterChange(setAuditTipo, v)}>
                 <SelectTrigger className="w-full sm:w-auto sm:min-w-[140px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  {auditTiposUnicos.map(t => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
+                  {auditTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label className="text-xs text-muted-foreground">Empleado</Label>
+              <Label className="text-xs text-muted-foreground text-center">Empleado</Label>
               <Select value={auditEmpleado} onValueChange={v => handleAuditFilterChange(setAuditEmpleado, v)}>
                 <SelectTrigger className="w-full sm:w-auto sm:min-w-[140px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  {auditEmpleadosUnicos.map(e => (
-                    <SelectItem key={e} value={e}>{e}</SelectItem>
-                  ))}
+                  {auditEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label className="text-xs text-muted-foreground">Turno</Label>
+              <Label className="text-xs text-muted-foreground text-center">Turno</Label>
               <Select value={auditTurno} onValueChange={v => handleAuditFilterChange(setAuditTurno, v)}>
-                <SelectTrigger className="w-full sm:w-auto sm:min-w-[120px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-auto sm:min-w-[140px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="mañana">Mañana (6-14)</SelectItem>
-                  <SelectItem value="tarde">Tarde (14-22)</SelectItem>
-                  <SelectItem value="noche">Noche (22-6)</SelectItem>
+                  <SelectItem value="mañana"><Sun className="w-3 h-3 inline mr-1" />Mañana (6-14)</SelectItem>
+                  <SelectItem value="tarde"><Sunset className="w-3 h-3 inline mr-1" />Tarde (14-22)</SelectItem>
+                  <SelectItem value="noche"><Moon className="w-3 h-3 inline mr-1" />Noche (22-6)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="relative">
-              <Label className="text-xs text-muted-foreground">Buscar</Label>
+              <Label className="text-xs text-muted-foreground text-center">Buscar</Label>
               <Search className="absolute left-3 bottom-2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar en detalle..." value={auditSearch} onChange={e => handleAuditFilterChange(setAuditSearch, e.target.value)} className="pl-9 w-full sm:w-auto sm:min-w-[200px]" />
+              <Input placeholder="Detalle..." value={auditSearch} onChange={e => handleAuditFilterChange(setAuditSearch, e.target.value)} className="pl-9 w-full sm:w-auto sm:min-w-[180px]" />
             </div>
           </div>
 
-          <div className="text-sm text-muted-foreground">
-            {auditFiltrada.length} registros encontrados — Página {auditPage} de {auditTotalPages}
-          </div>
+          <p className="text-sm text-muted-foreground text-center">
+            {auditFiltrada.length} registros — Página {auditPage} de {auditTotalPages}
+          </p>
 
           <Card>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Fecha y Hora</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Detalle</TableHead>
-                  <TableHead className="hidden sm:table-cell">Empleado</TableHead>
+                  <TableHead className="text-center">Fecha y Hora</TableHead>
+                  <TableHead className="text-center">Tipo</TableHead>
+                  <TableHead className="text-center">Detalle</TableHead>
+                  <TableHead className="text-center hidden sm:table-cell">Empleado</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {auditPaged.length === 0 ? (
-                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No hay registros de auditoría.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No hay registros.</TableCell></TableRow>
                 ) : (
                   auditPaged.map(a => (
                     <TableRow key={a.id}>
-                      <TableCell className="whitespace-nowrap text-sm">{formatFechaHora(a.fecha)}</TableCell>
-                      <TableCell><Badge variant="outline">{a.tipo}</Badge></TableCell>
-                      <TableCell className="max-w-md truncate">{a.detalle}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{a.empleado}</TableCell>
+                      <TableCell className="text-center whitespace-nowrap text-sm">{formatFechaHora(a.fecha)}</TableCell>
+                      <TableCell className="text-center"><Badge variant="outline">{a.tipo}</Badge></TableCell>
+                      <TableCell className="text-center max-w-md truncate">{a.detalle}</TableCell>
+                      <TableCell className="text-center hidden sm:table-cell">{a.empleado}</TableCell>
                     </TableRow>
                   ))
                 )}
@@ -561,16 +861,50 @@ export default function ReportesModule() {
 
         {/* ==================== HISTORIAL CAJA ==================== */}
         <TabsContent value="historial-caja" className="space-y-4">
+          {/* KPIs de caja */}
+          <KpiRow>
+            <KpiCard
+              label="Turnos Registrados"
+              value={caja.historial.length}
+              icon={<Wallet className="w-5 h-5 text-emerald-500" />}
+              color="text-emerald-600 dark:text-emerald-400"
+              bgColor="bg-emerald-100 dark:bg-emerald-900/30"
+            />
+            <KpiCard
+              label="Turnos Cuadrados"
+              value={caja.historial.filter(t => t.cierre.diferencia === 0).length}
+              icon={<TrendingUp className="w-5 h-5 text-sky-500" />}
+              color="text-sky-600 dark:text-sky-400"
+              bgColor="bg-sky-100 dark:bg-sky-900/30"
+              subtext={caja.historial.length > 0 ? `${Math.round((caja.historial.filter(t => t.cierre.diferencia === 0).length / caja.historial.length) * 100)}% del total` : ''}
+            />
+            <KpiCard
+              label="Diferencia Total"
+              value={formatMoneda(caja.historial.reduce((s, t) => s + Math.abs(t.cierre.diferencia), 0))}
+              icon={<TrendingDown className="w-5 h-5 text-red-500" />}
+              color="text-red-500"
+              bgColor="bg-red-100 dark:bg-red-900/30"
+              tooltip="Suma de diferencias absolutas de todos los turnos"
+            />
+            <KpiCard
+              label="Total Movimientos"
+              value={caja.historial.reduce((s, t) => s + t.movimientos.length, 0)}
+              icon={<BarChart3 className="w-5 h-5 text-violet-500" />}
+              color="text-violet-600 dark:text-violet-400"
+              bgColor="bg-violet-100 dark:bg-violet-900/30"
+            />
+          </KpiRow>
+
           <Card>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="hidden sm:table-cell">Empleado</TableHead>
-                  <TableHead>Apertura</TableHead>
-                  <TableHead>Cierre</TableHead>
-                  <TableHead className="text-right hidden md:table-cell">Diferencia</TableHead>
-                  <TableHead className="text-right">Movimientos</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="text-center hidden sm:table-cell">Empleado</TableHead>
+                  <TableHead className="text-center">Apertura</TableHead>
+                  <TableHead className="text-center">Cierre</TableHead>
+                  <TableHead className="text-center hidden md:table-cell">Diferencia</TableHead>
+                  <TableHead className="text-center">Mov.</TableHead>
+                  <TableHead className="text-center"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -579,14 +913,14 @@ export default function ReportesModule() {
                 ) : (
                   caja.historial.map((turno, idx) => (
                     <TableRow key={idx}>
-                      <TableCell className="font-medium hidden sm:table-cell">{turno.apertura.empleado}</TableCell>
-                      <TableCell className="whitespace-nowrap text-sm">{formatFechaHora(turno.apertura.fecha)}</TableCell>
-                      <TableCell className="whitespace-nowrap text-sm">{formatFechaHora(turno.cierre.fecha)}</TableCell>
-                      <TableCell className={`text-right font-medium hidden md:table-cell ${turno.cierre.diferencia === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      <TableCell className="text-center font-medium hidden sm:table-cell">{turno.apertura.empleado}</TableCell>
+                      <TableCell className="text-center whitespace-nowrap text-sm">{formatFechaHora(turno.apertura.fecha)}</TableCell>
+                      <TableCell className="text-center whitespace-nowrap text-sm">{formatFechaHora(turno.cierre.fecha)}</TableCell>
+                      <TableCell className={`text-center font-medium hidden md:table-cell ${turno.cierre.diferencia === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                         {formatMoneda(turno.cierre.diferencia)}
                       </TableCell>
-                      <TableCell className="text-right"><Badge variant="secondary">{turno.movimientos.length}</Badge></TableCell>
-                      <TableCell>
+                      <TableCell className="text-center"><Badge variant="secondary">{turno.movimientos.length}</Badge></TableCell>
+                      <TableCell className="text-center">
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setCajaDetailIdx(idx)}>
                           <Eye className="w-3.5 h-3.5" />
                         </Button>
@@ -601,74 +935,63 @@ export default function ReportesModule() {
 
         {/* ==================== HABITACIONES ==================== */}
         <TabsContent value="habitaciones" className="space-y-4">
+          {/* Estado actual */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
             {[
-              { label: 'Total', value: habResumen.total, color: '' },
-              { label: 'Disponible', value: habResumen.disponibles, color: 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' },
-              { label: 'Ocupada', value: habResumen.ocupadas, color: 'bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300' },
-              { label: 'Reservada', value: habResumen.reservadas, color: 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300' },
-              { label: 'Limpieza', value: habResumen.limpieza, color: 'bg-sky-100 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300' },
-              { label: 'Mantenimiento', value: habResumen.mantenimiento, color: 'bg-orange-100 dark:bg-orange-500/15 text-orange-700 dark:text-orange-300' },
-              { label: 'Fuera serv.', value: habResumen.fueraServicio, color: 'bg-gray-100 dark:bg-gray-500/15 text-gray-700 dark:text-gray-300' },
+              { label: 'Total', value: habResumen.total, color: '', icon: <BedDouble className="w-4 h-4 text-muted-foreground" />, bg: 'bg-muted' },
+              { label: 'Disponible', value: habResumen.disponibles, color: 'text-emerald-600 dark:text-emerald-400', icon: <BedDouble className="w-4 h-4 text-emerald-500" />, bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
+              { label: 'Ocupada', value: habResumen.ocupadas, color: 'text-red-500', icon: <BedDouble className="w-4 h-4 text-red-500" />, bg: 'bg-red-100 dark:bg-red-900/30' },
+              { label: 'Reservada', value: habResumen.reservadas, color: 'text-amber-600 dark:text-amber-400', icon: <CalendarDays className="w-4 h-4 text-amber-500" />, bg: 'bg-amber-100 dark:bg-amber-900/30' },
+              { label: 'Limpieza', value: habResumen.limpieza, color: 'text-sky-600 dark:text-sky-400', icon: <Sun className="w-4 h-4 text-sky-500" />, bg: 'bg-sky-100 dark:bg-sky-900/30' },
+              { label: 'Mantenim.', value: habResumen.mantenimiento, color: 'text-orange-600 dark:text-orange-400', icon: <TrendingDown className="w-4 h-4 text-orange-500" />, bg: 'bg-orange-100 dark:bg-orange-900/30' },
+              { label: 'Fuera serv.', value: habResumen.fueraServicio, color: 'text-gray-500', icon: <TrendingDown className="w-4 h-4 text-gray-400" />, bg: 'bg-gray-100 dark:bg-gray-900/30' },
             ].map(item => (
               <Card key={item.label}>
-                <CardHeader className="pb-1"><CardTitle className="text-xs font-medium text-muted-foreground">{item.label}</CardTitle></CardHeader>
-                <CardContent><p className={`text-2xl font-bold ${item.color}`}>{item.value}</p></CardContent>
+                <CardContent className="p-3 text-center">
+                  <div className={`w-8 h-8 rounded-lg ${item.bg} flex items-center justify-center mx-auto mb-2`}>{item.icon}</div>
+                  <p className={`text-2xl font-bold ${item.color}`}>{item.value}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{item.label}</p>
+                </CardContent>
               </Card>
             ))}
           </div>
 
+          {/* Ocupación */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Tasa de ocupación actual</CardTitle></CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3">
-                  <div className="text-3xl font-bold">{habResumen.tasaOcupacion}%</div>
-                  <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${habResumen.tasaOcupacion}%` }} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Tasa de ocupación en el periodo</CardTitle></CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3">
-                  <div className="text-3xl font-bold">{habResumen.tasaOcupacionPeriodo}%</div>
-                  <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${habResumen.tasaOcupacionPeriodo}%` }} />
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">{habResumen.nochesOcupadas} noches ocupadas de {habResumen.diasPeriodo} días × {habResumen.total} hab.</p>
-              </CardContent>
-            </Card>
+            <ProgressKpi
+              label="Ocupación Actual"
+              value={habResumen.total > 0 ? Math.round((habResumen.ocupadas / habResumen.total) * 100) : 0}
+              max={100}
+              color="bg-primary"
+            />
+            <ProgressKpi
+              label="Ocupación en Periodo"
+              value={tasaOcupacion}
+              max={100}
+              color="bg-emerald-500"
+            />
           </div>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">Estado de habitaciones</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base text-center">Estado de Habitaciones</CardTitle></CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nº</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Capacidad</TableHead>
-                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-center">Nº</TableHead>
+                    <TableHead className="text-center">Tipo</TableHead>
+                    <TableHead className="text-center">Capacidad</TableHead>
+                    <TableHead className="text-center">Estado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {habResumen.habs.map(h => (
                     <TableRow key={h.numero}>
-                      <TableCell className="font-medium">{h.numero}</TableCell>
-                      <TableCell>{h.tipo}</TableCell>
-                      <TableCell>{h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          h.estado === 'Disponible' ? 'default' :
-                          h.estado === 'Ocupada' ? 'destructive' :
-                          h.estado === 'Reservada' ? 'secondary' :
-                          'outline'
-                        }>
+                      <TableCell className="text-center font-medium">{h.numero}</TableCell>
+                      <TableCell className="text-center">{h.tipo}</TableCell>
+                      <TableCell className="text-center">{h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={h.estado === 'Disponible' ? 'default' : h.estado === 'Ocupada' ? 'destructive' : h.estado === 'Reservada' ? 'secondary' : 'outline'}>
                           {h.estado}
                         </Badge>
                       </TableCell>
@@ -682,9 +1005,46 @@ export default function ReportesModule() {
 
         {/* ==================== CLIENTES ==================== */}
         <TabsContent value="clientes" className="space-y-4">
-          <div className="flex flex-wrap items-end gap-3">
+          {/* KPIs de clientes */}
+          <KpiRow>
+            <KpiCard
+              label="Total Clientes"
+              value={clientes.length}
+              icon={<Users className="w-5 h-5 text-blue-500" />}
+              color="text-blue-600 dark:text-blue-400"
+              bgColor="bg-blue-100 dark:bg-blue-900/30"
+            />
+            <KpiCard
+              label="Clientes con Estadías"
+              value={clientes.filter(c => c.historialEstadias.length > 0).length}
+              icon={<TrendingUp className="w-5 h-5 text-emerald-500" />}
+              color="text-emerald-600 dark:text-emerald-400"
+              bgColor="bg-emerald-100 dark:bg-emerald-900/30"
+            />
+            <KpiCard
+              label="Ingreso Total Clientes"
+              value={formatMoneda(clientes.reduce((s, c) => s + c.historialEstadias.reduce((ss, e) => ss + e.gastoTotal, 0), 0))}
+              icon={<DollarSign className="w-5 h-5 text-amber-500" />}
+              color="text-amber-600 dark:text-amber-400"
+              bgColor="bg-amber-100 dark:bg-amber-900/30"
+            />
+            <KpiCard
+              label="Gasto Promedio"
+              value={formatMoneda(
+                clientes.filter(c => c.historialEstadias.length > 0).length > 0
+                  ? Math.round(clientes.reduce((s, c) => s + c.historialEstadias.reduce((ss, e) => ss + e.gastoTotal, 0), 0) / clientes.filter(c => c.historialEstadias.length > 0).length)
+                  : 0
+              )}
+              icon={<Receipt className="w-5 h-5 text-violet-500" />}
+              color="text-violet-600 dark:text-violet-400"
+              bgColor="bg-violet-100 dark:bg-violet-900/30"
+              tooltip="Gasto promedio por cliente que ya se hospedó"
+            />
+          </KpiRow>
+
+          <div className="flex flex-wrap items-end justify-center gap-3">
             <div className="grid gap-1.5">
-              <Label className="text-xs text-muted-foreground">Mínimo de estadías</Label>
+              <Label className="text-xs text-muted-foreground text-center">Mínimo estadías</Label>
               <Input type="number" min="0" value={clienteMinEstadias} onChange={e => setClienteMinEstadias(e.target.value)} className="w-32" />
             </div>
             <Badge variant="secondary">{clientesFrecuentes.length} clientes</Badge>
@@ -694,11 +1054,11 @@ export default function ReportesModule() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>DNI</TableHead>
-                  <TableHead className="text-right">Estadías</TableHead>
-                  <TableHead className="text-right hidden sm:table-cell">Total Gastado</TableHead>
-                  <TableHead className="hidden md:table-cell">Última Visita</TableHead>
+                  <TableHead className="text-center">Cliente</TableHead>
+                  <TableHead className="text-center">DNI</TableHead>
+                  <TableHead className="text-center">Estadías</TableHead>
+                  <TableHead className="text-center hidden sm:table-cell">Total Gastado</TableHead>
+                  <TableHead className="text-center hidden md:table-cell">Última Visita</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -707,11 +1067,11 @@ export default function ReportesModule() {
                 ) : (
                   clientesFrecuentes.map(c => (
                     <TableRow key={c.id}>
-                      <TableCell className="font-medium">{c.nombre}</TableCell>
-                      <TableCell>{c.dni}</TableCell>
-                      <TableCell className="text-right"><Badge variant="secondary">{c.cantidadEstadias}</Badge></TableCell>
-                      <TableCell className="text-right font-medium hidden sm:table-cell">{formatMoneda(c.totalGastado)}</TableCell>
-                      <TableCell className="hidden md:table-cell">{c.ultimaVisita !== '—' ? formatFecha(c.ultimaVisita) : '—'}</TableCell>
+                      <TableCell className="text-center font-medium">{c.nombre}</TableCell>
+                      <TableCell className="text-center">{c.dni}</TableCell>
+                      <TableCell className="text-center"><Badge variant="secondary">{c.cantidadEstadias}</Badge></TableCell>
+                      <TableCell className="text-center font-medium hidden sm:table-cell">{formatMoneda(c.totalGastado)}</TableCell>
+                      <TableCell className="text-center hidden md:table-cell">{c.ultimaVisita !== '—' ? formatFecha(c.ultimaVisita) : '—'}</TableCell>
                     </TableRow>
                   ))
                 )}
@@ -722,17 +1082,51 @@ export default function ReportesModule() {
 
         {/* ==================== EMPLEADOS ==================== */}
         <TabsContent value="empleados" className="space-y-4">
+          {/* KPIs de empleados */}
+          <KpiRow>
+            <KpiCard
+              label="Empleados Activos"
+              value={usuarios.length}
+              icon={<UserCog className="w-5 h-5 text-blue-500" />}
+              color="text-blue-600 dark:text-blue-400"
+              bgColor="bg-blue-100 dark:bg-blue-900/30"
+            />
+            <KpiCard
+              label="Acciones del Periodo"
+              value={auditoriaEnPeriodo.length}
+              icon={<BarChart3 className="w-5 h-5 text-emerald-500" />}
+              color="text-emerald-600 dark:text-emerald-400"
+              bgColor="bg-emerald-100 dark:bg-emerald-900/30"
+            />
+            <KpiCard
+              label="Más Activo"
+              value={empleadosResumen[0]?.nombre || '—'}
+              icon={<TrendingUp className="w-5 h-5 text-amber-500" />}
+              color="text-amber-600 dark:text-amber-400"
+              bgColor="bg-amber-100 dark:bg-amber-900/30"
+              subtext={empleadosResumen[0] ? `${empleadosResumen[0].auditorias} acciones` : ''}
+            />
+            <KpiCard
+              label="Gastos Registrados"
+              value={gastosEnPeriodo.length}
+              icon={<TrendingDown className="w-5 h-5 text-red-500" />}
+              color="text-red-500"
+              bgColor="bg-red-100 dark:bg-red-900/30"
+              subtext={`Total: ${formatMoneda(totalGastos)}`}
+            />
+          </KpiRow>
+
           <Card>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Empleado</TableHead>
+                  <TableHead className="text-center">Empleado</TableHead>
                   <TableHead className="text-center">Check-Ins</TableHead>
                   <TableHead className="text-center">Check-Outs</TableHead>
                   <TableHead className="text-center hidden sm:table-cell">Pagos</TableHead>
                   <TableHead className="text-center hidden sm:table-cell">Gastos</TableHead>
                   <TableHead className="text-center hidden md:table-cell">Reservas</TableHead>
-                  <TableHead className="text-right">Total Acciones</TableHead>
+                  <TableHead className="text-center">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -741,13 +1135,13 @@ export default function ReportesModule() {
                 ) : (
                   empleadosResumen.map(emp => (
                     <TableRow key={emp.nombre}>
-                      <TableCell className="font-medium">{emp.nombre}</TableCell>
+                      <TableCell className="text-center font-medium">{emp.nombre}</TableCell>
                       <TableCell className="text-center">{emp.checkins}</TableCell>
                       <TableCell className="text-center">{emp.checkouts}</TableCell>
                       <TableCell className="text-center hidden sm:table-cell">{emp.pagos}</TableCell>
                       <TableCell className="text-center hidden sm:table-cell">{emp.gastos}</TableCell>
                       <TableCell className="text-center hidden md:table-cell">{emp.reservas}</TableCell>
-                      <TableCell className="text-right"><Badge variant="secondary">{emp.auditorias}</Badge></TableCell>
+                      <TableCell className="text-center"><Badge variant="secondary">{emp.auditorias}</Badge></TableCell>
                     </TableRow>
                   ))
                 )}
@@ -769,9 +1163,7 @@ export default function ReportesModule() {
               <Select value={gastoForm.tipo} onValueChange={v => setGastoForm({ ...gastoForm, tipo: v })}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
                 <SelectContent>
-                  {categoriasGastos.map(c => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
+                  {categoriasGastos.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -803,70 +1195,59 @@ export default function ReportesModule() {
           {selectedCajaTurno && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2"><Wallet className="w-5 h-5" />Detalle de Turno de Caja</DialogTitle>
+                <DialogTitle className="flex items-center justify-center gap-2"><Wallet className="w-5 h-5" />Detalle de Turno de Caja</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Empleado:</span>
-                    <p className="font-medium">{selectedCajaTurno.apertura.empleado}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Apertura:</span>
-                    <p className="font-medium">{formatFechaHora(selectedCajaTurno.apertura.fecha)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Monto Inicial:</span>
-                    <p className="font-medium">{formatMoneda(selectedCajaTurno.apertura.montoInicial)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Cierre:</span>
-                    <p className="font-medium">{formatFechaHora(selectedCajaTurno.cierre.fecha)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Saldo Esperado:</span>
-                    <p className="font-medium">{formatMoneda(selectedCajaTurno.cierre.saldoEsperado)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Saldo Contado:</span>
-                    <p className="font-medium">{formatMoneda(selectedCajaTurno.cierre.saldoContado)}</p>
-                  </div>
-                  <div className="col-span-3">
-                    <span className="text-muted-foreground">Diferencia:</span>
-                    <p className={`font-bold text-lg ${selectedCajaTurno.cierre.diferencia === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {formatMoneda(selectedCajaTurno.cierre.diferencia)}
-                    </p>
-                  </div>
+                  {[
+                    { label: 'Empleado', value: selectedCajaTurno.apertura.empleado },
+                    { label: 'Apertura', value: formatFechaHora(selectedCajaTurno.apertura.fecha) },
+                    { label: 'Monto Inicial', value: formatMoneda(selectedCajaTurno.apertura.montoInicial) },
+                    { label: 'Cierre', value: formatFechaHora(selectedCajaTurno.cierre.fecha) },
+                    { label: 'Saldo Esperado', value: formatMoneda(selectedCajaTurno.cierre.saldoEsperado) },
+                    { label: 'Saldo Contado', value: formatMoneda(selectedCajaTurno.cierre.saldoContado) },
+                  ].map(item => (
+                    <div key={item.label} className="text-center p-2 rounded-lg bg-muted/50">
+                      <p className="text-xs text-muted-foreground">{item.label}</p>
+                      <p className="font-medium mt-0.5">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-center p-3 rounded-lg bg-muted/30">
+                  <p className="text-xs text-muted-foreground mb-1">Diferencia</p>
+                  <p className={`text-2xl font-bold ${selectedCajaTurno.cierre.diferencia === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {formatMoneda(selectedCajaTurno.cierre.diferencia)}
+                  </p>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold mb-2">Movimientos ({selectedCajaTurno.movimientos.length})</h4>
+                  <h4 className="font-semibold mb-2 text-center">Movimientos ({selectedCajaTurno.movimientos.length})</h4>
                   {selectedCajaTurno.movimientos.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Sin movimientos.</p>
+                    <p className="text-sm text-muted-foreground text-center py-4">Sin movimientos.</p>
                   ) : (
                     <div className="max-h-60 overflow-y-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Fecha</TableHead>
-                            <TableHead>Tipo</TableHead>
-                            <TableHead className="hidden sm:table-cell">Descripción</TableHead>
-                            <TableHead>Método</TableHead>
-                            <TableHead className="text-right">Monto</TableHead>
+                            <TableHead className="text-center">Fecha</TableHead>
+                            <TableHead className="text-center">Tipo</TableHead>
+                            <TableHead className="text-center hidden sm:table-cell">Descripción</TableHead>
+                            <TableHead className="text-center">Método</TableHead>
+                            <TableHead className="text-center">Monto</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {selectedCajaTurno.movimientos.map((m, i) => (
                             <TableRow key={i}>
-                              <TableCell className="whitespace-nowrap text-sm">{formatFechaHora(m.fecha)}</TableCell>
-                              <TableCell>
+                              <TableCell className="text-center whitespace-nowrap text-sm">{formatFechaHora(m.fecha)}</TableCell>
+                              <TableCell className="text-center">
                                 <Badge variant={m.tipo === 'ingreso' ? 'default' : 'destructive'}>
                                   {m.tipo === 'ingreso' ? '+' : '-'}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="hidden sm:table-cell">{m.descripcion}</TableCell>
-                              <TableCell className="text-muted-foreground">{m.metodo}</TableCell>
-                              <TableCell className={`text-right font-medium ${m.tipo === 'ingreso' ? 'text-emerald-600' : 'text-red-600'}`}>
+                              <TableCell className="text-center hidden sm:table-cell">{m.descripcion}</TableCell>
+                              <TableCell className="text-center text-muted-foreground">{m.metodo}</TableCell>
+                              <TableCell className={`text-center font-medium ${m.tipo === 'ingreso' ? 'text-emerald-600' : 'text-red-600'}`}>
                                 {m.tipo === 'ingreso' ? '+' : '-'}{formatMoneda(m.monto)}
                               </TableCell>
                             </TableRow>
