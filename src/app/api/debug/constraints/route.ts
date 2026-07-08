@@ -20,7 +20,7 @@ export async function GET() {
 
     // Query 2: pg_constraint (direct system catalog)
     const pgConstraints: any[] = await db.$queryRawUnsafe(`
-      SELECT conname, contype, conkey, connospace
+      SELECT conname, contype, conkey
       FROM pg_constraint
       WHERE conrelid = 'public."TenantUser"'::regclass
       ORDER BY conname
