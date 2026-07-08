@@ -49,51 +49,39 @@ export async function GET(req: NextRequest) {
     const matchedProfileIds = (session.user as Record<string, unknown>).matchedProfileIds as string[] | undefined;
     const isPasswordLogin = matchedProfileIds && Array.isArray(matchedProfileIds) && matchedProfileIds.length > 0;
 
-    // ── GOOGLE LOGIN: ir directo al perfil owner ──
-    if (!isPasswordLogin) {
-      // Agrupar por tenant único
-      const uniqueTenants = [...new Map(user.tenants.map(tu => [tu.tenantId, tu])).values()];
+    // ── Obtener perfiles del hotel ──
+    // Agrupar por tenant único
+    const uniqueTenants = [...new Map(user.tenants.map(tu => [tu.tenantId, tu])).values()];
 
-      // Múltiples hoteles → selector de hotel
-      if (uniqueTenants.length > 1 && !requestedTenantId) {
-        const hoteles = uniqueTenants.map(tu => ({
-          tenantId: tu.tenant.id,
-          tenantNombre: tu.tenant.nombre,
-          tenantSlug: tu.tenant.slug,
-          rol: tu.rol,
-          plan: tu.tenant.subscription?.plan?.type || 'trial',
-        }));
-        return NextResponse.json({ selectHotel: true, userId: user.id, name: user.name, email: user.email, hoteles });
-      }
-
-      // Un solo hotel → auto-seleccionar el perfil owner
-      const tenantUsersInHotel = requestedTenantId
-        ? user.tenants.filter(tu => tu.tenantId === requestedTenantId)
-        : user.tenants;
-
-      // Buscar el perfil owner en este hotel
-      const ownerProfile = tenantUsersInHotel.find(tu => tu.rol === 'owner');
-      const selectedProfile = ownerProfile || tenantUsersInHotel[0];
-
-      return buildSessionResponse(user, selectedProfile);
+    // Múltiples hoteles → selector de hotel
+    if (uniqueTenants.length > 1 && !requestedTenantId) {
+      const hoteles = uniqueTenants.map(tu => ({
+        tenantId: tu.tenant.id,
+        tenantNombre: tu.tenant.nombre,
+        tenantSlug: tu.tenant.slug,
+        rol: tu.rol,
+        plan: tu.tenant.subscription?.plan?.type || 'trial',
+      }));
+      return NextResponse.json({ selectHotel: true, userId: user.id, name: user.name, email: user.email, hoteles });
     }
 
-    // ── PASSWORD LOGIN: mostrar selector solo si hay múltiples matches ──
-    // Filtrar solo perfiles que coincidieron con la contraseña
-    let tenantUsersInHotel = user.tenants.filter(tu => matchedProfileIds.includes(tu.id));
+    // Filtrar perfiles del hotel seleccionado
+    let profilesInHotel = requestedTenantId
+      ? user.tenants.filter(tu => tu.tenantId === requestedTenantId)
+      : user.tenants;
 
-    // Si se pidió un tenant específico, filtrar más
-    if (requestedTenantId) {
-      tenantUsersInHotel = tenantUsersInHotel.filter(tu => tu.tenantId === requestedTenantId);
+    // Login con contraseña: solo mostrar perfiles que matchearon
+    if (isPasswordLogin) {
+      profilesInHotel = profilesInHotel.filter(tu => matchedProfileIds!.includes(tu.id));
     }
 
-    if (tenantUsersInHotel.length === 0) {
+    if (profilesInHotel.length === 0) {
       return NextResponse.json({ error: 'Sin acceso' }, { status: 403 });
     }
 
-    // Múltiples perfiles que matchearon → selector "¿Qué usuario sos?"
-    if (tenantUsersInHotel.length > 1 && !requestedProfileId) {
-      const perfiles = tenantUsersInHotel.map(tu => ({
+    // Múltiples perfiles → selector "¿Qué usuario sos?"
+    if (profilesInHotel.length > 1 && !requestedProfileId) {
+      const perfiles = profilesInHotel.map(tu => ({
         profileId: tu.id,
         nombreCompleto: tu.nombreCompleto || user.name || 'Sin nombre',
         rol: tu.rol,
@@ -104,16 +92,16 @@ export async function GET(req: NextRequest) {
         userId: user.id,
         name: user.name,
         email: user.email,
-        tenantId: tenantUsersInHotel[0].tenant.id,
-        tenantNombre: tenantUsersInHotel[0].tenant.nombre,
+        tenantId: profilesInHotel[0].tenant.id,
+        tenantNombre: profilesInHotel[0].tenant.nombre,
         perfiles,
       });
     }
 
     // Seleccionar el perfil
     const tenantUser = requestedProfileId
-      ? tenantUsersInHotel.find(tu => tu.id === requestedProfileId)
-      : tenantUsersInHotel[0];
+      ? profilesInHotel.find(tu => tu.id === requestedProfileId)
+      : profilesInHotel[0];
 
     if (!tenantUser) {
       return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 403 });
