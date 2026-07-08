@@ -6,9 +6,12 @@ import { useEffect, useState, useCallback } from 'react';
 import AuthProvider from '@/components/providers/SessionProvider';
 import { useHotelStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
-import { LogOut, Hotel, ChevronRight, Loader2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { LogOut, Hotel, ChevronRight, Loader2, KeyRound, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import ProfileSelector from '@/components/ProfileSelector';
+import { toast } from 'sonner';
 
 // ========== SELECTOR DE HOTEL ==========
 function HotelSelector({ hoteles, userName, onSelected }: {
@@ -24,21 +27,18 @@ function HotelSelector({ hoteles, userName, onSelected }: {
     try {
       const res = await fetch(`/api/auth/me?tenantId=${tenantId}`);
       const data = await res.json();
-      if (data.error) {
-        alert(data.error);
-        setLoadingId(null);
+      if (data.error) { alert(data.error); setLoadingId(null); return; }
+      if (data.needsProfile) {
+        // Will be handled by processMeData
+        onSelected();
         return;
       }
-      // Si al seleccionar hotel hay multiples perfiles, no pasa nada
-      // porque el useEffect va a capturar selectProfile
       const store = useHotelStore.getState();
       store.loginFromSession(data);
       onSelected();
       router.push('/app');
       router.refresh();
-    } catch {
-      setLoadingId(null);
-    }
+    } catch { setLoadingId(null); }
   };
 
   const rolLabel = (rol: string) => {
@@ -61,14 +61,9 @@ function HotelSelector({ hoteles, userName, onSelected }: {
           <h1 className="text-2xl font-bold">Hola, {userName || 'Bienvenido'}</h1>
           <p className="text-sm text-muted-foreground">Selecciona con que hotel queres trabajar</p>
         </div>
-
         <div className="space-y-2">
           {hoteles.map(h => (
-            <Card
-              key={h.tenantId}
-              className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md"
-              onClick={() => handleSelect(h.tenantId)}
-            >
+            <Card key={h.tenantId} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => handleSelect(h.tenantId)}>
               <CardContent className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -79,22 +74,94 @@ function HotelSelector({ hoteles, userName, onSelected }: {
                     <p className="text-xs text-muted-foreground">{rolLabel(h.rol)} · Plan {h.plan}</p>
                   </div>
                 </div>
-                {loadingId === h.tenantId ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                )}
+                {loadingId === h.tenantId ? <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /> : <ChevronRight className="w-5 h-5 text-muted-foreground" />}
               </CardContent>
             </Card>
           ))}
         </div>
-
         <div className="text-center">
           <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: '/login' })}>
             <LogOut className="w-4 h-4 mr-2" /> Cerrar sesion
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ========== OWNER: CREAR CONTRASEÑA ==========
+function OwnerPasswordSetup({ sessionData, onComplete }: {
+  sessionData: Record<string, any>;
+  onComplete: (updatedData: Record<string, any>) => void;
+}) {
+  const [nombre, setNombre] = useState(sessionData.nombre || '');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 6) { toast.error('Minimo 6 caracteres'); return; }
+    if (password !== confirmPassword) { toast.error('Las contraseñas no coinciden'); return; }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/complete-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: nombre.trim(), password }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Error'); setLoading(false); return; }
+      toast.success('Contraseña guardada');
+      onComplete({ ...sessionData, needsPassword: false, nombre: nombre.trim(), nombreCompleto: nombre.trim() });
+    } catch { toast.error('Error de conexion'); }
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-sm rounded-2xl shadow-xl">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mb-3 shadow-lg">
+            <KeyRound className="w-8 h-8 text-primary-foreground" />
+          </div>
+          <CardTitle className="text-xl">Creá tu contraseña</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">
+            Elegí una contraseña para ingresar al sistema cuando crees otros usuarios
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Tu nombre</Label>
+              <Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Como queres que te vean" disabled={loading} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Contraseña</Label>
+              <div className="relative">
+                <Input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimo 6 caracteres" className="pr-10" disabled={loading} />
+                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Confirmar contraseña</Label>
+              <div className="relative">
+                <Input type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Repeti la contraseña" className="pr-10" disabled={loading} />
+                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <Button type="submit" className="w-full h-10" disabled={loading || !password || password.length < 6 || password !== confirmPassword}>
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Guardando...</> : 'Guardar y entrar al sistema'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -108,36 +175,30 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const [hotelSelection, setHotelSelection] = useState<{
     hoteles: { tenantId: string; tenantNombre: string; tenantSlug: string; rol: string; plan: string }[];
     userName: string;
   } | null>(null);
   const [profileSelection, setProfileSelection] = useState<{
-    perfiles: { profileId: string; nombreCompleto: string; rol: string; tenantId: string; tenantNombre: string }[];
+    perfiles: { profileId: string; nombreCompleto: string; rol: string; tenantId: string; tenantNombre: string; tienePassword: boolean }[];
     userName: string;
     email: string;
     hotelNombre: string;
   } | null>(null);
+  const [passwordSetup, setPasswordSetup] = useState<Record<string, any> | null>(null);
   const router = useRouter();
 
   const processMeData = useCallback((data: Record<string, any>) => {
-    // Selector de hotel (multiples hoteles)
     if (data.selectHotel) {
-      setHotelSelection({
-        hoteles: data.hoteles,
-        userName: data.name,
-      });
+      setHotelSelection({ hoteles: data.hoteles, userName: data.name });
       setLoading(false);
       return;
     }
-    // Needs setup (no hotel)
     if (data.needsSetup && !data.selectHotel) {
       setNeedsSetup(true);
       setLoading(false);
       return;
     }
-    // Selector de perfil (multiples perfiles en un mismo hotel)
     if (data.selectProfile) {
       setProfileSelection({
         perfiles: data.perfiles,
@@ -150,11 +211,15 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     }
     if (data.error) {
       setError(data.error);
-      setDebugInfo(data._debug || null);
       setLoading(false);
       return;
     }
-    // Un solo perfil -> login directo, sin pantalla intermedia
+    if (data.needsPassword) {
+      setPasswordSetup(data);
+      setLoading(false);
+      return;
+    }
+    // Un solo perfil con contraseña → login directo
     loginFromSession(data);
     setLoading(false);
   }, [loginFromSession]);
@@ -164,11 +229,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
       fetch('/api/auth/me')
         .then(res => res.json())
         .then(data => processMeData(data))
-        .catch((err) => {
-          setError('No se pudo conectar al servidor.');
-          setDebugInfo(err.message);
-          setLoading(false);
-        });
+        .catch(() => { setError('No se pudo conectar al servidor.'); setLoading(false); });
     } else if (usuarioActual) {
       setLoading(false);
     } else if (status === 'unauthenticated') {
@@ -183,6 +244,19 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
   }, [needsSetup, router, pathname]);
 
   // === RENDER STATES ===
+
+  // Owner necesita crear contraseña
+  if (passwordSetup) {
+    return (
+      <OwnerPasswordSetup
+        sessionData={passwordSetup}
+        onComplete={(updatedData) => {
+          loginFromSession(updatedData);
+          setPasswordSetup(null);
+        }}
+      />
+    );
+  }
 
   // Selector de perfil
   if (profileSelection) {
@@ -215,22 +289,11 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         <div className="text-center space-y-4 max-w-sm px-4">
           <p className="text-5xl">⚠️</p>
           <h2 className="text-lg font-bold">{error}</h2>
-          <p className="text-sm text-muted-foreground">Contacta soporte si el problema persiste.</p>
-          {debugInfo && (
-            <p className="text-xs text-red-400 bg-red-950/30 rounded-lg p-2 font-mono break-all">{debugInfo}</p>
-          )}
           <div className="flex flex-col gap-2 pt-2">
             <Button variant="outline" onClick={() => {
-              setError(null);
-              setDebugInfo(null);
-              setLoading(true);
-              fetch('/api/auth/me')
-                .then(res => res.json())
-                .then(data => processMeData(data))
-                .catch(() => { setError('No se pudo conectar.'); setLoading(false); });
-            }}>
-              Reintentar
-            </Button>
+              setError(null); setLoading(true);
+              fetch('/api/auth/me').then(res => res.json()).then(data => processMeData(data)).catch(() => { setError('No se pudo conectar.'); setLoading(false); });
+            }}>Reintentar</Button>
             <Button variant="ghost" onClick={() => signOut({ callbackUrl: '/login' })}>
               <LogOut className="w-4 h-4 mr-2" /> Cerrar sesion
             </Button>
@@ -240,7 +303,6 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Loading
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
@@ -261,9 +323,7 @@ function ProtectedApp({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
+    if (status === 'unauthenticated') { router.push('/login'); }
   }, [status, router]);
 
   if (status === 'loading' || status === 'unauthenticated') {

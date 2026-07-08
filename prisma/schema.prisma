@@ -161,18 +161,18 @@ enum RolTenant {
 }
 
 model TenantUser {
-  id            String    @id @default(cuid())
-  tenantId      String
-  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rol           RolTenant @default(recepcion)
-  nombreUsuario  String?  // Nombre corto para login local (legacy)
-  nombreCompleto String?
-  permisos      String[]  // Array de ModuloId
-  activo        Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rol             RolTenant @default(recepcion)
+  nombreCompleto  String?
+  password        String?   // Password propio del perfil (para login con usuario+contraseña)
+  permisos        String[]  // Array de ModuloId
+  activo          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
 }
 

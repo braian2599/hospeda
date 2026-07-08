@@ -13,10 +13,9 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      // allowDangerousEmailAccountLinking deshabilitado: cada email = un solo hotel
     }),
 
-    // ── Email + Password (credentials) ──
+    // ── Email + Contraseña del perfil ──
     CredentialsProvider({
       id: 'credentials',
       name: 'Email y contraseña',
@@ -28,18 +27,34 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         const user = await db.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: credentials.email.toLowerCase().trim() },
+        });
+        if (!user) return null;
+
+        // Buscar un TenantUser activo con esa contraseña
+        const tenantUsers = await db.tenantUser.findMany({
+          where: { userId: user.id, activo: true, password: { not: null } },
+          include: { tenant: { select: { id: true } } },
         });
 
-        if (!user || !user.password) return null;
+        // Verificar contra cada perfil hasta encontrar match
+        let matchedProfile: typeof tenantUsers[0] | null = null;
+        for (const tu of tenantUsers) {
+          if (tu.password) {
+            const isValid = await bcrypt.compare(credentials.password, tu.password);
+            if (isValid) {
+              matchedProfile = tu;
+              break;
+            }
+          }
+        }
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) return null;
+        if (!matchedProfile) return null;
 
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
+          name: matchedProfile.nombreCompleto || user.name,
           image: user.image,
         };
       },
@@ -53,26 +68,20 @@ export const authOptions: NextAuthOptions = {
 
   pages: {
     signIn: '/login',
-    // signOut: '/',  // Usa default
-    // error: '/login?error=...',  // Custom error page si querés
   },
 
   callbacks: {
-    // Agregar tenantId al token JWT
     async jwt({ token, user, trigger, session }) {
-      // Primera vez que se loguea: adjuntar info del user
       if (user) {
         token.id = user.id;
         token.email = user.email;
       }
 
-      // Cuando se actualiza la sesión (ej: selección de tenant)
       if (trigger === 'update' && session) {
         token.tenantId = (session as Record<string, unknown>).tenantId as string | undefined;
         token.tenantRole = (session as Record<string, unknown>).tenantRole as string | undefined;
       }
 
-      // Si no tiene tenantId, buscar el primero del usuario
       if (!token.tenantId && token.id) {
         const tenantUser = await db.tenantUser.findFirst({
           where: { userId: token.id as string, activo: true },
@@ -87,7 +96,6 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
 
-    // Pasar datos del token a la sesión del cliente
     async session({ session, token }) {
       if (token && session.user) {
         (session.user as Record<string, unknown>).id = token.id;
@@ -98,13 +106,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
 
-  events: {
-    async signIn({ user, isNewUser }) {
-      // Se ejecuta cuando un usuario se registra por primera vez vía OAuth
-      // La creación del Tenant y TenantUser se hace en el register API
-    },
-  },
+  events: {},
 
-  // Sin esto no funciona credentials con JWT
   secret: process.env.NEXTAUTH_SECRET,
 };

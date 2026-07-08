@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
 // POST /api/auth/complete-profile
-// Permite al usuario setear su nombre y contraseña por primera vez
+// Owner crea/edita su contraseña y nombre (se guarda en TenantUser)
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,7 +15,6 @@ export async function POST(req: NextRequest) {
 
     const { nombre, password } = await req.json();
 
-    // Al menos contraseña es obligatoria
     if (!password || password.length < 6) {
       return NextResponse.json(
         { error: 'La contraseña debe tener al menos 6 caracteres' },
@@ -25,12 +24,28 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Actualizar usuario
+    // Buscar el TenantUser owner activo
+    const tenantUser = await db.tenantUser.findFirst({
+      where: { userId: (session.user as any).id, rol: 'owner', activo: true },
+    });
+
+    if (tenantUser) {
+      // Guardar contraseña y nombre en el TenantUser (perfil del owner)
+      await db.tenantUser.update({
+        where: { id: tenantUser.id },
+        data: {
+          password: hashedPassword,
+          ...(nombre?.trim() ? { nombreCompleto: nombre.trim() } : {}),
+        },
+      });
+    }
+
+    // También guardar en User.password para compatibilidad con Credentials login
     await db.user.update({
       where: { email: session.user.email },
       data: {
-        ...(nombre?.trim() ? { name: nombre.trim() } : {}),
         password: hashedPassword,
+        ...(nombre?.trim() ? { name: nombre.trim() } : {}),
       },
     });
 

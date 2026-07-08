@@ -38,27 +38,20 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/usuarios — Crear usuario directamente con contraseña
+// POST /api/usuarios — Crear perfil directamente con nombre + contraseña
 export async function POST(req: NextRequest) {
   try {
     const tenantId = await requireTenantId();
     const body = await req.json();
-    const { email, nombreCompleto, password, rol, permisos } = body;
-
-    // Validaciones
-    if (!email?.trim()) {
-      return NextResponse.json({ error: 'El email es obligatorio' }, { status: 400 });
-    }
-
-    if (!password || password.length < 6) {
-      return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 });
-    }
+    const { nombreCompleto, password, rol, permisos } = body;
 
     if (!nombreCompleto?.trim()) {
       return NextResponse.json({ error: 'El nombre del perfil es obligatorio' }, { status: 400 });
     }
 
-    const emailLower = email.trim().toLowerCase();
+    if (!password || password.length < 6) {
+      return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 });
+    }
 
     if (!VALID_ROLES.includes(rol)) {
       return NextResponse.json(
@@ -71,34 +64,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Los permisos deben ser un array' }, { status: 400 });
     }
 
-    // Hashear contraseña
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Crear o reutilizar el User (una cuenta de email puede tener varios perfiles)
-    const existingUser = await db.user.findUnique({ where: { email: emailLower } });
-    const user = existingUser || await db.user.create({
-      data: {
-        email: emailLower,
-        password: hashedPassword,
-        name: nombreCompleto.trim(),
-      },
-    });
-
-    // Si el user ya existía pero no tenía contraseña, actualizarla
-    if (existingUser && !existingUser.password) {
-      await db.user.update({
-        where: { id: existingUser.id },
-        data: { password: hashedPassword },
-      });
+    // Obtener el userId del usuario logueado (todos los perfiles comparten su User)
+    const { getAuthSession } = await import('@/lib/auth/utils');
+    const session = await getAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    // Crear TenantUser (nuevo perfil en este hotel)
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Crear TenantUser con su propia contraseña
     const tenantUser = await db.tenantUser.create({
       data: {
         tenantId,
-        userId: user.id,
+        userId: session.user.id,
         rol,
         nombreCompleto: nombreCompleto.trim(),
+        password: hashedPassword,
         permisos,
         activo: true,
       },

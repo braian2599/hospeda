@@ -18,7 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, UserCog, Pencil, Shield, ShieldCheck, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, UserCog, Pencil, Shield, ShieldCheck, Loader2, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ROLES = [
@@ -41,14 +41,13 @@ const ROL_LABELS: Record<string, string> = {
 };
 
 interface UserForm {
-  email: string;
   nombreCompleto: string;
   password: string;
   rol: string;
   permisos: ModuloId[];
 }
 
-const emptyForm: UserForm = { email: '', nombreCompleto: '', password: '', rol: 'recepcion', permisos: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'clientes', 'tarifas'] };
+const emptyForm: UserForm = { nombreCompleto: '', password: '', rol: 'recepcion', permisos: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'clientes', 'tarifas'] };
 
 export default function UsuariosModule() {
   const usuarioActual = useHotelStore(s => s.usuarioActual);
@@ -62,6 +61,7 @@ export default function UsuariosModule() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [ownerEditing, setOwnerEditing] = useState(false);
 
   const esOwner = usuarioActual?.rol === 'owner';
   const puedeModificar = esOwner || usuarioActual?.permisos.includes('usuarios');
@@ -84,23 +84,20 @@ export default function UsuariosModule() {
     setEditingId(null);
     setForm(emptyForm);
     setShowPassword(false);
+    setOwnerEditing(false);
     setDialogOpen(true);
   };
 
   const openEdit = (u: DbTenantUser) => {
-    if (u.rol === 'owner') {
-      toast.error('El Administrador Principal no puede ser modificado');
-      return;
-    }
     setEditingId(u.id);
     setForm({
-      email: u.user?.email || '',
       nombreCompleto: u.nombreCompleto || '',
       password: '',
       rol: u.rol,
       permisos: (u.permisos || []) as ModuloId[],
     });
     setShowPassword(false);
+    setOwnerEditing(u.rol === 'owner');
     setDialogOpen(true);
   };
 
@@ -131,7 +128,6 @@ export default function UsuariosModule() {
   };
 
   const handleSave = async () => {
-    if (!form.email.trim()) { toast.error('El email es obligatorio'); return; }
     if (!form.nombreCompleto.trim()) { toast.error('El nombre del perfil es obligatorio'); return; }
     if (!editingId && form.password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
 
@@ -143,15 +139,13 @@ export default function UsuariosModule() {
           rol: form.rol,
           permisos: form.permisos,
         };
-        // Si se cambia la contraseña
         if (form.password.length >= 6) {
           updateData.password = form.password;
         }
         await api.usuarios.update(editingId, updateData);
-        toast.success('Usuario actualizado');
+        toast.success('Perfil actualizado');
       } else {
         await api.usuarios.create({
-          email: form.email.trim().toLowerCase(),
           nombreCompleto: form.nombreCompleto.trim(),
           password: form.password,
           rol: form.rol,
@@ -184,7 +178,10 @@ export default function UsuariosModule() {
     }
   };
 
-  const isSelf = (u: DbTenantUser) => u.user?.id === usuarioActual?.id;
+  const isSelf = (u: DbTenantUser) => {
+    if (!usuarioActual?.tenantUserId) return u.user?.id === usuarioActual?.id;
+    return u.id === usuarioActual.tenantUserId;
+  };
 
   return (
     <div className="space-y-4">
@@ -192,7 +189,7 @@ export default function UsuariosModule() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Usuarios del hotel</h2>
-          <p className="text-sm text-muted-foreground">Gestioná los perfiles, permisos y contraseñas de tu equipo</p>
+          <p className="text-sm text-muted-foreground">Creá perfiles con nombre y contraseña para tu equipo</p>
         </div>
         {puedeModificar && (
           <Button onClick={openCreate} size="sm">
@@ -234,7 +231,7 @@ export default function UsuariosModule() {
                               {u.nombreCompleto || u.user?.name || 'Sin nombre'}
                               {isSelf(u) && <span className="text-muted-foreground font-normal ml-1">(vos)</span>}
                             </p>
-                            <p className="text-xs text-muted-foreground">{u.user?.email}</p>
+                            {u.rol === 'owner' && <p className="text-xs text-muted-foreground">Cuenta principal</p>}
                           </div>
                         </div>
                       </TableCell>
@@ -249,14 +246,14 @@ export default function UsuariosModule() {
                         </p>
                       </TableCell>
                       <TableCell className="text-right">
-                        {u.rol === 'owner' ? (
+                        {u.rol === 'owner' && !esOwner ? (
                           <span className="text-xs text-muted-foreground">No modificable</span>
                         ) : puedeModificar ? (
                           <div className="flex items-center justify-end gap-1">
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(u)} title="Editar">
                               <Pencil className="w-3.5 h-3.5" />
                             </Button>
-                            {!isSelf(u) && (
+                            {u.rol !== 'owner' && (
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDelete(u)} title="Desactivar">
                                 <Trash2 className="w-3.5 h-3.5" />
                               </Button>
@@ -286,113 +283,114 @@ export default function UsuariosModule() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Editar usuario' : 'Crear nuevo usuario'}</DialogTitle>
+            <DialogTitle>
+              {ownerEditing ? 'Editar tu perfil' : (editingId ? 'Editar usuario' : 'Crear nuevo usuario')}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            {/* Email */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">Email</Label>
-              <Input
-                type="email"
-                placeholder="correo@ejemplo.com"
-                value={form.email}
-                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                disabled={!!editingId}
-              />
-              {editingId && <p className="text-[11px] text-muted-foreground">El email no se puede cambiar</p>}
-            </div>
-
             {/* Nombre del perfil */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Nombre del perfil</Label>
+              <Label className="text-xs">
+                {ownerEditing ? 'Tu nombre' : 'Nombre del perfil'}
+              </Label>
               <Input
-                placeholder="Ej: Gerente, Admin 1, Recepcion Laura..."
+                placeholder={ownerEditing ? 'Ej: Juan Perez' : 'Ej: Gerente, Admin 1, Recepcion Laura...'}
                 value={form.nombreCompleto}
                 onChange={e => setForm(f => ({ ...f, nombreCompleto: e.target.value }))}
               />
-              <p className="text-[11px] text-muted-foreground">Es el nombre que se va a mostrar en el sistema</p>
+              <p className="text-[11px] text-muted-foreground">
+                {ownerEditing ? 'Este nombre se muestra en el sistema' : 'Es el nombre que se va a mostrar al ingresar'}
+              </p>
             </div>
 
             {/* Contraseña */}
-            {true && (
-              <div className="space-y-1.5">
-                <Label className="text-xs">{editingId ? 'Nueva contraseña (dejar vacio para no cambiar)' : 'Contraseña'}</Label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder={editingId ? 'Solo si queres cambiarla' : 'Minimo 6 caracteres'}
-                    value={form.password}
-                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                    className="pr-10"
-                    autoComplete="new-password"
-                  />
-                  <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Rol */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Rol</Label>
-              <Select value={form.rol} onValueChange={handleRolChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar rol" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLES.map(r => (
-                    <SelectItem key={r.value} value={r.value}>
-                      <div className="flex items-center gap-2">
-                        <r.icon className="w-4 h-4" />
-                        <span>{r.label}</span>
-                        <span className="text-xs text-muted-foreground">— {r.description}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs flex items-center gap-1.5">
+                <KeyRound className="w-3 h-3" />
+                {editingId ? 'Nueva contraseña (dejar vacio para no cambiar)' : 'Contraseña'}
+              </Label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder={editingId ? 'Solo si queres cambiarla' : 'Minimo 6 caracteres'}
+                  value={form.password}
+                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                  className="pr-10"
+                  autoComplete="new-password"
+                />
+                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Con esta contraseña el usuario va a ingresar al sistema
+              </p>
             </div>
 
-            <Separator />
+            {/* Rol (solo para no-owner) */}
+            {!ownerEditing && (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Rol</Label>
+                  <Select value={form.rol} onValueChange={handleRolChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar rol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLES.map(r => (
+                        <SelectItem key={r.value} value={r.value}>
+                          <div className="flex items-center gap-2">
+                            <r.icon className="w-4 h-4" />
+                            <span>{r.label}</span>
+                            <span className="text-xs text-muted-foreground">— {r.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Permisos */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Permisos de modulos</Label>
-                <span className="text-xs text-muted-foreground">{form.permisos.length} de {MODULOS_SISTEMA.length}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                {MODULOS_SISTEMA.map(mod => (
-                  <label
-                    key={mod.id}
-                    className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 cursor-pointer transition-colors"
-                  >
-                    <Checkbox
-                      checked={form.permisos.includes(mod.id)}
-                      onCheckedChange={() => togglePermiso(mod.id)}
-                    />
-                    <span className="text-xs">{mod.label}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setForm(f => ({ ...f, permisos: MODULOS_SISTEMA.map(m => m.id) }))}>
-                  Todos
-                </Button>
-                <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setForm(f => ({ ...f, permisos: [] }))}>
-                  Ninguno
-                </Button>
-              </div>
-            </div>
+                <Separator />
+
+                {/* Permisos */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Permisos de modulos</Label>
+                    <span className="text-xs text-muted-foreground">{form.permisos.length} de {MODULOS_SISTEMA.length}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    {MODULOS_SISTEMA.map(mod => (
+                      <label
+                        key={mod.id}
+                        className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 cursor-pointer transition-colors"
+                      >
+                        <Checkbox
+                          checked={form.permisos.includes(mod.id)}
+                          onCheckedChange={() => togglePermiso(mod.id)}
+                        />
+                        <span className="text-xs">{mod.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setForm(f => ({ ...f, permisos: MODULOS_SISTEMA.map(m => m.id) }))}>
+                      Todos
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setForm(f => ({ ...f, permisos: [] }))}>
+                      Ninguno
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter>
             <DialogClose asChild><Button variant="ghost" size="sm" disabled={saving}>Cancelar</Button></DialogClose>
-            <Button size="sm" onClick={handleSave} disabled={saving || !form.email.trim() || !form.nombreCompleto.trim() || (!editingId && form.password.length < 6)}>
+            <Button size="sm" onClick={handleSave} disabled={saving || !form.nombreCompleto.trim() || (!editingId && form.password.length < 6)}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {editingId ? 'Guardar cambios' : 'Crear usuario'}
+              {ownerEditing ? 'Guardar cambios' : (editingId ? 'Guardar cambios' : 'Crear usuario')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -405,7 +403,7 @@ export default function UsuariosModule() {
             <DialogTitle>Desactivar usuario</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Vas a desactivar a <strong>{deletingUser?.nombreCompleto || deletingUser?.user?.email}</strong>.
+            Vas a desactivar a <strong>{deletingUser?.nombreCompleto || 'este usuario'}</strong>.
             El usuario no podra acceder al sistema pero sus datos se conservan.
           </p>
           <DialogFooter>

@@ -17,7 +17,6 @@ export async function PUT(
     const body = await req.json();
     const { rol, permisos, activo, nombreCompleto, password } = body;
 
-    // Buscar TenantUser
     const tenantUser = await db.tenantUser.findFirst({
       where: { id, tenantId },
     });
@@ -25,7 +24,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
-    // Validar rol si se proporciona
     if (rol !== undefined && !VALID_ROLES.includes(rol)) {
       return NextResponse.json(
         { error: `Rol inválido. Valores permitidos: ${VALID_ROLES.join(', ')}` },
@@ -46,24 +44,11 @@ export async function PUT(
       }
     }
 
-    // No permitir cambiar rol del owner a algo menor
-    if (rol && rol !== 'owner' && tenantUser.rol === 'owner') {
-      const otherOwners = await db.tenantUser.count({
-        where: { tenantId, rol: 'owner', activo: true, id: { not: id } },
-      });
-      if (otherOwners === 0) {
-        return NextResponse.json(
-          { error: 'No se puede cambiar el rol del único owner del hotel' },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Si se proporciona nueva contraseña, hashear y actualizar el User
+    // Si se proporciona nueva contraseña, hashear y guardar en TenantUser
     if (password && password.length >= 6) {
       const hashedPassword = await bcrypt.hash(password, 12);
-      await db.user.update({
-        where: { id: tenantUser.userId },
+      await db.tenantUser.update({
+        where: { id },
         data: { password: hashedPassword },
       });
     }
@@ -100,7 +85,6 @@ export async function DELETE(
     const tenantId = await requireTenantId();
     const { id } = await params;
 
-    // Buscar TenantUser
     const tenantUser = await db.tenantUser.findFirst({
       where: { id, tenantId },
     });
@@ -112,7 +96,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Este usuario ya está desactivado' }, { status: 409 });
     }
 
-    // No permitir desactivar al último owner
     if (tenantUser.rol === 'owner') {
       const otherOwners = await db.tenantUser.count({
         where: { tenantId, rol: 'owner', activo: true, id: { not: id } },
@@ -125,7 +108,6 @@ export async function DELETE(
       }
     }
 
-    // Soft delete: marcar como inactivo
     await db.tenantUser.update({
       where: { id },
       data: { activo: false },

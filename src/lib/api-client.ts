@@ -181,7 +181,7 @@ export const api = {
   // ── Usuarios ──
   usuarios: {
     list: (rol?: string) => apiFetch<DbTenantUser[]>(`/usuarios${rol ? `?rol=${rol}` : ''}`),
-    create: (data: { email: string; nombreCompleto: string; password: string; rol: string; permisos: string[] }) =>
+    create: (data: { nombreCompleto: string; password: string; rol: string; permisos: string[] }) =>
       apiFetch<DbTenantUser>('/usuarios', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: { nombreCompleto?: string; rol?: string; permisos?: string[]; activo?: boolean; password?: string }) =>
       apiFetch<DbTenantUser>(`/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
