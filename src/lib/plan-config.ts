@@ -50,9 +50,9 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     nombre: 'Prueba Gratuita',
     precio: 0,
     precioDisplay: 'Gratis',
-    maxHabitaciones: 999,
-    maxUsuarios: 5,
-    maxTarifas: 999,
+    maxHabitaciones: 0, // ilimitado
+    maxUsuarios: 0, // ilimitado
+    maxTarifas: 0, // ilimitado
     maxReservasMes: 0, // ilimitado
     modulos: MODULOS_PREMIUM, // todos los módulos
     duracionDias: 30,
