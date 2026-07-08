@@ -18,7 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, UserCog, Pencil, Shield, ShieldCheck, Loader2 } from 'lucide-react';
+import { Plus, Trash2, UserCog, Pencil, Shield, ShieldCheck, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ROLES = [
@@ -43,11 +43,12 @@ const ROL_LABELS: Record<string, string> = {
 interface UserForm {
   email: string;
   nombreCompleto: string;
+  password: string;
   rol: string;
   permisos: ModuloId[];
 }
 
-const emptyForm: UserForm = { email: '', nombreCompleto: '', rol: 'recepcion', permisos: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'clientes', 'tarifas'] };
+const emptyForm: UserForm = { email: '', nombreCompleto: '', password: '', rol: 'recepcion', permisos: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'clientes', 'tarifas'] };
 
 export default function UsuariosModule() {
   const usuarioActual = useHotelStore(s => s.usuarioActual);
@@ -60,6 +61,7 @@ export default function UsuariosModule() {
   const [form, setForm] = useState<UserForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const esOwner = usuarioActual?.rol === 'owner';
   const puedeModificar = esOwner || usuarioActual?.permisos.includes('usuarios');
@@ -81,11 +83,11 @@ export default function UsuariosModule() {
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setShowPassword(false);
     setDialogOpen(true);
   };
 
   const openEdit = (u: DbTenantUser) => {
-    // No se puede editar el owner
     if (u.rol === 'owner') {
       toast.error('El Administrador Principal no puede ser modificado');
       return;
@@ -94,9 +96,11 @@ export default function UsuariosModule() {
     setForm({
       email: u.user?.email || '',
       nombreCompleto: u.nombreCompleto || '',
+      password: '',
       rol: u.rol,
       permisos: (u.permisos || []) as ModuloId[],
     });
+    setShowPassword(false);
     setDialogOpen(true);
   };
 
@@ -128,25 +132,32 @@ export default function UsuariosModule() {
 
   const handleSave = async () => {
     if (!form.email.trim()) { toast.error('El email es obligatorio'); return; }
-    if (!editingId && !form.nombreCompleto.trim()) { toast.error('El nombre es obligatorio'); return; }
+    if (!form.nombreCompleto.trim()) { toast.error('El nombre del perfil es obligatorio'); return; }
+    if (!editingId && form.password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
 
     setSaving(true);
     try {
       if (editingId) {
-        await api.usuarios.update(editingId, {
+        const updateData: Record<string, unknown> = {
           nombreCompleto: form.nombreCompleto.trim() || undefined,
           rol: form.rol,
           permisos: form.permisos,
-        });
+        };
+        // Si se cambia la contraseña
+        if (form.password.length >= 6) {
+          updateData.password = form.password;
+        }
+        await api.usuarios.update(editingId, updateData);
         toast.success('Usuario actualizado');
       } else {
         await api.usuarios.create({
           email: form.email.trim().toLowerCase(),
           nombreCompleto: form.nombreCompleto.trim(),
+          password: form.password,
           rol: form.rol,
           permisos: form.permisos,
         });
-        toast.success('Usuario invitado correctamente');
+        toast.success('Usuario creado correctamente');
       }
       setDialogOpen(false);
       fetchUsuarios();
@@ -181,11 +192,11 @@ export default function UsuariosModule() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Usuarios del hotel</h2>
-          <p className="text-sm text-muted-foreground">Gestioná los permisos y roles de tu equipo</p>
+          <p className="text-sm text-muted-foreground">Gestioná los perfiles, permisos y contraseñas de tu equipo</p>
         </div>
         {puedeModificar && (
           <Button onClick={openCreate} size="sm">
-            <Plus className="w-4 h-4 mr-2" /> Invitar usuario
+            <Plus className="w-4 h-4 mr-2" /> Crear usuario
           </Button>
         )}
       </div>
@@ -201,7 +212,7 @@ export default function UsuariosModule() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Usuario</TableHead>
+                  <TableHead>Perfil</TableHead>
                   <TableHead>Rol</TableHead>
                   <TableHead>Permisos</TableHead>
                   <TableHead className="text-right w-24">Acciones</TableHead>
@@ -261,7 +272,7 @@ export default function UsuariosModule() {
                 {usuarios.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                      No hay usuarios. Invitá a tu equipo con el boton de arriba.
+                      No hay usuarios. Creá el primer perfil con el boton de arriba.
                     </TableCell>
                   </TableRow>
                 )}
@@ -275,11 +286,11 @@ export default function UsuariosModule() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Editar usuario' : 'Invitar usuario'}</DialogTitle>
+            <DialogTitle>{editingId ? 'Editar usuario' : 'Crear nuevo usuario'}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            {/* Email (solo lectura en edición) */}
+            {/* Email */}
             <div className="space-y-1.5">
               <Label className="text-xs">Email</Label>
               <Input
@@ -292,15 +303,36 @@ export default function UsuariosModule() {
               {editingId && <p className="text-[11px] text-muted-foreground">El email no se puede cambiar</p>}
             </div>
 
-            {/* Nombre */}
+            {/* Nombre del perfil */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Nombre completo</Label>
+              <Label className="text-xs">Nombre del perfil</Label>
               <Input
-                placeholder="Juan Perez"
+                placeholder="Ej: Gerente, Admin 1, Recepcion Laura..."
                 value={form.nombreCompleto}
                 onChange={e => setForm(f => ({ ...f, nombreCompleto: e.target.value }))}
               />
+              <p className="text-[11px] text-muted-foreground">Es el nombre que se va a mostrar en el sistema</p>
             </div>
+
+            {/* Contraseña */}
+            {!editingId || (
+              <div className="space-y-1.5">
+                <Label className="text-xs">{editingId ? 'Nueva contraseña (dejar vacio para no cambiar)' : 'Contraseña'}</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={editingId ? 'Solo si queres cambiarla' : 'Minimo 6 caracteres'}
+                    value={form.password}
+                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                    className="pr-10"
+                    autoComplete="new-password"
+                  />
+                  <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Rol */}
             <div className="space-y-1.5">
@@ -358,9 +390,9 @@ export default function UsuariosModule() {
 
           <DialogFooter>
             <DialogClose asChild><Button variant="ghost" size="sm" disabled={saving}>Cancelar</Button></DialogClose>
-            <Button size="sm" onClick={handleSave} disabled={saving || !form.email.trim()}>
+            <Button size="sm" onClick={handleSave} disabled={saving || !form.email.trim() || !form.nombreCompleto.trim() || (!editingId && form.password.length < 6)}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {editingId ? 'Guardar cambios' : 'Invitar usuario'}
+              {editingId ? 'Guardar cambios' : 'Crear usuario'}
             </Button>
           </DialogFooter>
         </DialogContent>

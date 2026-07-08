@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 import type { RolTenant } from '@prisma/client';
 
 const VALID_ROLES: RolTenant[] = ['owner', 'admin', 'recepcion', 'limpieza'];
@@ -39,16 +38,24 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/usuarios — Invitar usuario (crear User si no existe + TenantUser + enviar email)
+// POST /api/usuarios — Crear usuario directamente con contraseña
 export async function POST(req: NextRequest) {
   try {
     const tenantId = await requireTenantId();
     const body = await req.json();
-    const { email, nombreCompleto, rol, permisos } = body;
+    const { email, nombreCompleto, password, rol, permisos } = body;
 
     // Validaciones
     if (!email?.trim()) {
       return NextResponse.json({ error: 'El email es obligatorio' }, { status: 400 });
+    }
+
+    if (!password || password.length < 6) {
+      return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 });
+    }
+
+    if (!nombreCompleto?.trim()) {
+      return NextResponse.json({ error: 'El nombre del perfil es obligatorio' }, { status: 400 });
     }
 
     const emailLower = email.trim().toLowerCase();
@@ -64,18 +71,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Los permisos deben ser un array' }, { status: 400 });
     }
 
-    // Obtener datos del tenant y del invitador
-    const tenant = await db.tenant.findUnique({ where: { id: tenantId } });
-    if (!tenant) {
-      return NextResponse.json({ error: 'Hotel no encontrado' }, { status: 404 });
-    }
-
-    // Obtener nombre del usuario que invita (owner/admin actual)
-    const session = await (await import('next-auth')).getServerSession(
-      (await import('@/lib/auth/config')).authOptions
-    );
-    const inviterName = (session?.user?.name || 'Alguien');
-
     // Verificar que no exista un TenantUser con el mismo email en este tenant
     const existingUser = await db.user.findUnique({ where: { email: emailLower } });
     if (existingUser) {
@@ -85,34 +80,52 @@ export async function POST(req: NextRequest) {
       if (existingTenantUser) {
         if (existingTenantUser.activo) {
           return NextResponse.json(
-            { error: 'Este usuario ya pertenece a tu hotel' },
+            { error: 'Este email ya pertenece a tu hotel' },
             { status: 409 }
           );
         }
-        // Reactivar
+        // Reactivar y actualizar contraseña
+        const hashedPassword = await bcrypt.hash(password, 12);
         const reactivated = await db.tenantUser.update({
           where: { id: existingTenantUser.id },
           data: {
             activo: true,
             rol,
-            nombreCompleto: nombreCompleto?.trim() || existingTenantUser.nombreCompleto,
+            nombreCompleto: nombreCompleto.trim(),
             permisos,
           },
           include: {
             user: { select: { id: true, email: true, name: true, image: true } },
           },
         });
+        // También actualizar la contraseña del User
+        await db.user.update({
+          where: { id: existingUser.id },
+          data: { password: hashedPassword },
+        });
         return NextResponse.json(reactivated, { status: 200 });
       }
     }
 
-    // Crear User si no existe (SIN password — el invitado lo seteará via email)
+    // Hashear contraseña
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Crear User si no existe
     const user = existingUser || await db.user.create({
       data: {
         email: emailLower,
-        name: nombreCompleto?.trim() || null,
+        password: hashedPassword,
+        name: nombreCompleto.trim(),
       },
     });
+
+    // Si el user ya existía (pero de otro hotel), actualizar la contraseña
+    if (existingUser) {
+      await db.user.update({
+        where: { id: existingUser.id },
+        data: { password: hashedPassword },
+      });
+    }
 
     // Crear TenantUser
     const tenantUser = await db.tenantUser.create({
@@ -120,7 +133,7 @@ export async function POST(req: NextRequest) {
         tenantId,
         userId: user.id,
         rol,
-        nombreCompleto: nombreCompleto?.trim() || user.name || null,
+        nombreCompleto: nombreCompleto.trim(),
         permisos,
         activo: true,
       },
@@ -129,39 +142,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Generar token de invitación (48 horas)
-    const token = crypto.randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 48 * 60 * 60 * 1000);
-
-    await db.verificationToken.upsert({
-      where: {
-        identifier_token: {
-          identifier: `invite-${emailLower}`,
-          token,
-        },
-      },
-      create: {
-        identifier: `invite-${emailLower}`,
-        token,
-        expires,
-      },
-      update: {
-        expires,
-      },
-    });
-
-    // Enviar email de invitación (fire-and-forget, no bloquea la respuesta)
-    const { sendInvitationEmail, isEmailConfigured } = await import('@/lib/email');
-    sendInvitationEmail(emailLower, token, tenant.nombre, inviterName).catch((err: any) => {
-      console.error('Error enviando email de invitacion:', err.message);
-    });
-
     return NextResponse.json(tenantUser, { status: 201 });
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
     console.error('POST /api/usuarios:', error);
-    return NextResponse.json({ error: 'Error al invitar usuario' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al crear usuario' }, { status: 500 });
   }
 }

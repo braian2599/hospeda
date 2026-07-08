@@ -8,7 +8,7 @@ import { useHotelStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { LogOut, Hotel, ChevronRight, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import ProfileSetup from '@/components/ProfileSetup';
+import ProfileWelcome from '@/components/ProfileWelcome';
 
 // ========== SELECTOR DE HOTEL ==========
 function HotelSelector({ hoteles, userName, onSelected }: {
@@ -111,20 +111,21 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     hoteles: { tenantId: string; tenantNombre: string; tenantSlug: string; rol: string; plan: string }[];
     userName: string;
   } | null>(null);
-  const [profileSetup, setProfileSetup] = useState<{
+  const [welcomeData, setWelcomeData] = useState<{
     email: string;
     nombre: string;
+    rol: string;
+    hotelNombre: string;
     sessionData: Record<string, any>;
   } | null>(null);
   const router = useRouter();
 
-  const handleProfileComplete = useCallback(() => {
-    // Después de completar perfil, cargar sesión normalmente
-    if (profileSetup?.sessionData) {
-      loginFromSession(profileSetup.sessionData);
+  const handleWelcomeComplete = useCallback(() => {
+    if (welcomeData?.sessionData) {
+      loginFromSession(welcomeData.sessionData);
     }
-    setProfileSetup(null);
-  }, [profileSetup, loginFromSession]);
+    setWelcomeData(null);
+  }, [welcomeData, loginFromSession]);
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.email && !usuarioActual) {
@@ -152,17 +153,14 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
             setLoading(false);
             return;
           }
-          // Necesita completar perfil (no tiene contraseña)
-          if (data.needsProfile) {
-            setProfileSetup({
-              email: data.email,
-              nombre: data.nombreCompleto || data.nombre || '',
-              sessionData: data,
-            });
-            setLoading(false);
-            return;
-          }
-          loginFromSession(data);
+          // Mostrar pantalla de bienvenida con perfil
+          setWelcomeData({
+            email: data.email,
+            nombre: data.nombreCompleto || data.nombre || '',
+            rol: data.rol,
+            hotelNombre: data.tenantNombre || 'Mi Hotel',
+            sessionData: data,
+          });
           setLoading(false);
         })
         .catch((err) => {
@@ -185,13 +183,15 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
 
   // === RENDER STATES ===
 
-  // Completar perfil (post-login)
-  if (profileSetup) {
+  // Pantalla de bienvenida con perfil
+  if (welcomeData) {
     return (
-      <ProfileSetup
-        email={profileSetup.email}
-        currentName={profileSetup.nombre}
-        onComplete={handleProfileComplete}
+      <ProfileWelcome
+        profileName={welcomeData.nombre}
+        email={welcomeData.email}
+        rol={welcomeData.rol}
+        hotelNombre={welcomeData.hotelNombre}
+        onComplete={handleWelcomeComplete}
       />
     );
   }
@@ -232,13 +232,14 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
                     return;
                   }
                   if (data.needsSetup) { router.push('/setup-hotel'); return; }
-                  if (data.needsProfile) {
-                    setProfileSetup({ email: data.email, nombre: data.nombreCompleto || '', sessionData: data });
-                    setLoading(false);
-                    return;
-                  }
                   if (data.error) { setError(data.error); setDebugInfo(data._debug || null); setLoading(false); return; }
-                  loginFromSession(data);
+                  setWelcomeData({
+                    email: data.email,
+                    nombre: data.nombreCompleto || data.nombre || '',
+                    rol: data.rol,
+                    hotelNombre: data.tenantNombre || 'Mi Hotel',
+                    sessionData: data,
+                  });
                   setLoading(false);
                 })
                 .catch(() => { setError('No se pudo conectar.'); setLoading(false); });

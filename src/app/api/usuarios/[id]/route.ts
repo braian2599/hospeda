@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import bcrypt from 'bcryptjs';
 import type { RolTenant } from '@prisma/client';
 
 const VALID_ROLES: RolTenant[] = ['owner', 'admin', 'recepcion', 'limpieza'];
@@ -14,7 +15,7 @@ export async function PUT(
     const tenantId = await requireTenantId();
     const { id } = await params;
     const body = await req.json();
-    const { rol, permisos, activo, nombreCompleto } = body;
+    const { rol, permisos, activo, nombreCompleto, password } = body;
 
     // Buscar TenantUser
     const tenantUser = await db.tenantUser.findFirst({
@@ -56,6 +57,15 @@ export async function PUT(
           { status: 400 }
         );
       }
+    }
+
+    // Si se proporciona nueva contraseña, hashear y actualizar el User
+    if (password && password.length >= 6) {
+      const hashedPassword = await bcrypt.hash(password, 12);
+      await db.user.update({
+        where: { id: tenantUser.userId },
+        data: { password: hashedPassword },
+      });
     }
 
     const updated = await db.tenantUser.update({
