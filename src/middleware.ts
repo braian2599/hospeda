@@ -23,9 +23,7 @@ export function middleware(request: NextRequest) {
   // con useSession() porque el middleware no tiene acceso al JWT fácilmente.
   // Aquí solo hacemos el redirect inicial de la raíz.
 
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
+  // La raíz (/) es la landing page pública, no redirigir
 
   return NextResponse.next();
 }
