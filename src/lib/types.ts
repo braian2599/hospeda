@@ -210,18 +210,18 @@ export interface HabitacionDisponible extends Omit<Habitacion, 'estado' | 'probl
 
 export type ModuloId = 'dashboard' | 'habitaciones' | 'reservas' | 'checkin' | 'facturacion' | 'limpieza' | 'caja' | 'clientes' | 'reportes' | 'usuarios' | 'tarifas';
 
-export const MODULOS_SISTEMA: { id: ModuloId; label: string; icon: string }[] = [
+export const MODULOS_SISTEMA: { id: ModuloId; label: string; icon: string; grupo?: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
-  { id: 'habitaciones', label: 'Habitaciones', icon: 'DoorOpen' },
-  { id: 'reservas', label: 'Reservas', icon: 'CalendarDays' },
-  { id: 'checkin', label: 'Check-In/Out', icon: 'LogIn' },
-  { id: 'facturacion', label: 'Facturación', icon: 'Receipt' },
-  { id: 'limpieza', label: 'Limpieza y Mant.', icon: 'Sparkles' },
-  { id: 'caja', label: 'Caja', icon: 'Wallet' },
-  { id: 'clientes', label: 'Clientes', icon: 'Users' },
-  { id: 'reportes', label: 'Reportes', icon: 'BarChart3' },
-  { id: 'usuarios', label: 'Usuarios', icon: 'UserCog' },
-  { id: 'tarifas', label: 'Tarifas', icon: 'Tags' },
+  { id: 'habitaciones', label: 'Habitaciones', icon: 'DoorOpen', grupo: 'operativo' },
+  { id: 'checkin', label: 'Check-In/Out', icon: 'LogIn', grupo: 'operativo' },
+  { id: 'limpieza', label: 'Limpieza y Mant.', icon: 'Sparkles', grupo: 'operativo' },
+  { id: 'reservas', label: 'Reservas', icon: 'CalendarDays', grupo: 'comercial' },
+  { id: 'clientes', label: 'Clientes', icon: 'Users', grupo: 'comercial' },
+  { id: 'tarifas', label: 'Tarifas', icon: 'Tags', grupo: 'comercial' },
+  { id: 'facturacion', label: 'Facturación', icon: 'Receipt', grupo: 'financiero' },
+  { id: 'caja', label: 'Caja', icon: 'Wallet', grupo: 'financiero' },
+  { id: 'reportes', label: 'Reportes', icon: 'BarChart3', grupo: 'financiero' },
+  { id: 'usuarios', label: 'Usuarios', icon: 'UserCog', grupo: 'admin' },
 ];
 
 export const BILLETES = [20000, 10000, 2000, 1000, 500, 200, 100, 50];
