@@ -1,70 +1,154 @@
-import { NextResponse } from 'next/server';
-import type { PlanTipo } from '@/lib/plan-config';
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { PLANES, type PlanTipo } from '@/lib/plan-config';
 
-// GET /api/subscription
-// Returns the current tenant's subscription and plan info.
-// When the DB is connected, this will query the Subscription + Plan tables.
-// For now it returns a placeholder response.
+// GET /api/subscription — Info de la suscripción actual
 export async function GET() {
-  // TODO: When DB is connected:
-  // 1. Extract tenantId from JWT (via getServerSession or auth helper)
-  // 2. Query: prisma.subscription.findFirst({ where: { tenantId, estado: 'trial' | 'activa' }, include: { plan: true } })
-  // 3. Calculate days remaining from subscription.fechaVencimiento
-  // 4. Return plan modules, limits, and subscription status
+  try {
+    const tenantId = await requireTenantId();
 
-  return NextResponse.json({
-    plan: {
-      tipo: 'trial' as PlanTipo,
-      nombre: 'Prueba Gratuita',
-      precio: 0,
-      precioDisplay: 'Gratis',
-      maxHabitaciones: 999,
-      maxUsuarios: 5,
-      maxTarifas: 999,
-      maxReservasMes: 0,
-      modulos: [
-        'dashboard', 'habitaciones', 'reservas', 'checkin',
-        'facturacion', 'limpieza', 'caja', 'clientes',
-        'reportes', 'usuarios', 'tarifas',
-      ],
-    },
-    subscription: {
-      estado: 'trial',
-      fechaVencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      diasRestantes: 30,
-    },
-    limits: {
-      habitaciones: { actual: 0, max: 999 },
-      usuarios: { actual: 1, max: 5 },
-      tarifas: { actual: 2, max: 999 },
-      reservasMes: { actual: 0, max: 0 },
-    },
-  });
+    const subscription = await db.subscription.findUnique({
+      where: { tenantId },
+      include: { plan: true },
+    });
+
+    if (!subscription) {
+      return NextResponse.json({ error: 'No hay suscripción' }, { status: 404 });
+    }
+
+    const diasRestantes = Math.max(0, Math.ceil(
+      (subscription.fechaVencimiento.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    ));
+
+    return NextResponse.json({
+      plan: {
+        tipo: subscription.plan.tipo,
+        nombre: subscription.plan.nombre,
+        precio: subscription.plan.precio,
+        precioDisplay: subscription.plan.precioDisplay,
+        maxHabitaciones: subscription.plan.maxHabitaciones,
+        maxUsuarios: subscription.plan.maxUsuarios,
+        maxTarifas: subscription.plan.maxTarifas,
+        maxReservasMes: subscription.plan.maxReservasMes,
+        modulos: subscription.plan.modulos,
+      },
+      subscription: {
+        estado: subscription.estado,
+        fechaInicio: subscription.fechaInicio,
+        fechaVencimiento: subscription.fechaVencimiento,
+        diasRestantes,
+      },
+    });
+  } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    console.error('GET /api/subscription:', error);
+    return NextResponse.json({ error: 'Error al obtener suscripción' }, { status: 500 });
+  }
 }
 
-// PATCH /api/subscription
-// Change plan (requires payment integration in Step 7)
-export async function PATCH(request: Request) {
-  // TODO: When payment integration is ready:
-  // 1. Extract tenantId from JWT
-  // 2. Validate requested plan
-  // 3. Process payment via Mercado Pago / Stripe
-  // 4. Update subscription.planId and subscription.estado
-  // 5. Update tenant user permissions to match new plan
+// PATCH /api/subscription — Cambiar de plan
+export async function PATCH(request: NextRequest) {
+  try {
+    const tenantId = await requireTenantId();
+    const body = await request.json();
+    const { planTipo } = body as { planTipo?: string };
 
-  const body = await request.json().catch(() => ({}));
-  const { planTipo } = body as { planTipo?: PlanTipo };
+    if (!planTipo || !['basico', 'profesional', 'premium'].includes(planTipo)) {
+      return NextResponse.json(
+        { error: 'Plan inválido. Elegí: basico, profesional o premium.' },
+        { status: 400 }
+      );
+    }
 
-  if (!planTipo || !['basico', 'profesional', 'premium'].includes(planTipo)) {
-    return NextResponse.json(
-      { error: 'Plan inválido. Elegí: basico, profesional o premium.' },
-      { status: 400 }
-    );
+    // Verificar que no sea downgrade a un plan con menos módulos de los que ya usa
+    // (solo warn, no bloquear)
+
+    // Buscar el plan en la BD
+    const plan = await db.plan.findUnique({ where: { tipo: planTipo } });
+
+    if (!plan) {
+      // Si no existe en BD, crearlo (fallback)
+      const planInfo = PLANES[planTipo as PlanTipo];
+      if (!plan) {
+        return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 });
+      }
+      // Crear el plan en BD si no existe
+      const newPlan = await db.plan.create({
+        data: {
+          tipo: planTipo,
+          nombre: planInfo.nombre,
+          precio: planInfo.precio,
+          maxHabitaciones: planInfo.maxHabitaciones,
+          maxUsuarios: planInfo.maxUsuarios,
+          maxTarifas: planInfo.maxTarifas,
+          maxReservasMes: planInfo.maxReservasMes,
+          modulos: planInfo.modulos,
+          duracionDias: planInfo.duracionDias || 30,
+        },
+      });
+
+      // Actualizar o crear suscripción
+      const fechaVencimiento = new Date();
+      fechaVencimiento.setDate(fechaVencimiento.getDate() + (planInfo.duracionDias || 30));
+
+      await db.subscription.upsert({
+        where: { tenantId },
+        create: {
+          tenantId,
+          planId: newPlan.id,
+          estado: 'activa',
+          fechaInicio: new Date(),
+          fechaVencimiento,
+        },
+        update: {
+          planId: newPlan.id,
+          estado: 'activa',
+          fechaInicio: new Date(),
+          fechaVencimiento,
+          canceladaAt: null,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Plan cambiado a ${planInfo.nombre}`,
+        planTipo,
+        planNombre: planInfo.nombre,
+      });
+    }
+
+    // El plan ya existe en BD — actualizar suscripción
+    const fechaVencimiento = new Date();
+    fechaVencimiento.setDate(fechaVencimiento.getDate() + (plan.duracionDias || 30));
+
+    await db.subscription.upsert({
+      where: { tenantId },
+      create: {
+        tenantId,
+        planId: plan.id,
+        estado: 'activa',
+        fechaInicio: new Date(),
+        fechaVencimiento,
+      },
+      update: {
+        planId: plan.id,
+        estado: 'activa',
+        fechaInicio: new Date(),
+        fechaVencimiento,
+        canceladaAt: null,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Plan cambiado a ${plan.nombre}`,
+      planTipo,
+      planNombre: plan.nombre,
+    });
+  } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    console.error('PATCH /api/subscription:', error);
+    return NextResponse.json({ error: 'Error al cambiar de plan' }, { status: 500 });
   }
-
-  // Payment not yet implemented
-  return NextResponse.json({
-    message: `Cambio a plan ${planTipo} recibido. La integración de pagos se implementará en el Paso 7.`,
-    planTipo,
-  }, { status: 501 }); // Not Implemented
 }

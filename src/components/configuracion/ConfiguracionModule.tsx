@@ -18,12 +18,6 @@ import {
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import dynamic from 'next/dynamic';
-
-const CheckoutDialog = dynamic(
-  () => import('@/components/payments/CheckoutDialog'),
-  { ssr: false }
-);
 
 // ─── Tabs config ───
 const TABS = [
@@ -105,8 +99,7 @@ function SuscripcionSection() {
   const { planActual, fechaInicioTrial } = useHotelStore();
   const [usage, setUsage] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanTipo, 'trial'> | null>(null);
+  const [changingPlan, setChangingPlan] = useState(false);
 
   const fetchUsage = useCallback(async () => {
     try {
@@ -146,9 +139,24 @@ function SuscripcionSection() {
     );
   };
 
-  const handleUpgrade = (tipo: Exclude<PlanTipo, 'trial'>) => {
-    setSelectedPlan(tipo);
-    setCheckoutOpen(true);
+  const handleUpgrade = async (tipo: Exclude<PlanTipo, 'trial'>) => {
+    setChangingPlan(true);
+    try {
+      const res = await fetch('/api/subscription', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planTipo: tipo }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Error al cambiar de plan'); return; }
+      toast.success(`Plan cambiado a ${data.planNombre}`);
+      // Update store
+      useHotelStore.getState().setPlanActual(tipo);
+      fetchUsage();
+    } catch {
+      toast.error('Error de conexión');
+    }
+    setChangingPlan(false);
   };
 
   return (
@@ -277,7 +285,9 @@ function SuscripcionSection() {
                       className="w-full"
                       variant={isDowngrade ? 'outline' : 'default'}
                       onClick={() => handleUpgrade(tipo)}
+                      disabled={changingPlan}
                     >
+                      {changingPlan ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                       {isDowngrade ? 'Cambiar plan' : 'Suscribirme'}
                       <ArrowRight className="w-4 h-4 ml-1" />
                     </Button>
@@ -288,12 +298,6 @@ function SuscripcionSection() {
           })}
         </div>
       </div>
-
-      <CheckoutDialog
-        open={checkoutOpen}
-        onOpenChange={setCheckoutOpen}
-        selectedPlan={selectedPlan}
-      />
     </div>
   );
 }
