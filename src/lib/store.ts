@@ -110,7 +110,7 @@ interface HotelStore {
   setPlanActual: (p: PlanTipo) => void;
 
   // Auth
-  login: (nombre: string, contrasena: string) => boolean;
+  loginFromSession: (sessionData: Record<string, any>) => Promise<boolean>;
   logout: () => void;
 
   // Auditoria
@@ -254,33 +254,6 @@ export const useHotelStore = create<HotelStore>()(
         }
         if (sessionData.planActual) {
           set({ planActual: sessionData.planActual });
-        }
-        set({ usuarioActual: sesion, moduloActivo: startModule as any, moduloBloqueado: null });
-        return true;
-      },
-
-      login: (nombre, contrasena) => {
-        const usuario = get().usuarios.find(u => u.nombre === nombre && u.contrasena === contrasena);
-        if (!usuario) return false;
-        const sesion: UsuarioSesion = {
-          id: usuario.id,
-          nombre: usuario.nombre,
-          nombreCompleto: usuario.nombreCompleto,
-          permisos: usuario.permisos,
-        };
-        get()._registrarAuditoria('Login', `Inicio de sesión: ${usuario.nombre}`);
-        // Apply start module preference
-        let startModule: string = 'dashboard';
-        try {
-          const prefs = JSON.parse(localStorage.getItem('hotel-perfil-prefs') || '{}');
-          if (prefs.startModule && usuario.permisos.includes(prefs.startModule)) {
-            startModule = prefs.startModule;
-          }
-        } catch { /* ignore */ }
-        // Set trial start date if this is the first login
-        const current = get();
-        if (!current.fechaInicioTrial) {
-          set({ fechaInicioTrial: new Date().toISOString() });
         }
         set({ usuarioActual: sesion, moduloActivo: startModule as any, moduloBloqueado: null });
         return true;
