@@ -88,7 +88,7 @@ export default function AppPage() {
 function AppShell({ children }: { children: React.ReactNode }) {
   const setSidebarOpen = useHotelStore(s => s.setSidebarOpen);
   return (
-    <div className="h-screen overflow-hidden bg-background flex">
+    <div className="h-screen min-w-screen overflow-hidden bg-background flex">
       <Sidebar />
       <main className="flex-1 min-w-0 flex flex-col overflow-y-auto">
         {/* Trial / Plan banner */}
