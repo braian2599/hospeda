@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Hotel, ShieldCheck, Shield, UserCog, Sparkles, ChevronRight, Loader2, LogOut, Lock, Eye, EyeOff } from 'lucide-react';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { useHotelStore } from '@/lib/store';
 
 const ROL_INFO: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
@@ -34,6 +34,7 @@ interface ProfileSelectorProps {
 
 export default function ProfileSelector({ perfiles, userName, email, hotelNombre, isPasswordLogin, onSelected }: ProfileSelectorProps) {
   const router = useRouter();
+  const { update } = useSession();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [passwordPrompt, setPasswordPrompt] = useState<{ profileId: string; nombre: string } | null>(null);
   const [password, setPassword] = useState('');
@@ -71,6 +72,7 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
       }
       const store = useHotelStore.getState();
       store.loginFromSession(data);
+      if (data.tenantId) await update({ tenantId: data.tenantId, tenantRole: data.rol });
       onSelected();
       router.push('/app');
       router.refresh();
@@ -101,6 +103,7 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
       }
       const store = useHotelStore.getState();
       store.loginFromSession(data);
+      if (data.tenantId) await update({ tenantId: data.tenantId, tenantRole: data.rol });
       setPasswordPrompt(null);
       onSelected();
       router.push('/app');

@@ -20,6 +20,7 @@ function HotelSelector({ hoteles, userName, onSelected }: {
   onSelected: () => void;
 }) {
   const router = useRouter();
+  const { update } = useSession();
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const handleSelect = async (tenantId: string) => {
@@ -35,6 +36,7 @@ function HotelSelector({ hoteles, userName, onSelected }: {
       }
       const store = useHotelStore.getState();
       store.loginFromSession(data);
+      if (data.tenantId) await update({ tenantId: data.tenantId, tenantRole: data.rol });
       onSelected();
       router.push('/app');
       router.refresh();
@@ -168,7 +170,7 @@ function OwnerPasswordSetup({ sessionData, onComplete }: {
 
 // ========== SESSION LOADER ==========
 function SessionLoader({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const loginFromSession = useHotelStore(s => s.loginFromSession);
   const usuarioActual = useHotelStore(s => s.usuarioActual);
   const pathname = usePathname();
@@ -188,6 +190,15 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
   } | null>(null);
   const [passwordSetup, setPasswordSetup] = useState<Record<string, any> | null>(null);
   const router = useRouter();
+
+  // Actualizar el JWT de NextAuth con el tenantId seleccionado
+  const loginAndUpdateSession = useCallback(async (data: Record<string, any>) => {
+    loginFromSession(data);
+    // Persistir tenantId en el JWT para que requireTenantId() lo use
+    if (data.tenantId) {
+      await update({ tenantId: data.tenantId, tenantRole: data.rol });
+    }
+  }, [loginFromSession, update]);
 
   const processMeData = useCallback((data: Record<string, any>) => {
     if (data.selectHotel) {
@@ -222,9 +233,9 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
       return;
     }
     // Un solo perfil con contraseña → login directo
-    loginFromSession(data);
+    loginAndUpdateSession(data);
     setLoading(false);
-  }, [loginFromSession]);
+  }, [loginAndUpdateSession]);
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.email && !usuarioActual) {
@@ -252,8 +263,8 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     return (
       <OwnerPasswordSetup
         sessionData={passwordSetup}
-        onComplete={(updatedData) => {
-          loginFromSession(updatedData);
+        onComplete={async (updatedData) => {
+          await loginAndUpdateSession(updatedData);
           setPasswordSetup(null);
         }}
       />

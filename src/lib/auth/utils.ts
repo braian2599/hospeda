@@ -25,14 +25,21 @@ export async function getAuthSession() {
 
 /**
  * Obtiene el tenantId del usuario actual.
- * Lanzar si no hay sesión o no tiene tenant.
+ * Prioriza el tenantId almacenado en el JWT (seleccionado por el usuario),
+ * luego cae a la BD si no existe (login directo con credentials).
  */
 export async function requireTenantId(): Promise<string> {
   const session = await getAuthSession();
   if (!session?.user?.id) {
     throw new AuthError('No autenticado', 401);
   }
-  // Buscar el tenant activo del usuario
+
+  // Prioridad 1: usar el tenantId del JWT (seteado al seleccionar perfil)
+  if (session.user.tenantId) {
+    return session.user.tenantId;
+  }
+
+  // Prioridad 2: buscar en BD (solo si el JWT no tiene tenantId)
   const { db } = await import('@/lib/db');
   const tenantUser = await db.tenantUser.findFirst({
     where: { userId: session.user.id, activo: true },
