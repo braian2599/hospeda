@@ -6,105 +6,81 @@ export async function GET() {
   try {
     await requireTenantId();
 
-    // Query 1: information_schema
-    const infoSchema: any[] = await db.$queryRawUnsafe(`
-      SELECT c.constraint_name, c.constraint_type, k.column_name, k.ordinal_position
-      FROM information_schema.table_constraints c
-      JOIN information_schema.key_column_usage k
-        ON c.constraint_name = k.constraint_name
-       AND c.table_schema  = k.table_schema
-      WHERE c.table_schema = 'public'
-        AND c.table_name   = 'tenantuser'
-      ORDER BY c.constraint_name, k.ordinal_position
-    `);
-
-    // Query 2: pg_constraint (direct system catalog)
-    const pgConstraints: any[] = await db.$queryRawUnsafe(`
-      SELECT conname, contype, conkey
-      FROM pg_constraint
-      WHERE conrelid = 'public."TenantUser"'::regclass
-      ORDER BY conname
-    `);
-
-    // Query 3: Try to get column names for each pg_constraint
-    const pgWithColumns: any[] = await db.$queryRawUnsafe(`
+    // Get ALL indexes on TenantUser (including unique indexes)
+    const indexes: any[] = await db.$queryRawUnsafe(`
       SELECT
-        c.conname,
-        c.contype,
-        array_agg(a.attname ORDER BY array_position(c.conkey, a.attnum)) as columns
-      FROM pg_constraint c
-      JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
-      WHERE c.conrelid = 'public."TenantUser"'::regclass
-      GROUP BY c.conname, c.contype
-      ORDER BY c.conname
+        i.relname as index_name,
+        ix.indisunique as is_unique,
+        ix.indisprimary as is_primary,
+        array_agg(a.attname ORDER BY array_position(ix.indkey::int[], a.attnum)) as columns
+      FROM pg_index ix
+      JOIN pg_class t ON t.oid = ix.indrelid
+      JOIN pg_class i ON i.oid = ix.indexrelid
+      JOIN pg_namespace n ON n.oid = t.relnamespace
+      JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = ANY(ix.indkey)
+      WHERE n.nspname = 'public'
+        AND t.relname = 'TenantUser'
+      GROUP BY i.relname, ix.indisunique, ix.indisprimary
+      ORDER BY i.relname
     `);
 
-    return NextResponse.json({
-      information_schema: infoSchema,
-      pg_constraint: pgConstraints,
-      pg_with_columns: pgWithColumns,
-    });
+    return NextResponse.json({ indexes });
   } catch (error: any) {
     return NextResponse.json({
       error: error.message,
-      stack: error.stack?.substring(0, 500),
     }, { status: 500 });
   }
 }
 
-// POST: drop all multi-column unique constraints on TenantUser
+// POST: drop any unique index on (tenantId, userId)
 export async function POST() {
   try {
     await requireTenantId();
 
-    // Find all unique constraints with their column details
-    const constraints: any[] = await db.$queryRawUnsafe(`
+    // Find unique indexes with exactly tenantId + userId
+    const indexes: any[] = await db.$queryRawUnsafe(`
       SELECT
-        c.conname,
-        array_agg(a.attname ORDER BY array_position(c.conkey, a.attnum)) as columns
-      FROM pg_constraint c
-      JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
-      WHERE c.conrelid = 'public."TenantUser"'::regclass
-        AND c.contype = 'u'
-      GROUP BY c.conname
-      HAVING array_length(array_agg(a.attname), 1) >= 2
+        i.relname as index_name,
+        array_agg(a.attname ORDER BY array_position(ix.indkey::int[], a.attnum)) as columns
+      FROM pg_index ix
+      JOIN pg_class t ON t.oid = ix.indrelid
+      JOIN pg_class i ON i.oid = ix.indexrelid
+      JOIN pg_namespace n ON n.oid = t.relnamespace
+      JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = ANY(ix.indkey)
+      WHERE n.nspname = 'public'
+        AND t.relname = 'TenantUser'
+        AND ix.indisunique = true
+        AND NOT ix.indisprimary
+      GROUP BY i.relname
+      HAVING array_agg(a.attname ORDER BY array_position(ix.indkey::int[], a.attnum)) = ARRAY['tenantId','userId']
     `);
 
     const dropped: string[] = [];
-    for (const c of constraints) {
+    for (const idx of indexes) {
       try {
-        await db.$executeRawUnsafe(
-          `ALTER TABLE "TenantUser" DROP CONSTRAINT "${c.conname}"`
-        );
-        dropped.push(c.conname);
+        await db.$executeRawUnsafe(`DROP INDEX IF EXISTS "${idx.index_name}"`);
+        dropped.push(`Dropped index: ${idx.index_name}`);
       } catch (e: any) {
-        dropped.push(`${c.conname} (FAILED: ${e.message?.substring(0, 80)})`);
+        dropped.push(`Failed ${idx.index_name}: ${e.message?.substring(0, 80)}`);
       }
     }
 
-    // Also try known Prisma names
-    const knownNames = [
+    // Also try direct names
+    const tryNames = [
       'TenantUser_tenantId_userId_key',
       'tenantuser_tenantid_userid_key',
     ];
-    for (const name of knownNames) {
+    for (const name of tryNames) {
       try {
-        await db.$executeRawUnsafe(
-          `ALTER TABLE "TenantUser" DROP CONSTRAINT IF EXISTS "${name}"`
-        );
-        dropped.push(`${name} (IF EXISTS)`);
+        await db.$executeRawUnsafe(`DROP INDEX IF EXISTS "${name}"`);
+        dropped.push(`Dropped (IF EXISTS): ${name}`);
       } catch (e: any) {
-        dropped.push(`${name} (FAILED: ${e.message?.substring(0, 80)})`);
+        dropped.push(`Failed ${name}: ${e.message?.substring(0, 80)}`);
       }
     }
 
-    return NextResponse.json({
-      constraints_found: constraints,
-      dropped,
-    });
+    return NextResponse.json({ indexes_found: indexes, dropped });
   } catch (error: any) {
-    return NextResponse.json({
-      error: error.message,
-    }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
