@@ -14,7 +14,8 @@ import {
 
 const handleLogout = () => {
   useHotelStore.getState().logout();
-  signOut({ callbackUrl: '/login' });
+  // Solo limpia el perfil actual y vuelve al selector, no desloguea de Google
+  window.location.href = '/app';
 };
 
 /* ── Icon map ── */

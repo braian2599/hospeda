@@ -216,7 +216,7 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
         </div>
 
         <div className="text-center">
-          <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: '/login' })}>
+          <Button variant="ghost" size="sm" onClick={() => { window.location.href = '/login'; }}>
             <LogOut className="w-4 h-4 mr-2" /> Cerrar sesion
           </Button>
         </div>
