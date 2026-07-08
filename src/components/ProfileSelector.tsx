@@ -168,16 +168,13 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
           <div className="mx-auto w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mb-3 shadow-lg">
             <Hotel className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold">Hola, {userName || 'Bienvenido'}</h1>
+          <p className="text-lg font-bold">{hotelNombre}</p>
           <p className="text-sm text-muted-foreground">{email}</p>
         </div>
 
-        <div className="text-center space-y-1">
-          <h2 className="text-lg font-semibold">Que usuario sos?</h2>
-          <p className="text-sm text-muted-foreground">
-            Selecciona con que perfil queres ingresar a <strong>{hotelNombre}</strong>
-          </p>
-        </div>
+        <p className="text-center text-sm text-muted-foreground">
+          Selecciona con que perfil queres ingresar
+        </p>
 
         <div className="space-y-2">
           {perfiles.map(p => {
