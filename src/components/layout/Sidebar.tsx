@@ -174,7 +174,7 @@ export default function Sidebar() {
   /* ── Desktop sidebar (push layout, hover-expandable) ── */
   const desktopSidebar = (
     <aside
-      className="hidden lg:flex flex-col h-screen shrink-0 bg-card border-r
+      className="hidden lg:flex flex-col h-full shrink-0 bg-card border-r
                  overflow-hidden transition-all duration-300 ease-in-out
                  w-16 hover:w-60"
       style={{ width: desktopExpanded || sidebarFixed ? 240 : undefined }}
