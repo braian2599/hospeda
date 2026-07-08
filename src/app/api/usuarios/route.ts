@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { ensureMigrations } from '@/lib/auto-migrate';
 import bcrypt from 'bcryptjs';
 import type { RolTenant } from '@prisma/client';
 
@@ -9,6 +10,7 @@ const VALID_ROLES: RolTenant[] = ['owner', 'admin', 'recepcion', 'limpieza'];
 // GET /api/usuarios — Listar usuarios del tenant
 export async function GET(req: NextRequest) {
   try {
+    await ensureMigrations();
     const tenantId = await requireTenantId();
     const { searchParams } = req.nextUrl;
     const rolFilter = searchParams.get('rol');
@@ -41,6 +43,7 @@ export async function GET(req: NextRequest) {
 // POST /api/usuarios — Crear perfil directamente con nombre + contraseña
 export async function POST(req: NextRequest) {
   try {
+    await ensureMigrations();
     const tenantId = await requireTenantId();
     const body = await req.json();
     const { nombreCompleto, password, rol, permisos } = body;
@@ -95,6 +98,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
     console.error('POST /api/usuarios:', error);
-    return NextResponse.json({ error: 'Error al crear usuario' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Error al crear usuario';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
