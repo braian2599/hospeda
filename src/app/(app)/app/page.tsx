@@ -41,6 +41,16 @@ export default function AppPage() {
 
   if (!usuarioActual) return null; // El layout protege esto
 
+  // Configuracion is owner-only, not a regular module — skip plan checks
+  if (moduloActivo === 'configuracion') {
+    return (
+      <AppShell>
+        <ConfiguracionModule />
+        <ModuleLockedDialog />
+      </AppShell>
+    );
+  }
+
   // Compute effective modules: intersection of user permissions and plan modules
   const efectivos = modulosEfectivos(usuarioActual.permisos, planActual);
 
@@ -65,16 +75,6 @@ export default function AppPage() {
               : 'Este módulo no está incluido en tu plan actual. Upgradeá para acceder.'}
           </p>
         </div>
-        <ModuleLockedDialog />
-      </AppShell>
-    );
-  }
-
-  // Configuracion is owner-only, not a regular module
-  if (moduloActivo === 'configuracion') {
-    return (
-      <AppShell>
-        <ConfiguracionModule />
         <ModuleLockedDialog />
       </AppShell>
     );
