@@ -40,14 +40,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // También guardar en User.password para compatibilidad con Credentials login
-    await db.user.update({
-      where: { email: session.user.email },
-      data: {
-        password: hashedPassword,
-        ...(nombre?.trim() ? { name: nombre.trim() } : {}),
-      },
-    });
+    // Actualizar nombre en User también
+    if (nombre?.trim()) {
+      await db.user.update({
+        where: { email: session.user.email },
+        data: { name: nombre.trim() },
+      });
+    }
 
     return NextResponse.json({ message: 'Perfil actualizado correctamente' });
   } catch (error: unknown) {

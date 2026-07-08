@@ -60,10 +60,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ selectHotel: true, userId: user.id, name: user.name, email: user.email, hoteles });
     }
 
+    // Si vino de login con contraseña, filtrar solo perfiles que coincidieron
+    const matchedProfileIds = (session.user as Record<string, unknown>).matchedProfileIds as string[] | undefined;
+
     // Filtrar perfiles del hotel seleccionado
     let tenantUsersInHotel = requestedTenantId
       ? user.tenants.filter(tu => tu.tenantId === requestedTenantId)
       : user.tenants;
+
+    // Login con contraseña: solo mostrar perfiles que matchearon
+    if (matchedProfileIds && Array.isArray(matchedProfileIds) && matchedProfileIds.length > 0) {
+      tenantUsersInHotel = tenantUsersInHotel.filter(tu => matchedProfileIds.includes(tu.id));
+    }
 
     if (tenantUsersInHotel.length === 0) {
       return NextResponse.json({ error: 'Hotel no encontrado o sin acceso' }, { status: 403 });

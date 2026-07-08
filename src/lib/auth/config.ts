@@ -31,31 +31,32 @@ export const authOptions: NextAuthOptions = {
         });
         if (!user) return null;
 
-        // Buscar un TenantUser activo con esa contraseña
+        // Buscar TenantUsers activos con contraseña
         const tenantUsers = await db.tenantUser.findMany({
           where: { userId: user.id, activo: true, password: { not: null } },
-          include: { tenant: { select: { id: true } } },
         });
 
-        // Verificar contra cada perfil hasta encontrar match
-        let matchedProfile: typeof tenantUsers[0] | null = null;
+        // Verificar contra cada perfil y recolectar TODOS los que coincidan
+        const matchedProfileIds: string[] = [];
+        let firstMatch = tenantUsers[0] || null;
         for (const tu of tenantUsers) {
           if (tu.password) {
             const isValid = await bcrypt.compare(credentials.password, tu.password);
             if (isValid) {
-              matchedProfile = tu;
-              break;
+              if (matchedProfileIds.length === 0) firstMatch = tu;
+              matchedProfileIds.push(tu.id);
             }
           }
         }
 
-        if (!matchedProfile) return null;
+        if (matchedProfileIds.length === 0) return null;
 
         return {
           id: user.id,
           email: user.email,
-          name: matchedProfile.nombreCompleto || user.name,
+          name: firstMatch?.nombreCompleto || user.name,
           image: user.image,
+          matchedProfileIds,
         };
       },
     }),
@@ -75,6 +76,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        // Guardar IDs de perfiles que coincidieron con la contraseña
+        token.matchedProfileIds = (user as Record<string, unknown>).matchedProfileIds as string[] | undefined;
       }
 
       if (trigger === 'update' && session) {
@@ -101,6 +104,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as Record<string, unknown>).id = token.id;
         (session.user as Record<string, unknown>).tenantId = token.tenantId;
         (session.user as Record<string, unknown>).tenantRole = token.tenantRole;
+        (session.user as Record<string, unknown>).matchedProfileIds = token.matchedProfileIds;
       }
       return session;
     },
