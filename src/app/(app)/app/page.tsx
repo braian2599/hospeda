@@ -113,7 +113,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
           <span className="font-bold text-sm">Hospedá</span>
         </header>
         <div className="p-4 md:p-6 flex-1">
-          {children}
+          <div className="max-w-7xl mx-auto w-full">
+            {children}
+          </div>
         </div>
       </main>
     </div>
