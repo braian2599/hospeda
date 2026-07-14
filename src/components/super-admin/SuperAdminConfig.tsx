@@ -25,7 +25,9 @@ export default function SuperAdminConfig() {
   const [mpAccessToken, setMpAccessToken] = useState('');
   const [mpPublicKey, setMpPublicKey] = useState('');
   const [mpWebhookUrl, setMpWebhookUrl] = useState('');
+  const [mpWebhookSecret, setMpWebhookSecret] = useState('');
   const [showAccessToken, setShowAccessToken] = useState(false);
+  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
 
   // Plataforma
   const [plataformaNombre, setPlataformaNombre] = useState('');
@@ -42,6 +44,7 @@ export default function SuperAdminConfig() {
         setMpAccessToken(mp.accessToken || '');
         setMpPublicKey(mp.publicKey || '');
         setMpWebhookUrl(mp.webhookUrl || '');
+        setMpWebhookSecret(mp.webhookSecret || '');
         setPlataformaNombre(plat.nombre || 'Hospeda');
         setPlataformaEmail(plat.emailContacto || '');
         setPlataformaMoneda(plat.moneda || 'ARS');
@@ -57,6 +60,7 @@ export default function SuperAdminConfig() {
         mp_access_token: mpAccessToken,
         mp_public_key: mpPublicKey,
         mp_webhook_url: mpWebhookUrl,
+        mp_webhook_secret: mpWebhookSecret,
         plataforma_nombre: plataformaNombre,
         plataforma_email: plataformaEmail,
         plataforma_moneda: plataformaMoneda,
@@ -168,6 +172,34 @@ export default function SuperAdminConfig() {
               />
               <p className="text-xs text-muted-foreground">
                 URL para recibir notificaciones de pagos
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Webhook Secret (x-signature)</Label>
+              <div className="relative">
+                <Input
+                  type={showWebhookSecret ? 'text' : 'password'}
+                  value={mpWebhookSecret}
+                  onChange={(e) => setMpWebhookSecret(e.target.value)}
+                  placeholder="Secret para verificar firmas del webhook"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showWebhookSecret ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Se usa para verificar que las notificaciones vienen de Mercado Pago. Lo encontrás en la configuración de webhooks de MP.
               </p>
             </div>
           </CardContent>

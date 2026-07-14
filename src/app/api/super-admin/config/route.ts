@@ -21,6 +21,7 @@ export async function GET() {
         accessToken: configMap.mp_access_token || '',
         publicKey: configMap.mp_public_key || '',
         webhookUrl: configMap.mp_webhook_url || '',
+        webhookSecret: configMap.mp_webhook_secret || '',
       },
       plataforma: {
         nombre: configMap.plataforma_nombre || 'Hospeda',

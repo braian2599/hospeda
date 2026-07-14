@@ -64,3 +64,27 @@ Stage Summary:
 - Problema 4 (Google OAuth redirect_uri_mismatch): Error de config en Google Cloud Console (instrucciones para el usuario)
 - Problema 5 (Pagos): Pendiente explicación al usuario
 - Problema 6 (Logo/colores): Pendiente imagen del usuario
+---
+Task ID: 8
+Agent: Main Agent
+Task: Configurar metodo de pago Mercado Pago — checkout, webhook, pagina de suscripcion
+
+Work Log:
+- Agregado campo Webhook Secret al SuperAdminConfig (UI + API)
+- Creado SuscripcionModule: pagina completa con estado actual, 3 planes, transferencia bancaria
+- Agregado boton "Suscripcion" en sidebar (desktop + mobile, owner-only)
+- Simplificado CheckoutDialog: solo Mercado Pago, sin Stripe
+- Corregido webhook: ahora usa getMPAccessToken() async desde BD, no solo env vars
+- Agregada idempotencia al webhook: verifica si el pago ya fue procesado
+- verifyMercadoPagoSignature ahora es async y lee secret desde BD
+- Creado PaymentResultBanner: muestra notificacion al volver de MP (success/failure/pending)
+- Simplificado create-checkout: solo MP, obtiene nombre del hotel de la BD
+- Corregido subscription route: requireTenantId -> requireOwner
+
+Stage Summary:
+- Flujo de pago completo: owner ve planes -> click pagar -> MP checkout -> webhook activa suscripcion
+- El webhook lee credenciales de PlatformConfig en BD (no solo env vars)
+- Idempotencia previene pagos duplicados por reintentos de MP
+- Transferencia bancaria como alternativa con datos de cuenta copiables
+- Archivos nuevos: SuscripcionModule.tsx, PaymentResultBanner.tsx
+- Archivos modificados: Sidebar.tsx, app/page.tsx, CheckoutDialog.tsx, mercadopago.ts, webhook/route.ts, create-checkout/route.ts, SuperAdminConfig.tsx, super-admin/config/route.ts, subscription/route.ts

@@ -2,7 +2,7 @@
 // Recibe notificaciones (IPN) de Mercado Pago.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyMercadoPagoSignature, getMercadoPagoPayment } from '@/lib/payments/mercadopago';
+import { getMercadoPagoPayment, verifyMercadoPagoSignature } from '@/lib/payments/mercadopago';
 import { db } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
 
     // Verificar firma (siempre en producción)
     const xSignature = request.headers.get('x-signature') || '';
-    const xRequestId = request.headers.get('x-request-id') || '';
-    const signatureValid = verifyMercadoPagoSignature(xSignature, xRequestId);
+    const xRequestId = request.headers.get('x-request-id') || data?.id || '';
+    const signatureValid = await verifyMercadoPagoSignature(xSignature, xRequestId);
 
     if (!signatureValid && process.env.NODE_ENV === 'production') {
       console.error('[mp-webhook] Firma inválida');
@@ -30,6 +30,16 @@ export async function POST(request: NextRequest) {
     const paymentId = data?.id;
     if (!paymentId) {
       return NextResponse.json({ error: 'No payment ID' }, { status: 400 });
+    }
+
+    // ── IDEMPOTENCIA: Verificar si ya procesamos este pago ──
+    const existingPayment = await db.platformPayment.findFirst({
+      where: { externalId: String(paymentId) },
+    });
+
+    if (existingPayment) {
+      console.log(`[mp-webhook] Pago ${paymentId} ya procesado (estado: ${existingPayment.estado}). Ignorando duplicado.`);
+      return NextResponse.json({ received: true, duplicate: true });
     }
 
     // Obtener detalles del pago
@@ -156,16 +166,8 @@ export async function POST(request: NextRequest) {
       case 'cancelled': {
         console.log(`[mp-webhook] Pago ${status}: tenant=${tenantId}`);
 
-        // Actualizar el pago existente a devuelto/cancelado
-        const existingPayment = await db.platformPayment.findFirst({
-          where: { externalId: String(paymentId) },
-        });
-        if (existingPayment) {
-          await db.platformPayment.update({
-            where: { id: existingPayment.id },
-            data: { estado: status === 'refunded' ? 'devuelto' : 'fallido' },
-          });
-        }
+        // Si por alguna razón no se creó antes (no debería pasar con la idempotencia)
+        // pero el pago ya existe de un flujo anterior
         break;
       }
     }

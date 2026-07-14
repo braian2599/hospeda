@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { modulosEfectivos, trialVencido } from '@/lib/plan-config';
 import Sidebar from '@/components/layout/Sidebar';
@@ -15,11 +16,13 @@ import TarifasModule from '@/components/modules/TarifasModule';
 import ReportesModule from '@/components/modules/ReportesModule';
 import UsuariosModule from '@/components/modules/UsuariosModule';
 import ConfiguracionModule from '@/components/configuracion/ConfiguracionModule';
+import SuscripcionModule from '@/components/subscription/SuscripcionModule';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import ProfileSettings from '@/components/layout/ProfileSettings';
 import TrialBanner from '@/components/subscription/TrialBanner';
 import ModuleLockedDialog from '@/components/subscription/ModuleLockedDialog';
+import PaymentResultBanner from '@/components/payments/PaymentResultBanner';
 import type { ModuloId } from '@/lib/types';
 
 const modules: Record<ModuloId, React.ComponentType> = {
@@ -42,10 +45,20 @@ export default function AppPage() {
   if (!usuarioActual) return null; // El layout protege esto
 
   // Configuracion is owner-only, not a regular module — skip plan checks
-  if (moduloActivo === 'configuracion') {
+  if ((moduloActivo as string) === 'configuracion') {
     return (
       <AppShell>
         <ConfiguracionModule />
+        <ModuleLockedDialog />
+      </AppShell>
+    );
+  }
+
+  // Suscripcion is owner-only, not a regular module — skip plan checks
+  if ((moduloActivo as string) === 'suscripcion') {
+    return (
+      <AppShell>
+        <SuscripcionModule />
         <ModuleLockedDialog />
       </AppShell>
     );
@@ -104,6 +117,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 min-w-0 flex flex-col overflow-y-auto">
         {/* Trial / Plan banner */}
         <TrialBanner />
+        {/* Payment result notification */}
+        <Suspense fallback={null}>
+          <PaymentResultBanner />
+        </Suspense>
 
         {/* Mobile header */}
         <header className="lg:hidden sticky top-0 z-20 bg-background border-b px-4 py-2 flex items-center gap-2">

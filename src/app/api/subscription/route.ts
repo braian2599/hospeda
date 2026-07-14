@@ -6,7 +6,7 @@ import { PLANES, type PlanTipo } from '@/lib/plan-config';
 // GET /api/subscription — Info de la suscripción actual
 export async function GET() {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requireOwner();
 
     const subscription = await db.subscription.findUnique({
       where: { tenantId },

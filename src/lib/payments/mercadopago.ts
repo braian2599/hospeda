@@ -2,7 +2,7 @@
 // Funciones server-side para interactuar con la API de Mercado Pago.
 
 import { PlanTipo, PLANES } from '@/lib/plan-config';
-import { PAYMENT_CONFIG, getMPAccessToken } from '@/lib/payments/config';
+import { getMPAccessToken, getMPWebhookSecret as fetchWebhookSecret } from '@/lib/payments/config';
 import type { PaymentMetadata, MercadoPagoCheckoutResponse } from '@/lib/payments/types';
 
 /**
@@ -18,7 +18,7 @@ export async function createMercadoPagoCheckout(params: {
   const { planTipo, tenantId, userEmail, hotelNombre } = params;
   const plan = PLANES[planTipo];
 
-  // Dinamically import mercadopago (server-only)
+  // Get token from DB first, then env var
   const accessToken = await getMPAccessToken();
   if (!accessToken) {
     throw new Error('Mercado Pago no está configurado.');
@@ -27,7 +27,7 @@ export async function createMercadoPagoCheckout(params: {
   const mercadopago = await import('mercadopago');
   const mp = new mercadopago.default({
     accessToken,
-    options: { sandbox: PAYMENT_CONFIG.mercadoPago.sandboxMode },
+    options: { sandbox: process.env.NODE_ENV !== 'production' },
   });
 
   // Build metadata
@@ -38,16 +38,19 @@ export async function createMercadoPagoCheckout(params: {
     userEmail,
   };
 
+  // Build URLs
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+
   // Create preference
   const preference = await mp.preferences.create({
     items: [
       {
         id: `hospeda-${planTipo}`,
-        title: `${PAYMENT_CONFIG.productName} - Plan ${plan.nombre}`,
+        title: `Hospedá — Plan ${plan.nombre}`,
         description: `Suscripción mensual al plan ${plan.nombre} para ${hotelNombre}`,
         quantity: 1,
         unit_price: plan.precio / 100, // MP usa decimales, no centavos
-        currency_id: PAYMENT_CONFIG.currency,
+        currency_id: 'ARS',
         category_id: 'services',
       },
     ],
@@ -55,16 +58,14 @@ export async function createMercadoPagoCheckout(params: {
       email: userEmail,
     },
     back_urls: {
-      success: PAYMENT_CONFIG.mercadoPago.successUrl,
-      failure: PAYMENT_CONFIG.mercadoPago.failureUrl,
-      pending: PAYMENT_CONFIG.mercadoPago.pendingUrl,
+      success: `${appUrl}/api/payments/success`,
+      failure: `${appUrl}/api/payments/failure`,
+      pending: `${appUrl}/api/payments/pending`,
     },
     auto_return: 'approved',
     metadata,
     external_reference: `${tenantId}:${planTipo}`,
-    notification_url: PAYMENT_CONFIG.mercadoPago.webhookUrl,
-    // Suscripción recurrente se maneja con webhooks
-    // El primer pago confirma la suscripción
+    notification_url: `${appUrl}/api/payments/mercadopago/webhook`,
   });
 
   if (!preference.body?.init_point) {
@@ -90,7 +91,7 @@ export async function getMercadoPagoPayment(paymentId: string) {
   const mercadopago = await import('mercadopago');
   const mp = new mercadopago.default({
     accessToken,
-    options: { sandbox: PAYMENT_CONFIG.mercadoPago.sandboxMode },
+    options: { sandbox: process.env.NODE_ENV !== 'production' },
   });
 
   const payment = await mp.payment.findById(paymentId);
@@ -98,21 +99,31 @@ export async function getMercadoPagoPayment(paymentId: string) {
 }
 
 /**
+ * Obtiene el webhook secret desde la BD (PlatformConfig) o env var.
+ * Re-exportada para uso en el webhook route.
+ */
+export { fetchWebhookSecret as getMPWebhookSecret };
+
+/**
  * Verifica la firma del webhook de Mercado Pago usando HMAC-SHA256.
  */
-export function verifyMercadoPagoSignature(
+export async function verifyMercadoPagoSignature(
   xSignature: string,
   xRequestId: string
-): boolean {
-  const secret = process.env.MP_WEBHOOK_SECRET;
+): Promise<boolean> {
+  const secret = await fetchWebhookSecret();
   if (!secret) {
-    // Sin secreto configurado, rechazar siempre (más seguro que aceptar)
-    console.warn('[MP Webhook] MP_WEBHOOK_SECRET no configurada — rechazando webhook');
-    return false;
+    // Sin secreto configurado, en dev permitir; en prod rechazar
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('[MP Webhook] Webhook secret no configurada — rechazando webhook en producción');
+      return false;
+    }
+    console.warn('[MP Webhook] Webhook secret no configurada — permitiendo en desarrollo');
+    return true;
   }
 
   try {
-    const crypto = require('crypto');
+    const crypto = await import('crypto');
     const parts = xSignature.split(',');
     let ts = '';
     let hash = '';

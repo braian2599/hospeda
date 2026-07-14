@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { PLANES, NOMBRES_MODULOS, type PlanTipo } from '@/lib/plan-config';
-import type { PaymentProvider, PublicPlanInfo } from '@/lib/payments/types';
 import {
   Dialog,
   DialogContent,
@@ -11,12 +10,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  CreditCard,
   Loader2,
   Check,
   ArrowRight,
@@ -24,6 +20,7 @@ import {
   Lock,
   ExternalLink,
   AlertTriangle,
+  CreditCard,
 } from 'lucide-react';
 
 interface CheckoutDialogProps {
@@ -46,8 +43,7 @@ const PLAN_MODULOS_EXTRA: Record<string, string[]> = {
 };
 
 export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: CheckoutDialogProps) {
-  const [step, setStep] = useState<'method' | 'email' | 'processing' | 'success' | 'error'>('method');
-  const [provider, setProvider] = useState<PaymentProvider | null>(null);
+  const [step, setStep] = useState<'email' | 'processing' | 'success' | 'error'>('email');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -57,8 +53,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setTimeout(() => {
-        setStep('method');
-        setProvider(null);
+        setStep('email');
         setEmail('');
         setLoading(false);
         setErrorMessage('');
@@ -72,7 +67,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
 
   // Create checkout session
   const handleCheckout = async () => {
-    if (!selectedPlan || !provider || !email.trim()) return;
+    if (!selectedPlan || !email.trim()) return;
 
     setLoading(true);
     setStep('processing');
@@ -84,7 +79,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           planTipo: selectedPlan,
-          provider,
+          provider: 'mercadopago',
           email: email.trim(),
         }),
       });
@@ -95,7 +90,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
         throw new Error(data.error || data.detail || 'Error al crear el pago');
       }
 
-      // Redirect to provider checkout
+      // Redirect to Mercado Pago checkout
       const url = data.initPoint || data.url;
       if (url) {
         setCheckoutUrl(url);
@@ -132,10 +127,10 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                 </DialogTitle>
                 <DialogDescription className="text-sm">
                   {step === 'success'
-                    ? 'Te redirigimos al pago...'
+                    ? 'Te redirigimos a Mercado Pago...'
                     : step === 'error'
                       ? 'No pudimos procesar tu solicitud'
-                      : 'Elegí tu método de pago para continuar'}
+                      : 'Completá el pago para activar tu plan'}
                 </DialogDescription>
               </div>
             </div>
@@ -158,75 +153,9 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
 
         {/* Body */}
         <div className="px-6 pb-6">
-          {/* ── STEP 1: Payment Method ── */}
-          {step === 'method' && (
+          {/* ── STEP 1: Email ── */}
+          {step === 'email' && (
             <div className="space-y-4 mt-2">
-              <p className="text-sm font-medium text-muted-foreground">Método de pago</p>
-
-              <div className="grid grid-cols-2 gap-3">
-                {/* Mercado Pago */}
-                <button
-                  onClick={() => { setProvider('mercadopago'); setStep('email'); }}
-                  className={`
-                    relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all
-                    hover:border-primary/50 hover:bg-accent/30
-                    focus:outline-none focus:ring-2 focus:ring-primary/30
-                  `}
-                >
-                  <div className="w-12 h-12 rounded-xl bg-[#009EE3]/10 flex items-center justify-center">
-                    <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none">
-                      <path d="M3 4h18v16H3V4z" fill="#009EE3" rx="2"/>
-                      <path d="M7 8h4l-1 4h3l-4 6 1-4H8l2-6H7z" fill="white"/>
-                    </svg>
-                  </div>
-                  <span className="text-sm font-medium">Mercado Pago</span>
-                  <span className="text-[10px] text-muted-foreground text-center leading-tight">
-                    Tarjeta, transferencia, efectivo
-                  </span>
-                  <ArrowRight className="absolute top-3 right-3 w-4 h-4 text-muted-foreground" />
-                </button>
-
-                {/* Stripe */}
-                <button
-                  onClick={() => { setProvider('stripe'); setStep('email'); }}
-                  className={`
-                    relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all
-                    hover:border-primary/50 hover:bg-accent/30
-                    focus:outline-none focus:ring-2 focus:ring-primary/30
-                  `}
-                >
-                  <div className="w-12 h-12 rounded-xl bg-[#635BFF]/10 flex items-center justify-center">
-                    <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none">
-                      <path d="M2 6h20v12H2V6z" fill="#635BFF" rx="2"/>
-                      <path d="M6 10h3v4H6v-4zm5-1h3v6h-3V9z" fill="white" opacity="0.9"/>
-                    </svg>
-                  </div>
-                  <span className="text-sm font-medium">Tarjeta internacional</span>
-                  <span className="text-[10px] text-muted-foreground text-center leading-tight">
-                    Visa, Mastercard, Amex
-                  </span>
-                  <ArrowRight className="absolute top-3 right-3 w-4 h-4 text-muted-foreground" />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center pt-2">
-                <Shield className="w-3.5 h-3.5" />
-                <span>Pago seguro con encriptación SSL</span>
-              </div>
-            </div>
-          )}
-
-          {/* ── STEP 2: Email ── */}
-          {step === 'email' && provider && (
-            <div className="space-y-4 mt-2">
-              {/* Back button */}
-              <button
-                onClick={() => setStep('method')}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-              >
-                ← Volver a métodos de pago
-              </button>
-
               <div className="space-y-2">
                 <Label htmlFor="checkout-email">Email para recibir el comprobante</Label>
                 <Input
@@ -240,9 +169,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                   onKeyDown={(e) => { if (e.key === 'Enter' && email.includes('@')) handleCheckout(); }}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {provider === 'mercadopago'
-                    ? 'Te redirigiremos a Mercado Pago para completar el pago.'
-                    : 'Te redirigiremos a Stripe para completar el pago con tarjeta.'}
+                  Te redirigiremos a Mercado Pago para completar el pago con tarjeta u otros medios.
                 </p>
               </div>
 
@@ -257,6 +184,18 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                     <span>{m}</span>
                   </div>
                 ))}
+              </div>
+
+              {/* MP badge */}
+              <div className="flex items-center justify-center gap-2 py-2">
+                <div className="flex items-center gap-1.5 bg-[#009EE3]/10 rounded-full px-3 py-1.5">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none">
+                    <path d="M3 4h18v16H3V4z" fill="#009EE3" rx="2"/>
+                    <path d="M7 8h4l-1 4h3l-4 6 1-4H8l2-6H7z" fill="white"/>
+                  </svg>
+                  <span className="text-xs font-medium text-[#009EE3]">Mercado Pago</span>
+                </div>
+                <span className="text-xs text-muted-foreground">Acepta tarjeta, transferencia y más</span>
               </div>
 
               {/* Submit */}
@@ -282,7 +221,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
             </div>
           )}
 
-          {/* ── STEP 3: Processing ── */}
+          {/* ── STEP 2: Processing ── */}
           {step === 'processing' && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -290,12 +229,12 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
               </div>
               <p className="font-medium">Creando tu sesión de pago...</p>
               <p className="text-sm text-muted-foreground mt-1">
-                {provider === 'mercadopago' ? 'Conectando con Mercado Pago' : 'Conectando con Stripe'}
+                Conectando con Mercado Pago
               </p>
             </div>
           )}
 
-          {/* ── STEP 4: Success ── */}
+          {/* ── STEP 3: Success ── */}
           {step === 'success' && checkoutUrl && (
             <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
               <div className="w-16 h-16 rounded-full bg-chart-2/10 flex items-center justify-center">
@@ -304,16 +243,19 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
               <div>
                 <p className="font-semibold text-lg">Sesión de pago creada</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Te redirigimos automáticamente. Si no se abre, usá el botón de abajo.
+                  Te redirigimos automáticamente a Mercado Pago. Si no se abre, usá el botón de abajo.
                 </p>
               </div>
               <Button
                 className="gap-2"
                 onClick={() => window.open(checkoutUrl, '_blank', 'noopener,noreferrer')}
               >
-                Abrir página de pago
+                Abrir Mercado Pago
                 <ExternalLink className="w-4 h-4" />
               </Button>
+              <p className="text-xs text-muted-foreground max-w-xs">
+                Tu suscripción se activará automáticamente una vez confirmado el pago. Volvé a esta página para ver el estado.
+              </p>
               <Button
                 variant="ghost"
                 size="sm"
@@ -324,7 +266,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
             </div>
           )}
 
-          {/* ── STEP 5: Error ── */}
+          {/* ── STEP 4: Error ── */}
           {step === 'error' && (
             <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
               <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -335,7 +277,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                 <p className="text-sm text-muted-foreground mt-1">{errorMessage}</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => { setStep('method'); setProvider(null); }}>
+                <Button variant="outline" onClick={() => { setStep('email'); }}>
                   Volver
                 </Button>
                 <Button onClick={handleCheckout}>
