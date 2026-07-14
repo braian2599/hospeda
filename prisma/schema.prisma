@@ -46,6 +46,7 @@ model Tenant {
   auditoria      Auditoria[]
   tareasLimpieza TareaLimpieza[]
   configuracion  TenantConfig?
+  platformPayments PlatformPayment[]
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -553,4 +554,36 @@ model TenantConfig {
   numeroFactura   Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════════════════
+// SUPER ADMIN — CONFIGURACIÓN DE PLATAFORMA
+// ═══════════════════════════════════════════════════════════
+
+model PlatformConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model PlatformPayment {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscriptionId  String
+  monto           Int      // Centavos
+  moneda          String   @default("ARS")
+  metodo          String   @default("mercadopago") // mercadopago | transferencia | manual
+  estado          String   @default("pendiente")   // pendiente | pagado | fallido | devuelto
+  periodoDesde    DateTime
+  periodoHasta    DateTime
+  externalId      String?  // ID en Mercado Pago
+  nota            String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, createdAt])
+  @@index([estado, createdAt])
 }
