@@ -81,8 +81,19 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (trigger === 'update' && session) {
-        token.tenantId = (session as Record<string, unknown>).tenantId as string | undefined;
-        token.tenantRole = (session as Record<string, unknown>).tenantRole as string | undefined;
+        const proposedTenantId = (session as Record<string, unknown>).tenantId as string | undefined;
+        if (proposedTenantId && token.id) {
+          // Validar contra la DB: el usuario debe pertenecer a ese tenant
+          const tu = await db.tenantUser.findFirst({
+            where: { userId: token.id as string, tenantId: proposedTenantId, activo: true },
+            select: { tenantId: true, rol: true },
+          });
+          if (tu) {
+            token.tenantId = tu.tenantId;
+            token.tenantRole = tu.rol; // Usar rol de la DB, no del cliente
+          }
+          // Si no pertenece, se ignora silenciosamente (no se actualiza el JWT)
+        }
       }
 
       if (!token.tenantId && token.id) {

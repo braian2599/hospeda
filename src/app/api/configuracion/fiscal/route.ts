@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requireOwner, AuthError } from '@/lib/auth/utils';
 
 // GET /api/configuracion/fiscal
 export async function GET() {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requireOwner();
     const config = await db.tenantConfig.findUnique({
       where: { tenantId },
       select: { hotelCuit: true, hotelIva: true, hotelDireccion: true, hotelCiudad: true, puntoVenta: true },
@@ -27,7 +27,7 @@ export async function GET() {
 // PUT /api/configuracion/fiscal
 export async function PUT(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requireOwner();
     const body = await req.json();
     const { cuit, iva, direccionFiscal, ciudad, puntoVenta } = body;
 

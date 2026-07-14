@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requireOwner, AuthError } from '@/lib/auth/utils';
 import { ensureMigrations } from '@/lib/auto-migrate';
 import bcrypt from 'bcryptjs';
 import type { RolTenant } from '@prisma/client';
@@ -42,8 +42,7 @@ export async function GET(req: NextRequest) {
 // POST /api/usuarios — Crear perfil directamente con nombre + contraseña
 export async function POST(req: NextRequest) {
   try {
-    await ensureMigrations();
-    const tenantId = await requireTenantId();
+    const tenantId = await requireOwner();
     const body = await req.json();
     const { nombreCompleto, password, rol, permisos } = body;
 

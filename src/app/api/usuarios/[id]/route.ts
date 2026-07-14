@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requireOwner, AuthError } from '@/lib/auth/utils';
 import bcrypt from 'bcryptjs';
 import type { RolTenant } from '@prisma/client';
 
@@ -12,12 +12,13 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requireOwner();
     const { id } = await params;
     const body = await req.json();
     const { rol, permisos, activo, nombreCompleto, password } = body;
 
-    const tenantUser = await db.tenantUser.findFirst({
+    // No permitir modificar el rol del owner actual
+    const targetUser = await db.tenantUser.findFirst({
       where: { id, tenantId },
     });
     if (!tenantUser) {
@@ -82,7 +83,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requireOwner();
     const { id } = await params;
 
     const tenantUser = await db.tenantUser.findFirst({

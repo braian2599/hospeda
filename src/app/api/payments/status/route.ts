@@ -2,9 +2,16 @@
 // Consulta el estado de un pago reciente (Stripe) o preference (MP).
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireTenantId, AuthError } from '@/lib/auth/utils';
 import { getStripeSession } from '@/lib/payments/stripe';
 
 export async function GET(request: NextRequest) {
+  try {
+    await requireTenantId(); // Requiere autenticación
+  } catch {
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('sessionId');
   const provider = searchParams.get('provider'); // 'stripe' | 'mercadopago'

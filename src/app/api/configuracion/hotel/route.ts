@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requireOwner, AuthError } from '@/lib/auth/utils';
 
-// GET /api/configuracion/hotel
+// GET /api/configuracion/hotel (owner-only)
 export async function GET() {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requireOwner();
     const tenant = await db.tenant.findUnique({
       where: { id: tenantId },
       select: {
@@ -50,7 +50,7 @@ export async function GET() {
 // PUT /api/configuracion/hotel
 export async function PUT(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requireOwner();
     const body = await req.json();
     const { nombre, email, telefono, direccion, pais, moneda, timezone, logoUrl } = body;
 

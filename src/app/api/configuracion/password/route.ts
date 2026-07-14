@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requireOwner, AuthError } from '@/lib/auth/utils';
 import bcrypt from 'bcryptjs';
 
 // PUT /api/configuracion/password — Cambiar contraseña del perfil actual
 export async function PUT(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requireOwner();
     const { currentPassword, newPassword } = await req.json();
 
     if (!currentPassword || !newPassword) {

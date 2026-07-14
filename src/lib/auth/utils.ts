@@ -52,6 +52,33 @@ export async function requireTenantId(): Promise<string> {
 }
 
 /**
+ * Requiere que el usuario sea owner del tenant actual.
+ * Lanza AuthError(403) si no es owner.
+ */
+export async function requireOwner(): Promise<string> {
+  const session = await getAuthSession();
+  if (!session?.user?.id) {
+    throw new AuthError('No autenticado', 401);
+  }
+
+  const tenantId = session.user.tenantId;
+  if (!tenantId) {
+    throw new AuthError('No tenés un hotel asociado', 403);
+  }
+
+  // Verificar en DB que el rol sea owner (no confiar solo en el JWT)
+  const { db } = await import('@/lib/db');
+  const tenantUser = await db.tenantUser.findFirst({
+    where: { userId: session.user.id, tenantId, rol: 'owner', activo: true },
+    select: { tenantId: true },
+  });
+  if (!tenantUser) {
+    throw new AuthError('Acceso denegado. Solo el propietario puede acceder.', 403);
+  }
+  return tenantUser.tenantId;
+}
+
+/**
  * Error de autenticación con status code.
  */
 export class AuthError extends Error {

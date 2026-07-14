@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requireOwner, AuthError } from '@/lib/auth/utils';
 import { PLANES, type PlanTipo } from '@/lib/plan-config';
 
 // GET /api/subscription — Info de la suscripción actual
@@ -50,7 +50,7 @@ export async function GET() {
 // PATCH /api/subscription — Cambiar de plan
 export async function PATCH(request: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requireOwner();
     const body = await request.json();
     const { planTipo } = body as { planTipo?: string };
 
@@ -60,6 +60,14 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // SEGURIDAD: No permitir cambios de plan sin verificación de pago real.
+    // Esta ruta debe ser llamada SOLAMENTE por el webhook de pago confirmado.
+    // Por ahora se bloquea directamente hasta integrar la pasarela.
+    return NextResponse.json(
+      { error: 'Los cambios de plan se procesan a través del pago. Usá la sección de Suscripción.' },
+      { status: 403 }
+    );
 
     // Verificar que no sea downgrade a un plan con menos módulos de los que ya usa
     // (solo warn, no bloquear)

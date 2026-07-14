@@ -3,6 +3,7 @@
 // y devuelve la URL de pago al frontend.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireOwner, AuthError } from '@/lib/auth/utils';
 import { PLANES } from '@/lib/plan-config';
 import { PAYMENT_CONFIG } from '@/lib/payments/config';
 import type { CreateCheckoutRequest, CheckoutResponse } from '@/lib/payments/types';
@@ -21,8 +22,9 @@ function validateProvider(provider: string): boolean {
 
 export async function POST(request: NextRequest) {
   try {
+    const authTenantId = await requireOwner();
     const body = await request.json();
-    const { planTipo, provider, tenantId, email, successUrl, cancelUrl } = body as CreateCheckoutRequest;
+    const { planTipo, provider, email, successUrl, cancelUrl } = body as CreateCheckoutRequest;
 
     // --- Validaciones ---
     if (!planTipo || !validatePlan(planTipo)) {
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     // --- Crear checkout según el provider ---
     // Para el flujo público (landing page), generamos un tenantId temporal
-    const effectiveTenantId = tenantId || `pending_${Date.now()}`;
+    const effectiveTenantId = authTenantId;
     const effectiveEmail = email || 'guest@hospeda.com';
 
     let result: CheckoutResponse;

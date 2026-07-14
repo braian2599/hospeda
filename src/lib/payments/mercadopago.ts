@@ -88,19 +88,39 @@ export async function getMercadoPagoPayment(paymentId: string) {
 }
 
 /**
- * Verifica la firma del webhook de Mercado Pago.
- * En sandbox no es estrictamente necesario, pero en producción sí.
+ * Verifica la firma del webhook de Mercado Pago usando HMAC-SHA256.
  */
 export function verifyMercadoPagoSignature(
-  _xSignature: string,
-  _xRequestId: string
+  xSignature: string,
+  xRequestId: string
 ): boolean {
-  // En producción: verificar con crypto/hmac usando el webhook secret
-  // Para sandbox/dev: siempre true
-  if (process.env.NODE_ENV !== 'production') return true;
+  const secret = process.env.MP_WEBHOOK_SECRET;
+  if (!secret) {
+    // Sin secreto configurado, rechazar siempre (más seguro que aceptar)
+    console.warn('[MP Webhook] MP_WEBHOOK_SECRET no configurada — rechazando webhook');
+    return false;
+  }
 
-  // TODO: Implementar verificación con HMAC-SHA256
-  // const crypto = require('crypto');
-  // const manifest = ...
-  return true;
+  try {
+    const crypto = require('crypto');
+    const parts = xSignature.split(',');
+    let ts = '';
+    let hash = '';
+    for (const part of parts) {
+      const [key, value] = part.split('=');
+      if (key === 'ts') ts = value;
+      if (key === 'v1') hash = value;
+    }
+    if (!ts || !hash) return false;
+
+    const manifest = `id:${xRequestId};request-ts:${ts};`;
+    const expected = crypto
+      .createHmac('sha256', secret)
+      .update(manifest)
+      .digest('hex');
+
+    return hash === expected;
+  } catch {
+    return false;
+  }
 }
