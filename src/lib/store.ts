@@ -64,13 +64,13 @@ function calcularTotalSegunTarifa(
   }
   const tarifa = tarifas[tipoTarifa];
   if (tarifa) {
-    const precioPorPersona = tarifa[personas] || tarifa[Object.keys(tarifa).find(k => !isNaN(Number(k))) as unknown as number] || 0;
-    return noches * personas * precioPorPersona;
+    const precioPorNoche = tarifa[personas] || tarifa[Object.keys(tarifa).find(k => !isNaN(Number(k))) as unknown as number] || 0;
+    return noches * precioPorNoche;
   }
   const normal = tarifas?.normal;
   if (normal) {
-    const precioPorPersona = normal[personas] || normal[Object.keys(normal).find(k => !isNaN(Number(k))) as unknown as number] || 0;
-    return noches * personas * precioPorPersona;
+    const precioPorNoche = normal[personas] || normal[Object.keys(normal).find(k => !isNaN(Number(k))) as unknown as number] || 0;
+    return noches * precioPorNoche;
   }
   return 0;
 }
