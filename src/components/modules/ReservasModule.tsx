@@ -1533,40 +1533,40 @@ export default function ReservasModule() {
                     <Label
                       htmlFor="pago-nada"
                       className={cn(
-                        'flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 cursor-pointer transition-all text-center',
+                        'flex items-center gap-2 rounded-lg border-2 px-3 py-2 cursor-pointer transition-all',
                         form.pagoTipo === 'ninguno'
                           ? 'border-violet-400 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-600'
                           : 'border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-600/50'
                       )}
                     >
                       <RadioGroupItem value="ninguno" id="pago-nada" className="sr-only" />
-                      <span className={cn('text-lg', form.pagoTipo === 'ninguno' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500')}>✕</span>
+                      <span className={cn('text-sm', form.pagoTipo === 'ninguno' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500')}>✕</span>
                       <span className={cn('text-xs font-semibold', form.pagoTipo === 'ninguno' ? 'text-violet-700 dark:text-violet-300' : 'text-slate-500 dark:text-slate-400')}>No abonado</span>
                     </Label>
                     <Label
                       htmlFor="pago-parcial"
                       className={cn(
-                        'flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 cursor-pointer transition-all text-center',
+                        'flex items-center gap-2 rounded-lg border-2 px-3 py-2 cursor-pointer transition-all',
                         form.pagoTipo === 'parcial'
                           ? 'border-violet-400 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-600'
                           : 'border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-600/50'
                       )}
                     >
                       <RadioGroupItem value="parcial" id="pago-parcial" className="sr-only" />
-                      <span className={cn('text-lg', form.pagoTipo === 'parcial' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500')}>◐</span>
+                      <span className={cn('text-sm', form.pagoTipo === 'parcial' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500')}>◐</span>
                       <span className={cn('text-xs font-semibold', form.pagoTipo === 'parcial' ? 'text-violet-700 dark:text-violet-300' : 'text-slate-500 dark:text-slate-400')}>Parcial</span>
                     </Label>
                     <Label
                       htmlFor="pago-total"
                       className={cn(
-                        'flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 cursor-pointer transition-all text-center',
+                        'flex items-center gap-2 rounded-lg border-2 px-3 py-2 cursor-pointer transition-all',
                         form.pagoTipo === 'total'
                           ? 'border-violet-400 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-600'
                           : 'border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-600/50'
                       )}
                     >
                       <RadioGroupItem value="total" id="pago-total" className="sr-only" />
-                      <span className={cn('text-lg', form.pagoTipo === 'total' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500')}>●</span>
+                      <span className={cn('text-sm', form.pagoTipo === 'total' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500')}>●</span>
                       <span className={cn('text-xs font-semibold', form.pagoTipo === 'total' ? 'text-violet-700 dark:text-violet-300' : 'text-slate-500 dark:text-slate-400')}>Total</span>
                     </Label>
                   </RadioGroup>
