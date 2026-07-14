@@ -1466,34 +1466,76 @@ export default function ReservasModule() {
                   </h4>
                 </div>
                 <div className="p-4 space-y-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-3 text-center">
-                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tarifa</p>
-                      <p className="font-semibold text-sm mt-0.5 capitalize">{form.tipoTarifa}</p>
-                    </div>
-                    <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-3 text-center">
-                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Noches</p>
-                      <p className="font-semibold text-sm mt-0.5">{computed.noches}</p>
-                    </div>
-                    <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-3 text-center">
-                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{form.reservaMultiple ? 'Hab. 1 — Pers.' : 'Personas'}</p>
-                      <p className="font-semibold text-sm mt-0.5">{form.personas}</p>
-                    </div>
-                    <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-3 text-center">
-                      <p className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">{form.reservaMultiple ? 'Hab. 1 — Subtotal' : 'Subtotal'}</p>
-                      <p className="font-bold text-sm mt-0.5 text-indigo-700 dark:text-indigo-300">{formatMoney(computed.subtotal)}</p>
-                    </div>
-                  </div>
-
-                  {form.reservaMultiple && computed.subtotal2 > 0 && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-3">
-                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Hab. 2 ({form.habitacion2}) — Personas</p>
-                        <p className="font-semibold text-sm mt-0.5">{habitaciones[form.habitacion2]?.capacidad || 0}</p>
+                  {form.reservaMultiple ? (
+                    <>
+                      {/* Habitación 1 */}
+                      <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 px-3 py-1.5 uppercase tracking-wider">
+                          Habitación {form.habitacion}
+                        </p>
+                        <div className="grid grid-cols-4 gap-2 p-3">
+                          <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-2.5 text-center">
+                            <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tarifa</p>
+                            <p className="font-semibold text-sm mt-0.5 capitalize">{form.tipoTarifa}</p>
+                          </div>
+                          <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-2.5 text-center">
+                            <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Noches</p>
+                            <p className="font-semibold text-sm mt-0.5">{computed.noches}</p>
+                          </div>
+                          <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-2.5 text-center">
+                            <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Personas</p>
+                            <p className="font-semibold text-sm mt-0.5">{form.personas}</p>
+                          </div>
+                          <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-2.5 text-center">
+                            <p className="text-[10px] font-medium text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">Subtotal</p>
+                            <p className="font-bold text-sm mt-0.5 text-indigo-700 dark:text-indigo-300">{formatMoney(computed.subtotal)}</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-3 text-right">
-                        <p className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">Hab. 2 — Subtotal</p>
-                        <p className="font-bold text-sm mt-0.5 text-indigo-700 dark:text-indigo-300">{formatMoney(computed.subtotal2)}</p>
+                      {/* Habitación 2 */}
+                      {computed.subtotal2 > 0 && (
+                        <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 px-3 py-1.5 uppercase tracking-wider">
+                            Habitación {form.habitacion2}
+                          </p>
+                          <div className="grid grid-cols-4 gap-2 p-3">
+                            <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-2.5 text-center">
+                              <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tarifa</p>
+                              <p className="font-semibold text-sm mt-0.5 capitalize">{form.tipoTarifa}</p>
+                            </div>
+                            <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-2.5 text-center">
+                              <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Noches</p>
+                              <p className="font-semibold text-sm mt-0.5">{computed.noches}</p>
+                            </div>
+                            <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-2.5 text-center">
+                              <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Personas</p>
+                              <p className="font-semibold text-sm mt-0.5">{form.personas2}</p>
+                            </div>
+                            <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-2.5 text-center">
+                              <p className="text-[10px] font-medium text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">Subtotal</p>
+                              <p className="font-bold text-sm mt-0.5 text-indigo-700 dark:text-indigo-300">{formatMoney(computed.subtotal2)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-3 text-center">
+                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tarifa</p>
+                        <p className="font-semibold text-sm mt-0.5 capitalize">{form.tipoTarifa}</p>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-3 text-center">
+                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Noches</p>
+                        <p className="font-semibold text-sm mt-0.5">{computed.noches}</p>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-3 text-center">
+                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Personas</p>
+                        <p className="font-semibold text-sm mt-0.5">{form.personas}</p>
+                      </div>
+                      <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-3 text-center">
+                        <p className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">Subtotal</p>
+                        <p className="font-bold text-sm mt-0.5 text-indigo-700 dark:text-indigo-300">{formatMoney(computed.subtotal)}</p>
                       </div>
                     </div>
                   )}
