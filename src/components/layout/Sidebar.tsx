@@ -10,7 +10,6 @@ import { Separator } from '@/components/ui/separator';
 import {
   LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles,
   Wallet, Users, BarChart3, UserCog, Tags, LogOut, Hotel, X, Lock, Settings,
-  Crown,
 } from 'lucide-react';
 
 // Se define dentro del componente para acceder a update() del hook useSession
@@ -264,37 +263,9 @@ export default function Sidebar() {
 
       <Separator />
 
-      {/* Owner-only: Suscripcion + Configuracion */}
+      {/* Owner-only: Configuracion */}
       {usuarioActual.rol === 'owner' && (
-        <div className="px-2 py-1.5 space-y-0.5">
-          <button
-            onClick={() => setModulo('suscripcion' as ModuloId)}
-            className={`
-              w-full flex items-center rounded-lg transition-colors duration-200 relative
-              ${isExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
-              ${isActive('suscripcion')
-                ? 'bg-amber-500/15'
-                : 'hover:bg-accent/50'
-              }
-            `}
-            title={!isExpanded ? 'Suscripción' : undefined}
-          >
-            <span className={`
-              shrink-0 flex items-center justify-center rounded-md
-              ${isExpanded ? 'w-7 h-7' : 'w-8 h-8'}
-              ${isActive('suscripcion')
-                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                : 'bg-amber-100 dark:bg-amber-900/30 text-muted-foreground'
-              }
-            `}>
-              <Crown className={isExpanded ? 'w-4 h-4' : 'w-[18px] h-[18px]'} />
-            </span>
-            {isExpanded && (
-              <span className={`text-[13px] font-medium truncate ${isActive('suscripcion') ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
-                Suscripción
-              </span>
-            )}
-          </button>
+        <div className="px-2 py-1.5">
           <button
             onClick={() => setModulo('configuracion' as ModuloId)}
             className={`
@@ -461,30 +432,9 @@ export default function Sidebar() {
 
         <Separator />
 
-        {/* Owner-only: Suscripcion + Configuracion (mobile) */}
+        {/* Owner-only: Configuracion (mobile) */}
         {usuarioActual.rol === 'owner' && (
-          <div className="px-2 py-1.5 space-y-0.5">
-            <button
-              onClick={() => { setModulo('suscripcion' as ModuloId); setSidebarOpen(false); }}
-              className={`
-                w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium
-                transition-colors duration-200 text-left relative
-                ${isActive('suscripcion') ? 'bg-amber-500/15' : 'hover:bg-accent/50'}
-              `}
-            >
-              <span className={`
-                shrink-0 flex items-center justify-center w-7 h-7 rounded-md
-                ${isActive('suscripcion')
-                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                  : 'bg-amber-100 dark:bg-amber-900/30 text-muted-foreground'
-                }
-              `}>
-                <Crown className="w-4 h-4" />
-              </span>
-              <span className={`flex-1 ${isActive('suscripcion') ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
-                Suscripción
-              </span>
-            </button>
+          <div className="px-2 py-1.5">
             <button
               onClick={() => { setModulo('configuracion' as ModuloId); setSidebarOpen(false); }}
               className={`

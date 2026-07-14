@@ -16,11 +16,9 @@ import TarifasModule from '@/components/modules/TarifasModule';
 import ReportesModule from '@/components/modules/ReportesModule';
 import UsuariosModule from '@/components/modules/UsuariosModule';
 import ConfiguracionModule from '@/components/configuracion/ConfiguracionModule';
-import SuscripcionModule from '@/components/subscription/SuscripcionModule';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import ProfileSettings from '@/components/layout/ProfileSettings';
-import TrialBanner from '@/components/subscription/TrialBanner';
 import ModuleLockedDialog from '@/components/subscription/ModuleLockedDialog';
 import PaymentResultBanner from '@/components/payments/PaymentResultBanner';
 import type { ModuloId } from '@/lib/types';
@@ -42,23 +40,13 @@ const modules: Record<ModuloId, React.ComponentType> = {
 export default function AppPage() {
   const { usuarioActual, moduloActivo, perfilOpen, setPerfilOpen, planActual, fechaInicioTrial } = useHotelStore();
 
-  if (!usuarioActual) return null; // El layout protege esto
+  if (!usuarioActual) return null;
 
-  // Configuracion is owner-only, not a regular module — skip plan checks
+  // Configuracion is owner-only — skip plan checks
   if ((moduloActivo as string) === 'configuracion') {
     return (
       <AppShell>
         <ConfiguracionModule />
-        <ModuleLockedDialog />
-      </AppShell>
-    );
-  }
-
-  // Suscripcion is owner-only, not a regular module — skip plan checks
-  if ((moduloActivo as string) === 'suscripcion') {
-    return (
-      <AppShell>
-        <SuscripcionModule />
         <ModuleLockedDialog />
       </AppShell>
     );
@@ -84,8 +72,8 @@ export default function AppPage() {
           </h2>
           <p className="text-muted-foreground mt-1 max-w-sm">
             {bloqueadoPorTrial
-              ? 'Tu período de prueba gratuita terminó. Elegí un plan para seguir usando todos los módulos.'
-              : 'Este módulo no está incluido en tu plan actual. Upgradeá para acceder.'}
+              ? 'Tu período de prueba gratuita terminó. Elegí un plan en Configuración para seguir usando todos los módulos.'
+              : 'Este módulo no está incluido en tu plan actual. Cambiá tu plan desde Configuración.'}
           </p>
         </div>
         <ModuleLockedDialog />
@@ -115,9 +103,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     <div className="fixed inset-0 bg-background flex">
       <Sidebar />
       <main className="flex-1 min-w-0 flex flex-col overflow-y-auto">
-        {/* Trial / Plan banner */}
-        <TrialBanner />
-        {/* Payment result notification */}
+        {/* Payment result notification (after returning from MP) */}
         <Suspense fallback={null}>
           <PaymentResultBanner />
         </Suspense>

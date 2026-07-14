@@ -16,9 +16,15 @@ import {
   CreditCard, Building2, FileText, Shield, Wallet, Headphones, Download,
   Crown, Check, Loader2, Save, Eye, EyeOff, Star, ArrowRight,
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
-  Settings,
+  Settings, Copy, Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import dynamic from 'next/dynamic';
+
+const CheckoutDialog = dynamic(
+  () => import('@/components/payments/CheckoutDialog'),
+  { ssr: false }
+);
 
 // ─── Tabs config ───
 const TABS = [
@@ -99,11 +105,24 @@ export default function ConfiguracionModule() {
 // ═══════════════════════════════════════════
 // 1. SUSCRIPCIÓN Y PLANES
 // ═══════════════════════════════════════════
+// Datos de transferencia bancaria
+const TRANSFERENCIA_DATA = {
+  banco: 'Banco Nación',
+  titular: 'Hospedá S.A.',
+  cbu: '0110222255002233334444',
+  alias: 'hospeda.mp',
+  cuit: '20-12345678-9',
+  cuenta: 'Cuenta Corriente en Pesos',
+};
+
 function SuscripcionSection() {
   const { planActual, fechaInicioTrial } = useHotelStore();
   const [usage, setUsage] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [changingPlan, setChangingPlan] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanTipo, 'trial'> | null>(null);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [copiedField, setCopiedField] = useState('');
 
   const fetchUsage = useCallback(async () => {
     try {
@@ -119,6 +138,19 @@ function SuscripcionSection() {
   const planInfo = PLANES[planActual];
   const diasTrial = fechaInicioTrial ? diasRestantesTrial(fechaInicioTrial) : 0;
   const isTrial = planActual === 'trial';
+  const trialExpired = isTrial && fechaInicioTrial && diasTrial === 0;
+
+  const handlePagar = (tipo: Exclude<PlanTipo, 'trial'>) => {
+    setSelectedPlan(tipo);
+    setCheckoutOpen(true);
+  };
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    toast.success('Copiado al portapapeles');
+    setTimeout(() => setCopiedField(''), 2000);
+  };
 
   const UsageBar = ({ label, current, max, icon: Icon }: { label: string; current: number; max: number; icon: React.ComponentType<{ className?: string }> }) => {
     const pct = max === 0 ? 0 : Math.min(100, Math.round((current / max) * 100));
@@ -143,25 +175,7 @@ function SuscripcionSection() {
     );
   };
 
-  const handleUpgrade = async (tipo: Exclude<PlanTipo, 'trial'>) => {
-    setChangingPlan(true);
-    try {
-      const res = await fetch('/api/subscription', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planTipo: tipo }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast.error(data.error || 'Error al cambiar de plan'); return; }
-      toast.success(`Plan cambiado a ${data.planNombre}`);
-      // Update store
-      useHotelStore.getState().setPlanActual(tipo);
-      fetchUsage();
-    } catch {
-      toast.error('Error de conexión');
-    }
-    setChangingPlan(false);
-  };
+
 
   return (
     <div className="space-y-6">
@@ -287,12 +301,10 @@ function SuscripcionSection() {
                   {!isCurrent && (
                     <Button
                       className="w-full"
-                      variant={isDowngrade ? 'outline' : 'default'}
-                      onClick={() => handleUpgrade(tipo)}
-                      disabled={changingPlan}
+                      variant="default"
+                      onClick={() => handlePagar(tipo)}
                     >
-                      {changingPlan ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                      {isDowngrade ? 'Cambiar plan' : 'Suscribirme'}
+                      Pagar con Mercado Pago
                       <ArrowRight className="w-4 h-4 ml-1" />
                     </Button>
                   )}
@@ -302,6 +314,74 @@ function SuscripcionSection() {
           })}
         </div>
       </div>
+
+      {/* Transferencia bancaria */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowTransfer(!showTransfer)}
+          className="flex items-center gap-3 group w-full text-left"
+        >
+          <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+            <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold group-hover:text-primary transition-colors">
+              Pago por transferencia bancaria
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Realizá la transferencia y enviá el comprobante
+            </p>
+          </div>
+          <ArrowRight className={`w-4 h-4 text-muted-foreground transition-transform ${showTransfer ? 'rotate-90' : ''}`} />
+        </button>
+
+        {showTransfer && (
+          <Card className="mt-3">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-start gap-2 p-2.5 bg-blue-500/5 rounded-lg">
+                <Info className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Luego de realizar la transferencia, enviá el comprobante por email a <strong>soporte@hospeda.com</strong> con tu nombre de hotel y el plan elegido.
+                </p>
+              </div>
+              {[
+                { label: 'Banco', value: TRANSFERENCIA_DATA.banco },
+                { label: 'Titular', value: TRANSFERENCIA_DATA.titular },
+                { label: 'CBU', value: TRANSFERENCIA_DATA.cbu, copyable: true },
+                { label: 'Alias', value: TRANSFERENCIA_DATA.alias, copyable: true },
+                { label: 'CUIT', value: TRANSFERENCIA_DATA.cuit },
+                { label: 'Cuenta', value: TRANSFERENCIA_DATA.cuenta },
+              ].map(item => (
+                <div key={item.label} className="flex items-center justify-between py-1">
+                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium font-mono">{item.value}</span>
+                    {item.copyable && (
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(item.value, item.label)}
+                        className="p-1 rounded hover:bg-accent transition-colors"
+                      >
+                        {copiedField === item.label
+                          ? <Check className="w-3 h-3 text-green-500" />
+                          : <Copy className="w-3 h-3 text-muted-foreground" />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Checkout Dialog (Mercado Pago) */}
+      <CheckoutDialog
+        open={checkoutOpen}
+        onOpenChange={setCheckoutOpen}
+        selectedPlan={selectedPlan}
+      />
     </div>
   );
 }
