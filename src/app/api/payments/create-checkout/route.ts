@@ -44,11 +44,15 @@ export async function POST(request: NextRequest) {
     const plan = PLANES[planTipo];
 
     // --- Check si hay API keys configuradas ---
-    if (provider === 'mercadopago' && !PAYMENT_CONFIG.mercadoPago.accessToken) {
-      return NextResponse.json(
-        { error: 'Mercado Pago no está configurado. Contactá al soporte.' },
-        { status: 503 }
-      );
+    if (provider === 'mercadopago') {
+      const { getMPAccessToken } = await import('@/lib/payments/config');
+      const mpToken = await getMPAccessToken();
+      if (!mpToken) {
+        return NextResponse.json(
+          { error: 'Mercado Pago no está configurado. Configuralo desde el panel de Super Admin.' },
+          { status: 503 }
+        );
+      }
     }
 
     if (provider === 'stripe' && !PAYMENT_CONFIG.stripe.secretKey) {

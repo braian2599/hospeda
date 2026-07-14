@@ -2,7 +2,7 @@
 // Funciones server-side para interactuar con la API de Mercado Pago.
 
 import { PlanTipo, PLANES } from '@/lib/plan-config';
-import { PAYMENT_CONFIG } from '@/lib/payments/config';
+import { PAYMENT_CONFIG, getMPAccessToken } from '@/lib/payments/config';
 import type { PaymentMetadata, MercadoPagoCheckoutResponse } from '@/lib/payments/types';
 
 /**
@@ -19,9 +19,14 @@ export async function createMercadoPagoCheckout(params: {
   const plan = PLANES[planTipo];
 
   // Dinamically import mercadopago (server-only)
+  const accessToken = await getMPAccessToken();
+  if (!accessToken) {
+    throw new Error('Mercado Pago no está configurado.');
+  }
+
   const mercadopago = await import('mercadopago');
   const mp = new mercadopago.default({
-    accessToken: PAYMENT_CONFIG.mercadoPago.accessToken,
+    accessToken,
     options: { sandbox: PAYMENT_CONFIG.mercadoPago.sandboxMode },
   });
 
@@ -77,9 +82,14 @@ export async function createMercadoPagoCheckout(params: {
  * Busca información de un pago en Mercado Pago por su ID.
  */
 export async function getMercadoPagoPayment(paymentId: string) {
+  const accessToken = await getMPAccessToken();
+  if (!accessToken) {
+    throw new Error('Mercado Pago no está configurado.');
+  }
+
   const mercadopago = await import('mercadopago');
   const mp = new mercadopago.default({
-    accessToken: PAYMENT_CONFIG.mercadoPago.accessToken,
+    accessToken,
     options: { sandbox: PAYMENT_CONFIG.mercadoPago.sandboxMode },
   });
 
