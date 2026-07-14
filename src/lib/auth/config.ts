@@ -85,9 +85,17 @@ export const authOptions: NextAuthOptions = {
         const proposedTenantUserId = (session as Record<string, unknown>).tenantUserId as string | undefined;
         if (proposedTenantId && token.id) {
           try {
-            // Validar contra la DB: el usuario debe pertenecer a ese tenant
+            // Validar contra la DB: filtrar por tenantId Y por el perfil específico
+            const whereClause: Record<string, unknown> = {
+              userId: token.id as string,
+              tenantId: proposedTenantId,
+              activo: true,
+            };
+            if (proposedTenantUserId) {
+              whereClause.id = proposedTenantUserId;
+            }
             const tu = await db.tenantUser.findFirst({
-              where: { userId: token.id as string, tenantId: proposedTenantId, activo: true },
+              where: whereClause,
               select: { tenantId: true, rol: true, id: true },
             });
             if (tu) {
