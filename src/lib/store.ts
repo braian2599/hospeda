@@ -257,6 +257,7 @@ export const useHotelStore = create<HotelStore>()(
           set({ planActual: sessionData.planActual });
         }
         set({ usuarioActual: sesion, moduloActivo: startModule as any, moduloBloqueado: null });
+        get()._registrarAuditoria('Login', `Inicio de sesión: ${sesion.nombreCompleto || sesion.nombre}`);
         return true;
       },
 
