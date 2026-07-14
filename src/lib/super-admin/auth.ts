@@ -19,7 +19,7 @@ export async function requireSuperAdmin() {
     .map(e => e.trim().toLowerCase());
 
   if (!allowedEmails.includes(session.user.email.toLowerCase())) {
-    return { error: NextResponse.json({ error: 'Acceso denegado' }, { status: 403 }), session: null };
+    return { error: NextResponse.json({ error: 'Acceso denegado - email no autorizado como Super Admin. Verifica la variable SUPER_ADMIN_EMAILS en Vercel.' }, { status: 403 }), session: null };
   }
 
   return { error: null, session };

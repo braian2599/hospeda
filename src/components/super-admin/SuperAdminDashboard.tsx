@@ -217,9 +217,10 @@ export default function SuperAdminDashboard() {
 
   useEffect(() => {
     fetch('/api/super-admin/metrics')
-      .then((res) => {
-        if (!res.ok) throw new Error('Error al cargar métricas');
-        return res.json();
+      .then(async (res) => {
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Error al cargar métricas');
+        return json;
       })
       .then(setData)
       .catch((err) => setError(err.message))
