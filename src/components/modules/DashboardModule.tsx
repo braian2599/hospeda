@@ -9,7 +9,9 @@ import {
   CalendarCheck, AlertTriangle, BarChart3,
   Bell, CheckCircle, LockOpen, ChevronLeft, ChevronRight,
   CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+  History,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -398,6 +400,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
   fechaInicioBase: Date;
 }) {
   const [offset, setOffset] = useState(0);
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [popoverData, setPopoverData] = useState<PopoverData | null>(null);
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
 
@@ -456,10 +459,20 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         if (r.habitacion !== num || r.estado === 'Cancelada') return;
         if (r.checkin > columnas[DIAS_GANTT - 1] || r.checkout < columnas[0]) return;
 
+        const esHistorica = r.estado === 'Checkout_realizado' && !mostrarHistorial;
+        if (esHistorica) return;
+
         const horaCheckin = r.horaCheckin ? new Date(r.horaCheckin) : new Date(r.checkin + 'T14:00:00');
         const horaCheckout = r.horaCheckout ? new Date(r.horaCheckout) : new Date(r.checkout + 'T09:00:00');
 
-        const estado = (r.estado === 'Check-In realizado' || r.estado === 'Check-Out realizado') ? 'Ocupada' : 'Reservada';
+        let estado: string;
+        if (r.estado === 'Checkout_realizado') {
+          estado = 'Finalizada';
+        } else if (r.estado === 'Check-In realizado') {
+          estado = 'Ocupada';
+        } else {
+          estado = 'Reservada';
+        }
         reservasHab.push({
           tipo: estado, checkin: r.checkin, checkout: r.checkout, huesped: r.huesped,
           horaCheckin, horaCheckout, tarifa: r.tipoTarifa, monto: r.total, estadoPago: r.estadoPago,
@@ -560,7 +573,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
     });
 
     return result;
-  }, [habitaciones, reservas, columnas, colIdx, handleBarClick, hoyStr]);
+  }, [habitaciones, reservas, columnas, colIdx, handleBarClick, hoyStr, mostrarHistorial]);
 
   const headerCols = useMemo(() => {
     return columnas.map((col, i) => {
@@ -584,6 +597,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
     { label: 'Disponible', color: 'bg-slate-200 border border-slate-300' },
     { label: 'Reservada', color: 'bg-blue-500' },
     { label: 'Ocupada', color: 'bg-emerald-500' },
+    ...(mostrarHistorial ? [{ label: 'Finalizada', color: 'bg-slate-400 opacity-50' }] : []),
     { label: 'Limpieza', color: 'bg-amber-500' },
     { label: 'Mantenimiento', color: 'bg-slate-400' },
   ];
@@ -610,6 +624,16 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
               {offset !== 0 && (
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setOffset(0)}>Hoy</Button>
               )}
+              <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
+              <Button
+                variant={mostrarHistorial ? 'default' : 'outline'}
+                size="sm"
+                className={cn('h-7 text-xs gap-1.5', mostrarHistorial && 'bg-slate-600 hover:bg-slate-700')}
+                onClick={() => setMostrarHistorial(v => !v)}
+              >
+                <History className="w-3.5 h-3.5" />
+                Historial
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -640,6 +664,7 @@ function getBarColorClass(tipo: string): string {
   const map: Record<string, string> = {
     Reservada: 'bg-blue-500 shadow-[0_2px_6px_rgba(59,130,246,0.35)]',
     Ocupada: 'bg-emerald-500 shadow-[0_2px_6px_rgba(16,185,129,0.35)]',
+    Finalizada: 'bg-slate-400 opacity-50 border border-dashed border-slate-300 dark:border-slate-500',
     Limpieza: 'bg-amber-500 shadow-[0_2px_6px_rgba(245,158,11,0.30)]',
     Mantenimiento: 'bg-slate-400 shadow-[0_2px_6px_rgba(100,116,139,0.25)]',
   };
