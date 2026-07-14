@@ -196,7 +196,11 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     loginFromSession(data);
     // Persistir tenantId y tenantUserId en el JWT para restaurar sesión sin re-seleccionar
     if (data.tenantId) {
-      await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId });
+      try {
+        await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId });
+      } catch {
+        // Si falla la actualización del JWT, no importa — el store ya tiene el usuario
+      }
     }
   }, [loginFromSession, update]);
 
@@ -238,11 +242,23 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
   }, [loginAndUpdateSession]);
 
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.email && !usuarioActual) {
-      // Pasar tenantId y profileId del JWT para no volver a pedir selección
+    if (status === 'authenticated' && session?.user?.email) {
       const userAny = session.user as Record<string, unknown>;
       const jwtTenantId = userAny.tenantId as string | undefined;
       const jwtProfileId = userAny.tenantUserId as string | undefined;
+
+      // Si ya hay usuario en el store, validar que coincida con el JWT
+      if (usuarioActual) {
+        if (jwtTenantId && usuarioActual.tenantId === jwtTenantId) {
+          // Mismo tenant → confiar en el store, no llamar a la API
+          setLoading(false);
+          return;
+        }
+        // Tenant diferente → limpiar y re-cargar
+        useHotelStore.getState().logout();
+      }
+
+      // Pasar tenantId y profileId del JWT para no volver a pedir selección
       const params = new URLSearchParams();
       if (jwtTenantId) params.set('tenantId', jwtTenantId);
       if (jwtProfileId) params.set('profileId', jwtProfileId);
@@ -251,8 +267,6 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         .then(res => res.json())
         .then(data => processMeData(data))
         .catch(() => { setError('No se pudo conectar al servidor.'); setLoading(false); });
-    } else if (usuarioActual) {
-      setLoading(false);
     } else if (status === 'unauthenticated') {
       setLoading(false);
     }
