@@ -242,24 +242,11 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
   }, [loginAndUpdateSession]);
 
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.email) {
+    if (status === 'authenticated' && session?.user?.email && !usuarioActual) {
+      // Pasar tenantId y profileId del JWT para no volver a pedir selección
       const userAny = session.user as Record<string, unknown>;
       const jwtTenantId = userAny.tenantId as string | undefined;
       const jwtProfileId = userAny.tenantUserId as string | undefined;
-
-      // Si ya hay usuario en el store, validar que coincida con el JWT exactamente
-      if (usuarioActual) {
-        if (jwtTenantId && usuarioActual.tenantId === jwtTenantId
-            && jwtProfileId && usuarioActual.tenantUserId === jwtProfileId) {
-          // Mismo tenant Y mismo perfil → confiar en el store
-          setLoading(false);
-          return;
-        }
-        // Tenant o perfil diferente → limpiar y re-cargar
-        useHotelStore.getState().logout();
-      }
-
-      // Pasar tenantId y profileId del JWT para no volver a pedir selección
       const params = new URLSearchParams();
       if (jwtTenantId) params.set('tenantId', jwtTenantId);
       if (jwtProfileId) params.set('profileId', jwtProfileId);
@@ -268,11 +255,9 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         .then(res => res.json())
         .then(data => processMeData(data))
         .catch(() => { setError('No se pudo conectar al servidor.'); setLoading(false); });
+    } else if (usuarioActual) {
+      setLoading(false);
     } else if (status === 'unauthenticated') {
-      // Limpiar store cuando la sesión expira o se cierra
-      if (usuarioActual) {
-        useHotelStore.getState().logout();
-      }
       setLoading(false);
     }
   }, [status, session, usuarioActual, loginFromSession, router, processMeData]);

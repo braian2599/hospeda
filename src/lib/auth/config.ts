@@ -113,20 +113,9 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      if (!token.tenantId && token.id) {
-        try {
-          const tenantUser = await db.tenantUser.findFirst({
-            where: { userId: token.id as string, activo: true },
-            select: { tenantId: true, rol: true },
-          });
-          if (tenantUser) {
-            token.tenantId = tenantUser.tenantId;
-            token.tenantRole = tenantUser.rol;
-          }
-        } catch {
-          // DB no disponible → no bloquear la sesión
-        }
-      }
+      // NO agregar fallback automático de tenantId aquí.
+      // Si no hay tenantId, el SessionLoader llamará a /api/auth/me sin params
+      // y el flujo normal (selector de hotel/perfil) se encargará.
 
       return token;
     },

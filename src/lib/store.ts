@@ -926,7 +926,6 @@ export const useHotelStore = create<HotelStore>()(
         return persisted;
       },
       partialize: (state) => ({
-        usuarioActual: state.usuarioActual,
         habitaciones: state.habitaciones,
         reservas: state.reservas,
         clientes: state.clientes,
