@@ -68,40 +68,61 @@ export async function GET() {
       }
     }
 
-    // ── Pagos de plataforma ──
-    const [pagosMesActual, pagosMesPasado, pagosPendientes] = await Promise.all([
-      db.platformPayment.aggregate({
-        where: {
-          estado: 'pagado',
-          createdAt: { gte: inicioMes },
-        },
-        _sum: { monto: true },
-        _count: { id: true },
-      }),
-      db.platformPayment.aggregate({
-        where: {
-          estado: 'pagado',
-          createdAt: { gte: inicioMesPasado, lt: finMesPasado },
-        },
-        _sum: { monto: true },
-        _count: { id: true },
-      }),
-      db.platformPayment.count({ where: { estado: 'pendiente' } }),
-    ]);
+    // ── Pagos de plataforma (con try/catch por si la tabla no existe aún) ──
+    let ingresosMesActual = 0;
+    let ingresosMesPasado = 0;
+    let pagosMesActualCount = 0;
+    let pagosPendientes = 0;
+    let ultimosPagos: { id: string; tenantNombre: string; monto: number; metodo: string; estado: string; periodoDesde: string; periodoHasta: string; createdAt: string }[] = [];
 
-    const ingresosMesActual = pagosMesActual._sum.monto || 0;
-    const ingresosMesPasado = pagosMesPasado._sum.monto || 0;
+    try {
+      const [pagosMesActual, pagosMesPasadoRes, pagosPend] = await Promise.all([
+        db.platformPayment.aggregate({
+          where: { estado: 'pagado', createdAt: { gte: inicioMes } },
+          _sum: { monto: true },
+          _count: { id: true },
+        }),
+        db.platformPayment.aggregate({
+          where: { estado: 'pagado', createdAt: { gte: inicioMesPasado, lt: finMesPasado } },
+          _sum: { monto: true },
+        }),
+        db.platformPayment.count({ where: { estado: 'pendiente' } }),
+      ]);
+      ingresosMesActual = pagosMesActual._sum.monto || 0;
+      ingresosMesPasado = pagosMesPasadoRes._sum.monto || 0;
+      pagosMesActualCount = pagosMesActual._count.id;
+      pagosPendientes = pagosPend;
+
+      const ultimosPagosRaw = await db.platformPayment.findMany({
+        include: { tenant: { select: { nombre: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      });
+      ultimosPagos = ultimosPagosRaw.map(p => ({
+        id: p.id,
+        tenantNombre: p.tenant.nombre,
+        monto: p.monto,
+        metodo: p.metodo,
+        estado: p.estado,
+        periodoDesde: p.periodoDesde.toISOString(),
+        periodoHasta: p.periodoHasta.toISOString(),
+        createdAt: p.createdAt.toISOString(),
+      }));
+    } catch {
+      // Tabla PlatformPayment no existe aún — usar valores por defecto
+    }
+
     const variacionIngresos = ingresosMesPasado > 0
       ? Math.round(((ingresosMesActual - ingresosMesPasado) / ingresosMesPasado) * 100)
       : ingresosMesActual > 0 ? 100 : 0;
 
-    // ── Suscripciones vencidas recientemente ──
+    // ── Suscripciones próximas a vencer ──
     const proximasAVencer = await db.subscription.findMany({
       where: {
         estado: { in: ['activa', 'trial'] },
         fechaVencimiento: {
           gte: now,
-          lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // Próximos 7 días
+          lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
         },
       },
       include: {
@@ -109,15 +130,6 @@ export async function GET() {
         plan: { select: { nombre: true, type: true } },
       },
       orderBy: { fechaVencimiento: 'asc' },
-      take: 10,
-    });
-
-    // ── Últimos pagos ──
-    const ultimosPagos = await db.platformPayment.findMany({
-      include: {
-        tenant: { select: { nombre: true } },
-      },
-      orderBy: { createdAt: 'desc' },
       take: 10,
     });
 
@@ -147,14 +159,14 @@ export async function GET() {
         mesActual: ingresosMesActual,
         mesPasado: ingresosMesPasado,
         variacionPorcentaje: variacionIngresos,
-        pagosMesActual: pagosMesActual._count.id,
+        pagosMesActual: pagosMesActualCount,
         pagosPendientes,
       },
       planes: {
         distribucion: planDistribution.map(p => ({
           planId: p.planId,
-          nombre: p.plan.nombre,
-          type: p.plan.type,
+          nombre: p.plan?.nombre || 'Desconocido',
+          type: p.plan?.type || 'desconocido',
           cantidad: p._count.id,
         })),
         porEstado: estadoDistribution.map(e => ({
@@ -174,21 +186,12 @@ export async function GET() {
           diasRestantes: Math.ceil((s.fechaVencimiento.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
         })),
       },
-      ultimosPagos: ultimosPagos.map(p => ({
-        id: p.id,
-        tenantNombre: p.tenant.nombre,
-        monto: p.monto,
-        metodo: p.metodo,
-        estado: p.estado,
-        periodoDesde: p.periodoDesde.toISOString(),
-        periodoHasta: p.periodoHasta.toISOString(),
-        createdAt: p.createdAt.toISOString(),
-      })),
+      ultimosPagos,
       tenantsRecientes,
     });
   } catch (error: unknown) {
     const err = error as Error;
     console.error('[/api/super-admin/metrics] Error:', err.message);
-    return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
+    return NextResponse.json({ error: `Error del servidor: ${err.message}` }, { status: 500 });
   }
 }
