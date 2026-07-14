@@ -194,9 +194,9 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
   // Actualizar el JWT de NextAuth con el tenantId seleccionado
   const loginAndUpdateSession = useCallback(async (data: Record<string, any>) => {
     loginFromSession(data);
-    // Persistir tenantId en el JWT para que requireTenantId() lo use
+    // Persistir tenantId y tenantUserId en el JWT para restaurar sesión sin re-seleccionar
     if (data.tenantId) {
-      await update({ tenantId: data.tenantId, tenantRole: data.rol });
+      await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId });
     }
   }, [loginFromSession, update]);
 
@@ -239,7 +239,15 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.email && !usuarioActual) {
-      fetch('/api/auth/me')
+      // Pasar tenantId y profileId del JWT para no volver a pedir selección
+      const userAny = session.user as Record<string, unknown>;
+      const jwtTenantId = userAny.tenantId as string | undefined;
+      const jwtProfileId = userAny.tenantUserId as string | undefined;
+      const params = new URLSearchParams();
+      if (jwtTenantId) params.set('tenantId', jwtTenantId);
+      if (jwtProfileId) params.set('profileId', jwtProfileId);
+      const meUrl = `/api/auth/me${params.toString() ? '?' + params.toString() : ''}`;
+      fetch(meUrl)
         .then(res => res.json())
         .then(data => processMeData(data))
         .catch(() => { setError('No se pudo conectar al servidor.'); setLoading(false); });
@@ -337,10 +345,23 @@ function ProtectedApp({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Solo redirigir si estamos seguros de que no hay sesión
+    // (no redirigir durante el estado 'loading' inicial)
     if (status === 'unauthenticated') { router.push('/login'); }
   }, [status, router]);
 
-  if (status === 'loading' || status === 'unauthenticated') {
+  if (status === 'loading') {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-3">

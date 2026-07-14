@@ -82,28 +82,41 @@ export const authOptions: NextAuthOptions = {
 
       if (trigger === 'update' && session) {
         const proposedTenantId = (session as Record<string, unknown>).tenantId as string | undefined;
+        const proposedTenantUserId = (session as Record<string, unknown>).tenantUserId as string | undefined;
         if (proposedTenantId && token.id) {
-          // Validar contra la DB: el usuario debe pertenecer a ese tenant
-          const tu = await db.tenantUser.findFirst({
-            where: { userId: token.id as string, tenantId: proposedTenantId, activo: true },
-            select: { tenantId: true, rol: true },
-          });
-          if (tu) {
-            token.tenantId = tu.tenantId;
-            token.tenantRole = tu.rol; // Usar rol de la DB, no del cliente
+          try {
+            // Validar contra la DB: el usuario debe pertenecer a ese tenant
+            const tu = await db.tenantUser.findFirst({
+              where: { userId: token.id as string, tenantId: proposedTenantId, activo: true },
+              select: { tenantId: true, rol: true, id: true },
+            });
+            if (tu) {
+              token.tenantId = tu.tenantId;
+              token.tenantRole = tu.rol;
+              token.tenantUserId = tu.id;
+            }
+          } catch {
+            // Si la DB no responde, confiar en los datos que ya vienen del update
+            // Esto evita que un cold start cierre la sesión
+            token.tenantId = proposedTenantId;
+            token.tenantRole = (session as Record<string, unknown>).tenantRole as string | undefined;
+            token.tenantUserId = proposedTenantUserId;
           }
-          // Si no pertenece, se ignora silenciosamente (no se actualiza el JWT)
         }
       }
 
       if (!token.tenantId && token.id) {
-        const tenantUser = await db.tenantUser.findFirst({
-          where: { userId: token.id as string, activo: true },
-          select: { tenantId: true, rol: true },
-        });
-        if (tenantUser) {
-          token.tenantId = tenantUser.tenantId;
-          token.tenantRole = tenantUser.rol;
+        try {
+          const tenantUser = await db.tenantUser.findFirst({
+            where: { userId: token.id as string, activo: true },
+            select: { tenantId: true, rol: true },
+          });
+          if (tenantUser) {
+            token.tenantId = tenantUser.tenantId;
+            token.tenantRole = tenantUser.rol;
+          }
+        } catch {
+          // DB no disponible → no bloquear la sesión
         }
       }
 
@@ -115,6 +128,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as Record<string, unknown>).id = token.id;
         (session.user as Record<string, unknown>).tenantId = token.tenantId;
         (session.user as Record<string, unknown>).tenantRole = token.tenantRole;
+        (session.user as Record<string, unknown>).tenantUserId = token.tenantUserId;
         (session.user as Record<string, unknown>).matchedProfileIds = token.matchedProfileIds;
       }
       return session;
