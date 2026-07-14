@@ -24,17 +24,15 @@ export default function ModuleHeader({
   const textColor = iconColor || derivedColor || 'text-slate-500 dark:text-slate-400';
 
   return (
-    <div className="flex items-center justify-between mb-6">
+    <div className="flex items-center justify-center gap-3 mb-6">
+      <Icon className={`w-6 h-6 shrink-0 ${textColor}`} />
       <div>
         <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
         {subtitle && (
           <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
         )}
       </div>
-      <div className="flex items-center gap-3">
-        {children}
-        <Icon className={`w-6 h-6 shrink-0 ${textColor}`} />
-      </div>
+      {children}
     </div>
   );
 }

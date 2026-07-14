@@ -49,12 +49,12 @@ export default function ConfiguracionModule() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-center gap-3">
+        <Settings className="w-6 h-6 text-slate-500 dark:text-slate-400 shrink-0" />
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Configuración</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Administrá tu hotel, plan y cuenta</p>
         </div>
-        <Settings className="w-6 h-6 text-slate-500 dark:text-slate-400 shrink-0" />
       </div>
 
       {/* Tab navigation */}
