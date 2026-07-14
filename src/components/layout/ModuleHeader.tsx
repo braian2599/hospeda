@@ -15,24 +15,26 @@ export default function ModuleHeader({
   icon: Icon,
   title,
   subtitle,
-  iconBg = 'bg-slate-700 dark:bg-slate-600',
-  iconColor = 'text-white',
+  iconBg,
+  iconColor,
   children,
 }: ModuleHeaderProps) {
+  // Convert bg-blue-600 → text-blue-600 for inline icon coloring
+  const derivedColor = iconBg ? iconBg.replace('bg-', 'text-') : undefined;
+  const textColor = iconColor || derivedColor || 'text-slate-500 dark:text-slate-400';
+
   return (
-    <div className="rounded-2xl bg-slate-900 dark:bg-slate-950 px-6 py-8 mb-6">
-      <div className="flex flex-col items-center gap-2">
-        <div className={`w-12 h-12 rounded-xl ${iconBg} flex items-center justify-center shadow-lg`}>
-          <Icon className={`w-6 h-6 ${iconColor}`} />
-        </div>
-        <h2 className="text-2xl font-bold tracking-tight text-white">{title}</h2>
-        <p className="text-sm text-slate-400">{subtitle}</p>
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+        {subtitle && (
+          <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
+        )}
       </div>
-      {children && (
-        <div className="mt-4 flex justify-center">
-          {children}
-        </div>
-      )}
+      <div className="flex items-center gap-3">
+        {children}
+        <Icon className={`w-6 h-6 shrink-0 ${textColor}`} />
+      </div>
     </div>
   );
 }

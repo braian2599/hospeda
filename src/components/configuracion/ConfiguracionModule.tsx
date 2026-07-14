@@ -16,6 +16,7 @@ import {
   CreditCard, Building2, FileText, Shield, Wallet, Headphones, Download,
   Crown, Check, Loader2, Save, Eye, EyeOff, Star, ArrowRight,
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
+  Settings,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -48,9 +49,12 @@ export default function ConfiguracionModule() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Configuración</h1>
-        <p className="text-sm text-muted-foreground mt-1">Administrá tu hotel, plan y cuenta</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Configuración</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Administrá tu hotel, plan y cuenta</p>
+        </div>
+        <Settings className="w-6 h-6 text-slate-500 dark:text-slate-400 shrink-0" />
       </div>
 
       {/* Tab navigation */}
