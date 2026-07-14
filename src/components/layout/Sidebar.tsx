@@ -14,7 +14,7 @@ import {
 
 const handleLogout = () => {
   useHotelStore.getState().logout();
-  window.location.href = '/app';
+  signOut({ callbackUrl: '/login' });
 };
 
 /* ── Icon map ── */
