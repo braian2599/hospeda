@@ -14,6 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Plus, Pencil, Trash2, Bed } from 'lucide-react';
+import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 
 const estados: Record<string, string> = {
@@ -62,10 +63,9 @@ export default function HabitacionesModule() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2"><div className="w-9 h-9 rounded-lg bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center"><Bed className="w-5 h-5 text-sky-500" /></div> Gestión de Habitaciones</h2>
-        <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Nueva</Button>
-      </div>
+      <ModuleHeader icon={Bed} title="Habitaciones" subtitle="Gestioná las habitaciones de tu hotel" iconBg="bg-sky-600">
+        <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Nueva Habitación</Button>
+      </ModuleHeader>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {sorted.map(([num, hab]) => {

@@ -28,6 +28,7 @@ import {
   CalendarDays, Plus, Pencil, XCircle, Search, BedDouble, Users, Eye,
   AlertTriangle, ChevronDown, ChevronUp, Lightbulb,
 } from 'lucide-react';
+import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -707,14 +708,11 @@ export default function ReservasModule() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center"><CalendarDays className="w-5 h-5 text-blue-500" /></div> Reservas
-        </h2>
+      <ModuleHeader icon={CalendarDays} title="Reservas" subtitle="Gestioná las reservas de tus huéspedes" iconBg="bg-blue-600">
         <Button onClick={openNew}>
           <Plus className="w-4 h-4 mr-1" />Nueva Reserva
         </Button>
-      </div>
+      </ModuleHeader>
 
       {/* ==================== FILTER BAR ==================== */}
       <Card>

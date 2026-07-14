@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SprayCan, Wrench, Check, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import { BILLETES } from '@/lib/types';
 
@@ -96,7 +97,7 @@ export default function LimpiezaModule() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2"><div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center"><SprayCan className="w-5 h-5 text-amber-500" /></div> Limpieza y Mantenimiento</h2>
+      <ModuleHeader icon={SprayCan} title="Limpieza y Mantenimiento" subtitle="Gestioná el estado de habitaciones y tareas" iconBg="bg-amber-500" />
 
       <div className="grid md:grid-cols-2 gap-4">
         {/* Para limpiar */}

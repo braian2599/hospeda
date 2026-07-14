@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Trash2, UserCog, Pencil, Shield, ShieldCheck, Loader2, Eye, EyeOff, KeyRound } from 'lucide-react';
+import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 
 const ROLES = [
@@ -185,18 +186,13 @@ export default function UsuariosModule() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Usuarios del hotel</h2>
-          <p className="text-sm text-muted-foreground">Creá perfiles con nombre y contraseña para tu equipo</p>
-        </div>
+      <ModuleHeader icon={UserCog} title="Usuarios" subtitle="Creá perfiles con nombre y contraseña para tu equipo" iconBg="bg-indigo-600">
         {puedeModificar && (
           <Button onClick={openCreate} size="sm">
             <Plus className="w-4 h-4 mr-2" /> Crear usuario
           </Button>
         )}
-      </div>
+      </ModuleHeader>
 
       {/* Lista de usuarios */}
       <Card>

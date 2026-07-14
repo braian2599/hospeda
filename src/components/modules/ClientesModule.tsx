@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Trash2, Users, Search, Eye } from 'lucide-react';
+import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 
 function formatFecha(fecha: string) {
@@ -53,10 +54,9 @@ export default function ClientesModule() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2"><div className="w-9 h-9 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center"><Users className="w-5 h-5 text-rose-500" /></div> Clientes</h2>
+      <ModuleHeader icon={Users} title="Clientes" subtitle="Base de huéspedes y datos de contacto" iconBg="bg-rose-600">
         <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Agregar Cliente</Button>
-      </div>
+      </ModuleHeader>
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

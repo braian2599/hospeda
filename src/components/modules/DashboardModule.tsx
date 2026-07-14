@@ -12,6 +12,7 @@ import {
   History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ModuleHeader from '@/components/layout/ModuleHeader';
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -812,19 +813,14 @@ export default function DashboardModule() {
 
   return (
     <div className="space-y-6">
-      {/* Header con reloj y clima */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-blue-500" />
-            Panel Ejecutivo
-          </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {hoy.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
-        </div>
+      <ModuleHeader
+        icon={BarChart3}
+        title="Panel Ejecutivo"
+        subtitle={hoy.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+        iconBg="bg-blue-600"
+      >
         <LiveClockWeather />
-      </div>
+      </ModuleHeader>
 
       {/* Action log toasts */}
       {actionLog.length > 0 && (

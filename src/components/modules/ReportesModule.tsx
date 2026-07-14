@@ -23,6 +23,7 @@ import {
   FileText, ArrowUpRight, ArrowDownRight, Minus, Hotel,
   Receipt, Percent, Clock, Moon, Sun, Sunset,
 } from 'lucide-react';
+import ModuleHeader from '@/components/layout/ModuleHeader';
 
 // ==================== HELPERS ====================
 
@@ -428,14 +429,7 @@ export default function ReportesModule() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-col items-center gap-1.5">
-        <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-          <BarChart3 className="w-5 h-5 text-orange-500" />
-        </div>
-        <h2 className="text-2xl font-bold tracking-tight">Reportes</h2>
-        <p className="text-sm text-muted-foreground">Métricas y análisis de tu hotel</p>
-      </div>
+      <ModuleHeader icon={BarChart3} title="Reportes" subtitle="Métricas y análisis de tu hotel" iconBg="bg-orange-500" />
 
       {/* Date Range Filter — centered */}
       <Card>

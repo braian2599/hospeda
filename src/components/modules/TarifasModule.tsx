@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tags, Plus, Trash2, CreditCard, ListChecks, Users, Pencil, Info } from 'lucide-react';
+import ModuleHeader from '@/components/layout/ModuleHeader';
 import type { CampoPersonalizado, MetodoPago, Cuota } from '@/lib/types';
 
 // ==================== COMPONENTES AUXILIARES ====================
@@ -289,9 +290,7 @@ export default function TarifasModule() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-        <div className="w-9 h-9 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center"><Tags className="w-5 h-5 text-pink-500" /></div> Gestión de Tarifas y Pagos
-      </h2>
+      <ModuleHeader icon={Tags} title="Tarifas y Métodos de Pago" subtitle="Configurá precios y formas de cobro" iconBg="bg-pink-600" />
 
       {/* Alerta */}
       {alerta && (

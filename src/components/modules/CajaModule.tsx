@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Wallet, Lock, Unlock, Plus, Minus, AlertCircle } from 'lucide-react';
+import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import { DialogTrigger } from '@/components/ui/dialog';
 import { BILLETES } from '@/lib/types';
@@ -73,7 +74,7 @@ export default function CajaModule() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2"><div className="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center"><Wallet className="w-5 h-5 text-green-500" /></div> Caja</h2>
+      <ModuleHeader icon={Wallet} title="Caja" subtitle="Controlá los movimientos de dinero del día" iconBg="bg-green-600" />
 
       {caja.estado === 'cerrada' ? (
         /* ═══════ CAJA CERRADA ═══════ */

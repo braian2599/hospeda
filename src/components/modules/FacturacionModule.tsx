@@ -24,6 +24,7 @@ import {
   Receipt, CreditCard, FileText, Search, XCircle, DollarSign, CalendarDays, User,
   Building2, Phone, Mail,
 } from 'lucide-react';
+import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 
 const formatFecha = (f: string) => {
@@ -118,9 +119,7 @@ export default function FacturacionModule() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-        <div className="w-9 h-9 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center"><Receipt className="w-5 h-5 text-violet-500" /></div> Facturación
-      </h2>
+      <ModuleHeader icon={Receipt} title="Facturación" subtitle="Comprobantes y pagos de tus reservas" iconBg="bg-violet-600" />
 
       <Tabs defaultValue="pendientes">
         <TabsList>

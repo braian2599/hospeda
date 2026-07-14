@@ -17,7 +17,7 @@ import {
 import {
   LogIn, LogOut, KeyRound, UserPlus, Trash2, Users, AlertCircle, CreditCard, BedDouble,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import ModuleHeader from '@/components/layout/ModuleHeader';
 
 const formatFecha = (f: string) => {
   if (!f) return '—';
@@ -118,9 +118,7 @@ export default function CheckInModule() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-        <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center"><LogIn className="w-5 h-5 text-emerald-500" /></div> Check-In / Check-Out
-      </h2>
+      <ModuleHeader icon={LogIn} title="Check-In / Check-Out" subtitle="Gestioná ingresos y egresos de huéspedes" iconBg="bg-emerald-600" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pendientes Check-In */}
