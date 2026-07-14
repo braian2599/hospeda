@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect, forwardRef } from 'react';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { useHotelStore } from '@/lib/store';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 import { modulosEfectivos } from '@/lib/plan-config';
@@ -12,10 +12,8 @@ import {
   Wallet, Users, BarChart3, UserCog, Tags, LogOut, Hotel, X, Lock, Settings,
 } from 'lucide-react';
 
-const handleLogout = () => {
-  useHotelStore.getState().logout();
-  signOut({ callbackUrl: '/login' });
-};
+// Se define dentro del componente para acceder a update() del hook useSession
+let _handleLogout: (() => void) | null = null;
 
 /* ── Icon map ── */
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -161,6 +159,14 @@ function GroupedNav({
 
 export default function Sidebar() {
   const { usuarioActual, moduloActivo, setModulo, sidebarOpen, setSidebarOpen, planActual } = useHotelStore();
+  const { update } = useSession();
+
+  _handleLogout = () => {
+    useHotelStore.getState().logout();
+    update({ clearTenant: true }).then(() => {
+      window.location.href = '/app';
+    });
+  };
   const [desktopExpanded, setDesktopExpanded] = useState(false);
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navRef = useRef<HTMLElement>(null);
@@ -319,7 +325,7 @@ export default function Sidebar() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={handleLogout}
+          onClick={() => _handleLogout?.()}
           className={`
             text-muted-foreground hover:text-destructive transition-colors
             ${isExpanded ? 'w-full justify-start gap-3 px-3 h-9' : 'w-full'}
@@ -471,7 +477,7 @@ export default function Sidebar() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleLogout}
+            onClick={() => _handleLogout?.()}
             className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive"
           >
             <LogOut className="w-4 h-4" />

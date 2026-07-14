@@ -78,9 +78,20 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email;
         // Guardar IDs de perfiles que coincidieron con la contraseña
         token.matchedProfileIds = (user as Record<string, unknown>).matchedProfileIds as string[] | undefined;
+        // Limpiar datos del tenant del usuario anterior para evitar sesión cruzada
+        token.tenantId = undefined;
+        token.tenantRole = undefined;
+        token.tenantUserId = undefined;
       }
 
       if (trigger === 'update' && session) {
+        // Si se pide limpiar el tenant (logout de perfil), borrar datos sin cerrar sesión
+        if ((session as Record<string, unknown>).clearTenant) {
+          token.tenantId = undefined;
+          token.tenantRole = undefined;
+          token.tenantUserId = undefined;
+          return token;
+        }
         const proposedTenantId = (session as Record<string, unknown>).tenantId as string | undefined;
         const proposedTenantUserId = (session as Record<string, unknown>).tenantUserId as string | undefined;
         if (proposedTenantId && token.id) {
