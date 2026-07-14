@@ -1031,18 +1031,19 @@ export default function ReservasModule() {
               )}
 
               <Separator />
-              <div className="grid grid-cols-3 gap-3 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Total:</span>
-                  <p className="font-bold text-base">{formatMoney(calcularTotalReserva(detalleReserva.id))}</p>
+              {/* ─── Resumen financiero ─── */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/60 dark:border-emerald-700/40 dark:bg-emerald-950/30 p-3 text-center">
+                  <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 uppercase tracking-wide mb-1">Total reserva</p>
+                  <p className="font-bold text-lg text-emerald-800 dark:text-emerald-300">{formatMoney(calcularTotalReserva(detalleReserva.id))}</p>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Pagado:</span>
-                  <p className="font-medium">{formatMoney(calcularTotalPagado(detalleReserva.id))}</p>
+                <div className="rounded-xl border-2 border-blue-200 bg-blue-50/60 dark:border-blue-700/40 dark:bg-blue-950/30 p-3 text-center">
+                  <p className="text-xs font-medium text-blue-700 dark:text-blue-400 uppercase tracking-wide mb-1">Pagado</p>
+                  <p className="font-bold text-lg text-blue-800 dark:text-blue-300">{formatMoney(calcularTotalPagado(detalleReserva.id))}</p>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Saldo:</span>
-                  <p className={`font-medium ${getSaldo(detalleReserva) > 0 ? 'text-red-600' : ''}`}>
+                <div className={`rounded-xl border-2 p-3 text-center ${getSaldo(detalleReserva) > 0 ? 'border-red-200 bg-red-50/60 dark:border-red-700/40 dark:bg-red-950/30' : 'border-slate-200 bg-slate-50/60 dark:border-slate-600/40 dark:bg-slate-900/30'}`}> 
+                  <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${getSaldo(detalleReserva) > 0 ? 'text-red-700 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>Saldo</p>
+                  <p className={`font-bold text-lg ${getSaldo(detalleReserva) > 0 ? 'text-red-700 dark:text-red-300' : 'text-slate-700 dark:text-slate-300'}`}>
                     {formatMoney(getSaldo(detalleReserva))}
                   </p>
                 </div>
@@ -1455,136 +1456,213 @@ export default function ReservasModule() {
             </TabsContent>
 
             {/* ==================== TAB: PAGO ==================== */}
-            <TabsContent value="pago" className="space-y-4 mt-4">
-              {/* Desglose */}
-              <div className="rounded-lg border p-4 space-y-2 bg-muted/30">
-                <h4 className="font-semibold text-sm">Desglose de precio</h4>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Tarifa</span>
-                    <p className="font-medium capitalize">{form.tipoTarifa}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Noches</span>
-                    <p className="font-medium">{computed.noches}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">{form.reservaMultiple ? 'Hab. 1 — Personas' : 'Personas'}</span>
-                    <p className="font-medium">{form.personas}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">{form.reservaMultiple ? 'Hab. 1 — Subtotal' : 'Subtotal'}</span>
-                    <p className="font-bold">{formatMoney(computed.subtotal)}</p>
-                  </div>
+            <TabsContent value="pago" className="space-y-5 mt-4">
+              {/* ─── Sección 1: Desglose de precio ─── */}
+              <div className="rounded-xl border-2 border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700">
+                  <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-slate-500" />
+                    Desglose de precio
+                  </h4>
                 </div>
-                {form.reservaMultiple && computed.subtotal2 > 0 && (
-                  <div className="grid grid-cols-2 gap-3 text-sm pt-2 border-t">
-                    <div>
-                      <span className="text-muted-foreground">Hab. 2 ({form.habitacion2}) — Personas</span>
-                      <p className="font-medium">{habitaciones[form.habitacion2]?.capacidad || 0}</p>
+                <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-3 text-center">
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tarifa</p>
+                      <p className="font-semibold text-sm mt-0.5 capitalize">{form.tipoTarifa}</p>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Hab. 2 — Subtotal</span>
-                      <p className="font-bold">{formatMoney(computed.subtotal2)}</p>
+                    <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-3 text-center">
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Noches</p>
+                      <p className="font-semibold text-sm mt-0.5">{computed.noches}</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-3 text-center">
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{form.reservaMultiple ? 'Hab. 1 — Pers.' : 'Personas'}</p>
+                      <p className="font-semibold text-sm mt-0.5">{form.personas}</p>
+                    </div>
+                    <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-3 text-center">
+                      <p className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">{form.reservaMultiple ? 'Hab. 1 — Subtotal' : 'Subtotal'}</p>
+                      <p className="font-bold text-sm mt-0.5 text-indigo-700 dark:text-indigo-300">{formatMoney(computed.subtotal)}</p>
                     </div>
                   </div>
-                )}
-                {computed.recargo > 0 && (
-                  <div className="text-sm pt-2 border-t">
-                    <span className="text-muted-foreground">Recargo por cuotas: </span>
-                    <span className="text-amber-600 font-medium">{formatMoney(computed.recargo)}</span>
+
+                  {form.reservaMultiple && computed.subtotal2 > 0 && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-3">
+                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Hab. 2 ({form.habitacion2}) — Personas</p>
+                        <p className="font-semibold text-sm mt-0.5">{habitaciones[form.habitacion2]?.capacidad || 0}</p>
+                      </div>
+                      <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-3 text-right">
+                        <p className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">Hab. 2 — Subtotal</p>
+                        <p className="font-bold text-sm mt-0.5 text-indigo-700 dark:text-indigo-300">{formatMoney(computed.subtotal2)}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {computed.recargo > 0 && (
+                    <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 p-3 flex items-center justify-between">
+                      <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Recargo por cuotas</p>
+                      <p className="font-bold text-sm text-amber-700 dark:text-amber-300">+ {formatMoney(computed.recargo)}</p>
+                    </div>
+                  )}
+
+                  <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-800/40 p-4 flex items-center justify-between">
+                    <p className="font-semibold text-sm text-emerald-700 dark:text-emerald-300">
+                      {form.reservaMultiple ? 'Total combinado' : 'Total final'}
+                    </p>
+                    <p className="font-bold text-xl text-emerald-800 dark:text-emerald-200">
+                      {formatMoney(form.reservaMultiple ? (computed.totalFinalCombinado || computed.totalFinal) : computed.totalFinal)}
+                    </p>
                   </div>
-                )}
-                <div className="text-sm pt-2 border-t">
-                  <span className="text-muted-foreground">{form.reservaMultiple ? 'Total combinado: ' : 'Total final: '}</span>
-                  <span className="font-bold text-base">{formatMoney(form.reservaMultiple ? (computed.totalFinalCombinado || computed.totalFinal) : computed.totalFinal)}</span>
                 </div>
               </div>
 
-              {/* Pago radio */}
-              <RadioGroup
-                value={form.pagoTipo}
-                onValueChange={v => updateForm({ pagoTipo: v as PagoRadio })}
-                className="flex flex-col sm:flex-row gap-3"
-              >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="ninguno" id="pago-nada" />
-                  <Label htmlFor="pago-nada" className="text-sm">No abonado</Label>
+              {/* ─── Sección 2: Forma de pago ─── */}
+              <div className="rounded-xl border-2 border-violet-200 dark:border-violet-700/40 overflow-hidden">
+                <div className="bg-violet-100/70 dark:bg-violet-950/40 px-4 py-2.5 border-b border-violet-200 dark:border-violet-700/40">
+                  <h4 className="font-semibold text-sm text-violet-700 dark:text-violet-300 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                    Forma de pago
+                  </h4>
                 </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="parcial" id="pago-parcial" />
-                  <Label htmlFor="pago-parcial" className="text-sm">Parcial</Label>
+                <div className="p-4">
+                  <RadioGroup
+                    value={form.pagoTipo}
+                    onValueChange={v => updateForm({ pagoTipo: v as PagoRadio })}
+                    className="grid grid-cols-3 gap-3"
+                  >
+                    <Label
+                      htmlFor="pago-nada"
+                      className={cn(
+                        'flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 cursor-pointer transition-all text-center',
+                        form.pagoTipo === 'ninguno'
+                          ? 'border-violet-400 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-600'
+                          : 'border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-600/50'
+                      )}
+                    >
+                      <RadioGroupItem value="ninguno" id="pago-nada" className="sr-only" />
+                      <span className={cn('text-lg', form.pagoTipo === 'ninguno' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500')}>✕</span>
+                      <span className={cn('text-xs font-semibold', form.pagoTipo === 'ninguno' ? 'text-violet-700 dark:text-violet-300' : 'text-slate-500 dark:text-slate-400')}>No abonado</span>
+                    </Label>
+                    <Label
+                      htmlFor="pago-parcial"
+                      className={cn(
+                        'flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 cursor-pointer transition-all text-center',
+                        form.pagoTipo === 'parcial'
+                          ? 'border-violet-400 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-600'
+                          : 'border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-600/50'
+                      )}
+                    >
+                      <RadioGroupItem value="parcial" id="pago-parcial" className="sr-only" />
+                      <span className={cn('text-lg', form.pagoTipo === 'parcial' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500')}>◐</span>
+                      <span className={cn('text-xs font-semibold', form.pagoTipo === 'parcial' ? 'text-violet-700 dark:text-violet-300' : 'text-slate-500 dark:text-slate-400')}>Parcial</span>
+                    </Label>
+                    <Label
+                      htmlFor="pago-total"
+                      className={cn(
+                        'flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 cursor-pointer transition-all text-center',
+                        form.pagoTipo === 'total'
+                          ? 'border-violet-400 bg-violet-50 dark:bg-violet-950/30 dark:border-violet-600'
+                          : 'border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-600/50'
+                      )}
+                    >
+                      <RadioGroupItem value="total" id="pago-total" className="sr-only" />
+                      <span className={cn('text-lg', form.pagoTipo === 'total' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500')}>●</span>
+                      <span className={cn('text-xs font-semibold', form.pagoTipo === 'total' ? 'text-violet-700 dark:text-violet-300' : 'text-slate-500 dark:text-slate-400')}>Total</span>
+                    </Label>
+                  </RadioGroup>
                 </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="total" id="pago-total" />
-                  <Label htmlFor="pago-total" className="text-sm">Total</Label>
-                </div>
-              </RadioGroup>
+              </div>
 
+              {/* ─── Sección 3: Detalle del cobro ─── */}
               {(form.pagoTipo === 'parcial' || form.pagoTipo === 'total') && (
-                <div className="space-y-3 border rounded-lg p-4">
-                  {form.pagoTipo === 'parcial' && (
-                    <div className="grid gap-1.5">
-                      <Label>Monto del pago</Label>
-                      <Input
-                        type="number"
-                        min={pagoMinimo}
-                        max={totalAPagar}
-                        value={form.pagoMonto}
-                        onChange={e => updateForm({ pagoMonto: e.target.value })}
-                        placeholder="0"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Mínimo 30%: {formatMoney(pagoMinimo)} — Máximo: {formatMoney(totalAPagar)}
-                      </p>
-                    </div>
-                  )}
-                  {form.pagoTipo === 'total' && (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Monto a pagar: </span>
-                      <span className="font-bold">{formatMoney(totalAPagar)}</span>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="grid gap-1.5">
-                      <Label>Método de pago</Label>
-                      <Select value={form.pagoMetodo} onValueChange={v => {
-                        const metodo = metodosPago.find(m => m.id === v);
-                        const tieneCuotas = metodo?.recargo && metodo.cuotas.length > 0;
-                        updateForm({
-                          pagoMetodo: v,
-                          pagoCuotas: tieneCuotas ? `${metodo.cuotas[0].cantidad}|${metodo.cuotas[0].porcentaje}` : '1|0',
-                        });
-                      }}>
-                        <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                        <SelectContent>
-                          {metodosPago.map(m => (
-                            <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {selectedMetodo && selectedMetodo.recargo && selectedMetodo.cuotas.length > 0 && (
-                      <div className="grid gap-1.5">
-                        <Label>Cuotas</Label>
-                        <Select value={form.pagoCuotas} onValueChange={v => updateForm({ pagoCuotas: v })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                <div className="rounded-xl border-2 border-sky-200 dark:border-sky-700/40 overflow-hidden">
+                  <div className="bg-sky-100/70 dark:bg-sky-950/40 px-4 py-2.5 border-b border-sky-200 dark:border-sky-700/40">
+                    <h4 className="font-semibold text-sm text-sky-700 dark:text-sky-300 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                      Detalle del cobro
+                    </h4>
+                  </div>
+                  <div className="p-4 space-y-4">
+                    {form.pagoTipo === 'parcial' && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-sky-700 dark:text-sky-300">Monto del pago</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-sky-600 dark:text-sky-400">$</span>
+                          <Input
+                            type="number"
+                            min={pagoMinimo}
+                            max={totalAPagar}
+                            value={form.pagoMonto}
+                            onChange={e => updateForm({ pagoMonto: e.target.value })}
+                            placeholder="0"
+                            className="pl-7 text-base font-semibold h-11 border-sky-200 dark:border-sky-800 focus-visible:ring-sky-400 dark:focus-visible:ring-sky-600"
+                          />
+                        </div>
+                        <div className="flex justify-between text-[11px] text-sky-600/80 dark:text-sky-400/70">
+                          <span>Mínimo 30%: <strong>{formatMoney(pagoMinimo)}</strong></span>
+                          <span>Máximo: <strong>{formatMoney(totalAPagar)}</strong></span>
+                        </div>
+                        {form.pagoMonto && (parseFloat(form.pagoMonto) || 0) > 0 && (
+                          <div className="rounded-lg bg-sky-50 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-900/30 p-2.5 flex justify-between items-center">
+                            <span className="text-xs text-sky-600 dark:text-sky-400">Saldo restante</span>
+                            <span className="font-bold text-sm text-sky-800 dark:text-sky-200">
+                              {formatMoney(Math.max(0, totalAPagar - (parseFloat(form.pagoMonto) || 0)))}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {form.pagoTipo === 'total' && (
+                      <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 p-4 flex items-center justify-between">
+                        <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Monto a cobrar</span>
+                        <span className="font-bold text-xl text-emerald-800 dark:text-emerald-200">{formatMoney(totalAPagar)}</span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-sky-700 dark:text-sky-300">Método de pago</Label>
+                        <Select value={form.pagoMetodo} onValueChange={v => {
+                          const metodo = metodosPago.find(m => m.id === v);
+                          const tieneCuotas = metodo?.recargo && metodo.cuotas.length > 0;
+                          updateForm({
+                            pagoMetodo: v,
+                            pagoCuotas: tieneCuotas ? `${metodo.cuotas[0].cantidad}|${metodo.cuotas[0].porcentaje}` : '1|0',
+                          });
+                        }}>
+                          <SelectTrigger className="h-11 border-sky-200 dark:border-sky-800 focus:ring-sky-400 dark:focus:ring-sky-600">
+                            <SelectValue placeholder="Seleccionar..." />
+                          </SelectTrigger>
                           <SelectContent>
-                            {selectedMetodo.cuotas.map(c => (
-                              <SelectItem key={`${c.cantidad}|${c.porcentaje}`} value={`${c.cantidad}|${c.porcentaje}`}>
-                                {c.cantidad} cuota{s(c.cantidad)} ({c.porcentaje}%)
-                              </SelectItem>
+                            {metodosPago.map(m => (
+                              <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
+                      {selectedMetodo && selectedMetodo.recargo && selectedMetodo.cuotas.length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-sky-700 dark:text-sky-300">Cuotas</Label>
+                          <Select value={form.pagoCuotas} onValueChange={v => updateForm({ pagoCuotas: v })}>
+                            <SelectTrigger className="h-11 border-sky-200 dark:border-sky-800 focus:ring-sky-400 dark:focus:ring-sky-600">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {selectedMetodo.cuotas.map(c => (
+                                <SelectItem key={`${c.cantidad}|${c.porcentaje}`} value={`${c.cantidad}|${c.porcentaje}`}>
+                                  {c.cantidad} cuota{s(c.cantidad)} ({c.porcentaje}%)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Save / Cancel buttons at bottom of Pago tab */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
+              <div className="flex justify-end gap-2 pt-3 border-t">
                 <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
                 <Button
                   onClick={handleSave}
@@ -1592,8 +1670,10 @@ export default function ReservasModule() {
                     !form.habitacion || !form.huesped.trim() || !form.dni.trim() || !form.telefono.trim() ||
                     (form.reservaMultiple && !form.habitacion2)
                   }
+                  className="min-w-[220px] bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
                 >
-                  {editingId ? 'Guardar cambios' : form.reservaMultiple ? 'Crear reservas múltiples' : 'Crear reserva'} ({formatMoney(totalAPagar)})
+                  {editingId ? 'Guardar cambios' : form.reservaMultiple ? 'Crear reservas múltiples' : 'Crear reserva'}
+                  <span className="ml-2 font-bold">({formatMoney(totalAPagar)})</span>
                 </Button>
               </div>
             </TabsContent>
