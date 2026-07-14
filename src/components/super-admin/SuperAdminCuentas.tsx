@@ -24,13 +24,23 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronRight, RefreshCw, CreditCard, Clock, KeyRound, Power, Loader2 } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, RefreshCw, CreditCard, Clock, KeyRound, Power, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ─── Types ───
@@ -115,6 +125,7 @@ export default function SuperAdminCuentas() {
   const [changePlanOpen, setChangePlanOpen] = useState(false);
   const [resetPassOpen, setResetPassOpen] = useState(false);
   const [extendOpen, setExtendOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Form states
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
@@ -424,6 +435,15 @@ export default function SuperAdminCuentas() {
                             >
                               <Power className="w-3.5 h-3.5" />
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              title="Eliminar cuenta"
+                              onClick={() => { setSelectedTenant(t); setDeleteOpen(true); }}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -624,6 +644,49 @@ export default function SuperAdminCuentas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ─── Alert: Eliminar Cuenta ─── */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar cuenta</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vas a eliminar permanentemente <strong>{selectedTenant?.nombre}</strong> y todos sus datos asociados:
+              habitaciones, reservas, clientes, pagos, usuarios, configuración y auditoría.
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={actionLoading}
+              onClick={async () => {
+                if (!selectedTenant) return;
+                setActionLoading(true);
+                try {
+                  const res = await fetch(`/api/super-admin/tenants?tenantId=${selectedTenant.id}`, {
+                    method: 'DELETE',
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error);
+                  toast.success(data.message);
+                  setDeleteOpen(false);
+                  setSelectedTenant(null);
+                  fetchTenants();
+                } catch (err: unknown) {
+                  toast.error((err as Error).message);
+                } finally {
+                  setActionLoading(false);
+                }
+              }}
+            >
+              {actionLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Sí, eliminar todo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

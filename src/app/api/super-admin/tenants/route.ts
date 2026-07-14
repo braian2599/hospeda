@@ -212,3 +212,42 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
   }
 }
+
+// DELETE /api/super-admin/tenants — Eliminar un tenant y toda su data
+export async function DELETE(req: NextRequest) {
+  const { error } = await requireSuperAdmin();
+  if (error) return error;
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const tenantId = searchParams.get('tenantId');
+
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Falta tenantId' }, { status: 400 });
+    }
+
+    // Verificar que el tenant existe
+    const tenant = await db.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, nombre: true, email: true },
+    });
+
+    if (!tenant) {
+      return NextResponse.json({ error: 'Tenant no encontrado' }, { status: 404 });
+    }
+
+    // Eliminar el tenant (onDelete: Cascade se encarga del resto)
+    await db.tenant.delete({
+      where: { id: tenantId },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Tenant "${tenant.nombre}" (${tenant.email}) eliminado correctamente`,
+    });
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('[/api/super-admin/tenants DELETE] Error:', err.message);
+    return NextResponse.json({ error: `Error al eliminar: ${err.message}` }, { status: 500 });
+  }
+}
