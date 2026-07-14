@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireOwner, AuthError } from '@/lib/auth/utils';
+import { requireOwner, requireTenantId, AuthError } from '@/lib/auth/utils';
 import { ensureMigrations } from '@/lib/auto-migrate';
 import bcrypt from 'bcryptjs';
 import type { RolTenant } from '@prisma/client';
