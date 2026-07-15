@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const mpToken = await getMPAccessToken();
     if (!mpToken) {
       return NextResponse.json(
-        { error: 'Mercado Pago no está configurado. El administrador debe configurar las credenciales.' },
+        { error: 'Mercado Pago no está configurado. El administrador de la plataforma debe ingresar las credenciales en Super Admin > Configuración > Mercado Pago.' },
         { status: 503 }
       );
     }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     if (error?.message?.includes('Mercado Pago no está configurado')) {
       return NextResponse.json(
-        { error: 'Mercado Pago no está configurado. El administrador debe configurar las credenciales.' },
+        { error: 'Mercado Pago no está configurado. El administrador de la plataforma debe ingresar las credenciales en Super Admin > Configuración > Mercado Pago.' },
         { status: 503 }
       );
     }

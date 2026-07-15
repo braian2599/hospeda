@@ -715,8 +715,18 @@ function CuentaSection() {
 // 5. MÉTODOS DE PAGO
 // ═══════════════════════════════════════════
 function PagosSection() {
-  const mpToken = !!process.env.NEXT_PUBLIC_MERCADOPAGO_ACCESS_TOKEN;
-  const stripeKey = !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  const [mpConfigured, setMpConfigured] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch('/api/payments/config-status')
+      .then(r => r.json())
+      .then(data => {
+        setMpConfigured(data.mercadopago?.configured ?? false);
+      })
+      .catch(() => setMpConfigured(false));
+  }, []);
+
+  const loading = mpConfigured === null;
 
   const ProviderCard = ({ name, description, configured, icon: Icon }: { name: string; description: string; configured: boolean; icon: React.ComponentType<{ className?: string }> }) => (
     <Card>
@@ -727,9 +737,13 @@ function PagosSection() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h4 className="font-medium text-sm">{name}</h4>
-            <Badge variant={configured ? 'default' : 'secondary'} className="text-xs">
-              {configured ? 'Configurado' : 'No configurado'}
-            </Badge>
+            {loading ? (
+              <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+            ) : (
+              <Badge variant={configured ? 'default' : 'secondary'} className="text-xs">
+                {configured ? 'Configurado' : 'No configurado'}
+              </Badge>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">{description}</p>
         </div>
@@ -742,30 +756,24 @@ function PagosSection() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Métodos de Pago</CardTitle>
-          <CardDescription>Proveedores de pago configurados para recibir cobros de huéspedes</CardDescription>
+          <CardDescription>Proveedores de pago configurados para procesar suscripciones</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <ProviderCard
               name="Mercado Pago"
-              description="Aceptá tarjetas, transferencias y otros medios de pago de Mercado Pago"
-              configured={mpToken}
+              description="Aceptá tarjetas, transferencias y otros medios de pago"
+              configured={!!mpConfigured}
               icon={Wallet}
-            />
-            <ProviderCard
-              name="Stripe"
-              description="Procesamiento de pagos internacional con tarjetas de crédito y débito"
-              configured={stripeKey}
-              icon={CreditCard}
             />
           </div>
         </CardContent>
       </Card>
 
-      {!mpToken && !stripeKey && (
+      {!loading && !mpConfigured && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
           <AlertTriangle className="w-4 h-4 shrink-0" />
-          No hay proveedores de pago configurados. Contactá a soporte para activar cobros online.
+          Mercado Pago no está configurado. El administrador de la plataforma debe cargar las credenciales en el panel de Super Admin.
         </div>
       )}
     </div>
