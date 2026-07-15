@@ -1,0 +1,928 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useCallback } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import { PLANES, NOMBRES_MODULOS, diasRestantesTrial, type PlanTipo } from '@/lib/plan-config';
+     6→import { Button } from '@/components/ui/button';
+     7→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+     8→import { Input } from '@/components/ui/input';
+     9→import { Label } from '@/components/ui/label';
+    10→import { Badge } from '@/components/ui/badge';
+    11→import { Separator } from '@/components/ui/separator';
+    12→import { Progress } from '@/components/ui/progress';
+    13→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+    14→import { Textarea } from '@/components/ui/textarea';
+    15→import {
+    16→  CreditCard, Building2, FileText, Shield, Wallet, Headphones, Download,
+    17→  Crown, Check, Loader2, Save, Eye, EyeOff, Star, ArrowRight,
+    18→  AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
+    19→  Settings, Copy, Info,
+    20→} from 'lucide-react';
+    21→import { toast } from 'sonner';
+    22→import dynamic from 'next/dynamic';
+    23→
+    24→const CheckoutDialog = dynamic(
+    25→  () => import('@/components/payments/CheckoutDialog'),
+    26→  { ssr: false }
+    27→);
+    28→
+    29→// ─── Tabs config ───
+    30→const TABS = [
+    31→  { id: 'suscripcion', label: 'Suscripción', icon: CreditCard },
+    32→  { id: 'hotel', label: 'Datos del Hotel', icon: Building2 },
+    33→  { id: 'fiscal', label: 'Datos Fiscales', icon: FileText },
+    34→  { id: 'cuenta', label: 'Cuenta y Seguridad', icon: Shield },
+    35→  { id: 'pagos', label: 'Métodos de Pago', icon: Wallet },
+    36→  { id: 'soporte', label: 'Soporte', icon: Headphones },
+    37→  { id: 'exportar', label: 'Exportar Datos', icon: Download },
+    38→] as const;
+    39→
+    40→type TabId = (typeof TABS)[number]['id'];
+    41→
+    42→export default function ConfiguracionModule() {
+    43→  const [activeTab, setActiveTab] = useState<TabId>('suscripcion');
+    44→  const { usuarioActual, planActual, fechaInicioTrial } = useHotelStore();
+    45→
+    46→  if (!usuarioActual || usuarioActual.rol !== 'owner') {
+    47→    return (
+    48→      <div className="flex flex-col items-center justify-center py-20 text-center">
+    49→        <Shield className="w-12 h-12 text-muted-foreground mb-3" />
+    50→        <h2 className="text-xl font-bold">Acceso restringido</h2>
+    51→        <p className="text-muted-foreground mt-1">Solo el perfil principal puede acceder a esta sección.</p>
+    52→      </div>
+    53→    );
+    54→  }
+    55→
+    56→  return (
+    57→    <div className="space-y-6">
+    58→      <div className="flex items-center justify-center gap-3">
+    59→        <Settings className="w-6 h-6 text-slate-500 dark:text-slate-400 shrink-0" />
+    60→        <div>
+    61→          <h2 className="text-2xl font-bold tracking-tight">Configuración</h2>
+    62→          <p className="text-sm text-muted-foreground mt-0.5">Administrá tu hotel, plan y cuenta</p>
+    63→        </div>
+    64→      </div>
+    65→
+    66→      {/* Tab navigation */}
+    67→      <div className="border-b overflow-x-auto">
+    68→        <div className="flex gap-1 min-w-max">
+    69→          {TABS.map(tab => {
+    70→            const Icon = tab.icon;
+    71→            return (
+    72→              <button
+    73→                key={tab.id}
+    74→                onClick={() => setActiveTab(tab.id)}
+    75→                className={`
+    76→                  flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors
+    77→                  ${activeTab === tab.id
+    78→                    ? 'border-primary text-primary'
+    79→                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
+    80→                  }
+    81→                `}
+    82→              >
+    83→                <Icon className="w-4 h-4" />
+    84→                {tab.label}
+    85→              </button>
+    86→            );
+    87→          })}
+    88→        </div>
+    89→      </div>
+    90→
+    91→      {/* Tab content */}
+    92→      <div className="animate-in fade-in-0 duration-200">
+    93→        {activeTab === 'suscripcion' && <SuscripcionSection />}
+    94→        {activeTab === 'hotel' && <HotelSection />}
+    95→        {activeTab === 'fiscal' && <FiscalSection />}
+    96→        {activeTab === 'cuenta' && <CuentaSection />}
+    97→        {activeTab === 'pagos' && <PagosSection />}
+    98→        {activeTab === 'soporte' && <SoporteSection />}
+    99→        {activeTab === 'exportar' && <ExportarSection />}
+   100→      </div>
+   101→    </div>
+   102→  );
+   103→}
+   104→
+   105→// ═══════════════════════════════════════════
+   106→// 1. SUSCRIPCIÓN Y PLANES
+   107→// ═══════════════════════════════════════════
+   108→// Datos de transferencia bancaria
+   109→const TRANSFERENCIA_DATA = {
+   110→  banco: 'Banco Nación',
+   111→  titular: 'Hospedá S.A.',
+   112→  cbu: '0110222255002233334444',
+   113→  alias: 'hospeda.mp',
+   114→  cuit: '20-12345678-9',
+   115→  cuenta: 'Cuenta Corriente en Pesos',
+   116→};
+   117→
+   118→function SuscripcionSection() {
+   119→  const { planActual, fechaInicioTrial } = useHotelStore();
+   120→  const [usage, setUsage] = useState<any>(null);
+   121→  const [loading, setLoading] = useState(true);
+   122→  const [checkoutOpen, setCheckoutOpen] = useState(false);
+   123→  const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanTipo, 'trial'> | null>(null);
+   124→  const [showTransfer, setShowTransfer] = useState(false);
+   125→  const [copiedField, setCopiedField] = useState('');
+   126→
+   127→  const fetchUsage = useCallback(async () => {
+   128→    try {
+   129→      const res = await fetch('/api/configuracion/usage');
+   130→      const data = await res.json();
+   131→      setUsage(data);
+   132→    } catch { /* ignore */ }
+   133→    setLoading(false);
+   134→  }, []);
+   135→
+   136→  useEffect(() => { fetchUsage(); }, [fetchUsage]);
+   137→
+   138→  const planInfo = PLANES[planActual];
+   139→  const diasTrial = fechaInicioTrial ? diasRestantesTrial(fechaInicioTrial) : 0;
+   140→  const isTrial = planActual === 'trial';
+   141→  const trialExpired = isTrial && fechaInicioTrial && diasTrial === 0;
+   142→
+   143→  const handlePagar = (tipo: Exclude<PlanTipo, 'trial'>) => {
+   144→    setSelectedPlan(tipo);
+   145→    setCheckoutOpen(true);
+   146→  };
+   147→
+   148→  const copyToClipboard = (text: string, field: string) => {
+   149→    navigator.clipboard.writeText(text);
+   150→    setCopiedField(field);
+   151→    toast.success('Copiado al portapapeles');
+   152→    setTimeout(() => setCopiedField(''), 2000);
+   153→  };
+   154→
+   155→  const UsageBar = ({ label, current, max, icon: Icon }: { label: string; current: number; max: number; icon: React.ComponentType<{ className?: string }> }) => {
+   156→    const pct = max === 0 ? 0 : Math.min(100, Math.round((current / max) * 100));
+   157→    const isUnlimited = max === 0;
+   158→    return (
+   159→      <div className="space-y-1.5">
+   160→        <div className="flex items-center justify-between text-sm">
+   161→          <div className="flex items-center gap-2">
+   162→            <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+   163→            <span>{label}</span>
+   164→          </div>
+   165→          <span className="text-muted-foreground">
+   166→            {current} / {isUnlimited ? 'Ilimitado' : max}
+   167→          </span>
+   168→        </div>
+   169→        {isUnlimited ? (
+   170→          <div className="h-2 rounded-full bg-muted" />
+   171→        ) : (
+   172→          <Progress value={pct} className="h-2" />
+   173→        )}
+   174→      </div>
+   175→    );
+   176→  };
+   177→
+   178→
+   179→
+   180→  return (
+   181→    <div className="space-y-6">
+   182→      {/* Current plan card */}
+   183→      <Card>
+   184→        <CardHeader className="pb-3">
+   185→          <div className="flex items-center justify-between">
+   186→            <div className="flex items-center gap-3">
+   187→              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+   188→                <Crown className="w-5 h-5 text-primary" />
+   189→              </div>
+   190→              <div>
+   191→                <CardTitle className="text-lg">Plan Actual</CardTitle>
+   192→                <CardDescription>
+   193→                  {isTrial ? `Prueba gratuita — ${diasTrial} días restantes` : `Renovación mensual`}
+   194→                </CardDescription>
+   195→              </div>
+   196→            </div>
+   197→            <Badge variant={isTrial ? 'outline' : 'default'} className="text-sm px-3 py-1">
+   198→              {planInfo.nombre}
+   199→            </Badge>
+   200→          </div>
+   201→        </CardHeader>
+   202→
+   203→        {isTrial && diasTrial <= 7 && (
+   204→          <CardContent className="pt-0">
+   205→            <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+   206→              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+   207→              <p className="text-sm text-amber-700 dark:text-amber-300">
+   208→                Tu prueba vence en {diasTrial} días. Seleccioná un plan para no perder acceso.
+   209→              </p>
+   210→            </div>
+   211→          </CardContent>
+   212→        )}
+   213→
+   214→        {!isTrial && usage?.subscription && (
+   215→          <CardContent className="pt-0">
+   216→            <div className="grid grid-cols-2 gap-4 text-sm">
+   217→              <div>
+   218→                <span className="text-muted-foreground">Estado</span>
+   219→                <p className="font-medium capitalize">{usage.subscription.estado}</p>
+   220→              </div>
+   221→              <div>
+   222→                <span className="text-muted-foreground">Próximo vencimiento</span>
+   223→                <p className="font-medium">
+   224→                  {new Date(usage.subscription.fechaVencimiento).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
+   225→                </p>
+   226→              </div>
+   227→            </div>
+   228→          </CardContent>
+   229→        )}
+   230→      </Card>
+   231→
+   232→      {/* Usage */}
+   233→      {loading ? (
+   234→        <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+   235→      ) : usage && (
+   236→        <Card>
+   237→          <CardHeader className="pb-3">
+   238→            <CardTitle className="text-base">Uso del plan</CardTitle>
+   239→            <CardDescription>Recursos utilizados de tu plan actual</CardDescription>
+   240→          </CardHeader>
+   241→          <CardContent className="space-y-4">
+   242→            <UsageBar label="Habitaciones" current={usage.habitaciones} max={planInfo.maxHabitaciones} icon={Hotel} />
+   243→            <UsageBar label="Usuarios" current={usage.usuarios} max={planInfo.maxUsuarios} icon={Star} />
+   244→            <UsageBar label="Tarifas" current={usage.tarifas} max={planInfo.maxTarifas} icon={DollarSign} />
+   245→            <UsageBar label="Reservas este mes" current={usage.reservasMes} max={planInfo.maxReservasMes} icon={CreditCard} />
+   246→          </CardContent>
+   247→        </Card>
+   248→      )}
+   249→
+   250→      {/* Plan comparison */}
+   251→      <div>
+   252→        <h3 className="text-lg font-semibold mb-4">Planes disponibles</h3>
+   253→        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+   254→          {(['basico', 'profesional', 'premium'] as const).map(tipo => {
+   255→            const plan = PLANES[tipo];
+   256→            const isCurrent = planActual === tipo;
+   257→            const isDowngrade = ['basico', 'profesional', 'premium'].indexOf(planActual) > ['basico', 'profesional', 'premium'].indexOf(tipo);
+   258→
+   259→            return (
+   260→              <Card key={tipo} className={`relative ${isCurrent ? 'border-primary ring-1 ring-primary' : ''}`}>
+   261→                {isCurrent && (
+   262→                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+   263→                    <Badge className="bg-primary text-primary-foreground">Plan Actual</Badge>
+   264→                  </div>
+   265→                )}
+   266→                <CardHeader className="text-center pb-2">
+   267→                  <CardTitle className="text-base">{plan.nombre}</CardTitle>
+   268→                  <div className="mt-2">
+   269→                    <span className="text-2xl font-bold">{plan.precioDisplay}</span>
+   270→                    <span className="text-sm text-muted-foreground">/mes</span>
+   271→                  </div>
+   272→                </CardHeader>
+   273→                <CardContent className="space-y-4">
+   274→                  <div className="space-y-2 text-sm">
+   275→                    <div className="flex items-center gap-2">
+   276→                      <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+   277→                      <span>{plan.maxHabitaciones === 0 ? 'Habitaciones ilimitadas' : `Hasta ${plan.maxHabitaciones} habitaciones`}</span>
+   278→                    </div>
+   279→                    <div className="flex items-center gap-2">
+   280→                      <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+   281→                      <span>{plan.maxUsuarios === 0 ? 'Usuarios ilimitados' : `Hasta ${plan.maxUsuarios} usuarios`}</span>
+   282→                    </div>
+   283→                    <div className="flex items-center gap-2">
+   284→                      <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+   285→                      <span>{plan.maxTarifas === 0 ? 'Tarifas ilimitadas' : `Hasta ${plan.maxTarifas} tarifas`}</span>
+   286→                    </div>
+   287→                    <div className="flex items-center gap-2">
+   288→                      <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+   289→                      <span>{plan.maxReservasMes === 0 ? 'Reservas ilimitadas' : `${plan.maxReservasMes} reservas/mes`}</span>
+   290→                    </div>
+   291→                  </div>
+   292→
+   293→                  <Separator />
+   294→
+   295→                  <div className="flex flex-wrap gap-1.5">
+   296→                    {plan.modulos.map(m => (
+   297→                      <span key={m} className="text-xs bg-muted rounded-md px-2 py-1">{NOMBRES_MODULOS[m]}</span>
+   298→                    ))}
+   299→                  </div>
+   300→
+   301→                  {!isCurrent && (
+   302→                    <Button
+   303→                      className="w-full"
+   304→                      variant="default"
+   305→                      onClick={() => handlePagar(tipo)}
+   306→                    >
+   307→                      Pagar con Mercado Pago
+   308→                      <ArrowRight className="w-4 h-4 ml-1" />
+   309→                    </Button>
+   310→                  )}
+   311→                </CardContent>
+   312→              </Card>
+   313→            );
+   314→          })}
+   315→        </div>
+   316→      </div>
+   317→
+   318→      {/* Transferencia bancaria */}
+   319→      <div>
+   320→        <button
+   321→          type="button"
+   322→          onClick={() => setShowTransfer(!showTransfer)}
+   323→          className="flex items-center gap-3 group w-full text-left"
+   324→        >
+   325→          <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+   326→            <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+   327→          </div>
+   328→          <div className="flex-1">
+   329→            <h3 className="text-sm font-semibold group-hover:text-primary transition-colors">
+   330→              Pago por transferencia bancaria
+   331→            </h3>
+   332→            <p className="text-xs text-muted-foreground">
+   333→              Realizá la transferencia y enviá el comprobante
+   334→            </p>
+   335→          </div>
+   336→          <ArrowRight className={`w-4 h-4 text-muted-foreground transition-transform ${showTransfer ? 'rotate-90' : ''}`} />
+   337→        </button>
+   338→
+   339→        {showTransfer && (
+   340→          <Card className="mt-3">
+   341→            <CardContent className="p-4 space-y-3">
+   342→              <div className="flex items-start gap-2 p-2.5 bg-blue-500/5 rounded-lg">
+   343→                <Info className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+   344→                <p className="text-xs text-muted-foreground leading-relaxed">
+   345→                  Luego de realizar la transferencia, enviá el comprobante por email a <strong>soporte@hospeda.com</strong> con tu nombre de hotel y el plan elegido.
+   346→                </p>
+   347→              </div>
+   348→              {[
+   349→                { label: 'Banco', value: TRANSFERENCIA_DATA.banco },
+   350→                { label: 'Titular', value: TRANSFERENCIA_DATA.titular },
+   351→                { label: 'CBU', value: TRANSFERENCIA_DATA.cbu, copyable: true },
+   352→                { label: 'Alias', value: TRANSFERENCIA_DATA.alias, copyable: true },
+   353→                { label: 'CUIT', value: TRANSFERENCIA_DATA.cuit },
+   354→                { label: 'Cuenta', value: TRANSFERENCIA_DATA.cuenta },
+   355→              ].map(item => (
+   356→                <div key={item.label} className="flex items-center justify-between py-1">
+   357→                  <span className="text-xs text-muted-foreground">{item.label}</span>
+   358→                  <div className="flex items-center gap-2">
+   359→                    <span className="text-xs font-medium font-mono">{item.value}</span>
+   360→                    {item.copyable && (
+   361→                      <button
+   362→                        type="button"
+   363→                        onClick={() => copyToClipboard(item.value, item.label)}
+   364→                        className="p-1 rounded hover:bg-accent transition-colors"
+   365→                      >
+   366→                        {copiedField === item.label
+   367→                          ? <Check className="w-3 h-3 text-green-500" />
+   368→                          : <Copy className="w-3 h-3 text-muted-foreground" />}
+   369→                      </button>
+   370→                    )}
+   371→                  </div>
+   372→                </div>
+   373→              ))}
+   374→            </CardContent>
+   375→          </Card>
+   376→        )}
+   377→      </div>
+   378→
+   379→      {/* Checkout Dialog (Mercado Pago) */}
+   380→      <CheckoutDialog
+   381→        open={checkoutOpen}
+   382→        onOpenChange={setCheckoutOpen}
+   383→        selectedPlan={selectedPlan}
+   384→      />
+   385→    </div>
+   386→  );
+   387→}
+   388→
+   389→// ═══════════════════════════════════════════
+   390→// 2. DATOS DEL HOTEL
+   391→// ═══════════════════════════════════════════
+   392→function HotelSection() {
+   393→  const [form, setForm] = useState({ nombre: '', email: '', telefono: '', direccion: '', pais: 'Argentina', moneda: 'ARS', timezone: 'America/Argentina/Buenos_Aires', logoUrl: '' });
+   394→  const [loading, setLoading] = useState(true);
+   395→  const [saving, setSaving] = useState(false);
+   396→
+   397→  useEffect(() => {
+   398→    fetch('/api/configuracion/hotel')
+   399→      .then(r => r.json())
+   400→      .then(data => {
+   401→        if (!data.error) setForm({
+   402→          nombre: data.nombre || '',
+   403→          email: data.email || '',
+   404→          telefono: data.telefono || '',
+   405→          direccion: data.direccion || '',
+   406→          pais: data.pais || 'Argentina',
+   407→          moneda: data.moneda || 'ARS',
+   408→          timezone: data.timezone || 'America/Argentina/Buenos_Aires',
+   409→          logoUrl: data.logoUrl || '',
+   410→        });
+   411→      })
+   412→      .catch(() => {})
+   413→      .finally(() => setLoading(false));
+   414→  }, []);
+   415→
+   416→  const handleSave = async () => {
+   417→    setSaving(true);
+   418→    try {
+   419→      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+   420→      const data = await res.json();
+   421→      if (!res.ok) { toast.error(data.error || 'Error'); return; }
+   422→      toast.success('Datos del hotel guardados');
+   423→    } catch { toast.error('Error de conexión'); }
+   424→    setSaving(false);
+   425→  };
+   426→
+   427→  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+   428→
+   429→  const Field = ({ label, icon: Icon, children, hint }: { label: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode; hint?: string }) => (
+   430→    <div className="space-y-1.5">
+   431→      <Label className="text-sm font-medium flex items-center gap-2">
+   432→        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+   433→        {label}
+   434→      </Label>
+   435→      {children}
+   436→      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+   437→    </div>
+   438→  );
+   439→
+   440→  return (
+   441→    <Card>
+   442→      <CardHeader>
+   443→        <CardTitle className="text-lg">Información del Hotel</CardTitle>
+   444→        <CardDescription>Datos que aparecen en comprobantes y la interfaz del sistema</CardDescription>
+   445→      </CardHeader>
+   446→      <CardContent className="space-y-4">
+   447→        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   448→          <Field label="Nombre del hotel" icon={Hotel}>
+   449→            <Input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre comercial" />
+   450→          </Field>
+   451→          <Field label="Email de contacto" icon={Mail} hint="Email público del hotel para huéspedes">
+   452→            <Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="hotel@ejemplo.com" />
+   453→          </Field>
+   454→          <Field label="Teléfono" icon={Phone}>
+   455→            <Input value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="+54 11 1234-5678" />
+   456→          </Field>
+   457→          <Field label="Dirección" icon={MapPin}>
+   458→            <Input value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} placeholder="Av. Siempre Viva 742" />
+   459→          </Field>
+   460→          <Field label="País" icon={Globe}>
+   461→            <Input value={form.pais} onChange={e => setForm({ ...form, pais: e.target.value })} placeholder="Argentina" />
+   462→          </Field>
+   463→          <Field label="Moneda" icon={DollarSign}>
+   464→            <Select value={form.moneda} onValueChange={v => setForm({ ...form, moneda: v })}>
+   465→              <SelectTrigger><SelectValue /></SelectTrigger>
+   466→              <SelectContent>
+   467→                <SelectItem value="ARS">ARS - Peso Argentino</SelectItem>
+   468→                <SelectItem value="USD">USD - Dólar Estadounidense</SelectItem>
+   469→                <SelectItem value="EUR">EUR - Euro</SelectItem>
+   470→                <SelectItem value="BRL">BRL - Real Brasileño</SelectItem>
+   471→                <SelectItem value="UYU">UYU - Peso Uruguayo</SelectItem>
+   472→                <SelectItem value="CLP">CLP - Peso Chileno</SelectItem>
+   473→              </SelectContent>
+   474→            </Select>
+   475→          </Field>
+   476→          <Field label="Zona horaria" icon={Clock}>
+   477→            <Select value={form.timezone} onValueChange={v => setForm({ ...form, timezone: v })}>
+   478→              <SelectTrigger><SelectValue /></SelectTrigger>
+   479→              <SelectContent>
+   480→                <SelectItem value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</SelectItem>
+   481→                <SelectItem value="America/Argentina/Cordoba">Argentina (Córdoba)</SelectItem>
+   482→                <SelectItem value="America/Argentina/Mendoza">Argentina (Mendoza)</SelectItem>
+   483→                <SelectItem value="America/Argentina/Tucuman">Argentina (Tucumán)</SelectItem>
+   484→                <SelectItem value="America/Santiago">Chile</SelectItem>
+   485→                <SelectItem value="America/Montevideo">Uruguay</SelectItem>
+   486→                <SelectItem value="America/Sao_Paulo">Brasil (São Paulo)</SelectItem>
+   487→                <SelectItem value="America/Bogota">Colombia</SelectItem>
+   488→                <SelectItem value="America/Mexico_City">México</SelectItem>
+   489→                <SelectItem value="America/Lima">Perú</SelectItem>
+   490→                <SelectItem value="America/New_York">EE.UU. (New York)</SelectItem>
+   491→                <SelectItem value="Europe/Madrid">España</SelectItem>
+   492→              </SelectContent>
+   493→            </Select>
+   494→          </Field>
+   495→          <Field label="URL del Logo" icon={Globe} hint="Pegá la URL de la imagen de tu logo">
+   496→            <Input value={form.logoUrl} onChange={e => setForm({ ...form, logoUrl: e.target.value })} placeholder="https://ejemplo.com/logo.png" />
+   497→          </Field>
+   498→        </div>
+   499→
+   500→        {form.logoUrl && (
+   501→          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+   502→            <img src={form.logoUrl} alt="Logo" className="w-12 h-12 rounded-lg object-contain bg-white p-1" onError={e => (e.currentTarget.style.display = 'none')} />
+   503→            <span className="text-sm text-muted-foreground">Vista previa del logo</span>
+   504→          </div>
+   505→        )}
+   506→
+   507→        <Button onClick={handleSave} disabled={saving}>
+   508→          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+   509→          Guardar cambios
+   510→        </Button>
+   511→      </CardContent>
+   512→    </Card>
+   513→  );
+   514→}
+   515→
+   516→// ═══════════════════════════════════════════
+   517→// 3. DATOS FISCALES
+   518→// ═══════════════════════════════════════════
+   519→function FiscalSection() {
+   520→  const [form, setForm] = useState({ cuit: '', iva: '', direccionFiscal: '', ciudad: '', puntoVenta: 1 });
+   521→  const [loading, setLoading] = useState(true);
+   522→  const [saving, setSaving] = useState(false);
+   523→
+   524→  useEffect(() => {
+   525→    fetch('/api/configuracion/fiscal')
+   526→      .then(r => r.json())
+   527→      .then(data => { if (!data.error) setForm(data); })
+   528→      .catch(() => {})
+   529→      .finally(() => setLoading(false));
+   530→  }, []);
+   531→
+   532→  const handleSave = async () => {
+   533→    setSaving(true);
+   534→    try {
+   535→      const res = await fetch('/api/configuracion/fiscal', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+   536→      const data = await res.json();
+   537→      if (!res.ok) { toast.error(data.error || 'Error'); return; }
+   538→      toast.success('Datos fiscales guardados');
+   539→    } catch { toast.error('Error de conexión'); }
+   540→    setSaving(false);
+   541→  };
+   542→
+   543→  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+   544→
+   545→  return (
+   546→    <Card>
+   547→      <CardHeader>
+   548→        <CardTitle className="text-lg">Datos Fiscales</CardTitle>
+   549→        <CardDescription>Información para la emisión de comprobantes y facturas</CardDescription>
+   550→      </CardHeader>
+   551→      <CardContent className="space-y-4">
+   552→        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   553→          <div className="space-y-1.5">
+   554→            <Label className="text-sm font-medium flex items-center gap-2">
+   555→              <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+   556→              CUIT / RUT
+   557→            </Label>
+   558→            <Input value={form.cuit} onChange={e => setForm({ ...form, cuit: e.target.value })} placeholder="20-12345678-9" />
+   559→            <p className="text-xs text-muted-foreground">Sin guiones para RUT Uruguayo</p>
+   560→          </div>
+   561→          <div className="space-y-1.5">
+   562→            <Label className="text-sm font-medium flex items-center gap-2">
+   563→              <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+   564→              Condición frente a IVA
+   565→            </Label>
+   566→            <Select value={form.iva} onValueChange={v => setForm({ ...form, iva: v })}>
+   567→              <SelectTrigger><SelectValue placeholder="Seleccioná..." /></SelectTrigger>
+   568→              <SelectContent>
+   569→                <SelectItem value="Responsable Inscripto">Responsable Inscripto</SelectItem>
+   570→                <SelectItem value="Responsable Monotributo">Responsable Monotributo</SelectItem>
+   571→                <SelectItem value="Monotributista">Monotributista</SelectItem>
+   572→                <SelectItem value="Exento">Exento</SelectItem>
+   573→                <SelectItem value="Consumidor Final">Consumidor Final</SelectItem>
+   574→              </SelectContent>
+   575→            </Select>
+   576→          </div>
+   577→          <div className="space-y-1.5">
+   578→            <Label className="text-sm font-medium flex items-center gap-2">
+   579→              <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+   580→              Dirección fiscal
+   581→            </Label>
+   582→            <Input value={form.direccionFiscal} onChange={e => setForm({ ...form, direccionFiscal: e.target.value })} placeholder="Av. Corrientes 1234, Piso 3" />
+   583→          </div>
+   584→          <div className="space-y-1.5">
+   585→            <Label className="text-sm font-medium flex items-center gap-2">
+   586→              <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+   587→              Ciudad
+   588→            </Label>
+   589→            <Input value={form.ciudad} onChange={e => setForm({ ...form, ciudad: e.target.value })} placeholder="Ciudad Autónoma de Buenos Aires" />
+   590→          </div>
+   591→          <div className="space-y-1.5">
+   592→            <Label className="text-sm font-medium flex items-center gap-2">
+   593→              <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+   594→              Punto de venta
+   595→            </Label>
+   596→            <Input type="number" min={1} value={form.puntoVenta} onChange={e => setForm({ ...form, puntoVenta: parseInt(e.target.value) || 1 })} />
+   597→            <p className="text-xs text-muted-foreground">Número de punto de venta para facturación</p>
+   598→          </div>
+   599→        </div>
+   600→
+   601→        <Button onClick={handleSave} disabled={saving}>
+   602→          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+   603→          Guardar datos fiscales
+   604→        </Button>
+   605→      </CardContent>
+   606→    </Card>
+   607→  );
+   608→}
+   609→
+   610→// ═══════════════════════════════════════════
+   611→// 4. CUENTA Y SEGURIDAD
+   612→// ═══════════════════════════════════════════
+   613→function CuentaSection() {
+   614→  const { usuarioActual } = useHotelStore();
+   615→  const [currentPass, setCurrentPass] = useState('');
+   616→  const [newPass, setNewPass] = useState('');
+   617→  const [confirmPass, setConfirmPass] = useState('');
+   618→  const [showCurrent, setShowCurrent] = useState(false);
+   619→  const [showNew, setShowNew] = useState(false);
+   620→  const [saving, setSaving] = useState(false);
+   621→
+   622→  const handleChangePassword = async () => {
+   623→    if (!currentPass) { toast.error('Ingresá tu contraseña actual'); return; }
+   624→    if (newPass.length < 6) { toast.error('Mínimo 6 caracteres'); return; }
+   625→    if (newPass !== confirmPass) { toast.error('Las contraseñas no coinciden'); return; }
+   626→
+   627→    setSaving(true);
+   628→    try {
+   629→      const res = await fetch('/api/configuracion/password', {
+   630→        method: 'PUT',
+   631→        headers: { 'Content-Type': 'application/json' },
+   632→        body: JSON.stringify({ currentPassword: currentPass, newPassword: newPass }),
+   633→      });
+   634→      const data = await res.json();
+   635→      if (!res.ok) { toast.error(data.error || 'Error'); setSaving(false); return; }
+   636→      toast.success('Contraseña actualizada');
+   637→      setCurrentPass(''); setNewPass(''); setConfirmPass('');
+   638→    } catch { toast.error('Error de conexión'); }
+   639→    setSaving(false);
+   640→  };
+   641→
+   642→  return (
+   643→    <div className="space-y-6">
+   644→      {/* Account info */}
+   645→      <Card>
+   646→        <CardHeader>
+   647→          <CardTitle className="text-lg">Cuenta vinculada</CardTitle>
+   648→          <CardDescription>Tu cuenta está vinculada con Google</CardDescription>
+   649→        </CardHeader>
+   650→        <CardContent>
+   651→          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+   652→            <div className="space-y-1">
+   653→              <span className="text-muted-foreground">Email</span>
+   654→              <div className="flex items-center gap-2">
+   655→                <Mail className="w-4 h-4 text-muted-foreground" />
+   656→                <span className="font-medium">{usuarioActual?.email || '—'}</span>
+   657→              </div>
+   658→            </div>
+   659→            <div className="space-y-1">
+   660→              <span className="text-muted-foreground">Rol</span>
+   661→              <Badge variant="secondary" className="capitalize">{usuarioActual?.rol}</Badge>
+   662→            </div>
+   663→            <div className="space-y-1">
+   664→              <span className="text-muted-foreground">Nombre del perfil</span>
+   665→              <p className="font-medium">{usuarioActual?.nombreCompleto || '—'}</p>
+   666→            </div>
+   667→            <div className="space-y-1">
+   668→              <span className="text-muted-foreground">Hotel</span>
+   669→              <p className="font-medium">{usuarioActual?.tenantNombre || '—'}</p>
+   670→            </div>
+   671→          </div>
+   672→        </CardContent>
+   673→      </Card>
+   674→
+   675→      {/* Change password */}
+   676→      <Card>
+   677→        <CardHeader>
+   678→          <CardTitle className="text-lg">Cambiar contraseña del perfil</CardTitle>
+   679→          <CardDescription>Esta es la contraseña que usás para ingresar con email + contraseña</CardDescription>
+   680→        </CardHeader>
+   681→        <CardContent className="space-y-4 max-w-md">
+   682→          <div className="space-y-1.5">
+   683→            <Label className="text-sm">Contraseña actual</Label>
+   684→            <div className="relative">
+   685→              <Input type={showCurrent ? 'text' : 'password'} value={currentPass} onChange={e => setCurrentPass(e.target.value)} placeholder="Tu contraseña actual" className="pr-10" />
+   686→              <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+   687→                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+   688→              </button>
+   689→            </div>
+   690→          </div>
+   691→          <div className="space-y-1.5">
+   692→            <Label className="text-sm">Nueva contraseña</Label>
+   693→            <div className="relative">
+   694→              <Input type={showNew ? 'text' : 'password'} value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Mínimo 6 caracteres" className="pr-10" />
+   695→              <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+   696→                {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+   697→              </button>
+   698→            </div>
+   699→          </div>
+   700→          <div className="space-y-1.5">
+   701→            <Label className="text-sm">Confirmar nueva contraseña</Label>
+   702→            <Input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} placeholder="Repetí la nueva contraseña" />
+   703→          </div>
+   704→          <Button onClick={handleChangePassword} disabled={saving} variant="outline">
+   705→            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Shield className="w-4 h-4 mr-2" />}
+   706→            Cambiar contraseña
+   707→          </Button>
+   708→        </CardContent>
+   709→      </Card>
+   710→    </div>
+   711→  );
+   712→}
+   713→
+   714→// ═══════════════════════════════════════════
+   715→// 5. MÉTODOS DE PAGO
+   716→// ═══════════════════════════════════════════
+   717→function PagosSection() {
+   718→  const mpToken = !!process.env.NEXT_PUBLIC_MERCADOPAGO_ACCESS_TOKEN;
+   719→  const stripeKey = !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+   720→
+   721→  const ProviderCard = ({ name, description, configured, icon: Icon }: { name: string; description: string; configured: boolean; icon: React.ComponentType<{ className?: string }> }) => (
+   722→    <Card>
+   723→      <CardContent className="flex items-start gap-4 p-5">
+   724→        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${configured ? 'bg-green-100 dark:bg-green-900/30' : 'bg-muted'}`}>
+   725→          <Icon className={`w-5 h-5 ${configured ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+   726→        </div>
+   727→        <div className="flex-1 min-w-0">
+   728→          <div className="flex items-center gap-2">
+   729→            <h4 className="font-medium text-sm">{name}</h4>
+   730→            <Badge variant={configured ? 'default' : 'secondary'} className="text-xs">
+   731→              {configured ? 'Configurado' : 'No configurado'}
+   732→            </Badge>
+   733→          </div>
+   734→          <p className="text-xs text-muted-foreground mt-1">{description}</p>
+   735→        </div>
+   736→      </CardContent>
+   737→    </Card>
+   738→  );
+   739→
+   740→  return (
+   741→    <div className="space-y-4">
+   742→      <Card>
+   743→        <CardHeader>
+   744→          <CardTitle className="text-lg">Métodos de Pago</CardTitle>
+   745→          <CardDescription>Proveedores de pago configurados para recibir cobros de huéspedes</CardDescription>
+   746→        </CardHeader>
+   747→        <CardContent>
+   748→          <div className="space-y-3">
+   749→            <ProviderCard
+   750→              name="Mercado Pago"
+   751→              description="Aceptá tarjetas, transferencias y otros medios de pago de Mercado Pago"
+   752→              configured={mpToken}
+   753→              icon={Wallet}
+   754→            />
+   755→            <ProviderCard
+   756→              name="Stripe"
+   757→              description="Procesamiento de pagos internacional con tarjetas de crédito y débito"
+   758→              configured={stripeKey}
+   759→              icon={CreditCard}
+   760→            />
+   761→          </div>
+   762→        </CardContent>
+   763→      </Card>
+   764→
+   765→      {!mpToken && !stripeKey && (
+   766→        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+   767→          <AlertTriangle className="w-4 h-4 shrink-0" />
+   768→          No hay proveedores de pago configurados. Contactá a soporte para activar cobros online.
+   769→        </div>
+   770→      )}
+   771→    </div>
+   772→  );
+   773→}
+   774→
+   775→// ═══════════════════════════════════════════
+   776→// 6. SOPORTE
+   777→// ═══════════════════════════════════════════
+   778→function SoporteSection() {
+   779→  const [asunto, setAsunto] = useState('');
+   780→  const [mensaje, setMensaje] = useState('');
+   781→  const [sending, setSending] = useState(false);
+   782→
+   783→  const handleSend = async () => {
+   784→    if (!asunto.trim() || !mensaje.trim()) { toast.error('Completá asunto y mensaje'); return; }
+   785→    setSending(true);
+   786→    // Simulated — in production this sends to a support email/ticket system
+   787→    await new Promise(r => setTimeout(r, 1000));
+   788→    toast.success('Mensaje enviado. Te responderemos a la brevedad.');
+   789→    setAsunto(''); setMensaje('');
+   790→    setSending(false);
+   791→  };
+   792→
+   793→  return (
+   794→    <div className="space-y-6">
+   795→      {/* Version */}
+   796→      <Card>
+   797→        <CardHeader>
+   798→          <CardTitle className="text-lg">Información del sistema</CardTitle>
+   799→        </CardHeader>
+   800→        <CardContent>
+   801→          <div className="grid grid-cols-2 gap-4 text-sm">
+   802→            <div>
+   803→              <span className="text-muted-foreground">Versión</span>
+   804→              <p className="font-medium">Hospedá v2.0</p>
+   805→            </div>
+   806→            <div>
+   807→              <span className="text-muted-foreground">Plan</span>
+   808→              <p className="font-medium capitalize">{useHotelStore.getState().planActual}</p>
+   809→            </div>
+   810→          </div>
+   811→        </CardContent>
+   812→      </Card>
+   813→
+   814→      {/* Contact form */}
+   815→      <Card>
+   816→        <CardHeader>
+   817→          <CardTitle className="text-lg">Contactar soporte</CardTitle>
+   818→          <CardDescription>Envianos tu consulta y te responderemos a la brevedad</CardDescription>
+   819→        </CardHeader>
+   820→        <CardContent className="space-y-4 max-w-lg">
+   821→          <div className="space-y-1.5">
+   822→            <Label className="text-sm">Asunto</Label>
+   823→            <Input value={asunto} onChange={e => setAsunto(e.target.value)} placeholder="¿En qué podemos ayudarte?" disabled={sending} />
+   824→          </div>
+   825→          <div className="space-y-1.5">
+   826→            <Label className="text-sm">Mensaje</Label>
+   827→            <Textarea value={mensaje} onChange={e => setMensaje(e.target.value)} placeholder="Describí tu consulta o problema..." rows={5} disabled={sending} />
+   828→          </div>
+   829→          <Button onClick={handleSend} disabled={sending}>
+   830→            {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Headphones className="w-4 h-4 mr-2" />}
+   831→            Enviar mensaje
+   832→          </Button>
+   833→        </CardContent>
+   834→      </Card>
+   835→    </div>
+   836→  );
+   837→}
+   838→
+   839→// ═══════════════════════════════════════════
+   840→// 7. EXPORTAR DATOS
+   841→// ═══════════════════════════════════════════
+   842→function ExportarSection() {
+   843→  const [exporting, setExporting] = useState<string | null>(null);
+   844→
+   845→  const handleExport = async (tipo: string) => {
+   846→    setExporting(tipo);
+   847→    try {
+   848→      const endpoints: Record<string, string> = {
+   849→        habitaciones: '/api/habitaciones',
+   850→        clientes: '/api/clientes',
+   851→        reservas: '/api/reservas',
+   852→      };
+   853→      const url = endpoints[tipo];
+   854→      if (!url) return;
+   855→
+   856→      const res = await fetch(url);
+   857→      const data = await res.json();
+   858→      const items = Array.isArray(data) ? data : data.data || data.habitaciones || data.clientes || data.reservas || [];
+   859→
+   860→      if (!items.length) { toast.info('No hay datos para exportar'); setExporting(null); return; }
+   861→
+   862→      // Build CSV
+   863→      const headers = Object.keys(items[0]).filter(k => typeof items[0][k] !== 'object');
+   864→      const csv = [
+   865→        headers.join(','),
+   866→        ...items.map((row: any) => headers.map(h => {
+   867→          let val = row[h];
+   868→          if (val === null || val === undefined) val = '';
+   869→          if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) val = `"${val.replace(/"/g, '""')}"`;
+   870→          return val;
+   871→        }).join(','))
+   872→      ].join('\n');
+   873→
+   874→      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+   875→      const link = document.createElement('a');
+   876→      link.href = URL.createObjectURL(blob);
+   877→      link.download = `hospeda-${tipo}-${new Date().toISOString().split('T')[0]}.csv`;
+   878→      link.click();
+   879→      URL.revokeObjectURL(link.href);
+   880→      toast.success(`${tipo} exportados correctamente`);
+   881→    } catch {
+   882→      toast.error('Error al exportar');
+   883→    }
+   884→    setExporting(null);
+   885→  };
+   886→
+   887→  const exports = [
+   888→    { id: 'habitaciones', label: 'Habitaciones', desc: 'Listado completo de habitaciones y sus estados', icon: Hotel },
+   889→    { id: 'clientes', label: 'Clientes', desc: 'Base de huéspedes con datos de contacto', icon: Mail },
+   890→    { id: 'reservas', label: 'Reservas', desc: 'Historial de reservas con estados y pagos', icon: CreditCard },
+   891→  ];
+   892→
+   893→  return (
+   894→    <Card>
+   895→      <CardHeader>
+   896→        <CardTitle className="text-lg">Exportar Datos</CardTitle>
+   897→        <CardDescription>Descargá tus datos en formato CSV para usar en otras herramientas</CardDescription>
+   898→      </CardHeader>
+   899→      <CardContent className="space-y-3">
+   900→        {exports.map(exp => {
+   901→          const Icon = exp.icon;
+   902→          return (
+   903→            <div key={exp.id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30 transition-colors">
+   904→              <div className="flex items-center gap-3">
+   905→                <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
+   906→                  <Icon className="w-4 h-4 text-muted-foreground" />
+   907→                </div>
+   908→                <div>
+   909→                  <p className="text-sm font-medium">{exp.label}</p>
+   910→                  <p className="text-xs text-muted-foreground">{exp.desc}</p>
+   911→                </div>
+   912→              </div>
+   913→              <Button
+   914→                variant="outline"
+   915→                size="sm"
+   916→                onClick={() => handleExport(exp.id)}
+   917→                disabled={exporting === exp.id}
+   918→              >
+   919→                {exporting === exp.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 mr-1.5" />}
+   920→                CSV
+   921→              </Button>
+   922→            </div>
+   923→          );
+   924→        })}
+   925→      </CardContent>
+   926→    </Card>
+   927→  );
+   928→}
