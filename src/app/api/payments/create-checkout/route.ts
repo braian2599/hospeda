@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[create-checkout] Error:', error?.message || error);
+    console.error('[create-checkout] Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
 
     if (error?.message?.includes('Mercado Pago no está configurado')) {
       return NextResponse.json(
@@ -71,8 +72,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Return MP API error details if available
+    const mpError = error?.cause?.response?.body || error?.response?.body;
+    if (mpError) {
+      console.error('[create-checkout] MP API error:', JSON.stringify(mpError));
+    }
+
     return NextResponse.json(
-      { error: 'Error al crear la sesión de pago. Intentá de nuevo.' },
+      { error: `Error al crear la sesión de pago: ${error?.message || 'Intentá de nuevo.'}` },
       { status: 500 }
     );
   }

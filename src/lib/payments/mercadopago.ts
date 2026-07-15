@@ -24,10 +24,16 @@ export async function createMercadoPagoCheckout(params: {
     throw new Error('Mercado Pago no está configurado.');
   }
 
+  // Auto-detect sandbox: test tokens start with TEST- or belong to test apps
+  const isSandboxToken = accessToken.startsWith('TEST-') || accessToken.startsWith('APP_USR-');
+  const useSandbox = isSandboxToken || process.env.NODE_ENV !== 'production';
+
+  console.log(`[MP] Creating preference — sandbox: ${useSandbox}, token prefix: ${accessToken.substring(0, 8)}...`);
+
   const mercadopago = await import('mercadopago');
   const mp = new mercadopago.default({
     accessToken,
-    options: { sandbox: process.env.NODE_ENV !== 'production' },
+    options: { sandbox: useSandbox },
   });
 
   // Build metadata
@@ -68,14 +74,23 @@ export async function createMercadoPagoCheckout(params: {
     notification_url: `${appUrl}/api/payments/mercadopago/webhook`,
   });
 
-  if (!preference.body?.init_point) {
+  console.log(`[MP] Preference created — id: ${preference.body?.id}, init_point: ${preference.body?.init_point ? 'yes' : 'no'}, sandbox_init_point: ${preference.body?.sandbox_init_point ? 'yes' : 'no'}`);
+
+  // Use sandbox_init_point if in sandbox mode, otherwise init_point
+  const checkoutUrl = useSandbox
+    ? (preference.body?.sandbox_init_point || preference.body?.init_point)
+    : (preference.body?.init_point || preference.body?.sandbox_init_point);
+
+  if (!checkoutUrl) {
+    console.error('[MP] No init_point in response:', JSON.stringify(preference.body, null, 2));
     throw new Error('No se pudo crear la preferencia de Mercado Pago');
   }
 
   return {
     provider: 'mercadopago',
-    initPoint: preference.body.init_point,
+    initPoint: checkoutUrl,
     preferenceId: preference.body.id!,
+    sandbox: useSandbox,
   };
 }
 
@@ -88,10 +103,13 @@ export async function getMercadoPagoPayment(paymentId: string) {
     throw new Error('Mercado Pago no está configurado.');
   }
 
+  const isSandboxToken = accessToken.startsWith('TEST-') || accessToken.startsWith('APP_USR-');
+  const useSandbox = isSandboxToken || process.env.NODE_ENV !== 'production';
+
   const mercadopago = await import('mercadopago');
   const mp = new mercadopago.default({
     accessToken,
-    options: { sandbox: process.env.NODE_ENV !== 'production' },
+    options: { sandbox: useSandbox },
   });
 
   const payment = await mp.payment.findById(paymentId);
