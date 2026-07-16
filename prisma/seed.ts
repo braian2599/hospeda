@@ -35,7 +35,7 @@ async function main() {
     {
       type: 'basico' as PlanType,
       nombre: 'Básico',
-      precioMensual: 15000, // $15.000 ARS
+      precioMensual: 1500000, // $15.000 ARS (en centavos)
       maxHabitaciones: 10,
       maxUsuarios: 2,
       maxTarifas: 2,
@@ -45,7 +45,7 @@ async function main() {
     {
       type: 'profesional' as PlanType,
       nombre: 'Profesional',
-      precioMensual: 35000, // $35.000 ARS
+      precioMensual: 3500000, // $35.000 ARS (en centavos)
       maxHabitaciones: 50,
       maxUsuarios: 5,
       maxTarifas: 10,
@@ -55,7 +55,7 @@ async function main() {
     {
       type: 'premium' as PlanType,
       nombre: 'Premium',
-      precioMensual: 65000, // $65.000 ARS
+      precioMensual: 6500000, // $65.000 ARS (en centavos)
       maxHabitaciones: 0,   // ilimitado (0 = sin límite)
       maxUsuarios: 0,
       maxTarifas: 0,

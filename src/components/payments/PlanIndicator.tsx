@@ -76,7 +76,7 @@ export default function PlanIndicator() {
                 <CreditCard className="w-4 h-4 text-primary" />
                 <div className="flex-1">
                   <p className="text-sm font-medium">Upgrade a Profesional</p>
-                  <p className="text-xs text-muted-foreground">$35.000/mes</p>
+                  <p className="text-xs text-muted-foreground">{PLANES.profesional.precioDisplay}/mes</p>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -86,7 +86,7 @@ export default function PlanIndicator() {
                 <Crown className="w-4 h-4 text-amber-500" />
                 <div className="flex-1">
                   <p className="text-sm font-medium">Upgrade a Premium</p>
-                  <p className="text-xs text-muted-foreground">$65.000/mes</p>
+                  <p className="text-xs text-muted-foreground">{PLANES.premium.precioDisplay}/mes</p>
                 </div>
               </DropdownMenuItem>
             </>
