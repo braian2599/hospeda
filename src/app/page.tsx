@@ -70,46 +70,69 @@ const navLinks = [
 
 const showcaseFeatures = [
   {
-    icon: CalendarCheck,
-    title: 'Reservas Inteligentes',
-    desc: 'Calendario visual con colores por estado, control de disponibilidad en tiempo real y prevención automática de overbooking. Gestiona check-ins y check-outs con un solo clic desde la vista de reservas del día.',
-    screenshot: '/screenshots/reservas.png',
+    icon: BarChart3,
+    title: 'Panel de Control',
+    desc: 'Tu centro de operaciones. Visualizá el estado del hotel de un vistazo: ocupación del día, reservas entrantes, tareas pendientes y más. Todo lo que necesitás saber al abrir la app, sin navegar entre pantallas.',
+    screenshots: ['/screenshots/dashboard.png', '/screenshots/calendario.png'],
     badge: 'Módulo principal',
+    accent: 'from-blue-500/20 to-indigo-500/10',
+  },
+  {
+    icon: CalendarCheck,
+    title: 'Reservas y Calendario',
+    desc: 'Calendario visual con colores por estado, control de disponibilidad en tiempo real y prevención automática de overbooking. Gestiona check-ins y check-outs con un solo clic. El calendario del dashboard te muestra la ocupación completa del mes.',
+    screenshots: ['/screenshots/reservas.png', '/screenshots/chekin.png'],
+    badge: 'Módulo principal',
+    accent: 'from-emerald-500/20 to-teal-500/10',
   },
   {
     icon: Building2,
-    title: 'Gestión de Habitaciones',
-    desc: 'Vista de tablero con estados visuales de cada habitación: disponible, ocupada, en limpieza o en mantenimiento. Cargá tipos de habitación, numeración y asigná tarifas por tipo y temporada.',
-    screenshot: '/screenshots/habitaciones.png',
+    title: 'Habitaciones y Tarifas',
+    desc: 'Vista de tablero con estados visuales de cada habitación: disponible, ocupada, en limpieza o en mantenimiento. Definí tipos de habitación, numeración y configurá tarifas diferenciadas por tipo y temporada.',
+    screenshots: ['/screenshots/habitaciones.png', '/screenshots/tarifas.png'],
     badge: 'Módulo principal',
+    accent: 'from-violet-500/20 to-purple-500/10',
   },
   {
     icon: CreditCard,
-    title: 'Facturación Completa',
-    desc: 'Emite comprobantes, registra pagos en múltiples medios (efectivo, transferencia, tarjeta) y lleva el control financiero total. Historial completo de cada transacción asociada a la reserva.',
-    screenshot: '/screenshots/facturacion.png',
+    title: 'Facturación y Caja',
+    desc: 'Emite comprobantes, registra pagos en múltiples medios y lleva el control financiero total. Movimientos de caja diarios, cierres y conciliación automática. Historial completo de cada transacción.',
+    screenshots: ['/screenshots/facturacion.png', '/screenshots/caja.png'],
     badge: 'Plan Profesional',
+    accent: 'from-amber-500/20 to-orange-500/10',
   },
   {
     icon: BarChart3,
     title: 'Reportes y Analytics',
     desc: 'Dashboards con métricas clave: ocupación promedio, ingresos por período, tasa de cancelación y más. Gráficos interactivos para tomar decisiones basadas en datos reales de tu hotel.',
-    screenshot: '/screenshots/reportes.png',
+    screenshots: ['/screenshots/reportes.png'],
     badge: 'Plan Profesional',
-  },
-  {
-    icon: Users,
-    title: 'Ficha de Huéspedes',
-    desc: 'Historial completo de estadías, documentos, preferencias y datos de contacto centralizados. Sabé quién volvió, cuándo y qué habitación prefiere.',
-    screenshot: '/screenshots/dashboard.png',
-    badge: 'Dashboard',
+    accent: 'from-rose-500/20 to-pink-500/10',
   },
 ];
 
-const miniFeatures = [
-  { icon: Shield, title: 'Multiusuario Seguro', desc: 'Roles y permisos granulares. Datos de cada hotel completamente aislados y encriptados.' },
-  { icon: Receipt, title: 'Caja y Arqueo', desc: 'Control de caja diario, movimientos, cierres y conciliación automática.' },
-  { icon: Wrench, title: 'Limpieza y Mantenimiento', desc: 'Asignación de tareas y seguimiento de estados para el equipo de housekeeping.' },
+const gridFeatures = [
+  {
+    icon: Users,
+    title: 'Huéspedes',
+    desc: 'Ficha completa con historial de estadías, documentos y preferencias.',
+    screenshot: '/screenshots/clientes.png',
+    accent: 'from-cyan-500/15 to-sky-500/5',
+  },
+  {
+    icon: Shield,
+    title: 'Usuarios y Permisos',
+    desc: 'Roles granulares, datos aislados por hotel y encriptación de punta a punta.',
+    screenshot: '/screenshots/usuarios.png',
+    accent: 'from-lime-500/15 to-green-500/5',
+  },
+  {
+    icon: Wrench,
+    title: 'Limpieza',
+    desc: 'Asignación de tareas y seguimiento de estados para el equipo de housekeeping.',
+    screenshot: '/screenshots/limpieza.png',
+    accent: 'from-fuchsia-500/15 to-pink-500/5',
+  },
 ];
 
 const steps = [
@@ -421,6 +444,31 @@ function StatsBar() {
   );
 }
 
+/* ─── Browser chrome wrapper for screenshots ─── */
+function ScreenshotFrame({ src, alt, priority, className = '' }: {
+  src: string; alt: string; priority?: boolean; className?: string;
+}) {
+  return (
+    <div className={`relative rounded-xl overflow-hidden border border-border/80 bg-muted/30 shadow-xl shadow-black/[0.07] ${className}`}>
+      {/* Browser dots */}
+      <div className="flex items-center gap-1.5 px-3 py-2.5 bg-muted/60 border-b border-border/60">
+        <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+        <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/80" />
+        <span className="w-2.5 h-2.5 rounded-full bg-green-400/80" />
+        <span className="ml-3 text-[10px] text-muted-foreground/60 font-mono">hospeda.app</span>
+      </div>
+      <Image
+        src={src}
+        alt={alt}
+        width={1344}
+        height={768}
+        className="w-full h-auto block"
+        priority={priority}
+      />
+    </div>
+  );
+}
+
 /* ─── Features ─── */
 function Features() {
   return (
@@ -439,39 +487,62 @@ function Features() {
           </div>
         </FadeIn>
 
-        {/* Showcase features with screenshots */}
-        <div className="space-y-24 sm:space-y-32">
+        {/* ── Showcase features with fused screenshots ── */}
+        <div className="space-y-28 sm:space-y-36">
           {showcaseFeatures.map((f, i) => {
             const reversed = i % 2 !== 0;
+            const hasTwo = f.screenshots.length === 2;
             return (
-              <FadeIn key={f.title} delay={i * 100}>
-                <div className={`grid lg:grid-cols-2 gap-10 lg:gap-16 items-center ${reversed ? 'lg:direction-rtl' : ''}`}>
-                  {/* Text */}
-                  <div className={reversed ? 'lg:order-2' : ''}>
-                    <Badge variant="outline" className="mb-4 text-xs font-medium">
-                      {f.badge}
-                    </Badge>
-                    <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">{f.title}</h3>
-                    <p className="text-muted-foreground leading-relaxed mb-6">{f.desc}</p>
-                    <div className="flex items-center gap-2 text-sm text-primary font-medium">
-                      <f.icon className="w-4 h-4" />
-                      <span>Incluido en todos los planes</span>
+              <FadeIn key={f.title} delay={i * 80}>
+                <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+                  {/* Text side */}
+                  <div className={`${reversed ? 'lg:order-2' : ''}`}>
+                    <div className="relative">
+                      {/* Accent gradient blob behind text */}
+                      <div className={`absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-br ${f.accent} blur-2xl opacity-60`} />
+                      <Badge variant="outline" className="mb-4 text-xs font-medium">
+                        {f.badge}
+                      </Badge>
+                      <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">{f.title}</h3>
+                      <p className="text-muted-foreground leading-relaxed mb-6">{f.desc}</p>
+                      <div className="flex items-center gap-2 text-sm text-primary font-medium">
+                        <f.icon className="w-4 h-4" />
+                        <span>{f.badge === 'Plan Profesional' ? 'Disponible en Plan Profesional y Premium' : 'Incluido en todos los planes'}</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Screenshot */}
+                  {/* Screenshots side */}
                   <div className={`${reversed ? 'lg:order-1' : ''}`}>
-                    <div className="relative rounded-2xl overflow-hidden border border-border shadow-2xl shadow-black/10">
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent z-10 pointer-events-none" />
-                      <Image
-                        src={f.screenshot}
-                        alt={`${f.title} — Hospedá`}
-                        width={1344}
-                        height={768}
-                        className="w-full h-auto"
-                        priority={i < 2}
-                      />
-                    </div>
+                    {hasTwo ? (
+                      /* Stacked two screenshots with overlap */
+                      <div className="relative">
+                        <ScreenshotFrame
+                          src={f.screenshots[0]}
+                          alt={`${f.title} — Hospedá`}
+                          priority={i < 2}
+                          className="relative z-10"
+                        />
+                        <div className="mt-4 -ml-4 sm:-ml-8 relative z-0">
+                          <ScreenshotFrame
+                            src={f.screenshots[1]}
+                            alt={`${f.title} (2) — Hospedá`}
+                            className="shadow-lg shadow-black/[0.05]"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      /* Single screenshot with glow */
+                      <div className="relative">
+                        <div className={`absolute -inset-3 rounded-2xl bg-gradient-to-br ${f.accent} blur-xl opacity-40`} />
+                        <ScreenshotFrame
+                          src={f.screenshots[0]}
+                          alt={`${f.title} — Hospedá`}
+                          priority={i < 2}
+                          className="relative z-10"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </FadeIn>
@@ -479,22 +550,55 @@ function Features() {
           })}
         </div>
 
-        {/* Mini features grid */}
-        <div className="mt-24 sm:mt-32">
+        {/* ── Grid features with screenshots ── */}
+        <div className="mt-28 sm:mt-36">
           <FadeIn>
             <h3 className="text-center text-xl font-semibold mb-10 text-muted-foreground">
               Y mucho más...
             </h3>
           </FadeIn>
-          <div className="grid sm:grid-cols-3 gap-4">
-            {miniFeatures.map((f, i) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {gridFeatures.map((f, i) => (
               <FadeIn key={f.title} delay={i * 100}>
-                <div className="group h-full p-6 rounded-2xl border border-border bg-card hover:bg-accent/50 hover:shadow-sm transition-all duration-300">
-                  <div className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:text-primary transition-colors text-muted-foreground">
-                    <f.icon className="w-5 h-5" />
+                <div className="group relative h-full rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg hover:shadow-black/[0.06] transition-all duration-300">
+                  {/* Screenshot background (blurred) */}
+                  <div className="absolute inset-0 -z-0 overflow-hidden">
+                    <Image
+                      src={f.screenshot}
+                      alt=""
+                      width={600}
+                      height={400}
+                      className="w-full h-full object-cover object-top opacity-[0.06] group-hover:opacity-[0.10] transition-opacity duration-500 blur-sm scale-105"
+                    />
                   </div>
-                  <h4 className="font-semibold mb-2">{f.title}</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                  {/* Accent glow on hover */}
+                  <div className={`absolute -top-8 -right-8 w-32 h-32 rounded-full bg-gradient-to-br ${f.accent} blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+
+                  <div className="relative z-10 p-6">
+                    {/* Mini screenshot preview */}
+                    <div className="mb-4 rounded-lg overflow-hidden border border-border/60 shadow-md">
+                      <div className="flex items-center gap-1 px-2 py-1.5 bg-muted/50 border-b border-border/40">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-400/60" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400/60" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400/60" />
+                      </div>
+                      <Image
+                        src={f.screenshot}
+                        alt={`${f.title} — Hospedá`}
+                        width={600}
+                        height={340}
+                        className="w-full h-auto"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors text-muted-foreground shrink-0">
+                        <f.icon className="w-4.5 h-4.5" />
+                      </div>
+                      <h4 className="font-semibold">{f.title}</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                  </div>
                 </div>
               </FadeIn>
             ))}
