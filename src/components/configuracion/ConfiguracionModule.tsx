@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { PLANES, NOMBRES_MODULOS, diasRestantesTrial, type PlanTipo } from '@/lib/plan-config';
+import { NOMBRES_MODULOS, diasRestantesTrial, type PlanTipo } from '@/lib/plan-config';
+import { usePlans } from '@/hooks/usePlans';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -123,6 +124,7 @@ function SuscripcionSection() {
   const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanTipo, 'trial'> | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
   const [copiedField, setCopiedField] = useState('');
+  const plans = usePlans();
 
   const fetchUsage = useCallback(async () => {
     try {
@@ -135,7 +137,7 @@ function SuscripcionSection() {
 
   useEffect(() => { fetchUsage(); }, [fetchUsage]);
 
-  const planInfo = PLANES[planActual];
+  const planInfo = plans[planActual];
   const diasTrial = fechaInicioTrial ? diasRestantesTrial(fechaInicioTrial) : 0;
   const isTrial = planActual === 'trial';
   const trialExpired = isTrial && fechaInicioTrial && diasTrial === 0;
@@ -252,7 +254,7 @@ function SuscripcionSection() {
         <h3 className="text-lg font-semibold mb-4">Planes disponibles</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {(['basico', 'profesional', 'premium'] as const).map(tipo => {
-            const plan = PLANES[tipo];
+            const plan = plans[tipo];
             const isCurrent = planActual === tipo;
             const isDowngrade = ['basico', 'profesional', 'premium'].indexOf(planActual) > ['basico', 'profesional', 'premium'].indexOf(tipo);
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { PLANES, type PlanTipo, NOMBRES_MODULOS } from '@/lib/plan-config';
+import { type PlanTipo, NOMBRES_MODULOS } from '@/lib/plan-config';
+import { usePlans } from '@/hooks/usePlans';
 import { Check, ArrowRight, Star, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +26,8 @@ const LIMITS_LABEL: Record<string, { rooms: string; users: string }> = {
 };
 
 export default function PlanCard({ planTipo, destacado, onSelect, compact }: PlanCardProps) {
-  const plan = PLANES[planTipo];
+  const plans = usePlans();
+  const plan = plans[planTipo];
   const desc = PLAN_DESC[planTipo];
   const limits = LIMITS_LABEL[planTipo];
 

@@ -5,7 +5,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireOwner, AuthError } from '@/lib/auth/utils';
-import { PLANES } from '@/lib/plan-config';
+import { type PlanTipo } from '@/lib/plan-config';
+import { getServerPlan } from '@/lib/plan-server';
 import { getMPAccessToken } from '@/lib/payments/config';
 import type { CreateCheckoutRequest, CheckoutResponse } from '@/lib/payments/types';
 import { createMercadoPagoCheckout } from '@/lib/payments/mercadopago';
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const plan = PLANES[planTipo];
+    const plan = await getServerPlan(planTipo as PlanTipo);
 
     // --- Verificar MP configurado ---
     const mpToken = await getMPAccessToken();

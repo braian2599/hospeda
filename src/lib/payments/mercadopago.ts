@@ -2,7 +2,8 @@
 // Funciones server-side para interactuar con la API de Mercado Pago.
 // Usa mercadopago SDK v3.x con clases separadas (Preference, Payment, etc).
 
-import { PlanTipo, PLANES } from '@/lib/plan-config';
+import { PlanTipo, type PlanInfo } from '@/lib/plan-config';
+import { getServerPlan } from '@/lib/plan-server';
 import { getMPAccessToken, getMPWebhookSecret as fetchWebhookSecret } from '@/lib/payments/config';
 import type { PaymentMetadata, MercadoPagoCheckoutResponse } from '@/lib/payments/types';
 
@@ -37,7 +38,7 @@ export async function createMercadoPagoCheckout(params: {
   hotelNombre: string;
 }): Promise<MercadoPagoCheckoutResponse> {
   const { planTipo, tenantId, userEmail, hotelNombre } = params;
-  const plan = PLANES[planTipo];
+  const plan = await getServerPlan(planTipo);
 
   const { client, Preference, isSandbox } = await createMPClient();
 

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireOwner, AuthError } from '@/lib/auth/utils';
-import { PLANES, type PlanTipo } from '@/lib/plan-config';
+import { type PlanTipo } from '@/lib/plan-config';
+import { getServerPlan } from '@/lib/plan-server';
 
 // GET /api/subscription — Info de la suscripción actual
 export async function GET() {

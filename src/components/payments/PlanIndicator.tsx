@@ -1,7 +1,8 @@
 'use client';
 
 import { useHotelStore } from '@/lib/store';
-import { PLANES, type PlanTipo } from '@/lib/plan-config';
+import { type PlanTipo } from '@/lib/plan-config';
+import { usePlans } from '@/hooks/usePlans';
 import { Badge } from '@/components/ui/badge';
 import { Crown, CreditCard, ChevronDown, Check } from 'lucide-react';
 import { useState } from 'react';
@@ -27,8 +28,9 @@ export default function PlanIndicator() {
   const planActual = useHotelStore(s => s.planActual);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanTipo, 'trial'> | null>(null);
+  const plans = usePlans();
 
-  const plan = PLANES[planActual];
+  const plan = plans[planActual];
 
   const handleSelectPlan = (tipo: Exclude<PlanTipo, 'trial'>) => {
     setSelectedPlan(tipo);
@@ -76,7 +78,7 @@ export default function PlanIndicator() {
                 <CreditCard className="w-4 h-4 text-primary" />
                 <div className="flex-1">
                   <p className="text-sm font-medium">Upgrade a Profesional</p>
-                  <p className="text-xs text-muted-foreground">{PLANES.profesional.precioDisplay}/mes</p>
+                  <p className="text-xs text-muted-foreground">{plans.profesional.precioDisplay}/mes</p>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -86,7 +88,7 @@ export default function PlanIndicator() {
                 <Crown className="w-4 h-4 text-amber-500" />
                 <div className="flex-1">
                   <p className="text-sm font-medium">Upgrade a Premium</p>
-                  <p className="text-xs text-muted-foreground">{PLANES.premium.precioDisplay}/mes</p>
+                  <p className="text-xs text-muted-foreground">{plans.premium.precioDisplay}/mes</p>
                 </div>
               </DropdownMenuItem>
             </>

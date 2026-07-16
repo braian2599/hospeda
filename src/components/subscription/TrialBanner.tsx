@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { PLANES, diasRestantesTrial, trialVencido, proximoPlan, type PlanTipo } from '@/lib/plan-config';
+import { diasRestantesTrial, trialVencido, proximoPlan, type PlanTipo } from '@/lib/plan-config';
+import { usePlans } from '@/hooks/usePlans';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, AlertTriangle, Sparkles, X } from 'lucide-react';
@@ -20,6 +21,7 @@ export default function TrialBanner() {
   const [dismissed, setDismissed] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanTipo, 'trial'> | null>(null);
+  const plans = usePlans();
 
   const handleUpgrade = () => {
     // Suggest the next plan up from current
@@ -40,8 +42,8 @@ export default function TrialBanner() {
       <>
         <div className="flex items-center justify-between px-4 py-1.5 bg-secondary/50 border-b border-border text-xs text-muted-foreground">
           <span>
-            Plan <span className="font-medium text-foreground">{PLANES[planActual].nombre}</span>
-            <span className="ml-1">{PLANES[planActual].precioDisplay}/mes</span>
+            Plan <span className="font-medium text-foreground">{plans[planActual].nombre}</span>
+            <span className="ml-1">{plans[planActual].precioDisplay}/mes</span>
           </span>
           <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={handleUpgrade}>
             Cambiar plan
@@ -58,7 +60,7 @@ export default function TrialBanner() {
 
   const dias = diasRestantesTrial(fechaInicioTrial);
   const vencido = trialVencido(fechaInicioTrial);
-  const plan = PLANES[planActual];
+  const plan = plans[planActual];
 
   // Trial vencido — full-width warning
   if (vencido) {

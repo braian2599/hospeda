@@ -3,7 +3,7 @@
 // Es público — no requiere autenticación.
 
 import { NextResponse } from 'next/server';
-import { PLANES } from '@/lib/plan-config';
+import { getServerPlans } from '@/lib/plan-server';
 import type { PublicPlanInfo } from '@/lib/payments/types';
 
 const PLAN_DESCRIPTIONS: Record<string, string> = {
@@ -13,8 +13,9 @@ const PLAN_DESCRIPTIONS: Record<string, string> = {
 };
 
 export async function GET() {
+  const serverPlans = await getServerPlans();
   const planes: PublicPlanInfo[] = (['basico', 'profesional', 'premium'] as const).map(tipo => {
-    const plan = PLANES[tipo];
+    const plan = serverPlans[tipo];
     return {
       tipo,
       nombre: plan.nombre,

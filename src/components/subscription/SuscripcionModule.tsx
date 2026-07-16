@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { PLANES, type PlanTipo, diasRestantesTrial, trialVencido, NOMBRES_MODULOS } from '@/lib/plan-config';
+import { type PlanTipo, diasRestantesTrial, trialVencido, NOMBRES_MODULOS } from '@/lib/plan-config';
+import { usePlans } from '@/hooks/usePlans';
 import PlanCard from '@/components/payments/PlanCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ const TRANSFERENCIA_DATA = {
 
 export default function SuscripcionModule() {
   const { usuarioActual, planActual, fechaInicioTrial } = useHotelStore();
+  const plans = usePlans();
   const [subscriptionData, setSubscriptionData] = useState<{
     estado: string;
     fechaInicio: string;
@@ -88,7 +90,7 @@ export default function SuscripcionModule() {
     setTimeout(() => setCopiedField(''), 2000);
   };
 
-  const plan = PLANES[planActual];
+  const plan = plans[planActual];
   const isTrial = planActual === 'trial';
   const diasTrial = fechaInicioTrial ? diasRestantesTrial(fechaInicioTrial) : 0;
   const trialExpired = isTrial && fechaInicioTrial && trialVencido(fechaInicioTrial);

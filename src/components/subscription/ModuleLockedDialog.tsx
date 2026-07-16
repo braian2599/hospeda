@@ -2,9 +2,10 @@
 
 import { useHotelStore } from '@/lib/store';
 import {
-  PLANES, NOMBRES_MODULOS, proximoPlan,
+  NOMBRES_MODULOS, proximoPlan,
   type PlanTipo,
 } from '@/lib/plan-config';
+import { usePlans } from '@/hooks/usePlans';
 import {
   Dialog,
   DialogContent,
@@ -22,11 +23,12 @@ export default function ModuleLockedDialog() {
   const setModuloBloqueado = useHotelStore(s => s.setModuloBloqueado);
   const planActual = useHotelStore(s => s.planActual);
   const setModulo = useHotelStore(s => s.setModulo);
+  const plans = usePlans();
 
   if (!moduloBloqueado) return null;
 
   const moduloNombre = NOMBRES_MODULOS[moduloBloqueado];
-  const planActualInfo = PLANES[planActual];
+  const planActualInfo = plans[planActual];
   const sigPlan = proximoPlan(planActual);
 
   const handleClose = () => {

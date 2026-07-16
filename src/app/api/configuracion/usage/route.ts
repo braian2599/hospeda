@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
-import { PLANES } from '@/lib/plan-config';
+import { getServerPlan } from '@/lib/plan-server';
+import type { PlanTipo } from '@/lib/plan-config';
 
 // GET /api/configuracion/usage — Estadísticas de uso del plan
 export async function GET() {
@@ -33,7 +34,7 @@ export async function GET() {
     // Si la suscripción está en trial, usar siempre la info del plan trial
     const esTrial = !subscription || subscription.estado === 'trial';
     const planTipo = esTrial ? 'trial' : (subscription.plan?.type || 'trial');
-    const planInfo = PLANES[planTipo as keyof typeof PLANES];
+    const planInfo = await getServerPlan(planTipo as PlanTipo);
 
     return NextResponse.json({
       habitaciones: habitacionesCount,

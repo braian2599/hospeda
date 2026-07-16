@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireSuperAdmin } from '@/lib/super-admin/auth';
+import { invalidatePlansCache } from '@/lib/plan-server';
 
 // GET /api/super-admin/plans — Listar todos los planes
 export async function GET() {
@@ -59,6 +60,9 @@ export async function PUT(req: NextRequest) {
         ...(data.activo !== undefined && { activo: data.activo }),
       },
     });
+
+    // Invalidar caches para que los cambios se reflejen inmediatamente
+    invalidatePlansCache();
 
     return NextResponse.json({ success: true, plan });
   } catch (error: unknown) {

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { PLANES, NOMBRES_MODULOS, type PlanTipo } from '@/lib/plan-config';
+import { NOMBRES_MODULOS, type PlanTipo } from '@/lib/plan-config';
+import { usePlans } from '@/hooks/usePlans';
 import {
   Dialog,
   DialogContent,
@@ -63,7 +64,8 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
     onOpenChange(newOpen);
   };
 
-  const plan = selectedPlan ? PLANES[selectedPlan] : null;
+  const plans = usePlans();
+  const plan = selectedPlan ? plans[selectedPlan] : null;
 
   // Create checkout session
   const handleCheckout = async () => {
