@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -67,63 +68,48 @@ const navLinks = [
   { label: 'FAQ', id: 'faq' },
 ];
 
-const features = [
+const showcaseFeatures = [
   {
     icon: CalendarCheck,
     title: 'Reservas Inteligentes',
-    desc: 'Calendario visual, control de disponibilidad en tiempo real y prevención automática de overbooking.',
-    span: 'col',
-    highlight: false,
+    desc: 'Calendario visual con colores por estado, control de disponibilidad en tiempo real y prevención automática de overbooking. Gestiona check-ins y check-outs con un solo clic desde la vista de reservas del día.',
+    screenshot: '/screenshots/reservas.png',
+    badge: 'Módulo principal',
   },
   {
     icon: Building2,
     title: 'Gestión de Habitaciones',
-    desc: 'Tipos de habitación, estados visuales, numeración y control de mantenimiento todo en un solo lugar.',
-    span: 'col',
-    highlight: false,
+    desc: 'Vista de tablero con estados visuales de cada habitación: disponible, ocupada, en limpieza o en mantenimiento. Cargá tipos de habitación, numeración y asigná tarifas por tipo y temporada.',
+    screenshot: '/screenshots/habitaciones.png',
+    badge: 'Módulo principal',
   },
   {
     icon: CreditCard,
     title: 'Facturación Completa',
-    desc: 'Emite comprobantes, registra pagos en múltiples medios y lleva el control financiero total de tu hotel con reportes detallados.',
-    span: 'col md:col-span-2',
-    highlight: true,
-  },
-  {
-    icon: Users,
-    title: 'Ficha de Huéspedes',
-    desc: 'Historial de estadías, documentos, preferencias y datos de contacto centralizados.',
-    span: 'col',
-    highlight: false,
+    desc: 'Emite comprobantes, registra pagos en múltiples medios (efectivo, transferencia, tarjeta) y lleva el control financiero total. Historial completo de cada transacción asociada a la reserva.',
+    screenshot: '/screenshots/facturacion.png',
+    badge: 'Plan Profesional',
   },
   {
     icon: BarChart3,
     title: 'Reportes y Analytics',
-    desc: 'Ocupación, ingresos por período, tasa de cancelación. Decisiones basadas en datos reales.',
-    span: 'col md:col-span-2',
-    highlight: true,
+    desc: 'Dashboards con métricas clave: ocupación promedio, ingresos por período, tasa de cancelación y más. Gráficos interactivos para tomar decisiones basadas en datos reales de tu hotel.',
+    screenshot: '/screenshots/reportes.png',
+    badge: 'Plan Profesional',
   },
   {
-    icon: Shield,
-    title: 'Multiusuario Seguro',
-    desc: 'Roles y permisos granulares. Datos de cada hotel completamente aislados.',
-    span: 'col',
-    highlight: false,
+    icon: Users,
+    title: 'Ficha de Huéspedes',
+    desc: 'Historial completo de estadías, documentos, preferencias y datos de contacto centralizados. Sabé quién volvió, cuándo y qué habitación prefiere.',
+    screenshot: '/screenshots/dashboard.png',
+    badge: 'Dashboard',
   },
-  {
-    icon: Receipt,
-    title: 'Caja y Arqueo',
-    desc: 'Control de caja diario, movimientos, cierres y conciliación automática.',
-    span: 'col',
-    highlight: false,
-  },
-  {
-    icon: Wrench,
-    title: 'Limpieza y Mantenimiento',
-    desc: 'Asignación de tareas, seguimiento de estados y flujo de trabajo para el equipo de housekeeping.',
-    span: 'col',
-    highlight: false,
-  },
+];
+
+const miniFeatures = [
+  { icon: Shield, title: 'Multiusuario Seguro', desc: 'Roles y permisos granulares. Datos de cada hotel completamente aislados y encriptados.' },
+  { icon: Receipt, title: 'Caja y Arqueo', desc: 'Control de caja diario, movimientos, cierres y conciliación automática.' },
+  { icon: Wrench, title: 'Limpieza y Mantenimiento', desc: 'Asignación de tareas y seguimiento de estados para el equipo de housekeeping.' },
 ];
 
 const steps = [
@@ -441,38 +427,78 @@ function Features() {
     <section id="caracteristicas" className="py-24 sm:py-32">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <FadeIn>
-          <div className="text-center max-w-2xl mx-auto mb-16">
+          <div className="text-center max-w-2xl mx-auto mb-20">
             <Badge variant="secondary" className="mb-4">Características</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
               Todo lo que necesitás para gestionar tu hotel
             </h2>
             <p className="text-muted-foreground text-lg">
               Módulos pensados para las necesidades reales de alojamientos en Argentina.
-              Sin complejidades innecesarias.
+              Mirá cómo se ve en acción.
             </p>
           </div>
         </FadeIn>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {features.map((f, i) => (
-            <FadeIn key={f.title} delay={i * 80} className={f.span}>
-              <div className={`group relative h-full p-6 rounded-2xl border transition-all duration-300 ${
-                f.highlight
-                  ? 'border-primary/20 bg-primary/[0.02] hover:bg-primary/[0.05] hover:border-primary/30 hover:shadow-md hover:shadow-primary/5'
-                  : 'border-border bg-card hover:bg-accent/50 hover:border-border hover:shadow-sm'
-              }`}>
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 transition-colors ${
-                  f.highlight
-                    ? 'bg-primary/10 text-primary'
-                    : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'
-                }`}>
-                  <f.icon className="w-5 h-5" />
+        {/* Showcase features with screenshots */}
+        <div className="space-y-24 sm:space-y-32">
+          {showcaseFeatures.map((f, i) => {
+            const reversed = i % 2 !== 0;
+            return (
+              <FadeIn key={f.title} delay={i * 100}>
+                <div className={`grid lg:grid-cols-2 gap-10 lg:gap-16 items-center ${reversed ? 'lg:direction-rtl' : ''}`}>
+                  {/* Text */}
+                  <div className={reversed ? 'lg:order-2' : ''}>
+                    <Badge variant="outline" className="mb-4 text-xs font-medium">
+                      {f.badge}
+                    </Badge>
+                    <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">{f.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed mb-6">{f.desc}</p>
+                    <div className="flex items-center gap-2 text-sm text-primary font-medium">
+                      <f.icon className="w-4 h-4" />
+                      <span>Incluido en todos los planes</span>
+                    </div>
+                  </div>
+
+                  {/* Screenshot */}
+                  <div className={`${reversed ? 'lg:order-1' : ''}`}>
+                    <div className="relative rounded-2xl overflow-hidden border border-border shadow-2xl shadow-black/10">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent z-10 pointer-events-none" />
+                      <Image
+                        src={f.screenshot}
+                        alt={`${f.title} — Hospedá`}
+                        width={1344}
+                        height={768}
+                        className="w-full h-auto"
+                        priority={i < 2}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-lg mb-2">{f.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{f.desc}</p>
-              </div>
-            </FadeIn>
-          ))}
+              </FadeIn>
+            );
+          })}
+        </div>
+
+        {/* Mini features grid */}
+        <div className="mt-24 sm:mt-32">
+          <FadeIn>
+            <h3 className="text-center text-xl font-semibold mb-10 text-muted-foreground">
+              Y mucho más...
+            </h3>
+          </FadeIn>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {miniFeatures.map((f, i) => (
+              <FadeIn key={f.title} delay={i * 100}>
+                <div className="group h-full p-6 rounded-2xl border border-border bg-card hover:bg-accent/50 hover:shadow-sm transition-all duration-300">
+                  <div className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:text-primary transition-colors text-muted-foreground">
+                    <f.icon className="w-5 h-5" />
+                  </div>
+                  <h4 className="font-semibold mb-2">{f.title}</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
         </div>
       </div>
     </section>
