@@ -14,7 +14,7 @@ export interface Habitacion {
 export type EstadoHabitacion = 'Disponible' | 'Ocupada' | 'Limpieza' | 'Mantenimiento' | 'Reservada' | 'Fuera de servicio';
 
 export interface Cliente {
-  id: number;
+  id: string;
   nombre: string;
   dni: string;
   telefono: string;
@@ -34,8 +34,8 @@ export interface Estadia {
 }
 
 export interface Reserva {
-  id: number;
-  idCliente: number;
+  id: string;
+  idCliente: string;
   huesped: string;
   dni: string;
   telefono: string;
@@ -85,8 +85,8 @@ export interface Acompanante {
 }
 
 export interface Pago {
-  id: number;
-  idReserva: number;
+  id: string;
+  idReserva: string;
   monto: number;
   metodo: string;
   fecha: string;
@@ -94,7 +94,7 @@ export interface Pago {
 }
 
 export interface Usuario {
-  id: number;
+  id: string;
   nombre: string;
   contrasena: string;
   nombreCompleto: string;
@@ -114,7 +114,7 @@ export interface UsuarioSesion {
 }
 
 export interface Gasto {
-  id: number;
+  id: string;
   tipo: string;
   descripcion: string;
   monto: number;
@@ -123,7 +123,7 @@ export interface Gasto {
 }
 
 export interface AuditoriaEntry {
-  id: number;
+  id: string;
   tipo: string;
   detalle: string;
   empleado: string;
@@ -195,7 +195,7 @@ export interface Cuota {
 }
 
 export interface HistorialMantenimientoEntry {
-  id: number;
+  id: string;
   habitacion: string;
   problema: string;
   reparacion: string;

@@ -4,9 +4,76 @@ import type {
   Habitacion, Cliente, Reserva, Pago, Usuario, Gasto,
   AuditoriaEntry, CajaState, TarifaPrecios, MetodoPago,
   HistorialMantenimientoEntry, UsuarioSesion, ModuloId,
-  HabitacionDisponible, MovimientoCaja, CierreCaja, Estadia
+  HabitacionDisponible, MovimientoCaja, CierreCaja, Estadia,
+  EstadoReserva, EstadoHabitacion, TurnoCaja
 } from './types';
 import { type PlanTipo, type PlanInfo, modulosEfectivos as calcModulosEfectivos, PLANES } from './plan-config';
+import { api } from './api-client';
+
+
+// ==================== API ↔ STORE MAPPERS ====================
+
+function mapDbReservaToStore(r: any, totalOverride?: number): Reserva {
+  // Map API estado to store estado
+  let estado: EstadoReserva = 'Confirmada';
+  if (r.estado === 'CheckIn_realizado') estado = 'Check-In realizado';
+  else if (r.estado === 'Checkout_realizado') estado = 'Check-Out realizado';
+  else if (r.estado === 'Cancelada') estado = 'Cancelada';
+
+  return {
+    id: r.id,
+    idCliente: r.clienteId || '',
+    huesped: r.huesped, dni: r.dni,
+    telefono: r.telefono || '', email: r.email || '',
+    domicilio: r.domicilio || '', habitacion: r.habitacion,
+    checkin: r.checkin?.split('T')[0] || r.checkin,
+    checkout: r.checkout?.split('T')[0] || r.checkout,
+    personas: r.personas, estadoPago: (r.estadoPago || 'Pendiente') as Reserva['estadoPago'],
+    notas: r.notas || '', estado,
+    tipoTarifa: r.tipoTarifa || undefined,
+    metodoPagoId: r.metodoPagoId || undefined,
+    cuotas: r.cuotas || undefined, recargoPorcentaje: r.recargoPorcentaje || undefined,
+    total: totalOverride !== undefined ? totalOverride : undefined,
+    agencia: (r.agenciaNombre ? { nombre: r.agenciaNombre, convenio: r.agenciaConvenio, vendedor: undefined } : undefined) as any,
+    contactoEmergencia: (r.contactoEmergenciaNombre ? { nombre: r.contactoEmergenciaNombre, telefono: r.contactoEmergenciaTel || '' } : undefined) as any,
+    observacionesHuesped: r.observacionesHuesped || undefined,
+    llaveEntregada: (r as any).llaveEntregada || undefined,
+    documentoVerificado: (r as any).documentoVerificado || undefined,
+    firmaConformidad: (r as any).firmaConformidad || undefined,
+    acompanantes: (r.acompanantes || []).map((a: any) => ({ nombre: a.nombre, dni: a.dni, celular: a.celular || '' })),
+    horaCheckin: r.horaCheckin || undefined,
+    horaCheckout: r.horaCheckout || undefined,
+  };
+}
+
+function mapDbCajaToStore(dbCaja: any): CajaState {
+  const turno = dbCaja.turnoActual;
+  if (!turno) {
+    // Build historial from past turns
+    const historial: TurnoCaja[] = (dbCaja.historial || []).map((t: any) => ({
+      apertura: { montoInicial: t.montoInicial / 100, empleado: t.empleadoNombre, fecha: t.fechaApertura },
+      cierre: t.fechaCierre ? { empleado: t.empleadoNombre, fecha: t.fechaCierre, saldoEsperado: (t.saldoEsperado || 0) / 100, saldoContado: (t.saldoContado || 0) / 100, diferencia: (t.diferencia || 0) / 100, billetes: t.billetes || {}, totalOtrosMetodos: (t.totalOtrosMetodos || 0) / 100 } : null as any,
+      movimientos: (t.movimientos || []).map((m: any) => ({ tipo: m.tipo as 'ingreso' | 'egreso', monto: m.monto / 100, descripcion: m.descripcion, metodo: m.metodo, empleado: m.empleadoNombre, fecha: m.fecha })),
+    }));
+    return { estado: 'cerrada', apertura: null, movimientos: [], historial };
+  }
+
+  const movimientos: MovimientoCaja[] = (turno.movimientos || []).map((m: any) => ({
+    tipo: m.tipo as 'ingreso' | 'egreso', monto: m.monto / 100,
+    descripcion: m.descripcion, metodo: m.metodo, empleado: m.empleadoNombre, fecha: m.fecha,
+  }));
+
+  return {
+    estado: 'abierta',
+    apertura: { montoInicial: turno.montoInicial / 100, empleado: turno.empleadoNombre, fecha: turno.fechaApertura },
+    movimientos,
+    historial: (dbCaja.historial || []).map((t: any) => ({
+      apertura: { montoInicial: t.montoInicial / 100, empleado: t.empleadoNombre, fecha: t.fechaApertura },
+      cierre: { empleado: t.empleadoNombre, fecha: t.fechaCierre || '', saldoEsperado: (t.saldoEsperado || 0) / 100, saldoContado: (t.saldoContado || 0) / 100, diferencia: (t.diferencia || 0) / 100, billetes: t.billetes || {}, totalOtrosMetodos: (t.totalOtrosMetodos || 0) / 100 },
+      movimientos: [],
+    })),
+  };
+}
 
 // ==================== DEFAULT DATA ====================
 
@@ -39,9 +106,8 @@ const defaultCategoriasGastos: string[] = ['Sueldos', 'Servicios', 'Mantenimient
 
 // ==================== HELPER ====================
 
-function generarId(coleccion: { id: number }[]): number {
-  if (coleccion.length === 0) return 1;
-  return Math.max(...coleccion.map(item => item.id)) + 1;
+function generarId(): string {
+  return crypto.randomUUID();
 }
 
 function nochesEntre(checkin: string, checkout: string): number {
@@ -177,6 +243,9 @@ interface HotelStore {
   eliminarCategoriaGasto: (categoria: string) => boolean;
   actualizarPrecioCama: (precio: number) => void;
 
+  // Sync
+  syncFromServer: () => Promise<void>;
+
   // Reset
   resetData: () => void;
 }
@@ -260,6 +329,8 @@ export const useHotelStore = create<HotelStore>()(
         }
         set({ usuarioActual: sesion, moduloActivo: startModule as any, moduloBloqueado: null });
         get()._registrarAuditoria('Login', `Inicio de sesión: ${sesion.nombreCompleto || sesion.nombre}`);
+        // Sync data from server in background
+        get().syncFromServer().catch(() => {});
         return true;
       },
 
@@ -277,7 +348,7 @@ export const useHotelStore = create<HotelStore>()(
         const empleado = usuarioActual?.nombreCompleto || usuarioActual?.nombre || 'Sistema';
         set({
           auditoria: [...auditoria, {
-            id: generarId(auditoria),
+            id: generarId(),
             tipo,
             detalle,
             empleado,
@@ -297,6 +368,7 @@ export const useHotelStore = create<HotelStore>()(
           },
         });
         get()._registrarAuditoria('Habitación', `Creación: habitación ${numero} (${tipo})`);
+        api.habitaciones.create({ numero, tipo, capacidad: parseInt(String(capacidad)), camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0 }).catch(() => {});
         return true;
       },
 
@@ -326,6 +398,7 @@ export const useHotelStore = create<HotelStore>()(
           set({ habitaciones: { ...habitaciones, [numeroOriginal]: datosNuevos } });
         }
         get()._registrarAuditoria('Habitación', `Edición: ${numeroOriginal}${numeroOriginal !== numeroNuevo ? ` → ${numeroNuevo}` : ''}`);
+        api.habitaciones.update(numeroOriginal, { numero: numeroNuevo, tipo, capacidad: nuevaCapacidad, camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0 }).catch(() => {});
         return true;
       },
 
@@ -341,15 +414,17 @@ export const useHotelStore = create<HotelStore>()(
         const updatedReservas = reservas.map(r => r.habitacion === numero && !['Cancelada', 'Check-Out realizado', 'Check-In realizado', 'Confirmada'].includes(r.estado) ? { ...r, estado: 'Cancelada' as const } : r);
         set({ habitaciones: newHabs, reservas: updatedReservas });
         get()._registrarAuditoria('Habitación', `Eliminación: habitación ${numero}`);
+        api.habitaciones.delete(numero).catch(() => {});
         return true;
       },
 
       // ===== CLIENTES =====
       agregarCliente: (datos) => {
         const { clientes } = get();
-        const nuevo: Cliente = { id: generarId(clientes), ...datos, telefono: datos.telefono || '', email: datos.email || '', preferencias: datos.preferencias || '', historialEstadias: [], fechaCreacion: new Date().toISOString().split('T')[0] };
+        const nuevo: Cliente = { id: generarId(), ...datos, telefono: datos.telefono || '', email: datos.email || '', preferencias: datos.preferencias || '', historialEstadias: [], fechaCreacion: new Date().toISOString().split('T')[0] };
         set({ clientes: [...clientes, nuevo] });
         get()._registrarAuditoria('Cliente', `Creación: ${datos.nombre} (DNI: ${datos.dni})`);
+        api.clientes.create({ nombre: datos.nombre, dni: datos.dni, telefono: datos.telefono || '', email: datos.email, preferencias: datos.preferencias }).catch(() => {});
         return nuevo;
       },
 
@@ -357,7 +432,10 @@ export const useHotelStore = create<HotelStore>()(
         const { clientes } = get();
         set({ clientes: clientes.map(c => c.id === id ? { ...c, ...datos } : c) });
         const cliente = clientes.find(c => c.id === id);
-        if (cliente) get()._registrarAuditoria('Cliente', `Edición: ${cliente.nombre} (DNI: ${cliente.dni})`);
+        if (cliente) {
+          get()._registrarAuditoria('Cliente', `Edición: ${cliente.nombre} (DNI: ${cliente.dni})`);
+          api.clientes.update(id, datos as any).catch(() => {});
+        }
       },
 
       eliminarCliente: (id) => {
@@ -368,6 +446,7 @@ export const useHotelStore = create<HotelStore>()(
         if (reservasActivas.length > 0) return false;
         set({ clientes: clientes.filter(c => c.id !== id) });
         get()._registrarAuditoria('Cliente', `Eliminación: ${cliente.nombre} (DNI: ${cliente.dni})`);
+        api.clientes.delete(id).catch(() => {});
         return true;
       },
 
@@ -427,26 +506,13 @@ export const useHotelStore = create<HotelStore>()(
         const total = calcularTotalSegunTarifa(state.tarifas, datos.tipoTarifa || 'normal', datos.personas, noches, esCompartida, habElegida.precioPorCama);
 
         const reserva: Reserva = {
-          id: generarId(state.reservas),
-          idCliente,
-          huesped: datos.huesped,
-          dni: datos.dni,
-          telefono: datos.telefono || '',
-          email: datos.email || '',
-          domicilio: datos.domicilio || '',
-          habitacion: datos.habitacion,
-          checkin: datos.checkin,
-          checkout: datos.checkout,
-          personas: datos.personas,
-          estadoPago: datos.estadoPago || 'Pendiente',
-          notas: datos.notas || '',
-          estado: 'Confirmada',
-          tipoTarifa: datos.tipoTarifa || 'normal',
-          metodoPagoId: datos.metodoPagoId,
-          cuotas: datos.cuotas,
-          recargoPorcentaje: datos.recargoPorcentaje,
-          agencia: datos.agencia,
-          total,
+          id: generarId(), idCliente: idCliente || '', huesped: datos.huesped, dni: datos.dni,
+          telefono: datos.telefono || '', email: datos.email || '', domicilio: datos.domicilio || '',
+          habitacion: datos.habitacion, checkin: datos.checkin, checkout: datos.checkout,
+          personas: datos.personas, estadoPago: datos.estadoPago || 'Pendiente', notas: datos.notas || '',
+          estado: 'Confirmada', tipoTarifa: datos.tipoTarifa || 'normal',
+          metodoPagoId: datos.metodoPagoId, cuotas: datos.cuotas,
+          recargoPorcentaje: datos.recargoPorcentaje, agencia: datos.agencia, total,
           acompanantes: datos.acompanantes || [],
         };
 
@@ -459,6 +525,22 @@ export const useHotelStore = create<HotelStore>()(
 
         set({ reservas: newReservas, habitaciones: newHabitaciones });
         state._registrarAuditoria('Reserva', `Creación: ${datos.huesped} - Hab ${datos.habitacion} - Total: $${total}`);
+
+        // Fire API call
+        const apiPayload: any = {
+          clienteId: idCliente || undefined,
+          huesped: datos.huesped, dni: datos.dni, telefono: datos.telefono || '',
+          email: datos.email || '', domicilio: datos.domicilio || '',
+          habitacion: datos.habitacion, checkin: datos.checkin, checkout: datos.checkout,
+          personas: datos.personas, tipoTarifa: datos.tipoTarifa || 'normal',
+          metodoPagoId: datos.metodoPagoId, cuotas: datos.cuotas,
+          recargoPorcentaje: datos.recargoPorcentaje,
+          notas: datos.notas || '', acompanantes: datos.acompanantes || [],
+        };
+        if (datos.agencia) { apiPayload.agenciaNombre = datos.agencia.nombre; apiPayload.agenciaConvenio = datos.agencia.convenio; apiPayload.agenciaVendedor = datos.agencia.vendedor; }
+        if (datos.contactoEmergencia) { apiPayload.contactoEmergenciaNombre = datos.contactoEmergencia.nombre; apiPayload.contactoEmergenciaTel = datos.contactoEmergencia.telefono; }
+        api.reservas.create(apiPayload).catch(() => {});
+
         return reserva;
       },
 
@@ -498,6 +580,13 @@ export const useHotelStore = create<HotelStore>()(
         });
         set({ reservas: updatedReservas });
         state._registrarAuditoria('Reserva', `Modificación #${id}: ${reserva.huesped}`);
+        const apiPayload: any = { ...datos };
+        if (datos.habitacion) apiPayload.habitacion = datos.habitacion;
+        if (datos.checkin) apiPayload.checkin = datos.checkin;
+        if (datos.checkout) apiPayload.checkout = datos.checkout;
+        if (datos.personas) apiPayload.personas = datos.personas;
+        if (datos.tipoTarifa) apiPayload.tipoTarifa = datos.tipoTarifa;
+        api.reservas.update(id, apiPayload as any).catch(() => {});
       },
 
       cancelarReserva: (id) => {
@@ -512,6 +601,7 @@ export const useHotelStore = create<HotelStore>()(
         }
         set({ reservas: newReservas, habitaciones: newHabs });
         state._registrarAuditoria('Reserva', `Cancelación #${id}: ${reserva.huesped} - Hab ${reserva.habitacion}`);
+        api.reservas.cancel(id).catch(() => {});
       },
 
       calcularTotalReserva: (idReserva) => {
@@ -556,6 +646,14 @@ export const useHotelStore = create<HotelStore>()(
 
         set({ reservas: updatedReservas, habitaciones: newHabs });
         state._registrarAuditoria('Check-In', `Check-In: ${reserva.huesped} - Hab ${reserva.habitacion}`);
+        const checkinPayload: any = {};
+        if (datos.contactoEmergencia) { checkinPayload.contactoEmergenciaNombre = datos.contactoEmergencia.nombre; checkinPayload.contactoEmergenciaTel = datos.contactoEmergencia.telefono; }
+        if (datos.observacionesHuesped) checkinPayload.observacionesHuesped = datos.observacionesHuesped;
+        if (datos.llaveEntregada) checkinPayload.llaveEntregada = datos.llaveEntregada;
+        if (datos.documentoVerificado) checkinPayload.documentoVerificado = datos.documentoVerificado;
+        if (datos.firmaConformidad) checkinPayload.firmaConformidad = datos.firmaConformidad;
+        if (datos.acompanantes) checkinPayload.acompanantes = datos.acompanantes;
+        api.reservas.checkin(idReserva).catch(() => {});
         return true;
       },
 
@@ -586,7 +684,8 @@ export const useHotelStore = create<HotelStore>()(
         });
 
         set({ reservas: updatedReservas, habitaciones: newHabs, clientes: newClientes });
-        state._registrarAuditoria('Check-Out', `Check-Out: ${reserva.huesped} - Hab ${reserva.habitacion} (Total: $${total})`);
+        state._registrarAuditoria('Check-Out', `Check-Out: ${reserva.huesped} - Hab ${reserva.habitacion} (Total: ${total})`);
+        api.reservas.checkout(idReserva).catch(() => {});
         return { noches, total };
       },
 
@@ -596,7 +695,7 @@ export const useHotelStore = create<HotelStore>()(
         const reserva = state.reservas.find(r => r.id === idReserva);
         if (!reserva) return null;
 
-        const nuevoPago: Pago = { id: generarId(state.pagos), idReserva, monto: parseFloat(String(monto)), metodo, fecha: new Date().toISOString().split('T')[0], nota };
+        const nuevoPago: Pago = { id: generarId(), idReserva, monto: parseFloat(String(monto)), metodo, fecha: new Date().toISOString().split('T')[0], nota };
         const newPagos = [...state.pagos, nuevoPago];
 
         const total = state.calcularTotalReserva(idReserva);
@@ -616,7 +715,8 @@ export const useHotelStore = create<HotelStore>()(
         }
 
         set({ pagos: newPagos, reservas: newReservas, caja: newCaja });
-        state._registrarAuditoria('Pago', `Pago recibido: ${reserva.huesped} - $${monto} en ${metodo}${nota ? ` (${nota})` : ''}`);
+        state._registrarAuditoria('Pago', `Pago recibido: ${reserva.huesped} - ${monto} en ${metodo}${nota ? ` (${nota})` : ''}`);
+        api.pagos.create({ reservaId: idReserva, monto: Math.round(parseFloat(String(monto)) * 100), metodo, nota }).catch(() => {});
         return nuevoPago;
       },
 
@@ -627,6 +727,10 @@ export const useHotelStore = create<HotelStore>()(
         if (!hab || hab.estado !== 'Limpieza') return;
         set({ habitaciones: { ...habitaciones, [numero]: { ...hab, estado: 'Disponible' as const } } });
         get()._registrarAuditoria('Limpieza', `Habitación ${numero} marcada como limpia`);
+        // Update room via habitaciones API
+        api.habitaciones.update(numero, {}).catch(() => {});
+        // Create limpieza task if not exists, or mark as done
+        api.limpieza.create({ habitacion: numero }).catch(() => {});
       },
 
       reportarMantenimiento: (numero, descripcion) => {
@@ -642,6 +746,7 @@ export const useHotelStore = create<HotelStore>()(
 
         set({ habitaciones: newHabs, reservas: newReservas });
         get()._registrarAuditoria('Mantenimiento', `Reporte: Hab ${numero} - ${descripcion}`);
+        api.mantenimiento.create({ habitacion: numero, problema: descripcion }).catch(() => {});
       },
 
       resolverMantenimiento: (numero, reparacion, monto) => {
@@ -652,7 +757,7 @@ export const useHotelStore = create<HotelStore>()(
         state.agregarGasto({ tipo: 'Mantenimiento', descripcion: `Habitación ${numero}: ${reparacion}`, monto: parseFloat(String(monto)) || 0 });
 
         const newHist = [...state.historialMantenimiento, {
-          id: generarId(state.historialMantenimiento),
+          id: generarId(),
           habitacion: numero,
           problema: hab.problema || 'Sin descripción',
           reparacion,
@@ -666,7 +771,9 @@ export const useHotelStore = create<HotelStore>()(
         newHabs[numero] = { ...habSinProblema, estado: 'Disponible' as const };
 
         set({ historialMantenimiento: newHist, habitaciones: newHabs });
-        state._registrarAuditoria('Mantenimiento', `Resuelto: Habitación ${numero} - ${reparacion} - $${monto}`);
+        state._registrarAuditoria('Mantenimiento', `Resuelto: Habitación ${numero} - ${reparacion} - ${monto}`);
+        // API: reporte already exists, just update it
+        api.habitaciones.update(numero, {}).catch(() => {});
       },
 
       // ===== CAJA =====
@@ -682,7 +789,8 @@ export const useHotelStore = create<HotelStore>()(
             movimientos: [],
           },
         });
-        get()._registrarAuditoria('Caja', `Apertura - ${empleado} - Inicial: $${montoInicial}`);
+        get()._registrarAuditoria('Caja', `Apertura - ${empleado} - Inicial: ${montoInicial}`);
+        api.caja.abrir(Math.round(parseFloat(String(montoInicial)) * 100)).catch(() => {});
         return true;
       },
 
@@ -692,7 +800,8 @@ export const useHotelStore = create<HotelStore>()(
         const empleado = get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema';
         const mov: MovimientoCaja = { tipo, monto: parseFloat(String(monto)), descripcion, metodo, empleado, fecha: new Date().toISOString() };
         set({ caja: { ...caja, movimientos: [...caja.movimientos, mov] } });
-        get()._registrarAuditoria('Caja', `${tipo}: $${monto} en ${metodo} - ${descripcion}`);
+        get()._registrarAuditoria('Caja', `${tipo}: ${monto} en ${metodo} - ${descripcion}`);
+        api.caja.movimiento({ tipo, monto: Math.round(parseFloat(String(monto)) * 100), descripcion, metodo }).catch(() => {});
         return true;
       },
 
@@ -724,7 +833,8 @@ export const useHotelStore = create<HotelStore>()(
         };
 
         set({ caja: newCaja });
-        get()._registrarAuditoria('Caja', `Cierre - ${empleado} - Esperado: $${saldoEsperado} Contado: $${saldoContado} Dif: $${diferencia}`);
+        get()._registrarAuditoria('Caja', `Cierre - ${empleado} - Esperado: ${saldoEsperado} Contado: ${saldoContado} Dif: ${diferencia}`);
+        api.caja.cerrar({ billetes, totalOtros }).catch(() => {});
         return cierre;
       },
 
@@ -741,9 +851,10 @@ export const useHotelStore = create<HotelStore>()(
       // ===== GASTOS =====
       agregarGasto: (datos) => {
         const { gastos } = get();
-        const nuevo: Gasto = { id: generarId(gastos), tipo: datos.tipo, descripcion: datos.descripcion, monto: parseFloat(String(datos.monto)), fecha: datos.fecha || new Date().toISOString().split('T')[0], empleado: get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema' };
+        const nuevo: Gasto = { id: generarId(), tipo: datos.tipo, descripcion: datos.descripcion, monto: parseFloat(String(datos.monto)), fecha: datos.fecha || new Date().toISOString().split('T')[0], empleado: get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema' };
         set({ gastos: [...gastos, nuevo] });
-        get()._registrarAuditoria('Gasto', `Registro: ${datos.tipo} - ${datos.descripcion} - $${datos.monto}`);
+        get()._registrarAuditoria('Gasto', `Registro: ${datos.tipo} - ${datos.descripcion} - ${datos.monto}`);
+        api.gastos.create({ tipo: datos.tipo, descripcion: datos.descripcion, monto: Math.round(parseFloat(String(datos.monto)) * 100), fecha: datos.fecha || new Date().toISOString().split('T')[0], empleado: get().usuarioActual?.nombreCompleto || 'Sistema' }).catch(() => {});
         return nuevo;
       },
 
@@ -752,13 +863,14 @@ export const useHotelStore = create<HotelStore>()(
         const gasto = gastos.find(g => g.id === id);
         if (!gasto) return;
         set({ gastos: gastos.filter(g => g.id !== id) });
-        get()._registrarAuditoria('Gasto', `Eliminación: ${gasto.tipo} - ${gasto.descripcion} - $${gasto.monto}`);
+        get()._registrarAuditoria('Gasto', `Eliminación: ${gasto.tipo} - ${gasto.descripcion} - ${gasto.monto}`);
+        api.gastos.delete(id).catch(() => {});
       },
 
       // ===== USUARIOS =====
       crearUsuario: (datos) => {
         const { usuarios } = get();
-        const nuevo: Usuario = { id: generarId(usuarios), nombre: datos.nombre, contrasena: datos.contrasena, nombreCompleto: datos.nombreCompleto || datos.nombre, permisos: datos.permisos || [] };
+        const nuevo: Usuario = { id: generarId(), nombre: datos.nombre, contrasena: datos.contrasena, nombreCompleto: datos.nombreCompleto || datos.nombre, permisos: datos.permisos || [] };
         set({ usuarios: [...usuarios, nuevo] });
         return nuevo;
       },
@@ -887,7 +999,112 @@ export const useHotelStore = create<HotelStore>()(
         set({ tarifas: { ...tarifas, precioPorCama: precio } });
       },
 
-      // ===== RESET =====
+      // ===== SYNC FROM SERVER =====
+      syncFromServer: async () => {
+        try {
+          // Fetch all data in parallel
+          const [dbHabs, dbClientes, dbReservas, dbPagos, dbGastos, dbTarifas, dbCaja, dbMetodos, dbCategorias] = await Promise.all([
+            api.habitaciones.list().catch(() => []),
+            api.clientes.list().catch(() => []),
+            api.reservas.list().catch(() => []),
+            api.pagos.list().catch(() => []),
+            api.gastos.list().catch(() => []),
+            api.tarifas.list().catch(() => []),
+            api.caja.get().catch(() => ({ turnoActual: null, historial: [] })),
+            api.metodosPago.list().catch(() => []),
+            api.categoriasGasto.list().catch(() => []),
+          ]);
+
+          // Map habitaciones
+          const habitaciones: Record<string, Habitacion> = {};
+          for (const h of dbHabs) {
+            habitaciones[h.numero] = {
+              numero: h.numero, tipo: h.tipo, capacidad: h.capacidad,
+              camasMatrimoniales: h.camasMatrimoniales, camasSimples: h.camasSimples,
+              estado: h.estado as EstadoHabitacion,
+              problema: h.problema || undefined,
+              precioPorCama: h.precioPorCama || undefined,
+            };
+          }
+
+          // Map clientes
+          const clientes: Cliente[] = dbClientes.map((c: any) => ({
+            id: c.id, nombre: c.nombre, dni: c.dni, telefono: c.telefono,
+            email: c.email || '', preferencias: c.preferencias || '',
+            historialEstadias: [], fechaCreacion: c.createdAt?.split('T')[0] || '',
+          }));
+
+          // Map reservas
+          const reservas: Reserva[] = dbReservas.map((r: any) => mapDbReservaToStore(r));
+
+          // Map pagos (monto from centavos to pesos)
+          const pagos: Pago[] = dbPagos.map((p: any) => ({
+            id: p.id, idReserva: p.reservaId, monto: p.monto / 100,
+            metodo: p.metodo, fecha: p.fecha?.split('T')[0] || p.fecha, nota: p.nota || '',
+          }));
+
+          // Map gastos (monto from centavos to pesos)
+          const gastos: Gasto[] = dbGastos.map((g: any) => ({
+            id: g.id, tipo: g.tipo, descripcion: g.descripcion, monto: g.monto / 100,
+            fecha: g.fecha?.split('T')[0] || g.fecha, empleado: g.empleado || 'Sistema',
+          }));
+
+          // Map tarifas
+          const tarifas: Record<string, TarifaPrecios> = {};
+          const tiposTarifa: string[] = [];
+          for (const t of dbTarifas) {
+            tarifas[t.nombre] = {
+              1: t.precios[1] || 0, 2: t.precios[2] || 0, 3: t.precios[3] || 0, 4: t.precios[4] || 0,
+              camposPersonalizados: (t.camposPersonalizados || []) as any[],
+              choferCortesia: t.choferCortesia, habitacionChofer: t.habitacionChofer || null,
+            };
+            tiposTarifa.push(t.nombre);
+          }
+
+          // Map metodos de pago
+          const metodosPago: MetodoPago[] = dbMetodos.map((m: any) => ({
+            id: m.id, nombre: m.nombre, tipo: m.tipo as MetodoPago['tipo'],
+            recargo: m.recargo, cuotas: m.cuotas || [],
+          }));
+
+          // Map categorias de gasto
+          const categoriasGastos: string[] = dbCategorias.map((c: any) => c.nombre);
+
+          // Map caja
+          const caja: CajaState = mapDbCajaToStore(dbCaja);
+
+          // Update room states from active reservations
+          for (const r of dbReservas) {
+            const hab = habitaciones[r.habitacion];
+            if (!hab) continue;
+            if (r.estado === 'CheckIn_realizado') {
+              hab.estado = 'Ocupada';
+            } else if (r.estado === 'Confirmada' && hab.estado === 'Disponible') {
+              hab.estado = 'Reservada';
+            }
+          }
+
+          // Also update from limpieza tasks
+          try {
+            const limpiezaTasks = await api.limpieza.list('pendiente');
+            for (const t of limpiezaTasks) {
+              const hab = habitaciones[t.habitacion];
+              if (hab && hab.estado === 'Disponible') {
+                hab.estado = 'Limpieza';
+              }
+            }
+          } catch {}
+
+          set({
+            habitaciones, clientes, reservas, pagos, gastos, tarifas,
+            tiposTarifa, metodosPago, categoriasGastos, caja,
+          });
+        } catch (err) {
+          console.warn('[syncFromServer] Error syncing data:', err);
+        }
+      },
+
+            // ===== RESET =====
       resetData: () => set({
         habitaciones: defaultHabitaciones,
         reservas: defaultReservas,
@@ -906,7 +1123,7 @@ export const useHotelStore = create<HotelStore>()(
     }),
     {
       name: 'hospeda-storage',
-      version: 6,
+      version: 7,
       migrate: (persisted: any, version: number) => {
         // version 5: limpiar datos de prueba y tarifas viejas
         if (version < 5) {
@@ -925,24 +1142,28 @@ export const useHotelStore = create<HotelStore>()(
         if (version < 6) {
           persisted.usuarioActual = null;
         }
+        // version 7: limpiar datos de negocio (ahora se sincronizan desde el servidor)
+        if (version < 7) {
+          persisted.habitaciones = {};
+          persisted.reservas = [];
+          persisted.clientes = [];
+          persisted.pagos = [];
+          persisted.usuarios = [];
+          persisted.gastos = [];
+          persisted.auditoria = [];
+          persisted.caja = { estado: 'cerrada', apertura: null, movimientos: [], historial: [] };
+          persisted.historialMantenimiento = [];
+          persisted.tarifas = { compartida: { 1: 0, 2: 0, 3: 0, 4: 0, camposPersonalizados: [], choferCortesia: false, habitacionChofer: null } };
+          persisted.tiposTarifa = ['compartida'];
+          persisted.metodosPago = [];
+          persisted.categoriasGastos = [];
+        }
         return persisted;
       },
       partialize: (state) => ({
-        habitaciones: state.habitaciones,
-        reservas: state.reservas,
-        clientes: state.clientes,
-        pagos: state.pagos,
-        usuarios: state.usuarios,
-        gastos: state.gastos,
-        auditoria: state.auditoria,
-        caja: state.caja,
-        historialMantenimiento: state.historialMantenimiento,
-        tarifas: state.tarifas,
-        tiposTarifa: state.tiposTarifa,
-        metodosPago: state.metodosPago,
-        categoriasGastos: state.categoriasGastos,
         planActual: state.planActual,
         fechaInicioTrial: state.fechaInicioTrial,
+        moduloActivo: state.moduloActivo,
       }),
     }
   )
