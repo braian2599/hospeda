@@ -29,7 +29,7 @@ export default function ModuleLockedDialog() {
 
   const moduloNombre = NOMBRES_MODULOS[moduloBloqueado];
   const planActualInfo = plans[planActual];
-  const sigPlan = proximoPlan(planActual);
+  const sigPlan = proximoPlan(planActual, plans);
 
   const handleClose = () => {
     setModuloBloqueado(null);

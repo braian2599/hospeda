@@ -1,12 +1,13 @@
 // GET /api/plans
 // Devuelve todos los planes activos desde la BD.
 // Es público (no requiere auth) — lo usa la landing y el app.
+// El client-side hook usePlans() tiene su propio cache en memoria.
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { PLANES, type PlanTipo, type PlanInfo } from '@/lib/plan-config';
 
-export const revalidate = 60; // cache por 60 segundos
+export const dynamic = 'force-dynamic';
 
 function formatPrecioDisplay(cents: number): string {
   if (cents === 0) return 'Gratis';

@@ -3,7 +3,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyStripeWebhook } from '@/lib/payments/stripe';
-import { PLANES } from '@/lib/plan-config';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();

@@ -25,7 +25,7 @@ export default function TrialBanner() {
 
   const handleUpgrade = () => {
     // Suggest the next plan up from current
-    const next = proximoPlan(planActual);
+    const next = proximoPlan(planActual, plans);
     if (next) {
       setSelectedPlan(next.tipo as Exclude<PlanTipo, 'trial'>);
     } else {

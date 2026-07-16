@@ -1,6 +1,10 @@
 // ==================== PLANES Y CONFIGURACIÓN DE SUSCRIPCIÓN ====================
-// Define los planes disponibles, módulos por plan, y límites.
-// Estos datos deben coincidir con prisma/seed.ts
+// Define tipos, módulos por plan, límites, y helpers.
+// Los PLANES estáticos sirven como FALLBACK cuando la BD no está disponible.
+// Para precios en vivo desde la BD, usar:
+//   - Server: getServerPlans() / getServerPlan() de @/lib/plan-server
+//   - Client: usePlans() hook de @/hooks/usePlans
+//   - API: GET /api/plans
 
 import type { ModuloId } from './types';
 
@@ -43,24 +47,26 @@ const MODULOS_PREMIUM: ModuloId[] = [
   'usuarios',
 ];
 
-// ─── Definición de planes ───
+// ─── Planes estáticos (FALLBACK) ───
+// Se usan SOLAMENTE cuando la BD no responde o está vacía.
+// En operación normal, todos leen desde la BD.
 export const PLANES: Record<PlanTipo, PlanInfo> = {
   trial: {
     tipo: 'trial',
     nombre: 'Prueba Gratuita',
     precio: 0,
     precioDisplay: 'Gratis',
-    maxHabitaciones: 0, // ilimitado
-    maxUsuarios: 0, // ilimitado
-    maxTarifas: 0, // ilimitado
-    maxReservasMes: 0, // ilimitado
-    modulos: MODULOS_PREMIUM, // todos los módulos
+    maxHabitaciones: 0,
+    maxUsuarios: 0,
+    maxTarifas: 0,
+    maxReservasMes: 0,
+    modulos: MODULOS_PREMIUM,
     duracionDias: 30,
   },
   basico: {
     tipo: 'basico',
     nombre: 'Básico',
-    precio: 1500000, // $15.000 ARS en centavos
+    precio: 1500000,
     precioDisplay: '$15.000',
     maxHabitaciones: 10,
     maxUsuarios: 2,
@@ -72,7 +78,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
   profesional: {
     tipo: 'profesional',
     nombre: 'Profesional',
-    precio: 3500000, // $35.000 ARS en centavos
+    precio: 3500000,
     precioDisplay: '$35.000',
     maxHabitaciones: 50,
     maxUsuarios: 5,
@@ -84,12 +90,12 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
   premium: {
     tipo: 'premium',
     nombre: 'Premium',
-    precio: 6500000, // $65.000 ARS en centavos
+    precio: 6500000,
     precioDisplay: '$65.000',
-    maxHabitaciones: 0, // ilimitado
-    maxUsuarios: 0, // ilimitado
-    maxTarifas: 0, // ilimitado
-    maxReservasMes: 0, // ilimitado
+    maxHabitaciones: 0,
+    maxUsuarios: 0,
+    maxTarifas: 0,
+    maxReservasMes: 0,
     modulos: MODULOS_PREMIUM,
     duracionDias: 30,
   },
@@ -100,9 +106,11 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
 /** Intersección entre permisos del usuario y módulos del plan */
 export function modulosEfectivos(
   permisosUsuario: string[],
-  planTipo: PlanTipo
+  planTipo: PlanTipo,
+  plans?: Record<string, PlanInfo>
 ): ModuloId[] {
-  const modulosPlan = PLANES[planTipo].modulos;
+  const source = plans || PLANES;
+  const modulosPlan = source[planTipo]?.modulos || PLANES[planTipo].modulos;
   return permisosUsuario.filter((p): p is ModuloId => modulosPlan.includes(p as ModuloId));
 }
 
@@ -123,16 +131,19 @@ export function trialVencido(fechaInicio: string): boolean {
 }
 
 /** Si un módulo está disponible en el plan actual */
-export function moduloDisponible(moduloId: ModuloId, planTipo: PlanTipo): boolean {
-  return PLANES[planTipo].modulos.includes(moduloId);
+export function moduloDisponible(moduloId: ModuloId, planTipo: PlanTipo, plans?: Record<string, PlanInfo>): boolean {
+  const source = plans || PLANES;
+  const modulos = source[planTipo]?.modulos || PLANES[planTipo].modulos;
+  return modulos.includes(moduloId);
 }
 
 /** Obtener el siguiente plan superior */
-export function proximoPlan(planTipo: PlanTipo): PlanInfo | null {
+export function proximoPlan(planTipo: PlanTipo, plans?: Record<string, PlanInfo>): PlanInfo | null {
+  const source = plans || PLANES;
   const orden: PlanTipo[] = ['trial', 'basico', 'profesional', 'premium'];
   const idx = orden.indexOf(planTipo);
   if (idx >= orden.length - 1) return null;
-  return PLANES[orden[idx + 1]];
+  return source[orden[idx + 1]] || PLANES[orden[idx + 1]];
 }
 
 /** Nombre del módulo para mostrar en mensajes */
@@ -153,17 +164,21 @@ export const NOMBRES_MODULOS: Record<ModuloId, string> = {
 /** Check si se puede agregar más habitaciones según el plan */
 export function puedeAgregarHabitacion(
   actuales: number,
-  planTipo: PlanTipo
+  planTipo: PlanTipo,
+  plans?: Record<string, PlanInfo>
 ): boolean {
-  const max = PLANES[planTipo].maxHabitaciones;
+  const source = plans || PLANES;
+  const max = source[planTipo]?.maxHabitaciones ?? PLANES[planTipo].maxHabitaciones;
   return max === 0 || actuales < max;
 }
 
 /** Check si se puede agregar más usuarios según el plan */
 export function puedeAgregarUsuario(
   actuales: number,
-  planTipo: PlanTipo
+  planTipo: PlanTipo,
+  plans?: Record<string, PlanInfo>
 ): boolean {
-  const max = PLANES[planTipo].maxUsuarios;
+  const source = plans || PLANES;
+  const max = source[planTipo]?.maxUsuarios ?? PLANES[planTipo].maxUsuarios;
   return max === 0 || actuales < max;
 }

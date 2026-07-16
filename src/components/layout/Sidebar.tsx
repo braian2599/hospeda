@@ -218,7 +218,8 @@ export default function Sidebar() {
 
   if (!usuarioActual) return null;
 
-  const efectivos = modulosEfectivos(usuarioActual.permisos, planActual);
+  const plans = useHotelStore(s => s.plans);
+  const efectivos = modulosEfectivos(usuarioActual.permisos, planActual, plans);
   const efectivosSet = new Set(efectivos);
   const modulosVisibles = MODULOS_SISTEMA.filter(m => usuarioActual.permisos.includes(m.id));
   const userName = usuarioActual.nombreCompleto || usuarioActual.nombre;

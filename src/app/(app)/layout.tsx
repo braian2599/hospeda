@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import AuthProvider from '@/components/providers/SessionProvider';
 import { useHotelStore } from '@/lib/store';
+import { usePlans } from '@/hooks/usePlans';
 import { Button } from '@/components/ui/button';
 import { LogOut, Hotel, ChevronRight, Loader2, KeyRound, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -261,6 +262,13 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   }, [status, session, usuarioActual, loginFromSession, router, processMeData]);
+
+  // Sync planes from DB into store so modulosEfectivos uses live prices/limits
+  const dbPlans = usePlans();
+  const setPlans = useHotelStore(s => s.setPlans);
+  useEffect(() => {
+    setPlans(dbPlans);
+  }, [dbPlans, setPlans]);
 
   useEffect(() => {
     if (needsSetup && pathname !== '/setup-hotel') {

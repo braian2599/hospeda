@@ -1,7 +1,8 @@
 // ==================== STRIPE PROVIDER ====================
 // Funciones server-side para interactuar con la API de Stripe.
 
-import { PlanTipo, PLANES } from '@/lib/plan-config';
+import { PlanTipo } from '@/lib/plan-config';
+import { getServerPlan } from '@/lib/plan-server';
 import { PAYMENT_CONFIG } from '@/lib/payments/config';
 import type { PaymentMetadata, StripeCheckoutResponse } from '@/lib/payments/types';
 
@@ -18,7 +19,7 @@ export async function createStripeCheckout(params: {
   cancelUrl?: string;
 }): Promise<StripeCheckoutResponse> {
   const { planTipo, tenantId, userEmail, hotelNombre, successUrl, cancelUrl } = params;
-  const plan = PLANES[planTipo];
+  const plan = await getServerPlan(planTipo);
 
   const stripe = await import('stripe');
   const stripeClient = new stripe.default(PAYMENT_CONFIG.stripe.secretKey, {

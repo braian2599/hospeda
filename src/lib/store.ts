@@ -6,7 +6,7 @@ import type {
   HistorialMantenimientoEntry, UsuarioSesion, ModuloId,
   HabitacionDisponible, MovimientoCaja, CierreCaja, Estadia
 } from './types';
-import { type PlanTipo, modulosEfectivos as calcModulosEfectivos } from './plan-config';
+import { type PlanTipo, type PlanInfo, modulosEfectivos as calcModulosEfectivos, PLANES } from './plan-config';
 
 // ==================== DEFAULT DATA ====================
 
@@ -211,14 +211,16 @@ export const useHotelStore = create<HotelStore>()(
       planActual: 'trial' as PlanTipo,
       fechaInicioTrial: null,
       moduloBloqueado: null,
+      planes: PLANES as Record<string, PlanInfo>,
       setModuloBloqueado: (m) => set({ moduloBloqueado: m }),
       setPlanActual: (p) => set({ planActual: p }),
+      setPlans: (p) => set({ plans: p as Record<string, PlanInfo> }),
 
       setModulo: (modulo) => {
-        const { planActual, usuarioActual, sidebarOpen } = get();
+        const { planActual, usuarioActual, sidebarOpen, plans } = get();
         // Configuracion es owner-only, no depende del plan
         if (modulo !== 'configuracion' && usuarioActual) {
-          const efectivos = calcModulosEfectivos(usuarioActual.permisos, planActual);
+          const efectivos = calcModulosEfectivos(usuarioActual.permisos, planActual, plans);
           if (!efectivos.includes(modulo)) {
             set({ moduloBloqueado: modulo, sidebarOpen: false });
             return;
