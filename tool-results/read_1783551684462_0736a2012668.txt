@@ -1,0 +1,889 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useState, useMemo } from 'react';
+     4→     4→import { useHotelStore } from '@/lib/store';
+     5→     5→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+     6→     6→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     7→     7→import { Button } from '@/components/ui/button';
+     8→     8→import { Input } from '@/components/ui/input';
+     9→     9→import { Label } from '@/components/ui/label';
+    10→    10→import { Badge } from '@/components/ui/badge';
+    11→    11→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+    12→    12→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    13→    13→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+    14→    14→import {
+    15→    15→  Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext,
+    16→    16→} from '@/components/ui/pagination';
+    17→    17→import { Textarea } from '@/components/ui/textarea';
+    18→    18→import {
+    19→    19→  BarChart3, DollarSign, TrendingDown, TrendingUp, CalendarDays, Plus,
+    20→    20→  Search, ChevronDown, ChevronUp, Eye, BedDouble, Users, UserCog, Wallet,
+    21→    21→  FileText, Building2,
+    22→    22→} from 'lucide-react';
+    23→    23→
+    24→    24→// ==================== HELPERS ====================
+    25→    25→
+    26→    26→const formatFecha = (f: string) => {
+    27→    27→  if (!f) return '—';
+    28→    28→  const d = new Date(f + 'T12:00:00');
+    29→    29→  return d.toLocaleDateString('es-AR');
+    30→    30→};
+    31→    31→
+    32→    32→const formatFechaHora = (f: string) => {
+    33→    33→  if (!f) return '—';
+    34→    34→  const d = new Date(f);
+    35→    35→  return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    36→    36→};
+    37→    37→
+    38→    38→const formatMoneda = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
+    39→    39→
+    40→    40→const hoy = () => new Date().toISOString().split('T')[0];
+    41→    41→
+    42→    42→const haceNDias = (n: number) => {
+    43→    43→  const d = new Date();
+    44→    44→  d.setDate(d.getDate() - n);
+    45→    45→  return d.toISOString().split('T')[0];
+    46→    46→};
+    47→    47→
+    48→    48→// ==================== COMPONENT ====================
+    49→    49→
+    50→    50→export default function ReportesModule() {
+    51→    51→  const { reservas, pagos, gastos, auditoria, habitaciones, caja, clientes, usuarios, categoriasGastos, agregarGasto } = useHotelStore();
+    52→    52→
+    53→    53→  // Date range state
+    54→    54→  const [desde, setDesde] = useState(haceNDias(30));
+    55→    55→  const [hasta, setHasta] = useState(hoy());
+    56→    56→
+    57→    57→  const setRango = (dias: number) => {
+    58→    58→    setDesde(haceNDias(dias));
+    59→    59→    setHasta(hoy());
+    60→    60→  };
+    61→    61→
+    62→    62→  // Gasto dialog state
+    63→    63→  const [gastoModal, setGastoModal] = useState(false);
+    64→    64→  const [gastoForm, setGastoForm] = useState({ tipo: '', descripcion: '', monto: '', fecha: hoy() });
+    65→    65→
+    66→    66→  // Caja detail dialog
+    67→    67→  const [cajaDetailIdx, setCajaDetailIdx] = useState<number | null>(null);
+    68→    68→
+    69→    69→  // Auditoria pagination
+    70→    70→  const [auditPage, setAuditPage] = useState(1);
+    71→    71→  const AUDIT_PER_PAGE = 15;
+    72→    72→
+    73→    73→  // Filter states
+    74→    74→  const [finMetodo, setFinMetodo] = useState('todos');
+    75→    75→  const [gastoTipo, setGastoTipo] = useState('todos');
+    76→    76→  const [gastoEmpleado, setGastoEmpleado] = useState('todos');
+    77→    77→  const [gastoSearch, setGastoSearch] = useState('');
+    78→    78→  const [gastoMontoMin, setGastoMontoMin] = useState('');
+    79→    79→  const [gastoMontoMax, setGastoMontoMax] = useState('');
+    80→    80→  const [auditTipo, setAuditTipo] = useState('todos');
+    81→    81→  const [auditEmpleado, setAuditEmpleado] = useState('todos');
+    82→    82→  const [auditSearch, setAuditSearch] = useState('');
+    83→    83→  const [auditTurno, setAuditTurno] = useState('todos');
+    84→    84→  const [clienteMinEstadias, setClienteMinEstadias] = useState('0');
+    85→    85→
+    86→    86→  // ==================== COMPUTED ====================
+    87→    87→
+    88→    88→  const pagosEnPeriodo = useMemo(() => {
+    89→    89→    const d = new Date(desde + 'T00:00:00');
+    90→    90→    const h = new Date(hasta + 'T23:59:59');
+    91→    91→    return pagos.filter(p => {
+    92→    92→      const fp = new Date(p.fecha + 'T12:00:00');
+    93→    93→      return fp >= d && fp <= h;
+    94→    94→    });
+    95→    95→  }, [pagos, desde, hasta]);
+    96→    96→
+    97→    97→  const gastosEnPeriodo = useMemo(() => {
+    98→    98→    const d = new Date(desde + 'T00:00:00');
+    99→    99→    const h = new Date(hasta + 'T23:59:59');
+   100→   100→    return gastos.filter(g => {
+   101→   101→      const fg = new Date(g.fecha + 'T12:00:00');
+   102→   102→      return fg >= d && fg <= h;
+   103→   103→    });
+   104→   104→  }, [gastos, desde, hasta]);
+   105→   105→
+   106→   106→  const auditoriaEnPeriodo = useMemo(() => {
+   107→   107→    const d = new Date(desde + 'T00:00:00');
+   108→   108→    const h = new Date(hasta + 'T23:59:59');
+   109→   109→    return auditoria.filter(a => {
+   110→   110→      const fa = new Date(a.fecha);
+   111→   111→      return fa >= d && fa <= h;
+   112→   112→    });
+   113→   113→  }, [auditoria, desde, hasta]);
+   114→   114→
+   115→   115→  const reservasEnPeriodo = useMemo(() => {
+   116→   116→    const d = new Date(desde + 'T00:00:00');
+   117→   117→    const h = new Date(hasta + 'T23:59:59');
+   118→   118→    return reservas.filter(r => {
+   119→   119→      const fr = new Date(r.checkin + 'T12:00:00');
+   120→   120→      return fr >= d && fr <= h;
+   121→   121→    });
+   122→   122→  }, [reservas, desde, hasta]);
+   123→   123→
+   124→   124→  // Unique values for filters
+   125→   125→  const metodosUnicos = useMemo(() => [...new Set(pagosEnPeriodo.map(p => p.metodo))], [pagosEnPeriodo]);
+   126→   126→  const gastosTiposUnicos = useMemo(() => [...new Set(gastos.map(g => g.tipo))], [gastos]);
+   127→   127→  const gastosEmpleadosUnicos = useMemo(() => [...new Set(gastosEnPeriodo.map(g => g.empleado))], [gastosEnPeriodo]);
+   128→   128→  const auditTiposUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.tipo))], [auditoriaEnPeriodo]);
+   129→   129→  const auditEmpleadosUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.empleado))], [auditoriaEnPeriodo]);
+   130→   130→
+   131→   131→  // Financial summaries
+   132→   132→  const totalIngresos = useMemo(() => pagosEnPeriodo.reduce((s, p) => s + p.monto, 0), [pagosEnPeriodo]);
+   133→   133→  const totalGastos = useMemo(() => gastosEnPeriodo.reduce((s, g) => s + g.monto, 0), [gastosEnPeriodo]);
+   134→   134→  const gananciaNeta = totalIngresos - totalGastos;
+   135→   135→
+   136→   136→  // Filtered financial payments
+   137→   137→  const pagosFiltrados = useMemo(() => {
+   138→   138→    if (finMetodo === 'todos') return pagosEnPeriodo;
+   139→   139→    return pagosEnPeriodo.filter(p => p.metodo === finMetodo);
+   140→   140→  }, [pagosEnPeriodo, finMetodo]);
+   141→   141→
+   142→   142→  // Filtered gastos
+   143→   143→  const gastosFiltrados = useMemo(() => {
+   144→   144→    let list = gastosEnPeriodo;
+   145→   145→    if (gastoTipo !== 'todos') list = list.filter(g => g.tipo === gastoTipo);
+   146→   146→    if (gastoEmpleado !== 'todos') list = list.filter(g => g.empleado === gastoEmpleado);
+   147→   147→    if (gastoSearch) {
+   148→   148→      const s = gastoSearch.toLowerCase();
+   149→   149→      list = list.filter(g => g.descripcion.toLowerCase().includes(s));
+   150→   150→    }
+   151→   151→    if (gastoMontoMin) list = list.filter(g => g.monto >= Number(gastoMontoMin));
+   152→   152→    if (gastoMontoMax) list = list.filter(g => g.monto <= Number(gastoMontoMax));
+   153→   153→    return list;
+   154→   154→  }, [gastosEnPeriodo, gastoTipo, gastoEmpleado, gastoSearch, gastoMontoMin, gastoMontoMax]);
+   155→   155→
+   156→   156→  const gastosTotalFiltrado = useMemo(() => gastosFiltrados.reduce((s, g) => s + g.monto, 0), [gastosFiltrados]);
+   157→   157→
+   158→   158→  // Filtered auditoria
+   159→   159→  const auditFiltrada = useMemo(() => {
+   160→   160→    let list = auditoriaEnPeriodo;
+   161→   161→    if (auditTipo !== 'todos') list = list.filter(a => a.tipo === auditTipo);
+   162→   162→    if (auditEmpleado !== 'todos') list = list.filter(a => a.empleado === auditEmpleado);
+   163→   163→    if (auditSearch) {
+   164→   164→      const s = auditSearch.toLowerCase();
+   165→   165→      list = list.filter(a => a.detalle.toLowerCase().includes(s));
+   166→   166→    }
+   167→   167→    if (auditTurno !== 'todos') {
+   168→   168→      list = list.filter(a => {
+   169→   169→        const h = new Date(a.fecha).getHours();
+   170→   170→        if (auditTurno === 'mañana') return h >= 6 && h < 14;
+   171→   171→        if (auditTurno === 'tarde') return h >= 14 && h < 22;
+   172→   172→        if (auditTurno === 'noche') return h >= 22 || h < 6;
+   173→   173→        return true;
+   174→   174→      });
+   175→   175→    }
+   176→   176→    return list;
+   177→   177→  }, [auditoriaEnPeriodo, auditTipo, auditEmpleado, auditSearch, auditTurno]);
+   178→   178→
+   179→   179→  const auditTotalPages = Math.max(1, Math.ceil(auditFiltrada.length / AUDIT_PER_PAGE));
+   180→   180→  const auditPaged = auditFiltrada.slice((auditPage - 1) * AUDIT_PER_PAGE, auditPage * AUDIT_PER_PAGE);
+   181→   181→
+   182→   182→  // Clientes frecuentes
+   183→   183→  const clientesFrecuentes = useMemo(() => {
+   184→   184→    const minEst = Number(clienteMinEstadias) || 0;
+   185→   185→    return clientes
+   186→   186→      .map(c => ({
+   187→   187→        ...c,
+   188→   188→        totalGastado: c.historialEstadias.reduce((s, e) => s + e.gastoTotal, 0),
+   189→   189→        cantidadEstadias: c.historialEstadias.length,
+   190→   190→        ultimaVisita: c.historialEstadias.length > 0
+   191→   191→          ? c.historialEstadias.reduce((latest, e) => e.fechaCheckout > latest ? e.fechaCheckout : latest, c.historialEstadias[0].fechaCheckout)
+   192→   192→          : '—',
+   193→   193→      }))
+   194→   194→      .filter(c => c.cantidadEstadias >= minEst)
+   195→   195→      .sort((a, b) => b.totalGastado - a.totalGastado);
+   196→   196→  }, [clientes, clienteMinEstadias]);
+   197→   197→
+   198→   198→  // Empleados summary
+   199→   199→  const empleadosResumen = useMemo(() => {
+   200→   200→    const resumen: Record<string, { nombre: string; checkins: number; checkouts: number; pagos: number; gastos: number; reservas: number; auditorias: number }> = {};
+   201→   201→    usuarios.forEach(u => {
+   202→   202→      resumen[u.nombre] = { nombre: u.nombreCompleto || u.nombre, checkins: 0, checkouts: 0, pagos: 0, gastos: 0, reservas: 0, auditorias: 0 };
+   203→   203→    });
+   204→   204→    auditoriaEnPeriodo.forEach(a => {
+   205→   205→      if (!resumen[a.empleado]) {
+   206→   206→        resumen[a.empleado] = { nombre: a.empleado, checkins: 0, checkouts: 0, pagos: 0, gastos: 0, reservas: 0, auditorias: 0 };
+   207→   207→      }
+   208→   208→      resumen[a.empleado].auditorias++;
+   209→   209→      if (a.tipo === 'Check-In') resumen[a.empleado].checkins++;
+   210→   210→      if (a.tipo === 'Check-Out') resumen[a.empleado].checkouts++;
+   211→   211→      if (a.tipo === 'Pago') resumen[a.empleado].pagos++;
+   212→   212→      if (a.tipo === 'Gasto') resumen[a.empleado].gastos++;
+   213→   213→      if (a.tipo === 'Reserva') resumen[a.empleado].reservas++;
+   214→   214→    });
+   215→   215→    return Object.values(resumen).sort((a, b) => b.auditorias - a.auditorias);
+   216→   216→  }, [auditoriaEnPeriodo, usuarios]);
+   217→   217→
+   218→   218→  // Habitaciones resumen
+   219→   219→  const habResumen = useMemo(() => {
+   220→   220→    const habs = Object.values(habitaciones);
+   221→   221→    const total = habs.length;
+   222→   222→    const porEstado: Record<string, number> = {};
+   223→   223→    habs.forEach(h => {
+   224→   224→      porEstado[h.estado] = (porEstado[h.estado] || 0) + 1;
+   225→   225→    });
+   226→   226→    const ocupadas = porEstado['Ocupada'] || 0;
+   227→   227→    const disponibles = porEstado['Disponible'] || 0;
+   228→   228→    const reservadas = porEstado['Reservada'] || 0;
+   229→   229→    const limpieza = porEstado['Limpieza'] || 0;
+   230→   230→    const mantenimiento = porEstado['Mantenimiento'] || 0;
+   231→   231→    const fueraServicio = porEstado['Fuera de servicio'] || 0;
+   232→   232→    const tasaOcupacion = total > 0 ? Math.round((ocupadas / total) * 100) : 0;
+   233→   233→
+   234→   234→    // Ocupación en el periodo (reservas activas)
+   235→   235→    const reservasActivas = reservas.filter(r => {
+   236→   236→      const ci = new Date(r.checkin + 'T00:00:00');
+   237→   237→      const co = new Date(r.checkout + 'T23:59:59');
+   238→   238→      const d = new Date(desde + 'T00:00:00');
+   239→   239→      const h = new Date(hasta + 'T23:59:59');
+   240→   240→      return ci <= h && co >= d;
+   241→   241→    });
+   242→   242→    const nochesOcupadas = reservasActivas.reduce((s, r) => {
+   243→   243→      const ci = new Date(r.checkin + 'T00:00:00');
+   244→   244→      const co = new Date(r.checkout + 'T23:59:59');
+   245→   245→      const inicio = ci < new Date(desde) ? new Date(desde) : ci;
+   246→   246→      const fin = co > new Date(hasta) ? new Date(hasta + 'T23:59:59') : co;
+   247→   247→      return s + Math.max(0, Math.ceil((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24)));
+   248→   248→    }, 0);
+   249→   249→    const diasPeriodo = Math.max(1, Math.ceil((new Date(hasta + 'T23:59:59').getTime() - new Date(desde + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24)));
+   250→   250→    const tasaOcupacionPeriodo = Math.round((nochesOcupadas / (total * diasPeriodo)) * 100);
+   251→   251→
+   252→   252→    return { total, ocupadas, disponibles, reservadas, limpieza, mantenimiento, fueraServicio, tasaOcupacion, tasaOcupacionPeriodo, habs, nochesOcupadas, diasPeriodo };
+   253→   253→  }, [habitaciones, reservas, desde, hasta]);
+   254→   254→
+   255→   255→  // Gasto submit handler
+   256→   256→  const handleAgregarGasto = () => {
+   257→   257→    if (!gastoForm.tipo || !gastoForm.descripcion || !gastoForm.monto) return;
+   258→   258→    agregarGasto({
+   259→   259→      tipo: gastoForm.tipo,
+   260→   260→      descripcion: gastoForm.descripcion,
+   261→   261→      monto: Number(gastoForm.monto),
+   262→   262→      fecha: gastoForm.fecha,
+   263→   263→    });
+   264→   264→    setGastoForm({ tipo: '', descripcion: '', monto: '', fecha: hoy() });
+   265→   265→    setGastoModal(false);
+   266→   266→  };
+   267→   267→
+   268→   268→  // Reset audit page when filters change
+   269→   269→  const handleAuditFilterChange = (setter: (v: string) => void, value: string) => {
+   270→   270→    setter(value);
+   271→   271→    setAuditPage(1);
+   272→   272→  };
+   273→   273→
+   274→   274→  const selectedCajaTurno = cajaDetailIdx !== null ? caja.historial[cajaDetailIdx] : null;
+   275→   275→
+   276→   276→  // ==================== RENDER ====================
+   277→   277→
+   278→   278→  return (
+   279→   279→    <div className="space-y-6">
+   280→   280→      {/* Header */}
+   281→   281→      <div className="flex items-center gap-2">
+   282→   282→        <div className="w-9 h-9 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center"><BarChart3 className="w-5 h-5 text-orange-500" /></div>
+   283→   283→        <h2 className="text-2xl font-bold tracking-tight">Reportes</h2>
+   284→   284→      </div>
+   285→   285→
+   286→   286→      {/* Date Range Filter */}
+   287→   287→      <Card>
+   288→   288→        <CardContent className="p-4">
+   289→   289→          <div className="flex flex-wrap items-end gap-3">
+   290→   290→            <div className="grid gap-1.5">
+   291→   291→              <Label className="text-xs text-muted-foreground">Desde</Label>
+   292→   292→              <Input type="date" value={desde} onChange={e => setDesde(e.target.value)} className="w-40" />
+   293→   293→            </div>
+   294→   294→            <div className="grid gap-1.5">
+   295→   295→              <Label className="text-xs text-muted-foreground">Hasta</Label>
+   296→   296→              <Input type="date" value={hasta} onChange={e => setHasta(e.target.value)} className="w-40" />
+   297→   297→            </div>
+   298→   298→            <div className="flex gap-2 flex-wrap">
+   299→   299→              <Button size="sm" variant="outline" onClick={() => setRango(7)}>7 días</Button>
+   300→   300→              <Button size="sm" variant="outline" onClick={() => setRango(30)}>30 días</Button>
+   301→   301→              <Button size="sm" variant="outline" onClick={() => setRango(365)}>1 año</Button>
+   302→   302→            </div>
+   303→   303→          </div>
+   304→   304→        </CardContent>
+   305→   305→      </Card>
+   306→   306→
+   307→   307→      {/* Tabs */}
+   308→   308→      <Tabs defaultValue="financiero" className="space-y-4">
+   309→   309→        <TabsList className="flex flex-wrap h-auto gap-1">
+   310→   310→          <TabsTrigger value="financiero" className="gap-1.5"><DollarSign className="w-3.5 h-3.5" />Financiero</TabsTrigger>
+   311→   311→          <TabsTrigger value="gastos" className="gap-1.5"><TrendingDown className="w-3.5 h-3.5" />Gastos</TabsTrigger>
+   312→   312→          <TabsTrigger value="auditoria" className="gap-1.5"><FileText className="w-3.5 h-3.5" />Auditoría</TabsTrigger>
+   313→   313→          <TabsTrigger value="historial-caja" className="gap-1.5"><Wallet className="w-3.5 h-3.5" />Historial Caja</TabsTrigger>
+   314→   314→          <TabsTrigger value="habitaciones" className="gap-1.5"><BedDouble className="w-3.5 h-3.5" />Habitaciones</TabsTrigger>
+   315→   315→          <TabsTrigger value="clientes" className="gap-1.5"><Users className="w-3.5 h-3.5" />Clientes</TabsTrigger>
+   316→   316→          <TabsTrigger value="empleados" className="gap-1.5"><UserCog className="w-3.5 h-3.5" />Empleados</TabsTrigger>
+   317→   317→        </TabsList>
+   318→   318→
+   319→   319→        {/* ==================== FINANCIERO ==================== */}
+   320→   320→        <TabsContent value="financiero" className="space-y-4">
+   321→   321→          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   322→   322→            <Card>
+   323→   323→              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-emerald-500" />Total Ingresos</CardTitle></CardHeader>
+   324→   324→              <CardContent><p className="text-2xl font-bold text-emerald-600">{formatMoneda(totalIngresos)}</p></CardContent>
+   325→   325→            </Card>
+   326→   326→            <Card>
+   327→   327→              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><TrendingDown className="w-4 h-4 text-red-500" />Total Gastos</CardTitle></CardHeader>
+   328→   328→              <CardContent><p className="text-2xl font-bold text-red-600">{formatMoneda(totalGastos)}</p></CardContent>
+   329→   329→            </Card>
+   330→   330→            <Card>
+   331→   331→              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><DollarSign className="w-4 h-4" />Ganancia Neta</CardTitle></CardHeader>
+   332→   332→              <CardContent><p className={`text-2xl font-bold ${gananciaNeta >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{formatMoneda(gananciaNeta)}</p></CardContent>
+   333→   333→            </Card>
+   334→   334→            <Card>
+   335→   335→              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><CalendarDays className="w-4 h-4" />Reservas</CardTitle></CardHeader>
+   336→   336→              <CardContent><p className="text-2xl font-bold">{reservasEnPeriodo.length}</p></CardContent>
+   337→   337→            </Card>
+   338→   338→          </div>
+   339→   339→
+   340→   340→          {/* Payment method filter */}
+   341→   341→          <div className="flex flex-wrap items-center gap-3">
+   342→   342→            <Label className="text-sm">Método de pago:</Label>
+   343→   343→            <Select value={finMetodo} onValueChange={setFinMetodo}>
+   344→   344→              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+   345→   345→              <SelectContent>
+   346→   346→                <SelectItem value="todos">Todos</SelectItem>
+   347→   347→                {metodosUnicos.map(m => (
+   348→   348→                  <SelectItem key={m} value={m}>{m}</SelectItem>
+   349→   349→                ))}
+   350→   350→              </SelectContent>
+   351→   351→            </Select>
+   352→   352→            <Badge variant="secondary">{pagosFiltrados.length} pagos</Badge>
+   353→   353→          </div>
+   354→   354→
+   355→   355→          <Card>
+   356→   356→            <Table>
+   357→   357→              <TableHeader>
+   358→   358→                <TableRow>
+   359→   359→                  <TableHead>Fecha</TableHead>
+   360→   360→                  <TableHead>Método</TableHead>
+   361→   361→                  <TableHead>Reserva</TableHead>
+   362→   362→                  <TableHead className="text-right">Monto</TableHead>
+   363→   363→                  <TableHead className="hidden sm:table-cell">Nota</TableHead>
+   364→   364→                </TableRow>
+   365→   365→              </TableHeader>
+   366→   366→              <TableBody>
+   367→   367→                {pagosFiltrados.length === 0 ? (
+   368→   368→                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No hay pagos en este periodo.</TableCell></TableRow>
+   369→   369→                ) : (
+   370→   370→                  pagosFiltrados.map(p => {
+   371→   371→                    const reserva = reservas.find(r => r.id === p.idReserva);
+   372→   372→                    return (
+   373→   373→                      <TableRow key={p.id}>
+   374→   374→                        <TableCell>{formatFecha(p.fecha)}</TableCell>
+   375→   375→                        <TableCell><Badge variant="outline">{p.metodo}</Badge></TableCell>
+   376→   376→                        <TableCell>#{p.idReserva}{reserva ? ` — ${reserva.huesped}` : ''}</TableCell>
+   377→   377→                        <TableCell className="text-right font-medium">{formatMoneda(p.monto)}</TableCell>
+   378→   378→                        <TableCell className="hidden sm:table-cell text-muted-foreground">{p.nota || '—'}</TableCell>
+   379→   379→                      </TableRow>
+   380→   380→                    );
+   381→   381→                  })
+   382→   382→                )}
+   383→   383→              </TableBody>
+   384→   384→            </Table>
+   385→   385→          </Card>
+   386→   386→        </TabsContent>
+   387→   387→
+   388→   388→        {/* ==================== GASTOS ==================== */}
+   389→   389→        <TabsContent value="gastos" className="space-y-4">
+   390→   390→          <div className="flex flex-wrap items-end gap-3">
+   391→   391→            <div className="grid gap-1.5">
+   392→   392→              <Label className="text-xs text-muted-foreground">Tipo</Label>
+   393→   393→              <Select value={gastoTipo} onValueChange={setGastoTipo}>
+   394→   394→                <SelectTrigger className="w-full sm:w-auto sm:min-w-[160px]"><SelectValue /></SelectTrigger>
+   395→   395→                <SelectContent>
+   396→   396→                  <SelectItem value="todos">Todos</SelectItem>
+   397→   397→                  {gastosTiposUnicos.map(t => (
+   398→   398→                    <SelectItem key={t} value={t}>{t}</SelectItem>
+   399→   399→                  ))}
+   400→   400→                </SelectContent>
+   401→   401→              </Select>
+   402→   402→            </div>
+   403→   403→            <div className="grid gap-1.5">
+   404→   404→              <Label className="text-xs text-muted-foreground">Empleado</Label>
+   405→   405→              <Select value={gastoEmpleado} onValueChange={setGastoEmpleado}>
+   406→   406→                <SelectTrigger className="w-full sm:w-auto sm:min-w-[160px]"><SelectValue /></SelectTrigger>
+   407→   407→                <SelectContent>
+   408→   408→                  <SelectItem value="todos">Todos</SelectItem>
+   409→   409→                  {gastosEmpleadosUnicos.map(e => (
+   410→   410→                    <SelectItem key={e} value={e}>{e}</SelectItem>
+   411→   411→                  ))}
+   412→   412→                </SelectContent>
+   413→   413→              </Select>
+   414→   414→            </div>
+   415→   415→            <div className="relative">
+   416→   416→              <Label className="text-xs text-muted-foreground">Buscar descripción</Label>
+   417→   417→              <Search className="absolute left-3 bottom-2 w-4 h-4 text-muted-foreground" />
+   418→   418→              <Input placeholder="Buscar..." value={gastoSearch} onChange={e => setGastoSearch(e.target.value)} className="pl-9 w-full sm:w-auto sm:min-w-[160px]" />
+   419→   419→            </div>
+   420→   420→            <div className="grid gap-1.5">
+   421→   421→              <Label className="text-xs text-muted-foreground">Monto mín.</Label>
+   422→   422→              <Input type="number" placeholder="0" value={gastoMontoMin} onChange={e => setGastoMontoMin(e.target.value)} className="w-full sm:w-auto sm:min-w-[120px]" />
+   423→   423→            </div>
+   424→   424→            <div className="grid gap-1.5">
+   425→   425→              <Label className="text-xs text-muted-foreground">Monto máx.</Label>
+   426→   426→              <Input type="number" placeholder="∞" value={gastoMontoMax} onChange={e => setGastoMontoMax(e.target.value)} className="w-full sm:w-auto sm:min-w-[120px]" />
+   427→   427→            </div>
+   428→   428→            <Button onClick={() => setGastoModal(true)}><Plus className="w-4 h-4 mr-1" />Agregar Gasto</Button>
+   429→   429→          </div>
+   430→   430→
+   431→   431→          <div className="flex gap-4 text-sm text-muted-foreground">
+   432→   432→            <span>{gastosFiltrados.length} gastos encontrados</span>
+   433→   433→            <span>Total filtrado: <strong className="text-foreground">{formatMoneda(gastosTotalFiltrado)}</strong></span>
+   434→   434→          </div>
+   435→   435→
+   436→   436→          <Card>
+   437→   437→            <Table>
+   438→   438→              <TableHeader>
+   439→   439→                <TableRow>
+   440→   440→                  <TableHead>Fecha</TableHead>
+   441→   441→                  <TableHead>Tipo</TableHead>
+   442→   442→                  <TableHead>Descripción</TableHead>
+   443→   443→                  <TableHead className="text-right">Monto</TableHead>
+   444→   444→                  <TableHead className="hidden md:table-cell">Empleado</TableHead>
+   445→   445→                </TableRow>
+   446→   446→              </TableHeader>
+   447→   447→              <TableBody>
+   448→   448→                {gastosFiltrados.length === 0 ? (
+   449→   449→                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No hay gastos que coincidan.</TableCell></TableRow>
+   450→   450→                ) : (
+   451→   451→                  gastosFiltrados.map(g => (
+   452→   452→                    <TableRow key={g.id}>
+   453→   453→                      <TableCell>{formatFecha(g.fecha)}</TableCell>
+   454→   454→                      <TableCell><Badge variant="secondary">{g.tipo}</Badge></TableCell>
+   455→   455→                      <TableCell>{g.descripcion}</TableCell>
+   456→   456→                      <TableCell className="text-right font-medium text-red-600">-{formatMoneda(g.monto)}</TableCell>
+   457→   457→                      <TableCell className="hidden md:table-cell">{g.empleado}</TableCell>
+   458→   458→                    </TableRow>
+   459→   459→                  ))
+   460→   460→                )}
+   461→   461→              </TableBody>
+   462→   462→            </Table>
+   463→   463→          </Card>
+   464→   464→        </TabsContent>
+   465→   465→
+   466→   466→        {/* ==================== AUDITORÍA ==================== */}
+   467→   467→        <TabsContent value="auditoria" className="space-y-4">
+   468→   468→          <div className="flex flex-wrap items-end gap-3">
+   469→   469→            <div className="grid gap-1.5">
+   470→   470→              <Label className="text-xs text-muted-foreground">Tipo</Label>
+   471→   471→              <Select value={auditTipo} onValueChange={v => handleAuditFilterChange(setAuditTipo, v)}>
+   472→   472→                <SelectTrigger className="w-full sm:w-auto sm:min-w-[140px]"><SelectValue /></SelectTrigger>
+   473→   473→                <SelectContent>
+   474→   474→                  <SelectItem value="todos">Todos</SelectItem>
+   475→   475→                  {auditTiposUnicos.map(t => (
+   476→   476→                    <SelectItem key={t} value={t}>{t}</SelectItem>
+   477→   477→                  ))}
+   478→   478→                </SelectContent>
+   479→   479→              </Select>
+   480→   480→            </div>
+   481→   481→            <div className="grid gap-1.5">
+   482→   482→              <Label className="text-xs text-muted-foreground">Empleado</Label>
+   483→   483→              <Select value={auditEmpleado} onValueChange={v => handleAuditFilterChange(setAuditEmpleado, v)}>
+   484→   484→                <SelectTrigger className="w-full sm:w-auto sm:min-w-[140px]"><SelectValue /></SelectTrigger>
+   485→   485→                <SelectContent>
+   486→   486→                  <SelectItem value="todos">Todos</SelectItem>
+   487→   487→                  {auditEmpleadosUnicos.map(e => (
+   488→   488→                    <SelectItem key={e} value={e}>{e}</SelectItem>
+   489→   489→                  ))}
+   490→   490→                </SelectContent>
+   491→   491→              </Select>
+   492→   492→            </div>
+   493→   493→            <div className="grid gap-1.5">
+   494→   494→              <Label className="text-xs text-muted-foreground">Turno</Label>
+   495→   495→              <Select value={auditTurno} onValueChange={v => handleAuditFilterChange(setAuditTurno, v)}>
+   496→   496→                <SelectTrigger className="w-full sm:w-auto sm:min-w-[120px]"><SelectValue /></SelectTrigger>
+   497→   497→                <SelectContent>
+   498→   498→                  <SelectItem value="todos">Todos</SelectItem>
+   499→   499→                  <SelectItem value="mañana">Mañana (6-14)</SelectItem>
+   500→   500→                  <SelectItem value="tarde">Tarde (14-22)</SelectItem>
+   501→   501→                  <SelectItem value="noche">Noche (22-6)</SelectItem>
+   502→   502→                </SelectContent>
+   503→   503→              </Select>
+   504→   504→            </div>
+   505→   505→            <div className="relative">
+   506→   506→              <Label className="text-xs text-muted-foreground">Buscar</Label>
+   507→   507→              <Search className="absolute left-3 bottom-2 w-4 h-4 text-muted-foreground" />
+   508→   508→              <Input placeholder="Buscar en detalle..." value={auditSearch} onChange={e => handleAuditFilterChange(setAuditSearch, e.target.value)} className="pl-9 w-full sm:w-auto sm:min-w-[200px]" />
+   509→   509→            </div>
+   510→   510→          </div>
+   511→   511→
+   512→   512→          <div className="text-sm text-muted-foreground">
+   513→   513→            {auditFiltrada.length} registros encontrados — Página {auditPage} de {auditTotalPages}
+   514→   514→          </div>
+   515→   515→
+   516→   516→          <Card>
+   517→   517→            <Table>
+   518→   518→              <TableHeader>
+   519→   519→                <TableRow>
+   520→   520→                  <TableHead>Fecha y Hora</TableHead>
+   521→   521→                  <TableHead>Tipo</TableHead>
+   522→   522→                  <TableHead>Detalle</TableHead>
+   523→   523→                  <TableHead className="hidden sm:table-cell">Empleado</TableHead>
+   524→   524→                </TableRow>
+   525→   525→              </TableHeader>
+   526→   526→              <TableBody>
+   527→   527→                {auditPaged.length === 0 ? (
+   528→   528→                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No hay registros de auditoría.</TableCell></TableRow>
+   529→   529→                ) : (
+   530→   530→                  auditPaged.map(a => (
+   531→   531→                    <TableRow key={a.id}>
+   532→   532→                      <TableCell className="whitespace-nowrap text-sm">{formatFechaHora(a.fecha)}</TableCell>
+   533→   533→                      <TableCell><Badge variant="outline">{a.tipo}</Badge></TableCell>
+   534→   534→                      <TableCell className="max-w-md truncate">{a.detalle}</TableCell>
+   535→   535→                      <TableCell className="hidden sm:table-cell">{a.empleado}</TableCell>
+   536→   536→                    </TableRow>
+   537→   537→                  ))
+   538→   538→                )}
+   539→   539→              </TableBody>
+   540→   540→            </Table>
+   541→   541→          </Card>
+   542→   542→
+   543→   543→          {auditTotalPages > 1 && (
+   544→   544→            <Pagination>
+   545→   545→              <PaginationContent>
+   546→   546→                <PaginationItem>
+   547→   547→                  <PaginationPrevious onClick={() => setAuditPage(p => Math.max(1, p - 1))} className={auditPage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'} />
+   548→   548→                </PaginationItem>
+   549→   549→                {Array.from({ length: auditTotalPages }, (_, i) => i + 1).map(p => (
+   550→   550→                  <PaginationItem key={p}>
+   551→   551→                    <PaginationLink isActive={p === auditPage} onClick={() => setAuditPage(p)} className="cursor-pointer">{p}</PaginationLink>
+   552→   552→                  </PaginationItem>
+   553→   553→                ))}
+   554→   554→                <PaginationItem>
+   555→   555→                  <PaginationNext onClick={() => setAuditPage(p => Math.min(auditTotalPages, p + 1))} className={auditPage >= auditTotalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'} />
+   556→   556→                </PaginationItem>
+   557→   557→              </PaginationContent>
+   558→   558→            </Pagination>
+   559→   559→          )}
+   560→   560→        </TabsContent>
+   561→   561→
+   562→   562→        {/* ==================== HISTORIAL CAJA ==================== */}
+   563→   563→        <TabsContent value="historial-caja" className="space-y-4">
+   564→   564→          <Card>
+   565→   565→            <Table>
+   566→   566→              <TableHeader>
+   567→   567→                <TableRow>
+   568→   568→                  <TableHead className="hidden sm:table-cell">Empleado</TableHead>
+   569→   569→                  <TableHead>Apertura</TableHead>
+   570→   570→                  <TableHead>Cierre</TableHead>
+   571→   571→                  <TableHead className="text-right hidden md:table-cell">Diferencia</TableHead>
+   572→   572→                  <TableHead className="text-right">Movimientos</TableHead>
+   573→   573→                  <TableHead></TableHead>
+   574→   574→                </TableRow>
+   575→   575→              </TableHeader>
+   576→   576→              <TableBody>
+   577→   577→                {caja.historial.length === 0 ? (
+   578→   578→                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No hay turnos de caja registrados.</TableCell></TableRow>
+   579→   579→                ) : (
+   580→   580→                  caja.historial.map((turno, idx) => (
+   581→   581→                    <TableRow key={idx}>
+   582→   582→                      <TableCell className="font-medium hidden sm:table-cell">{turno.apertura.empleado}</TableCell>
+   583→   583→                      <TableCell className="whitespace-nowrap text-sm">{formatFechaHora(turno.apertura.fecha)}</TableCell>
+   584→   584→                      <TableCell className="whitespace-nowrap text-sm">{formatFechaHora(turno.cierre.fecha)}</TableCell>
+   585→   585→                      <TableCell className={`text-right font-medium hidden md:table-cell ${turno.cierre.diferencia === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+   586→   586→                        {formatMoneda(turno.cierre.diferencia)}
+   587→   587→                      </TableCell>
+   588→   588→                      <TableCell className="text-right"><Badge variant="secondary">{turno.movimientos.length}</Badge></TableCell>
+   589→   589→                      <TableCell>
+   590→   590→                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setCajaDetailIdx(idx)}>
+   591→   591→                          <Eye className="w-3.5 h-3.5" />
+   592→   592→                        </Button>
+   593→   593→                      </TableCell>
+   594→   594→                    </TableRow>
+   595→   595→                  ))
+   596→   596→                )}
+   597→   597→              </TableBody>
+   598→   598→            </Table>
+   599→   599→          </Card>
+   600→   600→        </TabsContent>
+   601→   601→
+   602→   602→        {/* ==================== HABITACIONES ==================== */}
+   603→   603→        <TabsContent value="habitaciones" className="space-y-4">
+   604→   604→          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+   605→   605→            {[
+   606→   606→              { label: 'Total', value: habResumen.total, color: '' },
+   607→   607→              { label: 'Disponible', value: habResumen.disponibles, color: 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' },
+   608→   608→              { label: 'Ocupada', value: habResumen.ocupadas, color: 'bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300' },
+   609→   609→              { label: 'Reservada', value: habResumen.reservadas, color: 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300' },
+   610→   610→              { label: 'Limpieza', value: habResumen.limpieza, color: 'bg-sky-100 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300' },
+   611→   611→              { label: 'Mantenimiento', value: habResumen.mantenimiento, color: 'bg-orange-100 dark:bg-orange-500/15 text-orange-700 dark:text-orange-300' },
+   612→   612→              { label: 'Fuera serv.', value: habResumen.fueraServicio, color: 'bg-gray-100 dark:bg-gray-500/15 text-gray-700 dark:text-gray-300' },
+   613→   613→            ].map(item => (
+   614→   614→              <Card key={item.label}>
+   615→   615→                <CardHeader className="pb-1"><CardTitle className="text-xs font-medium text-muted-foreground">{item.label}</CardTitle></CardHeader>
+   616→   616→                <CardContent><p className={`text-2xl font-bold ${item.color}`}>{item.value}</p></CardContent>
+   617→   617→              </Card>
+   618→   618→            ))}
+   619→   619→          </div>
+   620→   620→
+   621→   621→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   622→   622→            <Card>
+   623→   623→              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Tasa de ocupación actual</CardTitle></CardHeader>
+   624→   624→              <CardContent>
+   625→   625→                <div className="flex items-center gap-3">
+   626→   626→                  <div className="text-3xl font-bold">{habResumen.tasaOcupacion}%</div>
+   627→   627→                  <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+   628→   628→                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${habResumen.tasaOcupacion}%` }} />
+   629→   629→                  </div>
+   630→   630→                </div>
+   631→   631→              </CardContent>
+   632→   632→            </Card>
+   633→   633→            <Card>
+   634→   634→              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Tasa de ocupación en el periodo</CardTitle></CardHeader>
+   635→   635→              <CardContent>
+   636→   636→                <div className="flex items-center gap-3">
+   637→   637→                  <div className="text-3xl font-bold">{habResumen.tasaOcupacionPeriodo}%</div>
+   638→   638→                  <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+   639→   639→                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${habResumen.tasaOcupacionPeriodo}%` }} />
+   640→   640→                  </div>
+   641→   641→                </div>
+   642→   642→                <p className="text-xs text-muted-foreground mt-1">{habResumen.nochesOcupadas} noches ocupadas de {habResumen.diasPeriodo} días × {habResumen.total} hab.</p>
+   643→   643→              </CardContent>
+   644→   644→            </Card>
+   645→   645→          </div>
+   646→   646→
+   647→   647→          <Card>
+   648→   648→            <CardHeader><CardTitle className="text-base">Estado de habitaciones</CardTitle></CardHeader>
+   649→   649→            <CardContent>
+   650→   650→              <Table>
+   651→   651→                <TableHeader>
+   652→   652→                  <TableRow>
+   653→   653→                    <TableHead>Nº</TableHead>
+   654→   654→                    <TableHead>Tipo</TableHead>
+   655→   655→                    <TableHead>Capacidad</TableHead>
+   656→   656→                    <TableHead>Estado</TableHead>
+   657→   657→                  </TableRow>
+   658→   658→                </TableHeader>
+   659→   659→                <TableBody>
+   660→   660→                  {habResumen.habs.map(h => (
+   661→   661→                    <TableRow key={h.numero}>
+   662→   662→                      <TableCell className="font-medium">{h.numero}</TableCell>
+   663→   663→                      <TableCell>{h.tipo}</TableCell>
+   664→   664→                      <TableCell>{h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</TableCell>
+   665→   665→                      <TableCell>
+   666→   666→                        <Badge variant={
+   667→   667→                          h.estado === 'Disponible' ? 'default' :
+   668→   668→                          h.estado === 'Ocupada' ? 'destructive' :
+   669→   669→                          h.estado === 'Reservada' ? 'secondary' :
+   670→   670→                          'outline'
+   671→   671→                        }>
+   672→   672→                          {h.estado}
+   673→   673→                        </Badge>
+   674→   674→                      </TableCell>
+   675→   675→                    </TableRow>
+   676→   676→                  ))}
+   677→   677→                </TableBody>
+   678→   678→              </Table>
+   679→   679→            </CardContent>
+   680→   680→          </Card>
+   681→   681→        </TabsContent>
+   682→   682→
+   683→   683→        {/* ==================== CLIENTES ==================== */}
+   684→   684→        <TabsContent value="clientes" className="space-y-4">
+   685→   685→          <div className="flex flex-wrap items-end gap-3">
+   686→   686→            <div className="grid gap-1.5">
+   687→   687→              <Label className="text-xs text-muted-foreground">Mínimo de estadías</Label>
+   688→   688→              <Input type="number" min="0" value={clienteMinEstadias} onChange={e => setClienteMinEstadias(e.target.value)} className="w-32" />
+   689→   689→            </div>
+   690→   690→            <Badge variant="secondary">{clientesFrecuentes.length} clientes</Badge>
+   691→   691→          </div>
+   692→   692→
+   693→   693→          <Card>
+   694→   694→            <Table>
+   695→   695→              <TableHeader>
+   696→   696→                <TableRow>
+   697→   697→                  <TableHead>Cliente</TableHead>
+   698→   698→                  <TableHead>DNI</TableHead>
+   699→   699→                  <TableHead className="text-right">Estadías</TableHead>
+   700→   700→                  <TableHead className="text-right hidden sm:table-cell">Total Gastado</TableHead>
+   701→   701→                  <TableHead className="hidden md:table-cell">Última Visita</TableHead>
+   702→   702→                </TableRow>
+   703→   703→              </TableHeader>
+   704→   704→              <TableBody>
+   705→   705→                {clientesFrecuentes.length === 0 ? (
+   706→   706→                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No hay clientes que coincidan.</TableCell></TableRow>
+   707→   707→                ) : (
+   708→   708→                  clientesFrecuentes.map(c => (
+   709→   709→                    <TableRow key={c.id}>
+   710→   710→                      <TableCell className="font-medium">{c.nombre}</TableCell>
+   711→   711→                      <TableCell>{c.dni}</TableCell>
+   712→   712→                      <TableCell className="text-right"><Badge variant="secondary">{c.cantidadEstadias}</Badge></TableCell>
+   713→   713→                      <TableCell className="text-right font-medium hidden sm:table-cell">{formatMoneda(c.totalGastado)}</TableCell>
+   714→   714→                      <TableCell className="hidden md:table-cell">{c.ultimaVisita !== '—' ? formatFecha(c.ultimaVisita) : '—'}</TableCell>
+   715→   715→                    </TableRow>
+   716→   716→                  ))
+   717→   717→                )}
+   718→   718→              </TableBody>
+   719→   719→            </Table>
+   720→   720→          </Card>
+   721→   721→        </TabsContent>
+   722→   722→
+   723→   723→        {/* ==================== EMPLEADOS ==================== */}
+   724→   724→        <TabsContent value="empleados" className="space-y-4">
+   725→   725→          <Card>
+   726→   726→            <Table>
+   727→   727→              <TableHeader>
+   728→   728→                <TableRow>
+   729→   729→                  <TableHead>Empleado</TableHead>
+   730→   730→                  <TableHead className="text-center">Check-Ins</TableHead>
+   731→   731→                  <TableHead className="text-center">Check-Outs</TableHead>
+   732→   732→                  <TableHead className="text-center hidden sm:table-cell">Pagos</TableHead>
+   733→   733→                  <TableHead className="text-center hidden sm:table-cell">Gastos</TableHead>
+   734→   734→                  <TableHead className="text-center hidden md:table-cell">Reservas</TableHead>
+   735→   735→                  <TableHead className="text-right">Total Acciones</TableHead>
+   736→   736→                </TableRow>
+   737→   737→              </TableHeader>
+   738→   738→              <TableBody>
+   739→   739→                {empleadosResumen.length === 0 ? (
+   740→   740→                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No hay actividad en este periodo.</TableCell></TableRow>
+   741→   741→                ) : (
+   742→   742→                  empleadosResumen.map(emp => (
+   743→   743→                    <TableRow key={emp.nombre}>
+   744→   744→                      <TableCell className="font-medium">{emp.nombre}</TableCell>
+   745→   745→                      <TableCell className="text-center">{emp.checkins}</TableCell>
+   746→   746→                      <TableCell className="text-center">{emp.checkouts}</TableCell>
+   747→   747→                      <TableCell className="text-center hidden sm:table-cell">{emp.pagos}</TableCell>
+   748→   748→                      <TableCell className="text-center hidden sm:table-cell">{emp.gastos}</TableCell>
+   749→   749→                      <TableCell className="text-center hidden md:table-cell">{emp.reservas}</TableCell>
+   750→   750→                      <TableCell className="text-right"><Badge variant="secondary">{emp.auditorias}</Badge></TableCell>
+   751→   751→                    </TableRow>
+   752→   752→                  ))
+   753→   753→                )}
+   754→   754→              </TableBody>
+   755→   755→            </Table>
+   756→   756→          </Card>
+   757→   757→        </TabsContent>
+   758→   758→      </Tabs>
+   759→   759→
+   760→   760→      {/* ==================== DIALOG: Agregar Gasto ==================== */}
+   761→   761→      <Dialog open={gastoModal} onOpenChange={setGastoModal}>
+   762→   762→        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+   763→   763→          <DialogHeader>
+   764→   764→            <DialogTitle>Agregar Gasto</DialogTitle>
+   765→   765→          </DialogHeader>
+   766→   766→          <div className="grid gap-4 py-2">
+   767→   767→            <div className="grid gap-1.5">
+   768→   768→              <Label>Tipo *</Label>
+   769→   769→              <Select value={gastoForm.tipo} onValueChange={v => setGastoForm({ ...gastoForm, tipo: v })}>
+   770→   770→                <SelectTrigger><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
+   771→   771→                <SelectContent>
+   772→   772→                  {categoriasGastos.map(c => (
+   773→   773→                    <SelectItem key={c} value={c}>{c}</SelectItem>
+   774→   774→                  ))}
+   775→   775→                </SelectContent>
+   776→   776→              </Select>
+   777→   777→            </div>
+   778→   778→            <div className="grid gap-1.5">
+   779→   779→              <Label>Descripción *</Label>
+   780→   780→              <Textarea value={gastoForm.descripcion} onChange={e => setGastoForm({ ...gastoForm, descripcion: e.target.value })} placeholder="Descripción del gasto..." rows={2} />
+   781→   781→            </div>
+   782→   782→            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   783→   783→              <div className="grid gap-1.5">
+   784→   784→                <Label>Monto *</Label>
+   785→   785→                <Input type="number" value={gastoForm.monto} onChange={e => setGastoForm({ ...gastoForm, monto: e.target.value })} placeholder="0" />
+   786→   786→              </div>
+   787→   787→              <div className="grid gap-1.5">
+   788→   788→                <Label>Fecha</Label>
+   789→   789→                <Input type="date" value={gastoForm.fecha} onChange={e => setGastoForm({ ...gastoForm, fecha: e.target.value })} />
+   790→   790→              </div>
+   791→   791→            </div>
+   792→   792→          </div>
+   793→   793→          <DialogFooter>
+   794→   794→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   795→   795→            <Button onClick={handleAgregarGasto} disabled={!gastoForm.tipo || !gastoForm.descripcion || !gastoForm.monto}>Guardar</Button>
+   796→   796→          </DialogFooter>
+   797→   797→        </DialogContent>
+   798→   798→      </Dialog>
+   799→   799→
+   800→   800→      {/* ==================== DIALOG: Detalle Caja ==================== */}
+   801→   801→      <Dialog open={cajaDetailIdx !== null} onOpenChange={() => setCajaDetailIdx(null)}>
+   802→   802→        <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-y-auto">
+   803→   803→          {selectedCajaTurno && (
+   804→   804→            <>
+   805→   805→              <DialogHeader>
+   806→   806→                <DialogTitle className="flex items-center gap-2"><Wallet className="w-5 h-5" />Detalle de Turno de Caja</DialogTitle>
+   807→   807→              </DialogHeader>
+   808→   808→              <div className="space-y-4">
+   809→   809→                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+   810→   810→                  <div>
+   811→   811→                    <span className="text-muted-foreground">Empleado:</span>
+   812→   812→                    <p className="font-medium">{selectedCajaTurno.apertura.empleado}</p>
+   813→   813→                  </div>
+   814→   814→                  <div>
+   815→   815→                    <span className="text-muted-foreground">Apertura:</span>
+   816→   816→                    <p className="font-medium">{formatFechaHora(selectedCajaTurno.apertura.fecha)}</p>
+   817→   817→                  </div>
+   818→   818→                  <div>
+   819→   819→                    <span className="text-muted-foreground">Monto Inicial:</span>
+   820→   820→                    <p className="font-medium">{formatMoneda(selectedCajaTurno.apertura.montoInicial)}</p>
+   821→   821→                  </div>
+   822→   822→                  <div>
+   823→   823→                    <span className="text-muted-foreground">Cierre:</span>
+   824→   824→                    <p className="font-medium">{formatFechaHora(selectedCajaTurno.cierre.fecha)}</p>
+   825→   825→                  </div>
+   826→   826→                  <div>
+   827→   827→                    <span className="text-muted-foreground">Saldo Esperado:</span>
+   828→   828→                    <p className="font-medium">{formatMoneda(selectedCajaTurno.cierre.saldoEsperado)}</p>
+   829→   829→                  </div>
+   830→   830→                  <div>
+   831→   831→                    <span className="text-muted-foreground">Saldo Contado:</span>
+   832→   832→                    <p className="font-medium">{formatMoneda(selectedCajaTurno.cierre.saldoContado)}</p>
+   833→   833→                  </div>
+   834→   834→                  <div className="col-span-3">
+   835→   835→                    <span className="text-muted-foreground">Diferencia:</span>
+   836→   836→                    <p className={`font-bold text-lg ${selectedCajaTurno.cierre.diferencia === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+   837→   837→                      {formatMoneda(selectedCajaTurno.cierre.diferencia)}
+   838→   838→                    </p>
+   839→   839→                  </div>
+   840→   840→                </div>
+   841→   841→
+   842→   842→                <div>
+   843→   843→                  <h4 className="font-semibold mb-2">Movimientos ({selectedCajaTurno.movimientos.length})</h4>
+   844→   844→                  {selectedCajaTurno.movimientos.length === 0 ? (
+   845→   845→                    <p className="text-sm text-muted-foreground">Sin movimientos.</p>
+   846→   846→                  ) : (
+   847→   847→                    <div className="max-h-60 overflow-y-auto">
+   848→   848→                      <Table>
+   849→   849→                        <TableHeader>
+   850→   850→                          <TableRow>
+   851→   851→                            <TableHead>Fecha</TableHead>
+   852→   852→                            <TableHead>Tipo</TableHead>
+   853→   853→                            <TableHead className="hidden sm:table-cell">Descripción</TableHead>
+   854→   854→                            <TableHead>Método</TableHead>
+   855→   855→                            <TableHead className="text-right">Monto</TableHead>
+   856→   856→                          </TableRow>
+   857→   857→                        </TableHeader>
+   858→   858→                        <TableBody>
+   859→   859→                          {selectedCajaTurno.movimientos.map((m, i) => (
+   860→   860→                            <TableRow key={i}>
+   861→   861→                              <TableCell className="whitespace-nowrap text-sm">{formatFechaHora(m.fecha)}</TableCell>
+   862→   862→                              <TableCell>
+   863→   863→                                <Badge variant={m.tipo === 'ingreso' ? 'default' : 'destructive'}>
+   864→   864→                                  {m.tipo === 'ingreso' ? '+' : '-'}
+   865→   865→                                </Badge>
+   866→   866→                              </TableCell>
+   867→   867→                              <TableCell className="hidden sm:table-cell">{m.descripcion}</TableCell>
+   868→   868→                              <TableCell className="text-muted-foreground">{m.metodo}</TableCell>
+   869→   869→                              <TableCell className={`text-right font-medium ${m.tipo === 'ingreso' ? 'text-emerald-600' : 'text-red-600'}`}>
+   870→   870→                                {m.tipo === 'ingreso' ? '+' : '-'}{formatMoneda(m.monto)}
+   871→   871→                              </TableCell>
+   872→   872→                            </TableRow>
+   873→   873→                          ))}
+   874→   874→                        </TableBody>
+   875→   875→                      </Table>
+   876→   876→                    </div>
+   877→   877→                  )}
+   878→   878→                </div>
+   879→   879→              </div>
+   880→   880→              <DialogFooter>
+   881→   881→                <DialogClose asChild><Button variant="secondary">Cerrar</Button></DialogClose>
+   882→   882→              </DialogFooter>
+   883→   883→            </>
+   884→   884→          )}
+   885→   885→        </DialogContent>
+   886→   886→      </Dialog>
+   887→   887→    </div>
+   888→   888→  );
+   889→   889→}
