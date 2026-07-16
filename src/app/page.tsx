@@ -81,7 +81,7 @@ const showcaseFeatures = [
     icon: CalendarCheck,
     title: 'Reservas y Calendario',
     desc: 'Calendario visual con colores por estado, control de disponibilidad en tiempo real y prevención automática de overbooking. Gestiona check-ins y check-outs con un solo clic. El calendario del dashboard te muestra la ocupación completa del mes.',
-    screenshots: ['/screenshots/reservas.png', '/screenshots/chekin.png'],
+    screenshots: ['/screenshots/reservas.png', '/screenshots/reservas2.png'],
     badge: 'Módulo principal',
     accent: 'from-emerald-500/20 to-teal-500/10',
   },
