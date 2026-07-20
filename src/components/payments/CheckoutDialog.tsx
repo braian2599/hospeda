@@ -113,7 +113,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-xl p-0 overflow-hidden">
         {/* Header with gradient */}
         <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pt-6 pb-4">
           <DialogHeader>
