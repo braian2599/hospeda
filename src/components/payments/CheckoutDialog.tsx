@@ -113,9 +113,9 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-xl p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header with gradient */}
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pt-6 pb-4">
+        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pt-6 pb-4 shrink-0">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -152,7 +152,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
         </div>
 
         {/* Body */}
-        <div className="px-6 pb-6">
+        <div className="px-6 pb-6 overflow-y-auto">
           {/* ── STEP 1: Email ── */}
           {step === 'email' && (
             <div className="space-y-4 mt-2">
