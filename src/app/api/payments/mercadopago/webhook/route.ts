@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getMercadoPagoPayment, verifyMercadoPagoSignature } from '@/lib/payments/mercadopago';
+import { getMPSubscription } from '@/lib/payments/mp-subscriptions';
 import { db } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
@@ -22,7 +23,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Firma inválida' }, { status: 400 });
     }
 
-    // Solo procesar pagos
+    // Procesar según tipo de evento
+    if (type === 'preapproval') {
+      return handlePreapprovalEvent(data?.id);
+    }
+
+    // Solo procesar pagos (incluye cobros recurrentes automáticos)
     if (type !== 'payment') {
       return NextResponse.json({ received: true });
     }
@@ -79,14 +85,33 @@ export async function POST(request: NextRequest) {
       case 'approved': {
         console.log(`[mp-webhook] Pago aprobado: tenant=${tenantId}, plan=${planTipo}`);
 
-        // Calcular período: desde hoy hasta 30 días
-        const fechaInicio = new Date();
-        // Si ya tiene una suscripción activa con fecha futura, extender desde ahí
-        const baseDate = subscription.fechaVencimiento > new Date()
-          ? new Date(subscription.fechaVencimiento)
-          : fechaInicio;
-        const fechaVencimiento = new Date(baseDate);
-        fechaVencimiento.setDate(fechaVencimiento.getDate() + 30);
+        // Si es suscripción recurrente, extender al día 1 del mes próximo
+        let fechaVencimiento: Date;
+        if (subscription.esRecurrente) {
+          fechaVencimiento = new Date(
+            new Date().getFullYear(),
+            new Date().getMonth() + 1,
+            1
+          );
+          // Actualizar próximo cobro
+          await db.subscription.update({
+            where: { tenantId },
+            data: {
+              proximoCobro: new Date(
+                new Date().getFullYear(),
+                new Date().getMonth() + 2,
+                1
+              ),
+            },
+          });
+        } else {
+          // Pago único: extender 30 días desde el vencimiento actual o desde hoy
+          const baseDate = subscription.fechaVencimiento > new Date()
+            ? new Date(subscription.fechaVencimiento)
+            : new Date();
+          fechaVencimiento = new Date(baseDate);
+          fechaVencimiento.setDate(fechaVencimiento.getDate() + 30);
+        }
 
         // Actualizar suscripción
         await db.subscription.update({
@@ -101,6 +126,12 @@ export async function POST(request: NextRequest) {
         });
 
         // Registrar el pago en PlatformPayment
+        const periodoDesde = subscription.esRecurrente
+          ? new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+          : (subscription.fechaVencimiento > new Date()
+            ? new Date(subscription.fechaVencimiento)
+            : new Date());
+
         await db.platformPayment.create({
           data: {
             tenantId,
@@ -109,10 +140,12 @@ export async function POST(request: NextRequest) {
             moneda: 'ARS',
             metodo: 'mercadopago',
             estado: 'pagado',
-            periodoDesde: baseDate,
+            periodoDesde,
             periodoHasta: fechaVencimiento,
             externalId: String(paymentId),
-            nota: `Pago MP ${paymentId} — Plan ${planTipo} — ${mpPaymentMethod}`,
+            nota: subscription.esRecurrente
+              ? `Cobro recurrente MP ${paymentId} — Plan ${planTipo} — ${mpPaymentMethod}`
+              : `Pago MP ${paymentId} — Plan ${planTipo} — ${mpPaymentMethod}`,
           },
         });
 
@@ -181,6 +214,88 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// ── Handler para eventos de Preapproval (suscripciones recurrentes) ──
+async function handlePreapprovalEvent(preapprovalId: string | undefined) {
+  if (!preapprovalId) {
+    return NextResponse.json({ received: true });
+  }
+
+  console.log(`[mp-webhook] Preapproval event: id=${preapprovalId}`);
+
+  // Obtener detalles del preapproval desde MP
+  const preapproval = await getMPSubscription(preapprovalId);
+  if (!preapproval) {
+    console.error(`[mp-webhook] Preapproval ${preapprovalId} no encontrado en MP`);
+    return NextResponse.json({ error: 'Preapproval not found' }, { status: 404 });
+  }
+
+  const mpStatus = preapproval.status; // 'pending', 'authorized', 'paused', 'cancelled'
+  const externalRef = preapproval.external_reference || '';
+  const [tenantId, planTipo] = externalRef.split(':');
+
+  if (!tenantId) {
+    console.error('[mp-webhook] Preapproval sin external_reference válido:', externalRef);
+    return NextResponse.json({ received: true });
+  }
+
+  console.log(`[mp-webhook] Preapproval ${preapprovalId}: status=${mpStatus}, tenant=${tenantId}, plan=${planTipo}`);
+
+  switch (mpStatus) {
+    case 'authorized': {
+      // Suscripción autorizada — el usuario completó el flujo
+      const plan = await db.plan.findFirst({ where: { type: planTipo as any } });
+      const now = new Date();
+      const firstOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      await db.subscription.update({
+        where: { mpPreapprovalId: preapprovalId },
+        data: {
+          estado: 'activa',
+          ...(plan ? { planId: plan.id } : {}),
+          trialUsado: true,
+          esRecurrente: true,
+          fechaVencimiento: firstOfNextMonth,
+          proximoCobro: firstOfNextMonth,
+        },
+      });
+
+      console.log(`[mp-webhook] Preapproval autorizado — suscripción activa para tenant=${tenantId}`);
+      break;
+    }
+
+    case 'paused': {
+      // Suscripción pausada (falta de pago, etc.)
+      await db.subscription.update({
+        where: { mpPreapprovalId: preapprovalId },
+        data: { estado: 'suspensa' },
+      });
+      console.log(`[mp-webhook] Preapproval pausado para tenant=${tenantId}`);
+      break;
+    }
+
+    case 'cancelled': {
+      // Suscripción cancelada por el usuario o MP
+      await db.subscription.update({
+        where: { mpPreapprovalId: preapprovalId },
+        data: {
+          estado: 'cancelada',
+          canceladaAt: new Date(),
+          esRecurrente: false,
+          mpPreapprovalId: null,
+          proximoCobro: null,
+        },
+      });
+      console.log(`[mp-webhook] Preapproval cancelado para tenant=${tenantId}`);
+      break;
+    }
+
+    default:
+      console.log(`[mp-webhook] Preapproval status no manejado: ${mpStatus}`);
+  }
+
+  return NextResponse.json({ received: true });
 }
 
 // GET para verificación de MP (a veces envían GET antes del POST)

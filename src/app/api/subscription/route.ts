@@ -39,6 +39,8 @@ export async function GET() {
         fechaInicio: subscription.fechaInicio,
         fechaVencimiento: subscription.fechaVencimiento,
         diasRestantes,
+        esRecurrente: subscription.esRecurrente,
+        proximoCobro: subscription.proximoCobro,
       },
     });
   } catch (error) {

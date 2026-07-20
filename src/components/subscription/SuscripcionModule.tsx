@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   Crown, Calendar, CreditCard, Building2, Copy, Check,
   Clock, AlertTriangle, Shield, ArrowRight, Info,
+  RefreshCw, XCircle, Loader2,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
@@ -40,31 +41,22 @@ export default function SuscripcionModule() {
     fechaInicio: string;
     fechaVencimiento: string;
     diasRestantes: number;
+    esRecurrente?: boolean;
+    proximoCobro?: string | null;
   } | null>(null);
-  const [payments, setPayments] = useState<Array<{
-    id: string;
-    monto: number;
-    estado: string;
-    metodo: string;
-    periodoDesde: string;
-    periodoHasta: string;
-    createdAt: string;
-    nota?: string;
-  }>>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanTipo, 'trial'> | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
   const [copiedField, setCopiedField] = useState('');
+  const [canceling, setCanceling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Fetch subscription data
   useEffect(() => {
     async function fetchData() {
       try {
-        const [subRes, payRes] = await Promise.all([
-          fetch('/api/subscription'),
-          fetch('/api/payments/status'),
-        ]);
+        const subRes = await fetch('/api/subscription');
         const subData = await subRes.json();
         if (subRes.ok && subData.subscription) {
           setSubscriptionData(subData.subscription);
@@ -83,6 +75,25 @@ export default function SuscripcionModule() {
     setCheckoutOpen(true);
   };
 
+  const handleCancelSubscription = async () => {
+    setCanceling(true);
+    try {
+      const res = await fetch('/api/payments/cancel-subscription', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Suscripción cancelada. Seguirás teniendo acceso hasta el vencimiento.');
+      setShowCancelConfirm(false);
+      // Refetch
+      const subRes = await fetch('/api/subscription');
+      const subData = await subRes.json();
+      if (subRes.ok && subData.subscription) setSubscriptionData(subData.subscription);
+    } catch (err: any) {
+      toast.error(err.message || 'Error al cancelar');
+    } finally {
+      setCanceling(false);
+    }
+  };
+
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
@@ -94,19 +105,22 @@ export default function SuscripcionModule() {
   const isTrial = planActual === 'trial';
   const diasTrial = fechaInicioTrial ? diasRestantesTrial(fechaInicioTrial) : 0;
   const trialExpired = isTrial && fechaInicioTrial && trialVencido(fechaInicioTrial);
+  const isRecurring = subscriptionData?.esRecurrente === true;
 
   // Estado visual de la suscripción
-  const estadoColor = {
+  const estadoColor: Record<string, string> = {
     trial: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    activa: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    activa: isRecurring
+      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+      : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
     vencida: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
     cancelada: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
     suspensa: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   };
 
-  const estadoLabel = {
+  const estadoLabel: Record<string, string> = {
     trial: 'Prueba Gratuita',
-    activa: 'Activa',
+    activa: isRecurring ? 'Activa — Débito automático' : 'Activa',
     vencida: 'Vencida',
     cancelada: 'Cancelada',
     suspensa: 'Suspendida',
@@ -179,14 +193,29 @@ export default function SuscripcionModule() {
           </CardContent>
         </Card>
 
-        {/* Vencimiento */}
+        {/* Vencimiento / Próximo cobro */}
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vencimiento</span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {isRecurring ? 'Próximo cobro' : 'Vencimiento'}
+              </span>
             </div>
-            {subscriptionData?.fechaVencimiento ? (
+            {isRecurring && subscriptionData?.proximoCobro ? (
+              <>
+                <p className="text-2xl font-bold">
+                  {new Date(subscriptionData.proximoCobro).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Día 1 del mes que viene
+                </p>
+                <div className="flex items-center gap-1.5 mt-3 text-xs text-emerald-600 dark:text-emerald-400">
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Débito automático activo</span>
+                </div>
+              </>
+            ) : subscriptionData?.fechaVencimiento ? (
               <>
                 <p className="text-2xl font-bold">
                   {new Date(subscriptionData.fechaVencimiento).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -237,6 +266,51 @@ export default function SuscripcionModule() {
         </Card>
       </div>
 
+      {/* ── Cancelar suscripción recurrente ── */}
+      {isRecurring && currentEstado === 'activa' && (
+        <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Suscripción recurrente activa</p>
+              <p className="text-xs text-muted-foreground">
+                Se cobra automáticamente el día 1 de cada mes. Cancelá cuando quieras.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {!showCancelConfirm ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
+                onClick={() => setShowCancelConfirm(true)}
+              >
+                <XCircle className="w-4 h-4 mr-1.5" />
+                Cancelar suscripción
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => setShowCancelConfirm(false)}>
+                  No, mantener
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleCancelSubscription}
+                  disabled={canceling}
+                >
+                  {canceling ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+                  Sí, cancelar
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Trial expired warning ── */}
       {trialExpired && (
         <div className="flex items-start gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20">
@@ -246,7 +320,7 @@ export default function SuscripcionModule() {
               Tu prueba gratuita venció
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Elegí un plan a continuación para seguir usando Hospedá con todos los módulos. Si ya realizaste una transferencia, el pago se acreditará una vez verificado.
+              Elegí un plan a continuación para seguir usando Hospedá con todos los módulos. El cobro es automático cada mes y podés cancelar cuando quieras.
             </p>
           </div>
         </div>
@@ -254,7 +328,13 @@ export default function SuscripcionModule() {
 
       {/* ── Planes disponibles ── */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">Planes disponibles</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Planes disponibles</h2>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Todos los planes con débito automático</span>
+          </div>
+        </div>
         <div className="grid gap-4 md:grid-cols-3">
           {(['basico', 'profesional', 'premium'] as const).map(tipo => (
             <PlanCard

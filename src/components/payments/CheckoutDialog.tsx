@@ -17,11 +17,11 @@ import {
   Loader2,
   Check,
   ArrowRight,
-  Shield,
   Lock,
   ExternalLink,
   AlertTriangle,
   CreditCard,
+  RefreshCw,
 } from 'lucide-react';
 
 interface CheckoutDialogProps {
@@ -67,7 +67,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
   const plans = usePlans();
   const plan = selectedPlan ? plans[selectedPlan] : null;
 
-  // Create checkout session
+  // Create subscription (recurring)
   const handleCheckout = async () => {
     if (!selectedPlan || !email.trim()) return;
 
@@ -76,12 +76,11 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
     setErrorMessage('');
 
     try {
-      const res = await fetch('/api/payments/create-checkout', {
+      const res = await fetch('/api/payments/create-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           planTipo: selectedPlan,
-          provider: 'mercadopago',
           email: email.trim(),
         }),
       });
@@ -89,20 +88,19 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || data.detail || 'Error al crear el pago');
+        throw new Error(data.error || data.detail || 'Error al crear la suscripción');
       }
 
-      // Redirect to Mercado Pago checkout
+      // Redirect to Mercado Pago authorization
       const url = data.initPoint || data.url;
       if (url) {
         setCheckoutUrl(url);
         setStep('success');
-        // Auto-redirect after a moment
         setTimeout(() => {
           window.open(url, '_blank', 'noopener,noreferrer');
         }, 1500);
       } else {
-        throw new Error('No se recibió la URL de pago');
+        throw new Error('No se recibió la URL de autorización');
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Error inesperado. Intentá de nuevo.');
@@ -132,7 +130,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                     ? 'Te redirigimos a Mercado Pago...'
                     : step === 'error'
                       ? 'No pudimos procesar tu solicitud'
-                      : 'Completá el pago para activar tu plan'}
+                      : 'Activá el débito automático mensual'}
                 </DialogDescription>
               </div>
             </div>
@@ -171,7 +169,15 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                   onKeyDown={(e) => { if (e.key === 'Enter' && email.includes('@')) handleCheckout(); }}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Te redirigiremos a Mercado Pago para completar el pago con tarjeta u otros medios.
+                  Te redirigiremos a Mercado Pago para configurar el débito automático con tarjeta.
+                </p>
+              </div>
+
+              {/* Recurring badge */}
+              <div className="flex items-center gap-2 p-3 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
+                <RefreshCw className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                  <strong>Suscripción recurrente:</strong> El cobro se realiza automáticamente el día 1 de cada mes. Podés cancelar cuando quieras.
                 </p>
               </div>
 
@@ -197,7 +203,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                   </svg>
                   <span className="text-xs font-medium text-[#009EE3]">Mercado Pago</span>
                 </div>
-                <span className="text-xs text-muted-foreground">Acepta tarjeta, transferencia y más</span>
+                <span className="text-xs text-muted-foreground">Débito automático con tarjeta</span>
               </div>
 
               {/* Submit */}
@@ -209,7 +215,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : null}
-                Pagar {plan.precioDisplay}/mes
+                Suscribirme — {plan.precioDisplay}/mes
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
 
@@ -229,7 +235,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <Loader2 className="w-8 h-8 text-primary animate-spin" />
               </div>
-              <p className="font-medium">Creando tu sesión de pago...</p>
+              <p className="font-medium">Creando tu suscripción recurrente...</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Conectando con Mercado Pago
               </p>
@@ -243,9 +249,9 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                 <Check className="w-8 h-8 text-chart-2" />
               </div>
               <div>
-                <p className="font-semibold text-lg">Sesión de pago creada</p>
+                <p className="font-semibold text-lg">Suscripción creada</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Te redirigimos automáticamente a Mercado Pago. Si no se abre, usá el botón de abajo.
+                  Te redirigimos a Mercado Pago para que autorices el débito automático. Si no se abre, usá el botón de abajo.
                 </p>
               </div>
               <Button
@@ -256,7 +262,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                 <ExternalLink className="w-4 h-4" />
               </Button>
               <p className="text-xs text-muted-foreground max-w-xs">
-                Tu suscripción se activará automáticamente una vez confirmado el pago. Volvé a esta página para ver el estado.
+                Tu suscripción se activará una vez que autorices el débito. El primer cobro será el día 1 del mes que viene.
               </p>
               <Button
                 variant="ghost"
@@ -275,7 +281,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                 <AlertTriangle className="w-8 h-8 text-destructive" />
               </div>
               <div>
-                <p className="font-semibold">No pudimos procesar tu pago</p>
+                <p className="font-semibold">No pudimos crear la suscripción</p>
                 <p className="text-sm text-muted-foreground mt-1">{errorMessage}</p>
               </div>
               <div className="flex gap-2">

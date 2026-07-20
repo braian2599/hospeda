@@ -91,6 +91,11 @@ model Subscription {
   trialUsado    Boolean  @default(false)
   paymentProviderId String? // ID en Mercado Pago / Stripe
   canceladaAt   DateTime?
+  // ── Campos de suscripción recurrente (Mercado Pago Preapproval) ──
+  mpPreapprovalId  String?  @unique  // ID del Preapproval en Mercado Pago
+  mpPlanId        String?           // ID del Preapproval Plan en Mercado Pago
+  esRecurrente     Boolean  @default(false) // true si es suscripción automática
+  proximoCobro    DateTime?         // Próxima fecha de cobro (día 1 de cada mes)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
