@@ -85,13 +85,13 @@ export async function POST(request: NextRequest) {
       case 'approved': {
         console.log(`[mp-webhook] Pago aprobado: tenant=${tenantId}, plan=${planTipo}`);
 
-        // Si es suscripción recurrente, extender al día 1 del mes próximo
+        // Si es suscripción recurrente, extender al día 10 del mes próximo
         let fechaVencimiento: Date;
         if (subscription.esRecurrente) {
           fechaVencimiento = new Date(
             new Date().getFullYear(),
             new Date().getMonth() + 1,
-            1
+            10
           );
           // Actualizar próximo cobro
           await db.subscription.update({
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
               proximoCobro: new Date(
                 new Date().getFullYear(),
                 new Date().getMonth() + 2,
-                1
+                10
               ),
             },
           });
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
 
         // Registrar el pago en PlatformPayment
         const periodoDesde = subscription.esRecurrente
-          ? new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+          ? new Date(new Date().getFullYear(), new Date().getMonth(), 10)
           : (subscription.fechaVencimiento > new Date()
             ? new Date(subscription.fechaVencimiento)
             : new Date());
@@ -247,7 +247,7 @@ async function handlePreapprovalEvent(preapprovalId: string | undefined) {
       // Suscripción autorizada — el usuario completó el flujo
       const plan = await db.plan.findFirst({ where: { type: planTipo as any } });
       const now = new Date();
-      const firstOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const tenthOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10);
 
       await db.subscription.update({
         where: { mpPreapprovalId: preapprovalId },
@@ -256,8 +256,8 @@ async function handlePreapprovalEvent(preapprovalId: string | undefined) {
           ...(plan ? { planId: plan.id } : {}),
           trialUsado: true,
           esRecurrente: true,
-          fechaVencimiento: firstOfNextMonth,
-          proximoCobro: firstOfNextMonth,
+          fechaVencimiento: tenthOfNextMonth,
+          proximoCobro: tenthOfNextMonth,
         },
       });
 

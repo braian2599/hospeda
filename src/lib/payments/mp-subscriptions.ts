@@ -28,12 +28,12 @@ interface MPPreapprovalResponse {
 }
 
 /**
- * Obtiene el primer día del próximo mes en formato ISO
+ * Obtiene el día 10 del próximo mes en formato ISO
  */
-function getFirstOfNextMonth(): string {
+function getTenthOfNextMonth(): string {
   const now = new Date();
-  const firstOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 3, 0, 0, 0);
-  return firstOfNextMonth.toISOString().replace(/\.\d{3}Z$/, '-03:00');
+  const tenthOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10, 3, 0, 0, 0);
+  return tenthOfNextMonth.toISOString().replace(/\.\d{3}Z$/, '-03:00');
 }
 
 /**
@@ -65,7 +65,7 @@ export async function createMPSubscription(params: {
       frequency_type: 'months',
       transaction_amount: plan.precio / 100, // MP usa decimales, no centavos
       currency_id: 'ARS',
-      start_date: getFirstOfNextMonth(),
+      start_date: getTenthOfNextMonth(),
       end_date: null, // Sin fecha de fin = recurrente indefinido
       free_trial: {
         frequency_type: 'months',

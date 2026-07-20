@@ -113,7 +113,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden">
         {/* Header with gradient */}
         <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pt-6 pb-4">
           <DialogHeader>
@@ -177,7 +177,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
               <div className="flex items-center gap-2 p-3 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
                 <RefreshCw className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                  <strong>Suscripción recurrente:</strong> El cobro se realiza automáticamente el día 1 de cada mes. Podés cancelar cuando quieras.
+                  <strong>Suscripción recurrente:</strong> El cobro se realiza automáticamente el día 10 de cada mes. Podés cancelar cuando quieras.
                 </p>
               </div>
 
@@ -262,7 +262,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                 <ExternalLink className="w-4 h-4" />
               </Button>
               <p className="text-xs text-muted-foreground max-w-xs">
-                Tu suscripción se activará una vez que autorices el débito. El primer cobro será el día 1 del mes que viene.
+                Tu suscripción se activará una vez que autorices el débito. El primer cobro será el día 10 del mes que viene.
               </p>
               <Button
                 variant="ghost"

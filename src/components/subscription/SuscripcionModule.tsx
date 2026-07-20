@@ -276,7 +276,7 @@ export default function SuscripcionModule() {
             <div>
               <p className="text-sm font-medium">Suscripción recurrente activa</p>
               <p className="text-xs text-muted-foreground">
-                Se cobra automáticamente el día 1 de cada mes. Cancelá cuando quieras.
+                Se cobra automáticamente el día 10 de cada mes. Cancelá cuando quieras.
               </p>
             </div>
           </div>

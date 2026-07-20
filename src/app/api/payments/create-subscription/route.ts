@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     // Guardar el preapprovalId en la suscripción (aún pendiente de autorización)
     const planRecord = await db.plan.findFirst({ where: { type: planTipo as any } });
     const now = new Date();
-    const firstOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const tenthOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10);
 
     await db.subscription.upsert({
       where: { tenantId: authTenantId },
@@ -80,16 +80,16 @@ export async function POST(request: NextRequest) {
         planId: planRecord?.id || existingSub?.planId || '',
         estado: 'activa',
         fechaInicio: now,
-        fechaVencimiento: firstOfNextMonth,
+        fechaVencimiento: tenthOfNextMonth,
         trialUsado: true,
         mpPreapprovalId: result.preapprovalId,
         esRecurrente: true,
-        proximoCobro: firstOfNextMonth,
+        proximoCobro: tenthOfNextMonth,
       },
       update: {
         mpPreapprovalId: result.preapprovalId,
         esRecurrente: true,
-        proximoCobro: firstOfNextMonth,
+        proximoCobro: tenthOfNextMonth,
         // Si cambiando de plan, actualizar también
         ...(planRecord ? { planId: planRecord.id } : {}),
       },
