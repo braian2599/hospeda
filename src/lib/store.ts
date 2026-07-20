@@ -329,8 +329,8 @@ export const useHotelStore = create<HotelStore>()(
         }
         set({ usuarioActual: sesion, moduloActivo: startModule as any, moduloBloqueado: null });
         get()._registrarAuditoria('Login', `Inicio de sesión: ${sesion.nombreCompleto || sesion.nombre}`);
-        // Sync data from server in background
-        get().syncFromServer().catch(() => {});
+        // NOTA: syncFromServer debe llamarse DESPUÉS de actualizar el JWT,
+        // no aquí, para evitar race condition con las API routes.
         return true;
       },
 

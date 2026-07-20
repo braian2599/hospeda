@@ -194,16 +194,18 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
 
   // Ref para evitar llamadas duplicadas a /api/auth/me
   const fetchRef = useRef(false);
+  // Ref para evitar sync duplicado al restaurar de localStorage
+  const syncRef = useRef(false);
+
+  const syncFromServer = useHotelStore(s => s.syncFromServer);
 
   // Actualizar el JWT de NextAuth con el tenantId seleccionado
   const loginAndUpdateSession = useCallback(async (data: Record<string, any>) => {
-    loginFromSession(data);
-    // Persistir tenantId y tenantUserId en el JWT para restaurar sesión sin re-seleccionar
+    // 1) Actualizar JWT PRIMERO para que las API routes tengan tenantId
     if (data.tenantId) {
       try {
         await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId });
       } catch (e) {
-        // Si falla la actualización del JWT, reintentar una vez
         console.warn('[SessionLoader] JWT update falló, reintentando...', e);
         try {
           await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId });
@@ -212,7 +214,11 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         }
       }
     }
-  }, [loginFromSession, update]);
+    // 2) Ahora sí setear el store (después del JWT)
+    await loginFromSession(data);
+    // 3) Sincronizar datos del servidor (el JWT ya tiene tenantId)
+    await syncFromServer();
+  }, [loginFromSession, update, syncFromServer]);
 
   const processMeData = useCallback((data: Record<string, any>) => {
     if (data.selectHotel) {
@@ -270,11 +276,16 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         .then(data => processMeData(data))
         .catch(() => { setError('No se pudo conectar al servidor.'); setLoading(false); fetchRef.current = false; });
     } else if (usuarioActual) {
+      // Restaurado desde localStorage — sincronizar datos del servidor (solo una vez)
+      if (!syncRef.current) {
+        syncRef.current = true;
+        syncFromServer().catch(() => {});
+      }
       setLoading(false);
     } else if (status === 'unauthenticated') {
       setLoading(false);
     }
-  }, [status, session, usuarioActual, loginFromSession, router, processMeData]);
+  }, [status, session, usuarioActual, loginFromSession, router, processMeData, syncFromServer]);
 
   // Sync planes from DB into store so modulosEfectivos uses live prices/limits
   const dbPlans = usePlans();
