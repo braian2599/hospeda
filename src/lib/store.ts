@@ -1158,12 +1158,16 @@ export const useHotelStore = create<HotelStore>()(
           persisted.metodosPago = [];
           persisted.categoriasGastos = [];
         }
+        // version 8: persistir usuarioActual para evitar re-fetch al recargar
+        // (usuarioActual se valida contra el JWT de todos modos)
         return persisted;
       },
       partialize: (state) => ({
         planActual: state.planActual,
         fechaInicioTrial: state.fechaInicioTrial,
         moduloActivo: state.moduloActivo,
+        // Persistir usuarioActual para no requerir re-fetch al recargar la página
+        usuarioActual: state.usuarioActual,
       }),
     }
   )

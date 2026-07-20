@@ -40,10 +40,12 @@ export async function requireTenantId(): Promise<string> {
   }
 
   // Prioridad 2: buscar en BD (solo si el JWT no tiene tenantId)
+  // Ordenar por createdAt para que sea determinístico (no cambie al recargar)
   const { db } = await import('@/lib/db');
   const tenantUser = await db.tenantUser.findFirst({
     where: { userId: session.user.id, activo: true },
     select: { tenantId: true },
+    orderBy: { createdAt: 'asc' },
   });
   if (!tenantUser) {
     throw new AuthError('No tenés un hotel asociado', 403);

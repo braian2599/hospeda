@@ -80,6 +80,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Sin acceso' }, { status: 403 });
     }
 
+    // Ordenar perfiles por createdAt para selección determinística
+    profilesInHotel.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
     // Múltiples perfiles → selector "¿Qué usuario sos?"
     if (profilesInHotel.length > 1 && !requestedProfileId) {
       const perfiles = profilesInHotel.map(tu => ({
@@ -100,7 +103,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Seleccionar el perfil
+    // Seleccionar el perfil (el primero ordenado por createdAt = determinístico)
     const tenantUser = requestedProfileId
       ? profilesInHotel.find(tu => tu.id === requestedProfileId)
       : profilesInHotel[0];

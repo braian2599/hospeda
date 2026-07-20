@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import AuthProvider from '@/components/providers/SessionProvider';
 import { useHotelStore } from '@/lib/store';
 import { usePlans } from '@/hooks/usePlans';
@@ -192,6 +192,9 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
   const [passwordSetup, setPasswordSetup] = useState<Record<string, any> | null>(null);
   const router = useRouter();
 
+  // Ref para evitar llamadas duplicadas a /api/auth/me
+  const fetchRef = useRef(false);
+
   // Actualizar el JWT de NextAuth con el tenantId seleccionado
   const loginAndUpdateSession = useCallback(async (data: Record<string, any>) => {
     loginFromSession(data);
@@ -199,8 +202,14 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     if (data.tenantId) {
       try {
         await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId });
-      } catch {
-        // Si falla la actualización del JWT, no importa — el store ya tiene el usuario
+      } catch (e) {
+        // Si falla la actualización del JWT, reintentar una vez
+        console.warn('[SessionLoader] JWT update falló, reintentando...', e);
+        try {
+          await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId });
+        } catch (e2) {
+          console.error('[SessionLoader] JWT update falló definitivamente:', e2);
+        }
       }
     }
   }, [loginFromSession, update]);
@@ -244,6 +253,10 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.email && !usuarioActual) {
+      // Evitar llamadas duplicadas por re-renders rápidos
+      if (fetchRef.current) return;
+      fetchRef.current = true;
+
       // Pasar tenantId y profileId del JWT para no volver a pedir selección
       const userAny = session.user as Record<string, unknown>;
       const jwtTenantId = userAny.tenantId as string | undefined;
@@ -255,7 +268,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
       fetch(meUrl)
         .then(res => res.json())
         .then(data => processMeData(data))
-        .catch(() => { setError('No se pudo conectar al servidor.'); setLoading(false); });
+        .catch(() => { setError('No se pudo conectar al servidor.'); setLoading(false); fetchRef.current = false; });
     } else if (usuarioActual) {
       setLoading(false);
     } else if (status === 'unauthenticated') {
