@@ -221,7 +221,9 @@ export default function Sidebar() {
   const plans = useHotelStore(s => s.plans);
   const efectivos = modulosEfectivos(usuarioActual.permisos, planActual, plans);
   const efectivosSet = new Set(efectivos);
-  const modulosVisibles = MODULOS_SISTEMA.filter(m => usuarioActual.permisos.includes(m.id));
+  const modulosVisibles = MODULOS_SISTEMA.filter(m =>
+    usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin' || usuarioActual.permisos.includes(m.id)
+  );
   const userName = usuarioActual.nombreCompleto || usuarioActual.nombre;
   const isExpanded = desktopExpanded || sidebarFixed;
   const isActive = (id: string) => (moduloActivo as string) === id;

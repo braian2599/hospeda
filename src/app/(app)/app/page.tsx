@@ -55,8 +55,8 @@ export default function AppPage() {
   // Compute effective modules: intersection of user permissions and plan modules
   const efectivos = modulosEfectivos(usuarioActual.permisos, planActual);
 
-  // Permission check: user permiso AND plan module
-  const tienePermiso = efectivos.includes(moduloActivo);
+  // Permission check: user permiso AND plan module (owner/admin always have access)
+  const tienePermiso = usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin' || efectivos.includes(moduloActivo);
 
   // If trial expired, block everything except dashboard
   const trialExpirado = fechaInicioTrial && planActual === 'trial' && trialVencido(fechaInicioTrial);
