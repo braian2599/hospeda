@@ -81,6 +81,45 @@ export async function requireOwner(): Promise<string> {
 }
 
 /**
+ * Requiere que el usuario tenga un permiso específico.
+ * Owner y admin tienen acceso a todo.
+ * Lanza AuthError(403) si no tiene el permiso.
+ */
+export async function requirePermission(permission: string): Promise<string> {
+  const session = await getAuthSession();
+  if (!session?.user?.id) {
+    throw new AuthError('No autenticado', 401);
+  }
+
+  const tenantId = session.user.tenantId;
+  if (!tenantId) {
+    throw new AuthError('No tenés un hotel asociado', 403);
+  }
+
+  const { db } = await import('@/lib/db');
+  const tenantUser = await db.tenantUser.findFirst({
+    where: { userId: session.user.id, tenantId, activo: true },
+    select: { rol: true, permisos: true },
+  });
+
+  if (!tenantUser) {
+    throw new AuthError('Acceso denegado', 403);
+  }
+
+  // Owner y admin tienen acceso a todo
+  if (tenantUser.rol === 'owner' || tenantUser.rol === 'admin') {
+    return tenantId;
+  }
+
+  // Verificar que el permiso esté en el array
+  if (!tenantUser.permisos.includes(permission)) {
+    throw new AuthError('No tenés permiso para realizar esta acción', 403);
+  }
+
+  return tenantId;
+}
+
+/**
  * Error de autenticación con status code.
  */
 export class AuthError extends Error {

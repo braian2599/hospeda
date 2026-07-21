@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 
 // GET /api/clientes?q=buscar — Listar clientes del tenant con búsqueda opcional
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('clientes');
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q')?.trim();
 
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 // POST /api/clientes — Crear un nuevo cliente
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('clientes');
     const body = await req.json();
     const {
       nombre,

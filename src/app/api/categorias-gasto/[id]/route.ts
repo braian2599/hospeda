@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 
 // PUT /api/categorias-gasto/[id] — Actualizar categoría
 export async function PUT(
@@ -8,7 +8,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('facturacion');
     const { id } = await params;
     const body = await req.json();
     const { nombre, orden } = body;
@@ -56,7 +56,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('facturacion');
     const { id } = await params;
 
     // Buscar categoría

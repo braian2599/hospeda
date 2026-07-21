@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 
 // GET /api/gastos — Listar gastos con filtros opcionales
 // Query params: ?desde=YYYY-MM-DD&hasta=YYYY-MM-DD&tipo=string
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('facturacion');
     const { searchParams } = req.nextUrl;
 
     const desde = searchParams.get('desde');
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
 // POST /api/gastos — Crear gasto
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('facturacion');
     const body = await req.json();
     const { tipo, descripcion, monto, fecha, empleadoId, empleado } = body;
 

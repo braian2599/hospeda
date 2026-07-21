@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { getAuthSession } from '@/lib/auth/utils';
 
 // POST /api/caja/movimiento — Registrar un movimiento (ingreso/egreso)
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('facturacion');
     const body = await req.json();
     const { tipo, monto, descripcion, metodo, reservaId } = body;
 

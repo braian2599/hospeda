@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 
 // GET /api/clientes/[id] — Obtener un cliente por ID
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('clientes');
     const { id } = await params;
 
     const cliente = await db.cliente.findFirst({
@@ -48,7 +48,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('clientes');
     const { id } = await params;
     const body = await req.json();
     const {
@@ -134,7 +134,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('clientes');
     const { id } = await params;
 
     // Buscar cliente

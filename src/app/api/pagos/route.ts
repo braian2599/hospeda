@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { Prisma } from '@prisma/client';
 
 // ─────────────────────────────────────────────────────────
@@ -9,7 +9,7 @@ import { Prisma } from '@prisma/client';
 // ─────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('facturacion');
     const { searchParams } = new URL(req.url);
 
     const reservaId = searchParams.get('reservaId');
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 // ─────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('facturacion');
     const body = await req.json();
 
     const { reservaId, monto, metodo, nota } = body;

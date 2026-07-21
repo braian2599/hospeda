@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 
 // GET /api/caja — Turno actual abierto + historial (últimos 10 cerrados)
 export async function GET() {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('facturacion');
 
     const [turnoActual, historial] = await Promise.all([
       // Turno abierto actual (si existe)

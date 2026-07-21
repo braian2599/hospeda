@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { Prisma } from '@prisma/client';
 
 // ─────────────────────────────────────────────────────────
@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('reservas');
     const { id } = await params;
 
     const reserva = await db.reserva.findFirst({
@@ -51,7 +51,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('reservas');
     const { id } = await params;
     const body = await req.json();
 
@@ -264,7 +264,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('reservas');
     const { id } = await params;
 
     const reserva = await db.reserva.findFirst({

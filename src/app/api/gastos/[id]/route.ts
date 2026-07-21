@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 
 // PUT /api/gastos/[id] — Actualizar gasto
 export async function PUT(
@@ -8,7 +8,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('facturacion');
     const { id } = await params;
     const body = await req.json();
     const { tipo, descripcion, monto, fecha, empleadoId, empleado } = body;
@@ -49,7 +49,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('facturacion');
     const { id } = await params;
 
     // Buscar gasto

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 
 // PUT /api/habitaciones/[numero] — Editar habitación
 export async function PUT(
@@ -8,7 +8,7 @@ export async function PUT(
   { params }: { params: Promise<{ numero: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('habitaciones');
     const { numero: numeroOriginal } = await params;
     const body = await req.json();
     const { numero: numeroNuevo, tipo, capacidad, camasMatrimoniales, camasSimples, precioPorCama, piso } = body;
@@ -103,7 +103,7 @@ export async function DELETE(
   { params }: { params: Promise<{ numero: string }> }
 ) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('habitaciones');
     const { numero } = await params;
 
     // Buscar habitación

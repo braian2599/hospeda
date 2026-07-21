@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireOwner, requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requireOwner, requirePermission, AuthError } from '@/lib/auth/utils';
 import { ensureMigrations } from '@/lib/auto-migrate';
 import bcrypt from 'bcryptjs';
 import type { RolTenant } from '@prisma/client';
@@ -10,7 +10,7 @@ const VALID_ROLES: RolTenant[] = ['owner', 'admin', 'recepcion', 'limpieza'];
 // GET /api/usuarios — Listar usuarios del tenant
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('usuarios');
     const { searchParams } = req.nextUrl;
     const rolFilter = searchParams.get('rol');
 

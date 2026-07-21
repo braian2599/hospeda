@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 
 // ─────────────────────────────────────────────────────────
 // Helper: last 12 months date ranges
@@ -182,7 +182,7 @@ async function getReporteMetodosPago(tenantId: string) {
 // ─────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('reportes');
     const { searchParams } = new URL(req.url);
     const tipo = searchParams.get('tipo');
 

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 
 // GET /api/habitaciones — Listar todas las habitaciones del tenant
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('habitaciones');
 
     const habitaciones = await db.habitacion.findMany({
       where: { tenantId },
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 // POST /api/habitaciones — Crear habitación
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('habitaciones');
     const body = await req.json();
     const { numero, tipo, capacidad, camasMatrimoniales, camasSimples, precioPorCama, piso, orden } = body;
 

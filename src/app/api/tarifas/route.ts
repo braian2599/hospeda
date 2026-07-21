@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 
 // GET /api/tarifas — Listar todas las tarifas del tenant
 export async function GET() {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('tarifas');
 
     const tarifas = await db.tarifa.findMany({
       where: { tenantId },
@@ -25,7 +25,7 @@ export async function GET() {
 // POST /api/tarifas — Crear tarifa
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requireTenantId();
+    const tenantId = await requirePermission('tarifas');
     const body = await req.json();
     const {
       nombre,
