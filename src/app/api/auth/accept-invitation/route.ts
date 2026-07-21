@@ -45,10 +45,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
-    // Actualizar contraseña
+    // Actualizar contraseña en User Y en todos los TenantUser activos
     const hashedPassword = await bcrypt.hash(password, 12);
     await db.user.update({
       where: { email: emailLower },
+      data: { password: hashedPassword },
+    });
+
+    await db.tenantUser.updateMany({
+      where: { userId: user.id, activo: true },
       data: { password: hashedPassword },
     });
 

@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
           userId: user.id,
           rol: 'owner',
           nombreCompleto: name,
+          password: hashedPassword,
           permisos: [
             'dashboard', 'habitaciones', 'reservas', 'checkin',
             'facturacion', 'limpieza', 'caja', 'clientes',

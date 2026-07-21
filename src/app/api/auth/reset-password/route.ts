@@ -46,12 +46,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Actualizar contraseña
+    // Actualizar contraseña en User Y en todos los TenantUser activos
     const hashedPassword = await bcrypt.hash(password, 12);
     await db.user.update({
       where: { email: email.toLowerCase() },
       data: { password: hashedPassword },
     });
+
+    const user = await db.user.findUnique({
+      where: { email: email.toLowerCase() },
+      select: { id: true },
+    });
+    if (user) {
+      await db.tenantUser.updateMany({
+        where: { userId: user.id, activo: true },
+        data: { password: hashedPassword },
+      });
+    }
 
     // Eliminar token usado
     await db.verificationToken.delete({
