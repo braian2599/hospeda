@@ -1,0 +1,970 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useState, useEffect, useRef } from 'react';
+     4→     4→import Image from 'next/image';
+     5→     5→import Link from 'next/link';
+     6→     6→import { Button } from '@/components/ui/button';
+     7→     7→import { Badge } from '@/components/ui/badge';
+     8→     8→import {
+     9→     9→  Hotel, CalendarCheck, CreditCard, Users, BarChart3, Sparkles,
+    10→    10→  ArrowRight, Check, Menu, X, Shield, Zap, Clock, Globe,
+    11→    11→  ChevronDown, ChevronUp, Star, Building2, Receipt, Wrench, MessageSquareQuote, Mail, Phone
+    12→    12→} from 'lucide-react';
+    13→    13→import PlanCard from '@/components/payments/PlanCard';
+    14→    14→import CheckoutDialog from '@/components/payments/CheckoutDialog';
+    15→    15→import type { PlanTipo } from '@/lib/plan-config';
+    16→    16→
+    17→    17→/* ─── Intersection Observer hook ─── */
+    18→    18→function useInView(threshold = 0.12) {
+    19→    19→  const ref = useRef<HTMLDivElement>(null);
+    20→    20→  const [inView, setInView] = useState(false);
+    21→    21→  useEffect(() => {
+    22→    22→    const el = ref.current;
+    23→    23→    if (!el) return;
+    24→    24→    const obs = new IntersectionObserver(
+    25→    25→      ([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } },
+    26→    26→      { threshold }
+    27→    27→    );
+    28→    28→    obs.observe(el);
+    29→    29→    return () => obs.disconnect();
+    30→    30→  }, [threshold]);
+    31→    31→  return { ref, inView };
+    32→    32→}
+    33→    33→
+    34→    34→/* ─── Smooth scroll helper ─── */
+    35→    35→function scrollTo(id: string) {
+    36→    36→  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    37→    37→}
+    38→    38→
+    39→    39→/* ─── Animated counter hook ─── */
+    40→    40→function useCounter(end: number, duration = 2000, start = 0) {
+    41→    41→  const [count, setCount] = useState(start);
+    42→    42→  const { ref, inView } = useInView(0.3);
+    43→    43→  useEffect(() => {
+    44→    44→    if (!inView) return;
+    45→    45→    let raf: number;
+    46→    46→    const startTime = performance.now();
+    47→    47→    const step = (now: number) => {
+    48→    48→      const elapsed = now - startTime;
+    49→    49→      const progress = Math.min(elapsed / duration, 1);
+    50→    50→      const eased = 1 - Math.pow(1 - progress, 3);
+    51→    51→      setCount(Math.round(start + (end - start) * eased));
+    52→    52→      if (progress < 1) raf = requestAnimationFrame(step);
+    53→    53→    };
+    54→    54→    raf = requestAnimationFrame(step);
+    55→    55→    return () => cancelAnimationFrame(raf);
+    56→    56→  }, [inView, end, duration, start]);
+    57→    57→  return { count, ref };
+    58→    58→}
+    59→    59→
+    60→    60→/* ═══════════════════════════════════════════
+    61→    61→   DATA
+    62→    62→   ═══════════════════════════════════════════ */
+    63→    63→
+    64→    64→const navLinks = [
+    65→    65→  { label: 'Características', id: 'caracteristicas' },
+    66→    66→  { label: 'Planes', id: 'planes' },
+    67→    67→  { label: 'Cómo funciona', id: 'como-funciona' },
+    68→    68→  { label: 'FAQ', id: 'faq' },
+    69→    69→];
+    70→    70→
+    71→    71→const showcaseFeatures = [
+    72→    72→  {
+    73→    73→    icon: BarChart3,
+    74→    74→    title: 'Panel de Control',
+    75→    75→    desc: 'Tu centro de operaciones. Visualizá el estado del hotel de un vistazo: ocupación del día, reservas entrantes, tareas pendientes y más. Todo lo que necesitás saber al abrir la app, sin navegar entre pantallas.',
+    76→    76→    screenshots: ['/screenshots/dashboard.png', '/screenshots/calendario.png'],
+    77→    77→    badge: 'Módulo principal',
+    78→    78→    accent: 'from-blue-500/20 to-indigo-500/10',
+    79→    79→  },
+    80→    80→  {
+    81→    81→    icon: CalendarCheck,
+    82→    82→    title: 'Reservas y Calendario',
+    83→    83→    desc: 'Calendario visual con colores por estado, control de disponibilidad en tiempo real y prevención automática de overbooking. Gestiona check-ins y check-outs con un solo clic. El calendario del dashboard te muestra la ocupación completa del mes.',
+    84→    84→    screenshots: ['/screenshots/reservas.png', '/screenshots/reservas2.png'],
+    85→    85→    badge: 'Módulo principal',
+    86→    86→    accent: 'from-emerald-500/20 to-teal-500/10',
+    87→    87→  },
+    88→    88→  {
+    89→    89→    icon: Building2,
+    90→    90→    title: 'Habitaciones y Tarifas',
+    91→    91→    desc: 'Vista de tablero con estados visuales de cada habitación: disponible, ocupada, en limpieza o en mantenimiento. Definí tipos de habitación, numeración y configurá tarifas diferenciadas por tipo y temporada.',
+    92→    92→    screenshots: ['/screenshots/habitaciones.png', '/screenshots/tarifas.png'],
+    93→    93→    badge: 'Módulo principal',
+    94→    94→    accent: 'from-violet-500/20 to-purple-500/10',
+    95→    95→  },
+    96→    96→  {
+    97→    97→    icon: CreditCard,
+    98→    98→    title: 'Facturación y Caja',
+    99→    99→    desc: 'Emite comprobantes, registra pagos en múltiples medios y lleva el control financiero total. Movimientos de caja diarios, cierres y conciliación automática. Historial completo de cada transacción.',
+   100→   100→    screenshots: ['/screenshots/facturacion.png', '/screenshots/caja.png'],
+   101→   101→    badge: 'Plan Profesional',
+   102→   102→    accent: 'from-amber-500/20 to-orange-500/10',
+   103→   103→  },
+   104→   104→  {
+   105→   105→    icon: BarChart3,
+   106→   106→    title: 'Reportes y Analytics',
+   107→   107→    desc: 'Dashboards con métricas clave: ocupación promedio, ingresos por período, tasa de cancelación y más. Gráficos interactivos para tomar decisiones basadas en datos reales de tu hotel.',
+   108→   108→    screenshots: ['/screenshots/reportes.png'],
+   109→   109→    badge: 'Plan Profesional',
+   110→   110→    accent: 'from-rose-500/20 to-pink-500/10',
+   111→   111→  },
+   112→   112→];
+   113→   113→
+   114→   114→const gridFeatures = [
+   115→   115→  {
+   116→   116→    icon: Users,
+   117→   117→    title: 'Huéspedes',
+   118→   118→    desc: 'Ficha completa con historial de estadías, documentos y preferencias.',
+   119→   119→    screenshot: '/screenshots/clientes.png',
+   120→   120→    accent: 'from-cyan-500/15 to-sky-500/5',
+   121→   121→  },
+   122→   122→  {
+   123→   123→    icon: Shield,
+   124→   124→    title: 'Usuarios y Permisos',
+   125→   125→    desc: 'Roles granulares, datos aislados por hotel y encriptación de punta a punta.',
+   126→   126→    screenshot: '/screenshots/usuarios.png',
+   127→   127→    accent: 'from-lime-500/15 to-green-500/5',
+   128→   128→  },
+   129→   129→  {
+   130→   130→    icon: Wrench,
+   131→   131→    title: 'Limpieza',
+   132→   132→    desc: 'Asignación de tareas y seguimiento de estados para el equipo de housekeeping.',
+   133→   133→    screenshot: '/screenshots/limpieza.png',
+   134→   134→    accent: 'from-fuchsia-500/15 to-pink-500/5',
+   135→   135→  },
+   136→   136→];
+   137→   137→
+   138→   138→const steps = [
+   139→   139→  {
+   140→   140→    num: '01',
+   141→   141→    title: 'Registra tu hotel',
+   142→   142→    desc: 'Creá tu cuenta en menos de 2 minutos. Solo necesitás el nombre del hotel, tu email y una contraseña.',
+   143→   143→    icon: Hotel,
+   144→   144→  },
+   145→   145→  {
+   146→   146→    num: '02',
+   147→   147→    title: 'Configurá tus habitaciones',
+   148→   148→    desc: 'Cargá tus tipos de habitación, numeración, tarifas por temporada y configurá las reglas de tu negocio.',
+   149→   149→    icon: Building2,
+   150→   150→  },
+   151→   151→  {
+   152→   152→    num: '03',
+   153→   153→    title: 'Comenzá a gestionar',
+   154→   154→    desc: 'Empezá a recibir reservas, gestionar huéspedes y llevar el control total de tu hotel desde cualquier dispositivo.',
+   155→   155→    icon: Sparkles,
+   156→   156→  },
+   157→   157→];
+   158→   158→
+   159→   159→const testimonials = [
+   160→   160→  {
+   161→   161→    name: 'María Fernanda López',
+   162→   162→    role: 'Administradora — Hotel del Sur, Bariloche',
+   163→   163→    text: 'Antes usábamos Excel para todo. Desde que pasamos a Hospedá redujimos errores de reserva a prácticamente cero. El calendario visual cambió nuestro día a día.',
+   164→   164→    stars: 5,
+   165→   165→  },
+   166→   166→  {
+   167→   167→    name: 'Martín Gómez',
+   168→   168→    role: 'Dueño — Hostel Puente, Córdoba',
+   169→   169→    text: 'Lo que más me gusta es lo simple que es. En 10 minutos tenía todo configurado y ya estaba recibiendo reservas. Y el soporte responde rápido.',
+   170→   170→    stars: 5,
+   171→   171→  },
+   172→   172→  {
+   173→   173→    name: 'Carolina Ruiz',
+   174→   174→    role: 'Recepcionista — Posada Los Alamos, Mendoza',
+   175→   175→    text: 'La facturación integrada nos ahorra horas cada semana. Antes teníamos un sistema para reservas y otro para facturar. Ahora es todo uno solo.',
+   176→   176→    stars: 5,
+   177→   177→  },
+   178→   178→];
+   179→   179→
+   180→   180→const faqs = [
+   181→   181→  {
+   182→   182→    q: '¿Necesito tarjeta de crédito para probar?',
+   183→   183→    a: 'No. Los 30 días de prueba son completamente gratuitos y no pedimos datos de pago. Cuando decidas suscribirte, podés pagar con Mercado Pago (tarjeta, transferencia o cualquier medio que acepten).',
+   184→   184→  },
+   185→   185→  {
+   186→   186→    q: '¿Puedo cambiar de plan o cancelar cuando quiera?',
+   187→   187→    a: 'Sí, podés upgrade o downgrade de plan en cualquier momento desde la sección de Suscripción. Si cancelás, seguís teniendo acceso hasta el final del período que ya pagaste.',
+   188→   188→  },
+   189→   189→  {
+   190→   190→    q: '¿Mis datos están seguros?',
+   191→   191→    a: 'Cada hotel tiene sus datos completamente aislados de los demás. Usamos encriptación, conexiones seguras y backups automáticos. Tu información nunca se comparte con terceros.',
+   192→   192→  },
+   193→   193→  {
+   194→   194→    q: '¿Funciona en el celular?',
+   195→   195→    a: 'Sí. Hospedá es una aplicación web responsive que funciona en cualquier dispositivo con navegador: PC, tablet o celular. No necesitás instalar nada.',
+   196→   196→  },
+   197→   197→  {
+   198→   198→    q: '¿Qué pasa cuando se vence la prueba?',
+   199→   199→    a: 'Al vencer los 30 días, tu cuenta pasa a modo lectura: podés ver tus datos pero no crear reservas nuevas. Elegí un plan y pagás para seguir usando todos los módulos sin interrupción.',
+   200→   200→  },
+   201→   201→  {
+   202→   202→    q: '¿Puedo usarlo para un hostel o solo para hoteles?',
+   203→   203→    a: 'Hospedá funciona para cualquier tipo de alojamiento: hoteles, hostels, posadas, cabañas, departamentos turísticos y bed & breakfast. Los módulos se adaptan a tu negocio.',
+   204→   204→  },
+   205→   205→];
+   206→   206→
+   207→   207→/* ═══════════════════════════════════════════
+   208→   208→   COMPONENTS
+   209→   209→   ═══════════════════════════════════════════ */
+   210→   210→
+   211→   211→/* ─── Fade-in wrapper ─── */
+   212→   212→function FadeIn({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+   213→   213→  const { ref, inView } = useInView();
+   214→   214→  return (
+   215→   215→    <div
+   216→   216→      ref={ref}
+   217→   217→      className={`transition-all duration-700 ease-out ${className}`}
+   218→   218→      style={{
+   219→   219→        opacity: inView ? 1 : 0,
+   220→   220→        transform: inView ? 'translateY(0)' : 'translateY(32px)',
+   221→   221→        transitionDelay: `${delay}ms`,
+   222→   222→      }}
+   223→   223→    >
+   224→   224→      {children}
+   225→   225→    </div>
+   226→   226→  );
+   227→   227→}
+   228→   228→
+   229→   229→/* ─── Navbar ─── */
+   230→   230→function Navbar() {
+   231→   231→  const [scrolled, setScrolled] = useState(false);
+   232→   232→  const [mobileOpen, setMobileOpen] = useState(false);
+   233→   233→
+   234→   234→  useEffect(() => {
+   235→   235→    const h = () => setScrolled(window.scrollY > 20);
+   236→   236→    window.addEventListener('scroll', h, { passive: true });
+   237→   237→    return () => window.removeEventListener('scroll', h);
+   238→   238→  }, []);
+   239→   239→
+   240→   240→  return (
+   241→   241→    <header
+   242→   242→      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+   243→   243→        scrolled
+   244→   244→          ? 'bg-background/80 backdrop-blur-xl border-b border-border shadow-sm'
+   245→   245→          : 'bg-transparent'
+   246→   246→      }`}
+   247→   247→    >
+   248→   248→      <nav className="mx-auto max-w-6xl flex items-center justify-between px-4 sm:px-6 h-16">
+   249→   249→        <Link href="/" className="flex items-center gap-2.5 group">
+   250→   250→          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20 group-hover:shadow-lg group-hover:shadow-primary/30 transition-shadow">
+   251→   251→            <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain" />
+   252→   252→          </div>
+   253→   253→          <span className="font-bold text-lg tracking-tight">
+   254→   254→            Hospedá
+   255→   255→          </span>
+   256→   256→        </Link>
+   257→   257→
+   258→   258→        <div className="hidden md:flex items-center gap-8">
+   259→   259→          {navLinks.map((l) => (
+   260→   260→            <button
+   261→   261→              key={l.id}
+   262→   262→              onClick={() => scrollTo(l.id)}
+   263→   263→              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+   264→   264→            >
+   265→   265→              {l.label}
+   266→   266→            </button>
+   267→   267→          ))}
+   268→   268→        </div>
+   269→   269→
+   270→   270→        <div className="hidden md:flex items-center gap-3">
+   271→   271→          <Link href="/login">
+   272→   272→            <Button variant="ghost" size="sm">
+   273→   273→              Iniciar sesión
+   274→   274→            </Button>
+   275→   275→          </Link>
+   276→   276→          <Link href="/register">
+   277→   277→            <Button size="sm" className="shadow-md shadow-primary/20">
+   278→   278→              Prueba gratis
+   279→   279→              <ArrowRight className="w-4 h-4 ml-1" />
+   280→   280→            </Button>
+   281→   281→          </Link>
+   282→   282→        </div>
+   283→   283→
+   284→   284→        <button
+   285→   285→          className="md:hidden p-2 -mr-2"
+   286→   286→          onClick={() => setMobileOpen(!mobileOpen)}
+   287→   287→          aria-label="Menú"
+   288→   288→        >
+   289→   289→          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+   290→   290→        </button>
+   291→   291→      </nav>
+   292→   292→
+   293→   293→      {mobileOpen && (
+   294→   294→        <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl">
+   295→   295→          <div className="px-4 py-4 space-y-3">
+   296→   296→            {navLinks.map((l) => (
+   297→   297→              <button
+   298→   298→                key={l.id}
+   299→   299→                onClick={() => { scrollTo(l.id); setMobileOpen(false); }}
+   300→   300→                className="block w-full text-left text-sm py-2 text-muted-foreground hover:text-foreground transition-colors"
+   301→   301→              >
+   302→   302→                {l.label}
+   303→   303→              </button>
+   304→   304→            ))}
+   305→   305→            <div className="pt-3 border-t border-border flex flex-col gap-2">
+   306→   306→              <Link href="/login" onClick={() => setMobileOpen(false)}>
+   307→   307→                <Button variant="outline" className="w-full">Iniciar sesión</Button>
+   308→   308→              </Link>
+   309→   309→              <Link href="/register" onClick={() => setMobileOpen(false)}>
+   310→   310→                <Button className="w-full">
+   311→   311→                  Prueba gratis
+   312→   312→                  <ArrowRight className="w-4 h-4 ml-1" />
+   313→   313→                </Button>
+   314→   314→              </Link>
+   315→   315→            </div>
+   316→   316→          </div>
+   317→   317→        </div>
+   318→   318→      )}
+   319→   319→    </header>
+   320→   320→  );
+   321→   321→}
+   322→   322→
+   323→   323→/* ─── Hero ─── */
+   324→   324→function Hero() {
+   325→   325→  return (
+   326→   326→    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+   327→   327→      {/* Animated dot grid background */}
+   328→   328→      <div className="absolute inset-0 -z-10 overflow-hidden">
+   329→   329→        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(0,0,0,0.06),transparent)]" />
+   330→   330→        <div
+   331→   331→          className="absolute inset-0 opacity-[0.03]"
+   332→   332→          style={{
+   333→   333→            backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+   334→   334→            backgroundSize: '32px 32px',
+   335→   335→          }}
+   336→   336→        />
+   337→   337→        <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse" />
+   338→   338→        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-primary/3 rounded-full blur-3xl" style={{ animation: 'pulse 4s ease-in-out infinite alternate' }} />
+   339→   339→        {/* Gradient fade at bottom */}
+   340→   340→        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
+   341→   341→      </div>
+   342→   342→
+   343→   343→      <div className="mx-auto max-w-4xl px-4 sm:px-6 text-center relative">
+   344→   344→        <FadeIn>
+   345→   345→          <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm font-medium gap-1.5 shadow-sm">
+   346→   346→            <Sparkles className="w-3.5 h-3.5" />
+   347→   347→            30 días de prueba gratuita — sin tarjeta
+   348→   348→          </Badge>
+   349→   349→        </FadeIn>
+   350→   350→
+   351→   351→        <FadeIn delay={100}>
+   352→   352→          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] mb-6">
+   353→   353→            Tu hotel,{' '}
+   354→   354→            <span className="relative inline-block">
+   355→   355→              <span className="relative z-10 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
+   356→   356→                gestionado
+   357→   357→              </span>
+   358→   358→            </span>
+   359→   359→            <br />
+   360→   360→            de forma inteligente
+   361→   361→          </h1>
+   362→   362→        </FadeIn>
+   363→   363→
+   364→   364→        <FadeIn delay={200}>
+   365→   365→          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+   366→   366→            La plataforma todo-en-uno para hoteles, hostels y alojamientos en Argentina.
+   367→   367→            Reservas, facturación, caja y reportes en un solo lugar.
+   368→   368→          </p>
+   369→   369→        </FadeIn>
+   370→   370→
+   371→   371→        <FadeIn delay={300}>
+   372→   372→          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+   373→   373→            <Link href="/register">
+   374→   374→              <Button size="lg" className="w-full sm:w-auto text-base px-8 h-12 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow">
+   375→   375→                Comenzar gratis
+   376→   376→                <ArrowRight className="w-5 h-5 ml-2" />
+   377→   377→              </Button>
+   378→   378→            </Link>
+   379→   379→            <button onClick={() => scrollTo('como-funciona')}>
+   380→   380→              <Button variant="outline" size="lg" className="w-full sm:w-auto text-base px-8 h-12">
+   381→   381→                Cómo funciona
+   382→   382→                <ChevronDown className="w-4 h-4 ml-1" />
+   383→   383→              </Button>
+   384→   384→            </button>
+   385→   385→          </div>
+   386→   386→        </FadeIn>
+   387→   387→
+   388→   388→        <FadeIn delay={500}>
+   389→   389→          <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-muted-foreground">
+   390→   390→            <div className="flex items-center gap-2">
+   391→   391→              <div className="w-8 h-8 rounded-lg bg-chart-2/10 flex items-center justify-center">
+   392→   392→                <Zap className="w-4 h-4 text-chart-2" />
+   393→   393→              </div>
+   394→   394→              <span>Configuración en 2 min</span>
+   395→   395→            </div>
+   396→   396→            <div className="flex items-center gap-2">
+   397→   397→              <div className="w-8 h-8 rounded-lg bg-chart-1/10 flex items-center justify-center">
+   398→   398→                <Shield className="w-4 h-4 text-chart-1" />
+   399→   399→              </div>
+   400→   400→              <span>Datos aislados</span>
+   401→   401→            </div>
+   402→   402→            <div className="flex items-center gap-2">
+   403→   403→              <div className="w-8 h-8 rounded-lg bg-chart-3/10 flex items-center justify-center">
+   404→   404→                <Globe className="w-4 h-4 text-chart-3" />
+   405→   405→              </div>
+   406→   406→              <span>Desde cualquier dispositivo</span>
+   407→   407→            </div>
+   408→   408→          </div>
+   409→   409→        </FadeIn>
+   410→   410→      </div>
+   411→   411→    </section>
+   412→   412→  );
+   413→   413→}
+   414→   414→
+   415→   415→/* ─── Stats bar ─── */
+   416→   416→function StatsBar() {
+   417→   417→  const stat1 = useCounter(150, 2000);
+   418→   418→  const stat2 = useCounter(25000, 2200);
+   419→   419→  const stat3 = useCounter(99, 1800);
+   420→   420→  const stat4 = useCounter(4, 1200);
+   421→   421→
+   422→   422→  const stats = [
+   423→   423→    { ...stat1, suffix: '+', label: 'Hoteles activos' },
+   424→   424→    { ...stat2, suffix: '+', label: 'Reservas gestionadas' },
+   425→   425→    { ...stat3, suffix: '%', label: 'Uptime del servicio' },
+   426→   426→    { ...stat4, suffix: '.8', label: 'Puntuación promedio', isFloat: true },
+   427→   427→  ];
+   428→   428→
+   429→   429→  return (
+   430→   430→    <section className="py-16 border-y border-border bg-secondary/30">
+   431→   431→      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+   432→   432→        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+   433→   433→          {stats.map((s, i) => (
+   434→   434→            <div key={i} ref={s.ref} className="text-center">
+   435→   435→              <div className="text-3xl sm:text-4xl font-bold tracking-tight">
+   436→   436→                {s.isFloat ? `${s.count}${s.suffix}` : `${s.count}${s.suffix}`}
+   437→   437→              </div>
+   438→   438→              <p className="text-sm text-muted-foreground mt-1">{s.label}</p>
+   439→   439→            </div>
+   440→   440→          ))}
+   441→   441→        </div>
+   442→   442→      </div>
+   443→   443→    </section>
+   444→   444→  );
+   445→   445→}
+   446→   446→
+   447→   447→/* ─── Browser chrome wrapper for screenshots ─── */
+   448→   448→function ScreenshotFrame({ src, alt, priority, className = '' }: {
+   449→   449→  src: string; alt: string; priority?: boolean; className?: string;
+   450→   450→}) {
+   451→   451→  return (
+   452→   452→    <div className={`relative rounded-xl overflow-hidden border border-border/80 bg-muted/30 shadow-xl shadow-black/[0.07] ${className}`}>
+   453→   453→      {/* Browser dots */}
+   454→   454→      <div className="flex items-center gap-1.5 px-3 py-2.5 bg-muted/60 border-b border-border/60">
+   455→   455→        <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+   456→   456→        <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/80" />
+   457→   457→        <span className="w-2.5 h-2.5 rounded-full bg-green-400/80" />
+   458→   458→        <span className="ml-3 text-[10px] text-muted-foreground/60 font-mono">hospeda.app</span>
+   459→   459→      </div>
+   460→   460→      <Image
+   461→   461→        src={src}
+   462→   462→        alt={alt}
+   463→   463→        width={1344}
+   464→   464→        height={768}
+   465→   465→        className="w-full h-auto block"
+   466→   466→        priority={priority}
+   467→   467→      />
+   468→   468→    </div>
+   469→   469→  );
+   470→   470→}
+   471→   471→
+   472→   472→/* ─── Features ─── */
+   473→   473→function Features() {
+   474→   474→  return (
+   475→   475→    <section id="caracteristicas" className="py-24 sm:py-32">
+   476→   476→      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+   477→   477→        <FadeIn>
+   478→   478→          <div className="text-center max-w-2xl mx-auto mb-20">
+   479→   479→            <Badge variant="secondary" className="mb-4">Características</Badge>
+   480→   480→            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+   481→   481→              Todo lo que necesitás para gestionar tu hotel
+   482→   482→            </h2>
+   483→   483→            <p className="text-muted-foreground text-lg">
+   484→   484→              Módulos pensados para las necesidades reales de alojamientos en Argentina.
+   485→   485→              Mirá cómo se ve en acción.
+   486→   486→            </p>
+   487→   487→          </div>
+   488→   488→        </FadeIn>
+   489→   489→
+   490→   490→        {/* ── Showcase features with fused screenshots ── */}
+   491→   491→        <div className="space-y-28 sm:space-y-36">
+   492→   492→          {showcaseFeatures.map((f, i) => {
+   493→   493→            const reversed = i % 2 !== 0;
+   494→   494→            const hasTwo = f.screenshots.length === 2;
+   495→   495→            return (
+   496→   496→              <FadeIn key={f.title} delay={i * 80}>
+   497→   497→                <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+   498→   498→                  {/* Text side */}
+   499→   499→                  <div className={`${reversed ? 'lg:order-2' : ''}`}>
+   500→   500→                    <div className="relative">
+   501→   501→                      {/* Accent gradient blob behind text */}
+   502→   502→                      <div className={`absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-br ${f.accent} blur-2xl opacity-60`} />
+   503→   503→                      <Badge variant="outline" className="mb-4 text-xs font-medium">
+   504→   504→                        {f.badge}
+   505→   505→                      </Badge>
+   506→   506→                      <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">{f.title}</h3>
+   507→   507→                      <p className="text-muted-foreground leading-relaxed mb-6">{f.desc}</p>
+   508→   508→                      <div className="flex items-center gap-2 text-sm text-primary font-medium">
+   509→   509→                        <f.icon className="w-4 h-4" />
+   510→   510→                        <span>{f.badge === 'Plan Profesional' ? 'Disponible en Plan Profesional y Premium' : 'Incluido en todos los planes'}</span>
+   511→   511→                      </div>
+   512→   512→                    </div>
+   513→   513→                  </div>
+   514→   514→
+   515→   515→                  {/* Screenshots side */}
+   516→   516→                  <div className={`${reversed ? 'lg:order-1' : ''}`}>
+   517→   517→                    {hasTwo ? (
+   518→   518→                      /* Stacked two screenshots with overlap */
+   519→   519→                      <div className="relative">
+   520→   520→                        <ScreenshotFrame
+   521→   521→                          src={f.screenshots[0]}
+   522→   522→                          alt={`${f.title} — Hospedá`}
+   523→   523→                          priority={i < 2}
+   524→   524→                          className="relative z-10"
+   525→   525→                        />
+   526→   526→                        <div className="mt-4 -ml-4 sm:-ml-8 relative z-0">
+   527→   527→                          <ScreenshotFrame
+   528→   528→                            src={f.screenshots[1]}
+   529→   529→                            alt={`${f.title} (2) — Hospedá`}
+   530→   530→                            className="shadow-lg shadow-black/[0.05]"
+   531→   531→                          />
+   532→   532→                        </div>
+   533→   533→                      </div>
+   534→   534→                    ) : (
+   535→   535→                      /* Single screenshot with glow */
+   536→   536→                      <div className="relative">
+   537→   537→                        <div className={`absolute -inset-3 rounded-2xl bg-gradient-to-br ${f.accent} blur-xl opacity-40`} />
+   538→   538→                        <ScreenshotFrame
+   539→   539→                          src={f.screenshots[0]}
+   540→   540→                          alt={`${f.title} — Hospedá`}
+   541→   541→                          priority={i < 2}
+   542→   542→                          className="relative z-10"
+   543→   543→                        />
+   544→   544→                      </div>
+   545→   545→                    )}
+   546→   546→                  </div>
+   547→   547→                </div>
+   548→   548→              </FadeIn>
+   549→   549→            );
+   550→   550→          })}
+   551→   551→        </div>
+   552→   552→
+   553→   553→        {/* ── Grid features with screenshots ── */}
+   554→   554→        <div className="mt-28 sm:mt-36">
+   555→   555→          <FadeIn>
+   556→   556→            <h3 className="text-center text-xl font-semibold mb-10 text-muted-foreground">
+   557→   557→              Y mucho más...
+   558→   558→            </h3>
+   559→   559→          </FadeIn>
+   560→   560→          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+   561→   561→            {gridFeatures.map((f, i) => (
+   562→   562→              <FadeIn key={f.title} delay={i * 100}>
+   563→   563→                <div className="group relative h-full rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg hover:shadow-black/[0.06] transition-all duration-300">
+   564→   564→                  {/* Screenshot background (blurred) */}
+   565→   565→                  <div className="absolute inset-0 -z-0 overflow-hidden">
+   566→   566→                    <Image
+   567→   567→                      src={f.screenshot}
+   568→   568→                      alt=""
+   569→   569→                      width={600}
+   570→   570→                      height={400}
+   571→   571→                      className="w-full h-full object-cover object-top opacity-[0.06] group-hover:opacity-[0.10] transition-opacity duration-500 blur-sm scale-105"
+   572→   572→                    />
+   573→   573→                  </div>
+   574→   574→                  {/* Accent glow on hover */}
+   575→   575→                  <div className={`absolute -top-8 -right-8 w-32 h-32 rounded-full bg-gradient-to-br ${f.accent} blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+   576→   576→
+   577→   577→                  <div className="relative z-10 p-6">
+   578→   578→                    {/* Mini screenshot preview */}
+   579→   579→                    <div className="mb-4 rounded-lg overflow-hidden border border-border/60 shadow-md">
+   580→   580→                      <div className="flex items-center gap-1 px-2 py-1.5 bg-muted/50 border-b border-border/40">
+   581→   581→                        <span className="w-1.5 h-1.5 rounded-full bg-red-400/60" />
+   582→   582→                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400/60" />
+   583→   583→                        <span className="w-1.5 h-1.5 rounded-full bg-green-400/60" />
+   584→   584→                      </div>
+   585→   585→                      <Image
+   586→   586→                        src={f.screenshot}
+   587→   587→                        alt={`${f.title} — Hospedá`}
+   588→   588→                        width={600}
+   589→   589→                        height={340}
+   590→   590→                        className="w-full h-auto"
+   591→   591→                      />
+   592→   592→                    </div>
+   593→   593→
+   594→   594→                    <div className="flex items-center gap-3 mb-3">
+   595→   595→                      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors text-muted-foreground shrink-0">
+   596→   596→                        <f.icon className="w-4.5 h-4.5" />
+   597→   597→                      </div>
+   598→   598→                      <h4 className="font-semibold">{f.title}</h4>
+   599→   599→                    </div>
+   600→   600→                    <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+   601→   601→                  </div>
+   602→   602→                </div>
+   603→   603→              </FadeIn>
+   604→   604→            ))}
+   605→   605→          </div>
+   606→   606→        </div>
+   607→   607→      </div>
+   608→   608→    </section>
+   609→   609→  );
+   610→   610→}
+   611→   611→
+   612→   612→/* ─── Plans ─── */
+   613→   613→function Plans() {
+   614→   614→  const [checkoutOpen, setCheckoutOpen] = useState(false);
+   615→   615→  const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanTipo, 'trial'> | null>(null);
+   616→   616→
+   617→   617→  const handleSelectPlan = (planTipo: Exclude<PlanTipo, 'trial'>) => {
+   618→   618→    setSelectedPlan(planTipo);
+   619→   619→    setCheckoutOpen(true);
+   620→   620→  };
+   621→   621→
+   622→   622→  return (
+   623→   623→    <section id="planes" className="py-24 sm:py-32 bg-secondary/30">
+   624→   624→      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+   625→   625→        <FadeIn>
+   626→   626→          <div className="text-center max-w-2xl mx-auto mb-16">
+   627→   627→            <Badge variant="secondary" className="mb-4">Planes</Badge>
+   628→   628→            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+   629→   629→              Elegí el plan que se ajuste a tu hotel
+   630→   630→            </h2>
+   631→   631→            <p className="text-muted-foreground text-lg">
+   632→   632→              Comenzá con 30 días gratis. Sin tarjeta de crédito. Cancelá cuando quieras.
+   633→   633→            </p>
+   634→   634→          </div>
+   635→   635→        </FadeIn>
+   636→   636→
+   637→   637→        {/* Payment trust badges */}
+   638→   638→        <FadeIn delay={50}>
+   639→   639→          <div className="flex items-center justify-center gap-4 sm:gap-6 mb-10 flex-wrap">
+   640→   640→            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+   641→   641→              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+   642→   642→                <path d="M3 4h18v16H3V4z" fill="#009EE3" rx="2"/>
+   643→   643→                <path d="M7 8h4l-1 4h3l-4 6 1-4H8l2-6H7z" fill="white"/>
+   644→   644→              </svg>
+   645→   645→              <span>Mercado Pago</span>
+   646→   646→            </div>
+   647→   647→            <div className="w-px h-4 bg-border hidden sm:block" />
+   648→   648→            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+   649→   649→              <Shield className="w-4 h-4" />
+   650→   650→              <span>Pago seguro</span>
+   651→   651→            </div>
+   652→   652→            <div className="w-px h-4 bg-border hidden sm:block" />
+   653→   653→            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+   654→   654→              <Clock className="w-4 h-4" />
+   655→   655→              <span>Cancelá cuando quieras</span>
+   656→   656→            </div>
+   657→   657→          </div>
+   658→   658→        </FadeIn>
+   659→   659→
+   660→   660→        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+   661→   661→          {(['basico', 'profesional', 'premium'] as const).map((tipo, i) => (
+   662→   662→            <FadeIn key={tipo} delay={i * 150}>
+   663→   663→              <PlanCard
+   664→   664→                planTipo={tipo}
+   665→   665→                destacado={tipo === 'profesional'}
+   666→   666→                onSelect={handleSelectPlan}
+   667→   667→              />
+   668→   668→            </FadeIn>
+   669→   669→          ))}
+   670→   670→        </div>
+   671→   671→      </div>
+   672→   672→
+   673→   673→      <CheckoutDialog
+   674→   674→        open={checkoutOpen}
+   675→   675→        onOpenChange={setCheckoutOpen}
+   676→   676→        selectedPlan={selectedPlan}
+   677→   677→      />
+   678→   678→    </section>
+   679→   679→  );
+   680→   680→}
+   681→   681→
+   682→   682→/* ─── How it works ─── */
+   683→   683→function HowItWorks() {
+   684→   684→  return (
+   685→   685→    <section id="como-funciona" className="py-24 sm:py-32">
+   686→   686→      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+   687→   687→        <FadeIn>
+   688→   688→          <div className="text-center max-w-2xl mx-auto mb-16">
+   689→   689→            <Badge variant="secondary" className="mb-4">Cómo funciona</Badge>
+   690→   690→            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+   691→   691→              En tres simples pasos
+   692→   692→            </h2>
+   693→   693→            <p className="text-muted-foreground text-lg">
+   694→   694→              Desde el registro hasta la primera reserva, en minutos.
+   695→   695→            </p>
+   696→   696→          </div>
+   697→   697→        </FadeIn>
+   698→   698→
+   699→   699→        <div className="grid md:grid-cols-3 gap-8 lg:gap-12 relative">
+   700→   700→          {/* Connecting line (desktop) */}
+   701→   701→          <div className="hidden md:block absolute top-12 left-[calc(16.67%+1.5rem)] right-[calc(16.67%+1.5rem)] h-px border-t-2 border-dashed border-primary/20" />
+   702→   702→
+   703→   703→          {steps.map((s, i) => (
+   704→   704→            <FadeIn key={s.num} delay={i * 150}>
+   705→   705→              <div className="relative text-center">
+   706→   706→                <div className="w-24 h-24 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center mx-auto mb-6 relative">
+   707→   707→                  <s.icon className="w-10 h-10 text-primary/70" />
+   708→   708→                  <div className="absolute -top-2.5 -right-2.5 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shadow-md">
+   709→   709→                    {s.num}
+   710→   710→                  </div>
+   711→   711→                </div>
+   712→   712→
+   713→   713→                <h3 className="font-semibold text-lg mb-2">{s.title}</h3>
+   714→   714→                <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
+   715→   715→                  {s.desc}
+   716→   716→                </p>
+   717→   717→              </div>
+   718→   718→            </FadeIn>
+   719→   719→          ))}
+   720→   720→        </div>
+   721→   721→      </div>
+   722→   722→    </section>
+   723→   723→  );
+   724→   724→}
+   725→   725→
+   726→   726→/* ─── Testimonials ─── */
+   727→   727→function Testimonials() {
+   728→   728→  return (
+   729→   729→    <section className="py-24 sm:py-32 bg-secondary/30">
+   730→   730→      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+   731→   731→        <FadeIn>
+   732→   732→          <div className="text-center max-w-2xl mx-auto mb-16">
+   733→   733→            <Badge variant="secondary" className="mb-4">Testimonios</Badge>
+   734→   734→            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+   735→   735→              Lo que dicen quienes ya usan Hospedá
+   736→   736→            </h2>
+   737→   737→            <p className="text-muted-foreground text-lg">
+   738→   738→              Hoteles y hostels de toda Argentina confían en nuestra plataforma.
+   739→   739→            </p>
+   740→   740→          </div>
+   741→   741→        </FadeIn>
+   742→   742→
+   743→   743→        <div className="grid md:grid-cols-3 gap-6">
+   744→   744→          {testimonials.map((t, i) => (
+   745→   745→            <FadeIn key={t.name} delay={i * 120}>
+   746→   746→              <div className="h-full flex flex-col p-6 rounded-2xl border border-border bg-card">
+   747→   747→                {/* Stars */}
+   748→   748→                <div className="flex gap-0.5 mb-4">
+   749→   749→                  {Array.from({ length: t.stars }).map((_, si) => (
+   750→   750→                    <Star key={si} className="w-4 h-4 fill-amber-400 text-amber-400" />
+   751→   751→                  ))}
+   752→   752→                </div>
+   753→   753→
+   754→   754→                {/* Quote */}
+   755→   755→                <p className="text-sm leading-relaxed text-foreground/80 flex-1 mb-6">
+   756→   756→                  &ldquo;{t.text}&rdquo;
+   757→   757→                </p>
+   758→   758→
+   759→   759→                {/* Author */}
+   760→   760→                <div className="flex items-center gap-3 pt-4 border-t border-border">
+   761→   761→                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+   762→   762→                    {t.name.split(' ').map(w => w[0]).slice(0, 2).join('')}
+   763→   763→                  </div>
+   764→   764→                  <div>
+   765→   765→                    <p className="text-sm font-medium">{t.name}</p>
+   766→   766→                    <p className="text-xs text-muted-foreground">{t.role}</p>
+   767→   767→                  </div>
+   768→   768→                </div>
+   769→   769→              </div>
+   770→   770→            </FadeIn>
+   771→   771→          ))}
+   772→   772→        </div>
+   773→   773→      </div>
+   774→   774→    </section>
+   775→   775→  );
+   776→   776→}
+   777→   777→
+   778→   778→/* ─── FAQ ─── */
+   779→   779→function FAQ() {
+   780→   780→  const [openIndex, setOpenIndex] = useState<number | null>(null);
+   781→   781→
+   782→   782→  return (
+   783→   783→    <section id="faq" className="py-24 sm:py-32">
+   784→   784→      <div className="mx-auto max-w-3xl px-4 sm:px-6">
+   785→   785→        <FadeIn>
+   786→   786→          <div className="text-center mb-16">
+   787→   787→            <Badge variant="secondary" className="mb-4">Preguntas frecuentes</Badge>
+   788→   788→            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+   789→   789→              ¿Tenés dudas?
+   790→   790→            </h2>
+   791→   791→            <p className="text-muted-foreground text-lg">
+   792→   792→              Las preguntas más comunes sobre Hospedá.
+   793→   793→            </p>
+   794→   794→          </div>
+   795→   795→        </FadeIn>
+   796→   796→
+   797→   797→        <div className="space-y-3">
+   798→   798→          {faqs.map((faq, i) => {
+   799→   799→            const isOpen = openIndex === i;
+   800→   800→            return (
+   801→   801→              <FadeIn key={i} delay={i * 60}>
+   802→   802→                <div className="rounded-xl border border-border overflow-hidden transition-colors hover:border-primary/20">
+   803→   803→                  <button
+   804→   804→                    onClick={() => setOpenIndex(isOpen ? null : i)}
+   805→   805→                    className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
+   806→   806→                  >
+   807→   807→                    <span className="text-sm font-medium leading-snug">{faq.q}</span>
+   808→   808→                    {isOpen
+   809→   809→                      ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
+   810→   810→                      : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+   811→   811→                    }
+   812→   812→                  </button>
+   813→   813→                  {isOpen && (
+   814→   814→                    <div className="px-5 pb-4 -mt-1">
+   815→   815→                      <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
+   816→   816→                    </div>
+   817→   817→                  )}
+   818→   818→                </div>
+   819→   819→              </FadeIn>
+   820→   820→            );
+   821→   821→          })}
+   822→   822→        </div>
+   823→   823→      </div>
+   824→   824→    </section>
+   825→   825→  );
+   826→   826→}
+   827→   827→
+   828→   828→/* ─── CTA Section ─── */
+   829→   829→function CtaSection() {
+   830→   830→  return (
+   831→   831→    <section className="py-24 sm:py-32">
+   832→   832→      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+   833→   833→        <FadeIn>
+   834→   834→          <div className="relative rounded-3xl bg-primary text-primary-foreground overflow-hidden px-6 py-16 sm:px-12 sm:py-20 text-center">
+   835→   835→            {/* Decorative elements */}
+   836→   836→            <div className="absolute inset-0 overflow-hidden">
+   837→   837→              <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white/10 blur-3xl" />
+   838→   838→              <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
+   839→   839→              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/5" />
+   840→   840→              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full border border-white/5" />
+   841→   841→            </div>
+   842→   842→
+   843→   843→            <div className="relative z-10 max-w-2xl mx-auto">
+   844→   844→              <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 text-sm mb-6 backdrop-blur-sm">
+   845→   845→                <Clock className="w-4 h-4" />
+   846→   846→                30 días sin compromiso
+   847→   847→              </div>
+   848→   848→              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4 leading-tight">
+   849→   849→                Comenzá hoy a gestionar<br className="hidden sm:block" /> tu hotel de forma inteligente
+   850→   850→              </h2>
+   851→   851→              <p className="text-primary-foreground/80 text-lg mb-8 max-w-lg mx-auto">
+   852→   852→                Uníte a los hoteles que ya mejoraron su operación con Hospedá.
+   853→   853→              </p>
+   854→   854→              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+   855→   855→                <Link href="/register">
+   856→   856→                  <Button
+   857→   857→                    size="lg"
+   858→   858→                    variant="secondary"
+   859→   859→                    className="text-base px-8 h-12 shadow-lg"
+   860→   860→                  >
+   861→   861→                    Crear mi cuenta gratis
+   862→   862→                    <ArrowRight className="w-5 h-5 ml-2" />
+   863→   863→                  </Button>
+   864→   864→                </Link>
+   865→   865→                <button onClick={() => scrollTo('planes')}>
+   866→   866→                  <Button
+   867→   867→                    size="lg"
+   868→   868→                    variant="ghost"
+   869→   869→                    className="text-base px-8 h-12 text-primary-foreground hover:text-primary-foreground/80 hover:bg-white/10"
+   870→   870→                  >
+   871→   871→                    Ver planes
+   872→   872→                  </Button>
+   873→   873→                </button>
+   874→   874→              </div>
+   875→   875→            </div>
+   876→   876→          </div>
+   877→   877→        </FadeIn>
+   878→   878→      </div>
+   879→   879→    </section>
+   880→   880→  );
+   881→   881→}
+   882→   882→
+   883→   883→/* ─── Footer ─── */
+   884→   884→function Footer() {
+   885→   885→  return (
+   886→   886→    <footer className="border-t border-border bg-secondary/20">
+   887→   887→      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16">
+   888→   888→        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+   889→   889→          {/* Brand */}
+   890→   890→          <div className="col-span-2 md:col-span-1">
+   891→   891→            <Link href="/" className="flex items-center gap-2 mb-4">
+   892→   892→              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+   893→   893→                <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain" />
+   894→   894→              </div>
+   895→   895→              <span className="font-bold text-sm">Hospedá</span>
+   896→   896→            </Link>
+   897→   897→            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
+   898→   898→              La plataforma de gestión hotelera simple para alojamientos en Argentina.
+   899→   899→            </p>
+   900→   900→          </div>
+   901→   901→
+   902→   902→          {/* Producto */}
+   903→   903→          <div>
+   904→   904→            <h4 className="font-semibold text-sm mb-4">Producto</h4>
+   905→   905→            <ul className="space-y-2.5">
+   906→   906→              <li><button onClick={() => scrollTo('caracteristicas')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Características</button></li>
+   907→   907→              <li><button onClick={() => scrollTo('planes')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Planes y precios</button></li>
+   908→   908→              <li><button onClick={() => scrollTo('como-funciona')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Cómo funciona</button></li>
+   909→   909→              <li><button onClick={() => scrollTo('faq')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</button></li>
+   910→   910→            </ul>
+   911→   911→          </div>
+   912→   912→
+   913→   913→          {/* Empresa */}
+   914→   914→          <div>
+   915→   915→            <h4 className="font-semibold text-sm mb-4">Empresa</h4>
+   916→   916→            <ul className="space-y-2.5">
+   917→   917→              <li><Link href="/register" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Registrarse</Link></li>
+   918→   918→              <li><Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Iniciar sesión</Link></li>
+   919→   919→            </ul>
+   920→   920→          </div>
+   921→   921→
+   922→   922→          {/* Contacto */}
+   923→   923→          <div>
+   924→   924→            <h4 className="font-semibold text-sm mb-4">Contacto</h4>
+   925→   925→            <ul className="space-y-2.5">
+   926→   926→              <li>
+   927→   927→                <a href="mailto:hola@hospeda.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+   928→   928→                  <Mail className="w-3.5 h-3.5" />
+   929→   929→                  hola@hospeda.com
+   930→   930→                </a>
+   931→   931→              </li>
+   932→   932→            </ul>
+   933→   933→          </div>
+   934→   934→        </div>
+   935→   935→
+   936→   936→        <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+   937→   937→          <p className="text-xs text-muted-foreground">
+   938→   938→            &copy; {new Date().getFullYear()} Hospedá. Todos los derechos reservados.
+   939→   939→          </p>
+   940→   940→          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+   941→   941→            <Shield className="w-3 h-3" />
+   942→   942→            <span>Datos encriptados y seguros</span>
+   943→   943→          </div>
+   944→   944→        </div>
+   945→   945→      </div>
+   946→   946→    </footer>
+   947→   947→  );
+   948→   948→}
+   949→   949→
+   950→   950→/* ═══════════════════════════════════════════
+   951→   951→   PAGE
+   952→   952→   ═══════════════════════════════════════════ */
+   953→   953→export default function LandingPage() {
+   954→   954→  return (
+   955→   955→    <div className="min-h-screen flex flex-col bg-background text-foreground">
+   956→   956→      <Navbar />
+   957→   957→      <main className="flex-1">
+   958→   958→        <Hero />
+   959→   959→        <StatsBar />
+   960→   960→        <Features />
+   961→   961→        <Plans />
+   962→   962→        <HowItWorks />
+   963→   963→        <Testimonials />
+   964→   964→        <FAQ />
+   965→   965→        <CtaSection />
+   966→   966→      </main>
+   967→   967→      <Footer />
+   968→   968→    </div>
+   969→   969→  );
+   970→   970→}
