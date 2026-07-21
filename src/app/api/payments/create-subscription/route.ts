@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       where: { tenantId: authTenantId },
     });
 
-    if (existingSub?.mpPreapprovalId && existingSub?.esRecurrente && existingSub.estado === 'activa') {
+    if (existingSub?.mpPreapprovalId && existingSub?.esRecurrente && (existingSub.estado === 'activa' || existingSub.estado === 'pendiente_pago')) {
       // Ya tiene suscripción recurrente — actualizar plan
       const { cancelMPSubscription } = await import('@/lib/payments/mp-subscriptions');
       try {
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       create: {
         tenantId: authTenantId,
         planId: planRecord?.id || existingSub?.planId || '',
-        estado: 'activa',
+        estado: 'pendiente_pago',
         fechaInicio: now,
         fechaVencimiento: tenthOfNextMonth,
         trialUsado: true,
@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
         proximoCobro: tenthOfNextMonth,
       },
       update: {
+        estado: 'pendiente_pago',
         mpPreapprovalId: result.preapprovalId,
         esRecurrente: true,
         proximoCobro: tenthOfNextMonth,

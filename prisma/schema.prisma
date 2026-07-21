@@ -85,7 +85,7 @@ model Subscription {
   tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   planId        String
   plan          Plan     @relation(fields: [planId], references: [id])
-  estado        String   @default("trial") // trial | activa | cancelada | vencida | suspensa
+  estado        String   @default("trial") // trial | pendiente_pago | activa | cancelada | vencida | suspensa
   fechaInicio   DateTime @default(now())
   fechaVencimiento DateTime
   trialUsado    Boolean  @default(false)

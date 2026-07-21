@@ -9,7 +9,7 @@
 import type { ModuloId } from './types';
 
 export type PlanTipo = 'trial' | 'basico' | 'profesional' | 'premium';
-export type SubscriptionEstado = 'trial' | 'activa' | 'cancelada' | 'vencida' | 'suspensa';
+export type SubscriptionEstado = 'trial' | 'pendiente_pago' | 'activa' | 'cancelada' | 'vencida' | 'suspensa';
 
 export interface PlanInfo {
   tipo: PlanTipo;

@@ -110,6 +110,7 @@ export default function SuscripcionModule() {
   // Estado visual de la suscripción
   const estadoColor: Record<string, string> = {
     trial: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    pendiente_pago: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
     activa: isRecurring
       ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
       : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
@@ -120,13 +121,14 @@ export default function SuscripcionModule() {
 
   const estadoLabel: Record<string, string> = {
     trial: 'Prueba Gratuita',
+    pendiente_pago: 'Pendiente de pago',
     activa: isRecurring ? 'Activa — Débito automático' : 'Activa',
     vencida: 'Vencida',
     cancelada: 'Cancelada',
     suspensa: 'Suspendida',
   };
 
-  const currentEstado = subscriptionData?.estado || (isTrial ? 'trial' : 'activa');
+  const currentEstado = subscriptionData?.estado || (isTrial ? 'trial' : 'vencida');
 
   if (loading) {
     return (
