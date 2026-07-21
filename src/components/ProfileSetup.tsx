@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Hotel, Eye, EyeOff, Loader2, CheckCircle2, UserCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, CheckCircle2, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProfileSetupProps {
@@ -81,9 +81,7 @@ export default function ProfileSetup({ email, currentName, onComplete }: Profile
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm rounded-2xl shadow-xl">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mb-3 shadow-lg">
-            <Hotel className="w-8 h-8 text-primary-foreground" />
-          </div>
+          <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
           <div className="mx-auto w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-2">
             <UserCircle className="w-5 h-5 text-indigo-600" />
           </div>

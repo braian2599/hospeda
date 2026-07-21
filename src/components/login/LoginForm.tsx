@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Hotel, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LoginForm() {
@@ -72,9 +72,7 @@ export default function LoginForm() {
       >
         <div className="text-white max-w-md">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-primary/90 flex items-center justify-center backdrop-blur-sm">
-              <Hotel className="w-8 h-8 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="Hospedá" className="w-14 h-14 rounded-2xl object-contain" />
           </div>
           <h1 className="text-5xl font-bold tracking-tight mb-3">
             Hospedá
@@ -94,9 +92,7 @@ export default function LoginForm() {
           style={{ animation: 'fadeUp 0.5s ease-out both' }}
         >
           <CardHeader className="text-center pb-2">
-            <div className="mx-auto w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-3 shadow-lg">
-              <Hotel className="w-9 h-9 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
             <CardTitle className="text-xl">Hospedá</CardTitle>
             <p className="text-sm text-muted-foreground">
               Sistema de Gestión Hotelera

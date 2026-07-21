@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Hotel, ShieldCheck, Shield, UserCog, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
+import { ShieldCheck, Shield, UserCog, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 
 interface ProfileWelcomeProps {
   profileName: string;
@@ -37,9 +37,7 @@ export default function ProfileWelcome({ profileName, email, rol, hotelNombre, o
         <CardContent className="pt-8 pb-6 space-y-5">
           {/* Hotel icon */}
           <div className="text-center">
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mb-3 shadow-lg">
-              <Hotel className="w-8 h-8 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
             <h2 className="text-lg font-bold">{hotelNombre}</h2>
             <p className="text-sm text-muted-foreground">Confirmá tu perfil para ingresar</p>
           </div>

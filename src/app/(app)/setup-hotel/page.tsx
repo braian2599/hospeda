@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Hotel, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function SetupHotelPage() {
@@ -57,9 +57,7 @@ export default function SetupHotelPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md rounded-2xl shadow-2xl" style={{ animation: 'fadeUp 0.5s ease-out both' }}>
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-3 shadow-lg">
-            <Hotel className="w-9 h-9 text-primary-foreground" />
-          </div>
+          <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
           <CardTitle className="text-2xl">Bienvenido a Hospeda</CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
             Para empezar, indica el nombre de tu hotel

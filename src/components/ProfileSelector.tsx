@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Hotel, ShieldCheck, Shield, UserCog, Sparkles, ChevronRight, Loader2, LogOut, Lock, Eye, EyeOff } from 'lucide-react';
+import { ShieldCheck, Shield, UserCog, Sparkles, ChevronRight, Loader2, LogOut, Lock, Eye, EyeOff } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { useHotelStore } from '@/lib/store';
 
@@ -168,9 +168,7 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-1">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mb-3 shadow-lg">
-            <Hotel className="w-8 h-8 text-primary-foreground" />
-          </div>
+          <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
           <p className="text-lg font-bold">{hotelNombre}</p>
           <p className="text-sm text-muted-foreground">{email}</p>
         </div>

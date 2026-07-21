@@ -248,7 +248,7 @@ function Navbar() {
       <nav className="mx-auto max-w-6xl flex items-center justify-between px-4 sm:px-6 h-16">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20 group-hover:shadow-lg group-hover:shadow-primary/30 transition-shadow">
-            <Hotel className="w-5 h-5 text-primary-foreground" />
+            <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain" />
           </div>
           <span className="font-bold text-lg tracking-tight">
             Hospedá
@@ -890,7 +890,7 @@ function Footer() {
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Hotel className="w-4 h-4 text-primary-foreground" />
+                <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain" />
               </div>
               <span className="font-bold text-sm">Hospedá</span>
             </Link>

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Hotel, Eye, EyeOff, Loader2, CheckCircle2, ArrowLeft, Mail } from 'lucide-react';
+import { Eye, EyeOff, Loader2, CheckCircle2, ArrowLeft, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
@@ -117,9 +117,7 @@ export default function RegisterPage() {
       <div className="hidden lg:flex flex-1 items-center justify-center relative z-10 p-12" style={{ animation: 'slideFromLeft 0.6s ease-out both' }}>
         <div className="text-white max-w-md">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-primary/90 flex items-center justify-center backdrop-blur-sm">
-              <Hotel className="w-8 h-8 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="Hospedá" className="w-14 h-14 rounded-2xl object-contain" />
           </div>
           <h1 className="text-5xl font-bold tracking-tight mb-3">Hospedá</h1>
           <p className="text-lg text-white/70 mb-8">Sistema de Gestión Hotelera</p>
@@ -131,9 +129,7 @@ export default function RegisterPage() {
       <div className="flex-1 flex items-center justify-center relative z-10 p-4 sm:p-6 py-8">
         <Card className="w-full max-w-sm rounded-2xl shadow-2xl border border-white/20 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl" style={{ animation: 'fadeUp 0.5s ease-out both' }}>
           <CardHeader className="text-center pb-2">
-            <div className="mx-auto w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-3 shadow-lg lg:hidden">
-              <Hotel className="w-9 h-9 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3 lg:hidden" />
             <CardTitle className="text-xl">Crear cuenta</CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
               30 días de prueba gratuita

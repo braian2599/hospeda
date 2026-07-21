@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
   LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles,
-  Wallet, Users, BarChart3, UserCog, Tags, LogOut, Hotel, X, Lock, Settings,
+  Wallet, Users, BarChart3, UserCog, Tags, LogOut, X, Lock, Settings,
 } from 'lucide-react';
 
 // Se define dentro del componente para acceder a update() del hook useSession
@@ -238,9 +238,7 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-3 py-4 min-h-[56px]">
-        <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shrink-0">
-          <Hotel className="w-5 h-5 text-primary-foreground" />
-        </div>
+        <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain shrink-0" />
         <div
           className="overflow-hidden whitespace-nowrap transition-opacity duration-200"
           style={{ opacity: isExpanded ? 1 : 0, width: isExpanded ? 'auto' : 0 }}
@@ -359,9 +357,7 @@ export default function Sidebar() {
 
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-4">
-          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <Hotel className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain shrink-0" />
           <div className="min-w-0">
             <h2 className="font-bold text-sm leading-tight">Hospedá</h2>
             <p className="text-[11px] text-muted-foreground">Gestión Hotelera</p>
