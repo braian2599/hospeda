@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireOwner, AuthError } from '@/lib/auth/utils';
+import { requirePermission, AuthError } from '@/lib/auth/utils';
 import bcrypt from 'bcryptjs';
 import type { RolTenant } from '@prisma/client';
 
@@ -12,7 +12,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireOwner();
+    const tenantId = await requirePermission('usuarios');
     const { id } = await params;
     const body = await req.json();
     const { rol, permisos, activo, nombreCompleto, password } = body;
@@ -83,7 +83,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requireOwner();
+    const tenantId = await requirePermission('usuarios');
     const { id } = await params;
 
     const tenantUser = await db.tenantUser.findFirst({
