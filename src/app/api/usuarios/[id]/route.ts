@@ -21,7 +21,7 @@ export async function PUT(
     const targetUser = await db.tenantUser.findFirst({
       where: { id, tenantId },
     });
-    if (!tenantUser) {
+    if (!targetUser) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
@@ -33,7 +33,7 @@ export async function PUT(
     }
 
     // No permitir desactivar al último owner
-    if (activo === false && tenantUser.rol === 'owner') {
+    if (activo === false && targetUser.rol === 'owner') {
       const otherOwners = await db.tenantUser.count({
         where: { tenantId, rol: 'owner', activo: true, id: { not: id } },
       });
