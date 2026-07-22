@@ -14,7 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  CreditCard, Building2, FileText, Shield, Wallet, Headphones, Download,
+  CreditCard, Building2, FileText, Shield, Headphones, Download,
   Crown, Check, Loader2, Save, Eye, EyeOff, Star, ArrowRight,
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
   Settings, Copy, Info,
@@ -33,7 +33,6 @@ const TABS = [
   { id: 'hotel', label: 'Datos del Hotel', icon: Building2 },
   { id: 'fiscal', label: 'Datos Fiscales', icon: FileText },
   { id: 'cuenta', label: 'Cuenta y Seguridad', icon: Shield },
-  { id: 'pagos', label: 'Métodos de Pago', icon: Wallet },
   { id: 'soporte', label: 'Soporte', icon: Headphones },
   { id: 'exportar', label: 'Exportar Datos', icon: Download },
 ] as const;
@@ -95,7 +94,6 @@ export default function ConfiguracionModule() {
         {activeTab === 'hotel' && <HotelSection />}
         {activeTab === 'fiscal' && <FiscalSection />}
         {activeTab === 'cuenta' && <CuentaSection />}
-        {activeTab === 'pagos' && <PagosSection />}
         {activeTab === 'soporte' && <SoporteSection />}
         {activeTab === 'exportar' && <ExportarSection />}
       </div>
@@ -714,76 +712,7 @@ function CuentaSection() {
 }
 
 // ═══════════════════════════════════════════
-// 5. MÉTODOS DE PAGO
-// ═══════════════════════════════════════════
-function PagosSection() {
-  const [mpConfigured, setMpConfigured] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    fetch('/api/payments/config-status')
-      .then(r => r.json())
-      .then(data => {
-        setMpConfigured(data.mercadopago?.configured ?? false);
-      })
-      .catch(() => setMpConfigured(false));
-  }, []);
-
-  const loading = mpConfigured === null;
-
-  const ProviderCard = ({ name, description, configured, icon: Icon }: { name: string; description: string; configured: boolean; icon: React.ComponentType<{ className?: string }> }) => (
-    <Card>
-      <CardContent className="flex items-start gap-4 p-5">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${configured ? 'bg-green-100 dark:bg-green-900/30' : 'bg-muted'}`}>
-          <Icon className={`w-5 h-5 ${configured ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h4 className="font-medium text-sm">{name}</h4>
-            {loading ? (
-              <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-            ) : (
-              <Badge variant={configured ? 'default' : 'secondary'} className="text-xs">
-                {configured ? 'Configurado' : 'No configurado'}
-              </Badge>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Métodos de Pago</CardTitle>
-          <CardDescription>Proveedores de pago configurados para procesar suscripciones</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <ProviderCard
-              name="Mercado Pago"
-              description="Aceptá tarjetas, transferencias y otros medios de pago"
-              configured={!!mpConfigured}
-              icon={Wallet}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {!loading && !mpConfigured && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          Mercado Pago no está configurado. El administrador de la plataforma debe cargar las credenciales en el panel de Super Admin.
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════
-// 6. SOPORTE
+// 5. SOPORTE
 // ═══════════════════════════════════════════
 function SoporteSection() {
   const [asunto, setAsunto] = useState('');
