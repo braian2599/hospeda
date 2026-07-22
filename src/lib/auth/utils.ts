@@ -92,18 +92,38 @@ export async function requirePermission(permission: string): Promise<string> {
     throw new AuthError('No autenticado', 401);
   }
 
-  const tenantId = session.user.tenantId;
-  if (!tenantId) {
-    throw new AuthError('No tenés un hotel asociado', 403);
-  }
-
   const { db } = await import('@/lib/db');
 
+  // Obtener tenantId: prioridad JWT, fallback BD
+  let tenantId = session.user.tenantId;
+  let tenantUserId = session.user.tenantUserId;
+
+  if (!tenantId) {
+    // Fallback: buscar en BD el primer TenantUser activo
+    const fallback = await db.tenantUser.findFirst({
+      where: { userId: session.user.id, activo: true },
+      select: { tenantId: true, id: true, rol: true, permisos: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!fallback) {
+      throw new AuthError('No tenés un hotel asociado', 403);
+    }
+    tenantId = fallback.tenantId;
+    tenantUserId = fallback.id;
+    // Si es owner/admin, ya sabemos que tiene acceso
+    if (fallback.rol === 'owner' || fallback.rol === 'admin') {
+      return tenantId;
+    }
+    if (!fallback.permisos.includes(permission)) {
+      throw new AuthError('No tenés permiso para realizar esta acción', 403);
+    }
+    return tenantId;
+  }
+
   // Usar tenantUserId del JWT para identificar el perfil exacto
-  // (evita problemas con múltiples TenantUser por tenant)
   const whereClause: Record<string, unknown> = { tenantId, activo: true };
-  if (session.user.tenantUserId) {
-    whereClause.id = session.user.tenantUserId;
+  if (tenantUserId) {
+    whereClause.id = tenantUserId;
   } else {
     whereClause.userId = session.user.id;
   }
