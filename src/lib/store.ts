@@ -287,8 +287,10 @@ export const useHotelStore = create<HotelStore>()(
 
       setModulo: (modulo) => {
         const { planActual, usuarioActual, sidebarOpen, plans } = get();
-        // Configuracion es owner-only, no depende del plan
-        if (modulo !== 'configuracion' && usuarioActual) {
+        // Owner y admin tienen acceso a todo
+        const isFullAccess = usuarioActual?.rol === 'owner' || usuarioActual?.rol === 'admin';
+        // Configuracion es owner/admin-only, no depende del plan
+        if (modulo !== 'configuracion' && usuarioActual && !isFullAccess) {
           const efectivos = calcModulosEfectivos(usuarioActual.permisos, planActual, plans);
           if (!efectivos.includes(modulo)) {
             set({ moduloBloqueado: modulo, sidebarOpen: false });
@@ -317,7 +319,8 @@ export const useHotelStore = create<HotelStore>()(
         let startModule: string = 'dashboard';
         try {
           const prefs = JSON.parse(localStorage.getItem('hotel-perfil-prefs') || '{}');
-          if (prefs.startModule && sesion.permisos.includes(prefs.startModule)) {
+          const isFullAccess = sesion.rol === 'owner' || sesion.rol === 'admin';
+          if (prefs.startModule && (isFullAccess || sesion.permisos.includes(prefs.startModule))) {
             startModule = prefs.startModule;
           }
         } catch { /* ignore */ }
@@ -1123,7 +1126,7 @@ export const useHotelStore = create<HotelStore>()(
     }),
     {
       name: 'hospeda-storage',
-      version: 7,
+      version: 8,
       migrate: (persisted: any, version: number) => {
         // version 5: limpiar datos de prueba y tarifas viejas
         if (version < 5) {
@@ -1158,8 +1161,12 @@ export const useHotelStore = create<HotelStore>()(
           persisted.metodosPago = [];
           persisted.categoriasGastos = [];
         }
-        // version 8: persistir usuarioActual para evitar re-fetch al recargar
-        // (usuarioActual se valida contra el JWT de todos modos)
+        // version 8: forzar re-login si usuarioActual no tiene rol (RBAC)
+        if (version < 8) {
+          if (persisted.usuarioActual && !persisted.usuarioActual.rol) {
+            persisted.usuarioActual = null;
+          }
+        }
         return persisted;
       },
       partialize: (state) => ({
