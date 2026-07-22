@@ -116,6 +116,7 @@ export const authOptions: NextAuthOptions = {
             }
           } catch (_e) {
             // DB no disponible: no escribir datos del cliente en el JWT
+          }
         }
       }
 
