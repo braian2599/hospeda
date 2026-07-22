@@ -114,12 +114,7 @@ export const authOptions: NextAuthOptions = {
               token.tenantRole = tu.rol;
               token.tenantUserId = tu.id;
             }
-          } catch {
-            // Si la DB no responde, confiar en los datos que ya vienen del update
-            // Esto evita que un cold start cierre la sesión
-            token.tenantId = proposedTenantId;
-            token.tenantRole = (session as Record<string, unknown>).tenantRole as string | undefined;
-            token.tenantUserId = proposedTenantUserId;
+          } catch {</arg_value><arg_key>
           }
         }
       }
