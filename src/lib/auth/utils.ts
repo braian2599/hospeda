@@ -8,6 +8,7 @@ interface SessionUser {
   name?: string | null;
   tenantId?: string;
   tenantRole?: string;
+  tenantUserId?: string;
 }
 
 interface SessionData {
@@ -97,8 +98,18 @@ export async function requirePermission(permission: string): Promise<string> {
   }
 
   const { db } = await import('@/lib/db');
+
+  // Usar tenantUserId del JWT para identificar el perfil exacto
+  // (evita problemas con múltiples TenantUser por tenant)
+  const whereClause: Record<string, unknown> = { tenantId, activo: true };
+  if (session.user.tenantUserId) {
+    whereClause.id = session.user.tenantUserId;
+  } else {
+    whereClause.userId = session.user.id;
+  }
+
   const tenantUser = await db.tenantUser.findFirst({
-    where: { userId: session.user.id, tenantId, activo: true },
+    where: whereClause,
     select: { rol: true, permisos: true },
   });
 
