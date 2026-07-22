@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
     const user = await db.user.findUnique({ where: { email: email.toLowerCase() } });
 
     if (!user) {
-      return NextResponse.json({ error: 'No se encontró una cuenta con ese email' }, { status: 404 });
+      // No revelar si el email existe (evitar enumeración)
+      return NextResponse.json({ message: 'Si ese email está registrado, te enviaremos un enlace de verificación.' });
     }
 
     if (user.emailVerified) {

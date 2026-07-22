@@ -172,7 +172,7 @@ export async function PATCH(req: NextRequest) {
       });
       if (!tu) return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
 
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
       await db.tenantUser.update({
         where: { id: tenantUserId },
         data: { password: hashedPassword },
@@ -248,6 +248,6 @@ export async function DELETE(req: NextRequest) {
   } catch (error: unknown) {
     const err = error as Error;
     console.error('[/api/super-admin/tenants DELETE] Error:', err.message);
-    return NextResponse.json({ error: `Error al eliminar: ${err.message}` }, { status: 500 });
+    return NextResponse.json({ error: 'Error al eliminar el tenant' }, { status: 500 });
   }
 }

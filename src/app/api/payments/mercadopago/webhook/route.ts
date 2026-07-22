@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const xRequestId = request.headers.get('x-request-id') || data?.id || '';
     const signatureValid = await verifyMercadoPagoSignature(xSignature, xRequestId);
 
-    if (!signatureValid && process.env.NODE_ENV === 'production') {
+    if (!signatureValid) {
       console.error('[mp-webhook] Firma inválida');
       return NextResponse.json({ error: 'Firma inválida' }, { status: 400 });
     }

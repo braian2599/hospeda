@@ -22,8 +22,6 @@ export async function GET() {
       precio: plan.precio,
       precioDisplay: plan.precioDisplay,
       moneda: plan.precio === 0 ? 'ARS' : 'ARS',
-      maxHabitaciones: plan.maxHabitaciones,
-      maxUsuarios: plan.maxUsuarios,
       modulos: plan.modulos,
       destacado: tipo === 'profesional',
       descripcion: PLAN_DESCRIPTIONS[tipo] || '',

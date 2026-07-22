@@ -65,7 +65,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Contraseña creada correctamente. Ya podés iniciar sesión.' });
   } catch (error: unknown) {
     console.error('Accept invitation error:', error);
-    const message = error instanceof Error ? error.message : 'Error del servidor';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
   }
 }

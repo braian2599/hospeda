@@ -141,7 +141,6 @@ export async function POST(req: NextRequest) {
 
   } catch (error: unknown) {
     console.error('Register error:', error);
-    const message = error instanceof Error ? error.message : 'Error al crear la cuenta';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Error al crear la cuenta' }, { status: 500 });
   }
 }

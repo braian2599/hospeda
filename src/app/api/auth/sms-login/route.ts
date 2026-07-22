@@ -37,9 +37,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
+      // No revelar si el teléfono existe (evitar enumeración)
       return NextResponse.json(
-        { error: 'No se encontró una cuenta con ese teléfono. Registrate primero.' },
-        { status: 404 }
+        { error: 'No se pudo iniciar sesión. Verificá tu número e intentá de nuevo.' },
+        { status: 400 }
       );
     }
 
@@ -65,9 +66,8 @@ export async function POST(request: NextRequest) {
       url: '/app',
     });
 
-  } catch (error: unknown) {
-    console.error('[sms-login] Error:', error);
-    const message = error instanceof Error ? error.message : 'Error al iniciar sesión';
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (_e) {
+    console.error('[sms-login] Error:', _e);
+    return NextResponse.json({ error: 'Error al iniciar sesión' }, { status: 500 });
   }
 }

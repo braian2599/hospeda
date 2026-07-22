@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: `Error al crear la sesión de pago: ${error?.message || 'Intentá de nuevo.'}` },
+      { error: 'Error al crear la sesión de pago. Intentá de nuevo.' },
       { status: 500 }
     );
   }
