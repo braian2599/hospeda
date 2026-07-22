@@ -114,8 +114,8 @@ export const authOptions: NextAuthOptions = {
               token.tenantRole = tu.rol;
               token.tenantUserId = tu.id;
             }
-          } catch {</arg_value><arg_key>
-          }
+          } catch (_e) {
+            // DB no disponible: no escribir datos del cliente en el JWT
         }
       }
 
