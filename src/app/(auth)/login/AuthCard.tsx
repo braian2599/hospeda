@@ -15,6 +15,7 @@ import Link from 'next/link';
 import AnimatedBackground from './AnimatedBackground';
 
 type Mode = 'login' | 'signup';
+type VisibleFace = Mode | 'none';
 type Step = 'form' | 'success';
 
 interface AuthCardProps {
@@ -30,7 +31,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [flipping, setFlipping] = useState(false);
   const [flipAnim, setFlipAnim] = useState('');
-  const [visibleFace, setVisibleFace] = useState<Mode>(defaultMode);
+  const [visibleFace, setVisibleFace] = useState<VisibleFace>(defaultMode);
   const [step, setStep] = useState<Step>('form');
 
   // Login state
@@ -51,14 +52,17 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
     if (flipping || to === mode) return;
     setFlipping(true);
     setFlipAnim(to === 'signup' ? 'authFlipRight' : 'authFlipLeft');
+    // Immediately hide current face (fades out in ~200ms = ~84° of rotation)
+    setVisibleFace('none');
+    // Show new face when card comes back around (~276° of rotation)
     setTimeout(() => {
       setMode(to);
       setVisibleFace(to);
-    }, 430); // switch content at 180° midpoint
+    }, 660);
     setTimeout(() => {
       setFlipping(false);
       setFlipAnim('');
-    }, 870); // animation ends at 860ms, small buffer
+    }, 870);
   };
 
   const getErrorMessage = (error: string | null) => {
@@ -151,25 +155,24 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
           {/* LOGIN FACE */}
           <div
             className="absolute inset-0"
-            style={{ opacity: showLogin ? 1 : 0, pointerEvents: showLogin ? 'auto' : 'none', transition: 'opacity 0.25s ease' }}
+            style={{ opacity: showLogin ? 1 : 0, pointerEvents: showLogin ? 'auto' : 'none', transition: 'opacity 0.2s ease', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
           >
             <div className="flex flex-col md:flex-row min-h-[640px]">
-              <div className="relative hidden md:flex flex-col justify-between p-10 lg:p-12 w-[45%] overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c4a6e 0%, #0e7490 30%, #0891b2 60%, #0d9488 100%)' }}>
+              <div className="relative hidden md:flex flex-col justify-center items-start p-10 lg:p-12 w-[45%] overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c4a6e 0%, #0e7490 30%, #0891b2 60%, #0d9488 100%)' }}>
                 <DecoElements />
-                <div className="relative z-10"><Logo /></div>
-                <div className="relative z-10 flex-1 flex flex-col justify-center">
+                <div className="relative z-10 w-full"><Logo /></div>
+                <div className="relative z-10 mt-6">
                   <Badge>Tu espacio de trabajo te espera</Badge>
-                  <h2 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-4">Gestioná tu hotel<br />de forma inteligente</h2>
-                  <p className="text-white/60 text-sm leading-relaxed max-w-[280px]">Reservas, check-ins, pagos y más. Todo lo que necesitás para administrar tu hotel en un solo lugar.</p>
+                  <h2 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-3">Gestioná tu hotel<br />de forma inteligente</h2>
+                  <p className="text-white/60 text-sm leading-relaxed max-w-[280px]">Reservas, check-ins, pagos y más. Todo en un solo lugar.</p>
                 </div>
-                <div className="relative z-10">
+                <div className="relative z-10 mt-8">
                   <button type="button" onClick={() => flip('signup')} className="group flex items-center gap-2 text-sm font-medium text-white/90 hover:text-white transition-colors">
                     <span>Crear una cuenta</span><ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                   </button>
-                  <p className="text-[10px] text-white/30 mt-2">Gratis para siempre · Sin tarjeta de crédito</p>
                 </div>
               </div>
-              <div className="flex-1 flex flex-col justify-center p-8 md:p-10 lg:p-12 bg-white/[0.03] overflow-y-auto">
+              <div className="flex-1 flex flex-col justify-center p-8 md:p-10 lg:p-12 bg-white/[0.03] auth-scroll">
                 <div className="flex md:hidden items-center gap-2.5 mb-6"><MobileLogo /></div>
                 <div className="mb-6">
                   <h1 className="text-2xl font-bold text-white mb-1.5">Bienvenido de nuevo</h1>
@@ -209,24 +212,24 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
           {/* SIGNUP FACE */}
           <div
             className="absolute inset-0"
-            style={{ opacity: showSignup ? 1 : 0, pointerEvents: showSignup ? 'auto' : 'none', transition: 'opacity 0.25s ease' }}
+            style={{ opacity: showSignup ? 1 : 0, pointerEvents: showSignup ? 'auto' : 'none', transition: 'opacity 0.2s ease', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
           >
             <div className="flex flex-col md:flex-row min-h-[640px]">
-              <div className="relative hidden md:flex flex-col justify-between p-10 lg:p-12 w-[45%] overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c4a6e 0%, #0e7490 30%, #0891b2 60%, #0d9488 100%)' }}>
+              <div className="relative hidden md:flex flex-col justify-center items-start p-10 lg:p-12 w-[45%] overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c4a6e 0%, #0e7490 30%, #0891b2 60%, #0d9488 100%)' }}>
                 <DecoElements />
-                <div className="relative z-10"><Logo /></div>
-                <div className="relative z-10 flex-1 flex flex-col justify-center">
+                <div className="relative z-10 w-full"><Logo /></div>
+                <div className="relative z-10 mt-6">
                   <Badge>30 días de prueba gratuita</Badge>
-                  <h2 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-4">Comenzá a gestionar<br />tu hotel hoy</h2>
-                  <p className="text-white/60 text-sm leading-relaxed max-w-[280px]">Creá tu cuenta en minutos y empezá a administrar reservas, huéspedes y pagos desde cualquier lugar.</p>
+                  <h2 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-3">Comenzá a gestionar<br />tu hotel hoy</h2>
+                  <p className="text-white/60 text-sm leading-relaxed max-w-[280px]">Creá tu cuenta en minutos y administrá todo desde cualquier lugar.</p>
                 </div>
-                <div className="relative z-10">
+                <div className="relative z-10 mt-8">
                   <button type="button" onClick={() => flip('login')} className="group flex items-center gap-2 text-sm font-medium text-white/90 hover:text-white transition-colors">
                     <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /><span>Ya tengo cuenta</span>
                   </button>
                 </div>
               </div>
-              <div className="flex-1 flex flex-col justify-center p-8 md:p-10 lg:p-12 bg-white/[0.03] overflow-y-auto">
+              <div className="flex-1 flex flex-col justify-center p-8 md:p-10 lg:p-12 bg-white/[0.03] auth-scroll">
                 <div className="flex md:hidden items-center gap-2.5 mb-6"><MobileLogo /></div>
                 <div className="mb-5">
                   <h1 className="text-2xl font-bold text-white mb-1.5">Crear cuenta</h1>
@@ -284,6 +287,8 @@ function AuthKeyframes() {
       @keyframes float2 { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(-30px, 20px) scale(1.05); } 66% { transform: translate(20px, -30px) scale(0.9); } }
       @keyframes float3 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, -20px); } }
       @keyframes dotPulse { 0%, 100% { opacity: 0.2; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.5); } }
+      .auth-scroll { overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
+      .auth-scroll::-webkit-scrollbar { display: none; }
     `}</style>
   );
 }
@@ -302,7 +307,7 @@ function DecoElements() {
 
 function Logo() {
   return (
-    <div className="flex items-center gap-3 mb-8">
+    <div className="flex items-center gap-3">
       <img src="/logo.png" alt="Hospedá" className="w-11 h-11 rounded-xl object-contain brightness-0 invert" />
       <span className="text-white font-semibold text-lg tracking-tight">Hospedá</span>
     </div>
