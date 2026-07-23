@@ -166,6 +166,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
         <div
           className={`auth-card-inner relative w-full rounded-3xl overflow-hidden shadow-2xl shadow-sky-900/20 border border-white/[0.08]`}
           style={{
+            minHeight: '560px',
             transformStyle: 'preserve-3d',
             transition: flipping ? 'none' : 'transform 0.86s cubic-bezier(0.4, 0, 0.2, 1)',
             transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
