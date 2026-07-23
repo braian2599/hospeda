@@ -43,10 +43,7 @@ export default function SetupHotelPage() {
       // Usamos update() de next-auth para refrescar el JWT
       const { useSession, SessionProvider } = await import('next-auth/react');
       // Simplemente redirigimos al app - el SessionLoader va a refrescar los datos
-      setTimeout(() => {
-        router.push('/app');
-        router.refresh();
-      }, 500);
+      // Notificar al layout que el setup terminó para que refresque la sesión\n      window.dispatchEvent(new CustomEvent('hotel-setup-complete'));
     } catch {
       toast.error('Error de conexion. Intenta de nuevo.');
     }

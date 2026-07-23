@@ -295,7 +295,26 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     }
   }, [status, session, usuarioActual, loginFromSession, router, processMeData, syncFromServer]);
 
-  // Sync planes from DB into store so modulosEfectivos uses live prices/limits
+  // Escuchar evento de completado de setup-hotel para refrescar sesión
+  useEffect(() => {
+    const handler = async () => {
+      setNeedsSetup(false);
+      fetchRef.current = false;
+      setLoading(true);
+      try {
+        const res = await fetch('/api/auth/me');
+        const data = await res.json();
+        processMeData(data);
+      } catch {
+        setError('No se pudo conectar al servidor.');
+        setLoading(false);
+      }
+    };
+    window.addEventListener('hotel-setup-complete', handler);
+    return () => window.removeEventListener('hotel-setup-complete', handler);
+  }, [processMeData]);
+
+  // Sync plans from DB into store so modulosEfectivos uses live prices/limits
   const dbPlans = usePlans();
   const setPlans = useHotelStore(s => s.setPlans);
   useEffect(() => {
