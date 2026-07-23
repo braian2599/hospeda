@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import {
   ArrowRight, ArrowLeft, Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import AnimatedBackground from './AnimatedBackground';
 
 type Mode = 'login' | 'signup';
