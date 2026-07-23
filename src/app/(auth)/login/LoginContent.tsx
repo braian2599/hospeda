@@ -73,19 +73,12 @@ export default function LoginContent() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row relative overflow-hidden">
-      {/* Background */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: "url('/hotel-bg.png')",
-          animation: 'kenBurns 20s ease-in-out infinite alternate',
-        }}
-      />
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 login-bg" />
       <div
         className="absolute inset-0"
         style={{
-          background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)',
-          backdropFilter: 'blur(2px)',
+          background: 'linear-gradient(135deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.4) 100%)',
         }}
       />
 
