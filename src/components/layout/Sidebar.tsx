@@ -159,13 +159,11 @@ function GroupedNav({
 
 export default function Sidebar() {
   const { usuarioActual, moduloActivo, setModulo, sidebarOpen, setSidebarOpen, planActual } = useHotelStore();
-  const { update } = useSession();
+  useSession();
 
   _handleLogout = () => {
     useHotelStore.getState().logout();
-    update({ clearTenant: true }).then(() => {
-      window.location.href = '/app';
-    });
+    signOut({ callbackUrl: '/login' });
   };
   const [desktopExpanded, setDesktopExpanded] = useState(false);
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
