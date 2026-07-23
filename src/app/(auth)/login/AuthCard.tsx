@@ -296,8 +296,7 @@ function AuthKeyframes() {
 function DecoElements() {
   return (
     <>
-      <div className="absolute top-6 left-6 w-12 h-12 rounded-full border-2 border-white/20 flex items-center justify-center"><CheckCircle2 className="w-5 h-5 text-white/60" /></div>
-      <div className="absolute bottom-12 right-8 w-14 h-14 rounded-2xl border-2 border-white/20 flex items-center justify-center rotate-12"><Building2 className="w-6 h-6 text-white/60" /></div>
+      <div className="absolute bottom-10 right-8 w-14 h-14 rounded-2xl border-2 border-white/20 flex items-center justify-center rotate-12 overflow-hidden p-1"><img src="/logo.png" alt="" className="w-full h-full object-contain brightness-0 invert opacity-60" /></div>
       <div className="absolute top-20 right-10 w-2 h-2 rounded-full bg-white/30" style={{ animation: 'dotPulse 3s ease-in-out infinite' }} />
       <div className="absolute top-32 right-20 w-1.5 h-1.5 rounded-full bg-white/20" style={{ animation: 'dotPulse 3s ease-in-out infinite 1s' }} />
       <div className="absolute bottom-32 left-8 w-2 h-2 rounded-full bg-white/25" style={{ animation: 'dotPulse 3s ease-in-out infinite 0.5s' }} />
