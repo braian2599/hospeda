@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import bcrypt from 'bcryptjs';
 import type { RolTenant } from '@prisma/client';
+import { validatePassword, rateLimit, checkBodySize } from '@/lib/validation';
 
 const VALID_ROLES: RolTenant[] = ['owner', 'admin', 'recepcion', 'limpieza'];
 
@@ -46,7 +47,7 @@ export async function PUT(
     }
 
     // Si se proporciona nueva contraseña, hashear y guardar en TenantUser
-    if (password && password.length >= 6) {
+    if (password) {
       const hashedPassword = await bcrypt.hash(password, 12);
       await db.tenantUser.update({
         where: { id },

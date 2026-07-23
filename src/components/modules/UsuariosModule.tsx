@@ -130,7 +130,7 @@ export default function UsuariosModule() {
 
   const handleSave = async () => {
     if (!form.nombreCompleto.trim()) { toast.error('El nombre del perfil es obligatorio'); return; }
-    if (!editingId && form.password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (!editingId && form.password.length < 8) { toast.error('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número'); return; }
 
     setSaving(true);
     try {
@@ -309,7 +309,7 @@ export default function UsuariosModule() {
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder={editingId ? 'Solo si queres cambiarla' : 'Minimo 6 caracteres'}
+                  placeholder={editingId ? 'Solo si queres cambiarla' : 'Minimo 8 caracteres'}
                   value={form.password}
                   onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                   className="pr-10"
@@ -384,7 +384,7 @@ export default function UsuariosModule() {
 
           <DialogFooter>
             <DialogClose asChild><Button variant="ghost" size="sm" disabled={saving}>Cancelar</Button></DialogClose>
-            <Button size="sm" onClick={handleSave} disabled={saving || !form.nombreCompleto.trim() || (!editingId && form.password.length < 6)}>
+            <Button size="sm" onClick={handleSave} disabled={saving || !form.nombreCompleto.trim() || (!editingId && form.password.length < 8)}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {ownerEditing ? 'Guardar cambios' : (editingId ? 'Guardar cambios' : 'Crear usuario')}
             </Button>

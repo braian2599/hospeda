@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { validatePassword, rateLimit, checkBodySize } from '@/lib/validation';
 
 // POST /api/auth/reset-password
 // Valida el token y cambia la contraseña
 export async function POST(req: NextRequest) {
   try {
+    checkBodySize(req);
     const { token, email, password } = await req.json();
 
     if (!token || !email || !password) {
@@ -15,11 +17,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'La contraseña debe tener al menos 6 caracteres' },
-        { status: 400 }
-      );
+    const pwError = validatePassword(password);
+    if (pwError) {
+      return NextResponse.json({ error: pwError }, { status: 400 });
     }
 
     // Buscar el token

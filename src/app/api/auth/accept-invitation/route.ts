@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { validatePassword, rateLimit, checkBodySize } from '@/lib/validation';
 
 // POST /api/auth/accept-invitation
 // Valida el token de invitación y setea la contraseña del usuario
 export async function POST(req: NextRequest) {
   try {
+    checkBodySize(req);
     const { token, email, password } = await req.json();
 
     if (!token || !email || !password) {
       return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
     }
 
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 });
+    const pwError = validatePassword(password);
+    if (pwError) {
+      return NextResponse.json({ error: pwError }, { status: 400 });
     }
 
     const emailLower = email.toLowerCase();

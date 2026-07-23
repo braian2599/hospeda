@@ -4,6 +4,7 @@ import { requireOwner, requirePermission, AuthError } from '@/lib/auth/utils';
 import { ensureMigrations } from '@/lib/auto-migrate';
 import bcrypt from 'bcryptjs';
 import type { RolTenant } from '@prisma/client';
+import { validatePassword, rateLimit, checkBodySize } from '@/lib/validation';
 
 const VALID_ROLES: RolTenant[] = ['owner', 'admin', 'recepcion', 'limpieza'];
 
@@ -50,8 +51,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El nombre del perfil es obligatorio' }, { status: 400 });
     }
 
-    if (!password || password.length < 6) {
-      return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 });
+    const pwError = validatePassword(password);
+    if (pwError) {
+      return NextResponse.json({ error: pwError }, { status: 400 });
     }
 
     if (!VALID_ROLES.includes(rol)) {

@@ -71,8 +71,8 @@ function AcceptInvitationForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres');
+    if (password.length < 8) {
+      toast.error('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número');
       return;
     }
     if (password !== confirmPassword) {
@@ -139,7 +139,7 @@ function AcceptInvitationForm() {
               <div className="space-y-1.5">
                 <Label htmlFor="password" className="text-xs">Contraseña</Label>
                 <div className="relative">
-                  <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="Minimo 6 caracteres" value={password} onChange={e => setPassword(e.target.value)} className="pr-10" autoComplete="new-password" disabled={loading} />
+                  <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="Minimo 8 caracteres" value={password} onChange={e => setPassword(e.target.value)} className="pr-10" autoComplete="new-password" disabled={loading} />
                   <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>

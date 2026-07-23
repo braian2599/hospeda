@@ -24,8 +24,8 @@ export default function ProfileSetup({ email, currentName, onComplete }: Profile
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres');
+    if (password.length < 8) {
+      toast.error('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número');
       return;
     }
     if (password !== confirmPassword) {
@@ -120,7 +120,7 @@ export default function ProfileSetup({ email, currentName, onComplete }: Profile
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Minimo 6 caracteres"
+                  placeholder="Minimo 8 caracteres"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   className="pr-10"
@@ -162,7 +162,7 @@ export default function ProfileSetup({ email, currentName, onComplete }: Profile
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-10" disabled={loading || !password || password.length < 6}>
+            <Button type="submit" className="w-full h-10" disabled={loading || !password || password.length < 8}>
               {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Guardando...</> : 'Guardar y entrar al sistema'}
             </Button>
           </form>

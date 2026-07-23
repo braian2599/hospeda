@@ -31,8 +31,8 @@ export default function RegisterPage() {
       toast.error('Completá todos los campos obligatorios');
       return;
     }
-    if (password.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres');
+    if (password.length < 8) {
+      toast.error('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número');
       return;
     }
 
@@ -177,7 +177,7 @@ export default function RegisterPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="reg-password" className="text-xs">Contraseña * <span className="text-muted-foreground">(mín. 6)</span></Label>
                 <div className="relative">
-                  <Input id="reg-password" type={showPassword ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" value={password} onChange={e => setPassword(e.target.value)} className="pr-10" autoComplete="new-password" disabled={loading} />
+                  <Input id="reg-password" type={showPassword ? 'text' : 'password'} placeholder="Mínimo 8 caracteres" value={password} onChange={e => setPassword(e.target.value)} className="pr-10" autoComplete="new-password" disabled={loading} />
                   <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>

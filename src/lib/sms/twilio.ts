@@ -1,5 +1,6 @@
 // ==================== TWILIO SMS VERIFICATION ====================
 // Funciones server-side para enviar y verificar códigos SMS.
+// Los códigos se almacenan en la tabla VerificationToken (DB), no en memoria.
 
 import crypto from 'crypto';
 
@@ -22,30 +23,6 @@ export interface SendSmsResult {
 export interface VerifyResult {
   valid: boolean;
   error?: string;
-}
-
-// ── In-memory code store (production: Redis o DB) ──
-
-interface StoredCode {
-  code: string;
-  phone: string;
-  createdAt: number;
-  attempts: number;
-  maxAttempts: number;
-  expiresAt: number;
-}
-
-// Simple in-memory store with TTL cleanup
-const codeStore = new Map<string, StoredCode>();
-
-/** Clean up expired codes every 5 minutes */
-if (typeof globalThis !== 'undefined') {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, val] of codeStore.entries()) {
-      if (val.expiresAt < now) codeStore.delete(key);
-    }
-  }, 5 * 60 * 1000);
 }
 
 // ── Config ──
@@ -72,7 +49,7 @@ export function generateVerificationCode(): string {
   return crypto.randomInt(100000, 999999).toString();
 }
 
-// ── Rate limiting ──
+// ── Rate limiting (in-memory, same as before for SMS send) ──
 
 const rateLimitStore = new Map<string, { count: number; firstAt: number }>();
 
@@ -86,7 +63,6 @@ function checkRateLimit(phone: string): { allowed: boolean; retryAfterSeconds: n
   const now = Date.now();
 
   if (!entry || now - entry.firstAt > RATE_LIMIT_WINDOW) {
-    // Reset
     rateLimitStore.set(key, { count: 1, firstAt: now });
     return { allowed: true, retryAfterSeconds: 0 };
   }
@@ -104,10 +80,10 @@ function checkRateLimit(phone: string): { allowed: boolean; retryAfterSeconds: n
 
 /**
  * Envía un código de verificación por SMS usando Twilio.
+ * El código se guarda en la tabla VerificationToken de la DB.
  * En desarrollo (sin credenciales), simula el envío y devuelve el código.
  */
 export async function sendVerificationSms(phone: string, code: string): Promise<SendSmsResult> {
-  // Normalize phone: strip spaces, dashes, parentheses
   const normalizedPhone = phone.replace(/[\s\-\(\)]/g, '');
 
   // Rate limit check
@@ -121,16 +97,33 @@ export async function sendVerificationSms(phone: string, code: string): Promise<
 
   const config = getTwilioConfig();
 
-  // Store the code before sending
-  const storeKey = `sms:${normalizedPhone}`;
-  codeStore.set(storeKey, {
-    code,
-    phone: normalizedPhone,
-    createdAt: Date.now(),
-    attempts: 0,
-    maxAttempts: 5,
-    expiresAt: Date.now() + 10 * 60 * 1000, // 10 min
-  });
+  // Guardar código en la DB (VerificationToken) en vez de memoria
+  try {
+    const { db } = await import('@/lib/db');
+    const identifier = `sms:${normalizedPhone}`;
+    const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+
+    // Upsert: si ya existe un código para este teléfono, lo reemplaza
+    await db.verificationToken.upsert({
+      where: {
+        identifier_token: { identifier, token: code },
+      },
+      create: { identifier, token: code, expires },
+      update: { expires },
+    });
+
+    // Borrar códigos viejos para este teléfono
+    await db.verificationToken.deleteMany({
+      where: {
+        identifier,
+        token: { not: code },
+      },
+    });
+  } catch (dbError) {
+    console.error('[SMS] Error guardando código en DB:', dbError);
+    // Si la DB falla, no enviamos el SMS
+    return { success: false, error: 'Error interno. Intentá de nuevo.' };
+  }
 
   // If Twilio not configured, simulate (dev mode)
   if (!config.enabled) {
@@ -138,7 +131,6 @@ export async function sendVerificationSms(phone: string, code: string): Promise<
     return {
       success: true,
       code, // Dev only: return code for testing
-      error: undefined,
     };
   }
 
@@ -157,8 +149,9 @@ export async function sendVerificationSms(phone: string, code: string): Promise<
       success: true,
       sid: message.sid,
     };
-  } catch (error: any) {
-    console.error('[SMS] Error sending via Twilio:', error?.message || error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('[SMS] Error sending via Twilio:', err.message);
 
     // If Twilio fails but we're in dev, still allow it
     if (process.env.NODE_ENV === 'development') {
@@ -177,41 +170,39 @@ export async function sendVerificationSms(phone: string, code: string): Promise<
 
 /**
  * Verifica un código SMS ingresado por el usuario.
+ * Busca el código en la tabla VerificationToken de la DB.
  */
-export function verifySmsCode(phone: string, inputCode: string): VerifyResult {
+export async function verifySmsCode(phone: string, inputCode: string): Promise<VerifyResult> {
   const normalizedPhone = phone.replace(/[\s\-\(\)]/g, '');
-  const storeKey = `sms:${normalizedPhone}`;
-  const stored = codeStore.get(storeKey);
+  const identifier = `sms:${normalizedPhone}`;
 
-  if (!stored) {
-    return { valid: false, error: 'No se encontró un código para este número. Solicitá uno nuevo.' };
+  try {
+    const { db } = await import('@/lib/db');
+
+    // Buscar el código en la DB
+    const token = await db.verificationToken.findUnique({
+      where: {
+        identifier_token: { identifier, token: inputCode.trim() },
+      },
+    });
+
+    if (!token) {
+      return { valid: false, error: 'Código incorrecto. Verificá e intentá de nuevo.' };
+    }
+
+    // Check expiration
+    if (token.expires < new Date()) {
+      await db.verificationToken.delete({ where: { id: token.id } });
+      return { valid: false, error: 'El código expiró. Solicitá uno nuevo.' };
+    }
+
+    // Success — borrar el token usado
+    await db.verificationToken.delete({ where: { id: token.id } });
+    return { valid: true };
+  } catch (dbError) {
+    console.error('[SMS] Error verificando código en DB:', dbError);
+    return { valid: false, error: 'Error interno. Intentá de nuevo.' };
   }
-
-  // Check expiration
-  if (Date.now() > stored.expiresAt) {
-    codeStore.delete(storeKey);
-    return { valid: false, error: 'El código expiró. Solicitá uno nuevo.' };
-  }
-
-  // Increment attempts
-  stored.attempts++;
-  if (stored.attempts > stored.maxAttempts) {
-    codeStore.delete(storeKey);
-    return { valid: false, error: 'Demasiados intentos fallidos. Solicitá un código nuevo.' };
-  }
-
-  // Compare codes
-  if (stored.code !== inputCode.trim()) {
-    const remaining = stored.maxAttempts - stored.attempts;
-    return {
-      valid: false,
-      error: `Codigo incorrecto. ${remaining} intento${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''}.`,
-    };
-  }
-
-  // Success — clean up
-  codeStore.delete(storeKey);
-  return { valid: true };
 }
 
 // ── Helpers ──
@@ -219,7 +210,6 @@ export function verifySmsCode(phone: string, inputCode: string): VerifyResult {
 /** Validate a phone number (basic format for Argentina/LatAm) */
 export function isValidPhoneNumber(phone: string): boolean {
   const cleaned = phone.replace(/[\s\-\(\)\+]/g, '');
-  // Must be 8-15 digits, start with country code or not
   return /^\d{8,15}$/.test(cleaned);
 }
 
@@ -228,7 +218,6 @@ export function formatPhoneDisplay(phone: string): string {
   const digits = phone.replace(/\D/g, '');
   if (digits.length < 8) return phone;
 
-  // Argentine format heuristic
   if (digits.startsWith('54') && digits.length >= 12) {
     const cc = digits.slice(0, 2);
     const area = digits.slice(2, 4);
@@ -237,7 +226,6 @@ export function formatPhoneDisplay(phone: string): string {
     return `+${cc} 9 ${area} ${prefix}-${suffix}`;
   }
 
-  // Generic format
   if (digits.length > 10) {
     return `+${digits.slice(0, -8)} ${digits.slice(-8, -4)}-${digits.slice(-4)}`;
   }

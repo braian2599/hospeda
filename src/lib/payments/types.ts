@@ -86,8 +86,8 @@ export interface PublicPlanInfo {
   precio: number;
   precioDisplay: string;
   moneda: string;
-  maxHabitaciones: number;
-  maxUsuarios: number;
+  maxHabitaciones?: number;
+  maxUsuarios?: number;
   modulos: string[];
   destacado: boolean;
   descripcion: string;

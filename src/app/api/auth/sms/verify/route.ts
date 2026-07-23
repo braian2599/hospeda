@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the code
-    const result = verifySmsCode(phone, code);
+    const result = await verifySmsCode(phone, code);
 
     if (!result.valid) {
       return NextResponse.json(

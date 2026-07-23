@@ -3,11 +3,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/config';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { validatePassword, rateLimit, checkBodySize } from '@/lib/validation';
 
 // POST /api/auth/complete-profile
 // Owner crea/edita su contraseña y nombre (se guarda en TenantUser)
 export async function POST(req: NextRequest) {
   try {
+    checkBodySize(req);
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
@@ -15,11 +17,9 @@ export async function POST(req: NextRequest) {
 
     const { nombre, password } = await req.json();
 
-    if (!password || password.length < 6) {
-      return NextResponse.json(
-        { error: 'La contraseña debe tener al menos 6 caracteres' },
-        { status: 400 }
-      );
+    const pwError = validatePassword(password);
+    if (pwError) {
+      return NextResponse.json({ error: pwError }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);

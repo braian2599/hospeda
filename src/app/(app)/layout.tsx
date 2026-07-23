@@ -103,7 +103,7 @@ function OwnerPasswordSetup({ sessionData, onComplete }: {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) { toast.error('Minimo 6 caracteres'); return; }
+    if (password.length < 8 || !/[A-ZÁÉÍÓÚÑ]/.test(password) || !/[0-9]/.test(password)) { toast.error('Mínimo 8 caracteres, una mayúscula y un número'); return; }
     if (password !== confirmPassword) { toast.error('Las contraseñas no coinciden'); return; }
 
     setLoading(true);
@@ -142,7 +142,7 @@ function OwnerPasswordSetup({ sessionData, onComplete }: {
             <div className="space-y-1.5">
               <Label className="text-xs">Contraseña</Label>
               <div className="relative">
-                <Input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimo 6 caracteres" className="pr-10" disabled={loading} />
+                <Input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres, una mayúscula y un número" className="pr-10" disabled={loading} />
                 <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -157,7 +157,7 @@ function OwnerPasswordSetup({ sessionData, onComplete }: {
                 </button>
               </div>
             </div>
-            <Button type="submit" className="w-full h-10" disabled={loading || !password || password.length < 6 || password !== confirmPassword}>
+            <Button type="submit" className="w-full h-10" disabled={loading || !password || password.length < 8 || password !== confirmPassword}>
               {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Guardando...</> : 'Guardar y entrar al sistema'}
             </Button>
           </form>

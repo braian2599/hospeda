@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { validatePassword, rateLimit, checkBodySize } from '@/lib/validation';
 
 // POST /api/auth/register
 // Crea User + Tenant + TenantUser + Subscription (trial 30 días)
 export async function POST(req: NextRequest) {
   try {
+    checkBodySize(req);
     const body = await req.json();
     const { email, password, name, hotelNombre, phone } = body;
 
@@ -18,11 +20,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'La contraseña debe tener al menos 6 caracteres' },
-        { status: 400 }
-      );
+    const pwError = validatePassword(password);
+    if (pwError) {
+      return NextResponse.json({ error: pwError }, { status: 400 });
     }
 
     // Verificar que el email no exista
