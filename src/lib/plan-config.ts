@@ -114,20 +114,18 @@ export function modulosEfectivos(
   return permisosUsuario.filter((p): p is ModuloId => modulosPlan.includes(p as ModuloId));
 }
 
-/** Días restantes del trial (o 0 si ya venció) */
-export function diasRestantesTrial(fechaInicio: string): number {
-  const inicio = new Date(fechaInicio);
+/** Días restantes del trial usando fechaVencimiento como fuente de verdad */
+export function diasRestantesTrial(fechaVencimiento: string): number {
+  const vencimiento = new Date(fechaVencimiento);
   const ahora = new Date();
-  const vencimiento = new Date(inicio);
-  vencimiento.setDate(vencimiento.getDate() + 30);
   const diffMs = vencimiento.getTime() - ahora.getTime();
   const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   return Math.max(0, diffDias);
 }
 
 /** Si el trial ya venció */
-export function trialVencido(fechaInicio: string): boolean {
-  return diasRestantesTrial(fechaInicio) === 0;
+export function trialVencido(fechaVencimiento: string): boolean {
+  return diasRestantesTrial(fechaVencimiento) === 0;
 }
 
 /** Si un módulo está disponible en el plan actual */

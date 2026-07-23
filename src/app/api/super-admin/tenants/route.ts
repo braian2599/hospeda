@@ -236,10 +236,26 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Tenant no encontrado' }, { status: 404 });
     }
 
-    // Eliminar el tenant (onDelete: Cascade se encarga del resto)
+    // Obtener user IDs asociados al tenant antes de eliminarlo
+    const tenantUsers = await db.tenantUser.findMany({
+      where: { tenantId },
+      select: { userId: true },
+    });
+    const userIds = [...new Set(tenantUsers.map(tu => tu.userId))];
+
+    // Eliminar el tenant (onDelete: Cascade se encarga de TenantUser, Subscription, etc.)
     await db.tenant.delete({
       where: { id: tenantId },
     });
+
+    // Limpiar usuarios huérfanos (sin otros tenants)
+    for (const userId of userIds) {
+      const remaining = await db.tenantUser.count({ where: { userId } });
+      if (remaining === 0) {
+        // Account y Session se borran en cascada desde User
+        await db.user.delete({ where: { id: userId } });
+      }
+    }
 
     return NextResponse.json({
       success: true,

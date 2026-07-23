@@ -34,7 +34,7 @@ const TRANSFERENCIA_DATA = {
 };
 
 export default function SuscripcionModule() {
-  const { usuarioActual, planActual, fechaInicioTrial } = useHotelStore();
+  const { usuarioActual, planActual, fechaVencimientoTrial } = useHotelStore();
   const plans = usePlans();
   const [subscriptionData, setSubscriptionData] = useState<{
     estado: string;
@@ -103,8 +103,8 @@ export default function SuscripcionModule() {
 
   const plan = plans[planActual];
   const isTrial = planActual === 'trial';
-  const diasTrial = fechaInicioTrial ? diasRestantesTrial(fechaInicioTrial) : 0;
-  const trialExpired = isTrial && fechaInicioTrial && trialVencido(fechaInicioTrial);
+  const diasTrial = fechaVencimientoTrial ? diasRestantesTrial(fechaVencimientoTrial) : 0;
+  const trialExpired = isTrial && fechaVencimientoTrial && trialVencido(fechaVencimientoTrial);
   const isRecurring = subscriptionData?.esRecurrente === true;
 
   // Estado visual de la suscripción
@@ -186,7 +186,7 @@ export default function SuscripcionModule() {
             <p className="text-sm text-muted-foreground mt-1">
               {isTrial ? 'Período de prueba' : `${plan.precioDisplay}/mes`}
             </p>
-            {isTrial && fechaInicioTrial && (
+            {isTrial && fechaVencimientoTrial && (
               <div className={`flex items-center gap-1.5 mt-3 text-sm ${trialExpired ? 'text-destructive' : diasTrial <= 7 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
                 {trialExpired ? <AlertTriangle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                 {trialExpired ? 'Prueba vencida' : `${diasTrial} días restantes`}
@@ -228,10 +228,10 @@ export default function SuscripcionModule() {
                     : 'Vencido'}
                 </p>
               </>
-            ) : isTrial && fechaInicioTrial ? (
+            ) : isTrial && fechaVencimientoTrial ? (
               <>
                 <p className="text-2xl font-bold">
-                  {new Date(new Date(fechaInicioTrial).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                  {new Date(fechaVencimientoTrial).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {diasTrial} días restantes de prueba

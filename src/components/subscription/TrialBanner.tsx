@@ -16,7 +16,7 @@ const CheckoutDialog = dynamic(
 
 export default function TrialBanner() {
   const planActual = useHotelStore(s => s.planActual);
-  const fechaInicioTrial = useHotelStore(s => s.fechaInicioTrial);
+  const fechaVencimientoTrial = useHotelStore(s => s.fechaVencimientoTrial);
   const usuarioActual = useHotelStore(s => s.usuarioActual);
   const [dismissed, setDismissed] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -34,7 +34,7 @@ export default function TrialBanner() {
     setCheckoutOpen(true);
   };
 
-  if (!usuarioActual || !fechaInicioTrial || dismissed) return null;
+  if (!usuarioActual || !fechaVencimientoTrial || dismissed) return null;
 
   // If plan is not trial and not expired, show a small plan indicator
   if (planActual !== 'trial') {
@@ -58,8 +58,8 @@ export default function TrialBanner() {
     );
   }
 
-  const dias = diasRestantesTrial(fechaInicioTrial);
-  const vencido = trialVencido(fechaInicioTrial);
+  const dias = diasRestantesTrial(fechaVencimientoTrial);
+  const vencido = trialVencido(fechaVencimientoTrial);
   const plan = plans[planActual];
 
   // Trial vencido — full-width warning

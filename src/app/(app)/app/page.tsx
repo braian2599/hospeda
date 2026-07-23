@@ -38,7 +38,7 @@ const modules: Record<ModuloId, React.ComponentType> = {
 };
 
 export default function AppPage() {
-  const { usuarioActual, moduloActivo, perfilOpen, setPerfilOpen, planActual, fechaInicioTrial } = useHotelStore();
+  const { usuarioActual, moduloActivo, perfilOpen, setPerfilOpen, planActual, fechaVencimientoTrial } = useHotelStore();
 
   if (!usuarioActual) return null;
 
@@ -59,7 +59,7 @@ export default function AppPage() {
   const tienePermiso = usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin' || efectivos.includes(moduloActivo);
 
   // If trial expired, block everything except dashboard
-  const trialExpirado = fechaInicioTrial && planActual === 'trial' && trialVencido(fechaInicioTrial);
+  const trialExpirado = fechaVencimientoTrial && planActual === 'trial' && trialVencido(fechaVencimientoTrial);
   const bloqueadoPorTrial = trialExpirado && moduloActivo !== 'dashboard';
 
   if (!tienePermiso || bloqueadoPorTrial) {

@@ -115,7 +115,7 @@ const TRANSFERENCIA_DATA = {
 };
 
 function SuscripcionSection() {
-  const { planActual, fechaInicioTrial } = useHotelStore();
+  const { planActual, fechaVencimientoTrial } = useHotelStore();
   const [usage, setUsage] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -136,9 +136,9 @@ function SuscripcionSection() {
   useEffect(() => { fetchUsage(); }, [fetchUsage]);
 
   const planInfo = plans[planActual];
-  const diasTrial = fechaInicioTrial ? diasRestantesTrial(fechaInicioTrial) : 0;
+  const diasTrial = fechaVencimientoTrial ? diasRestantesTrial(fechaVencimientoTrial) : 0;
   const isTrial = planActual === 'trial';
-  const trialExpired = isTrial && fechaInicioTrial && diasTrial === 0;
+  const trialExpired = isTrial && fechaVencimientoTrial && diasTrial === 0;
 
   const handlePagar = (tipo: Exclude<PlanTipo, 'trial'>) => {
     setSelectedPlan(tipo);

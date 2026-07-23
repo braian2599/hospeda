@@ -171,6 +171,7 @@ interface HotelStore {
   // Plan / Suscripción
   planActual: PlanTipo;
   fechaInicioTrial: string | null;
+  fechaVencimientoTrial: string | null;
   moduloBloqueado: ModuloId | null;
   setModuloBloqueado: (m: ModuloId | null) => void;
   setPlanActual: (p: PlanTipo) => void;
@@ -279,6 +280,7 @@ export const useHotelStore = create<HotelStore>()(
       // Plan / Suscripción
       planActual: 'trial' as PlanTipo,
       fechaInicioTrial: null,
+      fechaVencimientoTrial: null,
       moduloBloqueado: null,
       planes: PLANES as Record<string, PlanInfo>,
       setModuloBloqueado: (m) => set({ moduloBloqueado: m }),
@@ -326,6 +328,9 @@ export const useHotelStore = create<HotelStore>()(
         } catch { /* ignore */ }
         if (!get().fechaInicioTrial && sessionData.fechaInicioTrial) {
           set({ fechaInicioTrial: sessionData.fechaInicioTrial });
+        }
+        if (!get().fechaVencimientoTrial && sessionData.subscriptionVencimiento) {
+          set({ fechaVencimientoTrial: sessionData.subscriptionVencimiento });
         }
         if (sessionData.planActual) {
           set({ planActual: sessionData.planActual });
@@ -1172,6 +1177,7 @@ export const useHotelStore = create<HotelStore>()(
       partialize: (state) => ({
         planActual: state.planActual,
         fechaInicioTrial: state.fechaInicioTrial,
+        fechaVencimientoTrial: state.fechaVencimientoTrial,
         moduloActivo: state.moduloActivo,
         // Persistir usuarioActual para no requerir re-fetch al recargar la página
         usuarioActual: state.usuarioActual,
