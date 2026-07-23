@@ -159,11 +159,14 @@ function GroupedNav({
 
 export default function Sidebar() {
   const { usuarioActual, moduloActivo, setModulo, sidebarOpen, setSidebarOpen, planActual } = useHotelStore();
-  useSession();
+  const { update } = useSession();
 
   _handleLogout = () => {
     useHotelStore.getState().logout();
-    signOut({ callbackUrl: '/login' });
+    localStorage.setItem('hospeda-logging-out', 'true');
+    update({ clearTenant: true }).then(() => {
+      window.location.href = '/app';
+    });
   };
   const [desktopExpanded, setDesktopExpanded] = useState(false);
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

@@ -219,6 +219,11 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
   }, [loginFromSession, update, syncFromServer]);
 
   const processMeData = useCallback((data: Record<string, any>) => {
+    // Si viene de un logout y habría auto-login (1 solo perfil),
+    // destruir la sesión y enviar al login.
+    const isLoggingOut = localStorage.getItem('hospeda-logging-out') === 'true';
+    localStorage.removeItem('hospeda-logging-out');
+
     if (data.selectHotel) {
       setHotelSelection({ hoteles: data.hoteles, userName: data.name });
       setLoading(false);
@@ -248,6 +253,11 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     if (data.needsPassword) {
       setPasswordSetup(data);
       setLoading(false);
+      return;
+    }
+    // Post-logout con un solo perfil → cerrar sesión completamente
+    if (isLoggingOut) {
+      signOut({ callbackUrl: '/login' });
       return;
     }
     // Un solo perfil con contraseña → login directo
