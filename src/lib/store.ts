@@ -326,10 +326,12 @@ export const useHotelStore = create<HotelStore>()(
             startModule = prefs.startModule;
           }
         } catch { /* ignore */ }
-        if (!get().fechaInicioTrial && sessionData.fechaInicioTrial) {
+        // Siempre sincronizar con el valor fresco del servidor
+        // para evitar desincronización (ej: super-admin extendió el trial)
+        if (sessionData.fechaInicioTrial) {
           set({ fechaInicioTrial: sessionData.fechaInicioTrial });
         }
-        if (!get().fechaVencimientoTrial && sessionData.subscriptionVencimiento) {
+        if (sessionData.subscriptionVencimiento) {
           set({ fechaVencimientoTrial: sessionData.subscriptionVencimiento });
         }
         if (sessionData.planActual) {

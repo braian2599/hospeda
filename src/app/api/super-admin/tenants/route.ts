@@ -243,19 +243,30 @@ export async function DELETE(req: NextRequest) {
     });
     const userIds = [...new Set(tenantUsers.map(tu => tu.userId))];
 
-    // Eliminar el tenant (onDelete: Cascade se encarga de TenantUser, Subscription, etc.)
-    await db.tenant.delete({
-      where: { id: tenantId },
-    });
-
-    // Limpiar usuarios huérfanos (sin otros tenants)
-    for (const userId of userIds) {
-      const remaining = await db.tenantUser.count({ where: { userId } });
-      if (remaining === 0) {
-        // Account y Session se borran en cascada desde User
-        await db.user.delete({ where: { id: userId } });
+    // Todo dentro de una transacción para garantizar consistencia
+    await db.$transaction(async (tx) => {
+      // Session.tenantId es un string plano (no FK), no se borra por cascade.
+      // Limpiar manualmente todas las sesiones que apunten a este tenant.
+      for (const userId of userIds) {
+        await tx.session.deleteMany({ where: { userId, tenantId } });
       }
-    }
+
+      // Eliminar el tenant (onDelete: Cascade se encarga de TenantUser, Subscription, etc.)
+      await tx.tenant.delete({
+        where: { id: tenantId },
+      });
+
+      // Limpiar usuarios huérfanos (sin otros tenants)
+      for (const userId of userIds) {
+        const remaining = await tx.tenantUser.count({ where: { userId } });
+        if (remaining === 0) {
+          // Eliminar sesiones restantes del usuario y luego el usuario
+          await tx.session.deleteMany({ where: { userId } });
+          // Account se borra en cascada desde User
+          await tx.user.delete({ where: { id: userId } });
+        }
+      }
+    });
 
     return NextResponse.json({
       success: true,

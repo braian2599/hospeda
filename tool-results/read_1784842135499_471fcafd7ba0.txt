@@ -115,7 +115,7 @@
    115→};
    116→
    117→function SuscripcionSection() {
-   118→  const { planActual, fechaInicioTrial } = useHotelStore();
+   118→  const { planActual, fechaVencimientoTrial } = useHotelStore();
    119→  const [usage, setUsage] = useState<any>(null);
    120→  const [loading, setLoading] = useState(true);
    121→  const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -136,9 +136,9 @@
    136→  useEffect(() => { fetchUsage(); }, [fetchUsage]);
    137→
    138→  const planInfo = plans[planActual];
-   139→  const diasTrial = fechaInicioTrial ? diasRestantesTrial(fechaInicioTrial) : 0;
+   139→  const diasTrial = fechaVencimientoTrial ? diasRestantesTrial(fechaVencimientoTrial) : 0;
    140→  const isTrial = planActual === 'trial';
-   141→  const trialExpired = isTrial && fechaInicioTrial && diasTrial === 0;
+   141→  const trialExpired = isTrial && fechaVencimientoTrial && diasTrial === 0;
    142→
    143→  const handlePagar = (tipo: Exclude<PlanTipo, 'trial'>) => {
    144→    setSelectedPlan(tipo);
