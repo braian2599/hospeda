@@ -29,6 +29,8 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
 
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [flipping, setFlipping] = useState(false);
+  const [flipAnim, setFlipAnim] = useState('');
+  const [visibleFace, setVisibleFace] = useState<Mode>(defaultMode);
   const [step, setStep] = useState<Step>('form');
 
   // Login state
@@ -48,10 +50,15 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
   const flip = (to: Mode) => {
     if (flipping || to === mode) return;
     setFlipping(true);
+    setFlipAnim(to === 'signup' ? 'authFlipRight' : 'authFlipLeft');
     setTimeout(() => {
       setMode(to);
+      setVisibleFace(to);
+    }, 430); // switch content at 180° midpoint
+    setTimeout(() => {
       setFlipping(false);
-    }, 430); // switch at midpoint of animation
+      setFlipAnim('');
+    }, 870); // animation ends at 860ms, small buffer
   };
 
   const getErrorMessage = (error: string | null) => {
@@ -110,27 +117,15 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
           <h2 className="text-xl font-bold text-white mb-2">Cuenta creada</h2>
           <p className="text-sm text-white/50 mb-6">Te enviamos un email a <strong className="text-white/80">{regEmail}</strong> con un enlace para verificar tu cuenta.</p>
           <p className="text-xs text-white/30 mb-6">El enlace expira en 24 horas. Revisá también la carpeta de spam.</p>
-          <Button className="w-full h-11 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-medium shadow-lg shadow-sky-500/25" onClick={() => { setStep('form'); setMode('login'); }}>Ir a iniciar sesión</Button>
+          <Button className="w-full h-11 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-medium shadow-lg shadow-sky-500/25" onClick={() => { setStep('form'); setMode('login'); setVisibleFace('login'); }}>Ir a iniciar sesión</Button>
         </div>
         <AuthKeyframes />
       </div>
     );
   }
 
-  // The visual flip direction: login->signup = rotateY(-90), signup->login = rotateY(90)
-  const isGoingToSignup = flipping && mode === 'login';
-  const isGoingToLogin = flipping && mode === 'signup';
-  const cardTransform = isGoingToSignup
-    ? 'rotateY(-90deg) scale(0.95)'
-    : isGoingToLogin
-    ? 'rotateY(90deg) scale(0.95)'
-    : 'rotateY(0deg) scale(1)';
-
-  const showLogin = !flipping ? mode === 'login' : true; // keep login visible during first half
-  const showSignup = mode === 'signup' && !flipping;
-  // During flip: login is visible in first half (rotating away), signup appears in second half
-  const loginVisible = flipping ? isGoingToSignup : mode === 'login';
-  const signupVisible = flipping ? isGoingToLogin : mode === 'signup';
+  const showLogin = visibleFace === 'login';
+  const showSignup = visibleFace === 'signup';
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#0a1628]">
@@ -145,21 +140,20 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
         <div
           className="relative w-full rounded-3xl overflow-hidden shadow-2xl shadow-sky-900/20 border border-white/[0.08]"
           style={{
-            minHeight: '560px',
+            minHeight: '640px',
             background: 'rgba(15, 23, 42, 0.6)',
             backdropFilter: 'blur(40px)',
             WebkitBackdropFilter: 'blur(40px)',
             transformStyle: 'preserve-3d',
-            transition: 'transform 0.86s cubic-bezier(0.4, 0, 0.2, 1)',
-            transform: cardTransform,
+            animation: flipAnim ? `${flipAnim} 0.86s cubic-bezier(0.4, 0, 0.2, 1) forwards` : undefined,
           }}
         >
           {/* LOGIN FACE */}
           <div
-            className="absolute inset-0 transition-opacity duration-200"
-            style={{ opacity: loginVisible ? 1 : 0, pointerEvents: loginVisible ? 'auto' : 'none' }}
+            className="absolute inset-0"
+            style={{ opacity: showLogin ? 1 : 0, pointerEvents: showLogin ? 'auto' : 'none', transition: 'opacity 0.25s ease' }}
           >
-            <div className="flex flex-col md:flex-row min-h-[560px] md:min-h-[600px]">
+            <div className="flex flex-col md:flex-row min-h-[640px]">
               <div className="relative hidden md:flex flex-col justify-between p-10 lg:p-12 w-[45%] overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c4a6e 0%, #0e7490 30%, #0891b2 60%, #0d9488 100%)' }}>
                 <DecoElements />
                 <div className="relative z-10"><Logo /></div>
@@ -175,7 +169,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
                   <p className="text-[10px] text-white/30 mt-2">Gratis para siempre · Sin tarjeta de crédito</p>
                 </div>
               </div>
-              <div className="flex-1 flex flex-col justify-center p-8 md:p-10 lg:p-12 bg-white/[0.03]">
+              <div className="flex-1 flex flex-col justify-center p-8 md:p-10 lg:p-12 bg-white/[0.03] overflow-y-auto">
                 <div className="flex md:hidden items-center gap-2.5 mb-6"><MobileLogo /></div>
                 <div className="mb-6">
                   <h1 className="text-2xl font-bold text-white mb-1.5">Bienvenido de nuevo</h1>
@@ -214,10 +208,10 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
 
           {/* SIGNUP FACE */}
           <div
-            className="absolute inset-0 transition-opacity duration-200"
-            style={{ opacity: signupVisible ? 1 : 0, pointerEvents: signupVisible ? 'auto' : 'none' }}
+            className="absolute inset-0"
+            style={{ opacity: showSignup ? 1 : 0, pointerEvents: showSignup ? 'auto' : 'none', transition: 'opacity 0.25s ease' }}
           >
-            <div className="flex flex-col md:flex-row min-h-[560px] md:min-h-[600px]">
+            <div className="flex flex-col md:flex-row min-h-[640px]">
               <div className="relative hidden md:flex flex-col justify-between p-10 lg:p-12 w-[45%] overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c4a6e 0%, #0e7490 30%, #0891b2 60%, #0d9488 100%)' }}>
                 <DecoElements />
                 <div className="relative z-10"><Logo /></div>
@@ -284,6 +278,8 @@ function AuthKeyframes() {
   return (
     <style jsx global>{`
       @keyframes cardEntry { from { opacity: 0; transform: translateY(30px) scale(0.96); filter: blur(8px); } to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
+      @keyframes authFlipRight { 0% { transform: rotateY(0deg) scale(1); } 50% { transform: rotateY(180deg) scale(0.92); } 100% { transform: rotateY(360deg) scale(1); } }
+      @keyframes authFlipLeft { 0% { transform: rotateY(0deg) scale(1); } 50% { transform: rotateY(-180deg) scale(0.92); } 100% { transform: rotateY(-360deg) scale(1); } }
       @keyframes float1 { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(40px, -30px) scale(1.1); } 66% { transform: translate(-20px, 20px) scale(0.95); } }
       @keyframes float2 { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(-30px, 20px) scale(1.05); } 66% { transform: translate(20px, -30px) scale(0.9); } }
       @keyframes float3 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, -20px); } }
