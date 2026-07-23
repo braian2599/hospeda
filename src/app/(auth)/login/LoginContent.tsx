@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, Loader2, CheckCircle2, Mail, Lock, ArrowRight, Sparkles, Building2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, CheckCircle2, Mail, Lock, ArrowRight, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import AnimatedBackground from './AnimatedBackground';
@@ -71,7 +71,7 @@ export default function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#0a0a1a]">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#0a1628]">
       {/* Animated particle background */}
       <AnimatedBackground />
 
@@ -79,23 +79,23 @@ export default function LoginContent() {
       <div className="absolute inset-0 pointer-events-none">
         <div
           className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full opacity-20 blur-[120px]"
-          style={{ background: 'radial-gradient(circle, #7c3aed, transparent 70%)', animation: 'float1 25s ease-in-out infinite' }}
+          style={{ background: 'radial-gradient(circle, #0ea5e9, transparent 70%)', animation: 'float1 25s ease-in-out infinite' }}
         />
         <div
           className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full opacity-15 blur-[120px]"
-          style={{ background: 'radial-gradient(circle, #3b82f6, transparent 70%)', animation: 'float2 20s ease-in-out infinite' }}
+          style={{ background: 'radial-gradient(circle, #0d9488, transparent 70%)', animation: 'float2 20s ease-in-out infinite' }}
         />
         <div
           className="absolute top-[40%] left-[50%] w-[300px] h-[300px] rounded-full opacity-10 blur-[100px]"
-          style={{ background: 'radial-gradient(circle, #a855f7, transparent 70%)', animation: 'float3 30s ease-in-out infinite' }}
+          style={{ background: 'radial-gradient(circle, #14b8a6, transparent 70%)', animation: 'float3 30s ease-in-out infinite' }}
         />
       </div>
 
       {/* Main split card */}
       <div
-        className="relative z-10 w-full max-w-[900px] mx-4 rounded-3xl overflow-hidden shadow-2xl shadow-purple-900/20 border border-white/[0.08]"
+        className="relative z-10 w-full max-w-[900px] mx-4 rounded-3xl overflow-hidden shadow-2xl shadow-sky-900/20 border border-white/[0.08]"
         style={{
-          background: 'rgba(15, 15, 30, 0.6)',
+          background: 'rgba(15, 23, 42, 0.6)',
           backdropFilter: 'blur(40px)',
           WebkitBackdropFilter: 'blur(40px)',
           animation: 'cardEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) both',
@@ -106,7 +106,7 @@ export default function LoginContent() {
           <div
             className="relative hidden md:flex flex-col justify-between p-10 lg:p-12 w-[45%] overflow-hidden"
             style={{
-              background: 'linear-gradient(135deg, #4c1d95 0%, #6d28d9 30%, #7c3aed 60%, #5b5cf6 100%)',
+              background: 'linear-gradient(135deg, #0c4a6e 0%, #0e7490 30%, #0891b2 60%, #0d9488 100%)',
             }}
           >
             {/* Decorative circles */}
@@ -117,7 +117,7 @@ export default function LoginContent() {
               <Building2 className="w-6 h-6 text-white/60" />
             </div>
 
-            {/* Decorative floating dots */}
+            {/* Floating dots */}
             <div className="absolute top-20 right-10 w-2 h-2 rounded-full bg-white/30" style={{ animation: 'dotPulse 3s ease-in-out infinite' }} />
             <div className="absolute top-32 right-20 w-1.5 h-1.5 rounded-full bg-white/20" style={{ animation: 'dotPulse 3s ease-in-out infinite 1s' }} />
             <div className="absolute bottom-32 left-8 w-2 h-2 rounded-full bg-white/25" style={{ animation: 'dotPulse 3s ease-in-out infinite 0.5s' }} />
@@ -131,7 +131,6 @@ export default function LoginContent() {
 
             <div className="relative z-10 flex-1 flex flex-col justify-center">
               <div className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-white/70 font-medium mb-4">
-                <Sparkles className="w-3.5 h-3.5" />
                 Tu espacio de trabajo te espera
               </div>
               <h2 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-4">
@@ -211,7 +210,7 @@ export default function LoginContent() {
                     placeholder="tu@email.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="pl-10 h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus:border-violet-500/50 focus:ring-violet-500/20"
+                    className="pl-10 h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus:border-sky-500/50 focus:ring-sky-500/20"
                     autoComplete="email"
                     disabled={loading}
                   />
@@ -220,7 +219,7 @@ export default function LoginContent() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-xs text-white/50">Contraseña</Label>
-                  <Link href="/forgot-password" className="text-[11px] text-violet-400 hover:text-violet-300 transition-colors">
+                  <Link href="/forgot-password" className="text-[11px] text-sky-400 hover:text-sky-300 transition-colors">
                     ¿La olvidaste?
                   </Link>
                 </div>
@@ -232,7 +231,7 @@ export default function LoginContent() {
                     placeholder="Tu contraseña"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="pl-10 pr-10 h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus:border-violet-500/50 focus:ring-violet-500/20"
+                    className="pl-10 pr-10 h-11 rounded-xl border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus:border-sky-500/50 focus:ring-sky-500/20"
                     autoComplete="current-password"
                     disabled={loading}
                   />
@@ -249,7 +248,7 @@ export default function LoginContent() {
 
               <Button
                 type="submit"
-                className="w-full h-11 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium transition-all duration-200 shadow-lg shadow-violet-600/25"
+                className="w-full h-11 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-medium transition-all duration-200 shadow-lg shadow-sky-500/25"
                 disabled={loading}
               >
                 {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Ingresando…</> : 'Ingresar'}
@@ -258,7 +257,7 @@ export default function LoginContent() {
 
             {/* Mobile: register link */}
             <div className="md:hidden mt-5 text-center">
-              <Link href="/register" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+              <Link href="/register" className="text-sm text-sky-400 hover:text-sky-300 transition-colors">
                 Crear una cuenta nueva
               </Link>
             </div>
@@ -270,19 +269,11 @@ export default function LoginContent() {
         </div>
       </div>
 
-      {/* CSS Keyframes */}
+      {/* Keyframes */}
       <style jsx global>{`
         @keyframes cardEntry {
-          from {
-            opacity: 0;
-            transform: translateY(30px) scale(0.96);
-            filter: blur(8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-            filter: blur(0);
-          }
+          from { opacity: 0; transform: translateY(30px) scale(0.96); filter: blur(8px); }
+          to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
         }
         @keyframes float1 {
           0%, 100% { transform: translate(0, 0) scale(1); }

@@ -15,11 +15,11 @@ interface Particle {
 }
 
 const COLORS = [
-  'rgba(139, 92, 246, ',   // violet-500
-  'rgba(99, 102, 241, ',    // indigo-500
+  'rgba(14, 165, 233, ',   // sky-500
+  'rgba(20, 184, 166, ',    // teal-500
   'rgba(59, 130, 246, ',    // blue-500
-  'rgba(168, 85, 247, ',    // purple-500
-  'rgba(79, 70, 229, ',     // indigo-600
+  'rgba(6, 182, 212, ',     // cyan-500
+  'rgba(56, 189, 248, ',    // sky-400
 ];
 
 export default function AnimatedBackground() {
@@ -41,7 +41,6 @@ export default function AnimatedBackground() {
     resize();
     window.addEventListener('resize', resize);
 
-    // Create particles
     const count = Math.min(80, Math.floor((canvas.width * canvas.height) / 15000));
     particlesRef.current = Array.from({ length: count }, () => ({
       x: Math.random() * canvas.width,
@@ -71,11 +70,9 @@ export default function AnimatedBackground() {
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
 
-        // Pulse opacity
         const pulse = Math.sin(time * p.pulseSpeed + p.pulsePhase) * 0.15 + 0.85;
         const currentOpacity = p.opacity * pulse;
 
-        // Mouse repulsion (subtle)
         const dx = p.x - mouse.x;
         const dy = p.y - mouse.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -85,21 +82,17 @@ export default function AnimatedBackground() {
           p.vy += (dy / dist) * force;
         }
 
-        // Damping
         p.vx *= 0.99;
         p.vy *= 0.99;
 
-        // Move
         p.x += p.vx;
         p.y += p.vy;
 
-        // Wrap around
         if (p.x < -10) p.x = canvas.width + 10;
         if (p.x > canvas.width + 10) p.x = -10;
         if (p.y < -10) p.y = canvas.height + 10;
         if (p.y > canvas.height + 10) p.y = -10;
 
-        // Draw glow
         const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 6);
         gradient.addColorStop(0, p.color + (currentOpacity * 0.6) + ')');
         gradient.addColorStop(0.4, p.color + (currentOpacity * 0.2) + ')');
@@ -109,13 +102,11 @@ export default function AnimatedBackground() {
         ctx.fillStyle = gradient;
         ctx.fill();
 
-        // Draw core
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fillStyle = p.color + currentOpacity + ')';
         ctx.fill();
 
-        // Draw connections
         for (let j = i + 1; j < particles.length; j++) {
           const p2 = particles[j];
           const cdx = p.x - p2.x;
