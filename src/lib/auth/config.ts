@@ -6,38 +6,17 @@ import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { rateLimit } from '@/lib/validation';
 
-const baseAdapter = PrismaAdapter(db);
-
-// Wrap createUser: si un usuario con ese email ya existe (registrado via email/password),
-// devolver el usuario existente para que el adapter pueda linkAccount con Google.
-const adapter: ReturnType<typeof PrismaAdapter> = {
-  ...baseAdapter,
-  async createUser(data) {
-    const existingUser = await db.user.findUnique({
-      where: { email: data.email! },
-    });
-    if (existingUser) {
-      // Google verificó el email — marcar como verificado si no lo estaba
-      if (!existingUser.emailVerified && data.emailVerified) {
-        await db.user.update({
-          where: { id: existingUser.id },
-          data: { emailVerified: data.emailVerified },
-        });
-      }
-      return existingUser;
-    }
-    return baseAdapter.createUser!(data);
-  },
-};
-
 export const authOptions: NextAuthOptions = {
-  adapter,
+  adapter: PrismaAdapter(db),
 
   providers: [
     // ── Google OAuth ──
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      // Permite linkear Google a una cuenta existente registrada via email/password.
+      // Sin esto, NextAuth lanza AccountNotLinkedError si el email ya existe.
+      allowDangerousEmailAccountLinking: true,
     }),
 
     // ── Email + Contraseña del perfil ──
@@ -121,7 +100,7 @@ export const authOptions: NextAuthOptions = {
           token.tenantId = undefined;
           token.tenantRole = undefined;
           token.tenantUserId = undefined;
-          return token;
+          // No retornar acá — dejar que isSuperAdmin se calcule abajo
         }
         const proposedTenantId = (session as Record<string, unknown>).tenantId as string | undefined;
         const proposedTenantUserId = (session as Record<string, unknown>).tenantUserId as string | undefined;

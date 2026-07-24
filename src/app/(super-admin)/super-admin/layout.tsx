@@ -70,19 +70,42 @@ function SidebarButton({
 function ProtectedGuard({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [verified, setVerified] = useState<boolean | null>(null);
 
+  // Verificar contra el server si el JWT dice que es super-admin
+  // (o si el JWT aún no tiene el flag por ser una sesión anterior al deploy)
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
-    } else if (status === 'authenticated') {
-      const isSuperAdmin = (session?.user as Record<string, unknown>)?.isSuperAdmin;
-      if (!isSuperAdmin) {
-        router.push('/app');
-      }
+      return;
     }
+    if (status !== 'authenticated') return;
+
+    const jwtIsSuperAdmin = !!(session?.user as Record<string, unknown>)?.isSuperAdmin;
+
+    if (jwtIsSuperAdmin) {
+      // El JWT ya dice que es super-admin → permitir acceso directamente
+      setVerified(true);
+      return;
+    }
+
+    // El JWT no tiene isSuperAdmin (sesión vieja) o dice false → verificar con el server
+    fetch('/api/super-admin/status')
+      .then(res => {
+        if (res.ok) {
+          setVerified(true);
+        } else {
+          setVerified(false);
+          router.push('/app');
+        }
+      })
+      .catch(() => {
+        setVerified(false);
+        router.push('/app');
+      });
   }, [status, session, router]);
 
-  if (status === 'loading' || status === 'unauthenticated') {
+  if (status === 'loading' || verified === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-3">
@@ -93,8 +116,7 @@ function ProtectedGuard({ children }: { children: ReactNode }) {
     );
   }
 
-  // Esperar a que session esté disponible para verificar isSuperAdmin
-  if (status === 'authenticated' && !(session?.user as Record<string, unknown>)?.isSuperAdmin) {
+  if (!verified) {
     return null;
   }
 
