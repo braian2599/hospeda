@@ -74,8 +74,13 @@ function ProtectedGuard({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
+    } else if (status === 'authenticated') {
+      const isSuperAdmin = (session?.user as Record<string, unknown>)?.isSuperAdmin;
+      if (!isSuperAdmin) {
+        router.push('/app');
+      }
     }
-  }, [status, router]);
+  }, [status, session, router]);
 
   if (status === 'loading' || status === 'unauthenticated') {
     return (
@@ -86,6 +91,11 @@ function ProtectedGuard({ children }: { children: ReactNode }) {
         </div>
       </div>
     );
+  }
+
+  // Esperar a que session esté disponible para verificar isSuperAdmin
+  if (status === 'authenticated' && !(session?.user as Record<string, unknown>)?.isSuperAdmin) {
+    return null;
   }
 
   return <>{children}</>;

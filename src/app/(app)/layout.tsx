@@ -279,7 +279,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
       if (jwtTenantId) params.set('tenantId', jwtTenantId);
       if (jwtProfileId) params.set('profileId', jwtProfileId);
       const meUrl = `/api/auth/me${params.toString() ? '?' + params.toString() : ''}`;
-      fetch(meUrl)
+      fetch(meUrl, { cache: 'no-store' })
         .then(res => res.json())
         .then(data => processMeData(data))
         .catch(() => { setError('No se pudo conectar al servidor.'); setLoading(false); fetchRef.current = false; });
@@ -299,10 +299,9 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handler = async () => {
       setNeedsSetup(false);
-      fetchRef.current = false;
       setLoading(true);
       try {
-        const res = await fetch('/api/auth/me');
+        const res = await fetch('/api/auth/me', { cache: 'no-store' });
         const data = await res.json();
         processMeData(data);
       } catch {
@@ -377,7 +376,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
           <div className="flex flex-col gap-2 pt-2">
             <Button variant="outline" onClick={() => {
               setError(null); setLoading(true);
-              fetch('/api/auth/me').then(res => res.json()).then(data => processMeData(data)).catch(() => { setError('No se pudo conectar.'); setLoading(false); });
+              fetch('/api/auth/me', { cache: 'no-store' }).then(res => res.json()).then(data => processMeData(data)).catch(() => { setError('No se pudo conectar.'); setLoading(false); });
             }}>Reintentar</Button>
             <Button variant="ghost" onClick={() => signOut({ callbackUrl: '/login' })}>
               <LogOut className="w-4 h-4 mr-2" /> Cerrar sesion

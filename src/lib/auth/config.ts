@@ -6,8 +6,32 @@ import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { rateLimit } from '@/lib/validation';
 
+const baseAdapter = PrismaAdapter(db);
+
+// Wrap createUser: si un usuario con ese email ya existe (registrado via email/password),
+// devolver el usuario existente para que el adapter pueda linkAccount con Google.
+const adapter: ReturnType<typeof PrismaAdapter> = {
+  ...baseAdapter,
+  async createUser(data) {
+    const existingUser = await db.user.findUnique({
+      where: { email: data.email! },
+    });
+    if (existingUser) {
+      // Google verificó el email — marcar como verificado si no lo estaba
+      if (!existingUser.emailVerified && data.emailVerified) {
+        await db.user.update({
+          where: { id: existingUser.id },
+          data: { emailVerified: data.emailVerified },
+        });
+      }
+      return existingUser;
+    }
+    return baseAdapter.createUser!(data);
+  },
+};
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(db),
+  adapter,
 
   providers: [
     // ── Google OAuth ──
@@ -127,6 +151,11 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
+      // Determinar si es super-admin basado en la variable de entorno
+      const superAdminEmails = (process.env.SUPER_ADMIN_EMAILS || '')
+        .split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+      token.isSuperAdmin = superAdminEmails.includes((token.email as string)?.toLowerCase());
+
       // NO agregar fallback automático de tenantId aquí.
       // Si no hay tenantId, el SessionLoader llamará a /api/auth/me sin params
       // y el flujo normal (selector de hotel/perfil) se encargará.
@@ -141,6 +170,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as Record<string, unknown>).tenantRole = token.tenantRole;
         (session.user as Record<string, unknown>).tenantUserId = token.tenantUserId;
         (session.user as Record<string, unknown>).matchedProfileIds = token.matchedProfileIds;
+        (session.user as Record<string, unknown>).isSuperAdmin = token.isSuperAdmin;
       }
       return session;
     },
