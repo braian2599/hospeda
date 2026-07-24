@@ -67,45 +67,19 @@ function SidebarButton({
 }
 
 // ─── Protected Guard ───
+// Solo verifica autenticación. La autorización (SUPER_ADMIN_EMAILS)
+// la manejan las API routes con requireSuperAdmin().
 function ProtectedGuard({ children }: { children: ReactNode }) {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
-  const [verified, setVerified] = useState<boolean | null>(null);
 
-  // Verificar contra el server si el JWT dice que es super-admin
-  // (o si el JWT aún no tiene el flag por ser una sesión anterior al deploy)
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
-      return;
     }
-    if (status !== 'authenticated') return;
+  }, [status, router]);
 
-    const jwtIsSuperAdmin = !!(session?.user as Record<string, unknown>)?.isSuperAdmin;
-
-    if (jwtIsSuperAdmin) {
-      // El JWT ya dice que es super-admin → permitir acceso directamente
-      setVerified(true);
-      return;
-    }
-
-    // El JWT no tiene isSuperAdmin (sesión vieja) o dice false → verificar con el server
-    fetch('/api/super-admin/status')
-      .then(res => {
-        if (res.ok) {
-          setVerified(true);
-        } else {
-          setVerified(false);
-          router.push('/app');
-        }
-      })
-      .catch(() => {
-        setVerified(false);
-        router.push('/app');
-      });
-  }, [status, session, router]);
-
-  if (status === 'loading' || verified === null) {
+  if (status === 'loading' || status === 'unauthenticated') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-3">
@@ -114,10 +88,6 @@ function ProtectedGuard({ children }: { children: ReactNode }) {
         </div>
       </div>
     );
-  }
-
-  if (!verified) {
-    return null;
   }
 
   return <>{children}</>;
