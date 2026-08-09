@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
-import type { EstadoTareaLimpieza } from '@prisma/client';
+
+type EstadoTareaLimpieza = 'pendiente' | 'en_progreso' | 'completada';
 
 // PUT /api/limpieza/[id] — Actualizar tarea de limpieza (estado, empleado, completar)
 export async function PUT(
@@ -12,7 +13,7 @@ export async function PUT(
     const tenantId = await requireTenantId();
     const { id } = await params;
     const body = await req.json();
-    const { estado, empleadoId, empleado } = body;
+    const { estado, empleadoId, empleado, nota } = body;
 
     // Buscar tarea
     const tarea = await db.tareaLimpieza.findFirst({
@@ -42,6 +43,10 @@ export async function PUT(
 
     if (empleado !== undefined) {
       data.empleado = empleado?.trim() || null;
+    }
+
+    if (nota !== undefined) {
+      data.nota = typeof nota === 'string' ? nota.trim() || null : null;
     }
 
     const updated = await db.tareaLimpieza.update({

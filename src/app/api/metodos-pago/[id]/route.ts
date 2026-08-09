@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
-import { TipoMetodoPago } from '@prisma/client';
+
+type TipoMetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'qr' | 'cuenta_corriente' | 'mercadopago' | 'otro';
+
+const TIPOS_METODO_PAGO: TipoMetodoPago[] = ['efectivo', 'tarjeta', 'transferencia', 'qr', 'cuenta_corriente', 'mercadopago', 'otro'];
 
 // PUT /api/metodos-pago/[id] — Actualizar método de pago
 export async function PUT(
@@ -35,8 +38,8 @@ export async function PUT(
 
     // Si se envía tipo, validar que sea un valor válido del enum
     if (tipo !== undefined) {
-      const tiposValidos = Object.values(TipoMetodoPago);
-      if (!tiposValidos.includes(tipo)) {
+      const tiposValidos = TIPOS_METODO_PAGO;
+      if (!tiposValidos.includes(tipo as TipoMetodoPago)) {
         return NextResponse.json(
           { error: `tipo debe ser uno de: ${tiposValidos.join(', ')}` },
           { status: 400 }

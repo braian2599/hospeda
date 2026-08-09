@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
-import { TipoMetodoPago } from '@prisma/client';
+
+type TipoMetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'qr' | 'cuenta_corriente' | 'mercadopago' | 'otro';
+
+const TIPOS_METODO_PAGO: TipoMetodoPago[] = ['efectivo', 'tarjeta', 'transferencia', 'qr', 'cuenta_corriente', 'mercadopago', 'otro'];
 
 // GET /api/metodos-pago — Listar métodos de pago activos del tenant
 export async function GET() {
@@ -35,8 +38,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
     }
 
-    const tiposValidos = Object.values(TipoMetodoPago);
-    if (!tipo || !tiposValidos.includes(tipo)) {
+    const tiposValidos = TIPOS_METODO_PAGO;
+    if (!tipo || !tiposValidos.includes(tipo as TipoMetodoPago)) {
       return NextResponse.json(
         { error: `tipo debe ser uno de: ${tiposValidos.join(', ')}` },
         { status: 400 }

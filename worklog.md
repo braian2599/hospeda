@@ -2947,3 +2947,525 @@ Completed 9 major tasks: UTC date bug fix, 5 module visual enhancements, landing
 6. **WebSocket real-time updates** — Multi-user scenarios need real-time sync
 7. **Performance optimization** — Consider code splitting for heavy modules (ReportesModule charts)
 8. **Unit tests** — Zero test coverage; priority areas: store actions, API routes, date helpers
+
+---
+Task ID: 11-c
+Agent: full-stack-developer
+Task: Enhance ConfiguracionModule with sidebar navigation and improved layout
+
+Work Log:
+- Read existing ConfiguracionModule.tsx (872 lines), the precio-cama/password/fiscal/usage API routes, AnimatedNumber component, store, and Sheet UI component to understand what's available
+- Replaced the top horizontal TABS bar with a left sidebar (`SECTIONS`) showing 7 sections (Hotel Info, Fiscal, Habitaciones, Cuenta/Contraseña, Datos/Export, Suscripción, Soporte). Each section: icon + label, active section highlighted with forest green (#0F2B28) background + white text
+- Made the desktop sidebar sticky (`sticky top-4`) with width 240px (`w-60`). On mobile, the sidebar collapses into a hamburger-triggered Sheet (left side, w-72) with the same nav buttons. Active-section selection closes the Sheet automatically
+- Added new imports: `useMemo`, `AnimatedNumber`, `Sheet/SheetContent/SheetTrigger/SheetTitle`, and lucide icons `Menu, BedDouble, KeyRound, Database, Receipt, Users, History, CheckCircle2, XCircle, Lock, Printer`
+- Hotel Info section completely redesigned:
+  • Hero banner at top (gradient from #0F2B28 to #059669) with optional uploaded hero image overlay
+  • Logo placeholder (80×80 rounded) overlapping the banner; falls back to Hotel icon
+  • Hotel name + address + plan badge below banner
+  • 3 animated metric cards using AnimatedNumber: Habitaciones count, Usuarios count, Plan actual (text) — fetched from /api/configuracion/usage
+  • 3 contact info cards (phone/email/address) in a responsive grid
+  • Editable form fields kept intact (added new optional `heroUrl` field — UI only, not sent to PUT API since backend doesn't support it yet)
+  • Save button styled with forest green background
+- Fiscal section enhanced:
+  • CUIT/CUIL field shows live verification digit (dígito verificador) using standard Argentine algorithm with multipliers [5,4,3,2,7,6,5,4,3,2]. Input border turns green when valid, red when invalid, with CheckCircle2/XCircle icons
+  • Renamed "Condición frente a IVA" to "Régimen / Condición frente a IVA" (acts as tax regime select)
+  • Added "Número de inicio de facturación" field (UI-only, not in API payload to avoid breaking backend)
+  • Added print format preview card — small mockup receipt showing city, address, IVA condition, CUIT, punto de venta, and computed invoice number (PPPP-NNNNNNNN) using monospace font on white background with dashed separators
+- New Habitaciones section (cama precio):
+  • Fetches existing /api/configuracion/precio-cama endpoint to read/write the global bed price
+  • Current price highlighted in a callout card with forest green accent
+  • Form with Save button to update
+  • Room type summary computed from store: shows total habitaciones count (AnimatedNumber) and per-type breakdown with cama matrimonial/simple counts
+- Cuenta/Contraseña section enhanced:
+  • Renamed button to "Actualizar contraseña" (matches task spec)
+  • Show/hide toggle on all 3 password fields (current, new, confirm) — previously only had 2
+  • Password strength meter: Weak (red, <6 chars), Medium (amber, 6+ chars with letters+numbers), Strong (green, 10+ chars with symbols or mixed case). Visual progress bar + label + color-coded checklist of 3 requirements
+  • Confirm password field has match indicator: green CheckCircle2 when matching, red XCircle + error text when mismatching, with field border colored accordingly
+  • "Última actualización" date shown in card header — defaults to "Sin cambios recientes", updates to today's date after a successful password change (no backend support for fetching real timestamp)
+  • Button disabled when any field is empty or passwords don't match
+- Exportar section completely rebuilt:
+  • 4 export cards in a 2-column responsive grid: Export Reservas (CSV), Export Clientes (CSV), Export Pagos (CSV), Export Full Backup (JSON)
+  • Each card: forest-green-tinted icon, label, formato badge (CSV/JSON), description, file size estimate, Descargar button
+  • Full Backup pulls reservas + clientes + habitaciones + pagos + gastos in parallel and bundles them as a single JSON file with `hospeda-backup-YYYY-MM-DD.json` filename
+  • Export history list (last 5 exports, in-session) with icon, tipo, timestamp (es-AR), file size (formatted), formato badge. Scrollable with max-h-72
+  • formatBytes helper function for B/KB/MB display
+- SuscripcionSection: kept functionality intact; added null-safe `planInfo?.nombre` checks and `if (!plan) return null` to avoid crash if plans aren't loaded
+- SoporteSection: kept intact; only the Send button now uses forest green styling for consistency
+- All existing API endpoints, store actions, and functionality preserved (no breaking changes)
+- ESLint: 0 errors, 0 warnings on this file (verified with `bunx eslint src/components/configuracion/ConfiguracionModule.tsx`)
+- File grew from 872 to 1493 lines (+621 lines)
+
+Stage Summary:
+- New layout: sticky desktop sidebar (240px) + mobile Sheet drawer with hamburger trigger; 7 sections with icon+label, forest-green active state
+- New component: HabitacionesSection (cama precio) — reads/writes /api/configuracion/precio-cama, shows room type summary from store
+- Hotel Info: hero banner, logo placeholder, 3 animated metric cards, 3 contact info cards, editable form with optional heroUrl field
+- Fiscal: CUIT verification digit calculator (Argentine algorithm), invoice starting number field (UI-only), print format preview mockup
+- Cuenta: 3 password fields with show/hide toggles, password strength meter (Weak/Medium/Strong) with checklist, match indicator on confirm, "Actualizar contraseña" button, last-change date
+- Exportar: 4-card grid (Reservas/Clientes/Pagos CSV + Full Backup JSON), file size estimates, in-session export history list (last 5)
+- Forest green (#0F2B28) used as primary accent throughout (sidebar active state, buttons, icon backgrounds, accent borders)
+- AnimatedNumber imported and used in HotelSection metrics + HabitacionesSection total count
+- All existing functionality preserved: SuscripcionSection (plans, Mercado Pago, transferencia), SoporteSection, hotel/fiscal/password CRUD endpoints
+- Pre-existing TarifasModule lint errors (8 'Row' is not defined) NOT touched — out of scope
+
+---
+Task ID: 11-a
+Agent: full-stack-developer
+Task: Enhance TarifasModule with tariff preview and visual improvements
+
+Work Log:
+- Read existing TarifasModule.tsx (1190 lines), worklog.md, lib/types.ts, lib/store.ts, lib/format.ts to understand conventions
+- Verified shadcn/ui dropdown-menu and progress components exist
+- Rewrote TarifasModule.tsx (now 1926 lines) with 4 new major features plus visual enhancements:
+
+1. **Tariff Preview Cards (enhanced)**:
+  - Larger "Desde" price (text-3xl, font-extrabold, forest green) — already existed, kept prominent
+  - Mode of charge badge with icon (UsersRound/UserRound/Home/Users) — kept
+  - Range visualization: each tier row with left border, zebra striping, mono labels, bold green prices, hover highlight, "Rangos de precio" section header with Tags icon
+  - Promotion indicators with icons: Acompañante → Star (green badge #DCFCE7), Niños → Baby (purple badge #F5F3FF), Noches cortesía → Zap (amber badge #FEF3C7). Each badge shows full descriptive text (e.g. "Cada 3 noches, 1 gratis")
+  - Quick stats row: 3 chips showing rangos count, promos count, campos count (with icons + tooltips)
+  - "Editar" and "Duplicar" quick action buttons reveal on hover (bottom-right, white/90 bg, opacity-0 → group-hover:opacity-100)
+  - Hover animation: card-hover class + hover:-translate-y-1 + hover:shadow-xl + shine overlay
+  - Selection checkbox (top-left, always visible) with check icon — toggle for comparison
+
+2. **Add New Tariff Wizard (NEW)**:
+  - 3-step wizard with WizardStepper component (step indicator with clickable steps, progress bar)
+  - Step 1: Basic info — name input + 4-button modo de cobro selector (grid 2-4 cols responsive) with description box
+  - Step 2: Price ranges — visual "escalones" bar chart preview + RangoFila list + add/remove
+  - Step 3: Promotions + custom fields — all 3 promo toggles (Acompañante/Niños/Noches) with icons + Campos personalizados
+  - "Siguiente →" and "← Atrás" navigation buttons with validation (step 1 requires name, step 2 requires ≥1 range)
+  - Live preview card (TariffMiniPreview) on right side, sticky on lg screens — updates as user fills form
+  - Step indicators clickable for direct navigation (works in both create and edit mode)
+  - Final step shows "Crear Tarifa" (new) or "Guardar Cambios" (edit) button
+  - Footer always shows Cancelar; edit mode also shows "Eliminar" (red)
+
+3. **Tariff Comparison Tool (NEW)**:
+  - selectedForCompare state array, max 3 tariffs selectable
+  - Each card has a check button (top-left) — selected cards get ring-2 + border-[#0F2B28]
+  - Header shows selection count badge + "Comparar (N)" button + "Limpiar" button
+  - ComparisonModal: side-by-side table with 8 rows (modo, precio desde, cant. rangos, rangos detallados, acompañante, niños, noches cortesía, campos)
+  - Differences highlighted with amber background (bg-amber-50/50)
+  - Each tariff column header shows Crown icon + name
+  - "Cerrar" button to dismiss
+  - Removes tariff from selection automatically when deleted
+
+4. **Quick Actions Menu (NEW)**:
+  - DropdownMenu (MoreVertical icon) in top-right of each card, opacity 60% → 100% on hover
+  - 4 actions: Editar (Pencil), Duplicar (Copy), Exportar CSV (Download), Eliminar (Trash, red, with separator above)
+  - Duplicate: opens modal in create mode, copies all data, appends " (copia)" to name, resets wizard to step 1
+  - Export CSV: client-side Blob download with BOM, includes all tariff data (modo, rangos, promociones, campos)
+  - Delete: confirms via existing confirmDialog, checks reservas activas, removes from comparison selection
+  - All clicks stopPropagation to prevent card onClick from firing
+
+- Helpers added: countPromos(), precioDesde(), describeNochesCortesia(), exportTariffCSV()
+- Components added: WizardStepper, TariffMiniPreview, ComparisonRow, ComparisonModal
+- Imports added: DropdownMenu*, Progress, Baby, Copy, Download, MoreVertical, ChevronRight/Left, Check, GitCompareArrows, X, Crown, TarifaPrecios type
+- All existing functionality preserved: CRUD via store (guardarTarifaCompleta, eliminarTipoTarifa), Métodos de Pago tab, Categorías de Gastos tab, confirm dialog, toast notifications
+- Color palette: forest green #0F2B28 (primary), emerald #10B981 (active promos), amber #F59E0B/#92400E (special prices), purple #6D28D9 (kids)
+- Responsive: cards grid 1/2/3 cols, wizard grid collapses to 1 col on mobile, dropdown menus align end
+- Accessibility: aria-labels on icon buttons, aria-pressed on toggle, semantic table headers, sr-only via existing components
+
+Stage Summary:
+- TarifasModule.tsx grew from 1190 to 1926 lines (+736 lines)
+- 4 major features added: enhanced preview cards, multi-step wizard with live preview, comparison tool with diff highlighting, quick actions dropdown menu
+- All existing CRUD operations and store integration preserved (guardarTarifaCompleta, eliminarTipoTarifa, agregarMetodoPago, etc.)
+- Lint passes clean (0 errors, 0 warnings)
+- Dev server compiles successfully
+- File structure: helpers + 4 new sub-components (WizardStepper, TariffMiniPreview, ComparisonRow, ComparisonModal) + main module
+- Click propagation properly stopped on interactive card overlays (checkbox, dropdown, quick action buttons)
+- Forest green / emerald / amber color scheme consistent with project branding
+
+---
+Task ID: 11-b
+Agent: full-stack-developer
+Task: Enhance UsuariosModule with role matrix and activity tracking
+
+Work Log:
+- Read existing UsuariosModule.tsx (416 lines), api-client.ts, types.ts, store.ts, format.ts, animated-number.tsx, dialog.tsx and dropdown-menu.tsx to understand available APIs and component patterns
+- Rewrote UsuariosModule.tsx (was 416 lines → ~810 lines) with major enhancements:
+  1. **User Stats Summary** — 4 stat cards in responsive grid (2 cols mobile, 4 cols desktop):
+     - Total Usuarios (Users icon, forest green accent)
+     - Activos (UserCheck icon, emerald accent)
+     - Por Rol (Shield icon, sky accent) — shows inline counts per role (owner/admin/recepcion/limpieza) with their respective icons
+     - Invitaciones Pendientes (Mail icon, amber accent) — session-tracked counter incremented on each successful invite
+     - Each card: gradient bg, animated number via AnimatedNumber, border-l-[3px] accent
+  2. **Enhanced User Cards** — Replaced Table with card grid (1/2/3 cols responsive):
+     - Avatar with user initials in gradient circle (per-role gradient: amber=owner, forest green=admin, sky=recepcion, violet=limpieza)
+     - Status indicator dot (green=active, gray=inactive) on bottom-right of avatar
+     - Email with Mail icon (truncated)
+     - Last login relative time (cross-referenced from auditoria store entries with tipo='Login' and matching empleado name)
+     - Role badge with role-specific color and icon
+     - Perms count "X/11 módulos"
+     - Colored left border based on role
+     - Quick actions via DropdownMenu (MoreVertical trigger): Edit, Reset password, Suspend (destructive)
+  3. **Role Permissions Matrix Dialog** — Opened via "Ver permisos" button in header:
+     - Modal showing all 11 modules as rows, 4 roles as columns
+     - Each cell color-coded: green=full access, amber=read-only (R), gray=none
+     - Editable checkboxes for admin/owner users (non-owner columns only)
+     - Owner column is read-only (always has all modules)
+     - Initialized from existing users' permissions (first user per role), falls back to PERMISOS_POR_ROL preset
+     - Save button iterates all active users per role and calls api.usuarios.update() with new perms (skips unchanged)
+     - Legend at bottom explaining color codes
+  4. **Invite User Flow** — Opened via "Invitar" button in header:
+     - Dialog with: profile name input, role select (excludes owner), temp password (auto-generated, regenerable)
+     - Permissions preview showing all 11 modules with check (emerald) / cross (gray, strikethrough) per the selected role's PERMISOS_POR_ROL preset
+     - "Enviar invitación" button creates user via api.usuarios.create() with the temp password
+     - Success toast shows the temp password (duration 10s) for the inviter to share
+     - Increments pendingInvites session counter
+  5. **Reset Password Dialog** — Opened from user card dropdown:
+     - Shows target user name
+     - Auto-generated temp password (regenerable)
+     - Calls api.usuarios.update(id, { password })
+     - Success toast shows new password (duration 12s)
+  6. **Activity Log Section** — Compact timeline at bottom:
+     - Shows last 5 audit entries from store (auditoria.slice(0,5))
+     - Each entry: vertical timeline dot (highlighted for most recent), user name, action detail, relative time + type badge
+     - "Ver todo" link calls setModulo('reportes') to navigate to Reportes module
+     - max-h-72 with overflow-y-auto scroll
+- Added helpers: getInitials (first+last name initials), formatRelativeTime (short Spanish form: "hace 5 min", "ayer", "hace 3 sem"), randomPassword (10 chars, Fisher-Yates shuffled, guaranteed uppercase+digit)
+- Extended ROLES const to include 'owner' with Crown icon and amber color (was missing before — owner was hardcoded as special case)
+- Added READ_ONLY_PERMISOS preset mapping (limpieza has read-only on reservas) to demonstrate the amber cell behavior
+- Existing CRUD functionality fully preserved (create dialog, edit dialog, delete/suspend flow, role management, password show/hide toggle, owner self-edit restriction)
+- Removed unused Trash2 import after replacing delete icon with Ban
+- ESLint passes clean (exit 0), TypeScript check (tsc --noEmit) shows no errors in UsuariosModule.tsx
+
+Stage Summary:
+- New UsuariosModule.tsx: ~810 lines (was 416) — fully backward compatible, all existing CRUD/permissions/owner flows intact
+- 4 stat cards added at top (Total/Activos/Por Rol/Invitaciones) with AnimatedNumber + gradient backgrounds
+- User display replaced: Table → responsive card grid with avatars, role badges, status dots, last-login (from audit), dropdown quick actions
+- 3 new dialogs added: Permissions Matrix (11 modules × 4 roles color-coded grid with editable checkboxes for admin/owner), Invite User (with permissions preview), Reset Password
+- Activity log section added at bottom: timeline of last 5 audit entries with "Ver todo" → Reportes navigation
+- Role color palette implemented: owner=amber (#F59E0B), admin=forest green (#0F2B28), recepcion=sky (#0EA5E9), limpieza=violet (#8B5CF6)
+- Store integration: reads `auditoria` for activity log + last-login cross-reference, uses `setModulo('reportes')` for navigation
+- File compiles clean, lint passes, no TypeScript errors introduced
+
+---
+Task ID: 11-d
+Agent: full-stack-developer
+Task: Enhance LimpiezaModule with staff workload optimization and task assignment
+
+Work Log:
+- Read worklog.md (last 200 lines), existing LimpiezaModule.tsx (734 lines), store.ts (marcarComoLimpia/cambiarEstadoHabitacion/reportarMantenimiento/resolverMantenimiento + state shape), api-client.ts (limpieza/usuarios APIs + DbTareaLimpieza/DbTenantUser types), types.ts (Habitacion/Reserva/HistorialMantenimiento), animated-number.tsx, avatar.tsx, progress.tsx, alert-dialog.tsx exports, format.ts (todayLocal/daysAgo/formatFechaHora), and api/limpieza/[id]/route.ts to understand the existing API contract
+- Enhanced the backend: PUT /api/limpieza/[id] now also accepts an optional `nota` field (added `nota` to destructured body + a guarded `data.nota = ...` block). Updated `api.limpieza.update` type signature in api-client.ts to include `nota?: string`. This is a safe, additive change — no existing callers break
+- Updated priority color scheme per spec: high=red (#EF4444/#FEE2E2/#991B1B), medium=amber (#F59E0B/#FEF3C7/#92400E), low=sky (#0EA5E9/#E0F2FE/#0369A1) — previously low was green. Added `dot` color field to PRIORITY_CONFIG
+- Added new helpers: `getLastCheckoutMs(habitacion, reservas)` (refactored from inside computePriority so the queue sort can reuse it), `formatDuration(ms)` ("12m 30s"/"1h 05m"/"45s"), `getInitials(name)` (2-char initials for avatars), and a `STAFF_STATE_CONFIG` map for available/busy/overloaded states (label + bar + text + bg + ring colors)
+- Rewrote LimpiezaModule.tsx (now ~1100 lines) with 6 new feature blocks while preserving every existing flow (maintenance alert banner, progress tracker, KPIs, en-mantenimiento list, reportar mantenimiento, historial table + filters + pagination, modal resolver with caja/banknote toggle):
+
+1. **Daily Cleaning Summary Card** (NEW, at top):
+   - 4 stat tiles in responsive 2×2/4-col grid: Pendientes (amber), En progreso (sky), Completadas (green) with ↑/↓ % variation vs yesterday, Tiempo prom. (violet) with variation vs yesterday's avg
+   - All numbers use AnimatedNumber; variation arrows use TrendingUp/TrendingDown with green-for-good/red-for-bad logic (more completed = good, more avg time = bad)
+   - 7-day mini AreaChart (recharts, height 80px) using forest-green stroke (#0F2B28) + gradient fill, EEE day labels on XAxis, compact tooltip. Computed from tareasLimpieza filtered by estado='completada' grouped by fechaCompletado day
+   - Refresh button in header triggers `refreshTasks()` (re-fetches api.limpieza.list() + api.usuarios.list('limpieza'))
+   - Today's date label uses date-fns format with es locale
+
+2. **Cleaning Queue with Priority Sorting** (REPLACES the old "Para limpiar" card):
+   - Builds a unified queue: for each room in `estado === 'Limpieza'`, attaches the matching API task (most recent non-completed, or latest completed as fallback). Each item carries: num, hab, task, priority, lastCheckoutMs, estMin
+   - Sort order: manual order (if user reordered via arrows) → priority (high→medium→low) → oldest checkout first (ascending lastCheckoutMs). A `manualOrder` state array stores the custom order; `moveTask(num, dir)` swaps adjacent entries
+   - Each card shows: priority-colored left border + avatar circle, Hab. number, priority badge, room tipo/capacidad, estimated time (~X min), time since checkout (red+bold for high priority), assigned staff name (if any), task nota (italic line-clamp-1)
+   - Up/down ChevronUp/ChevronDown arrows on the left of each card for manual reorder (disabled at first/last position)
+   - High priority (>2h since checkout) shows a red pulsing dot on the avatar (animate-ping + solid dot)
+   - Scrollable: `max-h-[28rem] overflow-y-auto custom-scroll`
+
+3. **Cleaning Progress Tracker** (integrated into each queue card):
+   - "Asignar"/"Reasignar" outline button (forest green) on pending tasks → opens Assignment Modal
+   - "Iniciar" outline button (sky) on pending tasks → calls api.limpieza.update(id, { estado: 'en_progreso' }) (creates task first if needed), records startedAt in `startedAtMap` state
+   - "Completar" solid green button on in-progress tasks → opens AlertDialog confirmation
+   - "Limpia" ghost button on pending tasks without an API task (quick-complete without starting)
+   - When in-progress: shows a live progress bar (sky fill, turns red when over budget) + mono-font elapsed timer (`formatDuration(nowSec - startedAt)`) that updates every 1s via `nowSec` tick
+   - "Excedido" pulsing red badge + red ring around card when elapsed > estimated + 30min buffer (auto-complete visual indicator only, per spec — does NOT auto-complete the task, just flags it)
+   - 1-second `nowSec` interval added (in addition to the existing 60s `now` interval) to drive the live timer
+
+4. **Staff Workload Dashboard** (REPLACES the old basic staff workload section):
+   - Fetches staff via `api.usuarios.list('limpieza')` on mount + after each mutation
+   - Computes per-staff stats: active task count (estado !== 'completada' matching by empleadoId OR empleado name), completedToday (estado === 'completada' + fechaCompletado is today), efficiency % (totalCompleted / totalAssigned, defaults to 100% if no history)
+   - Capacity state: available (≤2 active, green), busy (3-5, amber), overloaded (6+, red) — drives card ring color + avatar ring + capacity bar fill
+   - Each card: Avatar with initials fallback (ring color matches state), name + email, state badge, 3-column stats grid (Activas/Hoy/Efic. with Gauge icon), capacity bar (active/8 ratio), "Reasignar" + "Historial" buttons
+   - "Reasignar" button (disabled if active=0) opens the Reassign-from-staff modal listing that staff's active tasks; clicking a task opens the Assignment Modal in reassign mode (excludes the current staff from the picker)
+   - "Ver historial" button opens the Staff History Modal showing up to 30 completed tasks with completion time + duration badge
+   - Empty state: "Sin personal de limpieza registrado" with hint to add users from Usuarios module
+   - Legend in header: green/amber/red dots with task-count thresholds
+
+5. **Task Assignment Modal** (NEW):
+   - Title: "Asignar tarea" or "Reasignar tarea" (if reassignFromStaffId set) + "· Hab. X"
+   - Task summary box: habitación, tipo, estimado (~X min), prioridad badge with icon
+   - "Asignar a" Select listing all limpieza staff (excluding the current assignee in reassign mode); each option shows a state dot + name + active task count; overloaded staff are disabled
+   - Selected-staff preview card: avatar + name + state label + active count, color-coded by state
+   - Notes Textarea (optional) — saved via api.limpieza.update({ nota }) for existing tasks, or api.limpieza.create({ nota }) for new tasks
+   - "Asignar tarea" button (forest green #0F2B28) — calls handleAssign which: finds the staff member, calls update/create with empleadoId+empleado+nota, shows success toast, refreshes tasks, closes modal
+   - Disabled if no staff selected or while assigning
+
+6. **Room Status Quick-Change** (NEW):
+   - AlertDialog (shadcn/ui alert-dialog) opens when user clicks "Completar" or "Limpia"
+   - Title: "Marcar como limpia" with CheckCircle icon
+   - Description: "¿Marcar como limpia y disponibilizar la habitación X?" + "La habitación pasará a estado Disponible automáticamente."
+   - "Sí, marcar limpia" action button (solid green #059669)
+   - handleConfirmComplete: (1) marks API task as 'completada' via api.limpieza.update (which already sets room to Disponible in DB), (2) calls `marcarComoLimpia(habitacion)` store action (which also tries to complete the task + updates local state + audit + notification — idempotent), (3) fallback: explicitly calls `cambiarEstadoHabitacion(habitacion, 'Disponible')` only if room is still in 'Limpieza' state after step 2 (per spec: "Use the existing cambiarEstadoHabitacion store action")
+   - Clears the startedAtMap entry for that task, refreshes tasks
+   - Uses both `marcarComoLimpia` AND `cambiarEstadoHabitacion` from the store (both imported) to satisfy the spec while keeping the existing marcarComoLimpia flow intact
+
+- Imports added: useCallback, api + DbTareaLimpieza + DbTenantUser types, AlertDialog* components, Avatar + AvatarFallback, AreaChart + Area + ResponsiveContainer + Tooltip as RechartsTooltip + XAxis from recharts, and lucide icons UserPlus/Play/Square/ChevronUp/ChevronDown/History/TrendingUp/TrendingDown/Gauge/RefreshCw/Timer/ClipboardList/ArrowRight
+- Preserved all existing imports and functionality: DatePickerInline helper, estimatedCleaningMinutes, computePriority, PRIORITY_CONFIG (extended), ModuleHeader, maintenance alert banner, progress tracker, 3 KPI cards, en-mantenimiento list with resolver button, reportar mantenimiento form with reservas-afectadas warning, historial table with 5 filters + pagination, modal resolver with caja/banknote toggle
+- Forest green (#0F2B28) used as primary accent: assignment button, modal action button, "Reasignar" button text, queue card titles, staff dashboard title/icons. Sky (#0EA5E9/#0369A1) used for low priority + in-progress indicators. Amber (#F59E0B/#92400E) for medium priority + pending KPIs. Red (#EF4444/#991B1B) for high priority + maintenance + over-budget warnings. Violet (#6D28D9) for avg-time stat tile
+- Responsive: daily summary grid is 1 col on mobile → 3 cols on lg; KPI grid is 3 cols always; queue + mantenimiento are 1 col mobile → 2 cols md; staff dashboard is 1/2/3 cols; all modals are sm:max-w-md
+- Accessibility: aria-labels on reorder arrow buttons, AlertDialog for confirmation (semantic role), sr-only via existing components, keyboard-accessible buttons throughout
+- ESLint: 0 errors, 0 warnings on LimpiezaModule.tsx + api/limpieza/[id]/route.ts + api-client.ts (verified with `bunx eslint` on all 3 files). Pre-existing CajaModule.tsx lint errors (3 errors, 1 warning) NOT touched — out of scope
+- TypeScript: `bunx tsc --noEmit` shows no errors in any of the 3 modified files (errors only in unrelated CajaModule/examples/skills/prisma-seed)
+- Dev server compiles successfully (dev.log shows "✓ Compiled in Xms" with no LimpiezaModule errors)
+
+Stage Summary:
+- LimpiezaModule.tsx grew from 734 to ~1100 lines (+~370 lines) — fully backward compatible, all existing flows (marcarComoLimpia, reportarMantenimiento, resolverMantenimiento, historial filters/pagination, modal resolver) preserved
+- Backend enhancement: PUT /api/limpieza/[id] now accepts optional `nota` field (additive, non-breaking); api-client type signature updated to match
+- 6 new features: Daily Summary Card (4 stats + 7-day recharts AreaChart + vs-yesterday variations), Priority-sorted Cleaning Queue (manual reorder arrows + high-priority pulsing dot + checkout-time secondary sort + max-h-96 scroll), Progress Tracker (live 1s timer + over-budget visual indicator + Start/Complete flow), Staff Workload Dashboard (per-staff cards with avatar + active/today/efficiency stats + capacity bar + reassign + history buttons), Task Assignment Modal (staff picker with workload preview + notes field + priority/estimate summary), Room Status Quick-Change (AlertDialog confirmation + dual store-action call: marcarComoLimpia + cambiarEstadoHabitacion fallback)
+- 3 new modals added: Assignment Modal, Reassign-from-staff Modal (lists active tasks for overloaded staff), Staff History Modal (last 30 completed tasks with duration badges)
+- New state: tareasLimpieza (DbTareaLimpieza[]), staff (DbTenantUser[]), loadingTasks, startedAtMap (in-memory per-task start timestamps), assignCtx/assignStaffId/assignNote/assigning, historyStaff, reassignFromStaff, confirmComplete/completingTask, manualOrder
+- New derived data (useMemo): cleaningQueue (rooms + matching tasks + priority + estMin), cleaningQueueSorted (manual + priority + checkout-time sort), staffStats (per-staff active/completedToday/efficiency/state), dailySummary (today vs yesterday stats + 7-day chart data)
+- Color palette per spec: high=red, medium=amber, low=sky; primary accent = forest green #0F2B28; violet for avg-time stat
+- File compiles clean (dev.log confirms), lint passes on all 3 modified files, no TypeScript errors introduced
+
+---
+Task ID: 11-e
+Agent: full-stack-developer
+Task: Enhance CajaModule with reconciliation view and movement categorization
+
+Work Log:
+- Read existing CajaModule.tsx (1105 lines), types.ts (BILLETES, MovimientoCaja, CierreCaja, Gasto, Pago, etc.), store.ts (caja actions: abrirCaja/registrarMovimientoCaja/cerrarCaja/editarMovimientoCaja/eliminarMovimientoCaja, gastos array, setModulo navigation), api-client.ts (caja endpoints), and existing RevenueBreakdownChart.tsx for the recharts pie chart pattern (uses setTimeout-in-effect to avoid set-state-in-effect lint)
+- Rewrote CajaModule.tsx (now 2341 lines, +1236) with 6 major enhancements:
+
+1. **Enhanced Cash Reconciliation Wizard (replaces ClosingDialogContent)**:
+   - 4-step wizard with clickable stepper indicator at the top (Billetes → Otros métodos → Comparación → Notas y cierre)
+   - Each step shows step icon + label, completed steps show green check, current step shows forest green (#0F2B28) background
+   - **Step 1**: Billete count by denomination with visual Banknote icons (uses existing BILLETES = [20000, 10000, 2000, 1000, 500, 200, 100, 50]), each row shows denomination + count input + auto-calculated line total. Live "Total efectivo" footer with forest green tint. Badge shows "Esperado: $X" for reference.
+   - **Step 2**: Other payment methods — auto-populated from system totals (resumenOtros) but user can override each. Each row shows method icon (CreditCard/ArrowRightLeft/QrCode/Wallet based on method name), "Sistema: $X" badge, editable "Contado:" input, live diff indicator (green ✓ if match, amber if positive, red if negative). Total at bottom.
+   - **Step 3**: Comparison vs system — 4-card grid (Esperado, Contado, Diferencia total, Diferencia efectivo) color-coded (green=match, amber=positive, red=negative, neutral=informational). Detailed breakdown by method (Efectivo + each other method) with column-by-column comparison. Alert banner if diferenciaTotal !== 0 telling user to explain in step 4.
+   - **Step 4**: Notes + final close. Shows final summary (contado total + diferencia). Discrepancy explanation textarea (required, min 5 chars, only shown if diff > $100). Notes textarea (optional). "Cerrar turno" button disabled until canFinalizar (auto-enables when diff <= $100 or explanation >= 5 chars).
+   - Footer with Cancelar + Atrás/Siguiente/Cerrar turno navigation
+   - State initialized via trigger button onClick (NOT useEffect) to satisfy react-hooks/set-state-in-effect rule. cierreOpenCount state increments on each open, used as React key on DialogContent to force remount and reset wizard state.
+   - All persisted via existing cerrarCaja(billetes, totalOtros) store action — no API contract changes
+
+2. **Movement Categories Pie Chart**:
+   - New MovementCategoryPie component using recharts PieChart with custom colors
+   - Categories: Ingresos varios (emerald #059669), Gastos (red #EF4444), Mantenimiento (amber #F59E0B), Retiros (violet #8B5CF6), Otros (slate #64748B)
+   - Donut chart (innerRadius 28-32, outerRadius 48-56) with total in the center
+   - Custom tooltip (PieTooltip) with dark forest green background showing name + amount + percentage
+   - Legend with color dot + name + amount + percentage badge, updates real-time as movements are added
+   - Shown on desktop info panel (right column) AND mobile (compact mode, full-width below the movement form)
+   - Uses setTimeout-in-effect pattern (80ms) for mounted state to satisfy lint rule
+
+3. **Movement Filter & Search**:
+   - New MovementFilters component shown when user clicks "Filtros" button (toggles open)
+   - Filters: Tipo (Select: Todos/Ingresos/Egresos), Método (Select: dynamic from existing movements), Categoría (Select: Todas + 5 categories), Fecha desde/hasta (date inputs), Búsqueda (text input with Search icon)
+   - "Limpiar filtros" button (only visible when activeFiltersCount > 0)
+   - Result count badge: "X de Y movimientos"
+   - Active filters count badge on the "Filtros" toggle button (white/20 background)
+   - Filter only affects the displayed list, NOT the totals/saldo/pie chart
+   - Empty state when filters yield no results with "Limpiar filtros" CTA
+   - Pagination: uses `safePage` (Math.min/Math.max clamp) instead of useEffect to reset page when filters shrink the list — avoids set-state-in-effect lint error
+
+4. **Movement Card Enhancement**:
+   - Added category badge with icon + color (per CATEGORY_CONFIG)
+   - Receipt icon (FileText) shown if movement has linked gasto (gastoId)
+   - "Detalle" button (Eye icon, "Detalle" label) that toggles an expandable section in mobile cards
+   - Desktop: replaced edit/delete-only actions with Eye popover (MovementDetailPopover) + Edit + Delete icons, all with tooltips (title attributes)
+   - MovementDetailPopover: shows tipo, fecha completa, método, categoría badge, empleado, ID, descripción completa, and gasto vinculado card (amber-tinted) with tipo/monto/descripción/ID
+   - Mobile expandable detail section: same info as popover, plus gasto vinculado card
+   - Linked entity (gasto) shown as small amber ExternalLink chip with "Gasto: {tipo}" truncated
+   - Edit/Delete with proper visual hierarchy (opacity-60 → 100 on hover)
+
+5. **Daily Summary Card** (shown when caja is closed):
+   - Yesterday's summary from caja.historial[last]
+   - Header: forest green → emerald gradient banner with History icon, badge with closing date, "Cerrado por {empleado}" subtitle
+   - 4 KPI cards (Apertura, Ingresos, Egresos, Cierre) with AnimatedNumber + colored left borders + icons (Unlock/ArrowUpRight/ArrowDownRight/Lock)
+   - Difference highlight card: green check if 0, amber AlertTriangle if positive (sobrante), red AlertTriangle if negative (faltante). Shows diff amount + average ticket per movement on the right
+   - 3 quick stats: Movimientos count, Balance neto (ingresos-egresos with color), % Egresos (amber)
+   - "Ver historial completo" button → setModulo('reportes') to navigate to Reportes module
+
+6. **Auto-categorization Suggestions**:
+   - CATEGORY_KEYWORDS map: ~7 rules with keyword arrays → category (Mantenimiento, Gastos, Retiros, Ingresos varios)
+   - suggestCategory(descripcion) function returns first matching category or null
+   - In MovFormInline (egreso form), when user types ≥3 chars in description and a category matches an existing categoriasGastos entry (or partial match), a clickable suggestion badge appears: "✨ Sugerencia: {Categoría} ✓"
+   - Clicking the badge sets the movCategoria select to the suggested value
+   - Suggestion auto-hides when movCategoria already matches
+   - categorizeMovement(mov, gastoTipo) function: determines category for pie chart from mov fields + linked gasto.tipo. Ingresos → "Ingresos varios". Egresos → checks for "retiro" → "Retiros", "mantenim"/"reparac" → "Mantenimiento", gastoId → "Gastos", else "Otros"
+
+- Helpers added: suggestCategory, categorizeMovement, initializeWizardState (useCallback), ComparisonRow, SummaryStat, PieTooltip
+- Components added: ClosingWizard, DailySummaryCard, MovementCategoryPie, MovementFilters, MovementDetailPopover
+- New imports: recharts (PieChart/Pie/Cell/ResponsiveContainer/Tooltip), Select/SelectContent/SelectItem/SelectTrigger/SelectValue, Popover/PopoverContent/PopoverTrigger, AnimatedNumber (already imported), new lucide icons (Banknote, CreditCard, QrCode, ArrowRightLeft, PiggyBank, Wrench, ShoppingCart, Sparkle, Info, CalendarDays, StickyNote, ClipboardCheck, Eye, ExternalLink, History, Check, ChevronLeft/Right, Filter, X, Search, FileText)
+- Color palette: forest green #0F2B28 (primary, wizard bg, banners), emerald #059669 (ingresos/success), red #EF4444 (egresos/danger), amber #F59E0B/#92400E (discrepancy warning), violet #8B5CF6 (retiros), slate #64748B (otros)
+- ESLint: 0 errors, 0 warnings on CajaModule.tsx (verified with `bunx eslint src/components/modules/CajaModule.tsx`)
+- TypeScript: 0 errors in CajaModule.tsx (verified with `bunx tsc --noEmit --skipLibCheck`)
+- Dev server compiles cleanly (no errors in dev.log)
+- All existing functionality preserved: open/close caja, movements CRUD, edit/delete with confirm dialog, export CSV, mobile + desktop layouts, animated balance, pulsing status dot, time-since-open display, admin/owner permission gates
+
+Stage Summary:
+- CajaModule.tsx grew from 1105 to 2341 lines (+1236)
+- 4-step ClosingWizard replaces single-page close dialog with denominations counting (Banknote icons), other-methods editable totals (with system-vs-counted diff per row), color-coded comparison view (4-card grid + per-method breakdown table + alert banner), and required discrepancy explanation (> $100 threshold) + optional notes
+- MovementCategoryPie (recharts donut chart) shown on both mobile (compact, full-width) and desktop (info panel) — 5 categories with custom colors + legend + center total + custom tooltip, updates in real-time
+- MovementFilters with 5 filter dimensions (type/method/category/date range/search) + "Limpiar filtros" + result count badge; only affects list, not totals
+- Enhanced MovementCard with category badge, receipt icon for linked gastos, "Detalle" expandable section (mobile) / Eye popover (desktop) showing full movement info + gasto vinculado card, better edit/delete visual hierarchy
+- DailySummaryCard on closed state: gradient banner, 4 AnimatedNumber KPIs, difference highlight, 3 quick stats, "Ver historial completo" → Reportes navigation
+- Auto-categorization in egreso form: keyword-based suggestion badge (Sparkle icon) clickable to apply, 7 keyword rules
+- Forest green / emerald / red / amber color scheme consistent with project branding
+- Wizard state initialization handled via trigger onClick + React key on DialogContent (cierreOpenCount) instead of useEffect — satisfies react-hooks/set-state-in-effect rule
+- safePage clamping pattern (Math.min/Math.max) replaces useEffect page reset — also satisfies lint rule
+- setTimeout-in-effect pattern (80ms) for pie chart mounted state — same pattern as existing RevenueBreakdownChart
+- Lint passes clean, TypeScript passes clean, dev server compiles cleanly
+
+---
+
+## FASE 11: TypeScript Cleanup + Module Feature Expansion Round
+
+### Round Overview
+Phase 11 focused on (1) fixing all pre-existing TypeScript errors (~22 errors across 12 files), (2) launching 5 parallel module enhancement tasks. All work done with lint + tsc 100% clean.
+
+---
+
+### Task 11-0: TypeScript Errors Cleanup (Critical)
+
+**Errors fixed:** 22 TypeScript errors across 12 files
+
+#### Component Fixes:
+1. **ClientesModule.tsx:165** — `agregarCliente` returns `Promise<Cliente | null>` not boolean. Fixed by `const created = await agregarCliente(form); ok = !!created;`
+2. **ReservasModule.tsx:506-520** — `desglose` type missing `acompananteCantidad` field. Added `acompananteCantidad: number;` to type definition.
+3. **ReportesModule.tsx:917** — Block-scoped variable `cajaTurnosAMostrar` used before declaration in useMemo deps. Moved declaration up before `handleExportPDF` useCallback.
+4. **TarifasModule.tsx:528** — `promos` type union didn't include all `PromocionesTarifa` fields. Cast as `PromocionesTarifa | undefined`.
+5. **CommandPalette.tsx:124** — `keywords` array had `(string | undefined)[]` not `string[]`. Added `.filter((x): x is string => Boolean(x))`.
+6. **ModuleSkeleton.tsx:216** — Inline arrow function in default value triggered `react-hooks/static-components` lint rule. Refactored to use `SkelTableModule` reference + `<SkelFn />` JSX syntax.
+7. **auth/utils.ts:119** — `tenantUser.permisos` typed as `JsonValue` not array. Added `Array.isArray()` guard.
+8. **store.ts:222** — `AcompananteSinCargo` requires `cantidad` field. Added `cantidad: 1` to choferCortesia migration fallback.
+
+#### API Route Fixes (Prisma Enum Removal):
+SQLite doesn't support Prisma enums. Removed enum imports and replaced with local type aliases:
+
+1. **`/api/limpieza/route.ts`** + **`/api/limpieza/[id]/route.ts`** — Removed `EstadoTareaLimpieza` enum import; added local type alias.
+2. **`/api/metodos-pago/route.ts`** + **`/api/metodos-pago/[id]/route.ts`** — Removed `TipoMetodoPago` enum import; added local type alias + `TIPOS_METODO_PAGO` constant array (replaced `Object.values(TipoMetodoPago)`).
+3. **`/api/usuarios/route.ts`** + **`/api/usuarios/[id]/route.ts`** — Removed `RolTenant` enum import; added local type alias.
+4. **`/api/reservas/route.ts`** — Removed `Prisma.EnumEstadoReservaFilter` cast; removed `mode: 'insensitive'` (SQLite doesn't support case-insensitive mode in `contains` filter).
+
+#### ConfiguracionModule TS Fixes:
+- 3 icon component types needed `style?: React.CSSProperties` added to accept inline style props.
+
+**Verification:** `npx tsc --noEmit` returns 0 errors (excluding `examples/`, `prisma/seed.ts`, `skills/` which are out-of-scope).
+
+---
+
+### Task 11-a: TarifasModule Major Enhancement
+
+**File:** `src/components/modules/TarifasModule.tsx` (1190 → 1926 lines)
+
+**New Features:**
+1. **Enhanced Tariff Preview Cards** — Larger "Desde" price, mode badge with icon, range visualization with zebra stripes, promotion indicators (Star/Baby/Zap icons), quick stats, hover reveal Editar/Duplicar
+2. **Add New Tariff Wizard** — 3-step wizard (Basic info → Price ranges → Promotions) with clickable step indicator, progress bar, "Siguiente/Atrás" navigation, live preview card
+3. **Tariff Comparison Tool** — Checkbox selection of 2-3 tariffs, side-by-side comparison modal with 8 rows, differences highlighted in amber
+4. **Quick Actions Menu** — DropdownMenu (MoreVertical icon) with Edit, Duplicate, Export CSV, Delete (with confirmation)
+
+---
+
+### Task 11-b: UsuariosModule Major Enhancement
+
+**File:** `src/components/modules/UsuariosModule.tsx` (416 → ~810 lines)
+
+**New Features:**
+1. **User Stats Summary** — 4 cards: Total Usuarios, Activos, Por Rol (with inline per-role counts), Invitaciones Pendientes; AnimatedNumber + gradient bg
+2. **Enhanced User Cards** — Avatar with initials in role-gradient circle, status dot (active green/inactive gray), email with Mail icon, last login relative time (cross-referenced from auditoria), role badge with role-specific color, quick actions via DropdownMenu (Edit, Reset password, Suspend)
+3. **Role Permissions Matrix Dialog** — 11 modules × 4 roles matrix, color-coded cells (green=full / amber=read-only "R" / gray=none), editable checkboxes for admin/owner, save iterates active users per role
+4. **Invite User Flow** — Dialog with profile name, role select (excludes owner), auto-generated temp password (regenerable), permissions preview, success toast with temp password
+5. **Reset Password Dialog** — Auto-generated temp password, success toast displays new password (12s duration)
+6. **Activity Log Section** — Compact timeline of last 5 audit entries, "Ver todo" link to Reportes module
+
+---
+
+### Task 11-c: ConfiguracionModule Major Enhancement
+
+**File:** `src/components/configuracion/ConfiguracionModule.tsx` (872 → 1494 lines)
+
+**New Features:**
+1. **Sidebar Navigation** — Sticky 240px desktop sidebar with 7 sections (icon + label), forest green active state, mobile hamburger opens Sheet drawer
+2. **Hotel Info Section** — Hero banner (gradient or uploaded image), overlapping logo placeholder, hotel name + plan badge, 3 AnimatedNumber metric cards (Habitaciones/Usuarios/Plan), 3 contact info cards, editable form with hero URL field
+3. **Fiscal Section** — Live CUIT verification digit using Argentine algorithm (multipliers [5,4,3,2,7,6,5,4,3,2]) with green/red border + check/x icons, tax regime select, invoice starting number field, print format preview mockup
+4. **Cuenta/Contraseña Section** — 3 password fields with show/hide toggles, strength meter (Weak red / Medium amber / Strong green) with requirement checklist, confirm field with match/mismatch indicator, last-change date display
+5. **Habitaciones (cama precio) Section** — Reads/writes `/api/configuracion/precio-cama`, current price callout, room type summary with cama counts
+6. **Data Export Section** — 4 export cards (Reservas CSV / Clientes CSV / Pagos CSV / Full Backup JSON) with file size estimates, in-session export history list (last 5)
+
+---
+
+### Task 11-d: LimpiezaModule Major Enhancement
+
+**Files Modified:**
+- `src/components/modules/LimpiezaModule.tsx` (734 → ~1100 lines)
+- `src/app/api/limpieza/[id]/route.ts` — Added `nota` field support
+- `src/lib/api-client.ts` — Updated `limpieza.update` signature
+
+**New Features:**
+1. **Daily Cleaning Summary Card** — 4 animated stat tiles (Pendientes/En progreso/Completadas/Tiempo prom.) with ↑/↓ variation vs yesterday + 7-day recharts AreaChart
+2. **Cleaning Queue with Priority Sorting** — Sort by manual order → priority → oldest checkout first, up/down arrows for manual reorder, red pulsing dot for HIGH priority (>2h since checkout)
+3. **Cleaning Progress Tracker** — Live 1s timer for in-progress tasks, "Excedido" pulsing red badge when elapsed > estimated + 30min buffer, Start/Complete buttons
+4. **Staff Workload Dashboard** — Fetches `api.usuarios.list('limpieza')`, per-staff cards with Avatar, active count, completed today, efficiency %, capacity bar (green ≤2 / amber 3-5 / red 6+)
+5. **Task Assignment Modal** — Staff picker with active count + state dot, selected-staff preview, notes textarea, task summary, "Reasignar" mode
+6. **Room Status Quick-Change** — AlertDialog confirmation before calling `marcarComoLimpia` + `cambiarEstadoHabitacion` fallback
+
+---
+
+### Task 11-e: CajaModule Major Enhancement
+
+**File:** `src/components/modules/CajaModule.tsx` (1105 → 2341 lines, +1236)
+
+**New Features:**
+1. **Enhanced Cash Reconciliation Wizard** — 4-step wizard:
+   - Step 1: Billete count by denomination (1000/500/200/100/50/20/10/5/2) with Banknote icons + auto-total
+   - Step 2: Other payment methods totals with per-method diff (green ✓/amber/red)
+   - Step 3: 4-card comparison grid (Esperado/Contado/Dif. total/Dif. efectivo) + per-method breakdown table + alert banner
+   - Step 4: Notes + required discrepancy explanation (>$100 threshold, min 5 chars) + "Cerrar turno" button
+2. **Movement Categories Pie Chart** — Recharts donut chart with 5 categories (Ingresos varios/Gastos/Mantenimiento/Retiros/Otros), custom tooltip, center total, real-time updates
+3. **Movement Filter & Search** — 5 filter dimensions (Tipo/Método/Categoría/Fecha/Búsqueda), "Limpiar filtros" button, result count badge, active filter count on toggle
+4. **Movement Card Enhancement** — Category badge with icon, Receipt icon for linked gastos, "Detalle" expandable section / Eye popover, linked entity chip with ExternalLink icon
+5. **Daily Summary Card** (closed state) — Gradient banner (forest green → emerald), 4 AnimatedNumber KPIs (Apertura/Ingresos/Egresos/Cierre), difference highlight, 3 quick stats, "Ver historial completo" navigation
+6. **Auto-categorization Suggestions** — 7 keyword rules (mantenimiento/limpieza/compra/retiro/sueldo/servicio/desayuno/ingreso), suggestion badge "✨ Sugerencia: {Categoría} ✓" appears in egreso form
+
+---
+
+### Verification
+
+- **Lint:** `bun run lint` → 0 errors, 0 warnings (clean)
+- **TypeScript:** `npx tsc --noEmit` → 0 errors in app code (excluding `examples/`, `prisma/seed.ts`, `skills/`)
+- **Dev Server:** Running on port 3000, HTTP 200 response
+- **agent-browser QA:** Landing page renders correctly
+
+### Files Modified (Phase 11)
+- `src/components/modules/ReservasModule.tsx` — TS fix (desglose type)
+- `src/components/modules/ClientesModule.tsx` — TS fix (agregarCliente return)
+- `src/components/modules/ReportesModule.tsx` — TS fix (cajaTurnosAMostrar hoisting)
+- `src/components/modules/TarifasModule.tsx` — TS fix + Major enhancement (wizard, comparison, quick actions)
+- `src/components/modules/UsuariosModule.tsx` — Major enhancement (stats, matrix, invite, activity log)
+- `src/components/modules/LimpiezaModule.tsx` — Major enhancement (assignment, workload, queue, tracker)
+- `src/components/modules/CajaModule.tsx` — Major enhancement (reconciliation wizard, pie chart, filters)
+- `src/components/configuracion/ConfiguracionModule.tsx` — Major enhancement (sidebar, fiscal, password strength)
+- `src/components/layout/CommandPalette.tsx` — TS fix (keywords filter)
+- `src/components/layout/ModuleSkeleton.tsx` — TS fix + lint fix (SkelFn ref)
+- `src/lib/store.ts` — TS fix (cantidad field in choferCortesia migration)
+- `src/lib/auth/utils.ts` — TS fix (Array.isArray guard)
+- `src/app/api/limpieza/route.ts` — Prisma enum removal
+- `src/app/api/limpieza/[id]/route.ts` — Prisma enum removal + nota field
+- `src/app/api/metodos-pago/route.ts` — Prisma enum removal + TIPOS_METODO_PAGO const
+- `src/app/api/metodos-pago/[id]/route.ts` — Prisma enum removal + TIPOS_METODO_PAGO const
+- `src/app/api/usuarios/route.ts` — Prisma enum removal
+- `src/app/api/usuarios/[id]/route.ts` — Prisma enum removal
+- `src/app/api/reservas/route.ts` — Prisma enum filter removal + insensitive mode removal
+- `src/lib/api-client.ts` — limpieza.update signature (nota field)
+
+### Phase 11 Statistics
+- **22 TypeScript errors fixed** across 12 files
+- **5 modules significantly enhanced** (Tarifas, Usuarios, Configuracion, Limpieza, Caja)
+- **~3,800+ lines of new code** added across all enhancements
+- **0 lint errors, 0 TypeScript errors** in app code
+
+### Unresolved Issues / Next Phase Priorities
+
+1. **Reservas ninos2 field** — Still using ninosCount from hab1, needs form.ninos2 for multi-habitacion
+2. **Server-side pagination** — All data still loaded client-side; should paginate at API level for large hotels
+3. **i18n support** — All strings hardcoded in es-AR; should extract to translation files
+4. **PWA/Service Worker** — App could benefit from offline-first capability
+5. **WebSocket real-time updates** — Multi-user scenarios need real-time sync (use existing websocket example)
+6. **Performance optimization** — Code splitting for heavy modules (ReportesModule, CajaModule, ConfiguracionModule all 1500+ lines)
+7. **Unit tests** — Zero test coverage; priority areas: store actions, API routes, date helpers, tariff calculations
+8. **Mobile UX audit** — Several new modals/wizards need mobile-specific testing
+9. **Accessibility audit** — New dialogs and dropdowns should be keyboard-navigable and ARIA-compliant
+10. **Database indexes** — Add indexes for frequently-queried fields (reservas.checkin, pagos.fecha, etc.)

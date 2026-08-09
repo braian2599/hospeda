@@ -1,0 +1,735 @@
+     1→'use client';
+     2→
+     3→import { useState, useMemo, useEffect, type ComponentType } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import { formatFechaHora, formatMoney, todayLocal, daysAgo } from '@/lib/format';
+     6→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     7→import { Button } from '@/components/ui/button';
+     8→import { Input } from '@/components/ui/input';
+     9→import { Label } from '@/components/ui/label';
+    10→import { Badge } from '@/components/ui/badge';
+    11→import { Textarea } from '@/components/ui/textarea';
+    12→import {
+    13→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    14→} from '@/components/ui/dialog';
+    15→import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+    16→import { Calendar } from '@/components/ui/calendar';
+    17→import { format, parseISO } from 'date-fns';
+    18→import { es } from 'date-fns/locale';
+    19→import {
+    20→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    21→} from '@/components/ui/select';
+    22→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    23→import {
+    24→  SprayCan, Wrench, Check, Search, AlertTriangle, X, Sparkles, Loader2, Wallet, Banknote,
+    25→  AlertCircle, Users, BedDouble, Clock, CheckCircle, DoorOpen, ChevronRight,
+    26→} from 'lucide-react';
+    27→import ModuleHeader from '@/components/layout/ModuleHeader';
+    28→import { toast } from 'sonner';
+    29→import { cn } from '@/lib/utils';
+    30→import PaginationBar from '@/components/ui/pagination-bar';
+    31→import { AnimatedNumber } from '@/components/ui/animated-number';
+    32→import type { ModuloId, Reserva, TipoHabitacion } from '@/lib/types';
+    33→
+    34→const PAGE_SIZE = 15;
+    35→
+    36→function DatePickerInline({
+    37→  value,
+    38→  onChange,
+    39→  placeholder,
+    40→  label,
+    41→  disabled,
+    42→}: {
+    43→  value: string;
+    44→  onChange: (val: string) => void;
+    45→  placeholder: string;
+    46→  label?: string;
+    47→  disabled?: boolean;
+    48→}) {
+    49→  const [open, setOpen] = useState(false);
+    50→  const selectedDate = value ? parseISO(value) : undefined;
+    51→
+    52→  const handleSelect = (date: Date | undefined) => {
+    53→    if (date) {
+    54→      const yyyy = date.getFullYear();
+    55→      const mm = String(date.getMonth() + 1).padStart(2, '0');
+    56→      const dd = String(date.getDate()).padStart(2, '0');
+    57→      onChange(`${yyyy}-${mm}-${dd}`);
+    58→    }
+    59→    setOpen(false);
+    60→  };
+    61→
+    62→  return (
+    63→    <div className="grid gap-1.5">
+    64→      {label && <Label>{label}</Label>}
+    65→      <Popover open={open} onOpenChange={setOpen}>
+    66→        <PopoverTrigger asChild>
+    67→          <Button
+    68→            variant="outline"
+    69→            className={cn(
+    70→              'w-full justify-start text-left font-normal h-9',
+    71→              !value && 'text-muted-foreground'
+    72→            )}
+    73→            disabled={disabled}
+    74→          >
+    75→            {selectedDate
+    76→              ? format(selectedDate, 'dd/MM/yyyy')
+    77→              : placeholder}
+    78→          </Button>
+    79→        </PopoverTrigger>
+    80→        <PopoverContent className="w-auto p-0" align="start">
+    81→          <Calendar
+    82→            mode="single"
+    83→            selected={selectedDate}
+    84→            onSelect={handleSelect}
+    85→            autoFocus
+    86→          />
+    87→        </PopoverContent>
+    88→      </Popover>
+    89→    </div>
+    90→  );
+    91→}
+    92→
+    93→// formatFechaHora and formatMoney imported from @/lib/format
+    94→
+    95→/** Estimated cleaning time (in minutes) based on room type. */
+    96→function estimatedCleaningMinutes(tipo: string | undefined): number {
+    97→  switch (tipo as TipoHabitacion) {
+    98→    case 'Compartida': return 45;
+    99→    case 'Cuádruple': return 40;
+   100→    case 'Triple': return 30;
+   101→    case 'Doble': return 20;
+   102→    case 'Simple': return 15;
+   103→    default: return 25;
+   104→  }
+   105→}
+   106→
+   107→/** Priority of a cleaning task based on how long ago the room was checked out. */
+   108→type Priority = 'high' | 'medium' | 'low';
+   109→
+   110→function computePriority(habitacion: string, reservas: Reserva[], now: number): Priority {
+   111→  // Find the most recent checkout for this room (any time)
+   112→  const checkouts = reservas
+   113→    .filter(r => r.habitacion === habitacion && (r.estado === 'Check-Out realizado' || r.estado === 'Check-In realizado'))
+   114→    .map(r => {
+   115→      // Combine checkout date + horaCheckout if available
+   116→      const base = r.checkout ? new Date(r.checkout + 'T12:00:00') : null;
+   117→      if (base && r.horaCheckout) {
+   118→        const [hh, mm] = r.horaCheckout.split(':').map(n => parseInt(n, 10));
+   119→        if (!isNaN(hh)) base.setHours(hh, isNaN(mm) ? 0 : mm, 0, 0);
+   120→      }
+   121→      return base ? base.getTime() : 0;
+   122→    })
+   123→    .filter(t => t > 0)
+   124→    .sort((a, b) => b - a);
+   125→  if (checkouts.length === 0) return 'low';
+   126→  const lastCheckout = checkouts[0];
+   127→  const diffHours = (now - lastCheckout) / 3_600_000;
+   128→  if (diffHours >= 2) return 'high';
+   129→  if (diffHours >= 1) return 'medium';
+   130→  return 'low';
+   131→}
+   132→
+   133→const PRIORITY_CONFIG: Record<Priority, {
+   134→  label: string;
+   135→  border: string;
+   136→  text: string;
+   137→  bg: string;
+   138→  badge: string;
+   139→  icon: ComponentType<{ className?: string }> | null;
+   140→}> = {
+   141→  high: {
+   142→    label: 'Prioridad alta',
+   143→    border: 'border-l-[#EF4444]',
+   144→    text: 'text-[#991B1B]',
+   145→    bg: 'bg-[#FEE2E2]/40',
+   146→    badge: 'bg-[#FEE2E2] text-[#991B1B]',
+   147→    icon: AlertCircle,
+   148→  },
+   149→  medium: {
+   150→    label: 'Prioridad media',
+   151→    border: 'border-l-[#F59E0B]',
+   152→    text: 'text-[#92400E]',
+   153→    bg: 'bg-[#FEF3C7]/40',
+   154→    badge: 'bg-[#FEF3C7] text-[#92400E]',
+   155→    icon: Clock,
+   156→  },
+   157→  low: {
+   158→    label: 'Prioridad baja',
+   159→    border: 'border-l-[#059669]',
+   160→    text: 'text-[#166534]',
+   161→    bg: 'bg-[#DCFCE7]/40',
+   162→    badge: 'bg-[#DCFCE7] text-[#166534]',
+   163→    icon: null,
+   164→  },
+   165→};
+   166→
+   167→export default function LimpiezaModule() {
+   168→  const habitaciones = useHotelStore(s => s.habitaciones);
+   169→  const marcarComoLimpia = useHotelStore(s => s.marcarComoLimpia);
+   170→  const reportarMantenimiento = useHotelStore(s => s.reportarMantenimiento);
+   171→  const resolverMantenimiento = useHotelStore(s => s.resolverMantenimiento);
+   172→  const historialMantenimiento = useHotelStore(s => s.historialMantenimiento);
+   173→  const reservas = useHotelStore(s => s.reservas);
+   174→  const setModulo = useHotelStore(s => s.setModulo);
+   175→  const [modalResolver, setModalResolver] = useState<string | null>(null);
+   176→  const [reparacion, setReparacion] = useState('');
+   177→  const [monto, setMonto] = useState('0');
+   178→  const [sacarDeCaja, setSacarDeCaja] = useState(true);
+   179→
+   180→  // Ticking clock so priority thresholds + relative times stay live.
+   181→  const [now, setNow] = useState(() => Date.now());
+   182→  useEffect(() => {
+   183→    const id = setInterval(() => setNow(Date.now()), 60_000); // 1 min tick
+   184→    return () => clearInterval(id);
+   185→  }, []);
+   186→
+   187→  // Maintenance history filters
+   188→  const todayStr = todayLocal();
+   189→  const [fDesde, setFDesde] = useState(todayStr);
+   190→  const [fHasta, setFHasta] = useState(todayStr);
+   191→  const [fHab, setFHab] = useState('');
+   192→  const [fDesc, setFDesc] = useState('');
+   193→  const [fMonto, setFMonto] = useState('');
+   194→  const [pagina, setPagina] = useState(1);
+   195→
+   196→  // Reportar mantenimiento form (extracted to always be visible)
+   197→  const [showReportForm, setShowReportForm] = useState(false);
+   198→  const [repHab, setRepHab] = useState('');
+   199→  const [repDesc, setRepDesc] = useState('');
+   200→  const [repConfirm, setRepConfirm] = useState(false);
+   201→
+   202→  const porLimpiar = Object.entries(habitaciones).filter(([, h]) => h.estado === 'Limpieza');
+   203→  const enMantenimiento = Object.entries(habitaciones).filter(([, h]) => h.estado === 'Mantenimiento');
+   204→  const habDisponibles = Object.entries(habitaciones).filter(([, h]) => h.estado !== 'Mantenimiento' && h.estado !== 'Fuera de servicio');
+   205→
+   206→  // ── Cleaning progress (operational rooms vs dirty rooms) ──
+   207→  // Total operational = habitaciones NOT in Mantenimiento / Fuera de servicio.
+   208→  // Completed = operational − pending cleaning (those are clean/occupied/reserved).
+   209→  const totalOperativas = Object.values(habitaciones).filter(h => h.estado !== 'Mantenimiento' && h.estado !== 'Fuera de servicio').length;
+   210→  const pendientesLimpieza = porLimpiar.length;
+   211→  const completadasLimpieza = Math.max(0, totalOperativas - pendientesLimpieza);
+   212→  const pctProgreso = totalOperativas > 0 ? Math.round((completadasLimpieza / totalOperativas) * 100) : 100;
+   213→
+   214→  // ── Staff workload (last 7 days from maintenance history) ──
+   215→  const staffWorkload = useMemo(() => {
+   216→    const cutoff = daysAgo(7);
+   217→    const counts: Record<string, number> = {};
+   218→    historialMantenimiento.forEach(item => {
+   219→      if (item.fecha.split('T')[0] >= cutoff) {
+   220→        const emp = item.empleado || 'Sin asignar';
+   221→        counts[emp] = (counts[emp] || 0) + 1;
+   222→      }
+   223→    });
+   224→    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+   225→  }, [historialMantenimiento]);
+   226→
+   227→  // ── Priority computation per room ──
+   228→  const priorityByRoom = useMemo(() => {
+   229→    const map: Record<string, Priority> = {};
+   230→    porLimpiar.forEach(([num]) => {
+   231→      map[num] = computePriority(num, reservas, now);
+   232→    });
+   233→    return map;
+   234→  }, [porLimpiar, reservas, now]);
+   235→
+   236→  // Sorted: high → medium → low (so urgent ones appear first in the list)
+   237→  const porLimpiarSorted = useMemo(() => {
+   238→    const order: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
+   239→    return [...porLimpiar].sort((a, b) =>
+   240→      (order[priorityByRoom[a[0]] || 'low']) - (order[priorityByRoom[b[0]] || 'low'])
+   241→    );
+   242→  }, [porLimpiar, priorityByRoom]);
+   243→
+   244→  // Check if reporting maintenance would affect active reservations
+   245→  const reservasAfectadas = useMemo(() => {
+   246→    if (!repHab) return 0;
+   247→    return reservas.filter(
+   248→      r => r.habitacion === repHab && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && r.estado !== 'Check-In realizado'
+   249→    ).length;
+   250→  }, [repHab, reservas]);
+   251→
+   252→  // Filtered history
+   253→  const listaFiltrada = useMemo(() => {
+   254→    let lista = [...historialMantenimiento].reverse();
+   255→    if (fDesde) lista = lista.filter(i => i.fecha.split('T')[0] >= fDesde);
+   256→    if (fHasta) lista = lista.filter(i => i.fecha.split('T')[0] <= fHasta);
+   257→    if (fHab) lista = lista.filter(i => i.habitacion.toLowerCase().includes(fHab.toLowerCase()));
+   258→    if (fDesc) lista = lista.filter(i => i.problema.toLowerCase().includes(fDesc.toLowerCase()) || i.reparacion.toLowerCase().includes(fDesc.toLowerCase()));
+   259→    if (fMonto) { const minMonto = parseFloat(fMonto); if (!isNaN(minMonto)) lista = lista.filter(i => i.monto >= minMonto); }
+   260→    return lista;
+   261→  }, [historialMantenimiento, fDesde, fHasta, fHab, fDesc, fMonto]);
+   262→
+   263→  const totalPaginas = Math.ceil(listaFiltrada.length / PAGE_SIZE) || 1;
+   264→  const paginaActual = Math.min(pagina, totalPaginas);
+   265→  const inicio = (paginaActual - 1) * PAGE_SIZE;
+   266→  const listaPaginada = listaFiltrada.slice(inicio, inicio + PAGE_SIZE);
+   267→
+   268→  const limpiarFiltros = () => { const today = todayLocal(); setFDesde(today); setFHasta(today); setFHab(''); setFDesc(''); setFMonto(''); setPagina(1); };
+   269→  const [resolviendo, setResolviendo] = useState(false);
+   270→  const [reportando, setReportando] = useState(false);
+   271→
+   272→  const handleResolver = async () => {
+   273→    if (!modalResolver || !reparacion.trim()) return;
+   274→    setResolviendo(true);
+   275→    try {
+   276→      await resolverMantenimiento(modalResolver, reparacion.trim(), parseFloat(monto) || 0, sacarDeCaja);
+   277→      toast.success('Mantenimiento resuelto', { description: `Habitación ${modalResolver}${parseFloat(monto) > 0 ? (sacarDeCaja ? ' - Egreso registrado en caja' : ' - Gasto registrado (pago aparte)') : ''}` });
+   278→      setModalResolver(null);
+   279→      setReparacion('');
+   280→      setMonto('0');
+   281→      setSacarDeCaja(true);
+   282→    } catch (err: any) {
+   283→      toast.error(err.message || 'Error al resolver mantenimiento');
+   284→    } finally {
+   285→      setResolviendo(false);
+   286→    }
+   287→  };
+   288→
+   289→  const [limpiando, setLimpiando] = useState<string | null>(null);
+   290→
+   291→  const handleMarcarLimpia = async (num: string) => {
+   292→    setLimpiando(num);
+   293→    try {
+   294→      await marcarComoLimpia(num);
+   295→      toast.success('Habitación marcada como limpia', { description: num });
+   296→    } catch (err: any) {
+   297→      toast.error(err.message || 'Error al marcar como limpia');
+   298→    } finally {
+   299→      setLimpiando(null);
+   300→    }
+   301→  };
+   302→
+   303→  const handleReportar = async () => {
+   304→    if (!repHab || !repDesc.trim()) return;
+   305→    if (reservasAfectadas > 0 && !repConfirm) {
+   306→      setRepConfirm(true);
+   307→      return;
+   308→    }
+   309→    setReportando(true);
+   310→    try {
+   311→      await reportarMantenimiento(repHab, repDesc.trim());
+   312→      toast.success('Mantenimiento reportado', { description: `Habitación ${repHab}` });
+   313→      setRepHab('');
+   314→      setRepDesc('');
+   315→      setShowReportForm(false);
+   316→      setRepConfirm(false);
+   317→    } catch (err: any) {
+   318→      toast.error(err.message || 'Error al reportar mantenimiento');
+   319→    } finally {
+   320→      setReportando(false);
+   321→    }
+   322→  };
+   323→
+   324→  const hasFiltros = fDesde || fHasta || fHab || fDesc || fMonto;
+   325→
+   326→  return (
+   327→    <div className="space-y-6">
+   328→      <ModuleHeader icon={SprayCan} title="Limpieza y Mantenimiento" subtitle="Gestioná el estado de habitaciones y tareas" />
+   329→
+   330→      {/* ── Maintenance alert banner (only if rooms are in maintenance) ── */}
+   331→      {enMantenimiento.length > 0 && (
+   332→        <Card className="border-[#FECACA] bg-gradient-to-r from-[#FEF2F2]/80 via-[#FEE2E2]/40 to-white overflow-hidden">
+   333→          <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+   334→            <div className="flex items-center gap-3 flex-1 min-w-0">
+   335→              <div className="relative w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center shrink-0">
+   336→                <span className="absolute inset-0 rounded-full bg-[#EF4444]/20 animate-ping" />
+   337→                <AlertTriangle className="relative w-5 h-5 text-[#991B1B] animate-pulse-subtle" />
+   338→              </div>
+   339→              <div className="min-w-0">
+   340→                <p className="text-sm font-semibold text-[#991B1B]">
+   341→                  {enMantenimiento.length} habitación{enMantenimiento.length !== 1 ? 'es' : ''} en mantenimiento
+   342→                </p>
+   343→                <p className="text-xs text-muted-foreground truncate">
+   344→                  Habitaciones afectadas: {enMantenimiento.map(([n]) => n).join(', ')}
+   345→                </p>
+   346→              </div>
+   347→            </div>
+   348→            <Button
+   349→              size="sm"
+   350→              variant="outline"
+   351→              className="border-[#991B1B]/30 text-[#991B1B] hover:bg-[#FEE2E2] hover:text-[#991B1B] shrink-0"
+   352→              onClick={() => setModulo('habitaciones' as ModuloId)}
+   353→            >
+   354→              <DoorOpen className="w-3.5 h-3.5 mr-1.5" />Ir a Habitaciones
+   355→              <ChevronRight className="w-3.5 h-3.5 ml-1" />
+   356→            </Button>
+   357→          </CardContent>
+   358→        </Card>
+   359→      )}
+   360→
+   361→      {/* ── Cleaning progress tracker ── */}
+   362→      <Card className="bg-gradient-to-br from-[#F0FDF4]/40 to-white border-[#059669]/20">
+   363→        <CardContent className="p-4 space-y-3">
+   364→          <div className="flex items-center justify-between gap-2 flex-wrap">
+   365→            <div className="flex items-center gap-2">
+   366→              <div className="w-8 h-8 rounded-full bg-[#DCFCE7] flex items-center justify-center shadow-sm">
+   367→                <Sparkles className="w-4 h-4 text-[#166534]" />
+   368→              </div>
+   369→              <div>
+   370→                <p className="text-sm font-semibold text-[#0F2B28]">Progreso de limpieza</p>
+   371→                <p className="text-xs text-muted-foreground">{completadasLimpieza} de {totalOperativas} habitaciones operativas listas</p>
+   372→              </div>
+   373→            </div>
+   374→            <div className="flex items-center gap-3">
+   375→              <div className="text-right">
+   376→                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Completado</p>
+   377→                <AnimatedNumber
+   378→                  value={pctProgreso}
+   379→                  duration={500}
+   380→                  format={(n) => `${Math.round(n)}%`}
+   381→                  className={cn(
+   382→                    'text-2xl font-bold tabular-nums',
+   383→                    pctProgreso > 80 ? 'text-[#166534]' : pctProgreso >= 50 ? 'text-[#92400E]' : 'text-[#991B1B]'
+   384→                  )}
+   385→                />
+   386→              </div>
+   387→            </div>
+   388→          </div>
+   389→          <div className="space-y-1.5">
+   390→            <div className="flex items-center justify-between text-xs">
+   391→              <span className="text-muted-foreground">Pendientes: <strong className="text-[#92400E]">{pendientesLimpieza}</strong></span>
+   392→              <span className="text-muted-foreground">Listas: <strong className="text-[#166534]">{completadasLimpieza}</strong></span>
+   393→            </div>
+   394→            <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
+   395→              <div
+   396→                className={cn(
+   397→                  'h-full rounded-full transition-all duration-700 ease-out',
+   398→                  pctProgreso > 80
+   399→                    ? 'bg-gradient-to-r from-[#059669] to-[#4ADE80]'
+   400→                    : pctProgreso >= 50
+   401→                      ? 'bg-gradient-to-r from-[#F59E0B] to-[#FBBF24]'
+   402→                      : 'bg-gradient-to-r from-[#EF4444] to-[#F87171]'
+   403→                )}
+   404→                style={{ width: `${pctProgreso}%` }}
+   405→              />
+   406→            </div>
+   407→          </div>
+   408→        </CardContent>
+   409→      </Card>
+   410→
+   411→      {/* ── KPIs ── */}
+   412→      <div className="grid grid-cols-3 gap-3">
+   413→        <Card className="border-[#FDE68A] bg-gradient-to-br from-[#FEF9C3]/50 to-white card-hover">
+   414→          <CardContent className="p-3 flex items-center gap-3">
+   415→            <div className="p-2 rounded-lg bg-[#FEF9C3]"><SprayCan className="w-5 h-5 text-[#92400E]" /></div>
+   416→            <div>
+   417→              <AnimatedNumber value={porLimpiar.length} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
+   418→              <p className="text-xs text-muted-foreground">Para limpiar</p>
+   419→            </div>
+   420→          </CardContent>
+   421→        </Card>
+   422→        <Card className="border-[#FECACA] bg-gradient-to-br from-[#FEE2E2]/50 to-white card-hover">
+   423→          <CardContent className="p-3 flex items-center gap-3">
+   424→            <div className="p-2 rounded-lg bg-[#FEE2E2]"><Wrench className="w-5 h-5 text-[#991B1B]" /></div>
+   425→            <div>
+   426→              <AnimatedNumber value={enMantenimiento.length} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
+   427→              <p className="text-xs text-muted-foreground">En mantenimiento</p>
+   428→            </div>
+   429→          </CardContent>
+   430→        </Card>
+   431→        <Card className="border-[#BBF7D0] bg-gradient-to-br from-[#DCFCE7]/50 to-white card-hover">
+   432→          <CardContent className="p-3 flex items-center gap-3">
+   433→            <div className="p-2 rounded-lg bg-[#DCFCE7]"><Sparkles className="w-5 h-5 text-[#166534]" /></div>
+   434→            <div>
+   435→              <AnimatedNumber value={historialMantenimiento.length} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
+   436→              <p className="text-xs text-muted-foreground">Reparaciones totales</p>
+   437→            </div>
+   438→          </CardContent>
+   439→        </Card>
+   440→      </div>
+   441→
+   442→      <div className="grid md:grid-cols-2 gap-4">
+   443→        {/* Para limpiar — enhanced task cards with priority indicators */}
+   444→        <Card className="border-[#FDE68A]">
+   445→          <CardHeader className="pb-3">
+   446→            <div className="flex items-center justify-between">
+   447→              <CardTitle className="text-base flex items-center gap-2">
+   448→                <SprayCan className="w-4 h-4 text-[#92400E]" />
+   449→                Para limpiar
+   450→                {porLimpiar.length > 0 && (
+   451→                  <span className="relative flex h-2 w-2 ml-1">
+   452→                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#F59E0B] opacity-75" />
+   453→                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#F59E0B]" />
+   454→                  </span>
+   455→                )}
+   456→              </CardTitle>
+   457→              <Badge variant="secondary" className="bg-[#FEF9C3] text-[#92400E] shadow-sm font-semibold">{porLimpiar.length}</Badge>
+   458→            </div>
+   459→          </CardHeader>
+   460→          <CardContent className="space-y-2">
+   461→            {porLimpiar.length === 0 ? (
+   462→              <div className="text-center py-8">
+   463→                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#DCFCE7] flex items-center justify-center shadow-sm">
+   464→                  <CheckCircle className="w-7 h-7 text-[#166534]" />
+   465→                </div>
+   466→                <p className="text-sm font-medium text-[#166534]">¡Todo limpio!</p>
+   467→                <p className="text-xs text-muted-foreground mt-0.5">No hay habitaciones pendientes.</p>
+   468→              </div>
+   469→            ) : porLimpiarSorted.map(([num, h], index) => {
+   470→              const priority = priorityByRoom[num] || 'low';
+   471→              const cfg = PRIORITY_CONFIG[priority];
+   472→              const PriorityIcon = cfg.icon;
+   473→              const estMin = estimatedCleaningMinutes(h.tipo as string | undefined);
+   474→              return (
+   475→                <div
+   476→                  key={num}
+   477→                  className={cn(
+   478→                    'group relative pl-3 pr-2.5 py-2.5 rounded-lg border-l-[3px] border bg-white hover:shadow-md transition-all duration-300 animate-slide-up',
+   479→                    cfg.border,
+   480→                    'hover:-translate-y-0.5'
+   481→                  )}
+   482→                  style={{ animationDelay: `${index * 50}ms` }}
+   483→                >
+   484→                  <div className="flex items-start justify-between gap-2">
+   485→                    <div className="flex items-start gap-2.5 min-w-0">
+   486→                      <div className={cn('w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm', cfg.bg)}>
+   487→                        <BedDouble className={cn('w-4 h-4', cfg.text)} />
+   488→                      </div>
+   489→                      <div className="min-w-0">
+   490→                        <div className="flex items-center gap-1.5 flex-wrap">
+   491→                          <p className="text-sm font-bold text-[#0F2B28]">Hab. {num}</p>
+   492→                          <Badge className={cn('text-[10px] shadow-sm font-semibold', cfg.badge)}>
+   493→                            {PriorityIcon && <PriorityIcon className="w-2.5 h-2.5 mr-0.5" />}
+   494→                            {cfg.label.replace('Prioridad ', '')}
+   495→                          </Badge>
+   496→                        </div>
+   497→                        <p className="text-xs text-muted-foreground mt-0.5">
+   498→                          {h.tipo} · {h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}
+   499→                        </p>
+   500→                        <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1 mt-0.5">
+   501→                          <Clock className="w-2.5 h-2.5" />
+   502→                          Estimado: ~{estMin} min
+   503→                        </p>
+   504→                      </div>
+   505→                    </div>
+   506→                    <Button
+   507→                      size="sm"
+   508→                      className="bg-[#059669] hover:bg-[#047857] text-white shrink-0 shadow-sm"
+   509→                      disabled={limpiando === num}
+   510→                      onClick={() => handleMarcarLimpia(num)}
+   511→                    >
+   512→                      {limpiando === num
+   513→                        ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+   514→                        : <Check className="w-3.5 h-3.5 mr-1" />}
+   515→                      Limpia
+   516→                    </Button>
+   517→                  </div>
+   518→                </div>
+   519→              );
+   520→            })}
+   521→          </CardContent>
+   522→        </Card>
+   523→
+   524→        {/* En mantenimiento — enhanced with hover + slide-in */}
+   525→        <Card className="border-[#FECACA]">
+   526→          <CardHeader className="pb-3">
+   527→            <div className="flex items-center justify-between">
+   528→              <CardTitle className="text-base flex items-center gap-2">
+   529→                <Wrench className="w-4 h-4 text-[#991B1B]" />
+   530→                En mantenimiento
+   531→                {enMantenimiento.length > 0 && (
+   532→                  <span className="relative flex h-2 w-2 ml-1">
+   533→                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
+   534→                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#EF4444]" />
+   535→                  </span>
+   536→                )}
+   537→              </CardTitle>
+   538→              <Badge variant="secondary" className="bg-[#FECACA] text-[#991B1B] shadow-sm font-semibold">{enMantenimiento.length}</Badge>
+   539→            </div>
+   540→          </CardHeader>
+   541→          <CardContent className="space-y-2">
+   542→            {enMantenimiento.length === 0 ? (
+   543→              <div className="text-center py-8">
+   544→                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#F1F5F9] flex items-center justify-center shadow-sm">
+   545→                  <CheckCircle className="w-7 h-7 text-[#94A3B8]" />
+   546→                </div>
+   547→                <p className="text-sm font-medium">Sin problemas activos</p>
+   548→                <p className="text-xs text-muted-foreground mt-0.5">Todo funciona correctamente.</p>
+   549→              </div>
+   550→            ) : enMantenimiento.map(([num, h], index) => (
+   551→              <div
+   552→                key={num}
+   553→                className="group border-l-[3px] border-l-[#EF4444] rounded-lg p-2.5 space-y-1.5 hover:bg-[#FEE2E2]/20 hover:shadow-md transition-all duration-300 animate-slide-up hover:-translate-y-0.5"
+   554→                style={{ animationDelay: `${index * 50}ms` }}
+   555→              >
+   556→                <div className="flex items-center justify-between">
+   557→                  <div className="flex items-center gap-2">
+   558→                    <div className="w-9 h-9 rounded-full bg-[#FEE2E2] flex items-center justify-center shadow-sm shrink-0">
+   559→                      <BedDouble className="w-4 h-4 text-[#991B1B]" />
+   560→                    </div>
+   561→                    <div>
+   562→                      <p className="text-sm font-bold text-[#0F2B28]">Hab. {num}</p>
+   563→                      <p className="text-xs text-muted-foreground">{h.tipo} · {h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</p>
+   564→                    </div>
+   565→                  </div>
+   566→                  <Button size="sm" className="bg-[#059669] hover:bg-[#047857] text-white shadow-sm shrink-0" onClick={() => setModalResolver(num)}>
+   567→                    <Check className="w-3.5 h-3.5 mr-1" />Resuelto
+   568→                  </Button>
+   569→                </div>
+   570→                <div className="bg-[#FEE2E2] rounded p-2 flex items-start gap-1.5">
+   571→                  <AlertTriangle className="w-3 h-3 text-[#991B1B] shrink-0 mt-0.5" />
+   572→                  <span className="text-xs text-[#991B1B]">{h.problema || 'Sin descripción'}</span>
+   573→                </div>
+   574→              </div>
+   575→            ))}
+   576→          </CardContent>
+   577→        </Card>
+   578→      </div>
+   579→
+   580→      {/* ── Staff workload (only show if there are staff members with recent activity) ── */}
+   581→      {staffWorkload.length > 0 && (
+   582→        <Card className="border-[#BBF7D0]/60 bg-gradient-to-br from-[#F0FDF4]/30 to-white">
+   583→          <CardHeader className="pb-3">
+   584→            <CardTitle className="text-base flex items-center gap-2">
+   585→              <Users className="w-4 h-4 text-[#0F2B28]" />
+   586→              Carga de trabajo del personal
+   587→              <span className="text-xs font-normal text-muted-foreground ml-1">últimos 7 días</span>
+   588→            </CardTitle>
+   589→          </CardHeader>
+   590→          <CardContent>
+   591→            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+   592→              {staffWorkload.slice(0, 6).map(([nombre, count], index) => {
+   593→                const capacity = Math.min(100, (count / 8) * 100); // 8 tasks/week = 100% capacity
+   594→                const state = count <= 2 ? 'available' : count <= 5 ? 'busy' : 'overloaded';
+   595→                const stateCfg = {
+   596→                  available: { label: 'Disponible', bar: 'bg-[#059669]', text: 'text-[#166534]', bg: 'bg-[#DCFCE7]' },
+   597→                  busy: { label: 'Ocupado', bar: 'bg-[#F59E0B]', text: 'text-[#92400E]', bg: 'bg-[#FEF3C7]' },
+   598→                  overloaded: { label: 'Saturado', bar: 'bg-[#EF4444]', text: 'text-[#991B1B]', bg: 'bg-[#FEE2E2]' },
+   599→                }[state];
+   600→                return (
+   601→                  <div
+   602→                    key={nombre}
+   603→                    className="p-3 rounded-lg border bg-white hover:shadow-md transition-all duration-300 animate-slide-up hover:-translate-y-0.5"
+   604→                    style={{ animationDelay: `${index * 50}ms` }}
+   605→                  >
+   606→                    <div className="flex items-center justify-between gap-2 mb-2">
+   607→                      <div className="flex items-center gap-2 min-w-0">
+   608→                        <div className={cn('w-8 h-8 rounded-full flex items-center justify-center shrink-0', stateCfg.bg)}>
+   609→                          <Users className={cn('w-4 h-4', stateCfg.text)} />
+   610→                        </div>
+   611→                        <div className="min-w-0">
+   612→                          <p className="text-sm font-medium truncate">{nombre}</p>
+   613→                          <p className={cn('text-[10px] font-semibold', stateCfg.text)}>{stateCfg.label}</p>
+   614→                        </div>
+   615→                      </div>
+   616→                      <Badge variant="secondary" className="shadow-sm shrink-0">{count} tarea{count !== 1 ? 's' : ''}</Badge>
+   617→                    </div>
+   618→                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+   619→                      <div
+   620→                        className={cn('h-full rounded-full transition-all duration-500', stateCfg.bar)}
+   621→                        style={{ width: `${capacity}%` }}
+   622→                      />
+   623→                    </div>
+   624→                  </div>
+   625→                );
+   626→              })}
+   627→            </div>
+   628→          </CardContent>
+   629→        </Card>
+   630→      )}
+   631→
+   632→      {/* ── Reportar mantenimiento (siempre visible) ── */}
+   633→      <Card className={showReportForm ? 'border-[#FDE68A]' : ''}>
+   634→        <CardHeader className="pb-3 cursor-pointer" onClick={() => setShowReportForm(!showReportForm)}>
+   635→          <div className="flex items-center justify-between">
+   636→            <CardTitle className="text-base flex items-center gap-2"><Wrench className="w-4 h-4 text-[#92400E]" /> Reportar mantenimiento</CardTitle>
+   637→            <Button variant="ghost" size="sm">{showReportForm ? 'Cancelar' : 'Abrir formulario'}</Button>
+   638→          </div>
+   639→        </CardHeader>
+   640→        {showReportForm && (
+   641→          <CardContent className="space-y-3">
+   642→            {repConfirm && reservasAfectadas > 0 && (
+   643→              <div className="flex items-center gap-2 p-2.5 bg-[#FEF3C7] rounded-lg text-[#92400E] text-sm">
+   644→                <AlertTriangle className="w-4 h-4 shrink-0" />
+   645→                <span>Esta habitación tiene <strong>{reservasAfectadas}</strong> reserva{reservasAfectadas !== 1 ? 's' : ''} activa{reservasAfectadas !== 1 ? 's' : ''} que serán canceladas.</span>
+   646→                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 ml-auto" onClick={() => setRepConfirm(false)}><X className="w-3.5 h-3.5" /></Button>
+   647→              </div>
+   648→            )}
+   649→            <Select value={repHab} onValueChange={v => { setRepHab(v); setRepConfirm(false); }}>
+   650→              <SelectTrigger><SelectValue placeholder="-- Elegir habitación --" /></SelectTrigger>
+   651→              <SelectContent>{habDisponibles.map(([num, h]) => <SelectItem key={num} value={num}>{num} - {h.tipo}</SelectItem>)}</SelectContent>
+   652→            </Select>
+   653→            <Textarea placeholder="Describí el problema detectado..." value={repDesc} onChange={e => setRepDesc(e.target.value)} rows={2} />
+   654→            <Button onClick={handleReportar} variant="destructive" disabled={!repHab || !repDesc.trim() || reportando}>{reportando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wrench className="w-4 h-4 mr-1" />}{repConfirm ? 'Confirmar y reportar' : 'Reportar mantenimiento'}</Button>
+   655→          </CardContent>
+   656→        )}
+   657→      </Card>
+   658→
+   659→      {/* Historial */}
+   660→      <Card>
+   661→        <CardHeader className="bg-muted/50"><CardTitle className="text-base flex items-center gap-2"><Search className="w-4 h-4" /> Historial de Mantenimiento</CardTitle></CardHeader>
+   662→        <CardContent className="space-y-3">
+   663→          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 items-end">
+   664→            <DatePickerInline value={fDesde} onChange={v => { setFDesde(v); setPagina(1); }} placeholder="Desde" label="Desde" />
+   665→            <DatePickerInline value={fHasta} onChange={v => { setFHasta(v); setPagina(1); }} placeholder="Hasta" label="Hasta" />
+   666→            <div className="space-y-1"><Label className="text-xs">Habitación</Label><Input placeholder="Ej: 101" value={fHab} onChange={e => { setFHab(e.target.value); setPagina(1); }} /></div>
+   667→            <div className="space-y-1"><Label className="text-xs">Descripción</Label><Input placeholder="Buscar..." value={fDesc} onChange={e => { setFDesc(e.target.value); setPagina(1); }} /></div>
+   668→            <div className="flex gap-2 items-end"><div className="space-y-1 flex-1"><Label className="text-xs">Monto mín.</Label><Input type="number" placeholder="$0" value={fMonto} onChange={e => { setFMonto(e.target.value); setPagina(1); }} /></div><Button variant="outline" size="icon" className="h-9 w-9" onClick={limpiarFiltros} title="Limpiar filtros">{hasFiltros ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}</Button></div>
+   669→          </div>
+   670→          {listaPaginada.length === 0 ? (
+   671→            <div className="text-center py-8">
+   672→              <Wrench className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
+   673→              <p className="text-sm text-muted-foreground">No hay reparaciones registradas.</p>
+   674→            </div>
+   675→          ) : (
+   676→            <div className="overflow-x-auto -mx-6 px-6">
+   677→              <Table><TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Hab.</TableHead><TableHead>Problema</TableHead><TableHead className="hidden md:table-cell">Reparación</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="hidden sm:table-cell">Empleado</TableHead></TableRow></TableHeader>
+   678→                <TableBody>{listaPaginada.map(item => (
+   679→                  <TableRow key={item.id}><TableCell className="text-xs whitespace-nowrap">{formatFechaHora(item.fecha)}</TableCell><TableCell className="font-medium">{item.habitacion}</TableCell><TableCell className="max-w-[200px] truncate">{item.problema}</TableCell><TableCell className="hidden md:table-cell max-w-[200px] truncate">{item.reparacion}</TableCell><TableCell className={`text-right font-medium ${item.monto > 0 ? 'text-[#991B1B]' : 'text-muted-foreground'}`}>{formatMoney(item.monto)}</TableCell><TableCell className="hidden sm:table-cell text-xs text-muted-foreground">{item.empleado}</TableCell></TableRow>
+   680→                ))}</TableBody></Table>
+   681→            </div>
+   682→          )}
+   683→          <PaginationBar page={paginaActual} totalPages={totalPaginas} onPageChange={setPagina} totalItems={listaFiltrada.length} pageSize={PAGE_SIZE} />
+   684→        </CardContent>
+   685→      </Card>
+   686→
+   687→      {/* Modal Resolver */}
+   688→      <Dialog open={!!modalResolver} onOpenChange={() => setModalResolver(null)}>
+   689→        <DialogContent className="sm:max-w-md">
+   690→          <DialogHeader><DialogTitle>Resolver Mantenimiento - Habitación {modalResolver}</DialogTitle></DialogHeader>
+   691→          <div className="space-y-4 py-2">
+   692→            {modalResolver && habitaciones[modalResolver] && (
+   693→              <div className="bg-[#FEE2E2] rounded-lg p-2.5"><p className="text-sm text-[#991B1B]"><strong>Problema reportado:</strong> {habitaciones[modalResolver].problema || 'Sin descripción'}</p></div>
+   694→            )}
+   695→            <div className="space-y-2"><Label>Descripción de la reparación *</Label><Textarea value={reparacion} onChange={e => setReparacion(e.target.value)} rows={3} placeholder="Ej: Se reemplazó la placa controladora..." /></div>
+   696→            <div className="space-y-2"><Label>Monto de la reparación</Label><Input type="number" min="0" step="0.01" value={monto} onChange={e => setMonto(e.target.value)} placeholder="Dejar en 0 si no tuvo costo" /><p className="text-xs text-muted-foreground">Si no tuvo costo, dejá en $0.</p></div>
+   697→            {parseFloat(monto) > 0 && (
+   698→              <div className="space-y-2">
+   699→                <Label className="text-sm font-medium">¿De dónde sale el pago?</Label>
+   700→                <div className="grid grid-cols-2 gap-2">
+   701→                  <button
+   702→                    type="button"
+   703→                    onClick={() => setSacarDeCaja(true)}
+   704→                    className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${sacarDeCaja ? 'border-[#4ADE80] bg-[#DCFCE7]' : 'border-muted hover:border-muted-foreground/30'}`}
+   705→                  >
+   706→                    <Wallet className={`w-5 h-5 ${sacarDeCaja ? 'text-[#166534]' : 'text-muted-foreground'}`} />
+   707→                    <span className={`text-xs font-medium ${sacarDeCaja ? 'text-[#166534]' : 'text-muted-foreground'}`}>De caja</span>
+   708→                    <span className="text-[10px] text-muted-foreground">Sale de la caja del turno</span>
+   709→                  </button>
+   710→                  <button
+   711→                    type="button"
+   712→                    onClick={() => setSacarDeCaja(false)}
+   713→                    className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${!sacarDeCaja ? 'border-[#3B82F6] bg-[#DBEAFE]' : 'border-muted hover:border-muted-foreground/30'}`}
+   714→                  >
+   715→                    <Banknote className={`w-5 h-5 ${!sacarDeCaja ? 'text-[#1E40AF]' : 'text-muted-foreground'}`} />
+   716→                    <span className={`text-xs font-medium ${!sacarDeCaja ? 'text-[#1E40AF]' : 'text-muted-foreground'}`}>Pago aparte</span>
+   717→                    <span className="text-[10px] text-muted-foreground">Gerente / dinero propio</span>
+   718→                  </button>
+   719→                </div>
+   720→                {sacarDeCaja && (
+   721→                  <p className="text-xs text-[#92400E] flex items-center gap-1"><AlertTriangle className="w-3 h-3" />Se registrará un egreso en la caja activa</p>
+   722→                )}
+   723→              </div>
+   724→            )}
+   725→          </div>
+   726→          <DialogFooter>
+   727→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   728→            <Button onClick={handleResolver} disabled={!reparacion.trim() || resolviendo} className="bg-[#059669] hover:bg-[#047857] text-white">{resolviendo ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}Marcar como Resuelto</Button>
+   729→          </DialogFooter>
+   730→        </DialogContent>
+   731→      </Dialog>
+   732→    </div>
+   733→  );
+   734→}
+   735→

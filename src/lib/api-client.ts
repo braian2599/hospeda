@@ -185,7 +185,7 @@ export const api = {
     list: (estado?: string) => apiFetch<DbTareaLimpieza[]>(`/limpieza${estado ? `?estado=${estado}` : ''}`),
     create: (data: { habitacion: string; nota?: string }) =>
       apiFetch<DbTareaLimpieza>('/limpieza', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: { estado?: string; empleadoId?: string; empleado?: string }) =>
+    update: (id: string, data: { estado?: string; empleadoId?: string; empleado?: string; nota?: string }) =>
       apiFetch<DbTareaLimpieza>(`/limpieza/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   },
 

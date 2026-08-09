@@ -1,0 +1,1105 @@
+     1→'use client';
+     2→
+     3→import { useState, useMemo, useCallback, useEffect, type ComponentType } from 'react';
+     4→import {
+     5→  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+     6→} from '@/components/ui/alert-dialog';
+     7→import { useHotelStore } from '@/lib/store';
+     8→import { formatFechaHora, formatMoney } from '@/lib/format';
+     9→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+    10→import { Button } from '@/components/ui/button';
+    11→import { Input } from '@/components/ui/input';
+    12→import { Label } from '@/components/ui/label';
+    13→import { Badge } from '@/components/ui/badge';
+    14→import {
+    15→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    16→} from '@/components/ui/dialog';
+    17→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    18→import {
+    19→  Wallet, Lock, Unlock, Plus, Minus, Loader2, Pencil, Trash2, AlertTriangle, Tag,
+    20→  TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight, Activity, Receipt, Sparkles,
+    21→  Download,
+    22→} from 'lucide-react';
+    23→import ModuleHeader from '@/components/layout/ModuleHeader';
+    24→import { toast } from 'sonner';
+    25→import { DialogTrigger } from '@/components/ui/dialog';
+    26→import { BILLETES } from '@/lib/types';
+    27→import PaginationBar from '@/components/ui/pagination-bar';
+    28→import { AnimatedNumber } from '@/components/ui/animated-number';
+    29→import { cn } from '@/lib/utils';
+    30→import { exportToCSV } from '@/lib/csv-export';
+    31→
+    32→// formatFechaHora and formatMoney imported from @/lib/format
+    33→
+    34→const formatHora = (f: string) => {
+    35→  const d = new Date(f);
+    36→  return d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    37→};
+    38→
+    39→/** Relative time since a date — "recién", "hace 5 min", "hace 2h 15min", "hace 3d" */
+    40→function formatRelative(dateStr: string, now: number = Date.now()): string {
+    41→  const t = new Date(dateStr).getTime();
+    42→  if (isNaN(t)) return '';
+    43→  const diff = Math.max(0, now - t);
+    44→  const mins = Math.floor(diff / 60000);
+    45→  if (mins < 1) return 'recién';
+    46→  if (mins < 60) return `hace ${mins} min`;
+    47→  const hours = Math.floor(mins / 60);
+    48→  const restMins = mins % 60;
+    49→  if (hours < 24) return restMins > 0 ? `hace ${hours}h ${restMins}min` : `hace ${hours}h`;
+    50→  const days = Math.floor(hours / 24);
+    51→  return `hace ${days}d`;
+    52→}
+    53→
+    54→/** Time since caja was opened — "abierta hace 2h 15min" */
+    55→function formatTimeSinceOpen(openedAt: string, now: number = Date.now()): string {
+    56→  const t = new Date(openedAt).getTime();
+    57→  if (isNaN(t)) return '';
+    58→  const diff = Math.max(0, now - t);
+    59→  const mins = Math.floor(diff / 60000);
+    60→  if (mins < 1) return 'recién abierta';
+    61→  if (mins < 60) return `abierta hace ${mins}min`;
+    62→  const hours = Math.floor(mins / 60);
+    63→  const restMins = mins % 60;
+    64→  return restMins > 0 ? `abierta hace ${hours}h ${restMins}min` : `abierta hace ${hours}h`;
+    65→}
+    66→
+    67→// formatMoney imported from @/lib/format (note: shared uses Intl.NumberFormat with currency style,
+    68→// CajaModule previously used toLocaleString - the shared version is more consistent)
+    69→
+    70→const METODOS = ['Efectivo', 'Transferencia', 'Tarjeta de Credito', 'Tarjeta de Debito', 'Mercado Pago', 'Otro'];
+    71→
+    72→export default function CajaModule() {
+    73→  const caja = useHotelStore(s => s.caja);
+    74→  const abrirCaja = useHotelStore(s => s.abrirCaja);
+    75→  const registrarMovimientoCaja = useHotelStore(s => s.registrarMovimientoCaja);
+    76→  const cerrarCaja = useHotelStore(s => s.cerrarCaja);
+    77→  const saldoActualCaja = useHotelStore(s => s.saldoActualCaja);
+    78→  const editarMovimientoCaja = useHotelStore(s => s.editarMovimientoCaja);
+    79→  const eliminarMovimientoCaja = useHotelStore(s => s.eliminarMovimientoCaja);
+    80→  const usuarioActual = useHotelStore(s => s.usuarioActual);
+    81→  const metodosPago = useHotelStore(s => s.metodosPago);
+    82→  const categoriasGastos = useHotelStore(s => s.categoriasGastos);
+    83→
+    84→  // Loading states
+    85→  const [loadingAbrir, setLoadingAbrir] = useState(false);
+    86→  const [loadingMovimiento, setLoadingMovimiento] = useState(false);
+    87→  const [loadingCerrar, setLoadingCerrar] = useState(false);
+    88→
+    89→  // Form states
+    90→  const ontoInicial, setMontoInicial] = useState('');
+    91→  const [showApertura, setShowApertura] = useState(false);
+    92→  const [showMovForm, setShowMovForm] = useState<'ingreso' | 'egreso' | null>(null);
+    93→  const ovMonto, setMovMonto] = useState('');
+    94→  const ovDesc, setMovDesc] = useState('');
+    95→  const ovMetodo, setMovMetodo] = useState('Efectivo');
+    96→  const ovCategoria, setMovCategoria] = useState('');
+    97→
+    98→  // Close dialog
+    99→  const [showCierre, setShowCierre] = useState(false);
+   100→  const [billetes, setBilletes] = useState<Record<number, number>>(() => Object.fromEntries(BILLETES.map(b => [b, 0])));
+   101→
+   102→  // Edit dialog
+   103→  const [editingMov, setEditingMov] = useState<{ id: string; monto: number; descripcion: string } | null>(null);
+   104→  const [editMonto, setEditMonto] = useState('');
+   105→  const [editDesc, setEditDesc] = useState('');
+   106→  const [loadingEdit, setLoadingEdit] = useState(false);
+   107→  const [loadingDelete, setLoadingDelete] = useState(false);
+   108→  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+   109→
+   110→  // Pagination
+   111→  const [page, setPage] = useState(1);
+   112→  const PAGE_SIZE = 15;
+   113→
+   114→  // Ticking clock so "abierta hace X" + "hace Y min" stay live.
+   115→  const [now, setNow] = useState(() => Date.now());
+   116→  useEffect(() => {
+   117→    const id = setInterval(() => setNow(Date.now()), 30_000); // 30s tick is enough for human reading
+   118→    return () => clearInterval(id);
+   119→  }, []);
+   120→
+   121→  const saldo = useMemo(() => {
+   122→    if (caja.estado !== 'abierta' || !caja.apertura) return 0;
+   123→    let s = caja.apertura.montoInicial;
+   124→    (caja.movimientos || []).forEach(mov => {
+   125→      if (mov.metodo === 'Efectivo') s += mov.tipo === 'ingreso' ? mov.monto : -mov.monto;
+   126→    });
+   127→    return s;
+   128→  }, [caja, caja.movimientos]);
+   129→  const movimientos = caja.movimientos || [];
+   130→
+   131→  // Pagination for movimientos
+   132→  const movTotalPages = Math.ceil(movimientos.length / PAGE_SIZE) || 1;
+   133→  const pagedMovimientos = movimientos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+   134→  const reversedPagedMovimientos = [...movimientos].reverse().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+   135→
+   136→  const isAdminOrOwner = usuarioActual?.rol === 'owner' || usuarioActual?.rol === 'admin';
+   137→
+   138→  // Summary calculations
+   139→  const resumenOtros = useMemo(() => {
+   140→    const movs = caja.movimientos || [];
+   141→    const res: Record<string, { ingresos: number; egresos: number }> = {};
+   142→    movs.forEach(m => {
+   143→      if (m.metodo !== 'Efectivo') {
+   144→        if (!res.metodo]) res.metodo] = { ingresos: 0, egresos: 0 };
+   145→        res.metodo].tipo === 'ingreso' ? 'ingresos' : 'egresos'] += m.monto;
+   146→      }
+   147→    });
+   148→    return res;
+   149→  }, [caja.movimientos]);
+   150→
+   151→  const totalIngresosPorMetodo = useMemo(() => {
+   152→    const movs = caja.movimientos || [];
+   153→    const res: Record<string, number> = {};
+   154→    movs.forEach(m => {
+   155→      if (m.tipo === 'ingreso') res.metodo] = (res.metodo] || 0) + m.monto;
+   156→    });
+   157→    return res;
+   158→  }, [caja.movimientos]);
+   159→
+   160→  const totalOtros = Object.values(resumenOtros).reduce((s, v) => s + v.ingresos - v.egresos, 0);
+   161→  const totalEfectivo = useMemo(() => BILLETES.reduce((s, b) => s + b * (billetes[b] || 0), 0), [billetes]);
+   162→  const totalTurno = totalEfectivo + totalOtros;
+   163→
+   164→  // Handlers
+   165→  const handleAbrir = async () => {
+   166→    const m = parseFloat(montoInicial);
+   167→    if (isNaN(m) || m < 0) return toast.error('Monto invalido');
+   168→    setLoadingAbrir(true);
+   169→    try {
+   170→      const ok = await abrirCaja(m);
+   171→      if (ok) {
+   172→        toast.success('Caja abierta', { description: 'Turno iniciado' });
+   173→        setShowApertura(false);
+   174→        setMontoInicial('');
+   175→      } else {
+   176→        toast.error('Error al abrir la caja');
+   177→      }
+   178→    } catch (e) {
+   179→      toast.error('Error al abrir la caja');
+   180→    }
+   181→    setLoadingAbrir(false);
+   182→  };
+   183→
+   184→  const handleMovimiento = async () => {
+   185→    if (!showMovForm) return;
+   186→    const m = parseFloat(movMonto);
+   187→    if (isNaN(m) || m <= 0) return toast.error('Monto invalido');
+   188→    if (showMovForm === 'egreso' && !movCategoria) return toast.error('Selecciona una categoria de gasto');
+   189→    const desc = movDesc.trim() || (showMovForm === 'ingreso' ? 'Ingreso manual' : `Egreso: ${movCategoria}`);
+   190→    setLoadingMovimiento(true);
+   191→    try {
+   192→      const ok = await registrarMovimientoCaja(showMovForm, m, desc, movMetodo, showMovForm === 'egreso' ? movCategoria : undefined);
+   193→      if (ok) {
+   194→        toast.success(`${showMovForm === 'ingreso' ? 'Ingreso' : 'Egreso'} registrado`, { description: formatMoney(m) });
+   195→        setShowMovForm(null);
+   196→        setMovMonto('');
+   197→        setMovDesc('');
+   198→        setMovMetodo('Efectivo');
+   199→        setMovCategoria('');
+   200→      } else {
+   201→        toast.error(`Error al registrar ${showMovForm}`);
+   202→      }
+   203→    } catch (e) {
+   204→      toast.error(`Error al registrar ${showMovForm}`);
+   205→    }
+   206→    setLoadingMovimiento(false);
+   207→  };
+   208→
+   209→  const handleCerrar = async () => {
+   210→    setLoadingCerrar(true);
+   211→    try {
+   212→      const cierre = await cerrarCaja(billetes, totalOtros);
+   213→      if (cierre) {
+   214→        toast.success('Caja cerrada', { description: 'Turno finalizado' });
+   215→        setShowCierre(false);
+   216→        setBilletes(Object.fromEntries(BILLETES.map(b => [b, 0])));
+   217→      } else {
+   218→        toast.error('Error al cerrar la caja');
+   219→      }
+   220→    } catch (e) {
+   221→      toast.error('Error al cerrar la caja');
+   222→    }
+   223→    setLoadingCerrar(false);
+   224→  };
+   225→
+   226→  const handleEditOpen = (mov: typeof movimientos[0]) => {
+   227→    setEditingMov({ id: mov.id, monto: mov.monto, descripcion: mov.descripcion });
+   228→    setEditMonto(String(mov.monto));
+   229→    setEditDesc(mov.descripcion);
+   230→  };
+   231→
+   232→  const handleEditSave = async () => {
+   233→    if (!editingMov) return;
+   234→    const m = parseFloat(editMonto);
+   235→    if (isNaN(m) || m <= 0) return toast.error('Monto invalido');
+   236→    if (!editDesc.trim()) return toast.error('Descripcion requerida');
+   237→    setLoadingEdit(true);
+   238→    try {
+   239→      const ok = await editarMovimientoCaja(editingMov.id, { monto: m, descripcion: editDesc.trim() });
+   240→      if (ok) {
+   241→        toast.success('Movimiento actualizado');
+   242→        setEditingMov(null);
+   243→      } else {
+   244→        toast.error('Error al editar');
+   245→      }
+   246→    } catch (e) {
+   247→      toast.error('Error al editar movimiento');
+   248→    }
+   249→    setLoadingEdit(false);
+   250→  };
+   251→
+   252→  const handleDelete = async (movId: string) => {
+   253→    setDeleteConfirmId(movId);
+   254→  };
+   255→
+   256→  const confirmDelete = async () => {
+   257→    if (!deleteConfirmId) return;
+   258→    setLoadingDelete(true);
+   259→    try {
+   260→      const ok = await eliminarMovimientoCaja(deleteConfirmId);
+   261→      if (ok) {
+   262→        toast.success('Movimiento eliminado');
+   263→      } else {
+   264→        toast.error('Error al eliminar');
+   265→      }
+   266→    } catch (e) {
+   267→      toast.error('Error al eliminar movimiento');
+   268→    }
+   269→    setLoadingDelete(false);
+   270→    setDeleteConfirmId(null);
+   271→  };
+   272→
+   273→  // Saldo esperado (efectivo only)
+   274→  const saldoEsperadoEfectivo = useMemo(() => {
+   275→    if (!caja.apertura) return 0;
+   276→    const movs = caja.movimientos || [];
+   277→    let s = caja.apertura.montoInicial;
+   278→    movs.forEach(m => {
+   279→      if (m.metodo === 'Efectivo') s += m.tipo === 'ingreso' ? m.monto : -m.monto;
+   280→    });
+   281→    return s;
+   282→  }, [caja.apertura, caja.movimientos]);
+   283→
+   284→  const diferencia = totalEfectivo - saldoEsperadoEfectivo;
+   285→
+   286→  // ── Quick stats for open caja ──
+   287→  const totalIngresos = useMemo(() => {
+   288→    return (caja.movimientos || []).filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+   289→  }, [caja.movimientos]);
+   290→  const totalEgresos = useMemo(() => {
+   291→    return (caja.movimientos || []).filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+   292→  }, [caja.movimientos]);
+   293→  // Trend = how much the cash balance grew vs the opening float (Efectivo only).
+   294→  const aperturaMonto = caja.apertura?.montoInicial ?? 0;
+   295→  const tendencia = saldo - aperturaMonto;
+   296→
+   297→  const cancelarForm = () => { setShowMovForm(null); setMovMonto(''); setMovDesc(''); setMovMetodo('Efectivo'); setMovCategoria(''); };
+   298→
+   299→  return (
+   300→    <div className="space-y-6">
+   301→      <ModuleHeader icon={Wallet} title="Caja" subtitle="Controla los movimientos de dinero del dia">
+   302→        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+   303→          const headers = ['Fecha', 'Tipo', 'Monto', 'Descripción', 'Método'];
+   304→          const rows = movimientos.map(m => [
+   305→            m.fecha || '',
+   306→            m.tipo || '',
+   307→            m.monto,
+   308→            m.descripcion || '',
+   309→            m.metodo || '',
+   310→          ]);
+   311→          exportToCSV('caja_movimientos.csv', headers, rows);
+   312→          toast.success('CSV exportado');
+   313→        }}>
+   314→          <Download className="w-3.5 h-3.5" />Exportar CSV
+   315→        </Button>
+   316→      </ModuleHeader>
+   317→
+   318→      {caja.estado === 'cerrada' ? (
+   319→        /* ═══════ CAJA CERRADA — inviting empty state ═══════ */
+   320→        <Card className="relative overflow-hidden border-2 border-dashed border-[#0F2B28]/20 celebrate-bg">
+   321→          {/* Subtle radial accent in the background */}
+   322→          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#F0FDF4]/40 via-transparent to-[#FFFBEB]/30" />
+   323→          <CardContent className="relative text-center py-14 px-6 space-y-5 max-w-md mx-auto">
+   324→            <div className="relative inline-flex">
+   325→              {/* Pulsing halo around the icon */}
+   326→              <span className="absolute inset-0 rounded-full bg-[#059669]/20 animate-ping" />
+   327→              <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0] flex items-center justify-center shadow-lg ring-4 ring-white">
+   328→                <Unlock className="w-9 h-9 text-[#0F2B28]" />
+   329→              </div>
+   330→            </div>
+   331→            <div className="space-y-1.5">
+   332→              <h3 className="text-2xl font-bold text-[#0F2B28]">Caja cerrada</h3>
+   333→              <p className="text-sm text-muted-foreground">Abrí un nuevo turno para comenzar a registrar movimientos del día.</p>
+   334→            </div>
+   335→            {!showApertura ? (
+   336→              <Button size="lg" onClick={() => setShowApertura(true)} className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
+   337→                <Unlock className="w-4 h-4 mr-2" />Abrir caja
+   338→              </Button>
+   339→            ) : (
+   340→              <div className="max-w-xs mx-auto space-y-2 rounded-lg border border-[#0F2B28]/15 bg-white/80 backdrop-blur p-4 shadow-sm">
+   341→                <Label className="text-sm text-muted-foreground">Monto inicial en efectivo</Label>
+   342→                <Input type="number" placeholder="0.00" step="0.01" min="0" value={montoInicial} onChange={e => setMontoInicial(e.target.value)} autoFocus />
+   343→                <div className="flex gap-2">
+   344→                  <Button onClick={handleAbrir} className="flex-1 bg-[#059669] hover:bg-[#047857] text-white" disabled={loadingAbrir}>
+   345→                    {loadingAbrir ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Unlock className="w-4 h-4 mr-1" />}Confirmar apertura
+   346→                  </Button>
+   347→                  <Button variant="secondary" onClick={() => setShowApertura(false)} disabled={loadingAbrir}>Cancelar</Button>
+   348→                </div>
+   349→              </div>
+   350→            )}
+   351→            {caja.historial && caja.historial.length > 0 && (
+   352→              <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 bg-white/60 px-3 py-1.5 rounded-full">
+   353→                <Clock className="w-3 h-3" />Último cierre: {formatFechaHora(caja.historial[caja.historial.length - 1].cierre.fecha)}
+   354→              </p>
+   355→            )}
+   356→          </CardContent>
+   357→        </Card>
+   358→      ) : (
+   359→        /* ═══════ CAJA ABIERTA ═══════ */
+   360→        <div className="space-y-4">
+   361→          {/* ── Quick stats row (4 cards) — shown on all breakpoints ── */}
+   362→          <QuickStatsRow
+   363→            totalIngresos={totalIngresos}
+   364→            totalEgresos={totalEgresos}
+   365→            saldo={saldo}
+   366→            movCount={movimientos.length}
+   367→          />
+   368→
+   369→          {/* ── Mobile: compact status bar ── */}
+   370→          <Card className="lg:hidden wave-border-hover">
+   371→            <CardContent className="p-3 space-y-3">
+   372→              <div className="flex items-center justify-between gap-2">
+   373→                <div className="flex items-center gap-2 min-w-0">
+   374→                  <span className="relative flex h-2.5 w-2.5 shrink-0">
+   375→                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4ADE80] opacity-75" />
+   376→                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#059669]" />
+   377→                  </span>
+   378→                  <div className="min-w-0">
+   379→                    <h3 className="font-semibold text-sm text-[#0F2B28] truncate">Caja abierta</h3>
+   380→                    {caja.apertura && (
+   381→                      <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1 truncate">
+   382→                        <Clock className="w-2.5 h-2.5 shrink-0" />
+   383→                        <span className="truncate">{formatTimeSinceOpen(caja.apertura.fecha, now)}</span>
+   384→                      </p>
+   385→                    )}
+   386→                  </div>
+   387→                </div>
+   388→                <Dialog open={showCierre} onOpenChange={setShowCierre}>
+   389→                  <DialogTrigger asChild>
+   390→                    <Button variant="destructive" size="sm" className="h-7 text-xs shrink-0"><Lock className="w-3.5 h-3.5 mr-1" />Cerrar</Button>
+   391→                  </DialogTrigger>
+   392→                  <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+   393→                    <ClosingDialogContent
+   394→                      saldoEsperado={saldoEsperadoEfectivo}
+   395→                      totalEfectivo={totalEfectivo}
+   396→                      diferencia={diferencia}
+   397→                      totalOtros={totalOtros}
+   398→                      resumenOtros={resumenOtros}
+   399→                      totalIngresosPorMetodo={totalIngresosPorMetodo}
+   400→                      billetes={billetes}
+   401→                      setBilletes={setBilletes}
+   402→                      loadingCerrar={loadingCerrar}
+   403→                      handleCerrar={handleCerrar}
+   404→                      setShowCierre={setShowCierre}
+   405→                    />
+   406→                  </DialogContent>
+   407→                </Dialog>
+   408→              </div>
+   409→              {/* Balance display — animated + trend */}
+   410→              <div className="rounded-lg border-2 border-[#059669]/30 bg-gradient-to-br from-[#F0FDF4]/60 to-white p-3">
+   411→                <div className="flex items-center justify-between gap-2">
+   412→                  <div>
+   413→                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo actual</p>
+   414→                    <AnimatedNumber
+   415→                      value={saldo}
+   416→                      className="text-xl font-bold text-[#0F2B28] block"
+   417→                    />
+   418→                  </div>
+   419→                  {caja.apertura && (
+   420→                    <div className={cn(
+   421→                      'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold shadow-sm',
+   422→                      tendencia >= 0 ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-[#FEE2E2] text-[#991B1B]'
+   423→                    )}>
+   424→                      {tendencia >= 0
+   425→                        ? <ArrowUpRight className="w-3 h-3" />
+   426→                        : <ArrowDownRight className="w-3 h-3" />}
+   427→                      {tendencia >= 0 ? '+' : ''}{formatMoney(tendencia)}
+   428→                    </div>
+   429→                  )}
+   430→                </div>
+   431→              </div>
+   432→              {/* Movimientos + Apertura info */}
+   433→              <div className="grid grid-cols-2 gap-2 text-center rounded-lg border p-2.5 bg-muted/30">
+   434→                <div>
+   435→                  <p className="text-[10px] text-muted-foreground leading-tight">Movimientos</p>
+   436→                  <p className="text-sm font-semibold">{movimientos.length}</p>
+   437→                </div>
+   438→                <div>
+   439→                  <p className="text-[10px] text-muted-foreground leading-tight">Apertura</p>
+   440→                  <p className="text-sm font-medium">{caja.apertura ? formatHora(caja.apertura.fecha) : '--'}</p>
+   441→                </div>
+   442→              </div>
+   443→              {/* Action buttons */}
+   444→              <div className="grid grid-cols-2 gap-2">
+   445→                <Button variant="outline" className="h-9 text-sm border-[#059669]/30 text-[#166534] hover:bg-[#F0FDF4] hover:text-[#166534]" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+   446→                <Button variant="outline" className="h-9 text-sm border-[#991B1B]/30 text-[#991B1B] hover:bg-[#FEF2F2] hover:text-[#991B1B]" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+   447→              </div>
+   448→              {/* Movement form inline */}
+   449→              {showMovForm && (
+   450→                <MovFormInline
+   451→                  tipo={showMovForm}
+   452→                  movMonto={movMonto}
+   453→                  setMovMonto={setMovMonto}
+   454→                  movDesc={movDesc}
+   455→                  setMovDesc={setMovDesc}
+   456→                  movMetodo={movMetodo}
+   457→                  setMovMetodo={setMovMetodo}
+   458→                  movCategoria={movCategoria}
+   459→                  setMovCategoria={setMovCategoria}
+   460→                  loading={loadingMovimiento}
+   461→                  onGuardar={handleMovimiento}
+   462→                  onCancelar={cancelarForm}
+   463→                  metodosPago={metodosPago}
+   464→                  categoriasGastos={categoriasGastos}
+   465→                />
+   466→              )}
+   467→            </CardContent>
+   468→          </Card>
+   469→
+   470→          {/* ── Mobile: movement cards ── */}
+   471→          <Card className="lg:hidden">
+   472→            <CardHeader className="pb-3"><CardTitle className="text-base">Movimientos del turno</CardTitle></CardHeader>
+   473→            <CardContent className="p-0">
+   474→              {movimientos.length === 0 ? (
+   475→                <div className="text-center py-10 text-muted-foreground">
+   476→                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
+   477→                    <Receipt className="w-6 h-6 text-muted-foreground/60" />
+   478→                  </div>
+   479→                  <p className="text-sm">Sin movimientos todavía.</p>
+   480→                </div>
+   481→              ) : (
+   482→                <div className="divide-y">
+   483→                  {reversedPagedMovimientos.map((m) => (
+   484→                    <MovementCard
+   485→                      key={m.id}
+   486→                      movimiento={m}
+   487→                      now={now}
+   488→                      canEdit={isAdminOrOwner}
+   489→                      onEdit={() => handleEditOpen(m)}
+   490→                      onDelete={() => handleDelete(m.id)}
+   491→                      loadingDelete={loadingDelete}
+   492→                    />
+   493→                  ))}
+   494→                </div>
+   495→              )}
+   496→            </CardContent>
+   497→            <PaginationBar page={page} totalPages={movTotalPages} onPageChange={setPage} totalItems={movimientos.length} pageSize={PAGE_SIZE} />
+   498→          </Card>
+   499→
+   500→          {/* ═══════ DESKTOP ═══════ */}
+   501→          <div className="hidden lg:grid lg:grid-cols-3 gap-4">
+   502→            <div className="lg:col-span-2 space-y-4">
+   503→              {/* Status bar — enhanced with pulsing dot + time since opened + gradient border */}
+   504→              <Card className="wave-border-hover overflow-hidden">
+   505→                <CardContent className="flex items-center justify-between py-4 relative">
+   506→                  <div className="flex items-center gap-3 min-w-0">
+   507→                    <span className="relative flex h-3 w-3 shrink-0">
+   508→                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4ADE80] opacity-75" />
+   509→                      <span className="relative inline-flex h-3 w-3 rounded-full bg-[#059669]" />
+   510→                    </span>
+   511→                    <div className="min-w-0">
+   512→                      <h3 className="font-semibold text-[#0F2B28] flex items-center gap-2">
+   513→                        Caja abierta
+   514→                        <Badge className="bg-[#DCFCE7] text-[#166534] shadow-sm font-semibold">
+   515→                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#059669] mr-1 animate-pulse-subtle" />
+   516→                          Activa
+   517→                        </Badge>
+   518→                      </h3>
+   519→                      {caja.apertura && (
+   520→                        <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 mt-0.5">
+   521→                          <Clock className="w-3 h-3" />
+   522→                          <span>{formatTimeSinceOpen(caja.apertura.fecha, now)}</span>
+   523→                          <span className="text-muted-foreground/40">·</span>
+   524→                          <span>Apertura: {formatHora(caja.apertura.fecha)} · Cajero: {caja.apertura.empleado}</span>
+   525→                        </p>
+   526→                      )}
+   527→                    </div>
+   528→                  </div>
+   529→                  <Dialog open={showCierre} onOpenChange={setShowCierre}>
+   530→                    <DialogTrigger asChild>
+   531→                      <Button variant="destructive" disabled={loadingCerrar} className="shadow-sm"><Lock className="w-4 h-4 mr-1" />Cerrar caja</Button>
+   532→                    </DialogTrigger>
+   533→                    <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+   534→                      <ClosingDialogContent
+   535→                        saldoEsperado={saldoEsperadoEfectivo}
+   536→                        totalEfectivo={totalEfectivo}
+   537→                        diferencia={diferencia}
+   538→                        totalOtros={totalOtros}
+   539→                        resumenOtros={resumenOtros}
+   540→                        totalIngresosPorMetodo={totalIngresosPorMetodo}
+   541→                        billetes={billetes}
+   542→                        setBilletes={setBilletes}
+   543→                        loadingCerrar={loadingCerrar}
+   544→                        handleCerrar={handleCerrar}
+   545→                        setShowCierre={setShowCierre}
+   546→                      />
+   547→                    </DialogContent>
+   548→                  </Dialog>
+   549→                </CardContent>
+   550→              </Card>
+   551→
+   552→              {/* Balance display — large animated number + trend indicator */}
+   553→              <Card className="bg-gradient-to-br from-[#F0FDF4]/60 to-white border-2 border-[#059669]/30 card-hover">
+   554→                <CardContent className="py-4 flex items-center justify-between gap-4">
+   555→                  <div className="flex items-center gap-4">
+   556→                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0] flex items-center justify-center shadow-sm">
+   557→                      <Wallet className="w-6 h-6 text-[#0F2B28]" />
+   558→                    </div>
+   559→                    <div>
+   560→                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Saldo actual (efectivo)</p>
+   561→                      <AnimatedNumber
+   562→                        value={saldo}
+   563→                        className="text-3xl font-bold text-[#0F2B28] tabular-nums block leading-tight"
+   564→                      />
+   565→                    </div>
+   566→                  </div>
+   567→                  {caja.apertura && (
+   568→                    <div className="text-right space-y-1">
+   569→                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">vs. apertura</p>
+   570→                      <div className={cn(
+   571→                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm',
+   572→                        tendencia >= 0 ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-[#FEE2E2] text-[#991B1B]'
+   573→                      )}>
+   574→                        {tendencia >= 0
+   575→                          ? <TrendingUp className="w-3.5 h-3.5" />
+   576→                          : <TrendingDown className="w-3.5 h-3.5" />}
+   577→                        {tendencia >= 0 ? '+' : ''}{formatMoney(tendencia)}
+   578→                      </div>
+   579→                      <p className="text-[10px] text-muted-foreground">Inicial: {formatMoney(aperturaMonto)}</p>
+   580→                    </div>
+   581→                  )}
+   582→                </CardContent>
+   583→              </Card>
+   584→
+   585→              {/* Movements table */}
+   586→              <Card>
+   587→                <CardHeader className="pb-3">
+   588→                  <div className="flex items-center justify-between">
+   589→                    <CardTitle className="text-base flex items-center gap-2">
+   590→                      <Activity className="w-4 h-4 text-[#0F2B28]" />
+   591→                      Movimientos del turno
+   592→                    </CardTitle>
+   593→                    {movimientos.length > 0 && (
+   594→                      <Badge variant="secondary" className="shadow-sm">{movimientos.length} total</Badge>
+   595→                    )}
+   596→                  </div>
+   597→                </CardHeader>
+   598→                <CardContent>
+   599→                  {movimientos.length === 0 ? (
+   600→                    <div className="text-center py-10">
+   601→                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
+   602→                        <Receipt className="w-6 h-6 text-muted-foreground/60" />
+   603→                      </div>
+   604→                      <p className="text-sm text-muted-foreground">Sin movimientos todavía. Registrá el primero arriba.</p>
+   605→                    </div>
+   606→                  ) : (
+   607→                    <div className="overflow-x-auto -mx-6 px-6">
+   608→                      <Table>
+   609→                        <TableHeader>
+   610→                          <TableRow>
+   611→                            <TableHead>Hora</TableHead>
+   612→                            <TableHead>Tipo</TableHead>
+   613→                            <TableHead>Monto</TableHead>
+   614→                            <TableHead>Metodo</TableHead>
+   615→                            <TableHead>Descripcion</TableHead>
+   616→                            {isAdminOrOwner && <TableHead className="w-[80px]">Acciones</TableHead>}
+   617→                          </TableRow>
+   618→                        </TableHeader>
+   619→                        <TableBody>
+   620→                          {pagedMovimientos.map((m) => (
+   621→                            <TableRow
+   622→                              key={m.id}
+   623→                              className={cn(
+   624→                                'group transition-colors border-l-2',
+   625→                                m.tipo === 'ingreso'
+   626→                                  ? 'border-l-[#059669] hover:bg-[#F0FDF4]/40'
+   627→                                  : 'border-l-[#EF4444] hover:bg-[#FEF2F2]/40'
+   628→                              )}
+   629→                            >
+   630→                              <TableCell className="text-xs">
+   631→                                <div className="flex flex-col">
+   632→                                  <span>{formatHora(m.fecha)}</span>
+   633→                                  <span className="text-[10px] text-muted-foreground italic">{formatRelative(m.fecha, now)}</span>
+   634→                                </div>
+   635→                              </TableCell>
+   636→                              <TableCell>
+   637→                                <div className="flex items-center gap-2">
+   638→                                  <span className={cn(
+   639→                                    'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
+   640→                                    m.tipo === 'ingreso' ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-[#FEE2E2] text-[#991B1B]'
+   641→                                  )}>
+   642→                                    {m.tipo === 'ingreso'
+   643→                                      ? <ArrowUpRight className="w-3.5 h-3.5" />
+   644→                                      : <ArrowDownRight className="w-3.5 h-3.5" />}
+   645→                                  </span>
+   646→                                  <span className={cn(
+   647→                                    'text-xs font-semibold',
+   648→                                    m.tipo === 'ingreso' ? 'text-[#166534]' : 'text-[#991B1B]'
+   649→                                  )}>
+   650→                                    {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
+   651→                                  </span>
+   652→                                </div>
+   653→                              </TableCell>
+   654→                              <TableCell className={cn(
+   655→                                'font-bold tabular-nums',
+   656→                                m.tipo === 'ingreso' ? 'text-[#166534]' : 'text-[#991B1B]'
+   657→                              )}>
+   658→                                {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
+   659→                              </TableCell>
+   660→                              <TableCell>
+   661→                                <Badge variant="secondary" className="shadow-sm">{m.metodo}</Badge>
+   662→                              </TableCell>
+   663→                              <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{m.descripcion}</TableCell>
+   664→                              {isAdminOrOwner && (
+   665→                                <TableCell>
+   666→                                  <div className="flex gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+   667→                                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleEditOpen(m)}><Pencil className="w-3.5 h-3.5" /></Button>
+   668→                                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDelete(m.id)} disabled={loadingDelete}>
+   669→                                      {loadingDelete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+   670→                                    </Button>
+   671→                                  </div>
+   672→                                </TableCell>
+   673→                              )}
+   674→                            </TableRow>
+   675→                          ))}
+   676→                        </TableBody>
+   677→                      </Table>
+   678→                    </div>
+   679→                  )}
+   680→                  <PaginationBar page={page} totalPages={movTotalPages} onPageChange={setPage} totalItems={movimientos.length} pageSize={PAGE_SIZE} />
+   681→                </CardContent>
+   682→              </Card>
+   683→            </div>
+   684→
+   685→            {/* Info Panel */}
+   686→            <div className="space-y-4">
+   687→              <Card className="overflow-hidden">
+   688→                <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#0F2B28]" />Información del turno</CardTitle></CardHeader>
+   689→                <CardContent className="space-y-2 text-sm">
+   690→                  {caja.apertura && (
+   691→                    <>
+   692→                      <div className="flex justify-between"><span className="text-muted-foreground">Cajero:</span><span className="font-medium">{caja.apertura.empleado}</span></div>
+   693→                      <div className="flex justify-between"><span className="text-muted-foreground">Apertura:</span><span>{formatFechaHora(caja.apertura.fecha)}</span></div>
+   694→                      <div className="flex justify-between"><span className="text-muted-foreground">Inicial:</span><span className="font-medium">{formatMoney(caja.apertura.montoInicial)}</span></div>
+   695→                    </>
+   696→                  )}
+   697→                  <div className="flex justify-between items-center pt-1 border-t">
+   698→                    <span className="text-muted-foreground">Saldo actual:</span>
+   699→                    <AnimatedNumber
+   700→                      value={saldo}
+   701→                      className="font-bold text-lg text-[#0F2B28] tabular-nums"
+   702→                    />
+   703→                  </div>
+   704→                  <div className="flex justify-between"><span className="text-muted-foreground">Movimientos:</span><span className="font-medium">{movimientos.length}</span></div>
+   705→
+   706→                  {/* Action buttons */}
+   707→                  <div className="grid grid-cols-2 gap-2 pt-2">
+   708→                    <Button variant="outline" className="w-full border-[#059669]/30 text-[#166534] hover:bg-[#F0FDF4] hover:text-[#166534]" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+   709→                    <Button variant="outline" className="w-full border-[#991B1B]/30 text-[#991B1B] hover:bg-[#FEF2F2] hover:text-[#991B1B]" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+   710→                  </div>
+   711→
+   712→                  {/* Movement form */}
+   713→                  {showMovForm && (
+   714→                    <MovFormInline
+   715→                      tipo={showMovForm}
+   716→                      movMonto={movMonto}
+   717→                      setMovMonto={setMovMonto}
+   718→                      movDesc={movDesc}
+   719→                      setMovDesc={setMovDesc}
+   720→                      movMetodo={movMetodo}
+   721→                      setMovMetodo={setMovMetodo}
+   722→                      movCategoria={movCategoria}
+   723→                      setMovCategoria={setMovCategoria}
+   724→                      loading={loadingMovimiento}
+   725→                      onGuardar={handleMovimiento}
+   726→                      onCancelar={cancelarForm}
+   727→                      metodosPago={metodosPago}
+   728→                      categoriasGastos={categoriasGastos}
+   729→                    />
+   730→                  )}
+   731→                </CardContent>
+   732→              </Card>
+   733→            </div>
+   734→          </div>
+   735→        </div>
+   736→      )}
+   737→
+   738→      {/* ═══════ DELETE CONFIRM DIALOG ═══════ */}
+   739→      <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+   740→        <AlertDialogContent>
+   741→          <AlertDialogHeader>
+   742→            <AlertDialogTitle>¿Eliminar movimiento?</AlertDialogTitle>
+   743→            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+   744→          </AlertDialogHeader>
+   745→          <AlertDialogFooter>
+   746→            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+   747→            <AlertDialogAction onClick={confirmDelete}>Eliminar</AlertDialogAction>
+   748→          </AlertDialogFooter>
+   749→        </AlertDialogContent>
+   750→      </AlertDialog>
+   751→
+   752→      {/* ═══════ EDIT MOVEMENT DIALOG ═══════ */}
+   753→      <Dialog open={!!editingMov} onOpenChange={() => setEditingMov(null)}>
+   754→        <DialogContent className="sm:max-w-md">
+   755→          <DialogHeader>
+   756→            <DialogTitle>Editar movimiento</DialogTitle>
+   757→          </DialogHeader>
+   758→          <div className="space-y-3">
+   759→            <div>
+   760→              <Label>Monto</Label>
+   761→              <Input type="number" step="0.01" min="0.01" value={editMonto} onChange={e => setEditMonto(e.target.value)} />
+   762→            </div>
+   763→            <div>
+   764→              <Label>Descripcion</Label>
+   765→              <Input value={editDesc} onChange={e => setEditDesc(e.target.value)} />
+   766→            </div>
+   767→          </div>
+   768→          <DialogFooter>
+   769→            <Button variant="secondary" onClick={() => setEditingMov(null)} disabled={loadingEdit}>Cancelar</Button>
+   770→            <Button onClick={handleEditSave} disabled={loadingEdit}>
+   771→              {loadingEdit ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}Guardar
+   772→            </Button>
+   773→          </DialogFooter>
+   774→        </DialogContent>
+   775→      </Dialog>
+   776→    </div>
+   777→  );
+   778→}
+   779→
+   780→/* ═══════════════════════════════════════════════════════════
+   781→   CLOSING DIALOG CONTENT (deduplicated, single render)
+   782→   ═══════════════════════════════════════════════════════════ */
+   783→
+   784→function ClosingDialogContent({
+   785→  saldoEsperado, totalEfectivo, diferencia, totalOtros, resumenOtros,
+   786→  totalIngresosPorMetodo, billetes, setBilletes, loadingCerrar, handleCerrar, setShowCierre,
+   787→}: {
+   788→  saldoEsperado: number; totalEfectivo: number; diferencia: number; totalOtros: number;
+   789→  resumenOtros: Record<string, { ingresos: number; egresos: number }>;
+   790→  totalIngresosPorMetodo: Record<string, number>;
+   791→  billetes: Record<number, number>; setBilletes: (b: Record<number, number>) => void;
+   792→  loadingCerrar: boolean; handleCerrar: () => void; setShowCierre: (v: boolean) => void;
+   793→}) {
+   794→  const fmt = (n: number) => formatMoney(n);
+   795→  return (
+   796→    <>
+   797→      <DialogHeader>
+   798→        <DialogTitle className="flex items-center gap-2"><Lock className="w-5 h-5 text-destructive" /> Cierre de caja</DialogTitle>
+   799→      </DialogHeader>
+   800→      <div className="grid grid-cols-3 gap-2 text-center">
+   801→        <div className="p-2 rounded-lg bg-muted/50"><p className="text-[10px] text-muted-foreground">Esperado</p><p className="font-bold text-sm">{fmt(saldoEsperado)}</p><p className="text-[9px] text-muted-foreground">Solo efectivo</p></div>
+   802→        <div className="p-2 rounded-lg bg-muted/50"><p className="text-[10px] text-muted-foreground">Contado</p><p className="font-bold text-sm">{fmt(totalEfectivo)}</p><p className="text-[9px] text-muted-foreground">Efectivo</p></div>
+   803→        <div className={`p-2 rounded-lg ${diferencia === 0 ? 'bg-[#DCFCE7]' : 'bg-[#FEE2E2]'}`}><p className="text-[10px] text-muted-foreground">Diferencia</p><p className={`font-bold text-sm ${diferencia === 0 ? 'text-[#166534]' : 'text-[#991B1B]'}`}>{diferencia === 0 ? '$0.00' : `${diferencia > 0 ? '+' : ''}${fmt(diferencia)}`}</p></div>
+   804→      </div>
+   805→      {diferencia !== 0 && (
+   806→        <div className="flex items-center gap-2 p-2 bg-[#FEF3C7] rounded-lg text-[#92400E] text-sm"><AlertTriangle className="w-4 h-4 shrink-0" /><span>Hay una diferencia de {fmt(Math.abs(diferencia))} en efectivo</span></div>
+   807→      )}
+   808→      <div className="grid md:grid-cols-2 gap-6 py-2">
+   809→        <div>
+   810→          <h4 className="font-semibold mb-3">Conteo de billetes</h4>
+   811→          <div className="space-y-2">
+   812→            {BILLETES.map(b => (
+   813→              <div key={b} className="flex items-center gap-2">
+   814→                <span className="w-20 text-sm font-medium">{fmt(b)}</span>
+   815→                <Input type="number" min="0" className="w-20 h-8 text-sm" value={billetes[b] || 0} onChange={e => setBilletes({ ...billetes, [b]: parseInt(e.target.value) || 0 })} />
+   816→                <span className="text-sm text-muted-foreground w-20 text-right">{fmt(b * (billetes[b] || 0))}</span>
+   817→              </div>
+   818→            ))}
+   819→          </div>
+   820→          <div className="flex justify-between font-bold mt-3 pt-2 border-t"><span>Total efectivo</span><span>{fmt(totalEfectivo)}</span></div>
+   821→        </div>
+   822→        <div>
+   823→          <h4 className="font-semibold mb-3">Otros metodos</h4>
+   824→          {Object.keys(resumenOtros).length === 0 ? (<p className="text-sm text-muted-foreground">Sin movimientos de otros metodos.</p>) : (
+   825→            <div className="space-y-1">
+   826→              {Object.entries(resumenOtros).map((etodo, data]) => (
+   827→                <div key={metodo} className="flex justify-between text-sm py-1"><span>{metodo}</span><span className="font-medium">{fmt(data.ingresos - data.egresos)}</span></div>
+   828→              ))}
+   829→              <div className="flex justify-between font-bold mt-2 pt-2 border-t"><span>Total otros</span><span>{fmt(totalOtros)}</span></div>
+   830→            </div>
+   831→          )}
+   832→        </div>
+   833→      </div>
+   834→      {Object.keys(totalIngresosPorMetodo).length > 0 && (
+   835→        <div className="border rounded-lg p-3">
+   836→          <h4 className="font-semibold text-sm mb-2">Desglose de ingresos por metodo</h4>
+   837→          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+   838→            {Object.entries(totalIngresosPorMetodo).map((etodo, total]) => (
+   839→              <div key={metodo} className="flex justify-between items-center text-sm"><span className="text-muted-foreground">{metodo}</span><Badge variant="secondary">{fmt(total)}</Badge></div>
+   840→            ))}
+   841→          </div>
+   842→        </div>
+   843→      )}
+   844→      <div className="text-center pt-4 border-t mt-4">
+   845→        <p className="text-lg font-bold">Total del dia: <span className="text-primary">{fmt(totalEfectivo + totalOtros)}</span></p>
+   846→        <div className="flex gap-2 justify-center mt-3">
+   847→          <DialogClose asChild><Button variant="secondary" onClick={() => setShowCierre(false)}>Cancelar</Button></DialogClose>
+   848→          <Button variant="destructive" onClick={handleCerrar} disabled={loadingCerrar}>{loadingCerrar ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Lock className="w-4 h-4 mr-1" />}Confirmar cierre</Button>
+   849→        </div>
+   850→      </div>
+   851→    </>
+   852→  );
+   853→}
+   854→
+   855→/* ═══════════════════════════════════════════════════════════
+   856→   MOVEMENT FORM (used in both mobile and desktop)
+   857→   ═══════════════════════════════════════════════════════════ */
+   858→
+   859→function MovFormInline({
+   860→  tipo, movMonto, setMovMonto, movDesc, setMovDesc,
+   861→  movMetodo, setMovMetodo, movCategoria, setMovCategoria,
+   862→  loading, onGuardar, onCancelar, metodosPago, categoriasGastos,
+   863→}: {
+   864→  tipo: 'ingreso' | 'egreso';
+   865→  movMonto: string; setMovMonto: (v: string) => void;
+   866→  movDesc: string; setMovDesc: (v: string) => void;
+   867→  movMetodo: string; setMovMetodo: (v: string) => void;
+   868→  movCategoria: string; setMovCategoria: (v: string) => void;
+   869→  loading: boolean; onGuardar: () => void; onCancelar: () => void;
+   870→  metodosPago: { id: string; nombre: string }[];
+   871→  categoriasGastos: string[];
+   872→}) {
+   873→  const methods = metodosPago.length > 0 ? metodosPago.map(m => m.nombre) : METODOS;
+   874→  return (
+   875→    <div className="border rounded-lg p-3 space-y-2">
+   876→      <p className="font-medium text-sm">
+   877→        {tipo === 'ingreso' ? (
+   878→          <span className="flex items-center gap-1"><Plus className="w-3.5 h-3.5 text-[#166534]" />Registrar ingreso</span>
+   879→        ) : (
+   880→          <span className="flex items-center gap-1"><Minus className="w-3.5 h-3.5 text-[#991B1B]" />Registrar egreso</span>
+   881→        )}
+   882→      </p>
+   883→      <div className="grid grid-cols-2 gap-2">
+   884→        <Input type="number" placeholder="Monto" step="0.01" min="0.01" value={movMonto} onChange={e => setMovMonto(e.target.value)} />
+   885→        <select
+   886→          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+   887→          value={movMetodo}
+   888→          onChange={e => setMovMetodo(e.target.value)}
+   889→        >
+   890→          {methods.map(m => (<option key={m} value={m}>{m}</option>))}
+   891→        </select>
+   892→      </div>
+   893→      {/* Categoria de gasto - solo para egresos */}
+   894→      {tipo === 'egreso' && (
+   895→        <div className="relative">
+   896→          <Tag className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+   897→          <select
+   898→            className="flex h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring appearance-none"
+   899→            value={movCategoria}
+   900→            onChange={e => setMovCategoria(e.target.value)}
+   901→          >
+   902→            <option value="">Categoria de gasto...</option>
+   903→            {categoriasGastos.map(c => (<option key={c} value={c}>{c}</option>))}
+   904→          </select>
+   905→        </div>
+   906→      )}
+   907→      <Input placeholder="Descripcion (opcional)" value={movDesc} onChange={e => setMovDesc(e.target.value)} />
+   908→      <div className="flex gap-2">
+   909→        <Button onClick={onGuardar} className="flex-1" disabled={loading}>
+   910→          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}Guardar
+   911→        </Button>
+   912→        <Button variant="secondary" onClick={onCancelar} disabled={loading} className="flex-1">Cancelar</Button>
+   913→      </div>
+   914→    </div>
+   915→  );
+   916→}
+   917→
+   918→/* ═══════════════════════════════════════════════════════════
+   919→   QUICK STATS ROW — 4 KPI cards shown at the top of open caja
+   920→   ═══════════════════════════════════════════════════════════ */
+   921→
+   922→interface QuickStatConfig {
+   923→  key: string;
+   924→  label: string;
+   925→  icon: ComponentType<{ className?: string }>;
+   926→  iconColor: string;
+   927→  iconBg: string;
+   928→  cardBg: string;
+   929→  accentBorder: string;
+   930→}
+   931→
+   932→const QUICK_STATS: QuickStatConfig[] = [
+   933→  {
+   934→    key: 'ingresos',
+   935→    label: 'Ingresos',
+   936→    icon: ArrowUpRight,
+   937→    iconColor: 'text-[#166534]',
+   938→    iconBg: 'bg-[#DCFCE7]',
+   939→    cardBg: 'from-[#F0FDF4]/60 to-white',
+   940→    accentBorder: 'border-l-[#059669]',
+   941→  },
+   942→  {
+   943→    key: 'egresos',
+   944→    label: 'Egresos',
+   945→    icon: ArrowDownRight,
+   946→    iconColor: 'text-[#991B1B]',
+   947→    iconBg: 'bg-[#FEE2E2]',
+   948→    cardBg: 'from-[#FEF2F2]/60 to-white',
+   949→    accentBorder: 'border-l-[#EF4444]',
+   950→  },
+   951→  {
+   952→    key: 'saldo',
+   953→    label: 'Balance actual',
+   954→    icon: Wallet,
+   955→    iconColor: 'text-[#0F2B28]',
+   956→    iconBg: 'bg-[#A7F3D0]',
+   957→    cardBg: 'from-[#F0FDF4]/70 to-white',
+   958→    accentBorder: 'border-l-[#0F2B28]',
+   959→  },
+   960→  {
+   961→    key: 'movimientos',
+   962→    label: 'Movimientos',
+   963→    icon: Activity,
+   964→    iconColor: 'text-[#92400E]',
+   965→    iconBg: 'bg-[#FEF3C7]',
+   966→    cardBg: 'from-[#FFFBEB]/60 to-white',
+   967→    accentBorder: 'border-l-[#F59E0B]',
+   968→  },
+   969→];
+   970→
+   971→function QuickStatsRow({
+   972→  totalIngresos, totalEgresos, saldo, movCount,
+   973→}: {
+   974→  totalIngresos: number; totalEgresos: number; saldo: number; movCount: number;
+   975→}) {
+   976→  const values: Record<string, number> = {
+   977→    ingresos: totalIngresos,
+   978→    egresos: totalEgresos,
+   979→    saldo,
+   980→    movimientos: movCount,
+   981→  };
+   982→  return (
+   983→    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+   984→      {QUICK_STATS.map((stat, i) => {
+   985→        const Icon = stat.icon;
+   986→        const isMovCount = stat.key === 'movimientos';
+   987→        const value = values[stat.key];
+   988→        return (
+   989→          <Card
+   990→            key={stat.key}
+   991→            className={cn(
+   992→              'relative overflow-hidden border-l-[3px] bg-gradient-to-br card-hover animate-slide-up',
+   993→              stat.cardBg,
+   994→              stat.accentBorder
+   995→            )}
+   996→            style={{ animationDelay: `${i * 60}ms` }}
+   997→          >
+   998→            <CardContent className="p-3 sm:p-4 flex items-center gap-3">
+   999→              <div className={cn('w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center shadow-sm shrink-0', stat.iconBg)}>
+  1000→                <Icon className={cn('w-4 h-4 sm:w-5 sm:h-5', stat.iconColor)} />
+  1001→              </div>
+  1002→              <div className="min-w-0 flex-1">
+  1003→                <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium truncate">{stat.label}</p>
+  1004→                {isMovCount ? (
+  1005→                  <p className="text-lg sm:text-2xl font-bold text-[#0F2B28] tabular-nums leading-tight">{value}</p>
+  1006→                ) : (
+  1007→                  <AnimatedNumber
+  1008→                    value={value}
+  1009→                    className="text-lg sm:text-2xl font-bold text-[#0F2B28] tabular-nums block leading-tight"
+  1010→                  />
+  1011→                )}
+  1012→              </div>
+  1013→            </CardContent>
+  1014→          </Card>
+  1015→        );
+  1016→      })}
+  1017→    </div>
+  1018→  );
+  1019→}
+  1020→
+  1021→/* ═══════════════════════════════════════════════════════════
+  1022→   MOVEMENT CARD — enhanced mobile movement row
+  1023→   Colored left border, icon circle, prominent amount,
+  1024→   relative timestamp, hover lift, slide-in animation.
+  1025→   ═══════════════════════════════════════════════════════════ */
+  1026→
+  1027→function MovementCard({
+  1028→  movimiento, now, canEdit, onEdit, onDelete, loadingDelete,
+  1029→}: {
+  1030→  movimiento: {
+  1031→    id: string;
+  1032→    tipo: 'ingreso' | 'egreso';
+  1033→    monto: number;
+  1034→    descripcion: string;
+  1035→    metodo: string;
+  1036→    fecha: string;
+  1037→  };
+  1038→  now: number;
+  1039→  canEdit: boolean;
+  1040→  onEdit: () => void;
+  1041→  onDelete: () => void;
+  1042→  loadingDelete: boolean;
+  1043→}) {
+  1044→  const m = movimiento;
+  1045→  const isIngreso = m.tipo === 'ingreso';
+  1046→  return (
+  1047→    <div
+  1048→      className={cn(
+  1049→        'group relative pl-3 pr-3.5 py-3 space-y-1.5 transition-all duration-300 hover:bg-[#F8FAFC] animate-slide-up',
+  1050→        'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1',
+  1051→        isIngreso ? 'before:bg-[#059669]' : 'before:bg-[#EF4444]'
+  1052→      )}
+  1053→    >
+  1054→      <div className="flex items-start justify-between gap-2">
+  1055→        <div className="flex items-center gap-2 min-w-0">
+  1056→          <span className={cn(
+  1057→            'w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm',
+  1058→            isIngreso ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-[#FEE2E2] text-[#991B1B]'
+  1059→          )}>
+  1060→            {isIngreso
+  1061→              ? <ArrowUpRight className="w-3.5 h-3.5" />
+  1062→              : <ArrowDownRight className="w-3.5 h-3.5" />}
+  1063→          </span>
+  1064→          <div className="min-w-0">
+  1065→            <div className="flex items-center gap-1.5 flex-wrap">
+  1066→              <span className={cn(
+  1067→                'text-xs font-semibold',
+  1068→                isIngreso ? 'text-[#166534]' : 'text-[#991B1B]'
+  1069→              )}>
+  1070→                {isIngreso ? 'Ingreso' : 'Egreso'}
+  1071→              </span>
+  1072→              <Badge variant="secondary" className="text-[10px] shadow-sm">{m.metodo}</Badge>
+  1073→            </div>
+  1074→            {m.descripcion && (
+  1075→              <p className="text-xs text-muted-foreground leading-relaxed truncate mt-0.5">{m.descripcion}</p>
+  1076→            )}
+  1077→          </div>
+  1078→        </div>
+  1079→        <p className={cn(
+  1080→          'text-sm font-bold shrink-0 tabular-nums',
+  1081→          isIngreso ? 'text-[#166534]' : 'text-[#991B1B]'
+  1082→        )}>
+  1083→          {isIngreso ? '+' : '-'}{formatMoney(m.monto)}
+  1084→        </p>
+  1085→      </div>
+  1086→      <div className="flex items-center justify-between">
+  1087→        <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+  1088→          <Clock className="w-2.5 h-2.5" />
+  1089→          <span>{formatRelative(m.fecha, now)}</span>
+  1090→          <span className="text-muted-foreground/40">·</span>
+  1091→          <span>{formatHora(m.fecha)}</span>
+  1092→        </p>
+  1093→        {canEdit && (
+  1094→          <div className="flex gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+  1095→            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onEdit}><Pencil className="w-3 h-3" /></Button>
+  1096→            <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={onDelete} disabled={loadingDelete}>
+  1097→              {loadingDelete ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+  1098→            </Button>
+  1099→          </div>
+  1100→        )}
+  1101→      </div>
+  1102→    </div>
+  1103→  );
+  1104→}
+  1105→

@@ -223,6 +223,7 @@ function getPromocionesEfectivas(tarifa: TarifaPrecios): PromocionesTarifa {
         activo: true,
         etiqueta: 'Chofer de cortesía',
         habitacionAsignada: tarifa.habitacionChofer || undefined,
+        cantidad: 1,
       },
     };
   }

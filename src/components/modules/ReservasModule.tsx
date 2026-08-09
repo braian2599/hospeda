@@ -508,6 +508,7 @@ export default function ReservasModule() {
  nochesCobrables: number;
  tieneAcompanante: boolean;
  acompananteEtiqueta: string;
+ acompananteCantidad: number;
  ninosCount: number;
  precioNino: number;
  adultos: number;

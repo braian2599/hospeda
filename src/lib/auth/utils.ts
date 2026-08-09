@@ -116,7 +116,8 @@ export async function requirePermission(permission: string | string[]): Promise<
 
   // Verificar que al menos uno de los permisos esté en el array
   const perms = Array.isArray(permission) ? permission : [permission];
-  if (!perms.some(p => tenantUser.permisos.includes(p))) {
+  const userPerms = Array.isArray(tenantUser.permisos) ? tenantUser.permisos : [];
+  if (!perms.some(p => userPerms.includes(p))) {
     throw new AuthError('No tenés permiso para realizar esta acción', 403);
   }
 

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const where: Prisma.ReservaWhereInput = { tenantId };
 
     if (estado) {
-      where.estado = estado as Prisma.EnumEstadoReservaFilter['equals'];
+      where.estado = estado as string;
     }
 
     if (habitacion) {
@@ -40,11 +40,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Text search: huesped name or DNI
+    // Text search: huesped name or DNI (SQLite doesn't support mode: insensitive)
     if (q) {
       where.OR = [
-        { huesped: { contains: q, mode: 'insensitive' } },
-        { dni: { contains: q, mode: 'insensitive' } },
+        { huesped: { contains: q } },
+        { dni: { contains: q } },
       ];
     }
 

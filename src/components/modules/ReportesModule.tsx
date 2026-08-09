@@ -732,6 +732,8 @@ export default function ReportesModule() {
 
   // ==================== PDF EXPORT HANDLER ====================
 
+  const cajaTurnosAMostrar = cajaHistorialFiltrado || caja.historial;
+
   const handleExportPDF = useCallback(() => {
     const hotelName = usuarioActual?.tenantNombre || 'Hospeda';
     const dateRange = `${formatFecha(desde)} al ${formatFecha(hasta)}`;
@@ -925,7 +927,6 @@ export default function ReportesModule() {
   }, [auditTotalPages, auditPage]);
 
   const selectedCajaTurno = cajaDetailIdx !== null ? (cajaHistorialFiltrado || caja.historial)[cajaDetailIdx] : null;
-  const cajaTurnosAMostrar = cajaHistorialFiltrado || caja.historial;
 
   // ==================== RENDER ====================
 

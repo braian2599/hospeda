@@ -213,7 +213,7 @@ const SKELETON_MAP: Partial<Record<ModuloId, React.FC>> = {
 };
 
 export default function ModuleSkeleton({ moduleId }: { moduleId: ModuloId }) {
-  const SkelFn = SKELETON_MAP[moduleId] ?? (() => <SkelTableModule />);
+  const SkelFn: React.FC = SKELETON_MAP[moduleId] ?? SkelTableModule;
   return (
     <div
       style={{
@@ -221,7 +221,7 @@ export default function ModuleSkeleton({ moduleId }: { moduleId: ModuloId }) {
         transition: 'opacity 0.15s ease-out',
       }}
     >
-      {SkelFn()}
+      <SkelFn />
     </div>
   );
 }

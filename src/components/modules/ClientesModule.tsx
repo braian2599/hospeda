@@ -162,7 +162,8 @@ export default function ClientesModule() {
     setSaving(true);
     let ok: boolean;
     if (modal === 'crear') {
-      ok = await agregarCliente(form);
+      const created = await agregarCliente(form);
+      ok = !!created;
     } else if (modal === 'editar' && selId) {
       ok = await actualizarCliente(selId, form);
     } else { setSaving(false); return; }

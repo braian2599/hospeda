@@ -15,13 +15,24 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Tags, Plus, Trash2, CreditCard, ListChecks, Users, Pencil, Info, Home, UserRound, UsersRound, Star, Zap, Sparkles } from 'lucide-react';
+import {
+  Tags, Plus, Trash2, CreditCard, ListChecks, Users, Pencil, Info, Home, UserRound, UsersRound,
+  Star, Zap, Sparkles, Baby, Copy, Download, MoreVertical, ChevronRight, ChevronLeft,
+  Check, GitCompareArrows, X, Crown,
+} from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatMoney } from '@/lib/format';
-import type { CampoPersonalizado, MetodoPago, Cuota, ModoCobro, RangoPrecio, PromocionesTarifa, AcompananteSinCargo, NinosDiferenciado, NochesCortesia, ModalidadNochesCortesia } from '@/lib/types';
+import type {
+  CampoPersonalizado, MetodoPago, Cuota, ModoCobro, RangoPrecio, PromocionesTarifa,
+  AcompananteSinCargo, NinosDiferenciado, NochesCortesia, ModalidadNochesCortesia, TarifaPrecios,
+} from '@/lib/types';
 
 // ==================== COMPONENTES AUXILIARES ====================
 
@@ -136,7 +147,7 @@ const MODO_OPTIONS: { value: ModoCobro; label: string; description: string; icon
 ];
 
 function formatoRango(r: RangoPrecio): string {
- if (r.maxPersonas === null) return `${r.minPersonas}+`;
+  if (r.maxPersonas === null) return `${r.minPersonas}+`;
   if (r.minPersonas === r.maxPersonas) return `${r.minPersonas}`;
   return `${r.minPersonas}-${r.maxPersonas}`;
 }
@@ -181,6 +192,402 @@ function crearRangoDefault(modo: ModoCobro, minPersonas: number = 1): RangoPreci
   return { minPersonas, maxPersonas: minPersonas, precio: 0 };
 }
 
+// Count active promotions on a tariff
+function countPromos(promos?: PromocionesTarifa | null): number {
+  if (!promos) return 0;
+  let n = 0;
+  if (promos.acompananteSinCargo?.activo) n++;
+  if (promos.ninosDiferenciado?.activo) n++;
+  if (promos.nochesCortesia?.activo) n++;
+  return n;
+}
+
+// Compute "Desde" price (min positive price, fallback to first range)
+function precioDesde(rangos: RangoPrecio[]): number {
+  const preciosPositivos = rangos.map(r => r.precio).filter(p => p > 0);
+  return preciosPositivos.length > 0 ? Math.min(...preciosPositivos) : (rangos[0]?.precio || 0);
+}
+
+// Build a label describing a noches cortesía modalidad
+function describeNochesCortesia(mod: ModalidadNochesCortesia): string {
+  if (mod.tipo === 'cadaX') return `Cada ${mod.cada} noches, 1 gratis`;
+  if (mod.tipo === 'aPartirDe') return `Desde ${mod.minNoches} noches, ${mod.nochesGratis} gratis`;
+  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  return `${dias[mod.dia]} gratis`;
+}
+
+// Export a single tariff as CSV (client-side download)
+function exportTariffCSV(tipo: string, t: TarifaPrecios) {
+  const rows: (string | number)[][] = [];
+  rows.push(['Campo', 'Valor']);
+  rows.push(['Nombre', tipo]);
+  rows.push(['Modo de cobro', t.modoCobro || 'porGrupo']);
+  const rangos = t.rangos || [];
+  rows.push(['Cantidad de rangos', rangos.length]);
+  rangos.forEach((r, i) => {
+    rows.push([`Rango ${i + 1} (${formatoRango(r)} pers.)`, r.precio]);
+  });
+  rows.push(['Acompañante sin cargo', t.promociones?.acompananteSinCargo?.activo ? 'Sí' : 'No']);
+  if (t.promociones?.acompananteSinCargo?.activo) {
+    rows.push(['  Etiqueta', t.promociones.acompananteSinCargo.etiqueta || '—']);
+    rows.push(['  Cantidad', t.promociones.acompananteSinCargo.cantidad ?? 1]);
+  }
+  rows.push(['Niños diferenciado', t.promociones?.ninosDiferenciado?.activo ? 'Sí' : 'No']);
+  if (t.promociones?.ninosDiferenciado?.activo) {
+    rows.push(['  Precio niño/noche', t.promociones.ninosDiferenciado.precioNino || 0]);
+  }
+  rows.push(['Noches cortesía', t.promociones?.nochesCortesia?.activo ? 'Sí' : 'No']);
+  if (t.promociones?.nochesCortesia?.activo) {
+    rows.push(['  Modalidad', describeNochesCortesia(t.promociones.nochesCortesia.modalidad)]);
+  }
+  const campos = t.camposPersonalizados || [];
+  rows.push(['Cantidad de campos personalizados', campos.length]);
+  campos.forEach((c, i) => {
+    rows.push([`  Campo ${i + 1}`, `${c.nombre} (${c.tipo}${c.requerido ? ', requerido' : ''})`]);
+  });
+
+  const csv = rows.map(r => r.map(cell => {
+    const s = String(cell);
+    return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+  }).join(',')).join('\n');
+
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tarifa_${tipo.toLowerCase().replace(/\s+/g, '_')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ==================== WIZARD STEPPER ====================
+
+function WizardStepper({ current, onSelect }: { current: 1 | 2 | 3; onSelect: (s: 1 | 2 | 3) => void }) {
+  const steps: { n: 1 | 2 | 3; label: string; icon: typeof Info }[] = [
+    { n: 1, label: 'Información básica', icon: Info },
+    { n: 2, label: 'Rangos de precios', icon: Tags },
+    { n: 3, label: 'Promociones', icon: Sparkles },
+  ];
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1">
+        {steps.map((s, i) => {
+          const Icon = s.icon;
+          const isDone = current > s.n;
+          const isActive = current === s.n;
+          return (
+            <div key={s.n} className="flex items-center flex-1 last:flex-none">
+              <button
+                type="button"
+                onClick={() => onSelect(s.n)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'bg-[#0F2B28] text-white shadow-sm'
+                    : isDone
+                      ? 'bg-[#DCFCE7] text-[#166534] hover:bg-[#BBF7D0]'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+                aria-current={isActive ? 'step' : undefined}
+              >
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                  isActive ? 'bg-white/20' : isDone ? 'bg-[#10B981] text-white' : 'bg-background'
+                }`}>
+                  {isDone ? <Check className="w-3 h-3" /> : s.n}
+                </span>
+                <span className="hidden sm:inline">{s.label}</span>
+                <Icon className="w-3.5 h-3.5 sm:hidden" />
+              </button>
+              {i < steps.length - 1 && (
+                <div className={`flex-1 h-0.5 mx-1 rounded ${isDone ? 'bg-[#10B981]' : 'bg-muted'}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <Progress value={(current / 3) * 100} className="h-1 bg-muted" />
+    </div>
+  );
+}
+
+// ==================== LIVE PREVIEW CARD (Wizard) ====================
+
+function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount }: {
+  nombre: string;
+  modoCobro: ModoCobro;
+  rangos: RangoPrecio[];
+  promociones?: PromocionesTarifa;
+  camposCount: number;
+}) {
+  const modo = modoCobro;
+  const ModoIcon = MODO_OPTIONS.find(o => o.value === modo)?.icon || UsersRound;
+  const desde = precioDesde(rangos);
+  const tieneAcomp = promociones?.acompananteSinCargo?.activo;
+  const tieneNinos = promociones?.ninosDiferenciado?.activo;
+  const tieneNoches = promociones?.nochesCortesia?.activo;
+  const tienePromo = !!(tieneAcomp || tieneNinos || tieneNoches);
+  const CardIcon = tienePromo ? Sparkles : ModoIcon;
+  const promoCount = countPromos(promociones);
+
+  return (
+    <Card className={`border-2 border-[#E2E8F0] bg-gradient-to-br ${modoGradient(modo)} overflow-hidden`}>
+      <CardContent className="p-4">
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
+          <Sparkles className="w-3 h-3" />Vista previa
+        </div>
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${modoIconCircle(modo)}`}>
+            <CardIcon className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <h4 className="font-bold text-sm truncate">{nombre || 'Sin nombre'}</h4>
+            <p className="text-[10px] text-muted-foreground">{modoLabel(modo)}</p>
+          </div>
+        </div>
+
+        {/* Desde */}
+        <div className="mb-2 pb-2 border-b border-[#0F2B28]/10">
+          <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Desde</p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-extrabold text-[#0F2B28] tabular-nums">{formatMoney(desde)}</span>
+            <span className="text-[10px] text-muted-foreground">/noche</span>
+          </div>
+        </div>
+
+        {/* Rangos */}
+        <div className="space-y-0.5 mb-2">
+          {rangos.slice(0, 4).map((r, i) => (
+            <div key={i} className="flex justify-between text-[11px] px-1.5 py-1 rounded border-l-2 border-[#0F2B28]/30">
+              <span className="text-muted-foreground font-mono">
+                {formatoRango(r)} {modo === 'porHabitacion' ? 'hab.' : modo === 'porCama' ? 'cama' : 'pers.'}
+              </span>
+              <span className="font-bold text-[#0F2B28] tabular-nums">{formatMoney(r.precio)}</span>
+            </div>
+          ))}
+          {rangos.length > 4 && (
+            <p className="text-[10px] text-muted-foreground text-center">+{rangos.length - 4} más</p>
+          )}
+        </div>
+
+        {/* Promo badges */}
+        {(tieneAcomp || tieneNinos || tieneNoches) && (
+          <div className="flex gap-1 flex-wrap mb-2">
+            {tieneAcomp && (
+              <Badge className="bg-[#DCFCE7] text-[#166534] border-0 text-[10px] py-0 h-5">
+                <Star className="w-2.5 h-2.5 mr-0.5" />Acompañante
+              </Badge>
+            )}
+            {tieneNinos && (
+              <Badge className="bg-[#F5F3FF] text-[#6D28D9] border-0 text-[10px] py-0 h-5">
+                <Baby className="w-2.5 h-2.5 mr-0.5" />Niños
+              </Badge>
+            )}
+            {tieneNoches && (
+              <Badge className="bg-[#FEF3C7] text-[#92400E] border-0 text-[10px] py-0 h-5">
+                <Zap className="w-2.5 h-2.5 mr-0.5" />Cortesía
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Stats footer */}
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground pt-2 border-t border-[#0F2B28]/10">
+          <span className="flex items-center gap-0.5"><Tags className="w-2.5 h-2.5" />{rangos.length}</span>
+          <span className="flex items-center gap-0.5"><Sparkles className="w-2.5 h-2.5" />{promoCount}</span>
+          <span className="flex items-center gap-0.5"><Info className="w-2.5 h-2.5" />{camposCount}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ==================== COMPARISON MODAL ====================
+
+function ComparisonRow({ label, differs, children }: { label: string; differs: boolean; children: React.ReactNode }) {
+  return (
+    <TableRow className={differs ? 'bg-amber-50/50 dark:bg-amber-950/10' : ''}>
+      <TableCell className="font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">{label}</TableCell>
+      {children}
+    </TableRow>
+  );
+}
+
+function ComparisonModal({ tariffs, onClose }: {
+  tariffs: { tipo: string; t: TarifaPrecios }[];
+  onClose: () => void;
+}) {
+  // Compute base price per person for each tariff (min positive price)
+  const basePrices = tariffs.map(({ t }) => {
+    const rangos = t.rangos || [];
+    const pos = rangos.map(r => r.precio).filter(p => p > 0);
+    return pos.length > 0 ? Math.min(...pos) : (rangos[0]?.precio || 0);
+  });
+
+  // Determine which rows have differing values for highlighting
+  const modos = tariffs.map(({ t }) => t.modoCobro || 'porGrupo');
+  const modoDiffers = new Set(modos).size > 1;
+  const priceDiffers = new Set(basePrices).size > 1;
+  const rangoCounts = tariffs.map(({ t }) => (t.rangos || []).length);
+  const rangoDiffers = new Set(rangoCounts).size > 1;
+  const promoCounts = tariffs.map(({ t }) => countPromos(t.promociones));
+  const promoDiffers = new Set(promoCounts).size > 1;
+  const campoCounts = tariffs.map(({ t }) => (t.camposPersonalizados || []).length);
+  const campoDiffers = new Set(campoCounts).size > 1;
+
+  return (
+    <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2 text-xl">
+          <GitCompareArrows className="w-5 h-5 text-[#0F2B28]" />
+          Comparación de tarifas
+        </DialogTitle>
+        <p className="text-sm text-muted-foreground mt-1">
+          Comparando {tariffs.length} tarifas. Las filas con diferencias están resaltadas en ámbar.
+        </p>
+      </DialogHeader>
+
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/40">
+              <TableHead className="w-40 sticky left-0 bg-muted/40 z-10">Característica</TableHead>
+              {tariffs.map(({ tipo }) => (
+                <TableHead key={tipo} className="font-bold text-[#0F2B28] min-w-[160px]">
+                  <div className="flex items-center gap-1.5">
+                    <Crown className="w-3.5 h-3.5 text-[#10B981]" />
+                    {tipo}
+                  </div>
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <ComparisonRow label="Modo de cobro" differs={modoDiffers}>
+              {modos.map((m, i) => {
+                const ModoIcon = MODO_OPTIONS.find(o => o.value === m)?.icon || UsersRound;
+                return (
+                  <TableCell key={i}>
+                    <Badge className={modoBadgeColor(m)}>
+                      <ModoIcon className="w-3 h-3 mr-0.5" />{modoLabel(m)}
+                    </Badge>
+                  </TableCell>
+                );
+              })}
+            </ComparisonRow>
+
+            <ComparisonRow label="Precio desde" differs={priceDiffers}>
+              {basePrices.map((p, i) => (
+                <TableCell key={i}>
+                  <span className="text-lg font-extrabold text-[#0F2B28] tabular-nums">{formatMoney(p)}</span>
+                  <span className="text-xs text-muted-foreground ml-1">/noche</span>
+                </TableCell>
+              ))}
+            </ComparisonRow>
+
+            <ComparisonRow label="Cant. de rangos" differs={rangoDiffers}>
+              {rangoCounts.map((c, i) => (
+                <TableCell key={i}>
+                  <Badge variant="secondary">{c} rango{c !== 1 ? 's' : ''}</Badge>
+                </TableCell>
+              ))}
+            </ComparisonRow>
+
+            <ComparisonRow label="Rangos detallados" differs={rangoDiffers}>
+              {tariffs.map(({ tipo, t }) => (
+                <TableCell key={tipo}>
+                  <div className="space-y-1">
+                    {(t.rangos || []).slice(0, 5).map((r, i) => (
+                      <div key={i} className="flex justify-between text-xs gap-2">
+                        <span className="text-muted-foreground font-mono">
+                          {formatoRango(r)} {t.modoCobro === 'porHabitacion' ? 'hab.' : t.modoCobro === 'porCama' ? 'cama' : 'pers.'}
+                        </span>
+                        <span className="font-bold text-[#0F2B28] tabular-nums">{formatMoney(r.precio)}</span>
+                      </div>
+                    ))}
+                    {(t.rangos || []).length > 5 && (
+                      <p className="text-[10px] text-muted-foreground">+{(t.rangos || []).length - 5} más</p>
+                    )}
+                  </div>
+                </TableCell>
+              ))}
+            </ComparisonRow>
+
+            <ComparisonRow label="Acompañante sin cargo" differs={promoDiffers}>
+              {tariffs.map(({ tipo, t }) => {
+                const a = t.promociones?.acompananteSinCargo;
+                return (
+                  <TableCell key={tipo}>
+                    {a?.activo ? (
+                      <Badge className="bg-[#DCFCE7] text-[#166534] border-0">
+                        <Star className="w-3 h-3 mr-0.5" />{a.etiqueta || 'Sí'}
+                        {a.cantidad > 1 && ` ×${a.cantidad}`}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                );
+              })}
+            </ComparisonRow>
+
+            <ComparisonRow label="Niños diferenciado" differs={promoDiffers}>
+              {tariffs.map(({ tipo, t }) => {
+                const n = t.promociones?.ninosDiferenciado;
+                return (
+                  <TableCell key={tipo}>
+                    {n?.activo ? (
+                      <Badge className="bg-[#F5F3FF] text-[#6D28D9] border-0">
+                        <Baby className="w-3 h-3 mr-0.5" />{formatMoney(n.precioNino || 0)}/noche
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                );
+              })}
+            </ComparisonRow>
+
+            <ComparisonRow label="Noches cortesía" differs={promoDiffers}>
+              {tariffs.map(({ tipo, t }) => {
+                const nc = t.promociones?.nochesCortesia;
+                return (
+                  <TableCell key={tipo}>
+                    {nc?.activo ? (
+                      <Badge className="bg-[#FEF3C7] text-[#92400E] border-0">
+                        <Zap className="w-3 h-3 mr-0.5" />{describeNochesCortesia(nc.modalidad)}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                );
+              })}
+            </ComparisonRow>
+
+            <ComparisonRow label="Campos personalizados" differs={campoDiffers}>
+              {campoCounts.map((c, i) => (
+                <TableCell key={i}>
+                  {c > 0 ? (
+                    <Badge variant="outline">{c} campo{c !== 1 ? 's' : ''}</Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+              ))}
+            </ComparisonRow>
+          </TableBody>
+        </Table>
+      </div>
+
+      <DialogFooter>
+        <Button onClick={onClose} variant="secondary">Cerrar</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
 // ==================== MODULO PRINCIPAL ====================
 
 export default function TarifasModule() {
@@ -206,6 +613,7 @@ export default function TarifasModule() {
   // --- Modal Tarifa ---
   const [modalTarifa, setModalTarifa] = useState(false);
   const [editandoTarifa, setEditandoTarifa] = useState<string | null>(null); // null = nueva
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
   const [tarifaForm, setTarifaForm] = useState({
     nombre: '',
     modoCobro: 'porGrupo' as ModoCobro,
@@ -214,7 +622,9 @@ export default function TarifasModule() {
     promociones: undefined as PromocionesTarifa | undefined,
   });
 
-
+  // --- Comparison Tool ---
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
 
   // --- Modal Método Pago ---
   const [modalMetodo, setModalMetodo] = useState(false);
@@ -295,7 +705,79 @@ export default function TarifasModule() {
         promociones: promos ? JSON.parse(JSON.stringify(promos)) : undefined,
       });
     }
+    setWizardStep(1);
     setModalTarifa(true);
+  };
+
+  // Duplicar tarifa: abre el modal en modo creación con los datos copiados
+  const handleDuplicarTarifa = (tipo: string) => {
+    const t = tarifas[tipo];
+    if (!t) return;
+    let promosCopy = t.promociones;
+    if (!promosCopy && t.choferCortesia) {
+      promosCopy = {
+        acompananteSinCargo: {
+          activo: true,
+          etiqueta: 'Chofer de cortesía',
+          habitacionAsignada: t.habitacionChofer || undefined,
+          cantidad: 1,
+        },
+      };
+    }
+    if (promosCopy?.acompananteSinCargo?.activo && promosCopy.acompananteSinCargo.cantidad == null) {
+      promosCopy = { ...promosCopy, acompananteSinCargo: { ...promosCopy.acompananteSinCargo!, cantidad: 1 } };
+    }
+    setEditandoTarifa(null);
+    setTarifaForm({
+      nombre: `${tipo} (copia)`,
+      modoCobro: t.modoCobro || 'porGrupo',
+      rangos: t.rangos && t.rangos.length > 0
+        ? t.rangos.map(r => ({ ...r }))
+        : [{ minPersonas: 1, maxPersonas: 1, precio: 0 }],
+      camposPersonalizados: [...(t.camposPersonalizados || [])],
+      promociones: promosCopy ? JSON.parse(JSON.stringify(promosCopy)) : undefined,
+    });
+    setWizardStep(1);
+    setModalTarifa(true);
+    toast.info(`Tarifa "${tipo}" duplicada. Modificá el nombre y guardá.`);
+  };
+
+  const handleExportCSV = (tipo: string) => {
+    const t = tarifas[tipo];
+    if (!t) { toast.error('No se pudo exportar la tarifa.'); return; }
+    try {
+      exportTariffCSV(tipo, t);
+      toast.success(`Tarifa "${tipo}" exportada como CSV.`);
+    } catch (e) {
+      toast.error('Error al exportar CSV.');
+    }
+  };
+
+  // Comparison selection handlers
+  const toggleCompareSelection = (tipo: string) => {
+    setSelectedForCompare(prev => {
+      if (prev.includes(tipo)) {
+        return prev.filter(t => t !== tipo);
+      }
+      if (prev.length >= 3) {
+        toast.warning('Podés comparar hasta 3 tarifas a la vez.');
+        return prev;
+      }
+      return [...prev, tipo];
+    });
+  };
+
+  const openComparison = () => {
+    if (selectedForCompare.length < 2) {
+      toast.warning('Seleccioná al menos 2 tarifas para comparar.');
+      return;
+    }
+    setShowComparison(true);
+  };
+
+  const clearComparison = () => {
+    setSelectedForCompare([]);
+    setShowComparison(false);
   };
 
   const handleModoCobroChange = (nuevoModo: ModoCobro) => {
@@ -380,6 +862,24 @@ export default function TarifasModule() {
     }
   };
 
+  // Wizard navigation
+  const canAdvanceStep1 = tarifaForm.nombre.trim().length > 0;
+  const canAdvanceStep2 = tarifaForm.rangos.length > 0;
+  const handleNextStep = () => {
+    if (wizardStep === 1 && !canAdvanceStep1) {
+      toast.warning('Ingresá un nombre para la tarifa.');
+      return;
+    }
+    if (wizardStep === 2 && !canAdvanceStep2) {
+      toast.warning('Agregá al menos un rango de precios.');
+      return;
+    }
+    if (wizardStep < 3) setWizardStep((wizardStep + 1) as 1 | 2 | 3);
+  };
+  const handlePrevStep = () => {
+    if (wizardStep > 1) setWizardStep((wizardStep - 1) as 1 | 2 | 3);
+  };
+
   const handleEliminarTarifa = (tipo: string) => {
     const reservasActivas = reservas.filter(r => r.tipoTarifa === tipo && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'));
     if (reservasActivas.length > 0) {
@@ -394,6 +894,8 @@ export default function TarifasModule() {
         const ok = await eliminarTipoTarifa(tipo);
         setConfirmDialog(prev => ({ ...prev, open: false }));
         setModalTarifa(false);
+        // Remove from comparison selection if present
+        setSelectedForCompare(prev => prev.filter(t => t !== tipo));
         if (ok) {
           toast.success(`Tarifa "${tipo}" eliminada correctamente.`);
         } else {
@@ -402,8 +904,6 @@ export default function TarifasModule() {
       },
     });
   };
-
-
 
   // ==================== MÉTODOS TAB ====================
 
@@ -509,14 +1009,39 @@ export default function TarifasModule() {
 
         {/* ==================== TAB: TARIFAS ==================== */}
         <TabsContent value="tarifas" className="space-y-5">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Tarifas</h3>
-            <Button onClick={() => openModalTarifa(null)}><Plus className="w-4 h-4 mr-1" />Nueva Tarifa</Button>
+          <div className="flex flex-wrap justify-between items-center gap-3">
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-semibold">Tarifas</h3>
+              {selectedForCompare.length > 0 && (
+                <Badge className="bg-[#0F2B28] text-white border-0">
+                  {selectedForCompare.length} seleccionada{selectedForCompare.length !== 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {selectedForCompare.length >= 1 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={selectedForCompare.length >= 2 ? openComparison : () => toast.info('Seleccioná al menos 2 tarifas para comparar.')}
+                  className="border-[#0F2B28]/30 text-[#0F2B28] hover:bg-[#0F2B28] hover:text-white"
+                >
+                  <GitCompareArrows className="w-4 h-4 mr-1" />
+                  Comparar {selectedForCompare.length > 0 && `(${selectedForCompare.length})`}
+                </Button>
+              )}
+              {selectedForCompare.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearComparison}>
+                  <X className="w-4 h-4 mr-1" />Limpiar
+                </Button>
+              )}
+              <Button onClick={() => openModalTarifa(null)}><Plus className="w-4 h-4 mr-1" />Nueva Tarifa</Button>
+            </div>
           </div>
 
           <div className="flex items-start gap-2 p-3 rounded-lg bg-[#F0FDF4] border-[#BBF7D0] text-[#166534] text-sm">
             <Info className="w-4 h-4 mt-0.5 shrink-0" />
-            Haga clic en una tarifa para editarla. Los cambios se guardan automáticamente al confirmar.
+            Haga clic en una tarifa para editarla. Usá las casillas para seleccionar 2-3 tarifas y compararlas. Los cambios se guardan automáticamente al confirmar.
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -524,33 +1049,113 @@ export default function TarifasModule() {
               const t = tarifas[tipo];
               if (!t) return null;
               const modo = t.modoCobro || 'porGrupo';
-              const campos = (t.camposPersonalizados || []).length;
-              const promos = t.promociones || (t.choferCortesia ? { acompananteSinCargo: { activo: true, etiqueta: 'Chofer de cortesía' } } : undefined);
-              const tieneAcompanante = promos?.acompananteSinCargo?.activo;
-              const tieneNinos = promos?.ninosDiferenciado?.activo;
-              const tieneNoches = promos?.nochesCortesia?.activo;
-              const ModoIcon = MODO_OPTIONS.find(o => o.value === modo)?.icon || UsersRound;
-              // Prominent "Desde" price = min positive price, fallback to first range
               const rangos = t.rangos || [];
-              const preciosPositivos = rangos.map(r => r.precio).filter(p => p > 0);
-              const precioDesde = preciosPositivos.length > 0
-                ? Math.min(...preciosPositivos)
-                : (rangos[0]?.precio || 0);
+              const campos = (t.camposPersonalizados || []).length;
+              const tarifaPromos = (t.promociones || (t.choferCortesia ? { acompananteSinCargo: { activo: true, etiqueta: 'Chofer de cortesía' } } : undefined)) as PromocionesTarifa | undefined;
+              const tieneAcompanante = tarifaPromos?.acompananteSinCargo?.activo;
+              const tieneNinos = tarifaPromos?.ninosDiferenciado?.activo;
+              const tieneNoches = tarifaPromos?.nochesCortesia?.activo;
+              const promoCount = countPromos(tarifaPromos);
+              const ModoIcon = MODO_OPTIONS.find(o => o.value === modo)?.icon || UsersRound;
+              const precioDesdeVal = precioDesde(rangos);
               const tienePromo = !!(tieneAcompanante || tieneNinos || tieneNoches);
-              // Decorative icon: Sparkles if any promo active, otherwise the modo icon
               const CardIcon = tienePromo ? Sparkles : ModoIcon;
+              const isSelected = selectedForCompare.includes(tipo);
               return (
                 <Card
                   key={tipo}
-                  className={`card-hover cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border-2 border-[#E2E8F0] hover:border-[#0F2B28]/30 group relative overflow-hidden bg-gradient-to-br ${modoGradient(modo)}`}
+                  className={`card-hover cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border-2 group relative overflow-hidden bg-gradient-to-br ${modoGradient(modo)} ${
+                    isSelected ? 'border-[#0F2B28] ring-2 ring-[#0F2B28]/20' : 'border-[#E2E8F0] hover:border-[#0F2B28]/30'
+                  }`}
                   onClick={() => openModalTarifa(tipo)}
                 >
+                  {/* Selection checkbox (top-left, always visible) */}
+                  <div
+                    className="absolute top-3 left-3 z-10"
+                    onClick={(e) => { e.stopPropagation(); }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleCompareSelection(tipo)}
+                      className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
+                        isSelected
+                          ? 'bg-[#0F2B28] border-[#0F2B28] text-white'
+                          : 'bg-white/80 border-slate-300 text-transparent hover:border-[#0F2B28]'
+                      }`}
+                      aria-label={isSelected ? 'Quitar de comparación' : 'Seleccionar para comparar'}
+                      aria-pressed={isSelected}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
                   {/* Shine overlay — animates in on hover */}
                   <div
                     className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                     aria-hidden="true"
                   />
-                  <CardContent className="p-5 relative">
+
+                  {/* Quick actions menu (top-right) */}
+                  <div
+                    className="absolute top-2 right-2 z-10"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 opacity-60 group-hover:opacity-100 hover:bg-white/80 transition-opacity"
+                          aria-label="Acciones rápidas"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem onClick={() => openModalTarifa(tipo)}>
+                          <Pencil className="w-3.5 h-3.5 mr-2" />Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicarTarifa(tipo)}>
+                          <Copy className="w-3.5 h-3.5 mr-2" />Duplicar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExportCSV(tipo)}>
+                          <Download className="w-3.5 h-3.5 mr-2" />Exportar CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleEliminarTarifa(tipo)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-2" />Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Quick action buttons (reveal on hover, below dropdown) */}
+                  <div
+                    className="absolute bottom-3 right-3 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 px-2 text-xs shadow-sm bg-white/90 hover:bg-white"
+                      onClick={() => openModalTarifa(tipo)}
+                    >
+                      <Pencil className="w-3 h-3 mr-1" />Editar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 px-2 text-xs shadow-sm bg-white/90 hover:bg-white"
+                      onClick={() => handleDuplicarTarifa(tipo)}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />Duplicar
+                    </Button>
+                  </div>
+
+                  <CardContent className="p-5 pt-12 relative">
                     {/* Top row: icon circle + title + modo badge */}
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="flex items-center gap-3 min-w-0">
@@ -562,7 +1167,7 @@ export default function TarifasModule() {
                           <p className="text-xs text-muted-foreground">{modoLabel(modo)}</p>
                         </div>
                       </div>
-                      <Badge className={modoBadgeColor(modo)}>
+                      <Badge className={`${modoBadgeColor(modo)} shrink-0`}>
                         <ModoIcon className="w-3 h-3 mr-0.5" />{modoLabel(modo)}
                       </Badge>
                     </div>
@@ -571,13 +1176,16 @@ export default function TarifasModule() {
                     <div className="mb-3 pb-3 border-b border-[#0F2B28]/10">
                       <p className="text-[11px] text-muted-foreground mb-0.5 uppercase tracking-wider">Desde</p>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-extrabold text-[#0F2B28] tabular-nums">{formatMoney(precioDesde)}</span>
+                        <span className="text-3xl font-extrabold text-[#0F2B28] tabular-nums">{formatMoney(precioDesdeVal)}</span>
                         <span className="text-xs text-muted-foreground">/noche</span>
                       </div>
                     </div>
 
-                    {/* Range table — zebra striping, hover, mono labels, bold green prices, left border */}
+                    {/* Range visualization — zebra striping, hover, mono labels, bold green prices, left border */}
                     <div className="space-y-0.5">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
+                        <Tags className="w-3 h-3" />Rangos de precio
+                      </p>
                       {rangos.map((r, i) => (
                         <div
                           key={i}
@@ -597,35 +1205,45 @@ export default function TarifasModule() {
                       ))}
                     </div>
 
-                    {/* Footer: promo badges + campos info */}
-                    {(tieneAcompanante || tieneNinos || tieneNoches || campos > 0) && (
-                      <div className="mt-3 pt-3 border-t border-[#0F2B28]/10 space-y-2">
-                        {(tieneAcompanante || tieneNinos || tieneNoches) && (
-                          <div className="flex gap-1 flex-wrap">
-                            {tieneAcompanante && (
-                              <Badge className="bg-[#DCFCE7] text-[#166534] border-0 shadow-sm">
-                                <Star className="w-3 h-3 mr-0.5" />{promos!.acompananteSinCargo!.etiqueta || 'Acompañante gratis'}
-                              </Badge>
-                            )}
-                            {tieneNinos && (
-                              <Badge className="bg-[#F5F3FF] text-[#6D28D9] border-0 shadow-sm">
-                                Niños {formatMoney(promos!.ninosDiferenciado!.precioNino || 0)}/noche
-                              </Badge>
-                            )}
-                            {tieneNoches && (
-                              <Badge className="bg-[#FEF3C7] text-[#92400E] border-0 shadow-sm">
-                                <Zap className="w-3 h-3 mr-0.5" />Noches cortesía
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-                        {campos > 0 && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Info className="w-3 h-3" />{campos} campo(s) personalizado(s)
-                          </p>
-                        )}
+                    {/* Footer: promo badges + quick stats */}
+                    <div className="mt-3 pt-3 border-t border-[#0F2B28]/10 space-y-2">
+                      {/* Promotion indicators with icons */}
+                      {(tieneAcompanante || tieneNinos || tieneNoches) && (
+                        <div className="flex gap-1 flex-wrap">
+                          {tieneAcompanante && (
+                            <Badge className="bg-[#DCFCE7] text-[#166534] border-0 shadow-sm" title={tarifaPromos!.acompananteSinCargo!.etiqueta || 'Acompañante sin cargo'}>
+                              <Star className="w-3 h-3 mr-0.5" />{tarifaPromos!.acompananteSinCargo!.etiqueta || 'Acompañante gratis'}
+                              {tarifaPromos!.acompananteSinCargo!.cantidad > 1 && (
+                                <span className="ml-0.5 opacity-75">×{tarifaPromos!.acompananteSinCargo!.cantidad}</span>
+                              )}
+                            </Badge>
+                          )}
+                          {tieneNinos && (
+                            <Badge className="bg-[#F5F3FF] text-[#6D28D9] border-0 shadow-sm">
+                              <Baby className="w-3 h-3 mr-0.5" />Niños {formatMoney(tarifaPromos!.ninosDiferenciado!.precioNino || 0)}/noche
+                            </Badge>
+                          )}
+                          {tieneNoches && (
+                            <Badge className="bg-[#FEF3C7] text-[#92400E] border-0 shadow-sm" title={describeNochesCortesia(tarifaPromos!.nochesCortesia!.modalidad)}>
+                              <Zap className="w-3 h-3 mr-0.5" />{describeNochesCortesia(tarifaPromos!.nochesCortesia!.modalidad)}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Quick stats: ranges, custom fields, promotions count */}
+                      <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50" title={`${rangos.length} rango(s) de precio`}>
+                          <Tags className="w-3 h-3 text-[#0F2B28]/60" />{rangos.length} rango{rangos.length !== 1 ? 's' : ''}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50" title={`${promoCount} promoción(es) activa(s)`}>
+                          <Sparkles className={`w-3 h-3 ${promoCount > 0 ? 'text-[#10B981]' : 'text-muted-foreground/60'}`} />{promoCount} promo{promoCount !== 1 ? 's' : ''}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50" title={`${campos} campo(s) personalizado(s)`}>
+                          <Info className="w-3 h-3 text-[#0F2B28]/60" />{campos} campo{campos !== 1 ? 's' : ''}
+                        </span>
                       </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -745,354 +1363,472 @@ export default function TarifasModule() {
         </TabsContent>
       </Tabs>
 
-      {/* ==================== MODAL: TARIFA (CREAR/EDITAR) ==================== */}
+      {/* ==================== MODAL: TARIFA (CREAR/EDITAR — WIZARD) ==================== */}
       <Dialog open={modalTarifa} onOpenChange={setModalTarifa}>
         <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl">{editandoTarifa ? `Editar - ${editandoTarifa}` : 'Nueva Tarifa'}</DialogTitle>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              {editandoTarifa ? <><Pencil className="w-5 h-5" />Editar - {editandoTarifa}</> : <><Sparkles className="w-5 h-5 text-[#10B981]" />Nueva Tarifa</>}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-6">
-            {/* Nombre centrado arriba */}
-            <div className="space-y-1.5">
-              <Label>Nombre de la tarifa *</Label>
-              <Input value={tarifaForm.nombre} onChange={e => setTarifaForm({ ...tarifaForm, nombre: e.target.value })} placeholder="Ej: Corporativo" />
-            </div>
 
-            {/* Dos columnas: izquierda = modo cobro + rangos, derecha = promociones + campos */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* ═══ COLUMNA IZQUIERDA: Modo de cobro + Rangos ═══ */}
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label>Modo de cobro *</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {MODO_OPTIONS.map(opt => {
-                      const Icon = opt.icon;
-                      const selected = tarifaForm.modoCobro === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => handleModoCobroChange(opt.value)}
-                          className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all text-center ${
-                            selected
-                              ? 'border-[#0F2B28] bg-[#DCFCE7] text-[#0F2B28]'
-                              : 'border-[#E2E8F0] hover:border-slate-300 text-muted-foreground'
-                          }`}
-                        >
-                          <Icon className="w-5 h-5" />
-                          <span className="text-xs font-semibold">{opt.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    {MODO_OPTIONS.find(o => o.value === tarifaForm.modoCobro)?.description}
-                  </p>
-                </div>
+          {/* Wizard stepper */}
+          <WizardStepper current={wizardStep} onSelect={setWizardStep} />
 
-                <div>
-                  <Label className="text-sm font-medium">
-                    Precios por rango
-                    {tarifaForm.modoCobro === 'porPersona' && <span className="text-muted-foreground font-normal"> (precio por persona)</span>}
-                    {tarifaForm.modoCobro === 'porHabitacion' && <span className="text-muted-foreground font-normal"> (precio por habitación)</span>}
-                    {tarifaForm.modoCobro === 'porCama' && <span className="text-muted-foreground font-normal"> (precio por cama/noche)</span>}
-                  </Label>
-                  <div className="space-y-2 mt-2">
-                    {tarifaForm.rangos.map((r, i) => (
-                      <RangoFila
-                        key={i}
-                        rango={r}
-                        index={i}
-                        modoCobro={tarifaForm.modoCobro}
-                        totalRangos={tarifaForm.rangos.length}
-                        onRemove={() => removeRango(i)}
-                        onUpdate={r => updateRango(i, r)}
-                      />
-                    ))}
-                  </div>
-                  {tarifaForm.modoCobro !== 'porHabitacion' && tarifaForm.modoCobro !== 'porCama' && (
-                    <Button size="sm" variant="outline" className="mt-2" onClick={addRango}>
-                      <Plus className="w-3.5 h-3.5 mr-1" />Agregar rango
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* ═══ COLUMNA DERECHA: Promociones + Campos ═══ */}
-              <div className="space-y-5 border rounded-xl p-4 bg-muted/20">
-                <h3 className="text-sm font-semibold flex items-center gap-1.5"><Tags className="w-4 h-4" />Promociones</h3>
-
-                {/* 1. Acompañante sin cargo */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="acompanante-check"
-                      checked={promos?.acompananteSinCargo?.activo || false}
-                      onCheckedChange={v => {
-                        if (v) {
-                          updatePromocion({ acompananteSinCargo: { activo: true, etiqueta: promos?.acompananteSinCargo?.etiqueta || '', cantidad: promos?.acompananteSinCargo?.cantidad || 1, personasHospedan: promos?.acompananteSinCargo?.personasHospedan } });
-                        } else {
-                          updatePromocion({ acompananteSinCargo: undefined });
-                        }
-                      }}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 mt-2">
+            {/* ═══ MAIN: Step content ═══ */}
+            <div className="space-y-5">
+              {/* STEP 1: Basic info */}
+              {wizardStep === 1 && (
+                <div className="space-y-5 animate-fade-in">
+                  <div className="space-y-1.5">
+                    <Label>Nombre de la tarifa *</Label>
+                    <Input
+                      value={tarifaForm.nombre}
+                      onChange={e => setTarifaForm({ ...tarifaForm, nombre: e.target.value })}
+                      placeholder="Ej: Corporativo, Promoción fin de semana..."
+                      autoFocus
                     />
-                    <Label htmlFor="acompanante-check" className="text-sm font-medium">Acompañante sin cargo</Label>
+                    {tarifaForm.nombre.trim().length === 0 && (
+                      <p className="text-[11px] text-amber-600 flex items-center gap-1">
+                        <Info className="w-3 h-3" />El nombre es obligatorio
+                      </p>
+                    )}
                   </div>
-                  {promos?.acompananteSinCargo?.activo && (
-                    <div className="ml-6 space-y-2 border-l-2 border-[#BBF7D0] pl-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Etiqueta (nombre del beneficio)</Label>
-                        <Input
-                          placeholder="Ej: Chofer de cortesía, Guía turístico..."
-                          value={promos.acompananteSinCargo.etiqueta || ''}
-                          onChange={e => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, etiqueta: e.target.value } })}
-                          className="h-8 text-sm"
+
+                  <div className="space-y-1.5">
+                    <Label>Modo de cobro *</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {MODO_OPTIONS.map(opt => {
+                        const Icon = opt.icon;
+                        const selected = tarifaForm.modoCobro === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => handleModoCobroChange(opt.value)}
+                            className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all text-center ${
+                              selected
+                                ? 'border-[#0F2B28] bg-[#DCFCE7] text-[#0F2B28] shadow-sm'
+                                : 'border-[#E2E8F0] hover:border-slate-300 text-muted-foreground'
+                            }`}
+                          >
+                            <Icon className="w-5 h-5" />
+                            <span className="text-xs font-semibold">{opt.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-[#F0FDF4] border border-[#BBF7D0] text-[#166534]">
+                      <Info className="w-4 h-4 mt-0.5 shrink-0" />
+                      <p className="text-xs">{MODO_OPTIONS.find(o => o.value === tarifaForm.modoCobro)?.description}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: Price ranges */}
+              {wizardStep === 2 && (
+                <div className="space-y-4 animate-fade-in">
+                  <div>
+                    <Label className="text-sm font-medium">
+                      Precios por rango
+                      {tarifaForm.modoCobro === 'porPersona' && <span className="text-muted-foreground font-normal"> (precio por persona)</span>}
+                      {tarifaForm.modoCobro === 'porHabitacion' && <span className="text-muted-foreground font-normal"> (precio por habitación)</span>}
+                      {tarifaForm.modoCobro === 'porCama' && <span className="text-muted-foreground font-normal"> (precio por cama/noche)</span>}
+                    </Label>
+
+                    {/* Visual range builder — interactive tiered view */}
+                    {tarifaForm.modoCobro !== 'porHabitacion' && tarifaForm.modoCobro !== 'porCama' && (
+                      <div className="mt-3 mb-4 p-3 rounded-lg bg-muted/30 border border-border">
+                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
+                          <Users className="w-3 h-3" />Vista por escalones
+                        </p>
+                        <div className="flex items-end gap-1 h-20">
+                          {tarifaForm.rangos.map((r, i) => {
+                            const max = Math.max(...tarifaForm.rangos.map(rr => rr.precio), 1);
+                            const heightPct = Math.max((r.precio / max) * 100, 8);
+                            return (
+                              <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
+                                <span className="text-[10px] font-bold text-[#0F2B28] tabular-nums">{formatMoney(r.precio)}</span>
+                                <div
+                                  className="w-full rounded-t bg-gradient-to-t from-[#0F2B28] to-[#10B981] transition-all duration-300"
+                                  style={{ height: `${heightPct}%` }}
+                                  title={`${formatoRango(r)} pers. — ${formatMoney(r.precio)}`}
+                                />
+                                <span className="text-[10px] text-muted-foreground font-mono">{formatoRango(r)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 mt-2">
+                      {tarifaForm.rangos.map((r, i) => (
+                        <RangoFila
+                          key={i}
+                          rango={r}
+                          index={i}
+                          modoCobro={tarifaForm.modoCobro}
+                          totalRangos={tarifaForm.rangos.length}
+                          onRemove={() => removeRango(i)}
+                          onUpdate={r => updateRango(i, r)}
                         />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Cantidad</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            max={10}
-                            value={promos.acompananteSinCargo.cantidad ?? 1}
-                            onChange={e => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, cantidad: Math.max(1, parseInt(e.target.value) || 1) } })}
-                            className="h-8 text-sm"
-                          />
-                          <p className="text-[10px] text-muted-foreground">Acompañantes sin cargo</p>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Personas que hospedan (opcional)</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            placeholder="Ej: 4"
-                            value={promos.acompananteSinCargo.personasHospedan ?? ''}
-                            onChange={e => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, personasHospedan: parseInt(e.target.value) || undefined } })}
-                            className="h-8 text-sm"
-                          />
-                          <p className="text-[10px] text-muted-foreground">Valida la búsqueda</p>
-                        </div>
-                      </div>
+                      ))}
+                    </div>
+                    {tarifaForm.modoCobro !== 'porHabitacion' && tarifaForm.modoCobro !== 'porCama' && (
+                      <Button size="sm" variant="outline" className="mt-2" onClick={addRango}>
+                        <Plus className="w-3.5 h-3.5 mr-1" />Agregar rango
+                      </Button>
+                    )}
+                    {tarifaForm.rangos.length === 0 && (
+                      <p className="text-[11px] text-amber-600 flex items-center gap-1 mt-2">
+                        <Info className="w-3 h-3" />Agregá al menos un rango de precios
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: Promotions + custom fields */}
+              {wizardStep === 3 && (
+                <div className="space-y-5 animate-fade-in">
+                  <div className="space-y-5 border rounded-xl p-4 bg-muted/20">
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#10B981]" />Promociones</h3>
+
+                    {/* 1. Acompañante sin cargo */}
+                    <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Checkbox
-                          id="acom-hab-check"
-                          checked={!!promos!.acompananteSinCargo!.habitacionAsignada}
-                          onCheckedChange={v => updatePromocion({ acompananteSinCargo: { ...promos!.acompananteSinCargo!, habitacionAsignada: v ? (promos!.acompananteSinCargo!.habitacionAsignada || todasHabitaciones[0]?.[0] || '') : undefined } })}
+                          id="acompanante-check"
+                          checked={promos?.acompananteSinCargo?.activo || false}
+                          onCheckedChange={v => {
+                            if (v) {
+                              updatePromocion({ acompananteSinCargo: { activo: true, etiqueta: promos?.acompananteSinCargo?.etiqueta || '', cantidad: promos?.acompananteSinCargo?.cantidad || 1, personasHospedan: promos?.acompananteSinCargo?.personasHospedan } });
+                            } else {
+                              updatePromocion({ acompananteSinCargo: undefined });
+                            }
+                          }}
                         />
-                        <Label htmlFor="acom-hab-check" className="text-xs">Asignar habitación gratis</Label>
+                        <Label htmlFor="acompanante-check" className="text-sm font-medium flex items-center gap-1.5">
+                          <Star className="w-3.5 h-3.5 text-[#10B981]" />Acompañante sin cargo
+                        </Label>
                       </div>
-                      {promos.acompananteSinCargo.habitacionAsignada && (
-                        <Select
-                          value={promos.acompananteSinCargo.habitacionAsignada}
-                          onValueChange={v => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, habitacionAsignada: v } })}
-                        >
-                          <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="-- Seleccione --" /></SelectTrigger>
-                          <SelectContent>
-                            {todasHabitaciones.map(([num, hab]) => (
-                              <SelectItem key={num} value={num}>{num} ({hab.tipo} - {hab.capacidad} pers.)</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <hr className="border-muted" />
-
-                {/* 2. Niños con precio diferenciado */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="ninos-check"
-                      checked={promos?.ninosDiferenciado?.activo || false}
-                      onCheckedChange={v => {
-                        if (v) {
-                          updatePromocion({ ninosDiferenciado: { activo: true, precioNino: promos?.ninosDiferenciado?.precioNino || 0 } });
-                        } else {
-                          updatePromocion({ ninosDiferenciado: undefined });
-                        }
-                      }}
-                    />
-                    <Label htmlFor="ninos-check" className="text-sm font-medium">Niños con precio diferenciado</Label>
-                  </div>
-                  {promos?.ninosDiferenciado?.activo && (
-                    <div className="ml-6 space-y-2 border-l-2 border-[#DDD6FE] pl-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Precio por niño / noche</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={promos.ninosDiferenciado.precioNino || 0}
-                            onChange={e => updatePromocion({ ninosDiferenciado: { ...promos.ninosDiferenciado!, precioNino: parseFloat(e.target.value) || 0 } })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Edad máxima (informativo)</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            placeholder="Ej: 12"
-                            value={promos.ninosDiferenciado.edadMaxima ?? ''}
-                            onChange={e => updatePromocion({ ninosDiferenciado: { ...promos.ninosDiferenciado!, edadMaxima: parseInt(e.target.value) || undefined } })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <hr className="border-muted" />
-
-                {/* 3. Noches de cortesía */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="noches-check"
-                      checked={promos?.nochesCortesia?.activo || false}
-                      onCheckedChange={v => {
-                        if (v) {
-                          updatePromocion({ nochesCortesia: { activo: true, modalidad: promos?.nochesCortesia?.modalidad || { tipo: 'cadaX', cada: 3 } } });
-                        } else {
-                          updatePromocion({ nochesCortesia: undefined });
-                        }
-                      }}
-                    />
-                    <Label htmlFor="noches-check" className="text-sm font-medium">Noches de cortesía</Label>
-                  </div>
-                  {promos?.nochesCortesia?.activo && (
-                    <div className="ml-6 space-y-2 border-l-2 border-[#FDE68A] pl-3">
-                      <Select
-                        value={promos.nochesCortesia.modalidad.tipo}
-                        onValueChange={v => {
-                          let mod: ModalidadNochesCortesia;
-                          if (v === 'cadaX') mod = { tipo: 'cadaX', cada: 3 };
-                          else if (v === 'aPartirDe') mod = { tipo: 'aPartirDe', minNoches: 5, nochesGratis: 1 };
-                          else mod = { tipo: 'diaSemana', dia: 3 };
-                          updatePromocion({ nochesCortesia: { ...promos.nochesCortesia!, modalidad: mod } });
-                        }}
-                      >
-                        <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cadaX">Cada X noches, 1 gratis</SelectItem>
-                          <SelectItem value="aPartirDe">A partir de X noches, Y gratis</SelectItem>
-                          <SelectItem value="diaSemana">Día de la semana gratis</SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      {promos.nochesCortesia.modalidad.tipo === 'cadaX' && (
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Cada cuántas noches</Label>
-                          <Input
-                            type="number"
-                            min={2}
-                            value={promos.nochesCortesia.modalidad.cada}
-                            onChange={e => updatePromocion({ nochesCortesia: { ...promos.nochesCortesia!, modalidad: { tipo: 'cadaX', cada: parseInt(e.target.value) || 3 } } })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                      )}
-
-                      {promos.nochesCortesia.modalidad.tipo === 'aPartirDe' && (
-                        (() => {
-                          const mod = promos.nochesCortesia.modalidad as Extract<ModalidadNochesCortesia, { tipo: 'aPartirDe' }>;
-                          return (
+                      {promos?.acompananteSinCargo?.activo && (
+                        <div className="ml-6 space-y-2 border-l-2 border-[#BBF7D0] pl-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Etiqueta (nombre del beneficio)</Label>
+                            <Input
+                              placeholder="Ej: Chofer de cortesía, Guía turístico..."
+                              value={promos.acompananteSinCargo.etiqueta || ''}
+                              onChange={e => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, etiqueta: e.target.value } })}
+                              className="h-8 text-sm"
+                            />
+                          </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1.5">
-                              <Label className="text-xs">Mínimo de noches</Label>
+                              <Label className="text-xs">Cantidad</Label>
                               <Input
                                 type="number"
-                                min={2}
-                                value={mod.minNoches}
-                                onChange={e => updatePromocion({ nochesCortesia: { ...promos!.nochesCortesia!, modalidad: { tipo: 'aPartirDe', minNoches: parseInt(e.target.value) || 5, nochesGratis: mod.nochesGratis } } })}
+                                min={1}
+                                max={10}
+                                value={promos.acompananteSinCargo.cantidad ?? 1}
+                                onChange={e => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, cantidad: Math.max(1, parseInt(e.target.value) || 1) } })}
+                                className="h-8 text-sm"
+                              />
+                              <p className="text-[10px] text-muted-foreground">Acompañantes sin cargo</p>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs">Personas que hospedan (opcional)</Label>
+                              <Input
+                                type="number"
+                                min={1}
+                                placeholder="Ej: 4"
+                                value={promos.acompananteSinCargo.personasHospedan ?? ''}
+                                onChange={e => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, personasHospedan: parseInt(e.target.value) || undefined } })}
+                                className="h-8 text-sm"
+                              />
+                              <p className="text-[10px] text-muted-foreground">Valida la búsqueda</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id="acom-hab-check"
+                              checked={!!promos!.acompananteSinCargo!.habitacionAsignada}
+                              onCheckedChange={v => updatePromocion({ acompananteSinCargo: { ...promos!.acompananteSinCargo!, habitacionAsignada: v ? (promos!.acompananteSinCargo!.habitacionAsignada || todasHabitaciones[0]?.[0] || '') : undefined } })}
+                            />
+                            <Label htmlFor="acom-hab-check" className="text-xs">Asignar habitación gratis</Label>
+                          </div>
+                          {promos.acompananteSinCargo.habitacionAsignada && (
+                            <Select
+                              value={promos.acompananteSinCargo.habitacionAsignada}
+                              onValueChange={v => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, habitacionAsignada: v } })}
+                            >
+                              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="-- Seleccione --" /></SelectTrigger>
+                              <SelectContent>
+                                {todasHabitaciones.map(([num, hab]) => (
+                                  <SelectItem key={num} value={num}>{num} ({hab.tipo} - {hab.capacidad} pers.)</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <hr className="border-muted" />
+
+                    {/* 2. Niños con precio diferenciado */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="ninos-check"
+                          checked={promos?.ninosDiferenciado?.activo || false}
+                          onCheckedChange={v => {
+                            if (v) {
+                              updatePromocion({ ninosDiferenciado: { activo: true, precioNino: promos?.ninosDiferenciado?.precioNino || 0 } });
+                            } else {
+                              updatePromocion({ ninosDiferenciado: undefined });
+                            }
+                          }}
+                        />
+                        <Label htmlFor="ninos-check" className="text-sm font-medium flex items-center gap-1.5">
+                          <Baby className="w-3.5 h-3.5 text-[#6D28D9]" />Niños con precio diferenciado
+                        </Label>
+                      </div>
+                      {promos?.ninosDiferenciado?.activo && (
+                        <div className="ml-6 space-y-2 border-l-2 border-[#DDD6FE] pl-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs">Precio por niño / noche</Label>
+                              <Input
+                                type="number"
+                                min={0}
+                                value={promos.ninosDiferenciado.precioNino || 0}
+                                onChange={e => updatePromocion({ ninosDiferenciado: { ...promos.ninosDiferenciado!, precioNino: parseFloat(e.target.value) || 0 } })}
                                 className="h-8 text-sm"
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <Label className="text-xs">Noches gratis</Label>
+                              <Label className="text-xs">Edad máxima (informativo)</Label>
                               <Input
                                 type="number"
-                                min={1}
-                                value={mod.nochesGratis}
-                                onChange={e => updatePromocion({ nochesCortesia: { ...promos!.nochesCortesia!, modalidad: { tipo: 'aPartirDe', minNoches: mod.minNoches, nochesGratis: parseInt(e.target.value) || 1 } } })}
+                                min={0}
+                                placeholder="Ej: 12"
+                                value={promos.ninosDiferenciado.edadMaxima ?? ''}
+                                onChange={e => updatePromocion({ ninosDiferenciado: { ...promos.ninosDiferenciado!, edadMaxima: parseInt(e.target.value) || undefined } })}
                                 className="h-8 text-sm"
                               />
                             </div>
                           </div>
-                          );
-                        })()
-                      )}
-
-                      {promos.nochesCortesia.modalidad.tipo === 'diaSemana' && (
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Día de la semana gratis</Label>
-                          <Select
-                            value={String(promos.nochesCortesia.modalidad.dia)}
-                            onValueChange={v => updatePromocion({ nochesCortesia: { ...promos.nochesCortesia!, modalidad: { tipo: 'diaSemana', dia: parseInt(v) } } })}
-                          >
-                            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {DIAS_SEMANA.map((dia, i) => (
-                                <SelectItem key={i} value={String(i)}>{dia}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
 
-                <hr className="border-muted" />
+                    <hr className="border-muted" />
 
-                {/* Campos adicionales */}
-                <div>
-                  <p className="text-sm font-medium mb-2">Campos adicionales</p>
-                  <p className="text-xs text-muted-foreground mb-2">Se pedirán al elegir esta tarifa en la reserva.</p>
-                  <div className="space-y-2">
-                    {tarifaForm.camposPersonalizados.length === 0 && (
-                      <p className="text-xs text-muted-foreground">Sin campos definidos.</p>
-                    )}
-                    {tarifaForm.camposPersonalizados.map((c, i) => (
-                      <CampoFila
-                        key={i}
-                        campo={c}
-                        onRemove={() => setTarifaForm({ ...tarifaForm, camposPersonalizados: tarifaForm.camposPersonalizados.filter((_, j) => j !== i) })}
-                        onUpdate={nuevo => {
-                          const nuevos = [...tarifaForm.camposPersonalizados];
-                          nuevos[i] = nuevo;
-                          setTarifaForm({ ...tarifaForm, camposPersonalizados: nuevos });
-                        }}
-                      />
-                    ))}
+                    {/* 3. Noches de cortesía */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="noches-check"
+                          checked={promos?.nochesCortesia?.activo || false}
+                          onCheckedChange={v => {
+                            if (v) {
+                              updatePromocion({ nochesCortesia: { activo: true, modalidad: promos?.nochesCortesia?.modalidad || { tipo: 'cadaX', cada: 3 } } });
+                            } else {
+                              updatePromocion({ nochesCortesia: undefined });
+                            }
+                          }}
+                        />
+                        <Label htmlFor="noches-check" className="text-sm font-medium flex items-center gap-1.5">
+                          <Zap className="w-3.5 h-3.5 text-[#92400E]" />Noches de cortesía
+                        </Label>
+                      </div>
+                      {promos?.nochesCortesia?.activo && (
+                        <div className="ml-6 space-y-2 border-l-2 border-[#FDE68A] pl-3">
+                          <Select
+                            value={promos.nochesCortesia.modalidad.tipo}
+                            onValueChange={v => {
+                              let mod: ModalidadNochesCortesia;
+                              if (v === 'cadaX') mod = { tipo: 'cadaX', cada: 3 };
+                              else if (v === 'aPartirDe') mod = { tipo: 'aPartirDe', minNoches: 5, nochesGratis: 1 };
+                              else mod = { tipo: 'diaSemana', dia: 3 };
+                              updatePromocion({ nochesCortesia: { ...promos.nochesCortesia!, modalidad: mod } });
+                            }}
+                          >
+                            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cadaX">Cada X noches, 1 gratis</SelectItem>
+                              <SelectItem value="aPartirDe">A partir de X noches, Y gratis</SelectItem>
+                              <SelectItem value="diaSemana">Día de la semana gratis</SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          {promos.nochesCortesia.modalidad.tipo === 'cadaX' && (
+                            <div className="space-y-1.5">
+                              <Label className="text-xs">Cada cuántas noches</Label>
+                              <Input
+                                type="number"
+                                min={2}
+                                value={promos.nochesCortesia.modalidad.cada}
+                                onChange={e => updatePromocion({ nochesCortesia: { ...promos.nochesCortesia!, modalidad: { tipo: 'cadaX', cada: parseInt(e.target.value) || 3 } } })}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          )}
+
+                          {promos.nochesCortesia.modalidad.tipo === 'aPartirDe' && (
+                            (() => {
+                              const mod = promos.nochesCortesia.modalidad as Extract<ModalidadNochesCortesia, { tipo: 'aPartirDe' }>;
+                              return (
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">Mínimo de noches</Label>
+                                  <Input
+                                    type="number"
+                                    min={2}
+                                    value={mod.minNoches}
+                                    onChange={e => updatePromocion({ nochesCortesia: { ...promos!.nochesCortesia!, modalidad: { tipo: 'aPartirDe', minNoches: parseInt(e.target.value) || 5, nochesGratis: mod.nochesGratis } } })}
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">Noches gratis</Label>
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    value={mod.nochesGratis}
+                                    onChange={e => updatePromocion({ nochesCortesia: { ...promos!.nochesCortesia!, modalidad: { tipo: 'aPartirDe', minNoches: mod.minNoches, nochesGratis: parseInt(e.target.value) || 1 } } })}
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                              </div>
+                              );
+                            })()
+                          )}
+
+                          {promos.nochesCortesia.modalidad.tipo === 'diaSemana' && (
+                            <div className="space-y-1.5">
+                              <Label className="text-xs">Día de la semana gratis</Label>
+                              <Select
+                                value={String(promos.nochesCortesia.modalidad.dia)}
+                                onValueChange={v => updatePromocion({ nochesCortesia: { ...promos.nochesCortesia!, modalidad: { tipo: 'diaSemana', dia: parseInt(v) } } })}
+                              >
+                                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {DIAS_SEMANA.map((dia, i) => (
+                                    <SelectItem key={i} value={String(i)}>{dia}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <hr className="border-muted" />
+
+                    {/* Campos adicionales */}
+                    <div>
+                      <p className="text-sm font-medium mb-1 flex items-center gap-1.5">
+                        <Info className="w-3.5 h-3.5 text-[#0F2B28]/60" />Campos adicionales
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-2">Se pedirán al elegir esta tarifa en la reserva.</p>
+                      <div className="space-y-2">
+                        {tarifaForm.camposPersonalizados.length === 0 && (
+                          <p className="text-xs text-muted-foreground">Sin campos definidos.</p>
+                        )}
+                        {tarifaForm.camposPersonalizados.map((c, i) => (
+                          <CampoFila
+                            key={i}
+                            campo={c}
+                            onRemove={() => setTarifaForm({ ...tarifaForm, camposPersonalizados: tarifaForm.camposPersonalizados.filter((_, j) => j !== i) })}
+                            onUpdate={nuevo => {
+                              const nuevos = [...tarifaForm.camposPersonalizados];
+                              nuevos[i] = nuevo;
+                              setTarifaForm({ ...tarifaForm, camposPersonalizados: nuevos });
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <Button size="sm" variant="outline" className="mt-2" onClick={() => setTarifaForm({ ...tarifaForm, camposPersonalizados: [...tarifaForm.camposPersonalizados, { nombre: '', tipo: 'texto', requerido: false }] })}>
+                        <Plus className="w-3.5 h-3.5 mr-1" />Agregar campo
+                      </Button>
+                    </div>
                   </div>
-                  <Button size="sm" variant="outline" className="mt-2" onClick={() => setTarifaForm({ ...tarifaForm, camposPersonalizados: [...tarifaForm.camposPersonalizados, { nombre: '', tipo: 'texto', requerido: false }] })}>
-                    <Plus className="w-3.5 h-3.5 mr-1" />Agregar campo
-                  </Button>
                 </div>
-              </div>
+              )}
+            </div>
+
+            {/* ═══ RIGHT: Live preview ═══ */}
+            <div className="lg:sticky lg:top-0 lg:self-start">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#10B981]" />Vista previa en vivo
+              </p>
+              <TariffMiniPreview
+                nombre={tarifaForm.nombre}
+                modoCobro={tarifaForm.modoCobro}
+                rangos={tarifaForm.rangos}
+                promociones={tarifaForm.promociones}
+                camposCount={tarifaForm.camposPersonalizados.length}
+              />
+              <p className="text-[11px] text-muted-foreground mt-2 text-center">
+                Así se verá tu tarifa en el listado.
+              </p>
             </div>
           </div>
-          <DialogFooter className="flex flex-wrap justify-between sm:justify-between gap-2">
-            {editandoTarifa ? (
-              <Button variant="destructive" onClick={() => handleEliminarTarifa(editandoTarifa)}>
-                <Trash2 className="w-4 h-4 mr-1" />Eliminar tarifa
-              </Button>
-            ) : <span />}
+
+          <DialogFooter className="flex flex-wrap justify-between sm:justify-between gap-2 mt-2">
             <div className="flex gap-2">
+              {editandoTarifa && (
+                <Button variant="destructive" onClick={() => handleEliminarTarifa(editandoTarifa)}>
+                  <Trash2 className="w-4 h-4 mr-1" />Eliminar
+                </Button>
+              )}
+              {wizardStep > 1 && (
+                <Button variant="outline" onClick={handlePrevStep}>
+                  <ChevronLeft className="w-4 h-4 mr-1" />Atrás
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2 ml-auto">
               <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
-              <Button onClick={handleGuardarTarifa}>{editandoTarifa ? 'Guardar Cambios' : 'Crear Tarifa'}</Button>
+              {wizardStep < 3 ? (
+                <Button onClick={handleNextStep}>
+                  Siguiente<ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              ) : (
+                <Button onClick={handleGuardarTarifa}>
+                  {editandoTarifa ? <><Pencil className="w-4 h-4 mr-1" />Guardar Cambios</> : <><Sparkles className="w-4 h-4 mr-1" />Crear Tarifa</>}
+                </Button>
+              )}
             </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-
+      {/* ==================== MODAL: COMPARACIÓN ==================== */}
+      <Dialog open={showComparison} onOpenChange={setShowComparison}>
+        {selectedForCompare.length >= 2 ? (
+          <ComparisonModal
+            tariffs={selectedForCompare.map(tipo => ({ tipo, t: tarifas[tipo] })).filter(x => x.t) as { tipo: string; t: TarifaPrecios }[]}
+            onClose={() => setShowComparison(false)}
+          />
+        ) : (
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Comparación de tarifas</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">Seleccioná al menos 2 tarifas para comparar.</p>
+            <DialogFooter>
+              <Button variant="secondary" onClick={() => setShowComparison(false)}>Cerrar</Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* ==================== MODAL: MÉTODO DE PAGO ==================== */}
       <Dialog open={modalMetodo} onOpenChange={setModalMetodo}>

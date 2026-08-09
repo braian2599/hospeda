@@ -1,0 +1,1191 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useState } from 'react';
+     4→     4→import { useHotelStore } from '@/lib/store';
+     5→     5→import { Card, CardContent } from '@/components/ui/card';
+     6→     6→import { Button } from '@/components/ui/button';
+     7→     7→import { Input } from '@/components/ui/input';
+     8→     8→import { Label } from '@/components/ui/label';
+     9→     9→import { Badge } from '@/components/ui/badge';
+    10→    10→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    11→    11→import { Checkbox } from '@/components/ui/checkbox';
+    12→    12→import {
+    13→    13→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    14→    14→} from '@/components/ui/dialog';
+    15→    15→import {
+    16→    16→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    17→    17→} from '@/components/ui/select';
+    18→    18→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    19→    19→import { toast } from 'sonner';
+    20→    20→import { Tags, Plus, Trash2, CreditCard, ListChecks, Users, Pencil, Info, Home, UserRound, UsersRound, Star, Zap, Sparkles } from 'lucide-react';
+    21→    21→import ModuleHeader from '@/components/layout/ModuleHeader';
+    22→    22→import { EmptyState } from '@/components/ui/empty-state';
+    23→    23→import { formatMoney } from '@/lib/format';
+    24→    24→import type { CampoPersonalizado, MetodoPago, Cuota, ModoCobro, RangoPrecio, PromocionesTarifa, AcompananteSinCargo, NinosDiferenciado, NochesCortesia, ModalidadNochesCortesia } from '@/lib/types';
+    25→    25→
+    26→    26→// ==================== COMPONENTES AUXILIARES ====================
+    27→    27→
+    28→    28→function CampoFila({ campo, onRemove, onUpdate }: {
+    29→    29→  campo: CampoPersonalizado;
+    30→    30→  onRemove: () => void;
+    31→    31→  onUpdate: (c: CampoPersonalizado) => void;
+    32→    32→}) {
+    33→    33→  return (
+    34→    34→    <div className="flex items-center gap-2">
+    35→    35→      <Input
+    36→    36→        placeholder="Nombre del campo"
+    37→    37→        value={campo.nombre}
+    38→    38→        onChange={e => onUpdate({ ...campo, nombre: e.target.value })}
+    39→    39→        className="flex-1 h-8"
+    40→    40→      />
+    41→    41→      <Select value={campo.tipo} onValueChange={v => onUpdate({ ...campo, tipo: v as CampoPersonalizado['tipo'] })}>
+    42→    42→        <SelectTrigger className="w-28 h-8"><SelectValue /></SelectTrigger>
+    43→    43→        <SelectContent>
+    44→    44→          <SelectItem value="texto">Texto</SelectItem>
+    45→    45→          <SelectItem value="numero">Número</SelectItem>
+    46→    46→        </SelectContent>
+    47→    47→      </Select>
+    48→    48→      <div className="flex items-center gap-1.5 px-2">
+    49→    49→        <Checkbox
+    50→    50→          id={`req-${campo.nombre}`}
+    51→    51→          checked={campo.requerido}
+    52→    52→          onCheckedChange={v => onUpdate({ ...campo, requerido: !!v })}
+    53→    53→        />
+    54→    54→        <Label htmlFor={`req-${campo.nombre}`} className="text-xs whitespace-nowrap">Req.</Label>
+    55→    55→      </div>
+    56→    56→      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive shrink-0" onClick={onRemove}>
+    57→    57→        <Trash2 className="w-3.5 h-3.5" />
+    58→    58→      </Button>
+    59→    59→    </div>
+    60→    60→  );
+    61→    61→}
+    62→    62→
+    63→    63→function CuotaFila({ cuota, onRemove, onUpdate }: {
+    64→    64→  cuota: Cuota;
+    65→    65→  onRemove: () => void;
+    66→    66→  onUpdate: (c: Cuota) => void;
+    67→    67→}) {
+    68→    68→  return (
+    69→    69→    <div className="flex items-center gap-2">
+    70→    70→      <div className="space-y-0.5">
+    71→    71→        <Label className="text-[10px] text-muted-foreground">Cantidad</Label>
+    72→    72→        <Input type="number" min={1} className="w-20 h-8" value={cuota.cantidad} onChange={e => onUpdate({ ...cuota, cantidad: parseInt(e.target.value) || 1 })} />
+    73→    73→      </div>
+    74→    74→      <div className="space-y-0.5">
+    75→    75→        <Label className="text-[10px] text-muted-foreground">% recargo</Label>
+    76→    76→        <Input type="number" step="0.1" className="w-20 h-8" value={cuota.porcentaje} onChange={e => onUpdate({ ...cuota, porcentaje: parseFloat(e.target.value) || 0 })} />
+    77→    77→      </div>
+    78→    78→      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive shrink-0 mt-4" onClick={onRemove}>
+    79→    79→        <Trash2 className="w-3.5 h-3.5" />
+    80→    80→      </Button>
+    81→    81→    </div>
+    82→    82→  );
+    83→    83→}
+    84→    84→
+    85→    85→function RangoFila({ rango, index, onRemove, onUpdate, modoCobro, totalRangos }: {
+    86→    86→  rango: RangoPrecio;
+    87→    87→  index: number;
+    88→    88→  onRemove: () => void;
+    89→    89→  onUpdate: (r: RangoPrecio) => void;
+    90→    90→  modoCobro: ModoCobro;
+    91→    91→  totalRangos: number;
+    92→    92→}) {
+    93→    93→  const esInfinito = rango.maxPersonas === null;
+    94→    94→  // Etiqueta legible del rango: "1 persona", "2 personas", "3+ personas", "2-4 personas"
+    95→    95→  const rangoLabel = esInfinito
+    96→    96→    ? `${rango.minPersonas}+ persona${rango.minPersonas > 1 ? 's' : ''}`
+    97→    97→    : rango.minPersonas === rango.maxPersonas
+    98→    98→      ? `${rango.minPersonas} persona${rango.minPersonas > 1 ? 's' : ''}`
+    99→    99→      : `${rango.minPersonas} a ${rango.maxPersonas} personas`;
+   100→   100→
+   101→   101→  return (
+   102→   102→    <div className="flex items-end gap-2">
+   103→   103→      <div className="w-28 shrink-0 flex items-center h-8 text-sm font-medium text-foreground">
+   104→   104→        {modoCobro === 'porHabitacion' ? 'Por noche' : modoCobro === 'porCama' ? 'Por cama/noche' : rangoLabel}
+   105→   105→      </div>
+   106→   106→      <div className="space-y-0.5 flex-1">
+   107→   107→        <Label className="text-[10px] text-muted-foreground">
+   108→   108→          {modoCobro === 'porPersona' || modoCobro === 'porCama' ? 'Precio c/u' : 'Precio'}
+   109→   109→        </Label>
+   110→   110→        <Input
+   111→   111→          type="number" min={0} step="0.01"
+   112→   112→          className="h-8 text-right"
+   113→   113→          value={rango.precio}
+   114→   114→          onChange={e => onUpdate({ ...rango, precio: parseFloat(e.target.value) || 0 })}
+   115→   115→        />
+   116→   116→      </div>
+   117→   117→      <Button
+   118→   118→        size="icon" variant="ghost"
+   119→   119→        className="h-8 w-8 text-destructive shrink-0 mb-0.5"
+   120→   120→        onClick={onRemove}
+   121→   121→        disabled={modoCobro === 'porHabitacion' || modoCobro === 'porCama' || totalRangos <= 1}
+   122→   122→      >
+   123→   123→        <Trash2 className="w-3.5 h-3.5" />
+   124→   124→      </Button>
+   125→   125→    </div>
+   126→   126→  );
+   127→   127→}
+   128→   128→
+   129→   129→// ==================== HELPERS ====================
+   130→   130→
+   131→   131→const MODO_OPTIONS: { value: ModoCobro; label: string; description: string; icon: typeof Home }[] = [
+   132→   132→  { value: 'porGrupo', label: 'Por grupo', description: 'El precio es el total del grupo por noche', icon: UsersRound },
+   133→   133→  { value: 'porPersona', label: 'Por persona', description: 'El precio es por cada persona por noche', icon: UserRound },
+   134→   134→  { value: 'porHabitacion', label: 'Por habitación', description: 'Precio fijo por habitación, sin importar la cantidad de personas', icon: Home },
+   135→   135→  { value: 'porCama', label: 'Por cama', description: 'Cada persona paga un precio fijo por noche (ideal para compartidas)', icon: Users },
+   136→   136→];
+   137→   137→
+   138→   138→function formatoRango(r: RangoPrecio): string {
+   139→   139→ if (r.maxPersonas === null) return `${r.minPersonas}+`;
+   140→   140→  if (r.minPersonas === r.maxPersonas) return `${r.minPersonas}`;
+   141→   141→  return `${r.minPersonas}-${r.maxPersonas}`;
+   142→   142→}
+   143→   143→
+   144→   144→function modoLabel(m: ModoCobro): string {
+   145→   145→  return MODO_OPTIONS.find(o => o.value === m)?.label || m;
+   146→   146→}
+   147→   147→
+   148→   148→function modoBadgeColor(m: ModoCobro): string {
+   149→   149→  switch (m) {
+   150→   150→    case 'porPersona': return 'bg-[#F5F3FF] text-[#6D28D9] border-0';
+   151→   151→    case 'porHabitacion': return 'bg-[#FEF3C7] text-[#92400E] border-0';
+   152→   152→    case 'porCama': return 'bg-[#DCFCE7] text-[#166534] border-0';
+   153→   153→    default: return 'bg-[#D1FAE5] text-[#065F46] border-0';
+   154→   154→  }
+   155→   155→}
+   156→   156→
+   157→   157→// Subtle gradient tint per modo for rate cards (decorative, soft tints)
+   158→   158→function modoGradient(m: ModoCobro): string {
+   159→   159→  switch (m) {
+   160→   160→    case 'porPersona': return 'from-[#FFFBEB] to-white';
+   161→   161→    case 'porHabitacion': return 'from-[#FEF2F2] to-white';
+   162→   162→    case 'porCama': return 'from-[#F5F3FF] to-white';
+   163→   163→    default: return 'from-[#F0FDF4] to-white';
+   164→   164→  }
+   165→   165→}
+   166→   166→
+   167→   167→// Colored circle for rate card icon
+   168→   168→function modoIconCircle(m: ModoCobro): string {
+   169→   169→  switch (m) {
+   170→   170→    case 'porPersona': return 'bg-[#FEF3C7] text-[#92400E]';
+   171→   171→    case 'porHabitacion': return 'bg-[#FEE2E2] text-[#991B1B]';
+   172→   172→    case 'porCama': return 'bg-[#EDE9FE] text-[#5B21B6]';
+   173→   173→    default: return 'bg-[#DCFCE7] text-[#166534]';
+   174→   174→  }
+   175→   175→}
+   176→   176→
+   177→   177→function crearRangoDefault(modo: ModoCobro, minPersonas: number = 1): RangoPrecio {
+   178→   178→  if (modo === 'porHabitacion') {
+   179→   179→    return { minPersonas: 1, maxPersonas: null, precio: 0 };
+   180→   180→  }
+   181→   181→  return { minPersonas, maxPersonas: minPersonas, precio: 0 };
+   182→   182→}
+   183→   183→
+   184→   184→// ==================== MODULO PRINCIPAL ====================
+   185→   185→
+   186→   186→export default function TarifasModule() {
+   187→   187→  const tarifas = useHotelStore(s => s.tarifas);
+   188→   188→  const tiposTarifa = useHotelStore(s => s.tiposTarifa);
+   189→   189→  const metodosPago = useHotelStore(s => s.metodosPago);
+   190→   190→  const categoriasGastos = useHotelStore(s => s.categoriasGastos);
+   191→   191→  const gastos = useHotelStore(s => s.gastos);
+   192→   192→  const habitaciones = useHotelStore(s => s.habitaciones);
+   193→   193→  const reservas = useHotelStore(s => s.reservas);
+   194→   194→  const pagos = useHotelStore(s => s.pagos);
+   195→   195→  const guardarTarifaCompleta = useHotelStore(s => s.guardarTarifaCompleta);
+   196→   196→  const eliminarTipoTarifa = useHotelStore(s => s.eliminarTipoTarifa);
+   197→   197→  const agregarMetodoPago = useHotelStore(s => s.agregarMetodoPago);
+   198→   198→  const editarMetodoPago = useHotelStore(s => s.editarMetodoPago);
+   199→   199→  const eliminarMetodoPago = useHotelStore(s => s.eliminarMetodoPago);
+   200→   200→  const agregarCategoriaGasto = useHotelStore(s => s.agregarCategoriaGasto);
+   201→   201→  const editarCategoriaGasto = useHotelStore(s => s.editarCategoriaGasto);
+   202→   202→  const eliminarCategoriaGasto = useHotelStore(s => s.eliminarCategoriaGasto);
+   203→   203→
+   204→   204→  const [tab, setTab] = useState('tarifas');
+   205→   205→
+   206→   206→  // --- Modal Tarifa ---
+   207→   207→  const [modalTarifa, setModalTarifa] = useState(false);
+   208→   208→  const [editandoTarifa, setEditandoTarifa] = useState<string | null>(null); // null = nueva
+   209→   209→  const [tarifaForm, setTarifaForm] = useState({
+   210→   210→    nombre: '',
+   211→   211→    modoCobro: 'porGrupo' as ModoCobro,
+   212→   212→    rangos: [{ minPersonas: 1, maxPersonas: 1, precio: 0 }] as RangoPrecio[],
+   213→   213→    camposPersonalizados: [] as CampoPersonalizado[],
+   214→   214→    promociones: undefined as PromocionesTarifa | undefined,
+   215→   215→  });
+   216→   216→
+   217→   217→
+   218→   218→
+   219→   219→  // --- Modal Método Pago ---
+   220→   220→  const [modalMetodo, setModalMetodo] = useState(false);
+   221→   221→  const [editandoMetodo, setEditandoMetodo] = useState<string | null>(null);
+   222→   222→  const [metForm, setMetForm] = useState<{ nombre: string; tipo: 'efectivo' | 'tarjeta' | 'transferencia' | 'otro'; recargo: boolean; cuotas: Cuota[] }>({ nombre: '', tipo: 'efectivo', recargo: false, cuotas: [] });
+   223→   223→
+   224→   224→  // --- Modal Categoría ---
+   225→   225→  const [modalCategoria, setModalCategoria] = useState(false);
+   226→   226→  const [editandoCat, setEditandoCat] = useState<string | null>(null);
+   227→   227→  const [catForm, setCatForm] = useState('');
+   228→   228→
+   229→   229→  // --- Confirm Dialog ---
+   230→   230→  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; titulo: string; msg: string; onConfirm: () => void | Promise<void> }>({ open: false, titulo: '', msg: '', onConfirm: () => {} });
+   231→   231→
+   232→   232→  // ==================== TARIFAS TAB ====================
+   233→   233→
+   234→   234→  const todasHabitaciones = Object.entries(habitaciones)
+   235→   235→    .sort(([a], [b]) => a.localeCompare(b));
+   236→   236→
+   237→   237→  // Helpers para actualizar promociones
+   238→   238→  const updatePromocion = (patch: Partial<PromocionesTarifa>) => {
+   239→   239→    setTarifaForm(prev => ({
+   240→   240→      ...prev,
+   241→   241→      promociones: { ...prev.promociones, ...patch },
+   242→   242→    }));
+   243→   243→  };
+   244→   244→
+   245→   245→  const promos = tarifaForm.promociones;
+   246→   246→  const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+   247→   247→
+   248→   248→  const openModalTarifa = (tipo: string | null) => {
+   249→   249→    if (tipo === null) {
+   250→   250→      setEditandoTarifa(null);
+   251→   251→      setTarifaForm({
+   252→   252→        nombre: '',
+   253→   253→        modoCobro: 'porGrupo',
+   254→   254→        rangos: [
+   255→   255→          { minPersonas: 1, maxPersonas: 1, precio: 0 },
+   256→   256→          { minPersonas: 2, maxPersonas: 2, precio: 0 },
+   257→   257→          { minPersonas: 3, maxPersonas: 3, precio: 0 },
+   258→   258→          { minPersonas: 4, maxPersonas: 4, precio: 0 },
+   259→   259→        ],
+   260→   260→        camposPersonalizados: [],
+   261→   261→        promociones: undefined,
+   262→   262→      });
+   263→   263→    } else {
+   264→   264→      const t = tarifas[tipo];
+   265→   265→      if (!t) return;
+   266→   266→      setEditandoTarifa(tipo);
+   267→   267→      // Migrar choferCortesia viejo a promociones si no tiene
+   268→   268→      let promos = t.promociones;
+   269→   269→      if (!promos && t.choferCortesia) {
+   270→   270→        promos = {
+   271→   271→          acompananteSinCargo: {
+   272→   272→            activo: true,
+   273→   273→            etiqueta: 'Chofer de cortesía',
+   274→   274→            habitacionAsignada: t.habitacionChofer || undefined,
+   275→   275→            cantidad: 1,
+   276→   276→          },
+   277→   277→        };
+   278→   278→      }
+   279→   279→      // Migración: agregar cantidad default si no existe
+   280→   280→      if (promos?.acompananteSinCargo?.activo && promos.acompananteSinCargo.cantidad == null) {
+   281→   281→        promos = { ...promos, acompananteSinCargo: { ...promos.acompananteSinCargo!, cantidad: 1 } };
+   282→   282→      }
+   283→   283→      setTarifaForm({
+   284→   284→        nombre: tipo,
+   285→   285→        modoCobro: t.modoCobro || 'porGrupo',
+   286→   286→        rangos: t.rangos && t.rangos.length > 0
+   287→   287→          ? t.rangos.map(r => ({ ...r }))
+   288→   288→          : [
+   289→   289→              { minPersonas: 1, maxPersonas: 1, precio: 0 },
+   290→   290→              { minPersonas: 2, maxPersonas: 2, precio: 0 },
+   291→   291→              { minPersonas: 3, maxPersonas: 3, precio: 0 },
+   292→   292→              { minPersonas: 4, maxPersonas: 4, precio: 0 },
+   293→   293→            ],
+   294→   294→        camposPersonalizados: [...(t.camposPersonalizados || [])],
+   295→   295→        promociones: promos ? JSON.parse(JSON.stringify(promos)) : undefined,
+   296→   296→      });
+   297→   297→    }
+   298→   298→    setModalTarifa(true);
+   299→   299→  };
+   300→   300→
+   301→   301→  const handleModoCobroChange = (nuevoModo: ModoCobro) => {
+   302→   302→    if (nuevoModo === 'porHabitacion' || nuevoModo === 'porCama') {
+   303→   303→      // En modo habitación o porCama: un solo rango con precio fijo
+   304→   304→      setTarifaForm(prev => ({
+   305→   305→        ...prev,
+   306→   306→        modoCobro: nuevoModo,
+   307→   307→        rangos: [{ minPersonas: 1, maxPersonas: null, precio: prev.rangos[0]?.precio || 0 }],
+   308→   308→      }));
+   309→   309→    } else if (tarifaForm.modoCobro === 'porHabitacion' || tarifaForm.modoCobro === 'porCama') {
+   310→   310→      // Cambiando DE porHabitacion/porCama A otro modo: expandir a rangos individuales
+   311→   311→      const precioBase = tarifaForm.rangos[0]?.precio || 0;
+   312→   312→      setTarifaForm(prev => ({
+   313→   313→        ...prev,
+   314→   314→        modoCobro: nuevoModo,
+   315→   315→        rangos: [
+   316→   316→          { minPersonas: 1, maxPersonas: 1, precio: precioBase },
+   317→   317→          { minPersonas: 2, maxPersonas: 2, precio: 0 },
+   318→   318→          { minPersonas: 3, maxPersonas: 3, precio: 0 },
+   319→   319→          { minPersonas: 4, maxPersonas: 4, precio: 0 },
+   320→   320→        ],
+   321→   321→      }));
+   322→   322→    } else {
+   323→   323→      setTarifaForm(prev => ({ ...prev, modoCobro: nuevoModo }));
+   324→   324→    }
+   325→   325→  };
+   326→   326→
+   327→   327→  const addRango = () => {
+   328→   328→    if (tarifaForm.modoCobro === 'porHabitacion' || tarifaForm.modoCobro === 'porCama') return;
+   329→   329→    const rangos = [...tarifaForm.rangos];
+   330→   330→    const lastRango = rangos[rangos.length - 1];
+   331→   331→    // If the last range is open (maxPersonas === null), close it first
+   332→   332→    if (lastRango && lastRango.maxPersonas === null) {
+   333→   333→      rangos[rangos.length - 1] = { ...lastRango, maxPersonas: lastRango.minPersonas };
+   334→   334→    }
+   335→   335→    const newMin = lastRango ? (lastRango.maxPersonas !== null ? lastRango.maxPersonas + 1 : lastRango.minPersonas + 1) : 1;
+   336→   336→    rangos.push({ minPersonas: newMin, maxPersonas: null, precio: 0 });
+   337→   337→    setTarifaForm(prev => ({ ...prev, rangos }));
+   338→   338→  };
+   339→   339→
+   340→   340→  const updateRango = (index: number, rango: RangoPrecio) => {
+   341→   341→    setTarifaForm(prev => {
+   342→   342→      const nuevos = [...prev.rangos];
+   343→   343→      nuevos[index] = rango;
+   344→   344→      return { ...prev, rangos: nuevos };
+   345→   345→    });
+   346→   346→  };
+   347→   347→
+   348→   348→  const removeRango = (index: number) => {
+   349→   349→    setTarifaForm(prev => ({
+   350→   350→      ...prev,
+   351→   351→      rangos: prev.rangos.filter((_, i) => i !== index),
+   352→   352→    }));
+   353→   353→  };
+   354→   354→
+   355→   355→  const handleGuardarTarifa = async () => {
+   356→   356→    const nombre = tarifaForm.nombre.trim();
+   357→   357→    if (!nombre) { toast.warning('El nombre de la tarifa no puede estar vacío.'); return; }
+   358→   358→    const tipoKey = editandoTarifa || 'nueva';
+   359→   359→    if (editandoTarifa === null && tiposTarifa.some(t => t.toLowerCase() === nombre.toLowerCase())) {
+   360→   360→      toast.warning(`Ya existe una tarifa llamada "${nombre}".`); return;
+   361→   361→    }
+   362→   362→    if (editandoTarifa !== null && nombre !== editandoTarifa && tiposTarifa.some(t => t.toLowerCase() === nombre.toLowerCase())) {
+   363→   363→      toast.warning(`Ya existe una tarifa llamada "${nombre}".`); return;
+   364→   364→    }
+   365→   365→    if (tarifaForm.rangos.length === 0) {
+   366→   366→      toast.warning('Debe agregar al menos un rango de precios.'); return;
+   367→   367→    }
+   368→   368→    const ok = await guardarTarifaCompleta(tipoKey, {
+   369→   369→      nombre,
+   370→   370→      modoCobro: tarifaForm.modoCobro,
+   371→   371→      rangos: tarifaForm.rangos,
+   372→   372→      camposPersonalizados: tarifaForm.camposPersonalizados,
+   373→   373→      promociones: tarifaForm.promociones,
+   374→   374→    });
+   375→   375→    if (ok) {
+   376→   376→      setModalTarifa(false);
+   377→   377→      toast.success(editandoTarifa ? 'Cambios guardados con éxito.' : `Tarifa "${nombre}" creada con éxito.`);
+   378→   378→    } else {
+   379→   379→      toast.error('No se pudo guardar la tarifa.');
+   380→   380→    }
+   381→   381→  };
+   382→   382→
+   383→   383→  const handleEliminarTarifa = (tipo: string) => {
+   384→   384→    const reservasActivas = reservas.filter(r => r.tipoTarifa === tipo && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'));
+   385→   385→    if (reservasActivas.length > 0) {
+   386→   386→      toast.warning(`No se puede eliminar la tarifa "${tipo}". Hay ${reservasActivas.length} reserva(s) activa(s) que la están usando.`);
+   387→   387→      return;
+   388→   388→    }
+   389→   389→    setConfirmDialog({
+   390→   390→      open: true,
+   391→   391→      titulo: 'Eliminar tarifa',
+   392→   392→      msg: `¿Eliminar la tarifa "${tipo}"? Esta acción no se puede deshacer.`,
+   393→   393→      onConfirm: async () => {
+   394→   394→        const ok = await eliminarTipoTarifa(tipo);
+   395→   395→        setConfirmDialog(prev => ({ ...prev, open: false }));
+   396→   396→        setModalTarifa(false);
+   397→   397→        if (ok) {
+   398→   398→          toast.success(`Tarifa "${tipo}" eliminada correctamente.`);
+   399→   399→        } else {
+   400→   400→          toast.error('No se pudo eliminar la tarifa. Verificá que no tenga reservas activas.');
+   401→   401→        }
+   402→   402→      },
+   403→   403→    });
+   404→   404→  };
+   405→   405→
+   406→   406→
+   407→   407→
+   408→   408→  // ==================== MÉTODOS TAB ====================
+   409→   409→
+   410→   410→  const openModalMetodo = (id: string | null) => {
+   411→   411→    if (id === null) {
+   412→   412→      setEditandoMetodo(null);
+   413→   413→      setMetForm({ nombre: '', tipo: 'efectivo', recargo: false, cuotas: [] });
+   414→   414→    } else {
+   415→   415→      const m = metodosPago.find(met => met.id === id);
+   416→   416→      if (!m) return;
+   417→   417→      setEditandoMetodo(id);
+   418→   418→      setMetForm({ nombre: m.nombre, tipo: m.tipo as 'efectivo', recargo: m.recargo, cuotas: [...m.cuotas] });
+   419→   419→    }
+   420→   420→    setModalMetodo(true);
+   421→   421→  };
+   422→   422→
+   423→   423→  const handleGuardarMetodo = () => {
+   424→   424→    const nombre = metForm.nombre.trim();
+   425→   425→    if (!nombre) { toast.warning('Ingrese un nombre.'); return; }
+   426→   426→
+   427→   427→    if (editandoMetodo === null) {
+   428→   428→      const nuevoId = nombre.toLowerCase().replace(/\s+/g, '_');
+   429→   429→      if (metodosPago.some(m => m.id === nuevoId)) { toast.warning('Ya existe un método con ese nombre.'); return; }
+   430→   430→      agregarMetodoPago({ id: nuevoId, nombre, tipo: metForm.tipo, recargo: metForm.recargo, cuotas: metForm.cuotas });
+   431→   431→    } else {
+   432→   432→      editarMetodoPago(editandoMetodo, { id: editandoMetodo, nombre, tipo: metForm.tipo, recargo: metForm.recargo, cuotas: metForm.cuotas });
+   433→   433→    }
+   434→   434→    setModalMetodo(false);
+   435→   435→  };
+   436→   436→
+   437→   437→  const handleEliminarMetodo = (id: string) => {
+   438→   438→    if (id === 'efectivo') { toast.warning('No se puede eliminar el método Efectivo.'); return; }
+   439→   439→    const metodo = metodosPago.find(m => m.id === id);
+   440→   440→    if (!metodo) return;
+   441→   441→    if (pagos.some(p => p.metodo === metodo.id)) {
+   442→   442→      toast.warning(`No se puede eliminar "${metodo.nombre}". Hay pago(s) registrado(s) con este método.`); return;
+   443→   443→    }
+   444→   444→    if (reservas.some(r => r.metodoPagoId === id && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'))) {
+   445→   445→      toast.warning(`No se puede eliminar "${metodo.nombre}". Hay reserva(s) activa(s) que lo están usando.`); return;
+   446→   446→    }
+   447→   447→    setConfirmDialog({
+   448→   448→      open: true, titulo: 'Eliminar método de pago', msg: `¿Eliminar este método de pago?`,
+   449→   449→      onConfirm: () => {
+   450→   450→        eliminarMetodoPago(id);
+   451→   451→        setConfirmDialog({ ...confirmDialog, open: false });
+   452→   452→        toast.success('Método de pago eliminado.');
+   453→   453→      },
+   454→   454→    });
+   455→   455→  };
+   456→   456→
+   457→   457→  // ==================== CATEGORÍAS TAB ====================
+   458→   458→
+   459→   459→  const openModalCategoria = (nombre: string | null) => {
+   460→   460→    if (nombre === null) {
+   461→   461→      setEditandoCat(null);
+   462→   462→      setCatForm('');
+   463→   463→    } else {
+   464→   464→      setEditandoCat(nombre);
+   465→   465→      setCatForm(nombre);
+   466→   466→    }
+   467→   467→    setModalCategoria(true);
+   468→   468→  };
+   469→   469→
+   470→   470→  const handleGuardarCategoria = () => {
+   471→   471→    const nombre = catForm.trim();
+   472→   472→    if (!nombre) { toast.warning('Ingrese un nombre.'); return; }
+   473→   473→    if (editandoCat === null) {
+   474→   474→      if (categoriasGastos.includes(nombre)) { toast.warning('Ya existe una categoría con ese nombre.'); return; }
+   475→   475→      agregarCategoriaGasto(nombre);
+   476→   476→    } else {
+   477→   477→      editarCategoriaGasto(editandoCat, nombre);
+   478→   478→    }
+   479→   479→    setModalCategoria(false);
+   480→   480→  };
+   481→   481→
+   482→   482→  const handleEliminarCategoria = (nombre: string) => {
+   483→   483→    const gastosAsociados = gastos.filter(g => g.tipo === nombre);
+   484→   484→    if (gastosAsociados.length > 0) {
+   485→   485→      toast.warning(`No se puede eliminar "${nombre}". Hay ${gastosAsociados.length} gasto(s) registrado(s) con esta categoría.`); return;
+   486→   486→    }
+   487→   487→    setConfirmDialog({
+   488→   488→      open: true, titulo: 'Eliminar categoría', msg: `¿Eliminar la categoría "${nombre}"?`,
+   489→   489→      onConfirm: () => {
+   490→   490→        eliminarCategoriaGasto(nombre);
+   491→   491→        setConfirmDialog({ ...confirmDialog, open: false });
+   492→   492→        toast.success('Categoría eliminada.');
+   493→   493→      },
+   494→   494→    });
+   495→   495→  };
+   496→   496→
+   497→   497→  // ==================== RENDER ====================
+   498→   498→
+   499→   499→  return (
+   500→   500→    <div className="space-y-6">
+   501→   501→      <ModuleHeader icon={Tags} title="Tarifas y Métodos de Pago" subtitle="Configurá precios y formas de cobro" />
+   502→   502→
+   503→   503→      <Tabs value={tab} onValueChange={setTab}>
+   504→   504→        <TabsList className="bg-muted/50">
+   505→   505→          <TabsTrigger value="tarifas" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all"><Tags className="w-4 h-4 mr-1" />Tarifas</TabsTrigger>
+   506→   506→          <TabsTrigger value="metodos" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all"><CreditCard className="w-4 h-4 mr-1" />Métodos de Pago</TabsTrigger>
+   507→   507→          <TabsTrigger value="categorias" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all"><ListChecks className="w-4 h-4 mr-1" />Categorías de Gastos</TabsTrigger>
+   508→   508→        </TabsList>
+   509→   509→
+   510→   510→        {/* ==================== TAB: TARIFAS ==================== */}
+   511→   511→        <TabsContent value="tarifas" className="space-y-5">
+   512→   512→          <div className="flex justify-between items-center">
+   513→   513→            <h3 className="text-lg font-semibold">Tarifas</h3>
+   514→   514→            <Button onClick={() => openModalTarifa(null)}><Plus className="w-4 h-4 mr-1" />Nueva Tarifa</Button>
+   515→   515→          </div>
+   516→   516→
+   517→   517→          <div className="flex items-start gap-2 p-3 rounded-lg bg-[#F0FDF4] border-[#BBF7D0] text-[#166534] text-sm">
+   518→   518→            <Info className="w-4 h-4 mt-0.5 shrink-0" />
+   519→   519→            Haga clic en una tarifa para editarla. Los cambios se guardan automáticamente al confirmar.
+   520→   520→          </div>
+   521→   521→
+   522→   522→          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+   523→   523→            {tiposTarifa.map(tipo => {
+   524→   524→              const t = tarifas[tipo];
+   525→   525→              if (!t) return null;
+   526→   526→              const modo = t.modoCobro || 'porGrupo';
+   527→   527→              const campos = (t.camposPersonalizados || []).length;
+   528→   528→              const promos = (t.promociones || (t.choferCortesia ? { acompananteSinCargo: { activo: true, etiqueta: 'Chofer de cortesía' } } : undefined)) as PromocionesTarifa | undefined;
+   529→   529→              const tieneAcompanante = promos?.acompananteSinCargo?.activo;
+   530→   530→              const tieneNinos = promos?.ninosDiferenciado?.activo;
+   531→   531→              const tieneNoches = promos?.nochesCortesia?.activo;
+   532→   532→              const ModoIcon = MODO_OPTIONS.find(o => o.value === modo)?.icon || UsersRound;
+   533→   533→              // Prominent "Desde" price = min positive price, fallback to first range
+   534→   534→              const rangos = t.rangos || [];
+   535→   535→              const preciosPositivos = rangos.map(r => r.precio).filter(p => p > 0);
+   536→   536→              const precioDesde = preciosPositivos.length > 0
+   537→   537→                ? Math.min(...preciosPositivos)
+   538→   538→                : (rangos[0]?.precio || 0);
+   539→   539→              const tienePromo = !!(tieneAcompanante || tieneNinos || tieneNoches);
+   540→   540→              // Decorative icon: Sparkles if any promo active, otherwise the modo icon
+   541→   541→              const CardIcon = tienePromo ? Sparkles : ModoIcon;
+   542→   542→              return (
+   543→   543→                <Card
+   544→   544→                  key={tipo}
+   545→   545→                  className={`card-hover cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border-2 border-[#E2E8F0] hover:border-[#0F2B28]/30 group relative overflow-hidden bg-gradient-to-br ${modoGradient(modo)}`}
+   546→   546→                  onClick={() => openModalTarifa(tipo)}
+   547→   547→                >
+   548→   548→                  {/* Shine overlay — animates in on hover */}
+   549→   549→                  <div
+   550→   550→                    className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+   551→   551→                    aria-hidden="true"
+   552→   552→                  />
+   553→   553→                  <CardContent className="p-5 relative">
+   554→   554→                    {/* Top row: icon circle + title + modo badge */}
+   555→   555→                    <div className="flex items-start justify-between gap-2 mb-3">
+   556→   556→                      <div className="flex items-center gap-3 min-w-0">
+   557→   557→                        <div className={`w-11 h-11 rounded-full flex items-center justify-center shadow-sm shrink-0 ${modoIconCircle(modo)}`}>
+   558→   558→                          <CardIcon className="w-5 h-5" />
+   559→   559→                        </div>
+   560→   560→                        <div className="min-w-0">
+   561→   561→                          <h4 className="font-bold text-base group-hover:text-[#0F2B28] transition-colors truncate">{tipo}</h4>
+   562→   562→                          <p className="text-xs text-muted-foreground">{modoLabel(modo)}</p>
+   563→   563→                        </div>
+   564→   564→                      </div>
+   565→   565→                      <Badge className={modoBadgeColor(modo)}>
+   566→   566→                        <ModoIcon className="w-3 h-3 mr-0.5" />{modoLabel(modo)}
+   567→   567→                      </Badge>
+   568→   568→                    </div>
+   569→   569→
+   570→   570→                    {/* Prominent "Desde" price */}
+   571→   571→                    <div className="mb-3 pb-3 border-b border-[#0F2B28]/10">
+   572→   572→                      <p className="text-[11px] text-muted-foreground mb-0.5 uppercase tracking-wider">Desde</p>
+   573→   573→                      <div className="flex items-baseline gap-1">
+   574→   574→                        <span className="text-3xl font-extrabold text-[#0F2B28] tabular-nums">{formatMoney(precioDesde)}</span>
+   575→   575→                        <span className="text-xs text-muted-foreground">/noche</span>
+   576→   576→                      </div>
+   577→   577→                    </div>
+   578→   578→
+   579→   579→                    {/* Range table — zebra striping, hover, mono labels, bold green prices, left border */}
+   580→   580→                    <div className="space-y-0.5">
+   581→   581→                      {rangos.map((r, i) => (
+   582→   582→                        <div
+   583→   583→                          key={i}
+   584→   584→                          className={`flex justify-between items-center text-sm px-2 py-1.5 rounded-md border-l-2 border-[#0F2B28]/30 transition-colors ${
+   585→   585→                            i % 2 === 1 ? 'bg-[#F0FDF4]/30' : ''
+   586→   586→                          } hover:bg-[#F0FDF4]/60`}
+   587→   587→                        >
+   588→   588→                          <span className="text-muted-foreground font-mono text-xs">
+   589→   589→                            {formatoRango(r)} {modo === 'porHabitacion' ? 'hab.' : modo === 'porCama' ? 'cama' : 'pers.'}
+   590→   590→                          </span>
+   591→   591→                          <span className="font-bold text-[#0F2B28] tabular-nums">
+   592→   592→                            {formatMoney(r.precio)}
+   593→   593→                            {modo === 'porPersona' && <span className="text-xs font-normal text-muted-foreground"> c/u</span>}
+   594→   594→                            {modo === 'porCama' && <span className="text-xs font-normal text-muted-foreground"> c/cama</span>}
+   595→   595→                          </span>
+   596→   596→                        </div>
+   597→   597→                      ))}
+   598→   598→                    </div>
+   599→   599→
+   600→   600→                    {/* Footer: promo badges + campos info */}
+   601→   601→                    {(tieneAcompanante || tieneNinos || tieneNoches || campos > 0) && (
+   602→   602→                      <div className="mt-3 pt-3 border-t border-[#0F2B28]/10 space-y-2">
+   603→   603→                        {(tieneAcompanante || tieneNinos || tieneNoches) && (
+   604→   604→                          <div className="flex gap-1 flex-wrap">
+   605→   605→                            {tieneAcompanante && (
+   606→   606→                              <Badge className="bg-[#DCFCE7] text-[#166534] border-0 shadow-sm">
+   607→   607→                                <Star className="w-3 h-3 mr-0.5" />{promos!.acompananteSinCargo!.etiqueta || 'Acompañante gratis'}
+   608→   608→                              </Badge>
+   609→   609→                            )}
+   610→   610→                            {tieneNinos && (
+   611→   611→                              <Badge className="bg-[#F5F3FF] text-[#6D28D9] border-0 shadow-sm">
+   612→   612→                                Niños {formatMoney(promos!.ninosDiferenciado!.precioNino || 0)}/noche
+   613→   613→                              </Badge>
+   614→   614→                            )}
+   615→   615→                            {tieneNoches && (
+   616→   616→                              <Badge className="bg-[#FEF3C7] text-[#92400E] border-0 shadow-sm">
+   617→   617→                                <Zap className="w-3 h-3 mr-0.5" />Noches cortesía
+   618→   618→                              </Badge>
+   619→   619→                            )}
+   620→   620→                          </div>
+   621→   621→                        )}
+   622→   622→                        {campos > 0 && (
+   623→   623→                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+   624→   624→                            <Info className="w-3 h-3" />{campos} campo(s) personalizado(s)
+   625→   625→                          </p>
+   626→   626→                        )}
+   627→   627→                      </div>
+   628→   628→                    )}
+   629→   629→                  </CardContent>
+   630→   630→                </Card>
+   631→   631→              );
+   632→   632→            })}
+   633→   633→            {tiposTarifa.length === 0 && (
+   634→   634→              <div className="col-span-full">
+   635→   635→                <Card className="border-dashed border-2 bg-gradient-to-br from-[#F8FAFC] to-white">
+   636→   636→                  <CardContent className="p-2">
+   637→   637→                    <EmptyState
+   638→   638→                      variant="generic"
+   639→   639→                      title="No hay tarifas definidas"
+   640→   640→                      description="Creá tu primera tarifa para empezar a configurar precios por noche, modos de cobro y promociones."
+   641→   641→                      action={
+   642→   642→                        <Button onClick={() => openModalTarifa(null)}>
+   643→   643→                          <Plus className="w-4 h-4 mr-1" />Crear primera tarifa
+   644→   644→                        </Button>
+   645→   645→                      }
+   646→   646→                    />
+   647→   647→                  </CardContent>
+   648→   648→                </Card>
+   649→   649→              </div>
+   650→   650→            )}
+   651→   651→          </div>
+   652→   652→
+   653→   653→
+   654→   654→        </TabsContent>
+   655→   655→
+   656→   656→        {/* ==================== TAB: MÉTODOS DE PAGO ==================== */}
+   657→   657→        <TabsContent value="metodos" className="space-y-4">
+   658→   658→          <div className="flex justify-between items-center">
+   659→   659→            <h3 className="text-lg font-semibold">Métodos de Pago</h3>
+   660→   660→            <Button onClick={() => openModalMetodo(null)}><Plus className="w-4 h-4 mr-1" />Agregar Método</Button>
+   661→   661→          </div>
+   662→   662→          <Card>
+   663→   663→            <Table>
+   664→   664→              <TableHeader>
+   665→   665→                <TableRow>
+   666→   666→                  <TableHead>Nombre</TableHead>
+   667→   667→                  <TableHead>Tipo</TableHead>
+   668→   668→                  <TableHead className="hidden sm:table-cell">Recargo</TableHead>
+   669→   669→                  <TableHead className="hidden md:table-cell">Cuotas</TableHead>
+   670→   670→                  <TableHead></TableHead>
+   671→   671→                </TableRow>
+   672→   672→              </TableHeader>
+   673→   673→              <TableBody>
+   674→   674→                {metodosPago.length === 0 ? (
+   675→   675→                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No hay métodos de pago definidos.</TableCell></TableRow>
+   676→   676→                ) : metodosPago.map(m => (
+   677→   677→                  <TableRow key={m.id}>
+   678→   678→                    <TableCell className="font-medium">{m.nombre}</TableCell>
+   679→   679→                    <TableCell><Badge variant="outline">{m.tipo}</Badge></TableCell>
+   680→   680→                    <TableCell className="hidden sm:table-cell">{m.recargo ? <Badge className="bg-[#FEF3C7] text-[#92400E] border-0">Sí</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
+   681→   681→                    <TableCell className="text-xs hidden md:table-cell">
+   682→   682→                      {m.recargo && m.cuotas.length > 0
+   683→   683→                        ? m.cuotas.map(c => `${c.cantidad} ctas (${c.porcentaje}%)`).join(', ')
+   684→   684→                        : '—'}
+   685→   685→                    </TableCell>
+   686→   686→                    <TableCell>
+   687→   687→                      <div className="flex gap-1">
+   688→   688→                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openModalMetodo(m.id)}>
+   689→   689→                          <Pencil className="w-3.5 h-3.5" />
+   690→   690→                        </Button>
+   691→   691→                        {m.id !== 'efectivo' && (
+   692→   692→                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleEliminarMetodo(m.id)}>
+   693→   693→                            <Trash2 className="w-3.5 h-3.5" />
+   694→   694→                          </Button>
+   695→   695→                        )}
+   696→   696→                      </div>
+   697→   697→                    </TableCell>
+   698→   698→                  </TableRow>
+   699→   699→                ))}
+   700→   700→              </TableBody>
+   701→   701→            </Table>
+   702→   702→          </Card>
+   703→   703→        </TabsContent>
+   704→   704→
+   705→   705→        {/* ==================== TAB: CATEGORÍAS DE GASTOS ==================== */}
+   706→   706→        <TabsContent value="categorias" className="space-y-4">
+   707→   707→          <div className="flex justify-between items-center">
+   708→   708→            <h3 className="text-lg font-semibold">Categorías de Gastos</h3>
+   709→   709→            <Button onClick={() => openModalCategoria(null)}><Plus className="w-4 h-4 mr-1" />Agregar Categoría</Button>
+   710→   710→          </div>
+   711→   711→          <Card>
+   712→   712→            <Table>
+   713→   713→              <TableHeader>
+   714→   714→                <TableRow>
+   715→   715→                  <TableHead>Nombre</TableHead>
+   716→   716→                  <TableHead>Gastos asociados</TableHead>
+   717→   717→                  <TableHead></TableHead>
+   718→   718→                </TableRow>
+   719→   719→              </TableHeader>
+   720→   720→              <TableBody>
+   721→   721→                {categoriasGastos.length === 0 ? (
+   722→   722→                  <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No hay categorías definidas.</TableCell></TableRow>
+   723→   723→                ) : categoriasGastos.map(cat => {
+   724→   724→                  const cantidad = gastos.filter(g => g.tipo === cat).length;
+   725→   725→                  return (
+   726→   726→                    <TableRow key={cat}>
+   727→   727→                      <TableCell className="font-medium">{cat}</TableCell>
+   728→   728→                      <TableCell>{cantidad} gasto(s)</TableCell>
+   729→   729→                      <TableCell>
+   730→   730→                        <div className="flex gap-1">
+   731→   731→                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openModalCategoria(cat)}>
+   732→   732→                            <Pencil className="w-3.5 h-3.5" />
+   733→   733→                          </Button>
+   734→   734→                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleEliminarCategoria(cat)}>
+   735→   735→                            <Trash2 className="w-3.5 h-3.5" />
+   736→   736→                          </Button>
+   737→   737→                        </div>
+   738→   738→                      </TableCell>
+   739→   739→                    </TableRow>
+   740→   740→                  );
+   741→   741→                })}
+   742→   742→              </TableBody>
+   743→   743→            </Table>
+   744→   744→          </Card>
+   745→   745→        </TabsContent>
+   746→   746→      </Tabs>
+   747→   747→
+   748→   748→      {/* ==================== MODAL: TARIFA (CREAR/EDITAR) ==================== */}
+   749→   749→      <Dialog open={modalTarifa} onOpenChange={setModalTarifa}>
+   750→   750→        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto p-6">
+   751→   751→          <DialogHeader>
+   752→   752→            <DialogTitle className="text-xl">{editandoTarifa ? `Editar - ${editandoTarifa}` : 'Nueva Tarifa'}</DialogTitle>
+   753→   753→          </DialogHeader>
+   754→   754→          <div className="space-y-6">
+   755→   755→            {/* Nombre centrado arriba */}
+   756→   756→            <div className="space-y-1.5">
+   757→   757→              <Label>Nombre de la tarifa *</Label>
+   758→   758→              <Input value={tarifaForm.nombre} onChange={e => setTarifaForm({ ...tarifaForm, nombre: e.target.value })} placeholder="Ej: Corporativo" />
+   759→   759→            </div>
+   760→   760→
+   761→   761→            {/* Dos columnas: izquierda = modo cobro + rangos, derecha = promociones + campos */}
+   762→   762→            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   763→   763→              {/* ═══ COLUMNA IZQUIERDA: Modo de cobro + Rangos ═══ */}
+   764→   764→              <div className="space-y-4">
+   765→   765→                <div className="space-y-1.5">
+   766→   766→                  <Label>Modo de cobro *</Label>
+   767→   767→                  <div className="grid grid-cols-3 gap-2">
+   768→   768→                    {MODO_OPTIONS.map(opt => {
+   769→   769→                      const Icon = opt.icon;
+   770→   770→                      const selected = tarifaForm.modoCobro === opt.value;
+   771→   771→                      return (
+   772→   772→                        <button
+   773→   773→                          key={opt.value}
+   774→   774→                          type="button"
+   775→   775→                          onClick={() => handleModoCobroChange(opt.value)}
+   776→   776→                          className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all text-center ${
+   777→   777→                            selected
+   778→   778→                              ? 'border-[#0F2B28] bg-[#DCFCE7] text-[#0F2B28]'
+   779→   779→                              : 'border-[#E2E8F0] hover:border-slate-300 text-muted-foreground'
+   780→   780→                          }`}
+   781→   781→                        >
+   782→   782→                          <Icon className="w-5 h-5" />
+   783→   783→                          <span className="text-xs font-semibold">{opt.label}</span>
+   784→   784→                        </button>
+   785→   785→                      );
+   786→   786→                    })}
+   787→   787→                  </div>
+   788→   788→                  <p className="text-[11px] text-muted-foreground">
+   789→   789→                    {MODO_OPTIONS.find(o => o.value === tarifaForm.modoCobro)?.description}
+   790→   790→                  </p>
+   791→   791→                </div>
+   792→   792→
+   793→   793→                <div>
+   794→   794→                  <Label className="text-sm font-medium">
+   795→   795→                    Precios por rango
+   796→   796→                    {tarifaForm.modoCobro === 'porPersona' && <span className="text-muted-foreground font-normal"> (precio por persona)</span>}
+   797→   797→                    {tarifaForm.modoCobro === 'porHabitacion' && <span className="text-muted-foreground font-normal"> (precio por habitación)</span>}
+   798→   798→                    {tarifaForm.modoCobro === 'porCama' && <span className="text-muted-foreground font-normal"> (precio por cama/noche)</span>}
+   799→   799→                  </Label>
+   800→   800→                  <div className="space-y-2 mt-2">
+   801→   801→                    {tarifaForm.rangos.map((r, i) => (
+   802→   802→                      <RangoFila
+   803→   803→                        key={i}
+   804→   804→                        rango={r}
+   805→   805→                        index={i}
+   806→   806→                        modoCobro={tarifaForm.modoCobro}
+   807→   807→                        totalRangos={tarifaForm.rangos.length}
+   808→   808→                        onRemove={() => removeRango(i)}
+   809→   809→                        onUpdate={r => updateRango(i, r)}
+   810→   810→                      />
+   811→   811→                    ))}
+   812→   812→                  </div>
+   813→   813→                  {tarifaForm.modoCobro !== 'porHabitacion' && tarifaForm.modoCobro !== 'porCama' && (
+   814→   814→                    <Button size="sm" variant="outline" className="mt-2" onClick={addRango}>
+   815→   815→                      <Plus className="w-3.5 h-3.5 mr-1" />Agregar rango
+   816→   816→                    </Button>
+   817→   817→                  )}
+   818→   818→                </div>
+   819→   819→              </div>
+   820→   820→
+   821→   821→              {/* ═══ COLUMNA DERECHA: Promociones + Campos ═══ */}
+   822→   822→              <div className="space-y-5 border rounded-xl p-4 bg-muted/20">
+   823→   823→                <h3 className="text-sm font-semibold flex items-center gap-1.5"><Tags className="w-4 h-4" />Promociones</h3>
+   824→   824→
+   825→   825→                {/* 1. Acompañante sin cargo */}
+   826→   826→                <div className="space-y-2">
+   827→   827→                  <div className="flex items-center gap-2">
+   828→   828→                    <Checkbox
+   829→   829→                      id="acompanante-check"
+   830→   830→                      checked={promos?.acompananteSinCargo?.activo || false}
+   831→   831→                      onCheckedChange={v => {
+   832→   832→                        if (v) {
+   833→   833→                          updatePromocion({ acompananteSinCargo: { activo: true, etiqueta: promos?.acompananteSinCargo?.etiqueta || '', cantidad: promos?.acompananteSinCargo?.cantidad || 1, personasHospedan: promos?.acompananteSinCargo?.personasHospedan } });
+   834→   834→                        } else {
+   835→   835→                          updatePromocion({ acompananteSinCargo: undefined });
+   836→   836→                        }
+   837→   837→                      }}
+   838→   838→                    />
+   839→   839→                    <Label htmlFor="acompanante-check" className="text-sm font-medium">Acompañante sin cargo</Label>
+   840→   840→                  </div>
+   841→   841→                  {promos?.acompananteSinCargo?.activo && (
+   842→   842→                    <div className="ml-6 space-y-2 border-l-2 border-[#BBF7D0] pl-3">
+   843→   843→                      <div className="space-y-1.5">
+   844→   844→                        <Label className="text-xs">Etiqueta (nombre del beneficio)</Label>
+   845→   845→                        <Input
+   846→   846→                          placeholder="Ej: Chofer de cortesía, Guía turístico..."
+   847→   847→                          value={promos.acompananteSinCargo.etiqueta || ''}
+   848→   848→                          onChange={e => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, etiqueta: e.target.value } })}
+   849→   849→                          className="h-8 text-sm"
+   850→   850→                        />
+   851→   851→                      </div>
+   852→   852→                      <div className="grid grid-cols-2 gap-2">
+   853→   853→                        <div className="space-y-1.5">
+   854→   854→                          <Label className="text-xs">Cantidad</Label>
+   855→   855→                          <Input
+   856→   856→                            type="number"
+   857→   857→                            min={1}
+   858→   858→                            max={10}
+   859→   859→                            value={promos.acompananteSinCargo.cantidad ?? 1}
+   860→   860→                            onChange={e => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, cantidad: Math.max(1, parseInt(e.target.value) || 1) } })}
+   861→   861→                            className="h-8 text-sm"
+   862→   862→                          />
+   863→   863→                          <p className="text-[10px] text-muted-foreground">Acompañantes sin cargo</p>
+   864→   864→                        </div>
+   865→   865→                        <div className="space-y-1.5">
+   866→   866→                          <Label className="text-xs">Personas que hospedan (opcional)</Label>
+   867→   867→                          <Input
+   868→   868→                            type="number"
+   869→   869→                            min={1}
+   870→   870→                            placeholder="Ej: 4"
+   871→   871→                            value={promos.acompananteSinCargo.personasHospedan ?? ''}
+   872→   872→                            onChange={e => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, personasHospedan: parseInt(e.target.value) || undefined } })}
+   873→   873→                            className="h-8 text-sm"
+   874→   874→                          />
+   875→   875→                          <p className="text-[10px] text-muted-foreground">Valida la búsqueda</p>
+   876→   876→                        </div>
+   877→   877→                      </div>
+   878→   878→                      <div className="flex items-center gap-2">
+   879→   879→                        <Checkbox
+   880→   880→                          id="acom-hab-check"
+   881→   881→                          checked={!!promos!.acompananteSinCargo!.habitacionAsignada}
+   882→   882→                          onCheckedChange={v => updatePromocion({ acompananteSinCargo: { ...promos!.acompananteSinCargo!, habitacionAsignada: v ? (promos!.acompananteSinCargo!.habitacionAsignada || todasHabitaciones[0]?.[0] || '') : undefined } })}
+   883→   883→                        />
+   884→   884→                        <Label htmlFor="acom-hab-check" className="text-xs">Asignar habitación gratis</Label>
+   885→   885→                      </div>
+   886→   886→                      {promos.acompananteSinCargo.habitacionAsignada && (
+   887→   887→                        <Select
+   888→   888→                          value={promos.acompananteSinCargo.habitacionAsignada}
+   889→   889→                          onValueChange={v => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, habitacionAsignada: v } })}
+   890→   890→                        >
+   891→   891→                          <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="-- Seleccione --" /></SelectTrigger>
+   892→   892→                          <SelectContent>
+   893→   893→                            {todasHabitaciones.map(([num, hab]) => (
+   894→   894→                              <SelectItem key={num} value={num}>{num} ({hab.tipo} - {hab.capacidad} pers.)</SelectItem>
+   895→   895→                            ))}
+   896→   896→                          </SelectContent>
+   897→   897→                        </Select>
+   898→   898→                      )}
+   899→   899→                    </div>
+   900→   900→                  )}
+   901→   901→                </div>
+   902→   902→
+   903→   903→                <hr className="border-muted" />
+   904→   904→
+   905→   905→                {/* 2. Niños con precio diferenciado */}
+   906→   906→                <div className="space-y-2">
+   907→   907→                  <div className="flex items-center gap-2">
+   908→   908→                    <Checkbox
+   909→   909→                      id="ninos-check"
+   910→   910→                      checked={promos?.ninosDiferenciado?.activo || false}
+   911→   911→                      onCheckedChange={v => {
+   912→   912→                        if (v) {
+   913→   913→                          updatePromocion({ ninosDiferenciado: { activo: true, precioNino: promos?.ninosDiferenciado?.precioNino || 0 } });
+   914→   914→                        } else {
+   915→   915→                          updatePromocion({ ninosDiferenciado: undefined });
+   916→   916→                        }
+   917→   917→                      }}
+   918→   918→                    />
+   919→   919→                    <Label htmlFor="ninos-check" className="text-sm font-medium">Niños con precio diferenciado</Label>
+   920→   920→                  </div>
+   921→   921→                  {promos?.ninosDiferenciado?.activo && (
+   922→   922→                    <div className="ml-6 space-y-2 border-l-2 border-[#DDD6FE] pl-3">
+   923→   923→                      <div className="grid grid-cols-2 gap-2">
+   924→   924→                        <div className="space-y-1.5">
+   925→   925→                          <Label className="text-xs">Precio por niño / noche</Label>
+   926→   926→                          <Input
+   927→   927→                            type="number"
+   928→   928→                            min={0}
+   929→   929→                            value={promos.ninosDiferenciado.precioNino || 0}
+   930→   930→                            onChange={e => updatePromocion({ ninosDiferenciado: { ...promos.ninosDiferenciado!, precioNino: parseFloat(e.target.value) || 0 } })}
+   931→   931→                            className="h-8 text-sm"
+   932→   932→                          />
+   933→   933→                        </div>
+   934→   934→                        <div className="space-y-1.5">
+   935→   935→                          <Label className="text-xs">Edad máxima (informativo)</Label>
+   936→   936→                          <Input
+   937→   937→                            type="number"
+   938→   938→                            min={0}
+   939→   939→                            placeholder="Ej: 12"
+   940→   940→                            value={promos.ninosDiferenciado.edadMaxima ?? ''}
+   941→   941→                            onChange={e => updatePromocion({ ninosDiferenciado: { ...promos.ninosDiferenciado!, edadMaxima: parseInt(e.target.value) || undefined } })}
+   942→   942→                            className="h-8 text-sm"
+   943→   943→                          />
+   944→   944→                        </div>
+   945→   945→                      </div>
+   946→   946→                    </div>
+   947→   947→                  )}
+   948→   948→                </div>
+   949→   949→
+   950→   950→                <hr className="border-muted" />
+   951→   951→
+   952→   952→                {/* 3. Noches de cortesía */}
+   953→   953→                <div className="space-y-2">
+   954→   954→                  <div className="flex items-center gap-2">
+   955→   955→                    <Checkbox
+   956→   956→                      id="noches-check"
+   957→   957→                      checked={promos?.nochesCortesia?.activo || false}
+   958→   958→                      onCheckedChange={v => {
+   959→   959→                        if (v) {
+   960→   960→                          updatePromocion({ nochesCortesia: { activo: true, modalidad: promos?.nochesCortesia?.modalidad || { tipo: 'cadaX', cada: 3 } } });
+   961→   961→                        } else {
+   962→   962→                          updatePromocion({ nochesCortesia: undefined });
+   963→   963→                        }
+   964→   964→                      }}
+   965→   965→                    />
+   966→   966→                    <Label htmlFor="noches-check" className="text-sm font-medium">Noches de cortesía</Label>
+   967→   967→                  </div>
+   968→   968→                  {promos?.nochesCortesia?.activo && (
+   969→   969→                    <div className="ml-6 space-y-2 border-l-2 border-[#FDE68A] pl-3">
+   970→   970→                      <Select
+   971→   971→                        value={promos.nochesCortesia.modalidad.tipo}
+   972→   972→                        onValueChange={v => {
+   973→   973→                          let mod: ModalidadNochesCortesia;
+   974→   974→                          if (v === 'cadaX') mod = { tipo: 'cadaX', cada: 3 };
+   975→   975→                          else if (v === 'aPartirDe') mod = { tipo: 'aPartirDe', minNoches: 5, nochesGratis: 1 };
+   976→   976→                          else mod = { tipo: 'diaSemana', dia: 3 };
+   977→   977→                          updatePromocion({ nochesCortesia: { ...promos.nochesCortesia!, modalidad: mod } });
+   978→   978→                        }}
+   979→   979→                      >
+   980→   980→                        <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+   981→   981→                        <SelectContent>
+   982→   982→                          <SelectItem value="cadaX">Cada X noches, 1 gratis</SelectItem>
+   983→   983→                          <SelectItem value="aPartirDe">A partir de X noches, Y gratis</SelectItem>
+   984→   984→                          <SelectItem value="diaSemana">Día de la semana gratis</SelectItem>
+   985→   985→                        </SelectContent>
+   986→   986→                      </Select>
+   987→   987→
+   988→   988→                      {promos.nochesCortesia.modalidad.tipo === 'cadaX' && (
+   989→   989→                        <div className="space-y-1.5">
+   990→   990→                          <Label className="text-xs">Cada cuántas noches</Label>
+   991→   991→                          <Input
+   992→   992→                            type="number"
+   993→   993→                            min={2}
+   994→   994→                            value={promos.nochesCortesia.modalidad.cada}
+   995→   995→                            onChange={e => updatePromocion({ nochesCortesia: { ...promos.nochesCortesia!, modalidad: { tipo: 'cadaX', cada: parseInt(e.target.value) || 3 } } })}
+   996→   996→                            className="h-8 text-sm"
+   997→   997→                          />
+   998→   998→                        </div>
+   999→   999→                      )}
+  1000→  1000→
+  1001→  1001→                      {promos.nochesCortesia.modalidad.tipo === 'aPartirDe' && (
+  1002→  1002→                        (() => {
+  1003→  1003→                          const mod = promos.nochesCortesia.modalidad as Extract<ModalidadNochesCortesia, { tipo: 'aPartirDe' }>;
+  1004→  1004→                          return (
+  1005→  1005→                          <div className="grid grid-cols-2 gap-2">
+  1006→  1006→                            <div className="space-y-1.5">
+  1007→  1007→                              <Label className="text-xs">Mínimo de noches</Label>
+  1008→  1008→                              <Input
+  1009→  1009→                                type="number"
+  1010→  1010→                                min={2}
+  1011→  1011→                                value={mod.minNoches}
+  1012→  1012→                                onChange={e => updatePromocion({ nochesCortesia: { ...promos!.nochesCortesia!, modalidad: { tipo: 'aPartirDe', minNoches: parseInt(e.target.value) || 5, nochesGratis: mod.nochesGratis } } })}
+  1013→  1013→                                className="h-8 text-sm"
+  1014→  1014→                              />
+  1015→  1015→                            </div>
+  1016→  1016→                            <div className="space-y-1.5">
+  1017→  1017→                              <Label className="text-xs">Noches gratis</Label>
+  1018→  1018→                              <Input
+  1019→  1019→                                type="number"
+  1020→  1020→                                min={1}
+  1021→  1021→                                value={mod.nochesGratis}
+  1022→  1022→                                onChange={e => updatePromocion({ nochesCortesia: { ...promos!.nochesCortesia!, modalidad: { tipo: 'aPartirDe', minNoches: mod.minNoches, nochesGratis: parseInt(e.target.value) || 1 } } })}
+  1023→  1023→                                className="h-8 text-sm"
+  1024→  1024→                              />
+  1025→  1025→                            </div>
+  1026→  1026→                          </div>
+  1027→  1027→                          );
+  1028→  1028→                        })()
+  1029→  1029→                      )}
+  1030→  1030→
+  1031→  1031→                      {promos.nochesCortesia.modalidad.tipo === 'diaSemana' && (
+  1032→  1032→                        <div className="space-y-1.5">
+  1033→  1033→                          <Label className="text-xs">Día de la semana gratis</Label>
+  1034→  1034→                          <Select
+  1035→  1035→                            value={String(promos.nochesCortesia.modalidad.dia)}
+  1036→  1036→                            onValueChange={v => updatePromocion({ nochesCortesia: { ...promos.nochesCortesia!, modalidad: { tipo: 'diaSemana', dia: parseInt(v) } } })}
+  1037→  1037→                          >
+  1038→  1038→                            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+  1039→  1039→                            <SelectContent>
+  1040→  1040→                              {DIAS_SEMANA.map((dia, i) => (
+  1041→  1041→                                <SelectItem key={i} value={String(i)}>{dia}</SelectItem>
+  1042→  1042→                              ))}
+  1043→  1043→                            </SelectContent>
+  1044→  1044→                          </Select>
+  1045→  1045→                        </div>
+  1046→  1046→                      )}
+  1047→  1047→                    </div>
+  1048→  1048→                  )}
+  1049→  1049→                </div>
+  1050→  1050→
+  1051→  1051→                <hr className="border-muted" />
+  1052→  1052→
+  1053→  1053→                {/* Campos adicionales */}
+  1054→  1054→                <div>
+  1055→  1055→                  <p className="text-sm font-medium mb-2">Campos adicionales</p>
+  1056→  1056→                  <p className="text-xs text-muted-foreground mb-2">Se pedirán al elegir esta tarifa en la reserva.</p>
+  1057→  1057→                  <div className="space-y-2">
+  1058→  1058→                    {tarifaForm.camposPersonalizados.length === 0 && (
+  1059→  1059→                      <p className="text-xs text-muted-foreground">Sin campos definidos.</p>
+  1060→  1060→                    )}
+  1061→  1061→                    {tarifaForm.camposPersonalizados.map((c, i) => (
+  1062→  1062→                      <CampoFila
+  1063→  1063→                        key={i}
+  1064→  1064→                        campo={c}
+  1065→  1065→                        onRemove={() => setTarifaForm({ ...tarifaForm, camposPersonalizados: tarifaForm.camposPersonalizados.filter((_, j) => j !== i) })}
+  1066→  1066→                        onUpdate={nuevo => {
+  1067→  1067→                          const nuevos = [...tarifaForm.camposPersonalizados];
+  1068→  1068→                          nuevos[i] = nuevo;
+  1069→  1069→                          setTarifaForm({ ...tarifaForm, camposPersonalizados: nuevos });
+  1070→  1070→                        }}
+  1071→  1071→                      />
+  1072→  1072→                    ))}
+  1073→  1073→                  </div>
+  1074→  1074→                  <Button size="sm" variant="outline" className="mt-2" onClick={() => setTarifaForm({ ...tarifaForm, camposPersonalizados: [...tarifaForm.camposPersonalizados, { nombre: '', tipo: 'texto', requerido: false }] })}>
+  1075→  1075→                    <Plus className="w-3.5 h-3.5 mr-1" />Agregar campo
+  1076→  1076→                  </Button>
+  1077→  1077→                </div>
+  1078→  1078→              </div>
+  1079→  1079→            </div>
+  1080→  1080→          </div>
+  1081→  1081→          <DialogFooter className="flex flex-wrap justify-between sm:justify-between gap-2">
+  1082→  1082→            {editandoTarifa ? (
+  1083→  1083→              <Button variant="destructive" onClick={() => handleEliminarTarifa(editandoTarifa)}>
+  1084→  1084→                <Trash2 className="w-4 h-4 mr-1" />Eliminar tarifa
+  1085→  1085→              </Button>
+  1086→  1086→            ) : <span />}
+  1087→  1087→            <div className="flex gap-2">
+  1088→  1088→              <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+  1089→  1089→              <Button onClick={handleGuardarTarifa}>{editandoTarifa ? 'Guardar Cambios' : 'Crear Tarifa'}</Button>
+  1090→  1090→            </div>
+  1091→  1091→          </DialogFooter>
+  1092→  1092→        </DialogContent>
+  1093→  1093→      </Dialog>
+  1094→  1094→
+  1095→  1095→
+  1096→  1096→
+  1097→  1097→      {/* ==================== MODAL: MÉTODO DE PAGO ==================== */}
+  1098→  1098→      <Dialog open={modalMetodo} onOpenChange={setModalMetodo}>
+  1099→  1099→        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+  1100→  1100→          <DialogHeader>
+  1101→  1101→            <DialogTitle>{editandoMetodo ? 'Editar Método de Pago' : 'Nuevo Método de Pago'}</DialogTitle>
+  1102→  1102→          </DialogHeader>
+  1103→  1103→          <div className="space-y-4">
+  1104→  1104→            <div className="space-y-1.5">
+  1105→  1105→              <Label>Nombre *</Label>
+  1106→  1106→              <Input value={metForm.nombre} onChange={e => setMetForm({ ...metForm, nombre: e.target.value })} placeholder="Ej: Mercado Pago" />
+  1107→  1107→            </div>
+  1108→  1108→            <div className="space-y-1.5">
+  1109→  1109→              <Label>Tipo</Label>
+  1110→  1110→              <Select value={metForm.tipo} onValueChange={v => setMetForm({ ...metForm, tipo: v as 'efectivo' | 'tarjeta' | 'transferencia' | 'otro' })}>
+  1111→  1111→                <SelectTrigger><SelectValue /></SelectTrigger>
+  1112→  1112→                <SelectContent>
+  1113→  1113→                  <SelectItem value="efectivo">Efectivo</SelectItem>
+  1114→  1114→                  <SelectItem value="tarjeta">Tarjeta</SelectItem>
+  1115→  1115→                  <SelectItem value="transferencia">Transferencia</SelectItem>
+  1116→  1116→                  <SelectItem value="otro">Otro</SelectItem>
+  1117→  1117→                </SelectContent>
+  1118→  1118→              </Select>
+  1119→  1119→            </div>
+  1120→  1120→            <div className="flex items-center gap-2">
+  1121→  1121→              <Checkbox id="met-recargo" checked={metForm.recargo} onCheckedChange={v => setMetForm({ ...metForm, recargo: !!v, cuotas: !v ? [] : metForm.cuotas })} />
+  1122→  1122→              <Label htmlFor="met-recargo">Permite recargo (cuotas)</Label>
+  1123→  1123→            </div>
+  1124→  1124→
+  1125→  1125→            {metForm.recargo && (
+  1126→  1126→              <div className="space-y-2">
+  1127→  1127→                <Label>Cuotas</Label>
+  1128→  1128→                {metForm.cuotas.length === 0 && <p className="text-xs text-muted-foreground">Sin cuotas definidas.</p>}
+  1129→  1129→                <div className="space-y-2">
+  1130→  1130→                  {metForm.cuotas.map((c, i) => (
+  1131→  1131→                    <CuotaFila
+  1132→  1132→                      key={i}
+  1133→  1133→                      cuota={c}
+  1134→  1134→                      onRemove={() => setMetForm({ ...metForm, cuotas: metForm.cuotas.filter((_, j) => j !== i) })}
+  1135→  1135→                      onUpdate={nuevo => {
+  1136→  1136→                        const nuevos = [...metForm.cuotas];
+  1137→  1137→                        nuevos[i] = nuevo;
+  1138→  1138→                        setMetForm({ ...metForm, cuotas: nuevos });
+  1139→  1139→                      }}
+  1140→  1140→                    />
+  1141→  1141→                  ))}
+  1142→  1142→                </div>
+  1143→  1143→                <Button size="sm" variant="outline" onClick={() => setMetForm({ ...metForm, cuotas: [...metForm.cuotas, { cantidad: 1, porcentaje: 0 }] })}>
+  1144→  1144→                  <Plus className="w-3.5 h-3.5 mr-1" />Agregar cuota
+  1145→  1145→                </Button>
+  1146→  1146→              </div>
+  1147→  1147→            )}
+  1148→  1148→          </div>
+  1149→  1149→          <DialogFooter>
+  1150→  1150→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+  1151→  1151→            <Button onClick={handleGuardarMetodo}>Guardar</Button>
+  1152→  1152→          </DialogFooter>
+  1153→  1153→        </DialogContent>
+  1154→  1154→      </Dialog>
+  1155→  1155→
+  1156→  1156→      {/* ==================== MODAL: CATEGORÍA DE GASTO ==================== */}
+  1157→  1157→      <Dialog open={modalCategoria} onOpenChange={setModalCategoria}>
+  1158→  1158→        <DialogContent className="sm:max-w-md">
+  1159→  1159→          <DialogHeader>
+  1160→  1160→            <DialogTitle>{editandoCat ? 'Editar Categoría' : 'Nueva Categoría'}</DialogTitle>
+  1161→  1161→          </DialogHeader>
+  1162→  1162→          <div className="space-y-3">
+  1163→  1163→            <div className="space-y-1.5">
+  1164→  1164→              <Label>Nombre de la categoría *</Label>
+  1165→  1165→              <Input value={catForm} onChange={e => setCatForm(e.target.value)} placeholder="Ej: Proveedores" />
+  1166→  1166→            </div>
+  1167→  1167→          </div>
+  1168→  1168→          <DialogFooter>
+  1169→  1169→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+  1170→  1170→            <Button onClick={handleGuardarCategoria}>Guardar</Button>
+  1171→  1171→          </DialogFooter>
+  1172→  1172→        </DialogContent>
+  1173→  1173→      </Dialog>
+  1174→  1174→
+  1175→  1175→      {/* ==================== DIALOG: CONFIRMACIÓN ==================== */}
+  1176→  1176→      <Dialog open={confirmDialog.open} onOpenChange={v => setConfirmDialog({ ...confirmDialog, open: v })}>
+  1177→  1177→        <DialogContent className="sm:max-w-md">
+  1178→  1178→          <DialogHeader>
+  1179→  1179→            <DialogTitle>{confirmDialog.titulo}</DialogTitle>
+  1180→  1180→          </DialogHeader>
+  1181→  1181→          <p className="text-sm text-muted-foreground">{confirmDialog.msg}</p>
+  1182→  1182→          <DialogFooter>
+  1183→  1183→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+  1184→  1184→            <Button variant="destructive" onClick={confirmDialog.onConfirm}>Eliminar</Button>
+  1185→  1185→          </DialogFooter>
+  1186→  1186→        </DialogContent>
+  1187→  1187→      </Dialog>
+  1188→  1188→    </div>
+  1189→  1189→  );
+  1190→  1190→}
+  1191→  1191→

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
-import type { EstadoTareaLimpieza } from '@prisma/client';
+
+type EstadoTareaLimpieza = 'pendiente' | 'en_progreso' | 'completada';
 
 // GET /api/limpieza — Listar tareas de limpieza
 export async function GET(req: NextRequest) {

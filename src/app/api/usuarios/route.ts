@@ -3,8 +3,9 @@ import { db } from '@/lib/db';
 import { requireOwner, requirePermission, AuthError } from '@/lib/auth/utils';
 import { ensureMigrations } from '@/lib/auto-migrate';
 import bcrypt from 'bcryptjs';
-import type { RolTenant } from '@prisma/client';
 import { validatePassword, rateLimit, checkBodySize } from '@/lib/validation';
+
+type RolTenant = 'owner' | 'admin' | 'recepcion' | 'limpieza';
 
 const VALID_ROLES: RolTenant[] = ['owner', 'admin', 'recepcion', 'limpieza'];
 

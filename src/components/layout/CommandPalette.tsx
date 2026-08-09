@@ -121,7 +121,7 @@ export default function CommandPalette() {
       icon: m.icon,
       group: 'Módulos',
       locked: !efectivosSet.has(m.id),
-      keywords: [m.label, m.grupo, m.id],
+      keywords: [m.label, m.grupo, m.id].filter((x): x is string => Boolean(x)),
       onSelect: () => {
         addRecent(m.id, m.label, m.icon, 'Módulos');
         recentVersionRef.current++;
