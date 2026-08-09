@@ -1,0 +1,1050 @@
+     1→'use client';
+     2→
+     3→import { useHotelStore } from '@/lib/store';
+     4→import { formatMoney, todayLocal } from '@/lib/format';
+     5→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     6→import { Button } from '@/components/ui/button';
+     7→import { Badge } from '@/components/ui/badge';
+     8→import {
+     9→  Bed, LogIn, LogOut, SprayCan, Wrench,
+    10→  CalendarCheck, BarChart3,
+    11→  Bell, CheckCircle, LockOpen, ChevronLeft, ChevronRight,
+    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+    13→  History,
+    14→} from 'lucide-react';
+    15→import { cn } from '@/lib/utils';
+    16→import ModuleHeader from '@/components/layout/ModuleHeader';
+    17→import { useMemo, useState, useCallback, useRef, useEffect, type ComponentType } from 'react';
+    18→import { createPortal } from 'react-dom';
+    19→import { AnimatedNumber } from '@/components/ui/animated-number';
+    20→
+    21→// ==================== HELPERS ====================
+    22→
+    23→const DIAS_GANTT = 14;
+    24→const ROW_H = 46;
+    25→const BAR_H = 26;
+    26→const BAR_TOP = (ROW_H - BAR_H) / 2;
+    27→const COL_PCT = 100 / DIAS_GANTT;
+    28→const MITAD_COL_PCT = COL_PCT / 2;
+    29→const NOMBRES_DIAS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
+    30→
+    31→// formatMoney and todayLocal imported from @/lib/format
+    32→
+    33→/** Convert a Date to YYYY-MM-DD in local timezone */
+    34→const toLocalDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    35→
+    36→function formatearFecha(fechaStr: string): string {
+    37→  if (!fechaStr) return '';
+    38→  const d = new Date(fechaStr + 'T12:00:00');
+    39→  return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+    40→}
+    41→
+    42→// ==================== ANIMATED KPI ====================
+    43→
+    44→function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, trend, numericValue, suffix }: {
+    45→  icon: ComponentType<{ className?: string }>;
+    46→  label: string;
+    47→  value: string;
+    48→  sub?: string;
+    49→  color: string;
+    50→  bgGradient?: string;
+    51→  trend?: { value: number; label: string };
+    52→  numericValue?: number;
+    53→  suffix?: string;
+    54→}) {
+    55→  const trendUp = trend && trend.value > 0;
+    56→  const trendDown = trend && trend.value < 0;
+    57→  const trendIcon = trendUp ? '\u2191' : trendDown ? '\u2193' : '';
+    58→  const trendColor = trendUp ? 'text-[#4ADE80]' : trendDown ? 'text-[#EF4444]' : 'text-muted-foreground';
+    59→
+    60→  return (
+    61→    <Card className={`overflow-hidden group hover:shadow-md transition-shadow duration-200 !py-0 !gap-0 ${bgGradient || 'bg-gradient-to-br from-slate-50 to-slate-100'}`}>
+    62→      <CardContent className="p-4">
+    63→        <div className="flex items-start justify-between">
+    64→          <div className="min-w-0 flex-1">
+    65→            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
+    66→            <p className="text-2xl font-extrabold mt-1 text-[#0F172A]">
+    67→              {numericValue !== undefined ? (
+    68→                <><AnimatedNumber value={numericValue} duration={600} format={suffix === '%' ? (n: number) => `${Math.round(n)}%` : (n: number) => String(Math.round(n))} className="text-2xl font-extrabold text-[#0F172A]" /></>
+    69→              ) : value}
+    70→            </p>
+    71→            {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+    72→          </div>
+    73→          <div className="p-2.5 rounded-xl bg-white/70 group-hover:scale-110 transition-transform duration-200">
+    74→            <Icon className={`w-5 h-5 ${color}`} />
+    75→          </div>
+    76→        </div>
+    77→        {trend && (
+    78→          <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${trendColor}`}>
+    79→            <span>{trendIcon}</span>
+    80→            <span>{Math.abs(trend.value)}%</span>
+    81→            <span className="text-muted-foreground font-normal">{trend.label}</span>
+    82→          </div>
+    83→        )}
+    84→      </CardContent>
+    85→    </Card>
+    86→  );
+    87→}
+    88→
+    89→// ==================== WEATHER ICON ====================
+    90→
+    91→function WeatherIcon({ code }: { code: number }) {
+    92→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+    93→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+    94→  if (code >= 45 && code <= 48) return <CloudFog className="w-5 h-5 text-[#94A3B8]" />;
+    95→  if (code >= 51 && code <= 55) return <CloudDrizzle className="w-5 h-5 text-[#3B82F6]" />;
+    96→  if (code >= 56 && code <= 57) return <CloudDrizzle className="w-5 h-5 text-[#3B82F6]" />;
+    97→  if (code >= 61 && code <= 67) return <CloudRain className="w-5 h-5 text-[#3B82F6]" />;
+    98→  if (code >= 71 && code <= 77) return <CloudSnow className="w-5 h-5 text-[#3B82F6]" />;
+    99→  if (code >= 80 && code <= 82) return <CloudLightning className="w-5 h-5 text-[#92400E]" />;
+   100→  if (code >= 95) return <CloudLightning className="w-5 h-5 text-[#5B21B6]" />;
+   101→  return <Thermometer className="w-5 h-5 text-[#94A3B8]" />;
+   102→}
+   103→
+   104→// ==================== LIVE CLOCK + WEATHER ====================
+   105→
+   106→function LiveClockWeather() {
+   107→  const [time, setTime] = useState('');
+   108→  const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null);
+   109→
+   110→  useEffect(() => {
+   111→    const update = () => {
+   112→      setTime(new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+   113→    };
+   114→    update();
+   115→    const id = setInterval(update, 1000);
+   116→    return () => clearInterval(id);
+   117→  }, []);
+   118→
+   119→  // TODO: Hacer coordenadas configurables desde la configuración del hotel
+   120→  useEffect(() => {
+   121→    const fetchWeather = async () => {
+   122→      try {
+   123→        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-27.65&longitude=-67.03&current_weather=true&timezone=America/Argentina/Catamarca');
+   124→        if (!res.ok) return;
+   125→        const data = await res.json();
+   126→        setWeather({ temp: data.current_weather.temperature, code: data.current_weather.weathercode });
+   127→      } catch { /* ignore */ }
+   128→    };
+   129→    fetchWeather();
+   130→    const id = setInterval(fetchWeather, 30 * 60 * 1000);
+   131→    return () => clearInterval(id);
+   132→  }, []);
+   133→
+   134→  return (
+   135→    <div className="flex items-center gap-4">
+   136→      {weather && (
+   137→        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+   138→          <WeatherIcon code={weather.code} />
+   139→          <span className="font-semibold">{weather.temp}°C</span>
+   140→        </div>
+   141→      )}
+   142→      <div className="font-mono text-lg font-semibold tabular-nums tracking-wide text-[#334155]">
+   143→        {time}
+   144→      </div>
+   145→    </div>
+   146→  );
+   147→}
+   148→
+   149→// ==================== POPOVER COMPONENT (enhanced) ====================
+   150→
+   151→interface PopoverData {
+   152→  estado: string;
+   153→  habitacion: string;
+   154→  huesped: string;
+   155→  checkin: string;
+   156→  checkout: string;
+   157→  problema?: string;
+   158→  tarifa?: string;
+   159→  monto?: number;
+   160→  estadoPago?: string;
+   161→  ninos?: number;
+   162→}
+   163→
+   164→function GanttPopover({ data, position, onClose }: {
+   165→  data: PopoverData | null;
+   166→  position: { top: number; left: number };
+   167→  onClose: () => void;
+   168→}) {
+   169→  const ref = useRef<HTMLDivElement>(null);
+   170→
+   171→  useEffect(() => {
+   172→    function handleClick(e: MouseEvent) {
+   173→      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+   174→    }
+   175→    if (data) document.addEventListener('mousedown', handleClick);
+   176→    return () => document.removeEventListener('mousedown', handleClick);
+   177→  }, [data, onClose]);
+   178→
+   179→  if (!data) return null;
+   180→
+   181→  const iconoMap: Record<string, React.ReactNode> = {
+   182→    Reservada: <CalendarCheck className="w-3.5 h-3.5 text-[#3B82F6]" />,
+   183→    Ocupada: <Bed className="w-3.5 h-3.5 text-[#EF4444]" />,
+   184→    Limpieza: <SprayCan className="w-3.5 h-3.5 text-[#F59E0B]" />,
+   185→    Mantenimiento: <Wrench className="w-3.5 h-3.5 text-[#94A3B8]" />,
+   186→  };
+   187→  const icono = iconoMap[data.estado] || <CheckCircle className="w-3.5 h-3.5 text-[#4ADE80]" />;
+   188→
+   189→  const estadoColors: Record<string, string> = {
+   190→    Reservada: 'bg-[#DBEAFE] text-[#1E40AF]',
+   191→    Ocupada: 'bg-[#DCFCE7] text-[#166534]',
+   192→    Limpieza: 'bg-[#FEF3C7] text-[#92400E]',
+   193→    Mantenimiento: 'bg-[#F8FAFC] text-[#64748B]',
+   194→  };
+   195→
+   196→  return createPortal(
+   197→    <div
+   198→      ref={ref}
+   199→      className="fixed z-[9999] bg-white border-2 border-[#E2E8F0] rounded-xl p-3.5 shadow-2xl min-w-[220px] max-w-[280px] text-sm animate-in fade-in-0 zoom-in-95 duration-150"
+   200→      style={{ top: position.top, left: Math.max(position.left, 10) }}
+   201→    >
+   202→      <div className="flex items-center gap-2 mb-2">
+   203→        {icono}
+   204→        <span className="font-bold">Hab. {data.habitacion}</span>
+   205→        <span className={`ml-auto text-[11px] px-1.5 py-0.5 rounded font-medium ${estadoColors[data.estado] || 'bg-[#F1F5F9] text-[#64748B]'}`}>
+   206→          {data.estado}
+   207→        </span>
+   208→      </div>
+   209→
+   210→      {data.huesped && data.estado !== 'Disponible' && data.estado !== 'Limpieza' && (
+   211→        <div className="font-semibold text-[13px] mb-1.5">{data.huesped}</div>
+   212→      )}
+   213→
+   214→      {data.checkin && data.checkout && (
+   215→        <div className="flex gap-3 text-[11px] text-[#64748B] mb-2">
+   216→          <span className="flex items-center gap-1">
+   217→            <LogIn className="w-3 h-3 text-[#0EA5E9]" />
+   218→            {formatearFecha(data.checkin)} 14:00
+   219→          </span>
+   220→          <span>→</span>
+   221→          <span className="flex items-center gap-1">
+   222→            <LogOut className="w-3 h-3 text-[#F43F5E]" />
+   223→            {formatearFecha(data.checkout)} 09:00
+   224→          </span>
+   225→        </div>
+   226→      )}
+   227→
+   228→      {/* Extra info: tarifa, monto, estado pago */}
+   229→      {(data.tarifa || data.monto !== undefined || data.estadoPago) && (
+   230→        <div className="border-t border-slate-100 pt-1.5 mt-1 space-y-0.5">
+   231→          {data.tarifa && (
+   232→            <div className="flex justify-between text-[11px]">
+   233→              <span className="text-[#94A3B8]">Tarifa</span>
+   234→              <span className="font-medium capitalize">{data.tarifa}</span>
+   235→            </div>
+   236→          )}
+   237→          {data.monto !== undefined && data.monto > 0 && (
+   238→            <div className="flex justify-between text-[11px]">
+   239→              <span className="text-[#94A3B8]">Total</span>
+   240→              <span className="font-bold text-[#166534]">{formatMoney(data.monto)}</span>
+   241→            </div>
+   242→          )}
+   243→          {data.estadoPago && (
+   244→            <div className="flex justify-between text-[11px]">
+   245→              <span className="text-[#94A3B8]">Pago</span>
+   246→              <span className={`font-medium ${data.estadoPago === 'Pagado' ? 'text-[#166534]' : data.estadoPago === 'Parcial' ? 'text-[#EA580C]' : 'text-[#EF4444]'}`}>
+   247→                {data.estadoPago}
+   248→              </span>
+   249→            </div>
+   250→          )}
+   251→          {data.ninos && data.ninos > 0 && (
+   252→            <div className="flex justify-between text-[11px]">
+   253→              <span className="text-[#94A3B8]">Menores</span>
+   254→              <span className="font-medium text-[#7C3AED]">{data.ninos} niño{data.ninos > 1 ? 's' : ''}</span>
+   255→            </div>
+   256→          )}
+   257→        </div>
+   258→      )}
+   259→
+   260→      {data.estado === 'Limpieza' && (
+   261→        <p className="text-[#92400E] text-xs flex items-center gap-1 mt-1"><SprayCan className="w-3 h-3" /> Pendiente de limpieza</p>
+   262→      )}
+   263→      {data.estado === 'Mantenimiento' && (
+   264→        <p className="text-[#64748B] text-xs flex items-center gap-1 mt-1"><Wrench className="w-3 h-3" /> {data.problema || 'En mantenimiento'}</p>
+   265→      )}
+   266→      {data.estado === 'Disponible' && (
+   267→        <p className="text-[#166534] text-xs flex items-center gap-1 mt-1"><CheckCircle className="w-3 h-3" /> Disponible</p>
+   268→      )}
+   269→    </div>,
+   270→    document.body
+   271→  );
+   272→}
+   273→
+   274→// ==================== TOOLTIP ====================
+   275→
+   276→function Tooltip({ children, text }: { children: React.ReactNode; text: string }) {
+   277→  const [show, setShow] = useState(false);
+   278→  return (
+   279→    <div className="relative" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+   280→      {children}
+   281→      {show && (
+   282→        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-[#1E293B] text-white text-[11px] rounded-lg whitespace-nowrap z-50 shadow-lg pointer-events-none animate-in fade-in-0 zoom-in-95 duration-100">
+   283→          {text}
+   284→          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1E293B]" />
+   285→        </div>
+   286→      )}
+   287→    </div>
+   288→  );
+   289→}
+   290→
+   291→// ==================== GRAFICO INGRESOS VS EGRESOS (con tooltips y animación) ====================
+   292→
+   293→function GraficoIngresosEgresos({ pagos, gastos }: { pagos: { fecha: string; monto: number }[]; gastos: { fecha: string; monto: number }[] }) {
+   294→  const [mounted, setMounted] = useState(false);
+   295→  useEffect(() => { const t = setTimeout(() => setMounted(true), 50); return () => clearTimeout(t); }, []);
+   296→
+   297→  const datos = useMemo(() => {
+   298→    const hoy = new Date();
+   299→    const dias: string[] = [];
+   300→    for (let i = 6; i >= 0; i--) {
+   301→      const d = new Date(hoy);
+   302→      d.setDate(d.getDate() - i);
+   303→      dias.push(toLocalDateStr(d));
+   304→    }
+   305→    return dias.map(dia => {
+   306→      const ing = pagos.filter(p => p.fecha === dia).reduce((s, p) => s + p.monto, 0);
+   307→      const egr = gastos.filter(g => g.fecha === dia).reduce((s, g) => s + g.monto, 0);
+   308→      const d = new Date(dia + 'T12:00:00');
+   309→      return { dia: d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' }).replace(/^\w/, c => c.toUpperCase()), ing, egr, fullDate: formatearFecha(dia) };
+   310→    });
+   311→  }, [pagos, gastos]);
+   312→
+   313→  const maxVal = Math.max(...datos.map(d => Math.max(d.ing, d.egr)), 1);
+   314→
+   315→  return (
+   316→    <Card>
+   317→      <CardHeader className="pb-3">
+   318→        <CardTitle className="text-base flex items-center gap-2">
+   319→          <BarChart3 className="w-4 h-4 text-[#3B82F6]" />
+   320→          Ingresos vs Egresos (7 días)
+   321→        </CardTitle>
+   322→      </CardHeader>
+   323→      <CardContent>
+   324→        <div className="flex items-end gap-2" style={{ height: 160 }}>
+   325→          {datos.map((d, i) => (
+   326→            <div key={i} className="flex-1 flex flex-col items-center h-full">
+   327→              <Tooltip text={`Ingresos: ${formatMoney(d.ing)}`}>
+   328→                <div
+   329→                  className="w-5 rounded-t-md transition-all duration-700 ease-out hover:opacity-80 cursor-default"
+   330→                  style={{
+   331→                    height: mounted ? `${(d.ing / maxVal) * 100}%` : '0%',
+   332→                    background: 'linear-gradient(to top, #059669, #34d399)',
+   333→                    boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
+   334→                    transitionDelay: `${i * 80}ms`,
+   335→                  }}
+   336→                />
+   337→              </Tooltip>
+   338→              <Tooltip text={`Egresos: ${formatMoney(d.egr)}`}>
+   339→                <div
+   340→                  className="w-5 rounded-t-md transition-all duration-700 ease-out hover:opacity-80 cursor-default mt-0.5"
+   341→                  style={{
+   342→                    height: mounted ? `${(d.egr / maxVal) * 100}%` : '0%',
+   343→                    background: 'linear-gradient(to top, #dc2626, #fca5a5)',
+   344→                    boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
+   345→                    transitionDelay: `${i * 80 + 40}ms`,
+   346→                  }}
+   347→                />
+   348→              </Tooltip>
+   349→              <span className="text-[9px] text-muted-foreground mt-1.5 font-medium">{d.dia.slice(0, 3)}</span>
+   350→            </div>
+   351→          ))}
+   352→        </div>
+   353→        <div className="flex justify-end gap-4 mt-3">
+   354→          <span className="text-xs text-[#166534] flex items-center gap-1.5 font-medium">
+   355→            <span className="inline-block w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(to top, #059669, #34d399)' }} />
+   356→            Ingresos
+   357→          </span>
+   358→          <span className="text-xs text-[#991B1B] flex items-center gap-1.5 font-medium">
+   359→            <span className="inline-block w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(to top, #dc2626, #fca5a5)' }} />
+   360→            Egresos
+   361→          </span>
+   362→        </div>
+   363→      </CardContent>
+   364→    </Card>
+   365→  );
+   366→}
+   367→
+   368→// ==================== CALENDARIO GANTT (con navegación y popover mejorado) ====================
+   369→
+   370→interface GanttReserva {
+   371→  tipo: string;
+   372→  checkin: string;
+   373→  checkout: string;
+   374→  huesped: string;
+   375→  horaCheckin: Date;
+   376→  horaCheckout: Date;
+   377→  tarifa?: string;
+   378→  monto?: number;
+   379→  estadoPago?: string;
+   380→  ninos?: number;
+   381→}
+   382→
+   383→function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
+   384→  habitaciones: Record<string, { tipo: string; estado: string; problema?: string }>;
+   385→  reservas: { habitacion: string; estado: string; checkin: string; checkout: string; huesped: string; horaCheckin?: string; horaCheckout?: string; tipoTarifa?: string; total?: number; estadoPago?: string; ninos?: number }[];
+   386→  fechaInicioBase: Date;
+   387→}) {
+   388→  const [offset, setOffset] = useState(0);
+   389→  const [mostrarHistorial, setMostrarHistorial] = useState(false);
+   390→  const [popoverData, setPopoverData] = useState<PopoverData | null>(null);
+   391→  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
+   392→
+   393→  const fechaInicio = useMemo(() => {
+   394→    const d = new Date(fechaInicioBase);
+   395→    d.setDate(d.getDate() + offset * DIAS_GANTT);
+   396→    return d;
+   397→  }, [fechaInicioBase, offset]);
+   398→
+   399→  const columnas = useMemo(() => {
+   400→    const cols: string[] = [];
+   401→    for (let i = 0; i < DIAS_GANTT; i++) {
+   402→      const f = new Date(fechaInicio);
+   403→      f.setDate(f.getDate() + i);
+   404→      cols.push(toLocalDateStr(f));
+   405→    }
+   406→    return cols;
+   407→  }, [fechaInicio]);
+   408→
+   409→  const colIdx = useMemo(() => {
+   410→    const idx: Record<string, number> = {};
+   411→    columnas.forEach((c, i) => idx[c] = i);
+   412→    return idx;
+   413→  }, [columnas]);
+   414→
+   415→  const hoyStr = todayLocal();
+   416→
+   417→  const handleBarClick = useCallback((e: React.MouseEvent, res: GanttReserva, num: string) => {
+   418→    e.stopPropagation();
+   419→    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+   420→    let left = rect.left;
+   421→    if (left + 280 > window.innerWidth) left = window.innerWidth - 290;
+   422→    setPopoverPos({ top: rect.bottom + 6, left: Math.max(left, 10) });
+   423→    setPopoverData({
+   424→      estado: res.tipo,
+   425→      habitacion: num,
+   426→      huesped: res.huesped,
+   427→      checkin: res.checkin,
+   428→      checkout: res.checkout,
+   429→      problema: res.tipo === 'Mantenimiento' ? res.huesped : undefined,
+   430→      tarifa: res.tarifa,
+   431→      monto: res.monto,
+   432→      estadoPago: res.estadoPago,
+   433→      ninos: res.ninos,
+   434→    });
+   435→  }, []);
+   436→
+   437→  const rows = useMemo(() => {
+   438→    const habNumbers = Object.keys(habitaciones).sort((a, b) => parseInt(a) - parseInt(b));
+   439→    const result: React.ReactNode[] = [];
+   440→
+   441→    habNumbers.forEach((num, rowIndex) => {
+   442→      const hab = habitaciones[num];
+   443→      const reservasHab: GanttReserva[] = [];
+   444→
+   445→      reservas.forEach(r => {
+   446→        if (r.habitacion !== num || r.estado === 'Cancelada') return;
+   447→        if (r.checkin > columnas[DIAS_GANTT - 1] || r.checkout < columnas[0]) return;
+   448→
+   449→        // Usar tanto el formato del store como el de la BD para comparar
+   450→        const esCheckout = r.estado === 'Checkout_realizado' || r.estado === 'Check-Out realizado';
+   451→        const esCheckin = r.estado === 'CheckIn_realizado' || r.estado === 'Check-In realizado';
+   452→
+   453→        const esHistorica = esCheckout && !mostrarHistorial;
+   454→        if (esHistorica) return;
+   455→
+   456→        const horaCheckin = r.horaCheckin ? new Date(r.horaCheckin) : new Date(r.checkin + 'T14:00:00');
+   457→        const horaCheckout = r.horaCheckout ? new Date(r.horaCheckout) : new Date(r.checkout + 'T09:00:00');
+   458→
+   459→        let estado: string;
+   460→        if (esCheckout) {
+   461→          estado = 'Finalizada';
+   462→        } else if (esCheckin) {
+   463→          estado = 'Ocupada';
+   464→        } else {
+   465→          estado = 'Reservada';
+   466→        }
+   467→        reservasHab.push({
+   468→          tipo: estado, checkin: r.checkin, checkout: r.checkout, huesped: r.huesped,
+   469→          horaCheckin, horaCheckout, tarifa: r.tipoTarifa, monto: r.total, estadoPago: r.estadoPago, ninos: r.ninos,
+   470→        });
+   471→      });
+   472→
+   473→      if (hab.estado === 'Limpieza' && columnas.includes(hoyStr)) {
+   474→        reservasHab.push({ tipo: 'Limpieza', checkin: hoyStr, checkout: hoyStr, huesped: 'Limpieza', horaCheckin: new Date(hoyStr + 'T00:00:00'), horaCheckout: new Date(hoyStr + 'T23:59:59') });
+   475→      }
+   476→
+   477→      if (hab.estado === 'Mantenimiento') {
+   478→        reservasHab.push({ tipo: 'Mantenimiento', checkin: columnas[0], checkout: columnas[DIAS_GANTT - 1], huesped: hab.problema || 'Mantenimiento', horaCheckin: new Date(columnas[0] + 'T00:00:00'), horaCheckout: new Date(columnas[DIAS_GANTT - 1] + 'T23:59:59') });
+   479→      }
+   480→
+   481→      // Habitaciones compartidas: carriles múltiples
+   482→      if (hab.tipo === 'Compartida' && reservasHab.length > 0) {
+   483→        const reservasActivas = reservasHab.filter(r => r.tipo !== 'Limpieza' && r.tipo !== 'Mantenimiento');
+   484→        const numCarriles = reservasActivas.length || 1;
+   485→        const FILA_H = Math.max(ROW_H, numCarriles * (BAR_H + 4) + 8);
+   486→
+   487→        const bgCells = columnas.map((col, ci) => {
+   488→          const d = new Date(col + 'T12:00:00');
+   489→          const esFS = d.getDay() === 0 || d.getDay() === 6;
+   490→          const isHoy = col === hoyStr;
+   491→          return <div key={ci} className={`flex-1 h-full border-l-2 border-[#E2E8F0] box-border ${esFS ? 'bg-[#FEE2E2]/40' : ''} ${isHoy ? 'bg-[#DBEAFE]/30' : ''}`} style={{ height: FILA_H }} />;
+   492→        });
+   493→
+   494→        const barras = reservasActivas.map((res, idx) => {
+   495→          const carrilTop = 4 + idx * (BAR_H + 4);
+   496→          const barData = calcularBarra(res, colIdx, columnas, DIAS_GANTT);
+   497→          if (!barData) return null;
+   498→          return (
+   499→            <div
+   500→              key={idx}
+   501→              className={`absolute rounded-md flex items-center px-2.5 cursor-pointer overflow-hidden transition-all duration-150 z-[4] box-border hover:brightness-110 hover:shadow-lg hover:scale-y-105 ${getBarColorClass(res.tipo)}`}
+   502→              style={{ left: `calc(${barData.leftPct}% + 2px)`, width: `calc(${barData.widthPct}% - 4px)`, top: carrilTop, height: BAR_H }}
+   503→              onClick={(e) => handleBarClick(e, res, num)}
+   504→            >
+   505→              <span className="text-[11px] font-semibold text-white whitespace-nowrap overflow-hidden text-ellipsis pointer-events-none drop-shadow-sm">
+   506→                {res.huesped}
+   507→              </span>
+   508→            </div>
+   509→          );
+   510→        });
+   511→
+   512→        result.push(
+   513→          <div key={num} className={`flex items-stretch border-b-2 border-[#E2E8F0] last:border-b-0 ${rowIndex % 2 !== 0 ? 'bg-[#F8FAFC]/50' : ''}`} style={{ height: FILA_H }}>
+   514→            <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-[#E2E8F0] bg-white z-[5]" style={{ height: FILA_H }}>
+   515→              <span className="text-[12px] font-bold text-[#1E293B] leading-tight">{num}</span>
+   516→              <span className="text-[10px] text-[#64748B] font-medium mt-0.5">{hab.tipo}</span>
+   517→            </div>
+   518→            <div className="flex-1 relative overflow-hidden min-w-0">
+   519→              <div className="absolute top-0 left-0 w-full h-full flex pointer-events-none">{bgCells}</div>
+   520→              {barras}
+   521→            </div>
+   522→          </div>
+   523→        );
+   524→        return;
+   525→      }
+   526→
+   527→      // Habitaciones normales
+   528→      const bgCells = columnas.map((col, ci) => {
+   529→        const d = new Date(col + 'T12:00:00');
+   530→        const esFS = d.getDay() === 0 || d.getDay() === 6;
+   531→        const isHoy = col === hoyStr;
+   532→        return <div key={ci} className={`flex-1 h-full border-l-2 border-[#E2E8F0] box-border ${esFS ? 'bg-[#FEE2E2]/40' : ''} ${isHoy ? 'bg-[#DBEAFE]/30' : ''}`} />;
+   533→      });
+   534→
+   535→      const barras = reservasHab.map((res, idx) => {
+   536→        const barData = calcularBarra(res, colIdx, columnas, DIAS_GANTT);
+   537→        if (!barData) return null;
+   538→        return (
+   539→          <div
+   540→            key={idx}
+   541→            className={`absolute rounded-md flex items-center px-2.5 cursor-pointer overflow-hidden transition-all duration-150 z-[4] box-border hover:brightness-110 hover:shadow-lg hover:scale-y-105 ${getBarColorClass(res.tipo)}`}
+   542→            style={{ left: `calc(${barData.leftPct}% + 2px)`, width: `calc(${barData.widthPct}% - 4px)`, top: BAR_TOP, height: BAR_H }}
+   543→            onClick={(e) => handleBarClick(e, res, num)}
+   544→          >
+   545→            <span className="text-[11px] font-semibold text-white whitespace-nowrap overflow-hidden text-ellipsis pointer-events-none drop-shadow-sm">
+   546→              {res.huesped}
+   547→            </span>
+   548→          </div>
+   549→        );
+   550→      });
+   551→
+   552→      result.push(
+   553→        <div key={num} className={`flex items-stretch border-b-2 border-[#E2E8F0] last:border-b-0 ${rowIndex % 2 !== 0 ? 'bg-[#F8FAFC]/50' : ''}`} style={{ height: ROW_H }}>
+   554→          <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-[#E2E8F0] bg-white z-[5]" style={{ height: ROW_H }}>
+   555→            <span className="text-[12px] font-bold text-[#1E293B] leading-tight">{num}</span>
+   556→            <span className="text-[10px] text-[#64748B] font-medium mt-0.5">{hab.tipo}</span>
+   557→          </div>
+   558→          <div className="flex-1 relative overflow-hidden min-w-0">
+   559→            <div className="absolute top-0 left-0 w-full h-full flex pointer-events-none">{bgCells}</div>
+   560→            {barras}
+   561→          </div>
+   562→        </div>
+   563→      );
+   564→    });
+   565→
+   566→    return result;
+   567→  }, [habitaciones, reservas, columnas, colIdx, handleBarClick, hoyStr, mostrarHistorial]);
+   568→
+   569→  const headerCols = useMemo(() => {
+   570→    return columnas.map((col, i) => {
+   571→      const d = new Date(col + 'T12:00:00');
+   572→      const esFS = d.getDay() === 0 || d.getDay() === 6;
+   573→      const isHoy = col === hoyStr;
+   574→      return (
+   575→        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-[#E2E8F0] min-w-0 ${esFS ? 'bg-[#FEE2E2]/50' : ''} ${isHoy ? 'bg-[#DBEAFE]/60' : ''}`}>
+   576→          <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-[#F43F5E]' : 'text-[#64748B]'} ${isHoy ? '!text-[#1E40AF]' : ''}`}>
+   577→            {NOMBRES_DIAS[d.getDay()]}
+   578→          </span>
+   579→          <span className={`text-[15px] font-bold leading-none mt-0.5 ${esFS ? 'text-[#F43F5E]' : 'text-[#1E293B]'} ${isHoy ? '!text-[#1E40AF] underline decoration-2 underline-offset-2' : ''}`}>
+   580→            {d.getDate()}
+   581→          </span>
+   582→        </div>
+   583→      );
+   584→    });
+   585→  }, [columnas, hoyStr]);
+   586→
+   587→  const legendItems = [
+   588→    { label: 'Disponible', color: 'bg-[#E2E8F0] border border-[#CBD5E1]' },
+   589→    { label: 'Reservada', color: 'bg-[#3B82F6]' },
+   590→    { label: 'Ocupada', color: 'bg-[#4ADE80]' },
+   591→    ...(mostrarHistorial ? [{ label: 'Finalizada', color: 'bg-[#94A3B8] opacity-50' }] : []),
+   592→    { label: 'Limpieza', color: 'bg-[#F59E0B]' },
+   593→    { label: 'Mantenimiento', color: 'bg-[#64748B]' },
+   594→  ];
+   595→
+   596→  const rangeLabel = `${formatearFecha(columnas[0])} — ${formatearFecha(columnas[columnas.length - 1])}`;
+   597→
+   598→  return (
+   599→    <>
+   600→      <Card className="overflow-hidden">
+   601→        <CardHeader className="pb-2">
+   602→          <div className="flex items-center justify-between">
+   603→            <CardTitle className="text-base flex items-center gap-2">
+   604→              <CalendarCheck className="w-4 h-4 text-[#3B82F6]" />
+   605→              Calendario de Ocupación
+   606→            </CardTitle>
+   607→            <div className="flex items-center gap-2">
+   608→              <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setOffset(o => o - 1)} disabled={offset <= -2}>
+   609→                <ChevronLeft className="w-4 h-4" />
+   610→              </Button>
+   611→              <span className="text-xs text-muted-foreground font-medium min-w-0 truncate text-center">{rangeLabel}</span>
+   612→              <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setOffset(o => o + 1)}>
+   613→                <ChevronRight className="w-4 h-4" />
+   614→              </Button>
+   615→              {offset !== 0 && (
+   616→                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setOffset(0)}>Hoy</Button>
+   617→              )}
+   618→              <div className="w-px h-5 bg-[#E2E8F0] mx-1" />
+   619→              <Button
+   620→                variant={mostrarHistorial ? 'default' : 'outline'}
+   621→                size="sm"
+   622→                className={cn('h-7 text-xs gap-1.5', mostrarHistorial && 'bg-[#475569] hover:bg-[#334155]')}
+   623→                onClick={() => setMostrarHistorial(v => !v)}
+   624→              >
+   625→                <History className="w-3.5 h-3.5" />
+   626→                Historial
+   627→              </Button>
+   628→            </div>
+   629→          </div>
+   630→        </CardHeader>
+   631→        <CardContent className="p-0">
+   632→          <div className="bg-white border-2 border-[#E2E8F0] rounded-lg overflow-hidden shadow-sm">
+   633→            <div className="flex border-b-2 border-[#E2E8F0] bg-[#F8FAFC]">
+   634→              <div className="w-[130px] min-w-[130px] shrink-0 border-r-2 border-[#E2E8F0]" />
+   635→              <div className="flex flex-1">{headerCols}</div>
+   636→            </div>
+   637→            <div className="overflow-x-auto">{rows}</div>
+   638→            <div className="flex gap-4 flex-wrap px-3.5 py-2.5 border-t-2 border-[#E2E8F0]">
+   639→              {legendItems.map(item => (
+   640→                <span key={item.label} className="flex items-center gap-1.5 text-xs text-[#64748B] font-medium">
+   641→                  <span className={`inline-block w-3.5 h-2.5 rounded-sm ${item.color}`} />
+   642→                  {item.label}
+   643→                </span>
+   644→              ))}
+   645→            </div>
+   646→          </div>
+   647→        </CardContent>
+   648→      </Card>
+   649→      <GanttPopover data={popoverData} position={popoverPos} onClose={() => setPopoverData(null)} />
+   650→    </>
+   651→  );
+   652→}
+   653→
+   654→function getBarColorClass(tipo: string): string {
+   655→  const map: Record<string, string> = {
+   656→    Reservada: 'bg-[#3B82F6] shadow-[0_2px_6px_rgba(59,130,246,0.35)]',
+   657→    Ocupada: 'bg-[#4ADE80] shadow-[0_2px_6px_rgba(74,222,128,0.35)]',
+   658→    Finalizada: 'bg-[#94A3B8] opacity-50 border border-dashed border-[#CBD5E1]',
+   659→    Limpieza: 'bg-[#F59E0B] shadow-[0_2px_6px_rgba(245,158,11,0.30)]',
+   660→    Mantenimiento: 'bg-[#64748B] shadow-[0_2px_6px_rgba(100,116,139,0.25)]',
+   661→  };
+   662→  return map[tipo] || map.Reservada;
+   663→}
+   664→
+   665→function calcularBarra(res: GanttReserva, colIdx: Record<string, number>, columnas: string[], DIAS: number) {
+   666→  let startCol = Math.max(colIdx[res.checkin] ?? 0, 0);
+   667→  let endCol = Math.min(colIdx[res.checkout] !== undefined ? colIdx[res.checkout] : DIAS - 1, DIAS - 1);
+   668→
+   669→  const esCheckinTarde = res.tipo !== 'Limpieza' && res.tipo !== 'Mantenimiento' && res.horaCheckin && res.horaCheckin.getHours() >= 12;
+   670→  const esCheckoutManana = res.tipo !== 'Limpieza' && res.tipo !== 'Mantenimiento' && res.horaCheckout && res.horaCheckout.getHours() < 12;
+   671→
+   672→  let leftPct: number, widthPct: number;
+   673→
+   674→  if (esCheckinTarde && startCol >= 0 && !(res.checkin < columnas[0])) {
+   675→    leftPct = startCol * COL_PCT + MITAD_COL_PCT;
+   676→  } else {
+   677→    leftPct = startCol * COL_PCT;
+   678→  }
+   679→
+   680→  if (esCheckoutManana && endCol >= 0 && !(res.checkout > columnas[DIAS - 1])) {
+   681→    widthPct = ((endCol - startCol) * COL_PCT) + (esCheckinTarde ? MITAD_COL_PCT : COL_PCT) - (esCheckoutManana ? MITAD_COL_PCT : 0);
+   682→  } else {
+   683→    widthPct = (endCol - startCol + 1) * COL_PCT;
+   684→  }
+   685→
+   686→  widthPct = Math.max(widthPct, MITAD_COL_PCT);
+   687→  return { leftPct, widthPct };
+   688→}
+   689→
+   690→// ==================== ROOM HEATMAP (mejorado) ====================
+   691→
+   692→function RoomHeatmap({ habitaciones, reservas }: {
+   693→  habitaciones: Record<string, { tipo: string; estado: string; capacidad: number; problema?: string }>;
+   694→  reservas: { habitacion: string; estado: string; huesped: string; checkin: string; checkout: string }[];
+   695→}) {
+   696→  const hoyStr = todayLocal();
+   697→
+   698→  const habInfo = useMemo(() => {
+   699→    const map: Record<string, { huesped: string; estado: string }> = {};
+   700→    reservas.forEach(r => {
+   701→      if ((r.estado === 'Check-In realizado' || r.estado === 'Confirmada') && r.checkin <= hoyStr && r.checkout >= hoyStr) {
+   702→        map[r.habitacion] = { huesped: r.huesped, estado: r.estado === 'Check-In realizado' ? 'Ocupada' : 'Reservada' };
+   703→      }
+   704→    });
+   705→    return map;
+   706→  }, [reservas, hoyStr]);
+   707→
+   708→  const colors: Record<string, string> = {
+   709→    Disponible: 'bg-[#DCFCE7] text-[#166534]',
+   710→    Ocupada: 'bg-[#FEE2E2] text-[#991B1B]',
+   711→    Limpieza: 'bg-[#FEF3C7] text-[#92400E]',
+   712→    Mantenimiento: 'bg-[#F8FAFC] text-[#64748B]',
+   713→    Reservada: 'bg-[#E0E7FF] text-[#3730A3]',
+   714→  };
+   715→  const dots: Record<string, string> = {
+   716→    Disponible: 'bg-[#4ADE80]', Ocupada: 'bg-[#EF4444]', Limpieza: 'bg-[#F59E0B]', Mantenimiento: 'bg-[#64748B]', Reservada: 'bg-[#3B82F6]',
+   717→  };
+   718→
+   719→  return (
+   720→    <Card>
+   721→      <CardHeader className="pb-3">
+   722→        <CardTitle className="text-base">Estado de habitaciones</CardTitle>
+   723→      </CardHeader>
+   724→      <CardContent>
+   725→        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-11 gap-2">
+   726→          {Object.entries(habitaciones).sort(([a], [b]) => a.localeCompare(b)).map(([num, hab]) => {
+   727→            const info = habInfo[num];
+   728→            const tooltip = info
+   729→              ? `${num} - ${info.huesped} (${info.estado})`
+   730→              : hab.estado === 'Mantenimiento'
+   731→                ? `${num} - ${hab.problema || 'Mantenimiento'}`
+   732→                : `${num} - ${hab.estado} · Cap. ${hab.capacidad} · ${hab.tipo}`;
+   733→            return (
+   734→              <Tooltip key={num} text={tooltip}>
+   735→                <div className={`rounded-lg border-2 p-2 text-center text-xs font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-lg cursor-default ${colors[hab.estado] || colors.Disponible}`}>
+   736→                  <div className={`w-2 h-2 rounded-full ${dots[hab.estado] || dots.Disponible} ${hab.estado === 'Ocupada' || hab.estado === 'Limpieza' ? 'heat-pulse' : ''} mx-auto mb-1`} />
+   737→                  <div>{num}</div>
+   738→                  {info && <div className="text-[9px] font-normal opacity-70 truncate mt-0.5">{info.huesped}</div>}
+   739→                </div>
+   740→              </Tooltip>
+   741→            );
+   742→          })}
+   743→        </div>
+   744→        <div className="flex flex-wrap gap-4 mt-4 text-xs text-muted-foreground">
+   745→          {Object.entries({ Disponible: 'bg-[#4ADE80]', Ocupada: 'bg-[#EF4444]', Reservada: 'bg-[#3B82F6]', Limpieza: 'bg-[#F59E0B]', Mantenimiento: 'bg-[#64748B]' }).map(([label, dot]) => (
+   746→            <span key={label} className="flex items-center gap-1.5"><span className={`w-2.5 h-2.5 rounded-full ${dot}`} />{label}</span>
+   747→          ))}
+   748→          <span className="text-muted-foreground/70 ml-auto text-[11px]">
+   749→            {Object.values(habitaciones).filter(h => h.estado === 'Disponible').length} disp. · {Object.values(habitaciones).filter(h => h.estado === 'Ocupada').length} ocup. · {Object.values(habitaciones).filter(h => h.estado === 'Reservada').length} res. · {Object.values(habitaciones).filter(h => h.estado === 'Limpieza').length} lim. · {Object.values(habitaciones).filter(h => h.estado === 'Mantenimiento').length} mant.
+   750→          </span>
+   751→        </div>
+   752→      </CardContent>
+   753→    </Card>
+   754→  );
+   755→}
+   756→
+   757→// ==================== DASHBOARD PRINCIPAL ====================
+   758→
+   759→export default function DashboardModule() {
+   760→  const habitaciones = useHotelStore(s => s.habitaciones);
+   761→  const reservas = useHotelStore(s => s.reservas);
+   762→  const pagos = useHotelStore(s => s.pagos);
+   763→  const gastos = useHotelStore(s => s.gastos);
+   764→  const caja = useHotelStore(s => s.caja);
+   765→  const setModulo = useHotelStore(s => s.setModulo);
+   766→  const realizarCheckOut = useHotelStore(s => s.realizarCheckOut);
+   767→  const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
+   768→  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
+   769→  const hoy = new Date();
+   770→  const hoyStr = todayLocal();
+   771→
+   772→  const totalHabitaciones = Object.keys(habitaciones).length;
+   773→  const ocupadas = Object.values(habitaciones).filter(h => h.estado === 'Ocupada').length;
+   774→  const enLimpieza = Object.values(habitaciones).filter(h => h.estado === 'Limpieza').length;
+   775→  const enMantenimiento = Object.values(habitaciones).filter(h => h.estado === 'Mantenimiento').length;
+   776→  const reservadas = Object.values(habitaciones).filter(h => h.estado === 'Reservada').length;
+   777→  const tasaOcupacion = totalHabitaciones > 0 ? Math.round((ocupadas / totalHabitaciones) * 100) : 0;
+   778→
+   779→  const checkinsHoy = useMemo(() => reservas.filter(r => r.estado === 'Confirmada' && r.checkin === hoyStr), [reservas, hoyStr]);
+   780→  const checkoutsHoy = useMemo(() => reservas.filter(r => r.estado === 'Check-In realizado' && r.checkout === hoyStr), [reservas, hoyStr]);
+   781→
+   782→  // Alerta de caja abierta
+   783→  const [, setTick] = useState(0);
+   784→  useEffect(() => {
+   785→    if (caja.estado !== 'abierta') return;
+   786→    const id = setInterval(() => setTick(t => t + 1), 60000);
+   787→    return () => clearInterval(id);
+   788→  }, [caja.estado]);
+   789→
+   790→  const cajaAbiertaHoras = useMemo(() => {
+   791→    if (caja.estado === 'abierta' && caja.apertura) {
+   792→      return Math.round((Date.now() - new Date(caja.apertura.fecha).getTime()) / (1000 * 60 * 60));
+   793→    }
+   794→    return 0;
+   795→  }, [caja]);
+   796→
+   797→  const tieneAlertas = enLimpieza > 0 || checkinsHoy.length > 0 || checkoutsHoy.length > 0 || enMantenimiento > 0 || cajaAbiertaHoras >= 8;
+   798→
+   799→  // Inline actions
+   800→  const [actionLog, setActionLog] = useState<string[]>([]);
+   801→
+   802→  // Auto-dismiss toasts
+   803→  useEffect(() => {
+   804→    if (actionLog.length === 0) return;
+   805→    const timer = setTimeout(() => setActionLog(prev => prev.slice(0, -1)), 3000);
+   806→    return () => clearTimeout(timer);
+   807→  }, [actionLog]);
+   808→
+   809→  const handleCheckIn = useCallback(() => {
+   810→    setModulo('checkin');
+   811→  }, [setModulo]);
+   812→
+   813→  const handleCheckOut = useCallback(async (id: string, huesped: string) => {
+   814→    const result = await realizarCheckOut(id);
+   815→    if (result) setActionLog(prev => [`Check-out realizado: ${huesped}`, ...prev].slice(0, 3));
+   816→  }, [realizarCheckOut]);
+   817→
+   818→  return (
+   819→    <div className="space-y-6">
+   820→      <ModuleHeader
+   821→        icon={BarChart3}
+   822→        title="Panel Ejecutivo"
+   823→        subtitle={hoy.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+   824→       
+   825→      >
+   826→        <LiveClockWeather />
+   827→      </ModuleHeader>
+   828→
+   829→      {/* Action log toasts */}
+   830→      {actionLog.length > 0 && (
+   831→        <div className="fixed top-4 right-4 z-50 space-y-2">
+   832→          {actionLog.map((msg, i) => (
+   833→            <div key={i} className="bg-[#059669] text-white px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium flex items-center gap-2 animate-in slide-in-from-right-full fade-in-0 duration-300">
+   834→              <CheckCircle className="w-4 h-4" />
+   835→              {msg}
+   836→            </div>
+   837→          ))}
+   838→        </div>
+   839→      )}
+   840→
+   841→      {/* KPIs */}
+   842→      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+   843→        <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-[#166534]" bgGradient="bg-gradient-to-br from-[#DCFCE7] to-[#DCFCE7]/50" numericValue={tasaOcupacion} suffix="%" />
+   844→        <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-[#1E40AF]" bgGradient="bg-gradient-to-br from-[#DBEAFE] to-[#DBEAFE]/50" numericValue={checkinsHoy.length} />
+   845→        <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-[#EA580C]" bgGradient="bg-gradient-to-br from-[#FFEDD5] to-[#FFEDD5]/50" numericValue={checkoutsHoy.length} />
+   846→        <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-[#7C3AED]" bgGradient="bg-gradient-to-br from-[#F5F3FF] to-[#F5F3FF]/50" numericValue={reservadas} />
+   847→      </div>
+   848→
+   849→      {/* Room Heatmap */}
+   850→      <RoomHeatmap habitaciones={habitaciones} reservas={reservas} />
+   851→
+   852→      {/* Estado General + Alertas con acciones rápidas */}
+   853→      <div className="grid md:grid-cols-4 gap-4">
+   854→        <Card className="md:col-span-1">
+   855→          <CardHeader className="pb-2">
+   856→            <CardTitle className="text-sm flex items-center gap-1.5">
+   857→              <SprayCan className="w-3.5 h-3.5 text-[#94A3B8]" />
+   858→              <Wrench className="w-3.5 h-3.5 text-[#94A3B8]" />
+   859→              Estado General
+   860→            </CardTitle>
+   861→          </CardHeader>
+   862→          <CardContent className="space-y-2">
+   863→            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#FEF3C7] border-[#FDE68A]">
+   864→              <span className="text-xs font-medium text-[#92400E]">Para limpiar</span>
+   865→              <span className="bg-[#F59E0B] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enLimpieza}</span>
+   866→            </div>
+   867→            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#F8FAFC] border-[#E2E8F0]">
+   868→              <span className="text-xs font-medium text-[#64748B]">En mantenimiento</span>
+   869→              <span className="bg-[#64748B] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enMantenimiento}</span>
+   870→            </div>
+   871→            {enLimpieza === 0 && enMantenimiento === 0 && (
+   872→              <div className="flex items-center justify-center p-3 rounded-lg bg-[#DCFCE7] border-[#BBF7D0]">
+   873→                <span className="text-xs font-medium text-[#166534] flex items-center gap-1.5">
+   874→                  <CheckCircle className="w-4 h-4" />
+   875→                  Todo al día
+   876→                </span>
+   877→              </div>
+   878→            )}
+   879→          </CardContent>
+   880→        </Card>
+   881→
+   882→        <Card className="md:col-span-3">
+   883→          <CardHeader className="pb-2">
+   884→            <CardTitle className="text-base flex items-center gap-2">
+   885→              <Bell className="w-4 h-4" />
+   886→              Alertas Pendientes
+   887→              {tieneAlertas && <Badge variant="destructive" className="ml-auto text-[10px] px-1.5">!</Badge>}
+   888→            </CardTitle>
+   889→          </CardHeader>
+   890→          <CardContent className="space-y-2">
+   891→            {!tieneAlertas && (
+   892→              <div className="flex items-center gap-2 p-3 text-[#166534] text-sm rounded-lg bg-[#DCFCE7] border-[#BBF7D0]">
+   893→                <CheckCircle className="w-4 h-4" />
+   894→                Sin alertas pendientes
+   895→              </div>
+   896→            )}
+   897→
+   898→            {enLimpieza > 0 && (
+   899→              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#FEF3C7] border-[#FDE68A] hover:bg-muted/50 transition-colors">
+   900→                <span className="flex items-center gap-2 text-sm text-[#92400E]">
+   901→                  <SprayCan className="w-4 h-4 text-[#92400E]" />
+   902→                  {enLimpieza} habitación(es) pendientes de limpieza
+   903→                </span>
+   904→                <div className="flex items-center gap-2">
+   905→                  <span className="bg-[#F59E0B] text-white text-xs font-bold px-2 py-0.5 rounded">
+   906→                    {Object.entries(habitaciones).filter(([, h]) => h.estado === 'Limpieza').map(([n]) => n).join(', ')}
+   907→                  </span>
+   908→                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('habitaciones')}>Ir</Button>
+   909→                </div>
+   910→              </div>
+   911→            )}
+   912→
+   913→            {checkinsHoy.length > 0 && (
+   914→              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#DBEAFE] border-[#BFDBFE] hover:bg-[#BFDBFE] transition-colors">
+   915→                <span className="flex items-center gap-2 text-sm text-[#1E40AF]">
+   916→                  <LogIn className="w-4 h-4 text-[#1E40AF]" />
+   917→                  {checkinsHoy.length} check-in(s) pendiente(s) hoy
+   918→                </span>
+   919→                <div className="flex items-center gap-2">
+   920→                  <span className="bg-[#3B82F6] text-white text-xs font-bold px-2 py-0.5 rounded max-w-[200px] truncate">
+   921→                    {checkinsHoy.map(r => r.huesped).join(', ')}
+   922→                  </span>
+   923→                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('checkin')}>Ver todos</Button>
+   924→                </div>
+   925→              </div>
+   926→            )}
+   927→
+   928→            {checkoutsHoy.length > 0 && (
+   929→              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#FFEDD5] border-[#FED7AA] hover:bg-[#FED7AA] transition-colors">
+   930→                <span className="flex items-center gap-2 text-sm text-[#9A3412]">
+   931→                  <LogOut className="w-4 h-4 text-[#EA580C]" />
+   932→                  {checkoutsHoy.length} check-out(s) pendiente(s) hoy
+   933→                </span>
+   934→                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('checkin')}>Ver todos</Button>
+   935→              </div>
+   936→            )}
+   937→
+   938→            {cajaAbiertaHoras >= 8 && (
+   939→              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#FEE2E2] border-[#FECACA]">
+   940→                <span className="flex items-center gap-2 text-sm text-[#991B1B]">
+   941→                  <LockOpen className="w-4 h-4 text-[#991B1B]" />
+   942→                  Caja abierta hace {cajaAbiertaHoras} horas ({caja.apertura?.empleado})
+   943→                </span>
+   944→                <span className="bg-[#EF4444] text-white text-xs font-bold px-2 py-0.5 rounded">Atención</span>
+   945→              </div>
+   946→            )}
+   947→
+   948→            {enMantenimiento > 0 && (
+   949→              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#F8FAFC] border-[#E2E8F0] hover:bg-muted/50 transition-colors">
+   950→                <span className="flex items-center gap-2 text-sm text-[#64748B]">
+   951→                  <Wrench className="w-4 h-4 text-[#64748B]" />
+   952→                  {enMantenimiento} habitación(es) en mantenimiento
+   953→                </span>
+   954→                <div className="flex items-center gap-2">
+   955→                  <span className="bg-[#64748B] text-white text-xs font-bold px-2 py-0.5 rounded">
+   956→                    {Object.entries(habitaciones).filter(([, h]) => h.estado === 'Mantenimiento').map(([n]) => n).join(', ')}
+   957→                  </span>
+   958→                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('habitaciones')}>Ir</Button>
+   959→                </div>
+   960→              </div>
+   961→            )}
+   962→          </CardContent>
+   963→        </Card>
+   964→      </div>
+   965→
+   966→      {/* Próximos Check-ins / Check-outs con acciones inline */}
+   967→      <div className="grid md:grid-cols-2 gap-4">
+   968→        <Card>
+   969→          <CardHeader className="pb-3">
+   970→            <CardTitle className="text-base flex items-center gap-2">
+   971→              <LogIn className="w-4 h-4 text-[#3B82F6]" />
+   972→              Check-ins de hoy
+   973→              {checkinsHoy.length > 0 && <Badge className="bg-[#3B82F6] ml-auto">{checkinsHoy.length}</Badge>}
+   974→            </CardTitle>
+   975→          </CardHeader>
+   976→          <CardContent>
+   977→            {checkinsHoy.length === 0 ? (
+   978→              <p className="text-sm text-muted-foreground py-2">Sin check-ins pendientes hoy.</p>
+   979→            ) : (
+   980→              <div className="space-y-2">
+   981→                {checkinsHoy.map(r => (
+   982→                  <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border-[#BFDBFE] bg-[#DBEAFE]/50 hover:bg-[#DBEAFE] transition-colors">
+   983→                    <div className="min-w-0">
+   984→                      <div className="flex items-center gap-2 flex-wrap">
+   985→                        <p className="text-sm font-semibold truncate">{r.huesped}</p>
+   986→                        {(r.ninos || 0) > 0 && <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-[#F5F3FF] text-[#6D28D9] border-[#DDD6FE]">{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}</Badge>}
+   987→                      </div>
+   988→                      <p className="text-xs text-muted-foreground">Hab. {r.habitacion} · DNI: {r.dni}</p>
+   989→                    </div>
+   990→                    <Button
+   991→                      size="sm"
+   992→                      className="bg-[#059669] hover:bg-[#047857] h-8 text-xs shrink-0 ml-2"
+   993→                      onClick={() => handleCheckIn()}
+   994→                    >
+   995→                      <LogIn className="w-3 h-3 mr-1" />Check-In
+   996→                    </Button>
+   997→                  </div>
+   998→                ))}
+   999→              </div>
+  1000→            )}
+  1001→          </CardContent>
+  1002→        </Card>
+  1003→
+  1004→        <Card>
+  1005→          <CardHeader className="pb-3">
+  1006→            <CardTitle className="text-base flex items-center gap-2">
+  1007→              <LogOut className="w-4 h-4 text-[#F97316]" />
+  1008→              Check-outs de hoy
+  1009→              {checkoutsHoy.length > 0 && <Badge className="bg-[#F97316] ml-auto">{checkoutsHoy.length}</Badge>}
+  1010→            </CardTitle>
+  1011→          </CardHeader>
+  1012→          <CardContent>
+  1013→            {checkoutsHoy.length === 0 ? (
+  1014→              <p className="text-sm text-muted-foreground py-2">Sin check-outs pendientes hoy.</p>
+  1015→            ) : (
+  1016→              <div className="space-y-2">
+  1017→                {checkoutsHoy.map(r => {
+  1018→                  const saldo = calcularTotalReserva(r.id) - calcularTotalPagado(r.id);
+  1019→                  return (
+  1020→                    <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border-[#FED7AA] bg-[#FFEDD5]/50 hover:bg-[#FFEDD5] transition-colors">
+  1021→                      <div className="min-w-0">
+  1022→                        <p className="text-sm font-semibold truncate">{r.huesped}</p>
+  1023→                        <p className="text-xs text-muted-foreground">Hab. {r.habitacion} · 09:00</p>
+  1024→                        {saldo > 0 && <p className="text-xs text-[#EF4444] font-medium">Saldo: {formatMoney(saldo)}</p>}
+  1025→                      </div>
+  1026→                      <Button
+  1027→                        size="sm"
+  1028→                        variant="destructive"
+  1029→                        className="h-8 text-xs shrink-0 ml-2"
+  1030→                        onClick={() => handleCheckOut(r.id, r.huesped)}
+  1031→                      >
+  1032→                        <LogOut className="w-3 h-3 mr-1" />Check-Out
+  1033→                      </Button>
+  1034→                    </div>
+  1035→                  );
+  1036→                })}
+  1037→              </div>
+  1038→            )}
+  1039→          </CardContent>
+  1040→        </Card>
+  1041→      </div>
+  1042→
+  1043→      {/* Gráfico Ingresos vs Egresos */}
+  1044→      <GraficoIngresosEgresos pagos={pagos} gastos={gastos} />
+  1045→
+  1046→      {/* Calendario Gantt de Ocupación */}
+  1047→      <CalendarioGantt habitaciones={habitaciones} reservas={reservas} fechaInicioBase={hoy} />
+  1048→    </div>
+  1049→  );
+  1050→}

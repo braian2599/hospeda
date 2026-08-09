@@ -246,10 +246,10 @@ export default function CheckInModule() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pendientes Check-In */}
-        <Card>
+        <Card className="border-[#BBF7D0]/60 bg-gradient-to-br from-[#ECFDF5]/30 to-white">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <LogIn className="w-5 h-5 text-[#166534]" />
+              <LogIn className="w-5 h-5 text-[#059669]" />
               Check-Ins Pendientes
               <Badge variant="secondary" className="ml-auto">{pendientesCheckIn.length}</Badge>
             </CardTitle>
@@ -260,11 +260,11 @@ export default function CheckInModule() {
             ) : (
               <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
                 {pendientesCheckIn.map(r => (
-                  <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors">
+                  <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-[#ECFDF5]/40 transition-colors duration-200 group">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm">{r.huesped}</span>
-                        <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+                        <span className="font-semibold text-sm group-hover:text-[#0F2B28] transition-colors">{r.huesped}</span>
+                        <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                         {(r.ninos || 0) > 0 && (
                           <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
                             <Baby className="w-3 h-3 mr-1" />{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}
@@ -278,7 +278,7 @@ export default function CheckInModule() {
                         <span>{r.personas} adulto{s(r.personas)}{(r.ninos || 0) > 0 ? ` + ${r.ninos} niño${(r.ninos || 0) > 1 ? 's' : ''}` : ''}</span>
                       </div>
                     </div>
-                    <Button size="sm" onClick={() => openCheckIn(r)}>
+                    <Button size="sm" className="bg-[#059669] hover:bg-[#047857] text-white shadow-sm" onClick={() => openCheckIn(r)}>
                       <KeyRound className="w-3.5 h-3.5 mr-1" />Check-In
                     </Button>
                   </div>
@@ -289,10 +289,10 @@ export default function CheckInModule() {
         </Card>
 
         {/* Pendientes Check-Out */}
-        <Card>
+        <Card className="border-[#FED7AA]/60 bg-gradient-to-br from-[#FFF7ED]/30 to-white">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <LogOut className="w-5 h-5 text-[#92400E]" />
+              <LogOut className="w-5 h-5 text-[#EA580C]" />
               Check-Outs Pendientes
               <Badge variant="secondary" className="ml-auto">{pendientesCheckOut.length}</Badge>
             </CardTitle>
@@ -303,11 +303,11 @@ export default function CheckInModule() {
             ) : (
               <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
                 {pendientesCheckOut.map(r => (
-                  <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors">
+                  <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-[#FFF7ED]/40 transition-colors duration-200 group">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm">{r.huesped}</span>
-                        <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+                        <span className="font-semibold text-sm group-hover:text-[#0F2B28] transition-colors">{r.huesped}</span>
+                        <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                         {r.menores && r.menores.length > 0 && (
                           <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
                             <Baby className="w-3 h-3 mr-1" />{r.menores.length} menor{r.menores.length > 1 ? 'es' : ''}
@@ -685,7 +685,9 @@ export default function CheckInModule() {
 /* =================== SUB-COMPONENTS =================== */
 
 function CheckInAccountStatus({ reserva }: { reserva: Reserva }) {
-  const { calcularTotalReserva, calcularTotalPagado, nochesEntre } = useHotelStore();
+  const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
+  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
+  const nochesEntre = useHotelStore(s => s.nochesEntre);
   const total = calcularTotalReserva(reserva.id);
   const pagado = calcularTotalPagado(reserva.id);
   const saldo = total - pagado;

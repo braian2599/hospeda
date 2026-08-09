@@ -9,10 +9,10 @@ import { modulosEfectivos } from '@/lib/plan-config';
 import { Button } from '@/components/ui/button';
 import { NotificationCenter } from '@/components/ui/notification-center';
 import ThemeToggle from '@/components/layout/ThemeToggle';
-import { LogOut, X, Lock, Settings, Users, LayoutDashboard, Search } from 'lucide-react';
+import { LogOut, X, Lock, Settings, Users, LayoutDashboard, Search, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, BarChart3, UserCog, Tags } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  LayoutDashboard, DoorOpen: require('lucide-react').DoorOpen, CalendarDays: require('lucide-react').CalendarDays, LogIn: require('lucide-react').LogIn, Receipt: require('lucide-react').Receipt, Sparkles: require('lucide-react').Sparkles, Wallet: require('lucide-react').Wallet, Users: require('lucide-react').Users, BarChart3: require('lucide-react').BarChart3, UserCog: require('lucide-react').UserCog, Tags: require('lucide-react').Tags,
+  LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, Users, BarChart3, UserCog, Tags,
 };
 
 const GROUP_LABELS: Record<string, string> = {

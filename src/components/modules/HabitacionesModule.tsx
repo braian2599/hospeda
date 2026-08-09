@@ -18,12 +18,21 @@ import { todayLocal, safeDate } from '@/lib/format';
 
 // ── Mapeo de estados visuales ──
 const estados: Record<EstadoHabitacion, string> = {
-  Disponible: 'bg-[#DCFCE7] text-[#166534]',
-  Ocupada: 'bg-[#FEE2E2] text-[#991B1B]',
-  Limpieza: 'bg-[#FEF3C7] text-[#92400E]',
-  Mantenimiento: 'bg-[#F8FAFC] text-[#64748B]',
-  Reservada: 'bg-[#E0E7FF] text-[#3730A3]',
-  'Fuera de servicio': 'bg-[#F1F5F9] text-[#475569]',
+  Disponible: 'bg-[#DCFCE7]/80 text-[#166534]',
+  Ocupada: 'bg-[#FEE2E2]/80 text-[#991B1B]',
+  Limpieza: 'bg-[#FEF3C7]/80 text-[#92400E]',
+  Mantenimiento: 'bg-[#F1F5F9]/80 text-[#64748B]',
+  Reservada: 'bg-[#DBEAFE]/80 text-[#1E40AF]',
+  'Fuera de servicio': 'bg-[#F1F5F9]/80 text-[#475569]',
+};
+
+const borderByEstado: Record<EstadoHabitacion, string> = {
+  Disponible: 'border-l-[3px] border-l-[#4ADE80]',
+  Ocupada: 'border-l-[3px] border-l-[#F59E0B]',
+  Limpieza: 'border-l-[3px] border-l-[#F59E0B]',
+  Mantenimiento: 'border-l-[3px] border-l-[#EF4444]',
+  Reservada: 'border-l-[3px] border-l-[#3B82F6]',
+  'Fuera de servicio': 'border-l-[3px] border-l-[#94A3B8]',
 };
 
 // ── Opciones de tipo de habitación ──
@@ -163,9 +172,9 @@ export default function HabitacionesModule() {
               ].filter(Boolean).join(' + ') || '—';
 
           return (
-            <Card key={num} className="relative card-hover transition-all duration-200">
+            <Card key={num} className={`relative card-hover transition-all duration-200 group ${borderByEstado[hab.estado] || ''}`}>
               <CardContent className="p-3 flex flex-col items-center text-center gap-1">
-                <Badge className={`absolute top-2 left-2 text-xs px-2 ${estados[hab.estado] || ''}`}>
+                <Badge className={`absolute top-2 left-2 text-xs px-2 font-semibold shadow-sm ${estados[hab.estado] || ''}`}>
                   {hab.estado}
                 </Badge>
                 <span className="text-lg font-bold mt-2">{num}</span>

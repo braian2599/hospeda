@@ -39,6 +39,44 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
+// ─── Static sub-components (declared outside render to satisfy react-hooks/static-components) ───
+
+function UsageBar({ label, current, max, icon: Icon }: { label: string; current: number; max: number; icon: React.ComponentType<{ className?: string }> }) {
+  const pct = max === 0 ? 0 : Math.min(100, Math.round((current / max) * 100));
+  const isUnlimited = max === 0;
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center gap-2">
+          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+          <span>{label}</span>
+        </div>
+        <span className="text-muted-foreground">
+          {current} / {isUnlimited ? 'Ilimitado' : max}
+        </span>
+      </div>
+      {isUnlimited ? (
+        <div className="h-2 rounded-full bg-muted" />
+      ) : (
+        <Progress value={pct} className="h-2" />
+      )}
+    </div>
+  );
+}
+
+function ConfigField({ label, icon: Icon, children, hint }: { label: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode; hint?: string }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-sm font-medium flex items-center gap-2">
+        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+        {label}
+      </Label>
+      {children}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
 export default function ConfiguracionModule() {
   const [activeTab, setActiveTab] = useState<TabId>('suscripcion');
   const { usuarioActual, planActual, fechaInicioTrial } = useHotelStore();
@@ -133,7 +171,7 @@ function SuscripcionSection() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchUsage(); }, [fetchUsage]);
+  useEffect(() => { queueMicrotask(() => fetchUsage()); }, [fetchUsage]);
 
   const planInfo = plans[planActual];
   const diasTrial = fechaVencimientoTrial ? diasRestantesTrial(fechaVencimientoTrial) : 0;
@@ -152,28 +190,7 @@ function SuscripcionSection() {
     setTimeout(() => setCopiedField(''), 2000);
   };
 
-  const UsageBar = ({ label, current, max, icon: Icon }: { label: string; current: number; max: number; icon: React.ComponentType<{ className?: string }> }) => {
-    const pct = max === 0 ? 0 : Math.min(100, Math.round((current / max) * 100));
-    const isUnlimited = max === 0;
-    return (
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-            <span>{label}</span>
-          </div>
-          <span className="text-muted-foreground">
-            {current} / {isUnlimited ? 'Ilimitado' : max}
-          </span>
-        </div>
-        {isUnlimited ? (
-          <div className="h-2 rounded-full bg-muted" />
-        ) : (
-          <Progress value={pct} className="h-2" />
-        )}
-      </div>
-    );
-  };
+
 
 
 
@@ -426,17 +443,6 @@ function HotelSection() {
 
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
 
-  const Field = ({ label, icon: Icon, children, hint }: { label: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode; hint?: string }) => (
-    <div className="space-y-1.5">
-      <Label className="text-sm font-medium flex items-center gap-2">
-        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-        {label}
-      </Label>
-      {children}
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-    </div>
-  );
-
   return (
     <Card>
       <CardHeader>
@@ -445,22 +451,22 @@ function HotelSection() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="Nombre del hotel" icon={Hotel}>
+          <ConfigField label="Nombre del hotel" icon={Hotel}>
             <Input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre comercial" />
-          </Field>
-          <Field label="Email de contacto" icon={Mail} hint="Email público del hotel para huéspedes">
+          </ConfigField>
+          <ConfigField label="Email de contacto" icon={Mail} hint="Email público del hotel para huéspedes">
             <Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="hotel@ejemplo.com" />
-          </Field>
-          <Field label="Teléfono" icon={Phone}>
+          </ConfigField>
+          <ConfigField label="Teléfono" icon={Phone}>
             <Input value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="+54 11 1234-5678" />
-          </Field>
-          <Field label="Dirección" icon={MapPin}>
+          </ConfigField>
+          <ConfigField label="Dirección" icon={MapPin}>
             <Input value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} placeholder="Av. Siempre Viva 742" />
-          </Field>
-          <Field label="País" icon={Globe}>
+          </ConfigField>
+          <ConfigField label="País" icon={Globe}>
             <Input value={form.pais} onChange={e => setForm({ ...form, pais: e.target.value })} placeholder="Argentina" />
-          </Field>
-          <Field label="Moneda" icon={DollarSign}>
+          </ConfigField>
+          <ConfigField label="Moneda" icon={DollarSign}>
             <Select value={form.moneda} onValueChange={v => setForm({ ...form, moneda: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -472,8 +478,8 @@ function HotelSection() {
                 <SelectItem value="CLP">CLP - Peso Chileno</SelectItem>
               </SelectContent>
             </Select>
-          </Field>
-          <Field label="Zona horaria" icon={Clock}>
+          </ConfigField>
+          <ConfigField label="Zona horaria" icon={Clock}>
             <Select value={form.timezone} onValueChange={v => setForm({ ...form, timezone: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -491,10 +497,10 @@ function HotelSection() {
                 <SelectItem value="Europe/Madrid">España</SelectItem>
               </SelectContent>
             </Select>
-          </Field>
-          <Field label="URL del Logo" icon={Globe} hint="Pegá la URL de la imagen de tu logo">
+          </ConfigField>
+          <ConfigField label="URL del Logo" icon={Globe} hint="Pegá la URL de la imagen de tu logo">
             <Input value={form.logoUrl} onChange={e => setForm({ ...form, logoUrl: e.target.value })} placeholder="https://ejemplo.com/logo.png" />
-          </Field>
+          </ConfigField>
         </div>
 
         {form.logoUrl && (

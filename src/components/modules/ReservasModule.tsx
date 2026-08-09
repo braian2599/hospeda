@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useHotelStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import { formatMoney, formatFecha, todayLocal } from '@/lib/format';
 import type { Reserva, HabitacionDisponible, Cliente, CampoPersonalizado, TarifaPrecios, PromocionesTarifa } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ import { toast } from 'sonner';
 import { notifySuccess, notifyWarning } from '@/lib/notify';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import PaginationBar from '@/components/ui/pagination-bar';
 
 // ==================== DATE PICKER HELPER ====================
 
@@ -219,14 +221,7 @@ function DateRangePickerInline({
 
 const s = (n: number) => n !== 1 ? 's' : '';
 
-const formatFecha = (f: string) => {
- if (!f) return '—';
- const d = new Date(f + 'T12:00:00');
- return d.toLocaleDateString('es-AR');
-};
-
-const formatMoney = (n: number) =>
- new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n);
+// formatFecha and formatMoney imported from @/lib/format
 
 const estadoReservaBadge: Record<string, string> = {
  Confirmada: 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]',
@@ -407,21 +402,33 @@ interface CombinacionSugerencia {
 // ==================== MAIN COMPONENT ====================
 
 export default function ReservasModule() {
- const {
- reservas, habitaciones, tarifas, tiposTarifa, metodosPago, pagos, caja,
- crearReserva, modificarReserva, cancelarReserva,
- buscarDisponibilidad, calcularTotalSegunTarifa, nochesEntre,
- buscarCliente, registrarPago,
- calcularTotalReserva, calcularTotalPagado,
- } = useHotelStore();
+ const reservas = useHotelStore(s => s.reservas);
+ const habitaciones = useHotelStore(s => s.habitaciones);
+ const tarifas = useHotelStore(s => s.tarifas);
+ const tiposTarifa = useHotelStore(s => s.tiposTarifa);
+ const metodosPago = useHotelStore(s => s.metodosPago);
+ const pagos = useHotelStore(s => s.pagos);
+ const caja = useHotelStore(s => s.caja);
+ const crearReserva = useHotelStore(s => s.crearReserva);
+ const modificarReserva = useHotelStore(s => s.modificarReserva);
+ const cancelarReserva = useHotelStore(s => s.cancelarReserva);
+ const buscarDisponibilidad = useHotelStore(s => s.buscarDisponibilidad);
+ const calcularTotalSegunTarifa = useHotelStore(s => s.calcularTotalSegunTarifa);
+ const nochesEntre = useHotelStore(s => s.nochesEntre);
+ const buscarCliente = useHotelStore(s => s.buscarCliente);
+ const registrarPago = useHotelStore(s => s.registrarPago);
+ const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
+ const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
 
  // ==================== FILTERS ====================
  const [filtroEstado, setFiltroEstado] = useState('todos');
  const [filtroTipo, setFiltroTipo] = useState('todos');
  const [filtroEstadoPago, setFiltroEstadoPago] = useState('todos');
- const todayStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+ const todayStr = todayLocal();
  const [filtroDesde, setFiltroDesde] = useState('');
  const [filtroHasta, setFiltroHasta] = useState('');
+ const [page, setPage] = useState(1);
+ const PAGE_SIZE = 15;
 
  // ==================== MODAL STATES ====================
  const [modalOpen, setModalOpen] = useState(false);
@@ -626,6 +633,10 @@ export default function ReservasModule() {
  if (filtroHasta && r.checkin >= filtroHasta) return false;
  return true;
  }).sort((a, b) => b.checkin.localeCompare(a.checkin));
+
+ // ==================== PAGINATION ====================
+ const totalPages = Math.ceil(filteredReservas.length / PAGE_SIZE) || 1;
+ const pagedReservas = filteredReservas.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
  // ==================== COMPUTED: SALDO POR RESERVA ====================
  const getSaldo = useCallback((r: Reserva) => {
@@ -1148,12 +1159,12 @@ export default function ReservasModule() {
  </ModuleHeader>
 
  {/* ==================== FILTER BAR ==================== */}
- <Card>
+ <Card className="bg-gradient-to-r from-[#F8FAFC] to-white border-[#E2E8F0]/80">
  <CardContent className="p-4">
  <div className="flex flex-wrap gap-3 items-end justify-center">
  <div className="grid gap-1.5">
  <Label className="text-xs text-muted-foreground">Estado</Label>
- <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+ <Select value={filtroEstado} onValueChange={v => { setFiltroEstado(v); setPage(1); }}>
  <SelectTrigger className="w-full sm:w-auto sm:min-w-[140px]"><SelectValue /></SelectTrigger>
  <SelectContent>
  <SelectItem value="todos">Todas</SelectItem>
@@ -1165,7 +1176,7 @@ export default function ReservasModule() {
  </div>
  <div className="grid gap-1.5">
  <Label className="text-xs text-muted-foreground">Tipo habitación</Label>
- <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+ <Select value={filtroTipo} onValueChange={v => { setFiltroTipo(v); setPage(1); }}>
  <SelectTrigger className="w-full sm:w-auto sm:min-w-[130px]"><SelectValue /></SelectTrigger>
  <SelectContent>
  <SelectItem value="todos">Todos</SelectItem>
@@ -1177,7 +1188,7 @@ export default function ReservasModule() {
  </div>
  <div className="grid gap-1.5">
  <Label className="text-xs text-muted-foreground">Estado de pago</Label>
- <Select value={filtroEstadoPago} onValueChange={setFiltroEstadoPago}>
+ <Select value={filtroEstadoPago} onValueChange={v => { setFiltroEstadoPago(v); setPage(1); }}>
  <SelectTrigger className="w-full sm:w-auto sm:min-w-[130px]"><SelectValue /></SelectTrigger>
  <SelectContent>
  <SelectItem value="todos">Todas</SelectItem>
@@ -1187,9 +1198,9 @@ export default function ReservasModule() {
  </SelectContent>
  </Select>
  </div>
- <DatePickerInline value={filtroDesde} onChange={v => setFiltroDesde(v)} placeholder="Desde" label="Fecha desde" />
- <DatePickerInline value={filtroHasta} onChange={v => setFiltroHasta(v)} placeholder="Hasta" label="Fecha hasta" />
- <Button variant="outline" size="sm" onClick={() => { const today = new Date().toISOString().split('T')[0]; setFiltroEstado('todos'); setFiltroTipo('todos'); setFiltroEstadoPago('todos'); setFiltroDesde(today); setFiltroHasta(today); }}>
+ <DatePickerInline value={filtroDesde} onChange={v => { setFiltroDesde(v); setPage(1); }} placeholder="Desde" label="Fecha desde" />
+ <DatePickerInline value={filtroHasta} onChange={v => { setFiltroHasta(v); setPage(1); }} placeholder="Hasta" label="Fecha hasta" />
+ <Button variant="outline" size="sm" onClick={() => { const today = new Date().toISOString().split('T')[0]; setFiltroEstado('todos'); setFiltroTipo('todos'); setFiltroEstadoPago('todos'); setFiltroDesde(today); setFiltroHasta(today); setPage(1); }}>
  <XCircle className="w-3.5 h-3.5 mr-1" />Limpiar
  </Button>
  </div>
@@ -1205,7 +1216,7 @@ export default function ReservasModule() {
  <div className="text-center py-10 text-muted-foreground">No se encontraron reservas.</div>
  ) : (
  <div className="divide-y">
- {filteredReservas.map(r => {
+ {pagedReservas.map(r => {
  const saldo = getSaldo(r);
  return (
  <div
@@ -1293,13 +1304,13 @@ export default function ReservasModule() {
  </TableCell>
  </TableRow>
  ) : (
- filteredReservas.map(r => {
+ pagedReservas.map(r => {
  const saldo = getSaldo(r);
  return (
- <TableRow key={r.id}>
+ <TableRow key={r.id} className="group hover:bg-[#F0FDF4]/40 transition-colors duration-150">
  <TableCell className="font-medium">
  <button
- className="hover:underline text-left cursor-pointer"
+ className="group-hover:text-[#0F2B28] transition-colors text-left cursor-pointer"
  onClick={() => openDetalle(r)}
  >
  <div>{r.huesped}</div>
@@ -1307,15 +1318,15 @@ export default function ReservasModule() {
  </button>
  </TableCell>
  <TableCell>
- <Badge variant="outline">{r.habitacion}</Badge>
+ <Badge variant="outline" className="font-mono">{r.habitacion}</Badge>
  </TableCell>
  <TableCell className="hidden sm:table-cell">{formatFecha(r.checkin)}</TableCell>
  <TableCell className="hidden sm:table-cell">{formatFecha(r.checkout)}</TableCell>
  <TableCell>
- <Badge className={estadoReservaBadge[r.estado] || ''}>{r.estado}</Badge>
+ <Badge className={`font-semibold shadow-sm ${estadoReservaBadge[r.estado] || ''}`}>{r.estado}</Badge>
  </TableCell>
  <TableCell>
- <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+ <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
  </TableCell>
  <TableCell className="hidden md:table-cell">
  <div className="flex items-center gap-1">
@@ -1357,6 +1368,7 @@ export default function ReservasModule() {
  </TableBody>
  </Table>
  </div>
+ <PaginationBar page={page} totalPages={totalPages} onPageChange={setPage} totalItems={filteredReservas.length} pageSize={PAGE_SIZE} />
  </CardContent>
  </Card>
 

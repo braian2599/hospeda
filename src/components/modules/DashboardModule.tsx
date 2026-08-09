@@ -1,6 +1,7 @@
 'use client';
 
 import { useHotelStore } from '@/lib/store';
+import { formatMoney, todayLocal } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,22 +14,21 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ModuleHeader from '@/components/layout/ModuleHeader';
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
-import { format } from 'date-fns';
+import { AnimatedNumber } from '@/components/ui/animated-number';
 
 // ==================== HELPERS ====================
 
-const DIAS_GANTT = 14;
 const ROW_H = 46;
 const BAR_H = 26;
 const BAR_TOP = (ROW_H - BAR_H) / 2;
-const COL_PCT = 100 / DIAS_GANTT;
-const MITAD_COL_PCT = COL_PCT / 2;
 const NOMBRES_DIAS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
 
-const formatMoney = (n: number) =>
-  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n);
+// formatMoney and todayLocal imported from @/lib/format
+
+/** Convert a Date to YYYY-MM-DD in local timezone */
+const toLocalDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 function formatearFecha(fechaStr: string): string {
   if (!fechaStr) return '';
@@ -36,65 +36,38 @@ function formatearFecha(fechaStr: string): string {
   return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
 }
 
-// ==================== ANIMATED NUMBER HOOK ====================
-
-function useCountUp(target: number, duration = 800, enabled = true) {
-  const [value, setValue] = useState(0);
-  const prevTarget = useRef(0);
-
-  useEffect(() => {
-    if (!enabled) { setValue(target); return; }
-    const startValue = prevTarget.current;
-    const diff = target - startValue;
-    if (Math.abs(diff) < 1) { setValue(target); prevTarget.current = target; return; }
-    const startTime = performance.now();
-    let raf: number;
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-      setValue(Math.round(startValue + diff * eased));
-      if (progress < 1) { raf = requestAnimationFrame(animate); }
-      else { prevTarget.current = target; }
-    };
-    raf = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(raf);
-  }, [target, duration, enabled]);
-
-  return value;
-}
-
 // ==================== ANIMATED KPI ====================
 
-function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, trend, numeric = false }: {
-  icon: React.ComponentType<{ className?: string }>;
+function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, trend, numericValue, suffix }: {
+  icon: ComponentType<{ className?: string }>;
   label: string;
   value: string;
   sub?: string;
   color: string;
   bgGradient?: string;
   trend?: { value: number; label: string };
-  numeric?: boolean;
+  numericValue?: number;
+  suffix?: string;
 }) {
-  const numVal = numeric ? parseInt(value.replace(/[^0-9]/g, '')) || 0 : 0;
-  const animated = useCountUp(numVal, 600, numeric && numVal > 0);
-  const displayValue = numeric ? value.replace(/\d+/, String(animated)) : value;
-
   const trendUp = trend && trend.value > 0;
   const trendDown = trend && trend.value < 0;
   const trendIcon = trendUp ? '\u2191' : trendDown ? '\u2193' : '';
   const trendColor = trendUp ? 'text-[#4ADE80]' : trendDown ? 'text-[#EF4444]' : 'text-muted-foreground';
 
   return (
-    <Card className={`overflow-hidden group hover:shadow-md transition-shadow duration-200 !py-0 !gap-0 ${bgGradient || 'bg-gradient-to-br from-slate-50 to-slate-100'}`}>
+    <Card className={`overflow-hidden group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 !py-0 !gap-0 border-0 ${bgGradient || 'bg-gradient-to-br from-slate-50 to-slate-100'}`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
-            <p className="text-2xl font-extrabold mt-1 text-[#0F172A]">{displayValue}</p>
+            <p className="text-2xl font-extrabold mt-1 text-[#0F172A]">
+              {numericValue !== undefined ? (
+                <><AnimatedNumber value={numericValue} duration={600} format={suffix === '%' ? (n: number) => `${Math.round(n)}%` : (n: number) => String(Math.round(n))} className="text-2xl font-extrabold text-[#0F172A]" /></>
+              ) : value}
+            </p>
             {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
           </div>
-          <div className="p-2.5 rounded-xl bg-white/70 group-hover:scale-110 transition-transform duration-200">
+          <div className="p-2.5 rounded-xl bg-white/80 shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-200">
             <Icon className={`w-5 h-5 ${color}`} />
           </div>
         </div>
@@ -324,7 +297,7 @@ function GraficoIngresosEgresos({ pagos, gastos }: { pagos: { fecha: string; mon
     for (let i = 6; i >= 0; i--) {
       const d = new Date(hoy);
       d.setDate(d.getDate() - i);
-      dias.push(format(d, 'yyyy-MM-dd'));
+      dias.push(toLocalDateStr(d));
     }
     return dias.map(dia => {
       const ing = pagos.filter(p => p.fecha === dia).reduce((s, p) => s + p.monto, 0);
@@ -410,25 +383,26 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
   fechaInicioBase: Date;
 }) {
   const [offset, setOffset] = useState(0);
+  const [ganttDays, setGanttDays] = useState(14);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [popoverData, setPopoverData] = useState<PopoverData | null>(null);
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
 
   const fechaInicio = useMemo(() => {
     const d = new Date(fechaInicioBase);
-    d.setDate(d.getDate() + offset * DIAS_GANTT);
+    d.setDate(d.getDate() + offset * 7);
     return d;
   }, [fechaInicioBase, offset]);
 
   const columnas = useMemo(() => {
     const cols: string[] = [];
-    for (let i = 0; i < DIAS_GANTT; i++) {
+    for (let i = 0; i < ganttDays; i++) {
       const f = new Date(fechaInicio);
       f.setDate(f.getDate() + i);
-      cols.push(format(f, 'yyyy-MM-dd'));
+      cols.push(toLocalDateStr(f));
     }
     return cols;
-  }, [fechaInicio]);
+  }, [fechaInicio, ganttDays]);
 
   const colIdx = useMemo(() => {
     const idx: Record<string, number> = {};
@@ -436,7 +410,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
     return idx;
   }, [columnas]);
 
-  const hoyStr = format(new Date(), 'yyyy-MM-dd');
+  const hoyStr = todayLocal();
 
   const handleBarClick = useCallback((e: React.MouseEvent, res: GanttReserva, num: string) => {
     e.stopPropagation();
@@ -468,7 +442,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
 
       reservas.forEach(r => {
         if (r.habitacion !== num || r.estado === 'Cancelada') return;
-        if (r.checkin > columnas[DIAS_GANTT - 1] || r.checkout < columnas[0]) return;
+        if (r.checkin > columnas[ganttDays - 1] || r.checkout < columnas[0]) return;
 
         // Usar tanto el formato del store como el de la BD para comparar
         const esCheckout = r.estado === 'Checkout_realizado' || r.estado === 'Check-Out realizado';
@@ -499,7 +473,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       }
 
       if (hab.estado === 'Mantenimiento') {
-        reservasHab.push({ tipo: 'Mantenimiento', checkin: columnas[0], checkout: columnas[DIAS_GANTT - 1], huesped: hab.problema || 'Mantenimiento', horaCheckin: new Date(columnas[0] + 'T00:00:00'), horaCheckout: new Date(columnas[DIAS_GANTT - 1] + 'T23:59:59') });
+        reservasHab.push({ tipo: 'Mantenimiento', checkin: columnas[0], checkout: columnas[ganttDays - 1], huesped: hab.problema || 'Mantenimiento', horaCheckin: new Date(columnas[0] + 'T00:00:00'), horaCheckout: new Date(columnas[ganttDays - 1] + 'T23:59:59') });
       }
 
       // Habitaciones compartidas: carriles múltiples
@@ -517,7 +491,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
 
         const barras = reservasActivas.map((res, idx) => {
           const carrilTop = 4 + idx * (BAR_H + 4);
-          const barData = calcularBarra(res, colIdx, columnas, DIAS_GANTT);
+          const barData = calcularBarra(res, colIdx, columnas, ganttDays);
           if (!barData) return null;
           return (
             <div
@@ -534,7 +508,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         });
 
         result.push(
-          <div key={num} className={`flex items-stretch border-b-2 border-[#E2E8F0] last:border-b-0 ${rowIndex % 2 !== 0 ? 'bg-[#F8FAFC]/50' : ''}`} style={{ height: FILA_H }}>
+          <div key={num} className={`flex items-stretch border-b-2 border-[#E2E8F0] last:border-b-0 hover:bg-[#F0FDF4]/30 transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-[#F8FAFC]/50' : ''}`} style={{ height: FILA_H }}>
             <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-[#E2E8F0] bg-white z-[5]" style={{ height: FILA_H }}>
               <span className="text-[12px] font-bold text-[#1E293B] leading-tight">{num}</span>
               <span className="text-[10px] text-[#64748B] font-medium mt-0.5">{hab.tipo}</span>
@@ -557,7 +531,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       });
 
       const barras = reservasHab.map((res, idx) => {
-        const barData = calcularBarra(res, colIdx, columnas, DIAS_GANTT);
+        const barData = calcularBarra(res, colIdx, columnas, ganttDays);
         if (!barData) return null;
         return (
           <div
@@ -574,7 +548,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       });
 
       result.push(
-        <div key={num} className={`flex items-stretch border-b-2 border-[#E2E8F0] last:border-b-0 ${rowIndex % 2 !== 0 ? 'bg-[#F8FAFC]/50' : ''}`} style={{ height: ROW_H }}>
+        <div key={num} className={`flex items-stretch border-b-2 border-[#E2E8F0] last:border-b-0 hover:bg-[#F0FDF4]/30 transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-[#F8FAFC]/50' : ''}`} style={{ height: ROW_H }}>
           <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-[#E2E8F0] bg-white z-[5]" style={{ height: ROW_H }}>
             <span className="text-[12px] font-bold text-[#1E293B] leading-tight">{num}</span>
             <span className="text-[10px] text-[#64748B] font-medium mt-0.5">{hab.tipo}</span>
@@ -588,7 +562,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
     });
 
     return result;
-  }, [habitaciones, reservas, columnas, colIdx, handleBarClick, hoyStr, mostrarHistorial]);
+  }, [habitaciones, reservas, columnas, colIdx, handleBarClick, hoyStr, mostrarHistorial, ganttDays]);
 
   const headerCols = useMemo(() => {
     return columnas.map((col, i) => {
@@ -596,11 +570,11 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       const esFS = d.getDay() === 0 || d.getDay() === 6;
       const isHoy = col === hoyStr;
       return (
-        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-[#E2E8F0] min-w-0 ${esFS ? 'bg-[#FEE2E2]/50' : ''} ${isHoy ? 'bg-[#DBEAFE]/60' : ''}`}>
-          <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-[#F43F5E]' : 'text-[#64748B]'} ${isHoy ? '!text-[#1E40AF]' : ''}`}>
+        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-[#E2E8F0] min-w-0 transition-colors duration-150 ${esFS ? 'bg-[#FEE2E2]/50' : ''} ${isHoy ? 'bg-[#0F2B28]/8' : ''}`}>
+          <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-[#F43F5E]' : 'text-[#64748B]'} ${isHoy ? '!text-[#0F2B28]' : ''}`}>
             {NOMBRES_DIAS[d.getDay()]}
           </span>
-          <span className={`text-[15px] font-bold leading-none mt-0.5 ${esFS ? 'text-[#F43F5E]' : 'text-[#1E293B]'} ${isHoy ? '!text-[#1E40AF] underline decoration-2 underline-offset-2' : ''}`}>
+          <span className={`text-[15px] font-bold leading-none mt-0.5 ${esFS ? 'text-[#F43F5E]' : 'text-[#1E293B]'} ${isHoy ? '!text-[#0F2B28] underline decoration-2 underline-offset-2 decoration-[#4ADE80]' : ''}`}>
             {d.getDate()}
           </span>
         </div>
@@ -628,18 +602,35 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
               <CalendarCheck className="w-4 h-4 text-[#3B82F6]" />
               Calendario de Ocupación
             </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setOffset(o => o - 1)} disabled={offset <= -2}>
+            <div className="flex items-center gap-1.5">
+              <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setOffset(o => o - 1)} disabled={offset <= -4}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="text-xs text-muted-foreground font-medium min-w-0 truncate text-center">{rangeLabel}</span>
+              <span className="text-xs text-muted-foreground font-medium min-w-[120px] truncate text-center">{rangeLabel}</span>
               <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setOffset(o => o + 1)}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
               {offset !== 0 && (
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setOffset(0)}>Hoy</Button>
               )}
-              <div className="w-px h-5 bg-[#E2E8F0] mx-1" />
+              <div className="w-px h-5 bg-[#E2E8F0] mx-0.5" />
+              <Button
+                variant={ganttDays === 14 ? 'default' : 'outline'}
+                size="sm"
+                className={cn('h-7 text-xs', ganttDays === 14 && 'bg-[#0F2B28] hover:bg-[#1a3d35]')}
+                onClick={() => setGanttDays(14)}
+              >
+                2 sem
+              </Button>
+              <Button
+                variant={ganttDays === 30 ? 'default' : 'outline'}
+                size="sm"
+                className={cn('h-7 text-xs', ganttDays === 30 && 'bg-[#0F2B28] hover:bg-[#1a3d35]')}
+                onClick={() => setGanttDays(30)}
+              >
+                1 mes
+              </Button>
+              <div className="w-px h-5 bg-[#E2E8F0] mx-0.5" />
               <Button
                 variant={mostrarHistorial ? 'default' : 'outline'}
                 size="sm"
@@ -687,6 +678,8 @@ function getBarColorClass(tipo: string): string {
 }
 
 function calcularBarra(res: GanttReserva, colIdx: Record<string, number>, columnas: string[], DIAS: number) {
+  const COL_PCT = 100 / DIAS;
+  const MITAD_COL_PCT = COL_PCT / 2;
   let startCol = Math.max(colIdx[res.checkin] ?? 0, 0);
   let endCol = Math.min(colIdx[res.checkout] !== undefined ? colIdx[res.checkout] : DIAS - 1, DIAS - 1);
 
@@ -717,7 +710,7 @@ function RoomHeatmap({ habitaciones, reservas }: {
   habitaciones: Record<string, { tipo: string; estado: string; capacidad: number; problema?: string }>;
   reservas: { habitacion: string; estado: string; huesped: string; checkin: string; checkout: string }[];
 }) {
-  const hoyStr = format(new Date(), 'yyyy-MM-dd');
+  const hoyStr = todayLocal();
 
   const habInfo = useMemo(() => {
     const map: Record<string, { huesped: string; estado: string }> = {};
@@ -781,9 +774,17 @@ function RoomHeatmap({ habitaciones, reservas }: {
 // ==================== DASHBOARD PRINCIPAL ====================
 
 export default function DashboardModule() {
-  const { habitaciones, reservas, pagos, gastos, caja, setModulo, realizarCheckOut, calcularTotalReserva, calcularTotalPagado } = useHotelStore();
+  const habitaciones = useHotelStore(s => s.habitaciones);
+  const reservas = useHotelStore(s => s.reservas);
+  const pagos = useHotelStore(s => s.pagos);
+  const gastos = useHotelStore(s => s.gastos);
+  const caja = useHotelStore(s => s.caja);
+  const setModulo = useHotelStore(s => s.setModulo);
+  const realizarCheckOut = useHotelStore(s => s.realizarCheckOut);
+  const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
+  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
   const hoy = new Date();
-  const hoyStr = format(hoy, 'yyyy-MM-dd');
+  const hoyStr = todayLocal();
 
   const totalHabitaciones = Object.keys(habitaciones).length;
   const ocupadas = Object.values(habitaciones).filter(h => h.estado === 'Ocupada').length;
@@ -794,11 +795,6 @@ export default function DashboardModule() {
 
   const checkinsHoy = useMemo(() => reservas.filter(r => r.estado === 'Confirmada' && r.checkin === hoyStr), [reservas, hoyStr]);
   const checkoutsHoy = useMemo(() => reservas.filter(r => r.estado === 'Check-In realizado' && r.checkout === hoyStr), [reservas, hoyStr]);
-
-  // Animated values
-  const animOcupacion = useCountUp(tasaOcupacion, 800);
-  const animCheckins = useCountUp(checkinsHoy.length, 400, true);
-  const animCheckouts = useCountUp(checkoutsHoy.length, 400, true);
 
   // Alerta de caja abierta
   const [, setTick] = useState(0);
@@ -861,10 +857,10 @@ export default function DashboardModule() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPIAnimated icon={Bed} label="Ocupación" value={`${animOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-[#166534]" bgGradient="bg-gradient-to-br from-[#DCFCE7] to-[#DCFCE7]/50" numeric />
-        <KPIAnimated icon={LogIn} label="Check-ins" value={String(animCheckins)} sub="pendientes hoy" color="text-[#1E40AF]" bgGradient="bg-gradient-to-br from-[#DBEAFE] to-[#DBEAFE]/50" numeric />
-        <KPIAnimated icon={LogOut} label="Check-outs" value={String(animCheckouts)} sub="pendientes hoy" color="text-[#EA580C]" bgGradient="bg-gradient-to-br from-[#FFEDD5] to-[#FFEDD5]/50" numeric />
-        <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-[#7C3AED]" bgGradient="bg-gradient-to-br from-[#F5F3FF] to-[#F5F3FF]/50" numeric />
+        <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-[#166534]" bgGradient="bg-gradient-to-br from-[#DCFCE7] via-[#ECFDF5] to-white" numericValue={tasaOcupacion} suffix="%" />
+        <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-[#1E40AF]" bgGradient="bg-gradient-to-br from-[#DBEAFE] via-[#EFF6FF] to-white" numericValue={checkinsHoy.length} />
+        <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-[#EA580C]" bgGradient="bg-gradient-to-br from-[#FFEDD5] via-[#FFF7ED] to-white" numericValue={checkoutsHoy.length} />
+        <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-[#7C3AED]" bgGradient="bg-gradient-to-br from-[#F5F3FF] via-[#FAFAFE] to-white" numericValue={reservadas} />
       </div>
 
       {/* Room Heatmap */}

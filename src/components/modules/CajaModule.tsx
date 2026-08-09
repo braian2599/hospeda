@@ -5,6 +5,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useHotelStore } from '@/lib/store';
+import { formatFechaHora, formatMoney } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,28 +22,31 @@ import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import { DialogTrigger } from '@/components/ui/dialog';
 import { BILLETES } from '@/lib/types';
+import PaginationBar from '@/components/ui/pagination-bar';
 
-const formatFechaHora = (f: string) => {
-  if (!f) return '—';
-  const d = new Date(f.length === 10 ? f + 'T12:00:00' : f);
-  return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-};
+// formatFechaHora and formatMoney imported from @/lib/format
 
 const formatHora = (f: string) => {
   const d = new Date(f);
   return d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 };
 
-const formatMoney = (n: number) => '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// formatMoney imported from @/lib/format (note: shared uses Intl.NumberFormat with currency style,
+// CajaModule previously used toLocaleString - the shared version is more consistent)
 
 const METODOS = ['Efectivo', 'Transferencia', 'Tarjeta de Credito', 'Tarjeta de Debito', 'Mercado Pago', 'Otro'];
 
 export default function CajaModule() {
-  const {
-    caja, abrirCaja, registrarMovimientoCaja, cerrarCaja, saldoActualCaja,
-    editarMovimientoCaja, eliminarMovimientoCaja, usuarioActual,
-    metodosPago, categoriasGastos,
-  } = useHotelStore();
+  const caja = useHotelStore(s => s.caja);
+  const abrirCaja = useHotelStore(s => s.abrirCaja);
+  const registrarMovimientoCaja = useHotelStore(s => s.registrarMovimientoCaja);
+  const cerrarCaja = useHotelStore(s => s.cerrarCaja);
+  const saldoActualCaja = useHotelStore(s => s.saldoActualCaja);
+  const editarMovimientoCaja = useHotelStore(s => s.editarMovimientoCaja);
+  const eliminarMovimientoCaja = useHotelStore(s => s.eliminarMovimientoCaja);
+  const usuarioActual = useHotelStore(s => s.usuarioActual);
+  const metodosPago = useHotelStore(s => s.metodosPago);
+  const categoriasGastos = useHotelStore(s => s.categoriasGastos);
 
   // Loading states
   const [loadingAbrir, setLoadingAbrir] = useState(false);
@@ -70,30 +74,48 @@ export default function CajaModule() {
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const saldo = useMemo(() => saldoActualCaja(), [caja, caja.movimientos]);
+  // Pagination
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 15;
+
+  const saldo = useMemo(() => {
+    if (caja.estado !== 'abierta' || !caja.apertura) return 0;
+    let s = caja.apertura.montoInicial;
+    (caja.movimientos || []).forEach(mov => {
+      if (mov.metodo === 'Efectivo') s += mov.tipo === 'ingreso' ? mov.monto : -mov.monto;
+    });
+    return s;
+  }, [caja, caja.movimientos]);
   const movimientos = caja.movimientos || [];
+
+  // Pagination for movimientos
+  const movTotalPages = Math.ceil(movimientos.length / PAGE_SIZE) || 1;
+  const pagedMovimientos = movimientos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const reversedPagedMovimientos = [...movimientos].reverse().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const isAdminOrOwner = usuarioActual?.rol === 'owner' || usuarioActual?.rol === 'admin';
 
   // Summary calculations
   const resumenOtros = useMemo(() => {
+    const movs = caja.movimientos || [];
     const res: Record<string, { ingresos: number; egresos: number }> = {};
-    movimientos.forEach(m => {
+    movs.forEach(m => {
       if (m.metodo !== 'Efectivo') {
         if (!res[m.metodo]) res[m.metodo] = { ingresos: 0, egresos: 0 };
         res[m.metodo][m.tipo === 'ingreso' ? 'ingresos' : 'egresos'] += m.monto;
       }
     });
     return res;
-  }, [movimientos]);
+  }, [caja.movimientos]);
 
   const totalIngresosPorMetodo = useMemo(() => {
+    const movs = caja.movimientos || [];
     const res: Record<string, number> = {};
-    movimientos.forEach(m => {
+    movs.forEach(m => {
       if (m.tipo === 'ingreso') res[m.metodo] = (res[m.metodo] || 0) + m.monto;
     });
     return res;
-  }, [movimientos]);
+  }, [caja.movimientos]);
 
   const totalOtros = Object.values(resumenOtros).reduce((s, v) => s + v.ingresos - v.egresos, 0);
   const totalEfectivo = useMemo(() => BILLETES.reduce((s, b) => s + b * (billetes[b] || 0), 0), [billetes]);
@@ -211,12 +233,13 @@ export default function CajaModule() {
   // Saldo esperado (efectivo only)
   const saldoEsperadoEfectivo = useMemo(() => {
     if (!caja.apertura) return 0;
+    const movs = caja.movimientos || [];
     let s = caja.apertura.montoInicial;
-    movimientos.forEach(m => {
+    movs.forEach(m => {
       if (m.metodo === 'Efectivo') s += m.tipo === 'ingreso' ? m.monto : -m.monto;
     });
     return s;
-  }, [caja.apertura, movimientos]);
+  }, [caja.apertura, caja.movimientos]);
 
   const diferencia = totalEfectivo - saldoEsperadoEfectivo;
 
@@ -228,9 +251,9 @@ export default function CajaModule() {
 
       {caja.estado === 'cerrada' ? (
         /* ═══════ CAJA CERRADA ═══════ */
-        <Card>
+        <Card className="bg-gradient-to-br from-[#F1F5F9]/80 to-white">
           <CardContent className="text-center py-10 space-y-4">
-            <Lock className="w-12 h-12 mx-auto text-destructive" />
+            <Lock className="w-12 h-12 mx-auto text-muted-foreground" />
             <div>
               <h3 className="text-lg font-semibold">Caja cerrada</h3>
               <p className="text-sm text-muted-foreground">Inicie un nuevo turno para comenzar a operar.</p>
@@ -261,7 +284,7 @@ export default function CajaModule() {
           <Card className="lg:hidden">
             <CardContent className="p-3 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold flex items-center gap-2 text-sm"><Unlock className="w-4 h-4 text-[#166534]" /> Caja abierta</h3>
+                <h3 className="font-semibold flex items-center gap-2 text-sm"><Unlock className="w-4 h-4 text-[#4ADE80] animate-pulse-subtle" /> Caja abierta</h3>
                 <Dialog open={showCierre} onOpenChange={setShowCierre}>
                   <DialogTrigger asChild>
                     <Button variant="destructive" size="sm" className="h-7 text-xs"><Lock className="w-3.5 h-3.5 mr-1" />Cerrar</Button>
@@ -333,7 +356,7 @@ export default function CajaModule() {
                 <div className="text-center py-10 text-muted-foreground">Sin movimientos.</div>
               ) : (
                 <div className="divide-y">
-                  {[...movimientos].reverse().map((m) => (
+                  {reversedPagedMovimientos.map((m) => (
                     <div key={m.id} className="p-3.5 space-y-1.5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
@@ -367,6 +390,7 @@ export default function CajaModule() {
                 </div>
               )}
             </CardContent>
+            <PaginationBar page={page} totalPages={movTotalPages} onPageChange={setPage} totalItems={movimientos.length} pageSize={PAGE_SIZE} />
           </Card>
 
           {/* ═══════ DESKTOP ═══════ */}
@@ -375,7 +399,7 @@ export default function CajaModule() {
               {/* Status bar */}
               <Card>
                 <CardContent className="flex items-center justify-between py-3">
-                  <h3 className="font-semibold flex items-center gap-2"><Unlock className="w-5 h-5 text-[#166534]" /> Caja abierta</h3>
+                  <h3 className="font-semibold flex items-center gap-2"><Unlock className="w-5 h-5 text-[#4ADE80] animate-pulse-subtle" /> Caja abierta</h3>
                   <Dialog open={showCierre} onOpenChange={setShowCierre}>
                     <DialogTrigger asChild>
                       <Button variant="destructive" disabled={loadingCerrar}><Lock className="w-4 h-4 mr-1" />Cerrar caja</Button>
@@ -416,7 +440,7 @@ export default function CajaModule() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {movimientos.map((m) => (
+                        {pagedMovimientos.map((m) => (
                           <TableRow key={m.id}>
                             <TableCell className="text-xs">{formatFechaHora(m.fecha)}</TableCell>
                             <TableCell>
@@ -446,6 +470,7 @@ export default function CajaModule() {
                       </TableBody>
                     </Table>
                   )}
+                  <PaginationBar page={page} totalPages={movTotalPages} onPageChange={setPage} totalItems={movimientos.length} pageSize={PAGE_SIZE} />
                 </CardContent>
               </Card>
             </div>
@@ -453,7 +478,7 @@ export default function CajaModule() {
             {/* Info Panel */}
             <div className="space-y-4">
               <Card>
-                <CardHeader className="bg-[#F1F5F9] pb-3"><CardTitle className="text-sm">Informacion</CardTitle></CardHeader>
+                <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-3"><CardTitle className="text-sm">Informacion</CardTitle></CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   {caja.apertura && (
                     <>
@@ -462,7 +487,7 @@ export default function CajaModule() {
                       <div className="flex justify-between"><span className="text-muted-foreground">Inicial:</span><span>{formatMoney(caja.apertura.montoInicial)}</span></div>
                     </>
                   )}
-                  <div className="flex justify-between"><span className="text-muted-foreground">Saldo actual:</span><span className="font-bold text-lg">{formatMoney(saldo)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Saldo actual:</span><span className="font-bold text-lg text-[#0F2B28]">{formatMoney(saldo)}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Movimientos:</span><span>{movimientos.length}</span></div>
 
                   {/* Action buttons */}

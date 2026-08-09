@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useHotelStore } from '@/lib/store';
+import { formatMoney, formatFecha } from '@/lib/format';
 import type { Reserva, Pago } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,27 +27,26 @@ import {
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
+import PaginationBar from '@/components/ui/pagination-bar';
 
-const formatFecha = (f: string) => {
-  if (!f) return '—';
-  const d = new Date(f + 'T12:00:00');
-  return d.toLocaleDateString('es-AR');
-};
-
-const formatMoney = (n: number) =>
-  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n);
+// formatFecha and formatMoney imported from @/lib/format
 
 const estadoPagoBadge: Record<string, string> = {
-  Pendiente: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]',
-  Parcial: 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA]',
-  Pagado: 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]',
+  Pendiente: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A] shadow-sm',
+  Parcial: 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA] shadow-sm',
+  Pagado: 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0] shadow-sm',
 };
 
 export default function FacturacionModule() {
-  const {
-    reservas, pagos, metodosPago, habitaciones, caja,
-    calcularTotalReserva, calcularTotalPagado, registrarPago, nochesEntre,
-  } = useHotelStore();
+  const reservas = useHotelStore(s => s.reservas);
+  const pagos = useHotelStore(s => s.pagos);
+  const metodosPago = useHotelStore(s => s.metodosPago);
+  const habitaciones = useHotelStore(s => s.habitaciones);
+  const caja = useHotelStore(s => s.caja);
+  const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
+  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
+  const registrarPago = useHotelStore(s => s.registrarPago);
+  const nochesEntre = useHotelStore(s => s.nochesEntre);
 
   // Pending payments
   const pendientes = reservas.filter(r => {
@@ -61,6 +61,11 @@ export default function FacturacionModule() {
   const [histFiltroMetodo, setHistFiltroMetodo] = useState('todos');
   const [histFiltroDesde, setHistFiltroDesde] = useState('');
   const [histFiltroHasta, setHistFiltroHasta] = useState('');
+
+  // Pagination
+  const [pendPage, setPendPage] = useState(1);
+  const [histPage, setHistPage] = useState(1);
+  const PAGE_SIZE = 15;
 
   // Payment dialog
   const [savingPago, setSavingPago] = useState(false);
@@ -93,6 +98,14 @@ export default function FacturacionModule() {
       return true;
     })
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+  // Pagination for pendientes
+  const pendTotalPages = Math.ceil(pendientes.length / PAGE_SIZE) || 1;
+  const pagedPendientes = pendientes.slice((pendPage - 1) * PAGE_SIZE, pendPage * PAGE_SIZE);
+
+  // Pagination for historial
+  const histTotalPages = Math.ceil(filteredPagos.length / PAGE_SIZE) || 1;
+  const pagedPagos = filteredPagos.slice((histPage - 1) * PAGE_SIZE, histPage * PAGE_SIZE);
 
   // Open payment dialog
   const openPagoDialog = (reservaId: string) => {
@@ -151,11 +164,11 @@ export default function FacturacionModule() {
       <ModuleHeader icon={Receipt} title="Facturación" subtitle="Comprobantes y pagos de tus reservas" />
 
       <Tabs defaultValue="pendientes">
-        <TabsList>
-          <TabsTrigger value="pendientes">
+        <TabsList className="bg-muted/50">
+          <TabsTrigger value="pendientes" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all">
             <CreditCard className="w-4 h-4 mr-1" />Cobros pendientes
           </TabsTrigger>
-          <TabsTrigger value="historial">
+          <TabsTrigger value="historial" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all">
             <FileText className="w-4 h-4 mr-1" />Historial de pagos
           </TabsTrigger>
         </TabsList>
@@ -176,7 +189,7 @@ export default function FacturacionModule() {
                   <div className="text-center py-10 text-muted-foreground">No hay cobros pendientes.</div>
                 ) : (
                   <div className="divide-y">
-                    {pendientes.map(r => {
+                    {pagedPendientes.map(r => {
                       const total = calcularTotalReserva(r.id);
                       const pagado = calcularTotalPagado(r.id);
                       const saldo = total - pagado;
@@ -263,24 +276,24 @@ export default function FacturacionModule() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      pendientes.map(r => {
+                      pagedPendientes.map(r => {
                         const total = calcularTotalReserva(r.id);
                         const pagado = calcularTotalPagado(r.id);
                         const saldo = total - pagado;
                         return (
-                          <TableRow key={r.id}>
+                          <TableRow key={r.id} className="group hover:bg-[#F0FDF4]/30 transition-colors duration-150">
                             <TableCell className="font-medium">
                               <div>{r.huesped}</div>
                               <div className="text-xs text-muted-foreground">{r.dni}</div>
                             </TableCell>
-                            <TableCell><Badge variant="outline">{r.habitacion}</Badge></TableCell>
+                            <TableCell><Badge variant="outline" className="font-mono">{r.habitacion}</Badge></TableCell>
                             <TableCell className="hidden md:table-cell">{formatFecha(r.checkin)}</TableCell>
                             <TableCell className="hidden md:table-cell">{formatFecha(r.checkout)}</TableCell>
-                            <TableCell className="text-right font-medium">{formatMoney(total)}</TableCell>
-                            <TableCell className="text-right text-[#166534]">{formatMoney(pagado)}</TableCell>
-                            <TableCell className="text-right text-[#991B1B] font-semibold">{formatMoney(saldo)}</TableCell>
+                            <TableCell className="text-right font-bold text-[#0F2B28]">{formatMoney(total)}</TableCell>
+                            <TableCell className="text-right font-semibold text-[#166534]">{formatMoney(pagado)}</TableCell>
+                            <TableCell className="text-right text-[#991B1B] font-bold">{formatMoney(saldo)}</TableCell>
                             <TableCell>
-                              <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+                              <Badge className={`font-semibold ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
@@ -299,6 +312,7 @@ export default function FacturacionModule() {
                   </TableBody>
                 </Table>
               </div>
+              <PaginationBar page={pendPage} totalPages={pendTotalPages} onPageChange={setPendPage} totalItems={pendientes.length} pageSize={PAGE_SIZE} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -314,12 +328,12 @@ export default function FacturacionModule() {
                   <Input
                     placeholder="Buscar..."
                     value={histFiltroHuesped}
-                    onChange={e => setHistFiltroHuesped(e.target.value)}
+                    onChange={e => { setHistFiltroHuesped(e.target.value); setHistPage(1); }}
                   />
                 </div>
                 <div className="grid gap-1.5">
                   <Label className="text-xs text-muted-foreground">Método</Label>
-                  <Select value={histFiltroMetodo} onValueChange={setHistFiltroMetodo}>
+                  <Select value={histFiltroMetodo} onValueChange={v => { setHistFiltroMetodo(v); setHistPage(1); }}>
                     <SelectTrigger className="w-full sm:w-auto sm:min-w-[140px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos</SelectItem>
@@ -331,13 +345,13 @@ export default function FacturacionModule() {
                 </div>
                 <div className="grid gap-1.5">
                   <Label className="text-xs text-muted-foreground">Desde</Label>
-                  <Input type="date" value={histFiltroDesde} onChange={e => setHistFiltroDesde(e.target.value)} className="w-full sm:w-auto sm:min-w-[140px]" />
+                  <Input type="date" value={histFiltroDesde} onChange={e => { setHistFiltroDesde(e.target.value); setHistPage(1); }} className="w-full sm:w-auto sm:min-w-[140px]" />
                 </div>
                 <div className="grid gap-1.5">
                   <Label className="text-xs text-muted-foreground">Hasta</Label>
-                  <Input type="date" value={histFiltroHasta} onChange={e => setHistFiltroHasta(e.target.value)} className="w-full sm:w-auto sm:min-w-[140px]" />
+                  <Input type="date" value={histFiltroHasta} onChange={e => { setHistFiltroHasta(e.target.value); setHistPage(1); }} className="w-full sm:w-auto sm:min-w-[140px]" />
                 </div>
-                <Button variant="outline" size="sm" onClick={() => { setHistFiltroHuesped(''); setHistFiltroMetodo('todos'); setHistFiltroDesde(''); setHistFiltroHasta(''); }}>
+                <Button variant="outline" size="sm" onClick={() => { setHistFiltroHuesped(''); setHistFiltroMetodo('todos'); setHistFiltroDesde(''); setHistFiltroHasta(''); setHistPage(1); }}>
                   <XCircle className="w-3.5 h-3.5 mr-1" />Limpiar
                 </Button>
               </div>
@@ -353,7 +367,7 @@ export default function FacturacionModule() {
                   <div className="text-center py-10 text-muted-foreground">No se encontraron pagos.</div>
                 ) : (
                   <div className="divide-y">
-                    {filteredPagos.map(p => {
+                    {pagedPagos.map(p => {
                       const reserva = reservas.find(r => r.id === p.idReserva);
                       const metodoNombre = metodosPago.find(m => m.id === p.metodo)?.nombre || p.metodo;
                       const totalR = reserva ? calcularTotalReserva(reserva.id) : 0;
@@ -426,14 +440,14 @@ export default function FacturacionModule() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredPagos.map(p => {
+                      pagedPagos.map(p => {
                         const reserva = reservas.find(r => r.id === p.idReserva);
                         const metodoNombre = metodosPago.find(m => m.id === p.metodo)?.nombre || p.metodo;
                         const totalR = reserva ? calcularTotalReserva(reserva.id) : 0;
                         const pagadoR = reserva ? calcularTotalPagado(reserva.id) : 0;
                         const saldoR = totalR - pagadoR;
                         return (
-                          <TableRow key={p.id}>
+                          <TableRow key={p.id} className="group hover:bg-[#F0FDF4]/30 transition-colors duration-150">
                             <TableCell>{formatFecha(p.fecha)}</TableCell>
                             <TableCell className="font-medium">
                               {reserva?.huesped || `Reserva #${p.idReserva}`}
@@ -444,7 +458,7 @@ export default function FacturacionModule() {
                             <TableCell>
                               <Badge variant="secondary">{metodoNombre}</Badge>
                             </TableCell>
-                            <TableCell className="text-right font-semibold text-[#166534]">
+                            <TableCell className="text-right font-bold text-[#059669]">
                               {formatMoney(p.monto)}
                             </TableCell>
                             <TableCell className="hidden md:table-cell text-right text-sm">
@@ -470,6 +484,7 @@ export default function FacturacionModule() {
                   </TableBody>
                 </Table>
               </div>
+              <PaginationBar page={histPage} totalPages={histTotalPages} onPageChange={setHistPage} totalItems={filteredPagos.length} pageSize={PAGE_SIZE} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -583,7 +598,12 @@ export default function FacturacionModule() {
 /* =================== RECIBO COMPONENT =================== */
 
 function ReciboContent({ reserva }: { reserva: Reserva }) {
-  const { calcularTotalReserva, calcularTotalPagado, nochesEntre, pagos, metodosPago, habitaciones } = useHotelStore();
+  const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
+  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
+  const nochesEntre = useHotelStore(s => s.nochesEntre);
+  const pagos = useHotelStore(s => s.pagos);
+  const metodosPago = useHotelStore(s => s.metodosPago);
+  const habitaciones = useHotelStore(s => s.habitaciones);
   const total = calcularTotalReserva(reserva.id);
   const pagado = calcularTotalPagado(reserva.id);
   const saldo = total - pagado;

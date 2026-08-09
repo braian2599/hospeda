@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useHotelStore } from '@/lib/store';
+import { formatFechaHora, formatMoney, todayLocal } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,13 +21,14 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
-  SprayCan, Wrench, Check, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, AlertTriangle, X, Sparkles, Loader2, Wallet, Banknote,
+  SprayCan, Wrench, Check, Search, AlertTriangle, X, Sparkles, Loader2, Wallet, Banknote,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import PaginationBar from '@/components/ui/pagination-bar';
 
-const FILAS_POR_PAGINA = 15;
+const PAGE_SIZE = 15;
 
 function DatePickerInline({
   value,
@@ -85,27 +87,22 @@ function DatePickerInline({
   );
 }
 
-const formatFechaHora = (f: string) => {
-  if (!f) return '—';
-  const d = new Date(f.length === 10 ? f + 'T12:00:00' : f);
-  return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-};
-
-const formatMoney = (n: number) => '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// formatFechaHora and formatMoney imported from @/lib/format
 
 export default function LimpiezaModule() {
-  const { habitaciones, marcarComoLimpia, reportarMantenimiento, resolverMantenimiento, historialMantenimiento, reservas } = useHotelStore();
+  const habitaciones = useHotelStore(s => s.habitaciones);
+  const marcarComoLimpia = useHotelStore(s => s.marcarComoLimpia);
+  const reportarMantenimiento = useHotelStore(s => s.reportarMantenimiento);
+  const resolverMantenimiento = useHotelStore(s => s.resolverMantenimiento);
+  const historialMantenimiento = useHotelStore(s => s.historialMantenimiento);
+  const reservas = useHotelStore(s => s.reservas);
   const [modalResolver, setModalResolver] = useState<string | null>(null);
   const [reparacion, setReparacion] = useState('');
   const [monto, setMonto] = useState('0');
   const [sacarDeCaja, setSacarDeCaja] = useState(true);
 
   // Maintenance history filters
-  const getLocalToday = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  };
-  const todayStr = getLocalToday();
+  const todayStr = todayLocal();
   const [fDesde, setFDesde] = useState(todayStr);
   const [fHasta, setFHasta] = useState(todayStr);
   const [fHab, setFHab] = useState('');
@@ -142,12 +139,12 @@ export default function LimpiezaModule() {
     return lista;
   }, [historialMantenimiento, fDesde, fHasta, fHab, fDesc, fMonto]);
 
-  const totalPaginas = Math.ceil(listaFiltrada.length / FILAS_POR_PAGINA) || 1;
+  const totalPaginas = Math.ceil(listaFiltrada.length / PAGE_SIZE) || 1;
   const paginaActual = Math.min(pagina, totalPaginas);
-  const inicio = (paginaActual - 1) * FILAS_POR_PAGINA;
-  const listaPaginada = listaFiltrada.slice(inicio, inicio + FILAS_POR_PAGINA);
+  const inicio = (paginaActual - 1) * PAGE_SIZE;
+  const listaPaginada = listaFiltrada.slice(inicio, inicio + PAGE_SIZE);
 
-  const limpiarFiltros = () => { const today = getLocalToday(); setFDesde(today); setFHasta(today); setFHab(''); setFDesc(''); setFMonto(''); setPagina(1); };
+  const limpiarFiltros = () => { const today = todayLocal(); setFDesde(today); setFHasta(today); setFHab(''); setFDesc(''); setFMonto(''); setPagina(1); };
   const [resolviendo, setResolviendo] = useState(false);
   const [reportando, setReportando] = useState(false);
 
@@ -205,35 +202,25 @@ export default function LimpiezaModule() {
 
   const hasFiltros = fDesde || fHasta || fHab || fDesc || fMonto;
 
-  let _pgNoRender = totalPaginas <= 1;
-  const _pgBotones: (number | string)[] = [];
-  if (!(_pgNoRender as boolean)) {
-    const _start = Math.max(1, paginaActual - 2);
-    const _end = Math.min(totalPaginas, paginaActual + 2);
-    if (_start > 1) { _pgBotones.push(1); if (_start > 2) _pgBotones.push('...'); }
-    for (let _i = _start; _i <= _end; _i++) _pgBotones.push(_i);
-    if (_end < totalPaginas) { if (_end < totalPaginas - 1) _pgBotones.push('...'); _pgBotones.push(totalPaginas); }
-  }
-
   return (
     <div className="space-y-6">
       <ModuleHeader icon={SprayCan} title="Limpieza y Mantenimiento" subtitle="Gestioná el estado de habitaciones y tareas" />
 
       {/* ── KPIs ── */}
       <div className="grid grid-cols-3 gap-3">
-        <Card className="border-[#FDE68A]">
+        <Card className="border-[#FDE68A] bg-gradient-to-br from-[#FEF9C3]/50 to-white">
           <CardContent className="p-3 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[#FEF9C3]"><SprayCan className="w-5 h-5 text-[#92400E]" /></div>
             <div><p className="text-2xl font-bold">{porLimpiar.length}</p><p className="text-xs text-muted-foreground">Para limpiar</p></div>
           </CardContent>
         </Card>
-        <Card className="border-[#FECACA]">
+        <Card className="border-[#FECACA] bg-gradient-to-br from-[#FEE2E2]/50 to-white">
           <CardContent className="p-3 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[#FEE2E2]"><Wrench className="w-5 h-5 text-[#991B1B]" /></div>
             <div><p className="text-2xl font-bold">{enMantenimiento.length}</p><p className="text-xs text-muted-foreground">En mantenimiento</p></div>
           </CardContent>
         </Card>
-        <Card className="border-[#BBF7D0]">
+        <Card className="border-[#BBF7D0] bg-gradient-to-br from-[#DCFCE7]/50 to-white">
           <CardContent className="p-3 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[#DCFCE7]"><Sparkles className="w-5 h-5 text-[#166534]" /></div>
             <div><p className="text-2xl font-bold">{historialMantenimiento.length}</p><p className="text-xs text-muted-foreground">Reparaciones totales</p></div>
@@ -257,8 +244,8 @@ export default function LimpiezaModule() {
                 <p className="text-sm text-muted-foreground">Todo limpio</p>
               </div>
             ) : porLimpiar.map(([num, h]) => (
-              <div key={num} className="flex items-center justify-between p-2.5 rounded-lg border hover:bg-muted/50 transition-colors">
-                <div><p className="text-sm font-medium">Habitación {num}</p><p className="text-xs text-muted-foreground">{h.tipo} · {h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</p></div>
+              <div key={num} className="flex items-center justify-between p-2.5 rounded-lg border hover:bg-[#DCFCE7]/30 transition-all duration-200 group">
+                <div><p className="text-sm font-medium group-hover:text-[#166534] transition-colors">Habitación {num}</p><p className="text-xs text-muted-foreground">{h.tipo} · {h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</p></div>
                 <Button size="sm" className="bg-[#059669] hover:bg-[#047857] text-white" disabled={limpiando === num} onClick={() => handleMarcarLimpia(num)}>{limpiando === num ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}Limpia</Button>
               </div>
             ))}
@@ -280,9 +267,9 @@ export default function LimpiezaModule() {
                 <p className="text-sm text-muted-foreground">Sin problemas activos</p>
               </div>
             ) : enMantenimiento.map(([num, h]) => (
-              <div key={num} className="border rounded-lg p-2.5 space-y-1.5 hover:bg-muted/30 transition-colors">
+              <div key={num} className="border rounded-lg p-2.5 space-y-1.5 hover:bg-[#FEE2E2]/20 transition-all duration-200 group">
                 <div className="flex items-center justify-between">
-                  <div><p className="text-sm font-medium">Habitación {num}</p><p className="text-xs text-muted-foreground">{h.tipo} · {h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</p></div>
+                  <div><p className="text-sm font-medium group-hover:text-[#991B1B] transition-colors">Habitación {num}</p><p className="text-xs text-muted-foreground">{h.tipo} · {h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</p></div>
                   <Button size="sm" className="bg-[#059669] hover:bg-[#047857] text-white" onClick={() => setModalResolver(num)}><Check className="w-4 h-4 mr-1" />Resuelto</Button>
                 </div>
                 <div className="bg-[#FEE2E2] rounded p-2"><span className="text-xs text-[#991B1B]"><AlertTriangle className="w-3 h-3 inline mr-1" />{h.problema || 'Sin descripción'}</span></div>
@@ -343,23 +330,7 @@ export default function LimpiezaModule() {
                 ))}</TableBody></Table>
             </div>
           )}
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Mostrando {listaFiltrada.length === 0 ? 0 : inicio + 1}-{Math.min(inicio + FILAS_POR_PAGINA, listaFiltrada.length)} de {listaFiltrada.length}</span>
-            <span>Página {paginaActual} de {totalPaginas}</span>
-          </div>
-          {!(_pgNoRender as boolean) && (
-            <div className="flex items-center justify-center gap-1 mt-3">
-              <Button size="icon" variant="outline" className="h-8 w-8" disabled={paginaActual <= 1} onClick={() => setPagina(1)}><ChevronsLeft className="w-4 h-4" /></Button>
-              <Button size="icon" variant="outline" className="h-8 w-8" disabled={paginaActual <= 1} onClick={() => setPagina(paginaActual - 1)}><ChevronLeft className="w-4 h-4" /></Button>
-              {_pgBotones.map((b, i) => typeof b === 'string' ? (
-                <span key={`dots-${i}`} className="px-2 text-muted-foreground">...</span>
-              ) : (
-                <Button key={b} size="icon" variant={b === paginaActual ? 'default' : 'outline'} className="h-8 w-8" onClick={() => setPagina(b as number)}>{b}</Button>
-              ))}
-              <Button size="icon" variant="outline" className="h-8 w-8" disabled={paginaActual >= totalPaginas} onClick={() => setPagina(paginaActual + 1)}><ChevronRight className="w-4 h-4" /></Button>
-              <Button size="icon" variant="outline" className="h-8 w-8" disabled={paginaActual >= totalPaginas} onClick={() => setPagina(totalPaginas)}><ChevronsRight className="w-4 h-4" /></Button>
-            </div>
-          )}
+          <PaginationBar page={paginaActual} totalPages={totalPaginas} onPageChange={setPagina} totalItems={listaFiltrada.length} pageSize={PAGE_SIZE} />
         </CardContent>
       </Card>
 

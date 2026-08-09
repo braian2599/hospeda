@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useHotelStore } from '@/lib/store';
+import { formatFecha, formatMoney } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,22 +15,29 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Trash2, Users, Search, Eye } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
+import PaginationBar from '@/components/ui/pagination-bar';
 
-function formatFecha(fecha: string) {
-  if (!fecha) return '—';
-  const d = new Date(fecha + 'T12:00:00');
-  return d.toLocaleDateString('es-AR');
-}
+// formatFecha imported from @/lib/format
 
 export default function ClientesModule() {
-  const { clientes, agregarCliente, actualizarCliente, eliminarCliente, buscarCliente } = useHotelStore();
+  const clientes = useHotelStore(s => s.clientes);
+  const agregarCliente = useHotelStore(s => s.agregarCliente);
+  const actualizarCliente = useHotelStore(s => s.actualizarCliente);
+  const eliminarCliente = useHotelStore(s => s.eliminarCliente);
+  const buscarCliente = useHotelStore(s => s.buscarCliente);
   const [busqueda, setBusqueda] = useState('');
   const [modal, setModal] = useState<'crear' | 'editar' | 'detalle' | 'eliminar' | null>(null);
   const [selId, setSelId] = useState<string | null>(null);
   const [form, setForm] = useState({ nombre: '', dni: '', telefono: '', email: '', preferencias: '' });
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 15;
 
   const lista = busqueda.length >= 2 ? buscarCliente(busqueda) : clientes;
+
+  // Pagination
+  const totalPages = Math.ceil(lista.length / PAGE_SIZE) || 1;
+  const pagedLista = lista.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const openNew = () => { setForm({ nombre: '', dni: '', telefono: '', email: '', preferencias: '' }); setSelId(null); setModal('crear'); };
   const openEdit = (id: string) => {
@@ -82,7 +90,7 @@ export default function ClientesModule() {
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Buscar por nombre, DNI o email..." value={busqueda} onChange={e => setBusqueda(e.target.value)} className="pl-9" />
+        <Input placeholder="Buscar por nombre, DNI o email..." value={busqueda} onChange={e => { setBusqueda(e.target.value); setPage(1); }} className="pl-9 transition-all duration-200 focus-visible:ring-[#0F2B28] focus-visible:ring-offset-1" />
       </div>
 
       {lista.length === 0 ? (
@@ -94,13 +102,13 @@ export default function ClientesModule() {
               <TableRow><TableHead>Nombre</TableHead><TableHead>DNI</TableHead><TableHead className="hidden md:table-cell">Email</TableHead><TableHead className="hidden md:table-cell">Teléfono</TableHead><TableHead className="hidden sm:table-cell">Estadías</TableHead><TableHead></TableHead></TableRow>
             </TableHeader>
             <TableBody>
-              {lista.map(c => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium cursor-pointer hover:underline" onClick={() => openDetail(c.id)}>{c.nombre}</TableCell>
-                  <TableCell>{c.dni}</TableCell>
-                  <TableCell className="hidden md:table-cell">{c.email || '—'}</TableCell>
-                  <TableCell className="hidden md:table-cell">{c.telefono || '—'}</TableCell>
-                  <TableCell className="hidden sm:table-cell"><Badge variant="secondary">{c.historialEstadias.length}</Badge></TableCell>
+              {pagedLista.map(c => (
+                <TableRow key={c.id} className="group hover:bg-[#F0FDF4]/30 transition-colors duration-150">
+                  <TableCell className="font-medium cursor-pointer group-hover:text-[#0F2B28] transition-colors" onClick={() => openDetail(c.id)}>{c.nombre}</TableCell>
+                  <TableCell className="font-mono text-muted-foreground text-sm">{c.dni}</TableCell>
+                  <TableCell className="hidden md:table-cell text-muted-foreground text-sm">{c.email || '—'}</TableCell>
+                  <TableCell className="hidden md:table-cell text-sm">{c.telefono || '—'}</TableCell>
+                  <TableCell className="hidden sm:table-cell"><Badge variant="secondary" className="font-mono">{c.historialEstadias.length}</Badge></TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openDetail(c.id)}><Eye className="w-3.5 h-3.5" /></Button>
@@ -111,6 +119,7 @@ export default function ClientesModule() {
               ))}
             </TableBody>
           </Table>
+          <PaginationBar page={page} totalPages={totalPages} onPageChange={setPage} totalItems={lista.length} pageSize={PAGE_SIZE} />
         </Card>
       )}
 
@@ -159,7 +168,7 @@ export default function ClientesModule() {
                     <Table><TableHeader><TableRow><TableHead>Check-in</TableHead><TableHead>Check-out</TableHead><TableHead>Hab</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {selected.historialEstadias.map((h, i) => (
-                          <TableRow key={i}><TableCell>{formatFecha(h.fechaCheckin)}</TableCell><TableCell>{formatFecha(h.fechaCheckout)}</TableCell><TableCell>{h.habitacion}</TableCell><TableCell className="text-right">${h.gastoTotal}</TableCell></TableRow>
+                          <TableRow key={i}><TableCell>{formatFecha(h.fechaCheckin)}</TableCell><TableCell>{formatFecha(h.fechaCheckout)}</TableCell><TableCell>{h.habitacion}</TableCell><TableCell className="text-right">{formatMoney(h.gastoTotal)}</TableCell></TableRow>
                         ))}
                       </TableBody>
                     </Table>

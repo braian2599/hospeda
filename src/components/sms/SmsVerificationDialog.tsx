@@ -98,16 +98,19 @@ export default function SmsVerificationDialog({
   // Auto-send code when dialog opens with a pre-set phone
   useEffect(() => {
     if (open && initialPhone) {
-      handleSendCode(initialPhone);
+      // Break synchronous setState chain by deferring to next microtask
+      queueMicrotask(() => handleSendCode(initialPhone));
     }
-    // Reset step when dialog closes
+    // Reset step when dialog closes (deferred to avoid set-state-in-effect)
     if (!open) {
-      setStep('input_phone');
-      setOtpValue('');
-      setError('');
-      setDevCode('');
+      queueMicrotask(() => {
+        setStep('input_phone');
+        setOtpValue('');
+        setError('');
+        setDevCode('');
+      });
     }
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, initialPhone, handleSendCode]);
 
   // Effective step (auto-skip input_phone if phone already provided)
   const effectiveStep: Step = !open

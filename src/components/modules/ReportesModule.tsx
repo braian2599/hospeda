@@ -23,9 +23,34 @@ import {
   Search, Eye, BedDouble, Users, UserCog, Wallet,
   FileText, ArrowUpRight, ArrowDownRight, Minus, Hotel,
   Receipt, Percent, Moon, Sun, Sunset, Loader2,
+  Download,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
+
+// ==================== CSV EXPORT HELPER ====================
+
+function escapeCSV(val: string | number | undefined): string {
+  const str = val == null ? '' : String(val);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function downloadCSV(filename: string, headers: string[], rows: (string | number | undefined)[][]) {
+  const lines = [
+    headers.map(escapeCSV).join(','),
+    ...rows.map(r => r.map(escapeCSV).join(',')),
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 // ==================== HELPERS ====================
 
@@ -482,6 +507,46 @@ export default function ReportesModule() {
     return map;
   }, [reservas]);
 
+  // CSV Export handler — exports data based on the active tab
+  const handleExportCSV = useCallback(() => {
+    const dateLabel = `${desde}_a_${hasta}`;
+    try {
+      if (activeTab === 'financiero') {
+        const headers = ['Fecha', 'Método', 'Reserva', 'Huésped', 'Monto', 'Nota'];
+        const rows = pagosFiltrados.map(p => {
+          const res = reservaMap.get(p.idReserva);
+          return [formatFecha(p.fecha), p.metodo, p.idReserva, res?.huesped || '', p.monto, p.nota || ''];
+        });
+        downloadCSV(`reporte_ingresos_${dateLabel}.csv`, headers, rows);
+        toast.success('CSV exportado', { description: `${rows.length} pagos exportados` });
+      } else if (activeTab === 'gastos') {
+        const headers = ['Fecha', 'Tipo', 'Descripción', 'Monto', 'Empleado'];
+        const rows = gastosFiltrados.map(g => [formatFecha(g.fecha), g.tipo, g.descripcion, g.monto, g.empleado || '']);
+        downloadCSV(`reporte_gastos_${dateLabel}.csv`, headers, rows);
+        toast.success('CSV exportado', { description: `${rows.length} gastos exportados` });
+      } else if (activeTab === 'habitaciones') {
+        const headers = ['Número', 'Tipo', 'Capacidad', 'Estado'];
+        const rows = habResumen.habs.map(h => [h.numero, h.tipo, h.capacidad, h.estado]);
+        downloadCSV(`reporte_habitaciones_${dateLabel}.csv`, headers, rows);
+        toast.success('CSV exportado', { description: `${rows.length} habitaciones exportadas` });
+      } else if (activeTab === 'clientes') {
+        const headers = ['Nombre', 'DNI', 'Teléfono', 'Email', 'Estadías', 'Gasto Total'];
+        const rows = clientesFrecuentes.map(c => [c.nombre, c.dni, c.telefono, c.email, c.cantidadEstadias, c.totalGastado]);
+        downloadCSV(`reporte_clientes_${dateLabel}.csv`, headers, rows);
+        toast.success('CSV exportado', { description: `${rows.length} clientes exportados` });
+      } else if (activeTab === 'auditoria') {
+        const headers = ['Fecha', 'Tipo', 'Detalle', 'Empleado'];
+        const rows = auditFiltrada.map(a => [a.fecha, a.tipo, a.detalle, a.empleado]);
+        downloadCSV(`reporte_auditoria_${dateLabel}.csv`, headers, rows);
+        toast.success('CSV exportado', { description: `${rows.length} registros exportados` });
+      } else {
+        toast.info('Exportar', { description: 'No hay datos exportables en esta pestaña' });
+      }
+    } catch (err) {
+      toast.error('Error al exportar CSV');
+    }
+  }, [activeTab, desde, hasta, pagosFiltrados, gastosFiltrados, habResumen, clientesFrecuentes, auditFiltrada, reservaMap]);
+
   // Números de página visibles para paginación de auditoría (máx. 9 con ventana deslizante)
   const auditPageNumbers = useMemo(() => {
     const total = auditTotalPages;
@@ -519,7 +584,7 @@ export default function ReportesModule() {
       <ModuleHeader icon={BarChart3} title="Reportes" subtitle="Métricas y análisis de tu hotel" />
 
       {/* Date Range Filter */}
-      <Card>
+      <Card className="bg-gradient-to-r from-[#F8FAFC] to-white border-[#E2E8F0]/80">
         <CardContent className="p-3 sm:p-4">
           <div className="flex flex-wrap items-end justify-center gap-2 sm:gap-3">
             <div className="grid gap-1.5 flex-1 min-w-[130px] sm:flex-none">
@@ -535,6 +600,11 @@ export default function ReportesModule() {
               <Button size="sm" variant={diasPeriodo <= 30 && diasPeriodo > 7 ? 'default' : 'outline'} onClick={() => setRango(30)} className="text-xs sm:text-sm">30d</Button>
               <Button size="sm" variant={diasPeriodo > 30 ? 'default' : 'outline'} onClick={() => setRango(365)} className="text-xs sm:text-sm">1a</Button>
             </div>
+            <div className="w-px h-8 bg-border hidden sm:block" />
+            <Button size="sm" variant="outline" onClick={handleExportCSV} className="text-xs sm:text-sm gap-1.5">
+              <Download className="w-3.5 h-3.5" />
+              Exportar CSV
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -626,14 +696,14 @@ export default function ReportesModule() {
       {/* ==================== TABS ==================== */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <div className="flex justify-center overflow-x-auto -mx-1 px-1">
-          <TabsList className="flex flex-nowrap h-auto gap-0.5 sm:gap-1 min-w-max">
-            <TabsTrigger value="financiero" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3"><DollarSign className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Financiero</span></TabsTrigger>
-            <TabsTrigger value="gastos" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3"><TrendingDown className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Gastos</span></TabsTrigger>
-            <TabsTrigger value="auditoria" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3"><FileText className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Auditoría</span></TabsTrigger>
-            <TabsTrigger value="historial-caja" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3"><Wallet className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Caja</span></TabsTrigger>
-            <TabsTrigger value="habitaciones" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3"><BedDouble className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Habitaciones</span></TabsTrigger>
-            <TabsTrigger value="clientes" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3"><Users className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Clientes</span></TabsTrigger>
-            <TabsTrigger value="empleados" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3"><UserCog className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Empleados</span></TabsTrigger>
+          <TabsList className="flex flex-nowrap h-auto gap-0.5 sm:gap-1 min-w-max bg-muted/50">
+            <TabsTrigger value="financiero" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><DollarSign className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Financiero</span></TabsTrigger>
+            <TabsTrigger value="gastos" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><TrendingDown className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Gastos</span></TabsTrigger>
+            <TabsTrigger value="auditoria" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><FileText className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Auditoría</span></TabsTrigger>
+            <TabsTrigger value="historial-caja" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><Wallet className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Caja</span></TabsTrigger>
+            <TabsTrigger value="habitaciones" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><BedDouble className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Habitaciones</span></TabsTrigger>
+            <TabsTrigger value="clientes" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><Users className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Clientes</span></TabsTrigger>
+            <TabsTrigger value="empleados" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><UserCog className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Empleados</span></TabsTrigger>
           </TabsList>
         </div>
 

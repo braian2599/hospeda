@@ -162,13 +162,22 @@ function crearRangoDefault(modo: ModoCobro, minPersonas: number = 1): RangoPreci
 // ==================== MODULO PRINCIPAL ====================
 
 export default function TarifasModule() {
-  const {
-    tarifas, tiposTarifa, metodosPago, categoriasGastos, gastos,
-    habitaciones, reservas, pagos,
-    guardarTarifaCompleta, eliminarTipoTarifa,
-    agregarMetodoPago, editarMetodoPago, eliminarMetodoPago,
-    agregarCategoriaGasto, editarCategoriaGasto, eliminarCategoriaGasto,
-  } = useHotelStore();
+  const tarifas = useHotelStore(s => s.tarifas);
+  const tiposTarifa = useHotelStore(s => s.tiposTarifa);
+  const metodosPago = useHotelStore(s => s.metodosPago);
+  const categoriasGastos = useHotelStore(s => s.categoriasGastos);
+  const gastos = useHotelStore(s => s.gastos);
+  const habitaciones = useHotelStore(s => s.habitaciones);
+  const reservas = useHotelStore(s => s.reservas);
+  const pagos = useHotelStore(s => s.pagos);
+  const guardarTarifaCompleta = useHotelStore(s => s.guardarTarifaCompleta);
+  const eliminarTipoTarifa = useHotelStore(s => s.eliminarTipoTarifa);
+  const agregarMetodoPago = useHotelStore(s => s.agregarMetodoPago);
+  const editarMetodoPago = useHotelStore(s => s.editarMetodoPago);
+  const eliminarMetodoPago = useHotelStore(s => s.eliminarMetodoPago);
+  const agregarCategoriaGasto = useHotelStore(s => s.agregarCategoriaGasto);
+  const editarCategoriaGasto = useHotelStore(s => s.editarCategoriaGasto);
+  const eliminarCategoriaGasto = useHotelStore(s => s.eliminarCategoriaGasto);
 
   const [tab, setTab] = useState('tarifas');
 
@@ -470,10 +479,10 @@ export default function TarifasModule() {
       <ModuleHeader icon={Tags} title="Tarifas y Métodos de Pago" subtitle="Configurá precios y formas de cobro" />
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="tarifas"><Tags className="w-4 h-4 mr-1" />Tarifas</TabsTrigger>
-          <TabsTrigger value="metodos"><CreditCard className="w-4 h-4 mr-1" />Métodos de Pago</TabsTrigger>
-          <TabsTrigger value="categorias"><ListChecks className="w-4 h-4 mr-1" />Categorías de Gastos</TabsTrigger>
+        <TabsList className="bg-muted/50">
+          <TabsTrigger value="tarifas" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all"><Tags className="w-4 h-4 mr-1" />Tarifas</TabsTrigger>
+          <TabsTrigger value="metodos" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all"><CreditCard className="w-4 h-4 mr-1" />Métodos de Pago</TabsTrigger>
+          <TabsTrigger value="categorias" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all"><ListChecks className="w-4 h-4 mr-1" />Categorías de Gastos</TabsTrigger>
         </TabsList>
 
         {/* ==================== TAB: TARIFAS ==================== */}
@@ -502,12 +511,12 @@ export default function TarifasModule() {
               return (
                 <Card
                   key={tipo}
-                  className="cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg border-2 border-[#E2E8F0]"
+                  className="card-hover cursor-pointer transition-all duration-200 border-2 border-[#E2E8F0] hover:border-[#0F2B28]/20 group"
                   onClick={() => openModalTarifa(tipo)}
                 >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-bold text-base">{tipo}</h4>
+                      <h4 className="font-bold text-base group-hover:text-[#0F2B28] transition-colors">{tipo}</h4>
                       <div className="flex gap-1 flex-wrap">
                         {tieneAcompanante && <Badge className="bg-[#DCFCE7] text-[#166534] border-0">{promos!.acompananteSinCargo!.etiqueta || 'Acompañante gratis'}</Badge>}
                         {tieneNinos && <Badge className="bg-[#F5F3FF] text-[#6D28D9] border-0">Niños $${(promos!.ninosDiferenciado!.precioNino || 0).toLocaleString('es-AR')}/noche</Badge>}
@@ -517,7 +526,7 @@ export default function TarifasModule() {
                         </Badge>
                       </div>
                     </div>
-                    <hr className="my-2 border-[#E2E8F0]" />
+                    <hr className="my-2 border-[#E2E8F0]/60" />
                     <div className="space-y-1">
                       {(t.rangos || []).map((r, i) => (
                         <div key={i} className="flex justify-between items-center text-sm">

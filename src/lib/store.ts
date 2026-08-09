@@ -10,7 +10,16 @@ import type {
 } from './types';
 import { type PlanTipo, type PlanInfo, modulosEfectivos as calcModulosEfectivos, PLANES } from './plan-config';
 import { api } from './api-client';
+import { useNotificationStore } from './notification-store';
 
+
+// ==================== NOTIFICATION HELPER ====================
+
+function pushNotif(type: 'success' | 'info' | 'warning', title: string, message: string) {
+  try {
+    useNotificationStore.getState().addNotification({ type, title, message });
+  } catch { /* store may not be ready during SSR */ }
+}
 
 // ==================== LOCAL DATE HELPER ====================
 
@@ -834,6 +843,7 @@ export const useHotelStore = create<HotelStore>()(
           });
           // Actualizar el ID local antes de retornar para que registrarPago pueda encontrar la reserva
           reserva.id = updatedId;
+          pushNotif('success', 'Reserva creada', `${datos.huesped} — Hab. ${datos.habitacion}`);
         } catch (err) {
           const isAuth = err && typeof err === 'object' && 'status' in err && (err as any).status === 401;
           console.error('[crearReserva] Error al guardar en BD:', isAuth ? 'Error de autenticación (401)' : err);
@@ -1016,6 +1026,7 @@ export const useHotelStore = create<HotelStore>()(
           });
           return false;
         }
+        pushNotif('success', 'Check-In realizado', `${reserva.huesped} — Hab. ${reserva.habitacion}`);
         return true;
       },
 
@@ -1067,6 +1078,7 @@ export const useHotelStore = create<HotelStore>()(
           });
           return null;
         }
+        pushNotif('info', 'Check-Out realizado', `${reserva.huesped} — Hab. ${reserva.habitacion}`);
         return { noches, total };
       },
 
@@ -1154,6 +1166,7 @@ export const useHotelStore = create<HotelStore>()(
           // 2. Todo OK — actualizar estado local
           set({ habitaciones: { ...prevHabitaciones, [numero]: { ...hab, estado: 'Disponible' as const } } });
           get()._registrarAuditoria('Limpieza', `Habitación ${numero} marcada como limpia`);
+          pushNotif('success', 'Limpieza completada', `Habitación ${numero} disponible`);
         } catch (err) {
           console.error('[marcarComoLimpia] error:', err);
           throw err;
@@ -1309,6 +1322,7 @@ export const useHotelStore = create<HotelStore>()(
         get()._registrarAuditoria('Caja', `Apertura - ${empleado} - Inicial: ${montoInicial}`);
         try {
           await api.caja.abrir(Math.round(parseFloat(String(montoInicial)) * 100));
+          pushNotif('success', 'Caja abierta', `Se abrió la caja con $${montoInicial}`);
           return true;
         } catch (err) {
           console.error('abrirCaja API error:', err);
@@ -1391,6 +1405,7 @@ export const useHotelStore = create<HotelStore>()(
         get()._registrarAuditoria('Caja', `Cierre - ${empleado} - Esperado: ${saldoEsperado} Contado: ${saldoContado} Dif: ${diferencia}`);
         try {
           await api.caja.cerrar({ billetes, totalOtrosMetodos: Math.round(totalOtros * 100) });
+          pushNotif('info', 'Caja cerrada', `Diferencia: $${diferencia.toFixed(2)}`);
           return cierre;
         } catch (err) {
           console.error('cerrarCaja API error:', err);

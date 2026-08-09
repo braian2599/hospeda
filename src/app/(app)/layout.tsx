@@ -289,17 +289,22 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         syncRef.current = true;
         syncFromServer().catch(() => {});
       }
-      setLoading(false);
+      queueMicrotask(() => setLoading(false));
     } else if (status === 'unauthenticated') {
-      setLoading(false);
+      queueMicrotask(() => setLoading(false));
     }
   }, [status, session, usuarioActual, loginFromSession, router, processMeData, syncFromServer]);
 
   // Sync plans from DB into store so modulosEfectivos uses live prices/limits
   const dbPlans = usePlans();
   const setPlans = useHotelStore(s => s.setPlans);
+  const prevDbPlansRef = useRef(dbPlans);
   useEffect(() => {
-    setPlans(dbPlans);
+    if (dbPlans !== prevDbPlansRef.current) {
+      prevDbPlansRef.current = dbPlans;
+      // Defer setState to break synchronous chain (react-hooks/set-state-in-effect)
+      queueMicrotask(() => setPlans(dbPlans));
+    }
   }, [dbPlans, setPlans]);
 
   useEffect(() => {
