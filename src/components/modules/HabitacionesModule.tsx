@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,39 +11,104 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from '@/components/ui/dialog';
 import {
-  Plus, Pencil, Trash2, Bed, User,
+  Popover, PopoverTrigger, PopoverContent,
+} from '@/components/ui/popover';
+import {
+  Collapsible, CollapsibleTrigger, CollapsibleContent,
+} from '@/components/ui/collapsible';
+import {
+  Tooltip, TooltipTrigger, TooltipContent,
+} from '@/components/ui/tooltip';
+import {
+  Plus, Pencil, Trash2, Bed, User, Users,
   CheckCircle, UserCheck, CalendarCheck, SprayCan, Wrench, Ban,
   Download, LayoutGrid, List,
+  ChevronDown, ChevronRight,
+  DoorOpen, Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
-import { type TipoHabitacion, type EstadoHabitacion, CAPACIDAD_POR_TIPO } from '@/lib/types';
+import { type TipoHabitacion, type EstadoHabitacion, type Habitacion, CAPACIDAD_POR_TIPO } from '@/lib/types';
 import { todayLocal, safeDate } from '@/lib/format';
 import { exportToCSV } from '@/lib/csv-export';
 import RoomStatusMap from './RoomStatusMap';
 
-// ── Mapeo de estados visuales ──
+// ═══════════════════════════════════════════════════════════
+// STATUS CONFIGURATION
+// ═══════════════════════════════════════════════════════════
+
 const estados: Record<EstadoHabitacion, string> = {
   Disponible: 'bg-[#DCFCE7]/80 text-[#166534]',
-  Ocupada: 'bg-[#FEE2E2]/80 text-[#991B1B]',
-  Limpieza: 'bg-[#FEF3C7]/80 text-[#92400E]',
+  Ocupada: 'bg-[#FEF3C7]/80 text-[#92400E]',
+  Limpieza: 'bg-[#FEF9C3]/80 text-[#854D0E]',
   Mantenimiento: 'bg-[#F1F5F9]/80 text-[#64748B]',
-  Reservada: 'bg-[#DBEAFE]/80 text-[#1E40AF]',
-  'Fuera de servicio': 'bg-[#F1F5F9]/80 text-[#475569]',
+  Reservada: 'bg-[#E0F2FE]/80 text-[#075985]',
+  'Fuera de servicio': 'bg-[#FEE2E2]/80 text-[#991B1B]',
 };
 
-const borderByEstado: Record<EstadoHabitacion, string> = {
-  Disponible: 'border-l-[3px] border-l-[#4ADE80]',
-  Ocupada: 'border-l-[3px] border-l-[#F59E0B]',
-  Limpieza: 'border-l-[3px] border-l-[#F59E0B]',
-  Mantenimiento: 'border-l-[3px] border-l-[#EF4444]',
-  Reservada: 'border-l-[3px] border-l-[#3B82F6]',
-  'Fuera de servicio': 'border-l-[3px] border-l-[#94A3B8]',
+// Status color palette for backgrounds, borders, icons
+type StatusVisual = {
+  color: string;       // main hex color
+  bgTint: string;      // Tailwind bg tint class
+  borderClass: string; // Tailwind left border class
+  icon: LucideIcon;
+  needsAttention: boolean;
 };
 
-// ── Configuración visual para el banner de stats ──
-// Cada estado tiene su color de icono, fondo suave del card, acento de borde y color de barra.
+const STATUS_VISUAL: Record<EstadoHabitacion, StatusVisual> = {
+  Disponible: {
+    color: '#059669',
+    bgTint: 'bg-emerald-50/60',
+    borderClass: 'border-l-[3px] border-l-emerald-400',
+    icon: CheckCircle,
+    needsAttention: false,
+  },
+  Ocupada: {
+    color: '#D97706',
+    bgTint: 'bg-amber-50/60',
+    borderClass: 'border-l-[3px] border-l-amber-400',
+    icon: UserCheck,
+    needsAttention: false,
+  },
+  Limpieza: {
+    color: '#EAB308',
+    bgTint: 'bg-yellow-50/60',
+    borderClass: 'border-l-[3px] border-l-yellow-400',
+    icon: SprayCan,
+    needsAttention: true,
+  },
+  Mantenimiento: {
+    color: '#94A3B8',
+    bgTint: 'bg-slate-50/60',
+    borderClass: 'border-l-[3px] border-l-slate-400',
+    icon: Wrench,
+    needsAttention: true,
+  },
+  Reservada: {
+    color: '#0EA5E9',
+    bgTint: 'bg-sky-50/60',
+    borderClass: 'border-l-[3px] border-l-sky-400',
+    icon: CalendarCheck,
+    needsAttention: false,
+  },
+  'Fuera de servicio': {
+    color: '#EF4444',
+    bgTint: 'bg-red-50/60',
+    borderClass: 'border-l-[3px] border-l-red-400',
+    icon: Ban,
+    needsAttention: false,
+  },
+};
+
+const ALL_ESTADOS: EstadoHabitacion[] = [
+  'Disponible', 'Ocupada', 'Limpieza', 'Mantenimiento', 'Reservada', 'Fuera de servicio',
+];
+
+// ═══════════════════════════════════════════════════════════
+// STAT BANNER CONFIG
+// ═══════════════════════════════════════════════════════════
+
 type StatConfig = {
   key: string;
   label: string;
@@ -128,27 +193,44 @@ const STAT_CONFIG: StatConfig[] = [
     label: 'Fuera de servicio',
     estado: 'Fuera de servicio',
     icon: Ban,
-    iconColor: 'text-[#64748B]',
-    iconBg: 'bg-[#64748B]/10',
-    cardBg: 'bg-gradient-to-br from-[#F8FAFC]/30 to-white',
-    accentBorder: 'border-l-[#94A3B8]',
-    barColor: 'bg-[#64748B]',
+    iconColor: 'text-[#991B1B]',
+    iconBg: 'bg-[#991B1B]/10',
+    cardBg: 'bg-gradient-to-br from-[#FEE2E2]/30 to-white',
+    accentBorder: 'border-l-[#EF4444]',
+    barColor: 'bg-[#EF4444]',
   },
 ];
 
-/**
- * RoomStatsBanner
- *
- * Banner de stats al inicio del módulo Habitaciones:
- *  - Card "Total" con ocupación %, span 6 cols en lg
- *  - 6 cards de status (Disponible / Ocupada / Reservada / Limpieza / Mantenimiento / Fuera de servicio)
- *  - Barra de ocupación con segmentos proporcionales por estado
- *
- * Usa selector granular de Zustand (no destructuring) — solo re-renderiza cuando `habitaciones` cambia.
- * Animación staggered fade-in con `mounted` + `setTimeout(50)`.
- */
+// ═══════════════════════════════════════════════════════════
+// ROOM TYPE CONFIG
+// ═══════════════════════════════════════════════════════════
+
+const TIPOS_HABITACION: { tipo: TipoHabitacion; label: string; descripcion: string; personas: string; icon: LucideIcon }[] = [
+  { tipo: 'Simple',    label: 'Simple',    descripcion: '1 cama',      personas: '1 persona',    icon: User },
+  { tipo: 'Doble',     label: 'Doble',     descripcion: '2 camas',     personas: '2 personas',   icon: Users },
+  { tipo: 'Triple',    label: 'Triple',    descripcion: '3 camas',     personas: '3 personas',   icon: Users },
+  { tipo: 'Cuádruple', label: 'Cuádruple', descripcion: '4 camas',     personas: '4 personas',   icon: Users },
+  { tipo: 'Compartida', label: 'Compartida', descripcion: 'N camas',  personas: 'Personalizable', icon: Bed },
+];
+
+const tipoIconMap: Record<string, LucideIcon> = Object.fromEntries(
+  TIPOS_HABITACION.map(t => [t.tipo, t.icon])
+);
+
+// ═══════════════════════════════════════════════════════════
+// FLOOR EXTRACTION HELPER
+// ═══════════════════════════════════════════════════════════
+
+function extractFloor(roomNumber: string): number {
+  const match = roomNumber.match(/^(\d)/);
+  return match ? parseInt(match[1]) : 0;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RoomStatsBanner
+// ═══════════════════════════════════════════════════════════
+
 function RoomStatsBanner() {
-  // Granular selector — solo re-renderiza cuando `habitaciones` cambia.
   const habitaciones = useHotelStore(s => s.habitaciones);
 
   const [mounted, setMounted] = useState(false);
@@ -160,7 +242,6 @@ function RoomStatsBanner() {
   const allRooms = Object.values(habitaciones);
   const total = allRooms.length;
 
-  // Edge case: empty state cuando no hay habitaciones
   if (total === 0) {
     return (
       <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 p-6 text-center text-sm text-muted-foreground">
@@ -170,7 +251,6 @@ function RoomStatsBanner() {
     );
   }
 
-  // Conteo por estado — Record<EstadoHabitacion, number> para type safety
   const counts = allRooms.reduce<Record<EstadoHabitacion, number>>(
     (acc, h) => {
       acc[h.estado] = (acc[h.estado] || 0) + 1;
@@ -229,7 +309,7 @@ function RoomStatsBanner() {
         })}
       </div>
 
-      {/* ── Occupancy progress bar (segmentos proporcionales) ── */}
+      {/* ── Occupancy progress bar ── */}
       <div
         className={`
           transition-all duration-700 ease-out
@@ -272,14 +352,498 @@ function RoomStatsBanner() {
   );
 }
 
-// ── Opciones de tipo de habitación ──
-const TIPOS_HABITACION: { tipo: TipoHabitacion; label: string; descripcion: string; personas: string }[] = [
-  { tipo: 'Simple',    label: 'Simple',    descripcion: '1 cama',      personas: '1 persona' },
-  { tipo: 'Doble',     label: 'Doble',     descripcion: '2 camas',     personas: '2 personas' },
-  { tipo: 'Triple',    label: 'Triple',    descripcion: '3 camas',     personas: '3 personas' },
-  { tipo: 'Cuádruple', label: 'Cuádruple', descripcion: '4 camas',     personas: '4 personas' },
-  { tipo: 'Compartida', label: 'Compartida', descripcion: 'N camas',  personas: 'Personalizable' },
-];
+// ═══════════════════════════════════════════════════════════
+// RoomTypeAnalytics — compact analytics section
+// ═══════════════════════════════════════════════════════════
+
+function RoomTypeAnalytics() {
+  const habitaciones = useHotelStore(s => s.habitaciones);
+  const reservas = useHotelStore(s => s.reservas);
+  const today = useMemo(() => todayLocal(), []);
+
+  const allRooms = Object.values(habitaciones);
+  const total = allRooms.length;
+
+  const typeData = useMemo(() => {
+    if (total === 0) return [];
+
+    const todayDate = safeDate(today).getTime();
+
+    // Group by type
+    const byType = new Map<string, Habitacion[]>();
+    allRooms.forEach(h => {
+      const t = h.tipo || 'Sin tipo';
+      if (!byType.has(t)) byType.set(t, []);
+      byType.get(t)!.push(h);
+    });
+
+    return Array.from(byType.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([tipo, rooms]) => {
+        const count = rooms.length;
+        const occupied = rooms.filter(h => h.estado === 'Ocupada').length;
+        const occupancyRate = Math.round((occupied / count) * 100);
+
+        // Calculate revenue for occupied rooms
+        let revenue = 0;
+        rooms.forEach(h => {
+          if (h.estado === 'Ocupada' || h.estado === 'Reservada') {
+            const res = reservas.find(r =>
+              r.habitacion === h.numero &&
+              (r.estado === 'Check-In realizado' || r.estado === 'Confirmada') &&
+              safeDate(r.checkin).getTime() <= todayDate &&
+              safeDate(r.checkout).getTime() >= todayDate
+            );
+            if (res?.total) revenue += res.total;
+          }
+        });
+
+        const Icon = tipoIconMap[tipo] || Bed;
+
+        return { tipo, count, occupied, occupancyRate, revenue, Icon };
+      });
+  }, [allRooms, reservas, today, total]);
+
+  if (total === 0 || typeData.length === 0) return null;
+
+  const maxCount = Math.max(...typeData.map(d => d.count));
+
+  // Type color palette
+  const typeColors = ['#059669', '#D97706', '#0EA5E9', '#8B5CF6', '#EF4444'];
+
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="w-7 h-7 rounded-lg bg-[#0F2B28]/10 flex items-center justify-center">
+          <Bed className="w-3.5 h-3.5 text-[#0F2B28]" />
+        </div>
+        <span className="text-sm font-semibold text-foreground">Distribución por tipo</span>
+      </div>
+
+      {/* Horizontal distribution bar */}
+      <div className="h-2.5 rounded-full bg-muted overflow-hidden flex">
+        {typeData.map((d, i) => {
+          const pct = (d.count / total) * 100;
+          return (
+            <div
+              key={d.tipo}
+              className="transition-all duration-300"
+              style={{ width: `${pct}%`, backgroundColor: typeColors[i % typeColors.length] }}
+              title={`${d.tipo}: ${d.count} (${Math.round(pct)}%)`}
+            />
+          );
+        })}
+      </div>
+
+      {/* Type breakdown rows */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2">
+        {typeData.map((d, i) => {
+          const color = typeColors[i % typeColors.length];
+          const barPct = (d.count / maxCount) * 100;
+          return (
+            <div
+              key={d.tipo}
+              className="rounded-lg border bg-muted/20 p-2.5 space-y-1.5"
+            >
+              <div className="flex items-center gap-2">
+                <d.Icon className="w-3.5 h-3.5 shrink-0" style={{ color }} />
+                <span className="text-xs font-semibold text-foreground truncate">{d.tipo}</span>
+                <span className="ml-auto text-xs font-bold text-foreground">{d.count}</span>
+              </div>
+              {/* Mini bar */}
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{ width: `${barPct}%`, backgroundColor: color }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>Ocup. {d.occupancyRate}%</span>
+                {d.revenue > 0 && <span>${d.revenue.toLocaleString('es-AR')}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// StatusChangePopover — Quick status change for a room
+// ═══════════════════════════════════════════════════════════
+
+function StatusChangePopover({
+  numero,
+  currentEstado,
+  onStatusChange,
+  children,
+}: {
+  numero: string;
+  currentEstado: EstadoHabitacion;
+  onStatusChange: (numero: string, newEstado: EstadoHabitacion) => void;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [confirmDestructive, setConfirmDestructive] = useState<EstadoHabitacion | null>(null);
+
+  const handleSelect = (newEstado: EstadoHabitacion) => {
+    if (newEstado === currentEstado) {
+      setOpen(false);
+      return;
+    }
+    // Destructive states need confirmation
+    const isDestructive = newEstado === 'Fuera de servicio' || newEstado === 'Mantenimiento';
+    if (isDestructive && !confirmDestructive) {
+      setConfirmDestructive(newEstado);
+      return;
+    }
+    onStatusChange(numero, newEstado);
+    setConfirmDestructive(null);
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={(v) => { setOpen(v); setConfirmDestructive(null); }}>
+      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      <PopoverContent className="w-56 p-2" align="start" side="bottom">
+        {confirmDestructive ? (
+          <div className="space-y-2 p-1">
+            <p className="text-xs text-muted-foreground">
+              ¿Cambiar a <strong className="text-foreground">{confirmDestructive}</strong>?
+              {confirmDestructive === 'Fuera de servicio' && ' La habitación no será asignable.'}
+              {confirmDestructive === 'Mantenimiento' && ' Se requiere reparación antes de habilitar.'}
+            </p>
+            <div className="flex gap-1.5">
+              <Button
+                size="sm"
+                variant="destructive"
+                className="h-7 text-xs flex-1"
+                onClick={() => handleSelect(confirmDestructive)}
+              >
+                Confirmar
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={() => setConfirmDestructive(null)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-0.5">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold px-2 pt-1 pb-1.5">
+              Cambiar estado
+            </div>
+            {ALL_ESTADOS.map(estado => {
+              const vis = STATUS_VISUAL[estado];
+              const Icon = vis.icon;
+              const isCurrent = estado === currentEstado;
+              return (
+                <button
+                  key={estado}
+                  type="button"
+                  onClick={() => handleSelect(estado)}
+                  className={`
+                    w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs
+                    transition-colors cursor-pointer
+                    ${isCurrent
+                      ? 'bg-accent/50 font-semibold text-foreground'
+                      : 'text-foreground/80 hover:bg-accent/40'
+                    }
+                  `}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: vis.color }} />
+                  <span className="truncate">{estado}</span>
+                  {isCurrent && (
+                    <span className="ml-auto text-[10px] text-muted-foreground">actual</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// EnhancedRoomCard
+// ═══════════════════════════════════════════════════════════
+
+function EnhancedRoomCard({
+  hab,
+  huesped,
+  onEdit,
+  onDelete,
+  onStatusChange,
+}: {
+  hab: Habitacion;
+  huesped: ReturnType<typeof useHotelStore> extends { reservas: any } ? any : any;
+  onEdit: (num: string) => void;
+  onDelete: (num: string) => void;
+  onStatusChange: (num: string, estado: EstadoHabitacion) => void;
+}) {
+  const vis = STATUS_VISUAL[hab.estado] || STATUS_VISUAL.Disponible;
+  const StatusIcon = vis.icon;
+  const TipoIcon = tipoIconMap[hab.tipo] || Bed;
+
+  const camasText = hab.tipo === 'Compartida'
+    ? `${hab.capacidad} camas`
+    : [
+        hab.camasMatrimoniales > 0 ? `${hab.camasMatrimoniales} matr.` : '',
+        hab.camasSimples > 0 ? `${hab.camasSimples} indiv.` : '',
+      ].filter(Boolean).join(' + ') || '—';
+
+  return (
+    <Card className={`
+      relative card-hover transition-all duration-200 group
+      ${vis.borderClass}
+      ${vis.bgTint}
+      hover:-translate-y-1 hover:shadow-lg
+    `}>
+      <CardContent className="p-3 flex flex-col gap-1.5">
+        {/* Row 1: Room number + status badge */}
+        <div className="flex items-start justify-between gap-1">
+          <span className="text-2xl font-bold leading-tight text-foreground">{hab.numero}</span>
+          <StatusChangePopover
+            numero={hab.numero}
+            currentEstado={hab.estado}
+            onStatusChange={onStatusChange}
+          >
+            <button
+              type="button"
+              className="shrink-0"
+              aria-label={`Cambiar estado de habitación ${hab.numero}`}
+            >
+              <Badge className={`text-[10px] px-1.5 py-0 font-semibold shadow-sm cursor-pointer hover:opacity-80 transition-opacity ${estados[hab.estado] || ''}`}>
+                {hab.estado}
+              </Badge>
+            </button>
+          </StatusChangePopover>
+        </div>
+
+        {/* Row 2: Room type badge + capacity */}
+        <div className="flex items-center gap-1.5">
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5 border-muted-foreground/25">
+            <TipoIcon className="w-2.5 h-2.5" />
+            {hab.tipo}
+          </Badge>
+          {/* Capacity indicator (filled/unfilled person icons) */}
+          <div className="flex items-center gap-px" title={`Capacidad: ${hab.capacidad}`}>
+            {Array.from({ length: Math.min(hab.capacidad, 5) }).map((_, i) => (
+              <User
+                key={i}
+                className={`w-2.5 h-2.5 ${i < (huesped ? Math.min(hab.capacidad, 5) : 0) ? 'text-amber-500' : 'text-muted-foreground/30'}`}
+              />
+            ))}
+            {hab.capacidad > 5 && (
+              <span className="text-[9px] text-muted-foreground ml-0.5">+{hab.capacidad - 5}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Row 3: Bed description */}
+        <span className="text-[10px] text-muted-foreground leading-tight">{camasText}</span>
+
+        {/* Row 4: Pulsing dot for attention + guest info */}
+        <div className="relative">
+          {vis.needsAttention && (
+            <span
+              className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full animate-pulse"
+              style={{ backgroundColor: vis.color }}
+            />
+          )}
+          {huesped ? (
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1">
+                <UserCheck className="w-3 h-3 text-amber-600 shrink-0" />
+                <span className="text-xs font-semibold text-foreground truncate" title={huesped.huesped}>
+                  {huesped.huesped}
+                </span>
+              </div>
+              <div className="text-[10px] text-muted-foreground leading-tight">
+                <span>{huesped.checkin}</span>
+                <span className="mx-0.5">→</span>
+                <span>{huesped.checkout}</span>
+              </div>
+            </div>
+          ) : hab.problema ? (
+            <div className="flex items-center gap-1">
+              <Wrench className="w-3 h-3 text-red-500 shrink-0" />
+              <span className="text-[10px] text-red-600 truncate" title={hab.problema}>{hab.problema}</span>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Row 5: Quick actions (shown on hover) */}
+        <div className="flex items-center gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                onClick={() => onEdit(hab.numero)}
+                aria-label={`Editar habitación ${hab.numero}`}
+              >
+                <Pencil className="w-3 h-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">Editar</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                onClick={() => onStatusChange(hab.numero, hab.estado === 'Limpieza' ? 'Disponible' : 'Limpieza')}
+                aria-label={hab.estado === 'Limpieza' ? 'Marcar como limpia' : 'Enviar a limpieza'}
+              >
+                <Sparkles className="w-3 h-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              {hab.estado === 'Limpieza' ? 'Marcar como limpia' : 'Enviar a limpieza'}
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 text-destructive hover:text-destructive"
+                onClick={() => onDelete(hab.numero)}
+                aria-label={`Eliminar habitación ${hab.numero}`}
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">Eliminar</TooltipContent>
+          </Tooltip>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// FloorGroup — Collapsible floor section
+// ═══════════════════════════════════════════════════════════
+
+function FloorGroup({
+  floorLabel,
+  floorNum,
+  rooms,
+  isFloorPattern,
+  getHuespedActual,
+  onEdit,
+  onDelete,
+  onStatusChange,
+}: {
+  floorLabel: string;
+  floorNum: number;
+  rooms: Habitacion[];
+  isFloorPattern: boolean;
+  getHuespedActual: (num: string) => any;
+  onEdit: (num: string) => void;
+  onDelete: (num: string) => void;
+  onStatusChange: (num: string, estado: EstadoHabitacion) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+
+  // Count statuses in this floor
+  const statusCounts = useMemo(() => {
+    const c: Partial<Record<EstadoHabitacion, number>> = {};
+    rooms.forEach(h => { c[h.estado] = (c[h.estado] || 0) + 1; });
+    return c;
+  }, [rooms]);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div className="rounded-xl border bg-card overflow-hidden">
+        {/* Floor header */}
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="w-full flex items-center gap-2.5 p-3 hover:bg-accent/30 transition-colors cursor-pointer"
+            aria-label={`${isOpen ? 'Colapsar' : 'Expandir'} ${floorLabel}`}
+          >
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#0F2B28]/10 text-[#0F2B28] shrink-0">
+              {isFloorPattern ? (
+                <span className="text-sm font-bold">{floorNum}</span>
+              ) : (
+                <Bed className="w-4 h-4" />
+              )}
+            </div>
+            <div className="text-left min-w-0">
+              <span className="text-sm font-semibold text-foreground">{floorLabel}</span>
+              <span className="text-xs text-muted-foreground ml-2">
+                {rooms.length} {rooms.length === 1 ? 'habitación' : 'habitaciones'}
+              </span>
+            </div>
+            {/* Mini status indicators */}
+            <div className="ml-auto flex items-center gap-1.5">
+              {ALL_ESTADOS.map(estado => {
+                const count = statusCounts[estado] || 0;
+                if (count === 0) return null;
+                const vis = STATUS_VISUAL[estado];
+                return (
+                  <div key={estado} className="flex items-center gap-0.5" title={`${estado}: ${count}`}>
+                    <span
+                      className="w-2 h-2 rounded-sm"
+                      style={{ backgroundColor: vis.color }}
+                    />
+                    <span className="text-[10px] text-muted-foreground">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="shrink-0 ml-1">
+              {isOpen ? (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              )}
+            </div>
+          </button>
+        </CollapsibleTrigger>
+
+        {/* Room grid */}
+        <CollapsibleContent>
+          <div className="p-3 pt-0">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+              {rooms.map(hab => {
+                const huesped = (hab.estado === 'Ocupada' || hab.estado === 'Reservada')
+                  ? getHuespedActual(hab.numero)
+                  : null;
+                return (
+                  <EnhancedRoomCard
+                    key={hab.numero}
+                    hab={hab}
+                    huesped={huesped}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onStatusChange={onStatusChange}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// HabitacionesModule — Main component
+// ═══════════════════════════════════════════════════════════
 
 export default function HabitacionesModule() {
   // Granular selectors — avoids re-rendering on unrelated store changes
@@ -288,6 +852,7 @@ export default function HabitacionesModule() {
   const agregarHabitacion = useHotelStore(s => s.agregarHabitacion);
   const editarHabitacion = useHotelStore(s => s.editarHabitacion);
   const eliminarHabitacion = useHotelStore(s => s.eliminarHabitacion);
+  const cambiarEstadoHabitacion = useHotelStore(s => s.cambiarEstadoHabitacion);
   const [modal, setModal] = useState<'nueva' | 'editar' | 'eliminar' | null>(null);
   const [sel, setSel] = useState<string>('');
   const [viewMode, setViewMode] = useState<'lista' | 'mapa'>('lista');
@@ -306,10 +871,8 @@ export default function HabitacionesModule() {
     [habitaciones]
   );
 
-  // Find the active guest for a room — only reservations active TODAY count.
-  // Previously, any "Confirmada" or "Check-In realizado" reservation would show
-  // even if it's for next month, misleading the operator.
-  const getHuespedActual = (num: string) => {
+  // Find the active guest for a room
+  const getHuespedActual = useCallback((num: string) => {
     const todayDate = safeDate(today).getTime();
     return reservas.find(r =>
       r.habitacion === num &&
@@ -317,7 +880,51 @@ export default function HabitacionesModule() {
       safeDate(r.checkin).getTime() <= todayDate &&
       safeDate(r.checkout).getTime() >= todayDate
     );
-  };
+  }, [reservas, today]);
+
+  // Detect if room numbers follow a floor pattern (e.g., 1xx = floor 1)
+  const isFloorPattern = useMemo(() => {
+    if (sorted.length === 0) return false;
+    const floorSet = new Set<number>();
+    sorted.forEach(([num]) => floorSet.add(extractFloor(num)));
+    return floorSet.size > 1; // Multiple floors detected → use floor pattern
+  }, [sorted]);
+
+  // Group rooms by floor or type
+  const groupedRooms = useMemo(() => {
+    if (isFloorPattern) {
+      // Group by floor
+      const map = new Map<number, Habitacion[]>();
+      sorted.forEach(([, hab]) => {
+        const floor = extractFloor(hab.numero);
+        if (!map.has(floor)) map.set(floor, []);
+        map.get(floor)!.push(hab);
+      });
+      return Array.from(map.entries())
+        .sort(([a], [b]) => a - b)
+        .map(([floorNum, rooms]) => ({
+          key: `floor-${floorNum}`,
+          label: floorNum === 0 ? 'Sin piso' : `Piso ${floorNum}`,
+          floorNum,
+          rooms,
+        }));
+    }
+    // Group by type
+    const map = new Map<string, Habitacion[]>();
+    sorted.forEach(([, hab]) => {
+      const tipo = hab.tipo || 'Sin tipo';
+      if (!map.has(tipo)) map.set(tipo, []);
+      map.get(tipo)!.push(hab);
+    });
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([tipo, rooms], idx) => ({
+        key: `type-${tipo}`,
+        label: tipo,
+        floorNum: idx + 1,
+        rooms,
+      }));
+  }, [sorted, isFloorPattern]);
 
   // ── Helpers ──
   const capacidadDesdeTipo = (tipo: TipoHabitacion) => {
@@ -361,6 +968,16 @@ export default function HabitacionesModule() {
 
   const openDelete = (num: string) => { setSel(num); setModal('eliminar'); };
 
+  // ── Status change handler ──
+  const handleStatusChange = async (numero: string, nuevoEstado: EstadoHabitacion) => {
+    const ok = await cambiarEstadoHabitacion(numero, nuevoEstado);
+    if (ok) {
+      toast.success(`Hab. ${numero} → ${nuevoEstado}`);
+    } else {
+      toast.error('No se pudo cambiar el estado');
+    }
+  };
+
   // ── Acciones ──
   const handleSave = async () => {
     const capacidad = getCapacidadFinal();
@@ -394,7 +1011,7 @@ export default function HabitacionesModule() {
     <div className="space-y-6">
       <ModuleHeader icon={Bed} title="Habitaciones" subtitle="Gestioná las habitaciones de tu hotel">
         <div className="flex items-center gap-2">
-          {/* ── View toggle (Lista / Mapa) ── */}
+          {/* ── View toggle ── */}
           <div className="flex items-center gap-0.5 rounded-lg border bg-muted/50 p-0.5">
             <button
               type="button"
@@ -447,50 +1064,42 @@ export default function HabitacionesModule() {
         </div>
       </ModuleHeader>
 
-      {/* ── Banner de stats: breakdown por estado + barra de ocupación ── */}
+      {/* ── Stats banner ── */}
       <RoomStatsBanner />
+
+      {/* ── Room type analytics ── */}
+      <RoomTypeAnalytics />
 
       {/* ── Map view ── */}
       {viewMode === 'mapa' && (
         <RoomStatusMap onEditRoom={openEdit} onDeleteRoom={openDelete} />
       )}
 
-      {/* ── Grilla de habitaciones (lista view) ── */}
+      {/* ── Lista view: grouped rooms ── */}
       {viewMode === 'lista' && (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-        {sorted.map(([num, hab]) => {
-          const huesped = (hab.estado === 'Ocupada' || hab.estado === 'Reservada')
-            ? getHuespedActual(num)
-            : null;
-          const camasText = hab.tipo === 'Compartida'
-            ? `${hab.capacidad} camas`
-            : [
-                hab.camasMatrimoniales > 0 ? `${hab.camasMatrimoniales} matr.` : '',
-                hab.camasSimples > 0 ? `${hab.camasSimples} indiv.` : '',
-              ].filter(Boolean).join(' + ') || '—';
-
-          return (
-            <Card key={num} className={`relative card-hover transition-all duration-200 group ${borderByEstado[hab.estado] || ''}`}>
-              <CardContent className="p-3 flex flex-col items-center text-center gap-1">
-                <Badge className={`absolute top-2 left-2 text-xs px-2 font-semibold shadow-sm ${estados[hab.estado] || ''}`}>
-                  {hab.estado}
-                </Badge>
-                <span className="text-lg font-bold mt-2">{num}</span>
-                <span className="text-xs text-muted-foreground">{hab.tipo} · {camasText}</span>
-                {huesped && <span className="text-xs font-medium text-primary truncate w-full" title={huesped.huesped}>{huesped.huesped}</span>}
-                <div className="flex gap-1 mt-2">
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(num)} aria-label={`Editar habitación ${num}`}>
-                    <Pencil className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDelete(num)} aria-label={`Eliminar habitación ${num}`}>
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+        <div className="space-y-3">
+          {groupedRooms.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center text-sm text-muted-foreground">
+              <DoorOpen className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+              No hay habitaciones cargadas. Creá la primera con el botón{' '}
+              <span className="font-semibold text-foreground">&quot;Nueva Habitación&quot;</span>.
+            </div>
+          ) : (
+            groupedRooms.map(group => (
+              <FloorGroup
+                key={group.key}
+                floorLabel={group.label}
+                floorNum={group.floorNum}
+                rooms={group.rooms}
+                isFloorPattern={isFloorPattern}
+                getHuespedActual={getHuespedActual}
+                onEdit={openEdit}
+                onDelete={openDelete}
+                onStatusChange={handleStatusChange}
+              />
+            ))
+          )}
+        </div>
       )}
 
       {/* ── Modal Nueva / Editar ── */}
@@ -517,6 +1126,7 @@ export default function HabitacionesModule() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                 {TIPOS_HABITACION.map(t => {
                   const selected = form.tipo === t.tipo;
+                  const Icon = t.icon;
                   return (
                     <button
                       key={t.tipo}
@@ -531,7 +1141,7 @@ export default function HabitacionesModule() {
                         }
                       `}
                     >
-                      <User className={`w-4 h-4 ${selected ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <Icon className={`w-4 h-4 ${selected ? 'text-primary' : 'text-muted-foreground'}`} />
                       <span className={`text-xs font-semibold leading-tight ${selected ? 'text-primary' : 'text-foreground'}`}>
                         {t.label}
                       </span>

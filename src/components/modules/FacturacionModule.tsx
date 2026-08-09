@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { formatMoney, formatFecha } from '@/lib/format';
+import { formatMoney, formatFecha, formatFechaHora, todayLocal } from '@/lib/format';
 import type { Reserva, Pago } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,19 +23,73 @@ import {
 } from '@/components/ui/table';
 import {
   Receipt, CreditCard, FileText, Search, XCircle, DollarSign, CalendarDays, User,
-  Building2, Phone, Mail,
+  Building2, Phone, Mail, AlertTriangle, CheckCircle2, TrendingUp, Timer, Wallet,
+  Banknote, Printer, Hash, ArrowRight, CircleDollarSign, ChevronRight,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import PaginationBar from '@/components/ui/pagination-bar';
+import { AnimatedNumber } from '@/components/ui/animated-number';
 
-// formatFecha and formatMoney imported from @/lib/format
+// formatFecha, formatMoney, formatFechaHora, todayLocal imported from @/lib/format
 
 const estadoPagoBadge: Record<string, string> = {
   Pendiente: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A] shadow-sm',
   Parcial: 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA] shadow-sm',
   Pagado: 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0] shadow-sm',
 };
+
+/** Get initials from a name string (up to 2 chars) */
+function getInitials(name: string): string {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return parts[0].slice(0, 2).toUpperCase();
+}
+
+/** Calculate days between a date string and today */
+function daysSince(dateStr: string): number {
+  if (!dateStr) return 0;
+  const then = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00');
+  const now = new Date();
+  return Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/** Format a relative time string from a date string */
+function relativeTime(dateStr: string): string {
+  if (!dateStr) return '';
+  const then = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00');
+  const now = new Date();
+  const diffMs = now.getTime() - then.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffMins < 1) return 'ahora';
+  if (diffMins < 60) return `hace ${diffMins}m`;
+  if (diffHours < 24) return `hace ${diffHours}h`;
+  if (diffDays < 30) return `hace ${diffDays}d`;
+  if (diffDays < 365) return `hace ${Math.floor(diffDays / 30)}mes`;
+  return `hace ${Math.floor(diffDays / 365)}a`;
+}
+
+/** Get payment method icon component name based on method name */
+function getMetodoIcon(metodo: string): 'credit' | 'bank' | 'wallet' | 'cash' {
+  const lower = metodo.toLowerCase();
+  if (lower.includes('tarjeta') || lower.includes('crédito') || lower.includes('credito') || lower.includes('débito') || lower.includes('debito')) return 'credit';
+  if (lower.includes('transfer') || lower.includes('banco') || lower.includes('depósito') || lower.includes('deposito')) return 'bank';
+  if (lower.includes('mercadopago') || lower.includes('mp') || lower.includes('digital') || lower.includes('qr')) return 'wallet';
+  return 'cash';
+}
+
+/** Generate a receipt number from reserva ID */
+function receiptNumber(reservaId: string): string {
+  const num = reservaId.replace(/\D/g, '');
+  const suffix = num ? num.padStart(4, '0') : reservaId.slice(0, 4).toUpperCase().padEnd(4, '0');
+  const date = new Date();
+  const yy = String(date.getFullYear()).slice(2);
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  return `RCP-${yy}${mm}-${suffix}`;
+}
 
 export default function FacturacionModule() {
   const reservas = useHotelStore(s => s.reservas);
@@ -47,6 +101,7 @@ export default function FacturacionModule() {
   const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
   const registrarPago = useHotelStore(s => s.registrarPago);
   const nochesEntre = useHotelStore(s => s.nochesEntre);
+  const usuarioActual = useHotelStore(s => s.usuarioActual);
 
   // Pending payments
   const pendientes = reservas.filter(r => {
@@ -55,6 +110,34 @@ export default function FacturacionModule() {
     const pagado = calcularTotalPagado(r.id);
     return pagado < total;
   });
+
+  // ═══════════════════════════════════════════════════════════
+  // PAYMENT ANALYTICS (useMemo)
+  // ═══════════════════════════════════════════════════════════
+  const analytics = useMemo(() => {
+    // Total Pendiente: sum of all unpaid amounts
+    const totalPendiente = pendientes.reduce((sum, r) => {
+      const total = calcularTotalReserva(r.id);
+      const pagado = calcularTotalPagado(r.id);
+      return sum + Math.max(0, total - pagado);
+    }, 0);
+
+    // Today's date string
+    const todayStr = todayLocal();
+    const todayPayments = pagos.filter(p => p.fecha.startsWith(todayStr));
+    const totalCobradoHoy = todayPayments.reduce((sum, p) => sum + p.monto, 0);
+
+    // This month's payments
+    const now = new Date();
+    const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const monthPayments = pagos.filter(p => p.fecha.startsWith(monthPrefix));
+    const cobrosMes = monthPayments.reduce((sum, p) => sum + p.monto, 0);
+
+    // Average payment amount
+    const promedio = pagos.length > 0 ? pagos.reduce((sum, p) => sum + p.monto, 0) / pagos.length : 0;
+
+    return { totalPendiente, totalCobradoHoy, cobrosMes, promedio };
+  }, [pendientes, pagos, calcularTotalReserva, calcularTotalPagado]);
 
   // History filters
   const [histFiltroHuesped, setHistFiltroHuesped] = useState('');
@@ -159,9 +242,71 @@ export default function FacturacionModule() {
   const pagoReserva = reservas.find(r => r.id === pagoReservaId);
   const reciboReserva = reservas.find(r => r.id === reciboReservaId);
 
+  // Hotel name for receipt
+  const hotelName = usuarioActual?.tenantNombre || 'Hospeda';
+
   return (
     <div className="space-y-6">
       <ModuleHeader icon={Receipt} title="Facturación" subtitle="Comprobantes y pagos de tus reservas" />
+
+      {/* ══════════════════ PAYMENT ANALYTICS SUMMARY ══════════════════ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Pendiente */}
+        <div className="relative rounded-xl border-l-[3px] border-l-amber-500 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Total Pendiente</p>
+              <AnimatedNumber value={analytics.totalPendiente} className="text-xl font-bold text-amber-900 dark:text-amber-200" />
+            </div>
+            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+          <p className="text-[10px] text-amber-600/70 dark:text-amber-400/50 mt-2">{pendientes.length} reserva{pendientes.length !== 1 ? 's' : ''} pendiente{pendientes.length !== 1 ? 's' : ''}</p>
+        </div>
+
+        {/* Total Cobrado Hoy */}
+        <div className="relative rounded-xl border-l-[3px] border-l-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Cobrado Hoy</p>
+              <AnimatedNumber value={analytics.totalCobradoHoy} className="text-xl font-bold text-emerald-900 dark:text-emerald-200" />
+            </div>
+            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+          </div>
+          <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/50 mt-2">{pagos.filter(p => p.fecha.startsWith(todayLocal())).length} pago{pagos.filter(p => p.fecha.startsWith(todayLocal())).length !== 1 ? 's' : ''} del día</p>
+        </div>
+
+        {/* Cobros este Mes */}
+        <div className="relative rounded-xl border-l-[3px] border-l-sky-500 bg-gradient-to-br from-sky-50 to-sky-100/50 dark:from-sky-950/30 dark:to-sky-900/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-sky-700 dark:text-sky-400">Cobros este Mes</p>
+              <AnimatedNumber value={analytics.cobrosMes} className="text-xl font-bold text-sky-900 dark:text-sky-200" />
+            </div>
+            <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center">
+              <CalendarDays className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+            </div>
+          </div>
+          <p className="text-[10px] text-sky-600/70 dark:text-sky-400/50 mt-2">Acumulado mensual</p>
+        </div>
+
+        {/* Promedio por Reserva */}
+        <div className="relative rounded-xl border-l-[3px] border-l-violet-500 bg-gradient-to-br from-violet-50 to-violet-100/50 dark:from-violet-950/30 dark:to-violet-900/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-violet-700 dark:text-violet-400">Promedio por Reserva</p>
+              <AnimatedNumber value={analytics.promedio} className="text-xl font-bold text-violet-900 dark:text-violet-200" />
+            </div>
+            <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+            </div>
+          </div>
+          <p className="text-[10px] text-violet-600/70 dark:text-violet-400/50 mt-2">{pagos.length} pago{pagos.length !== 1 ? 's' : ''} en total</p>
+        </div>
+      </div>
 
       <Tabs defaultValue="pendientes">
         <TabsList className="bg-muted/50">
@@ -183,7 +328,7 @@ export default function FacturacionModule() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {/* ── Mobile: Cards ── */}
+              {/* ── Mobile: Enhanced Cards ── */}
               <div className="sm:hidden">
                 {pendientes.length === 0 ? (
                   <div className="text-center py-10 text-muted-foreground">No hay cobros pendientes.</div>
@@ -193,25 +338,48 @@ export default function FacturacionModule() {
                       const total = calcularTotalReserva(r.id);
                       const pagado = calcularTotalPagado(r.id);
                       const saldo = total - pagado;
+                      const pct = total > 0 ? Math.min(100, (pagado / total) * 100) : 0;
+                      const borderColor = r.estadoPago === 'Parcial' ? 'border-l-amber-500' : 'border-l-red-500';
+                      const dSince = daysSince(r.checkin);
                       return (
-                        <div key={r.id} className="p-4 space-y-2.5">
-                          {/* Guest + Room */}
+                        <div key={r.id} className={`border-l-[3px] ${borderColor} p-4 space-y-2.5 hover:bg-muted/20 transition-all duration-150`}>
+                          {/* Guest avatar + Room + Days */}
                           <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="font-semibold text-sm truncate">{r.huesped}</p>
-                              <p className="text-xs text-muted-foreground">{r.dni}</p>
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-full bg-[#0F2B28] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                {getInitials(r.huesped)}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-sm truncate">{r.huesped}</p>
+                                <p className="text-xs text-muted-foreground">{r.dni}</p>
+                              </div>
                             </div>
-                            <Badge variant="outline" className="shrink-0">{r.habitacion}</Badge>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Badge variant="outline" className="font-mono text-[10px]">{r.habitacion}</Badge>
+                              {dSince >= 0 && (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  <Timer className="w-2.5 h-2.5 mr-0.5" />{dSince}d
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                           {/* Dates */}
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                             <span>{formatFecha(r.checkin)}</span>
-                            <span>→</span>
+                            <ArrowRight className="w-3 h-3" />
                             <span>{formatFecha(r.checkout)}</span>
                           </div>
-                          {/* Payment status badge */}
-                          <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+                          {/* Payment progress bar */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[10px] text-muted-foreground">
+                              <span>Pago: {Math.round(pct)}%</span>
+                              <Badge className={`text-[10px] px-1.5 py-0 ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+                            </div>
+                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
                           {/* Money summary */}
                           <div className="grid grid-cols-3 gap-2 text-center rounded-lg border p-2.5 bg-muted/30">
                             <div>
@@ -231,10 +399,10 @@ export default function FacturacionModule() {
                           <div className="flex gap-2 pt-0.5">
                             <Button
                               size="sm"
-                              className="flex-1 h-8 text-xs"
+                              className="flex-1 h-8 text-xs bg-[#0F2B28] hover:bg-[#0F2B28]/90"
                               onClick={() => openPagoDialog(r.id)}
                             >
-                              <DollarSign className="w-3.5 h-3.5 mr-1" />Cobrar
+                              <CreditCard className="w-3.5 h-3.5 mr-1" />Cobrar
                             </Button>
                             <Button
                               size="icon"
@@ -252,7 +420,7 @@ export default function FacturacionModule() {
                 )}
               </div>
 
-              {/* ── Desktop: Table ── */}
+              {/* ── Desktop: Enhanced Table ── */}
               <div className="hidden sm:block overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -264,6 +432,7 @@ export default function FacturacionModule() {
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead className="text-right">Pagado</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
+                      <TableHead>Progreso</TableHead>
                       <TableHead>Pago</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
@@ -271,7 +440,7 @@ export default function FacturacionModule() {
                   <TableBody>
                     {pendientes.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                           No hay cobros pendientes.
                         </TableCell>
                       </TableRow>
@@ -280,25 +449,55 @@ export default function FacturacionModule() {
                         const total = calcularTotalReserva(r.id);
                         const pagado = calcularTotalPagado(r.id);
                         const saldo = total - pagado;
+                        const pct = total > 0 ? Math.min(100, (pagado / total) * 100) : 0;
+                        const borderColor = r.estadoPago === 'Parcial' ? 'border-l-amber-500' : 'border-l-red-500';
+                        const dSince = daysSince(r.checkin);
                         return (
-                          <TableRow key={r.id} className="group hover:bg-[#F0FDF4]/30 transition-colors duration-150">
+                          <TableRow key={r.id} className={`group border-l-[3px] ${borderColor} hover:bg-[#F0FDF4]/30 hover:-translate-y-px transition-all duration-150`}>
                             <TableCell className="font-medium">
-                              <div>{r.huesped}</div>
-                              <div className="text-xs text-muted-foreground">{r.dni}</div>
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-full bg-[#0F2B28] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                                  {getInitials(r.huesped)}
+                                </div>
+                                <div>
+                                  <div>{r.huesped}</div>
+                                  <div className="text-xs text-muted-foreground">{r.dni}</div>
+                                </div>
+                              </div>
                             </TableCell>
-                            <TableCell><Badge variant="outline" className="font-mono">{r.habitacion}</Badge></TableCell>
+                            <TableCell>
+                              <div className="flex flex-col items-start gap-1">
+                                <Badge variant="outline" className="font-mono">{r.habitacion}</Badge>
+                                {dSince >= 0 && (
+                                  <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                    <Timer className="w-2.5 h-2.5" />{dSince}d
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell className="hidden md:table-cell">{formatFecha(r.checkin)}</TableCell>
                             <TableCell className="hidden md:table-cell">{formatFecha(r.checkout)}</TableCell>
                             <TableCell className="text-right font-bold text-[#0F2B28]">{formatMoney(total)}</TableCell>
                             <TableCell className="text-right font-semibold text-[#166534]">{formatMoney(pagado)}</TableCell>
                             <TableCell className="text-right text-[#991B1B] font-bold">{formatMoney(saldo)}</TableCell>
                             <TableCell>
+                              <div className="space-y-1 min-w-[80px]">
+                                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                  <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                                </div>
+                                <div className="flex justify-between text-[10px] text-muted-foreground">
+                                  <span>{Math.round(pct)}%</span>
+                                  <Badge className={`text-[10px] px-1 py-0 ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
                               <Badge className={`font-semibold ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
-                                <Button size="sm" onClick={() => openPagoDialog(r.id)}>
-                                  <DollarSign className="w-3.5 h-3.5 mr-1" />Cobrar
+                                <Button size="sm" onClick={() => openPagoDialog(r.id)} className="bg-[#0F2B28] hover:bg-[#0F2B28]/90">
+                                  <CreditCard className="w-3.5 h-3.5 mr-1" />Cobrar
                                 </Button>
                                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openRecibo(r.id)}>
                                   <FileText className="w-3.5 h-3.5" />
@@ -361,7 +560,7 @@ export default function FacturacionModule() {
           {/* Payments table */}
           <Card>
             <CardContent className="p-0">
-              {/* ── Mobile: Cards ── */}
+              {/* ── Mobile: Enhanced Cards ── */}
               <div className="sm:hidden">
                 {filteredPagos.length === 0 ? (
                   <div className="text-center py-10 text-muted-foreground">No se encontraron pagos.</div>
@@ -373,23 +572,27 @@ export default function FacturacionModule() {
                       const totalR = reserva ? calcularTotalReserva(reserva.id) : 0;
                       const pagadoR = reserva ? calcularTotalPagado(reserva.id) : 0;
                       const saldoR = totalR - pagadoR;
+                      const metodoType = getMetodoIcon(metodoNombre);
                       return (
-                        <div key={p.id} className="p-4 space-y-2.5">
+                        <div key={p.id} className="p-4 space-y-2.5 hover:bg-muted/20 transition-colors duration-150">
                           {/* Date + Amount */}
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                               <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                               <span>{formatFecha(p.fecha)}</span>
+                              <span className="text-[10px] opacity-60">({relativeTime(p.fecha)})</span>
                             </div>
-                            <p className="text-base font-bold text-[#166534] shrink-0">{formatMoney(p.monto)}</p>
+                            <p className="text-base font-bold text-[#059669] shrink-0">{formatMoney(p.monto)}</p>
                           </div>
                           {/* Guest + Room */}
                           <div className="flex items-center gap-2">
                             <p className="font-semibold text-sm truncate flex-1">{reserva?.huesped || `Reserva #${p.idReserva}`}</p>
                             <Badge variant="outline" className="shrink-0">{reserva?.habitacion || '—'}</Badge>
                           </div>
-                          {/* Method */}
-                          <Badge variant="secondary">{metodoNombre}</Badge>
+                          {/* Method with icon */}
+                          <div className="flex items-center gap-1.5">
+                            <MetodoIconBadge type={metodoType} name={metodoNombre} />
+                          </div>
                           {/* Note */}
                           {p.nota && (
                             <p className="text-xs text-muted-foreground leading-relaxed">{p.nota}</p>
@@ -416,7 +619,7 @@ export default function FacturacionModule() {
                 )}
               </div>
 
-              {/* ── Desktop: Table ── */}
+              {/* ── Desktop: Enhanced Table ── */}
               <div className="hidden sm:block overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -440,15 +643,21 @@ export default function FacturacionModule() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      pagedPagos.map(p => {
+                      pagedPagos.map((p, idx) => {
                         const reserva = reservas.find(r => r.id === p.idReserva);
                         const metodoNombre = metodosPago.find(m => m.id === p.metodo)?.nombre || p.metodo;
                         const totalR = reserva ? calcularTotalReserva(reserva.id) : 0;
                         const pagadoR = reserva ? calcularTotalPagado(reserva.id) : 0;
                         const saldoR = totalR - pagadoR;
+                        const metodoType = getMetodoIcon(metodoNombre);
                         return (
-                          <TableRow key={p.id} className="group hover:bg-[#F0FDF4]/30 transition-colors duration-150">
-                            <TableCell>{formatFecha(p.fecha)}</TableCell>
+                          <TableRow key={p.id} className="group hover:bg-[#F0FDF4]/30 hover:-translate-y-px transition-all duration-150 animate-in fade-in-0 slide-in-from-bottom-1" style={{ animationDelay: `${idx * 30}ms`, animationFillMode: 'backwards' }}>
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <span className="text-sm">{formatFecha(p.fecha)}</span>
+                                <span className="block text-[10px] text-muted-foreground">{relativeTime(p.fecha)}</span>
+                              </div>
+                            </TableCell>
                             <TableCell className="font-medium">
                               {reserva?.huesped || `Reserva #${p.idReserva}`}
                             </TableCell>
@@ -456,7 +665,7 @@ export default function FacturacionModule() {
                               <Badge variant="outline">{reserva?.habitacion || '—'}</Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="secondary">{metodoNombre}</Badge>
+                              <MetodoIconBadge type={metodoType} name={metodoNombre} />
                             </TableCell>
                             <TableCell className="text-right font-bold text-[#059669]">
                               {formatMoney(p.monto)}
@@ -578,7 +787,7 @@ export default function FacturacionModule() {
         </DialogContent>
       </Dialog>
 
-      {/* =================== MODAL RECIBO =================== */}
+      {/* =================== MODAL RECIBO (ENHANCED) =================== */}
       <Dialog open={reciboDialogOpen} onOpenChange={() => setReciboDialogOpen(false)}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -588,16 +797,39 @@ export default function FacturacionModule() {
             </DialogTitle>
           </DialogHeader>
 
-          {reciboReserva && <ReciboContent reserva={reciboReserva} />}
+          {reciboReserva && <ReciboContent reserva={reciboReserva} hotelName={hotelName} />}
         </DialogContent>
       </Dialog>
     </div>
   );
 }
 
-/* =================== RECIBO COMPONENT =================== */
+/* =================== MÉTODO ICON BADGE COMPONENT =================== */
 
-function ReciboContent({ reserva }: { reserva: Reserva }) {
+function MetodoIconBadge({ type, name }: { type: 'credit' | 'bank' | 'wallet' | 'cash'; name: string }) {
+  const iconMap = {
+    credit: <CreditCard className="w-3 h-3" />,
+    bank: <Banknote className="w-3 h-3" />,
+    wallet: <Wallet className="w-3 h-3" />,
+    cash: <CircleDollarSign className="w-3 h-3" />,
+  };
+  const colorMap = {
+    credit: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400',
+    bank: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
+    wallet: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    cash: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  };
+  return (
+    <Badge variant="secondary" className={`gap-1 ${colorMap[type]}`}>
+      {iconMap[type]}
+      {name}
+    </Badge>
+  );
+}
+
+/* =================== RECIBO COMPONENT (ENHANCED) =================== */
+
+function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: string }) {
   const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
   const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
   const nochesEntre = useHotelStore(s => s.nochesEntre);
@@ -610,22 +842,41 @@ function ReciboContent({ reserva }: { reserva: Reserva }) {
   const noches = nochesEntre(reserva.checkin, reserva.checkout);
   const hab = habitaciones[reserva.habitacion];
   const reservasPagos = pagos.filter(p => p.idReserva === reserva.id).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const reciboNum = receiptNumber(reserva.id);
+  const isReceipt = reserva.estado === 'Check-Out realizado';
+  const now = new Date();
+  const formattedDateTime = `${now.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })} — ${now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`;
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   return (
-    <div className="border rounded-lg p-6 space-y-4 bg-card">
-      {/* Hotel header */}
-      <div className="text-center space-y-1">
-        <h3 className="text-xl font-bold tracking-wide">HOTEL</h3>
+    <div className="border-2 border-dashed border-muted rounded-lg p-6 space-y-4 bg-card print:border-solid print:border-black print:bg-white">
+      {/* ── Hotel Branding Header ── */}
+      <div className="text-center space-y-2">
+        {/* Logo placeholder */}
+        <div className="mx-auto w-14 h-14 rounded-xl bg-[#0F2B28] flex items-center justify-center">
+          <Building2 className="w-7 h-7 text-white" />
+        </div>
+        <h3 className="text-xl font-bold tracking-wide text-[#0F2B28]">{hotelName.toUpperCase()}</h3>
         <p className="text-xs text-muted-foreground">Dirección del hotel, Ciudad, País</p>
         <p className="text-xs text-muted-foreground">Tel: (000) 000-0000 · info@hotel.com</p>
-        <p className="text-xs font-semibold mt-2">
-          {reserva.estado === 'Check-Out realizado' ? 'RECIBO DE PAGO' : 'COTIZACIÓN'}
+        <Separator className="my-2" />
+        <div className="flex items-center justify-center gap-2">
+          <Hash className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-sm font-mono font-semibold">{reciboNum}</span>
+        </div>
+        <p className="text-xs font-semibold mt-1 uppercase tracking-widest">
+          {isReceipt ? 'RECIBO DE PAGO' : 'COTIZACIÓN'}
         </p>
+        <p className="text-[10px] text-muted-foreground">{formattedDateTime}</p>
       </div>
 
-      <Separator />
+      {/* ── Decorative line ── */}
+      <div className="border-t-2 border-dashed border-muted" />
 
-      {/* Guest info */}
+      {/* ── Guest info ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-sm">
         <div className="flex items-center gap-2">
           <User className="w-3.5 h-3.5 text-muted-foreground" />
@@ -649,11 +900,11 @@ function ReciboContent({ reserva }: { reserva: Reserva }) {
         </div>
       </div>
 
-      <Separator />
+      <div className="border-t border-dashed border-muted" />
 
-      {/* Reservation details */}
+      {/* ── Reservation details ── */}
       <div className="space-y-2 text-sm">
-        <h4 className="font-semibold">Detalle de la reserva #{reserva.id}</h4>
+        <h4 className="font-semibold">Detalle de la reserva</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5">
           <div className="flex items-center gap-2">
             <BedDoubleIcon className="w-3.5 h-3.5 text-muted-foreground" />
@@ -684,9 +935,9 @@ function ReciboContent({ reserva }: { reserva: Reserva }) {
         </div>
       </div>
 
-      <Separator />
+      <div className="border-t border-dashed border-muted" />
 
-      {/* Payment breakdown */}
+      {/* ── Payment breakdown ── */}
       <div className="space-y-2">
         <h4 className="font-semibold text-sm">Desglose de pagos</h4>
         {reservasPagos.length === 0 ? (
@@ -702,24 +953,28 @@ function ReciboContent({ reserva }: { reserva: Reserva }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reservasPagos.map(p => (
-                  <TableRow key={p.id}>
-                    <TableCell className="text-xs py-2">{formatFecha(p.fecha)}</TableCell>
-                    <TableCell className="text-xs py-2">
-                      {metodosPago.find(m => m.id === p.metodo)?.nombre || p.metodo}
-                    </TableCell>
-                    <TableCell className="text-xs py-2 text-right font-medium">{formatMoney(p.monto)}</TableCell>
-                  </TableRow>
-                ))}
+                {reservasPagos.map(p => {
+                  const metodoNombre = metodosPago.find(m => m.id === p.metodo)?.nombre || p.metodo;
+                  const metodoType = getMetodoIcon(metodoNombre);
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell className="text-xs py-2">{formatFecha(p.fecha)}</TableCell>
+                      <TableCell className="text-xs py-2">
+                        <MetodoIconBadge type={metodoType} name={metodoNombre} />
+                      </TableCell>
+                      <TableCell className="text-xs py-2 text-right font-medium text-[#059669]">{formatMoney(p.monto)}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         )}
       </div>
 
-      <Separator />
+      <div className="border-t-2 border-dashed border-muted" />
 
-      {/* Totals */}
+      {/* ── Totals ── */}
       <div className="space-y-1.5">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Total reserva</span>
@@ -745,13 +1000,26 @@ function ReciboContent({ reserva }: { reserva: Reserva }) {
 
       {reserva.notas && (
         <>
-          <Separator />
+          <div className="border-t border-dashed border-muted" />
           <div className="text-sm">
             <span className="text-muted-foreground">Notas: </span>
             <span>{reserva.notas}</span>
           </div>
         </>
       )}
+
+      {/* ── Footer with print button ── */}
+      <div className="border-t-2 border-dashed border-muted pt-3 space-y-3">
+        <p className="text-center text-[10px] text-muted-foreground">
+          Documento generado por {hotelName} — {formattedDateTime}
+        </p>
+        <div className="flex justify-center print:hidden">
+          <Button onClick={handlePrint} variant="outline" size="sm" className="gap-1.5">
+            <Printer className="w-4 h-4" />
+            Imprimir
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

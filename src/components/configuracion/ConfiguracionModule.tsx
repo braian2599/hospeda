@@ -819,7 +819,7 @@ function ExportarSection() {
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `hospeda-${tipo}-${new Date().toISOString().split('T')[0]}.csv`;
+      link.download = `hospeda-${tipo}-${new Date().toLocaleDateString('en-CA')}.csv`;
       link.click();
       URL.revokeObjectURL(link.href);
       toast.success(`${tipo} exportados correctamente`);

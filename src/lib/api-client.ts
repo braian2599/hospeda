@@ -255,6 +255,7 @@ export interface UpdateHabitacion {
   numero?: string; tipo?: string; capacidad?: number;
   camasMatrimoniales?: number; camasSimples?: number;
   precioPorCama?: number | null; piso?: number | null;
+  estado?: string;
 }
 
 export interface DbCliente {

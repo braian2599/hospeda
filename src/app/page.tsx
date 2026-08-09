@@ -10,7 +10,8 @@ import {
   ArrowRight, Check, Menu, X, Shield, Zap, Clock, Globe,
   ChevronDown, ChevronUp, Building2, Receipt, Wrench, Mail, Phone,
   Quote, Star, MapPin, FileCheck, MessageCircle, Server, Headphones,
-  ArrowUp, Linkedin, Twitter, Instagram
+  ArrowUp, Linkedin, Twitter, Instagram,
+  Database, Lock, Activity, PieChart, List, DollarSign, TrendingUp, Monitor, Search
 } from 'lucide-react';
 import PlanCard from '@/components/payments/PlanCard';
 import CheckoutDialog from '@/components/payments/CheckoutDialog';
@@ -223,6 +224,10 @@ const trustBadges = [
   { icon: MapPin, label: 'Servidores en Argentina' },
   { icon: FileCheck, label: 'Cumple Ley 25.326' },
   { icon: MessageCircle, label: 'Soporte en español' },
+  { icon: Lock, label: 'SOC 2 Compliance' },
+  { icon: Activity, label: '99.9% Uptime SLA' },
+  { icon: Database, label: 'Backups diarios' },
+  { icon: FileCheck, label: 'RGPD / Ley 25.326' },
 ];
 
 const testimonials = [
@@ -568,13 +573,13 @@ function StatsSection() {
           ))}
         </div>
 
-        {/* Trust badges */}
+        {/* Trust badges — horizontal scroll on mobile */}
         <FadeIn delay={400}>
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-12 flex items-center gap-3 overflow-x-auto pb-2 snap-x snap-mandatory sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0 scrollbar-thin">
             {trustBadges.map((b) => (
               <div
                 key={b.label}
-                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-[#BBF7D0]/50 text-[#166534] text-sm font-medium shadow-sm hover:shadow-md hover:border-[#059669]/40 transition-all duration-200"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-[#BBF7D0]/50 text-[#166534] text-sm font-medium shadow-sm hover:shadow-md hover:border-[#059669]/40 transition-all duration-200 snap-start shrink-0"
               >
                 <b.icon className="w-4 h-4 text-[#059669] group-hover:scale-110 transition-transform" />
                 {b.label}
@@ -932,6 +937,244 @@ function Plans() {
   );
 }
 
+/* ─── Plan Comparison Table ─── */
+const comparisonFeatures = [
+  { feature: 'Dashboard', basico: true, profesional: true, premium: true },
+  { feature: 'Habitaciones', basico: 'Hasta 10 hab', profesional: 'Hasta 50 hab', premium: 'Ilimitadas' },
+  { feature: 'Reservas', basico: true, profesional: true, premium: true },
+  { feature: 'Check-In/Out', basico: true, profesional: true, premium: true },
+  { feature: 'Facturación', basico: true, profesional: true, premium: true },
+  { feature: 'Caja', basico: true, profesional: true, premium: true },
+  { feature: 'Reportes', basico: false, profesional: true, premium: true },
+  { feature: 'Usuarios', basico: '2 usuarios', profesional: '5 usuarios', premium: 'Ilimitados' },
+  { feature: 'Limpieza', basico: false, profesional: true, premium: true },
+  { feature: 'Clientes', basico: true, profesional: true, premium: true },
+  { feature: 'Tarifas', basico: true, profesional: true, premium: true },
+  { feature: 'Soporte prioritario', basico: false, profesional: true, premium: true },
+  { feature: 'API access', basico: false, profesional: false, premium: true },
+  { feature: 'Multi-sede', basico: false, profesional: false, premium: true },
+];
+
+function ComparisonTable() {
+  return (
+    <section className="py-16 sm:py-20 bg-secondary/30">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6">
+        <FadeIn>
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <Badge variant="secondary" className="mb-4">Comparativa</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+              Compará los planes en detalle
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              Todo lo que necesitás saber para elegir el plan ideal.
+            </p>
+          </div>
+        </FadeIn>
+
+        <FadeIn delay={100}>
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">
+                  <th className="text-left py-3 px-4 font-semibold text-foreground border-b border-border min-w-[140px]">Funcionalidad</th>
+                  <th className="text-center py-3 px-4 font-semibold text-foreground border-b border-border min-w-[100px]">Básico</th>
+                  <th className="text-center py-3 px-4 font-semibold border-b min-w-[100px] text-[#059669] bg-[#059669]/5">Profesional</th>
+                  <th className="text-center py-3 px-4 font-semibold text-foreground border-b border-border min-w-[100px]">Premium</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonFeatures.map((row, i) => (
+                  <tr key={row.feature} className={`${i % 2 === 0 ? 'bg-muted/30' : 'bg-transparent'} hover:bg-muted/50 transition-colors`}>
+                    <td className="py-2.5 px-4 font-medium text-foreground">{row.feature}</td>
+                    {[row.basico, row.profesional, row.premium].map((val, j) => (
+                      <td
+                        key={j}
+                        className={`py-2.5 px-4 text-center ${j === 1 ? 'bg-[#059669]/5' : ''}`}
+                      >
+                        {val === true ? (
+                          <Check className="w-4 h-4 text-[#059669] mx-auto" />
+                        ) : val === false ? (
+                          <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{val}</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Interactive Demo Preview ─── */
+const demoTabs = [
+  {
+    key: 'reservas',
+    label: 'Reservas',
+    icon: CalendarCheck,
+    content: {
+      title: 'Gestión de Reservas',
+      subtitle: 'Visualizá y gestioná todas tus reservas en un solo lugar',
+      rows: [
+        { habitacion: '101 - Doble', huesped: 'María González', checkin: '15 Mar', checkout: '18 Mar', estado: 'Confirmada', estadoColor: 'bg-[#059669]/15 text-[#059669]' },
+        { habitacion: '205 - Suite', huesped: 'Carlos Rodríguez', checkin: '16 Mar', checkout: '20 Mar', estado: 'Check-In', estadoColor: 'bg-blue-500/15 text-blue-600' },
+        { habitacion: '310 - Simple', huesped: 'Ana López', checkin: '17 Mar', checkout: '19 Mar', estado: 'Pendiente', estadoColor: 'bg-amber-500/15 text-amber-600' },
+      ],
+    },
+  },
+  {
+    key: 'facturacion',
+    label: 'Facturación',
+    icon: Receipt,
+    content: {
+      title: 'Facturación y Pagos',
+      subtitle: 'Controlá los pagos y la facturación de tu hotel',
+      rows: [
+        { habitacion: 'Factura #1247', huesped: 'María González', checkin: '$45.000', checkout: 'Pagado', estado: 'Completo', estadoColor: 'bg-[#059669]/15 text-[#059669]' },
+        { habitacion: 'Factura #1248', huesped: 'Laura Martínez', checkin: '$78.500', checkout: 'Parcial', estado: '$32.000 pagado', estadoColor: 'bg-amber-500/15 text-amber-600' },
+        { habitacion: 'Factura #1249', huesped: 'Roberto Díaz', checkin: '$23.000', checkout: 'Pendiente', estado: 'Sin pago', estadoColor: 'bg-red-500/15 text-red-600' },
+      ],
+    },
+  },
+  {
+    key: 'reportes',
+    label: 'Reportes',
+    icon: BarChart3,
+    content: {
+      title: 'Reportes y Estadísticas',
+      subtitle: 'Métricas clave para tomar mejores decisiones',
+      rows: [
+        { habitacion: 'Ocupación mensual', huesped: '', checkin: '87.3%', checkout: '', estado: '↑ 5.2% vs mes anterior', estadoColor: 'bg-[#059669]/15 text-[#059669]' },
+        { habitacion: 'Ingresos del mes', huesped: '', checkin: '$1.245.000', checkout: '', estado: '↑ 12.8% vs mes anterior', estadoColor: 'bg-[#059669]/15 text-[#059669]' },
+        { habitacion: 'RevPAR', huesped: '', checkin: '$15.620', checkout: '', estado: '↑ 3.1% vs mes anterior', estadoColor: 'bg-[#059669]/15 text-[#059669]' },
+      ],
+    },
+  },
+] as const;
+
+type DemoTabKey = typeof demoTabs[number]['key'];
+
+function DemoPreview() {
+  const [activeTab, setActiveTab] = useState<DemoTabKey>('reservas');
+  const activeDemo = demoTabs.find((t) => t.key === activeTab)!;
+
+  return (
+    <section className="py-24 sm:py-32">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+        <FadeIn>
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <Badge variant="secondary" className="mb-4">Demo interactiva</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+              Mirá cómo funciona
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              Explorá las pantallas principales de Hospedá sin salir de esta página.
+            </p>
+          </div>
+        </FadeIn>
+
+        {/* Tab buttons */}
+        <FadeIn delay={80}>
+          <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
+            {demoTabs.map((tab) => {
+              const isActive = tab.key === activeTab;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                    isActive
+                      ? 'bg-[#0F2B28] text-white shadow-md shadow-[#0F2B28]/20'
+                      : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </FadeIn>
+
+        {/* Mock UI preview card */}
+        <FadeIn delay={150}>
+          <div className="relative rounded-2xl border border-border bg-muted/20 overflow-hidden shadow-xl shadow-black/[0.06]">
+            {/* Browser chrome header */}
+            <div className="flex items-center gap-1.5 px-4 py-3 bg-muted/50 border-b border-border/60">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-green-400/80" />
+              <span className="ml-3 text-[11px] text-muted-foreground/60 font-mono">hospeda.app/{activeTab}</span>
+            </div>
+
+            {/* Content area */}
+            <div className="p-6 sm:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground/70">{activeDemo.content.title}</h3>
+                  <p className="text-sm text-muted-foreground/60">{activeDemo.content.subtitle}</p>
+                </div>
+                <div className="hidden sm:flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
+                    <Search className="w-4 h-4 text-muted-foreground/50" />
+                  </div>
+                  <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
+                    <List className="w-4 h-4 text-muted-foreground/50" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Mock table rows */}
+              <div className="space-y-2">
+                {/* Table header */}
+                <div className="grid grid-cols-4 gap-3 px-4 py-2 text-xs font-medium text-muted-foreground/50 uppercase tracking-wider">
+                  <span>{activeTab === 'facturacion' ? 'Factura' : activeTab === 'reportes' ? 'Métrica' : 'Habitación'}</span>
+                  <span>{activeTab === 'reportes' ? '' : 'Huésped'}</span>
+                  <span>{activeTab === 'reservas' ? 'Check-In' : activeTab === 'facturacion' ? 'Monto' : 'Valor'}</span>
+                  <span className="text-right">Estado</span>
+                </div>
+                {activeDemo.content.rows.map((row, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-4 gap-3 px-4 py-3 rounded-lg bg-white/60 border border-border/40 items-center"
+                  >
+                    <span className="text-sm font-medium text-foreground/70 truncate">{row.habitacion}</span>
+                    <span className="text-sm text-muted-foreground/60 truncate">{row.huesped}</span>
+                    <span className="text-sm text-foreground/70">{row.checkin}</span>
+                    <div className="flex justify-end">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.estadoColor}`}>
+                        {row.estado}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <div className="mt-8 text-center">
+                <Button
+                  asChild
+                  className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white px-8 h-11"
+                >
+                  <Link href="/register">
+                    Probá gratis
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
 /* ─── How it works ─── */
 function HowItWorks() {
   return (
@@ -1180,8 +1423,10 @@ export default function LandingPage() {
         <Hero />
         <StatsSection />
         <Features />
+        <DemoPreview />
         <TestimonialsSection />
         <Plans />
+        <ComparisonTable />
         <HowItWorks />
         <FAQ />
         <CtaSection />

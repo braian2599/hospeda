@@ -20,6 +20,9 @@ import { createPortal } from 'react-dom';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import ActivityTimeline from './dashboard/ActivityTimeline';
 import OccupancyForecast from './dashboard/OccupancyForecast';
+import RevenueBreakdownChart from './dashboard/RevenueBreakdownChart';
+import GuestTimeline from './dashboard/GuestTimeline';
+import RoomTypeDistribution from './dashboard/RoomTypeDistribution';
 import {
   AreaChart, Area, XAxis, YAxis,
   Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -1128,6 +1131,13 @@ export default function DashboardModule() {
             {action.label}
           </Button>
         ))}
+      </div>
+
+      {/* Revenue Breakdown + Guest Timeline + Room Type Distribution */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <RevenueBreakdownChart />
+        <GuestTimeline />
+        <RoomTypeDistribution />
       </div>
 
       {/* Pronóstico de ocupación — próximos 7 días */}

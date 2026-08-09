@@ -29,6 +29,10 @@ import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import { exportReportAsPdf, type PdfReportData } from '@/lib/pdf-export';
 import { downloadCSV } from '@/lib/csv-export';
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, BarChart, Bar, PieChart, Pie, Cell, Legend,
+} from 'recharts';
 
 // ==================== HELPERS ====================
 
@@ -50,6 +54,9 @@ const formatMoneda = (n: number) => new Intl.NumberFormat('es-AR', { style: 'cur
 const localDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const hoy = () => localDateStr(new Date());
 const haceNDias = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return localDateStr(d); };
+
+// Color palette for pie chart segments (forest-green-first)
+const PIE_COLORS = ['#0F2B28', '#059669', '#F59E0B', '#EF4444', '#3B82F6', '#7C3AED', '#EC4899', '#14B8A6', '#F97316', '#6B7280'];
 
 
 
@@ -283,6 +290,15 @@ export default function ReportesModule() {
     api.usuarios.list().then(setUsuarios).catch((err: unknown) => { console.error('Error cargando usuarios:', err); });
   }, []);
 
+  // Auto-show charts on desktop (≥768px)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+      setShowFinChart(true);
+      setShowHabChart(true);
+      setShowGastoChart(true);
+    }
+  }, []);
+
   // Pagination
   const [auditPage, setAuditPage] = useState(1);
   const AUDIT_PER_PAGE = 15;
@@ -299,6 +315,11 @@ export default function ReportesModule() {
   const [auditSearch, setAuditSearch] = useState('');
   const [auditTurno, setAuditTurno] = useState('todos');
   const [clienteMinEstadias, setClienteMinEstadias] = useState('0');
+
+  // Chart toggle states — hidden by default on mobile, shown on desktop
+  const [showFinChart, setShowFinChart] = useState(false);
+  const [showHabChart, setShowHabChart] = useState(false);
+  const [showGastoChart, setShowGastoChart] = useState(false);
 
   // ==================== COMPUTED DATA ====================
 
@@ -572,6 +593,60 @@ export default function ReportesModule() {
     });
     return pctMap;
   }, [reservasSuperpuestas, parseDateRange, toExclusive, diasPeriodo]);
+
+  // ==================== CHART DATA ====================
+
+  /** Daily revenue for AreaChart — one entry per day in the selected period */
+  const dailyRevenueData = useMemo(() => {
+    const revenueByDate: Record<string, number> = {};
+    pagosEnPeriodo.forEach(p => {
+      revenueByDate[p.fecha] = (revenueByDate[p.fecha] || 0) + p.monto;
+    });
+    const entries: { date: string; revenue: number; label: string }[] = [];
+    const start = new Date(desde + 'T12:00:00');
+    const end = new Date(hasta + 'T12:00:00');
+    const cur = new Date(start);
+    while (cur <= end) {
+      const ds = localDateStr(cur);
+      entries.push({
+        date: ds,
+        revenue: revenueByDate[ds] || 0,
+        label: cur.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }),
+      });
+      cur.setDate(cur.getDate() + 1);
+    }
+    return entries;
+  }, [pagosEnPeriodo, desde, hasta]);
+
+  /** Daily occupancy for BarChart — one entry per day */
+  const dailyOccupancyData = useMemo(() => {
+    if (totalHabs === 0) return [];
+    const entries: { date: string; label: string; occupancy: number; occupied: number; total: number }[] = [];
+    const start = new Date(desde + 'T12:00:00');
+    const end = new Date(hasta + 'T12:00:00');
+    const cur = new Date(start);
+    while (cur <= end) {
+      const ds = localDateStr(cur);
+      const occupiedRooms = new Set<string>();
+      reservasSuperpuestas.forEach(r => {
+        const ci = new Date(r.checkin + 'T12:00:00');
+        const co = new Date(r.checkout + 'T12:00:00');
+        if (cur >= ci && cur < co) occupiedRooms.add(r.habitacion);
+      });
+      const occupied = occupiedRooms.size;
+      entries.push({
+        date: ds,
+        label: cur.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }),
+        occupancy: Math.round((occupied / totalHabs) * 100),
+        occupied,
+        total: totalHabs,
+      });
+      cur.setDate(cur.getDate() + 1);
+    }
+    return entries;
+  }, [reservasSuperpuestas, desde, hasta, totalHabs]);
+
+  // ==================== END CHART DATA ====================
 
   // Clientes: nuevos este mes + recurrentes (>=2 estadías)
   const clientesResumen = useMemo(() => {
@@ -1026,11 +1101,81 @@ export default function ReportesModule() {
 
         {/* ==================== FINANCIERO ==================== */}
         <TabsContent value="financiero" className="space-y-4">
-          <ReportTabHeader
-            icon={<DollarSign className="w-5 h-5" />}
-            title="Reporte Financiero"
-            subtitle={`Ingresos y pagos del ${formatFecha(desde)} al ${formatFecha(hasta)}`}
-          />
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <ReportTabHeader
+                icon={<DollarSign className="w-5 h-5" />}
+                title="Reporte Financiero"
+                subtitle={`Ingresos y pagos del ${formatFecha(desde)} al ${formatFecha(hasta)}`}
+              />
+            </div>
+            <Button
+              size="icon"
+              variant={showFinChart ? 'default' : 'outline'}
+              onClick={() => setShowFinChart(!showFinChart)}
+              className={`shrink-0 h-9 w-9 transition-all ${showFinChart ? 'bg-[#0F2B28] text-white hover:bg-[#0F2B28]/90' : 'hover:bg-[#0F2B28] hover:text-white'}`}
+              aria-label={showFinChart ? 'Ocultar gráfico' : 'Mostrar gráfico'}
+            >
+              <BarChart3 className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Revenue Area Chart */}
+          {showFinChart && dailyRevenueData.length > 0 && (
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />Ingresos Diarios
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pb-2">
+                <div className="h-[240px] sm:h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={dailyRevenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#0F2B28" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#0F2B28" stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 11, fill: '#64748B' }}
+                        tickLine={false}
+                        axisLine={{ stroke: '#E2E8F0' }}
+                        interval={dailyRevenueData.length > 31 ? Math.floor(dailyRevenueData.length / 10) : 0}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: '#64748B' }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : String(v)}
+                      />
+                      <RechartsTooltip
+                        content={({ active, payload, label }: any) => {
+                          if (!active || !payload?.length) return null;
+                          return (
+                            <div className="bg-white border border-[#E2E8F0] rounded-lg shadow-lg px-3 py-2 text-sm">
+                              <p className="font-medium text-[#0F2B28]">{label}</p>
+                              <p className="text-[#059669] font-semibold">{formatMoneda(payload[0].value as number)}</p>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#0F2B28"
+                        strokeWidth={2}
+                        fill="url(#revenueGradient)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Summary KPI cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1135,11 +1280,92 @@ export default function ReportesModule() {
 
         {/* ==================== GASTOS ==================== */}
         <TabsContent value="gastos" className="space-y-4">
-          <ReportTabHeader
-            icon={<TrendingDown className="w-5 h-5" />}
-            title="Reporte de Gastos"
-            subtitle={`Egresos del ${formatFecha(desde)} al ${formatFecha(hasta)}`}
-          />
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <ReportTabHeader
+                icon={<TrendingDown className="w-5 h-5" />}
+                title="Reporte de Gastos"
+                subtitle={`Egresos del ${formatFecha(desde)} al ${formatFecha(hasta)}`}
+              />
+            </div>
+            <Button
+              size="icon"
+              variant={showGastoChart ? 'default' : 'outline'}
+              onClick={() => setShowGastoChart(!showGastoChart)}
+              className={`shrink-0 h-9 w-9 transition-all ${showGastoChart ? 'bg-[#0F2B28] text-white hover:bg-[#0F2B28]/90' : 'hover:bg-[#0F2B28] hover:text-white'}`}
+              aria-label={showGastoChart ? 'Ocultar gráfico' : 'Mostrar gráfico'}
+            >
+              <BarChart3 className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Expense Pie Chart */}
+          {showGastoChart && gastosPorCategoria.length > 0 && (
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />Distribución de Gastos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pb-2">
+                <div className="relative h-[260px] sm:h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={gastosPorCategoria.map(([name, value]) => ({ name, value }))}
+                        cx="50%"
+                        cy="45%"
+                        innerRadius={55}
+                        outerRadius={95}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {gastosPorCategoria.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip
+                        content={({ active, payload }: any) => {
+                          if (!active || !payload?.length) return null;
+                          const data = payload[0].payload;
+                          const pct = totalGastos > 0 ? Math.round((data.value / totalGastos) * 100) : 0;
+                          return (
+                            <div className="bg-white border border-[#E2E8F0] rounded-lg shadow-lg px-3 py-2 text-sm">
+                              <p className="font-medium text-[#0F2B28]">{data.name}</p>
+                              <p className="text-[#EF4444] font-semibold">{formatMoneda(data.value)} ({pct}%)</p>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Legend
+                        content={({ payload }: any) => (
+                          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-1 px-2">
+                            {payload?.map((entry: any, index: number) => {
+                              const [name, value] = gastosPorCategoria[index] || ['', 0];
+                              const pct = totalGastos > 0 ? Math.round((value / totalGastos) * 100) : 0;
+                              return (
+                                <div key={entry.value} className="flex items-center gap-1.5 text-xs">
+                                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                                  <span className="text-muted-foreground">{name}</span>
+                                  <span className="font-medium">{formatMoneda(value)}</span>
+                                  <span className="text-muted-foreground">({pct}%)</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Center total label */}
+                  <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</p>
+                    <p className="text-base sm:text-lg font-bold text-[#0F2B28]">{formatMoneda(totalGastos)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Summary KPI cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1501,11 +1727,78 @@ export default function ReportesModule() {
 
         {/* ==================== HABITACIONES ==================== */}
         <TabsContent value="habitaciones" className="space-y-4">
-          <ReportTabHeader
-            icon={<BedDouble className="w-5 h-5" />}
-            title="Reporte de Habitaciones"
-            subtitle={`Estado y ocupación del ${formatFecha(desde)} al ${formatFecha(hasta)}`}
-          />
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <ReportTabHeader
+                icon={<BedDouble className="w-5 h-5" />}
+                title="Reporte de Habitaciones"
+                subtitle={`Estado y ocupación del ${formatFecha(desde)} al ${formatFecha(hasta)}`}
+              />
+            </div>
+            <Button
+              size="icon"
+              variant={showHabChart ? 'default' : 'outline'}
+              onClick={() => setShowHabChart(!showHabChart)}
+              className={`shrink-0 h-9 w-9 transition-all ${showHabChart ? 'bg-[#0F2B28] text-white hover:bg-[#0F2B28]/90' : 'hover:bg-[#0F2B28] hover:text-white'}`}
+              aria-label={showHabChart ? 'Ocultar gráfico' : 'Mostrar gráfico'}
+            >
+              <BarChart3 className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Occupancy Bar Chart */}
+          {showHabChart && dailyOccupancyData.length > 0 && (
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />Ocupación Diaria
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pb-2">
+                <div className="h-[240px] sm:h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dailyOccupancyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 11, fill: '#64748B' }}
+                        tickLine={false}
+                        axisLine={{ stroke: '#E2E8F0' }}
+                        interval={dailyOccupancyData.length > 31 ? Math.floor(dailyOccupancyData.length / 10) : 0}
+                      />
+                      <YAxis
+                        domain={[0, 100]}
+                        tick={{ fontSize: 11, fill: '#64748B' }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v: number) => `${v}%`}
+                      />
+                      <RechartsTooltip
+                        content={({ active, payload, label }: any) => {
+                          if (!active || !payload?.length) return null;
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-white border border-[#E2E8F0] rounded-lg shadow-lg px-3 py-2 text-sm">
+                              <p className="font-medium text-[#0F2B28]">{label}</p>
+                              <p className="font-semibold">{data.occupied} de {data.total} hab. ({data.occupancy}%)</p>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Bar dataKey="occupancy" radius={[4, 4, 0, 0]}>
+                        {dailyOccupancyData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={entry.occupancy > 80 ? '#059669' : entry.occupancy >= 50 ? '#F59E0B' : '#EF4444'}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Summary KPI cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

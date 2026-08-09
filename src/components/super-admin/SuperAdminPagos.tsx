@@ -69,7 +69,7 @@ function formatDate(iso: string) {
 }
 
 function formatDateInput(iso: string) {
-  return new Date(iso).toISOString().split('T')[0];
+  return new Date(iso).toLocaleDateString('en-CA');
 }
 
 function estadoBadge(estado: string) {

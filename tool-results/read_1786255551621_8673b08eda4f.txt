@@ -1,0 +1,769 @@
+     1→'use client';
+     2→
+     3→import { useState } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import { formatMoney, formatFecha } from '@/lib/format';
+     6→import type { Reserva, Pago } from '@/lib/types';
+     7→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     8→import { Button } from '@/components/ui/button';
+     9→import { Input } from '@/components/ui/input';
+    10→import { Label } from '@/components/ui/label';
+    11→import { Badge } from '@/components/ui/badge';
+    12→import { Separator } from '@/components/ui/separator';
+    13→import { Textarea } from '@/components/ui/textarea';
+    14→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    15→import {
+    16→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    17→} from '@/components/ui/dialog';
+    18→import {
+    19→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    20→} from '@/components/ui/select';
+    21→import {
+    22→  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+    23→} from '@/components/ui/table';
+    24→import {
+    25→  Receipt, CreditCard, FileText, Search, XCircle, DollarSign, CalendarDays, User,
+    26→  Building2, Phone, Mail,
+    27→} from 'lucide-react';
+    28→import ModuleHeader from '@/components/layout/ModuleHeader';
+    29→import { toast } from 'sonner';
+    30→import PaginationBar from '@/components/ui/pagination-bar';
+    31→
+    32→// formatFecha and formatMoney imported from @/lib/format
+    33→
+    34→const estadoPagoBadge: Record<string, string> = {
+    35→  Pendiente: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A] shadow-sm',
+    36→  Parcial: 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA] shadow-sm',
+    37→  Pagado: 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0] shadow-sm',
+    38→};
+    39→
+    40→export default function FacturacionModule() {
+    41→  const reservas = useHotelStore(s => s.reservas);
+    42→  const pagos = useHotelStore(s => s.pagos);
+    43→  const metodosPago = useHotelStore(s => s.metodosPago);
+    44→  const habitaciones = useHotelStore(s => s.habitaciones);
+    45→  const caja = useHotelStore(s => s.caja);
+    46→  const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
+    47→  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
+    48→  const registrarPago = useHotelStore(s => s.registrarPago);
+    49→  const nochesEntre = useHotelStore(s => s.nochesEntre);
+    50→
+    51→  // Pending payments
+    52→  const pendientes = reservas.filter(r => {
+    53→    if (r.estado === 'Cancelada' || r.estado === 'Check-Out realizado') return false;
+    54→    const total = calcularTotalReserva(r.id);
+    55→    const pagado = calcularTotalPagado(r.id);
+    56→    return pagado < total;
+    57→  });
+    58→
+    59→  // History filters
+    60→  const [histFiltroHuesped, setHistFiltroHuesped] = useState('');
+    61→  const [histFiltroMetodo, setHistFiltroMetodo] = useState('todos');
+    62→  const [histFiltroDesde, setHistFiltroDesde] = useState('');
+    63→  const [histFiltroHasta, setHistFiltroHasta] = useState('');
+    64→
+    65→  // Pagination
+    66→  const [pendPage, setPendPage] = useState(1);
+    67→  const [histPage, setHistPage] = useState(1);
+    68→  const PAGE_SIZE = 15;
+    69→
+    70→  // Payment dialog
+    71→  const [savingPago, setSavingPago] = useState(false);
+    72→  const [pagoDialogOpen, setPagoDialogOpen] = useState(false);
+    73→  const [pagoReservaId, setPagoReservaId] = useState<string | null>(null);
+    74→  const [pagoMonto, setPagoMonto] = useState('');
+    75→  const [pagoMetodo, setPagoMetodo] = useState('');
+    76→  const [pagoNota, setPagoNota] = useState('');
+    77→
+    78→  // Receipt dialog
+    79→  const [reciboDialogOpen, setReciboDialogOpen] = useState(false);
+    80→  const [reciboReservaId, setReciboReservaId] = useState<string | null>(null);
+    81→
+    82→  // Resolve method filter ID to name for comparison
+    83→  const filtroMetodoNombre = histFiltroMetodo !== 'todos'
+    84→    ? metodosPago.find(m => m.id === histFiltroMetodo)?.nombre
+    85→    : 'todos';
+    86→
+    87→  // Filtered history
+    88→  const filteredPagos = pagos
+    89→    .filter(p => {
+    90→      const reserva = reservas.find(r => r.id === p.idReserva);
+    91→      if (histFiltroHuesped && reserva) {
+    92→        const term = histFiltroHuesped.toLowerCase();
+    93→        if (!reserva.huesped.toLowerCase().includes(term) && !reserva.dni.includes(term)) return false;
+    94→      }
+    95→      if (filtroMetodoNombre && filtroMetodoNombre !== 'todos' && p.metodo !== filtroMetodoNombre) return false;
+    96→      if (histFiltroDesde && p.fecha < histFiltroDesde) return false;
+    97→      if (histFiltroHasta && p.fecha > histFiltroHasta) return false;
+    98→      return true;
+    99→    })
+   100→    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+   101→
+   102→  // Pagination for pendientes
+   103→  const pendTotalPages = Math.ceil(pendientes.length / PAGE_SIZE) || 1;
+   104→  const pagedPendientes = pendientes.slice((pendPage - 1) * PAGE_SIZE, pendPage * PAGE_SIZE);
+   105→
+   106→  // Pagination for historial
+   107→  const histTotalPages = Math.ceil(filteredPagos.length / PAGE_SIZE) || 1;
+   108→  const pagedPagos = filteredPagos.slice((histPage - 1) * PAGE_SIZE, histPage * PAGE_SIZE);
+   109→
+   110→  // Open payment dialog
+   111→  const openPagoDialog = (reservaId: string) => {
+   112→    const total = calcularTotalReserva(reservaId);
+   113→    const pagado = calcularTotalPagado(reservaId);
+   114→    setPagoReservaId(reservaId);
+   115→    setPagoMonto(String(total - pagado));
+   116→    setPagoMetodo('');
+   117→    setPagoNota('');
+   118→    setPagoDialogOpen(true);
+   119→  };
+   120→
+   121→  // Save payment
+   122→  const handleSavePago = async () => {
+   123→    const montoNum = parseFloat(pagoMonto);
+   124→    if (isNaN(montoNum) || montoNum <= 0) {
+   125→      toast.error('Ingresá un monto válido');
+   126→      return;
+   127→    }
+   128→    if (!pagoReservaId || !pagoMetodo) return;
+   129→    if (caja.estado !== 'abierta') {
+   130→      toast.error('Caja cerrada', { description: 'Debés abrir la caja antes de registrar un cobro.' });
+   131→      return;
+   132→    }
+   133→    const total = calcularTotalReserva(pagoReservaId);
+   134→    const pagado = calcularTotalPagado(pagoReservaId);
+   135→    const saldo = Math.round((total - pagado) * 100) / 100;
+   136→    if (montoNum > saldo + 0.01) {
+   137→      toast.error('El monto excede el saldo pendiente', { description: `Saldo: $${saldo.toLocaleString('es-AR')}` });
+   138→      return;
+   139→    }
+   140→    setSavingPago(true);
+   141→    const result = await registrarPago(pagoReservaId, montoNum, pagoMetodo, pagoNota.trim());
+   142→    if (!result) {
+   143→      toast.error('Error al registrar pago', { description: 'No se pudo registrar el pago.' });
+   144→      setSavingPago(false);
+   145→      return;
+   146→    }
+   147→    toast.success('Pago registrado', { description: formatMoney(montoNum) });
+   148→    setPagoDialogOpen(false);
+   149→    setPagoReservaId(null);
+   150→    setSavingPago(false);
+   151→  };
+   152→
+   153→  // Open receipt dialog
+   154→  const openRecibo = (reservaId: string) => {
+   155→    setReciboReservaId(reservaId);
+   156→    setReciboDialogOpen(true);
+   157→  };
+   158→
+   159→  const pagoReserva = reservas.find(r => r.id === pagoReservaId);
+   160→  const reciboReserva = reservas.find(r => r.id === reciboReservaId);
+   161→
+   162→  return (
+   163→    <div className="space-y-6">
+   164→      <ModuleHeader icon={Receipt} title="Facturación" subtitle="Comprobantes y pagos de tus reservas" />
+   165→
+   166→      <Tabs defaultValue="pendientes">
+   167→        <TabsList className="bg-muted/50">
+   168→          <TabsTrigger value="pendientes" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all">
+   169→            <CreditCard className="w-4 h-4 mr-1" />Cobros pendientes
+   170→          </TabsTrigger>
+   171→          <TabsTrigger value="historial" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all">
+   172→            <FileText className="w-4 h-4 mr-1" />Historial de pagos
+   173→          </TabsTrigger>
+   174→        </TabsList>
+   175→
+   176→        {/* =================== TAB: COBROS PENDIENTES =================== */}
+   177→        <TabsContent value="pendientes" className="mt-4">
+   178→          <Card>
+   179→            <CardHeader className="pb-3">
+   180→              <CardTitle className="text-base">
+   181→                Reservas con saldo pendiente
+   182→                <Badge variant="secondary" className="ml-2">{pendientes.length}</Badge>
+   183→              </CardTitle>
+   184→            </CardHeader>
+   185→            <CardContent className="p-0">
+   186→              {/* ── Mobile: Cards ── */}
+   187→              <div className="sm:hidden">
+   188→                {pendientes.length === 0 ? (
+   189→                  <div className="text-center py-10 text-muted-foreground">No hay cobros pendientes.</div>
+   190→                ) : (
+   191→                  <div className="divide-y">
+   192→                    {pagedPendientes.map(r => {
+   193→                      const total = calcularTotalReserva(r.id);
+   194→                      const pagado = calcularTotalPagado(r.id);
+   195→                      const saldo = total - pagado;
+   196→                      return (
+   197→                        <div key={r.id} className="p-4 space-y-2.5">
+   198→                          {/* Guest + Room */}
+   199→                          <div className="flex items-start justify-between gap-2">
+   200→                            <div className="min-w-0">
+   201→                              <p className="font-semibold text-sm truncate">{r.huesped}</p>
+   202→                              <p className="text-xs text-muted-foreground">{r.dni}</p>
+   203→                            </div>
+   204→                            <Badge variant="outline" className="shrink-0">{r.habitacion}</Badge>
+   205→                          </div>
+   206→                          {/* Dates */}
+   207→                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   208→                            <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+   209→                            <span>{formatFecha(r.checkin)}</span>
+   210→                            <span>→</span>
+   211→                            <span>{formatFecha(r.checkout)}</span>
+   212→                          </div>
+   213→                          {/* Payment status badge */}
+   214→                          <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+   215→                          {/* Money summary */}
+   216→                          <div className="grid grid-cols-3 gap-2 text-center rounded-lg border p-2.5 bg-muted/30">
+   217→                            <div>
+   218→                              <p className="text-[10px] text-muted-foreground leading-tight">Total</p>
+   219→                              <p className="text-sm font-semibold">{formatMoney(total)}</p>
+   220→                            </div>
+   221→                            <div>
+   222→                              <p className="text-[10px] text-muted-foreground leading-tight">Pagado</p>
+   223→                              <p className="text-sm font-medium text-[#166534]">{formatMoney(pagado)}</p>
+   224→                            </div>
+   225→                            <div>
+   226→                              <p className="text-[10px] text-muted-foreground leading-tight">Saldo</p>
+   227→                              <p className="text-sm font-bold text-[#991B1B]">{formatMoney(saldo)}</p>
+   228→                            </div>
+   229→                          </div>
+   230→                          {/* Actions */}
+   231→                          <div className="flex gap-2 pt-0.5">
+   232→                            <Button
+   233→                              size="sm"
+   234→                              className="flex-1 h-8 text-xs"
+   235→                              onClick={() => openPagoDialog(r.id)}
+   236→                            >
+   237→                              <DollarSign className="w-3.5 h-3.5 mr-1" />Cobrar
+   238→                            </Button>
+   239→                            <Button
+   240→                              size="icon"
+   241→                              variant="outline"
+   242→                              className="h-8 w-8 shrink-0"
+   243→                              onClick={() => openRecibo(r.id)}
+   244→                            >
+   245→                              <FileText className="w-3.5 h-3.5" />
+   246→                            </Button>
+   247→                          </div>
+   248→                        </div>
+   249→                      );
+   250→                    })}
+   251→                  </div>
+   252→                )}
+   253→              </div>
+   254→
+   255→              {/* ── Desktop: Table ── */}
+   256→              <div className="hidden sm:block overflow-x-auto">
+   257→                <Table>
+   258→                  <TableHeader>
+   259→                    <TableRow>
+   260→                      <TableHead>Huésped</TableHead>
+   261→                      <TableHead>Hab.</TableHead>
+   262→                      <TableHead className="hidden md:table-cell">Check-in</TableHead>
+   263→                      <TableHead className="hidden md:table-cell">Check-out</TableHead>
+   264→                      <TableHead className="text-right">Total</TableHead>
+   265→                      <TableHead className="text-right">Pagado</TableHead>
+   266→                      <TableHead className="text-right">Saldo</TableHead>
+   267→                      <TableHead>Pago</TableHead>
+   268→                      <TableHead className="text-right">Acciones</TableHead>
+   269→                    </TableRow>
+   270→                  </TableHeader>
+   271→                  <TableBody>
+   272→                    {pendientes.length === 0 ? (
+   273→                      <TableRow>
+   274→                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+   275→                          No hay cobros pendientes.
+   276→                        </TableCell>
+   277→                      </TableRow>
+   278→                    ) : (
+   279→                      pagedPendientes.map(r => {
+   280→                        const total = calcularTotalReserva(r.id);
+   281→                        const pagado = calcularTotalPagado(r.id);
+   282→                        const saldo = total - pagado;
+   283→                        return (
+   284→                          <TableRow key={r.id} className="group hover:bg-[#F0FDF4]/30 transition-colors duration-150">
+   285→                            <TableCell className="font-medium">
+   286→                              <div>{r.huesped}</div>
+   287→                              <div className="text-xs text-muted-foreground">{r.dni}</div>
+   288→                            </TableCell>
+   289→                            <TableCell><Badge variant="outline" className="font-mono">{r.habitacion}</Badge></TableCell>
+   290→                            <TableCell className="hidden md:table-cell">{formatFecha(r.checkin)}</TableCell>
+   291→                            <TableCell className="hidden md:table-cell">{formatFecha(r.checkout)}</TableCell>
+   292→                            <TableCell className="text-right font-bold text-[#0F2B28]">{formatMoney(total)}</TableCell>
+   293→                            <TableCell className="text-right font-semibold text-[#166534]">{formatMoney(pagado)}</TableCell>
+   294→                            <TableCell className="text-right text-[#991B1B] font-bold">{formatMoney(saldo)}</TableCell>
+   295→                            <TableCell>
+   296→                              <Badge className={`font-semibold ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+   297→                            </TableCell>
+   298→                            <TableCell className="text-right">
+   299→                              <div className="flex justify-end gap-1">
+   300→                                <Button size="sm" onClick={() => openPagoDialog(r.id)}>
+   301→                                  <DollarSign className="w-3.5 h-3.5 mr-1" />Cobrar
+   302→                                </Button>
+   303→                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openRecibo(r.id)}>
+   304→                                  <FileText className="w-3.5 h-3.5" />
+   305→                                </Button>
+   306→                              </div>
+   307→                            </TableCell>
+   308→                          </TableRow>
+   309→                        );
+   310→                      })
+   311→                    )}
+   312→                  </TableBody>
+   313→                </Table>
+   314→              </div>
+   315→              <PaginationBar page={pendPage} totalPages={pendTotalPages} onPageChange={setPendPage} totalItems={pendientes.length} pageSize={PAGE_SIZE} />
+   316→            </CardContent>
+   317→          </Card>
+   318→        </TabsContent>
+   319→
+   320→        {/* =================== TAB: HISTORIAL =================== */}
+   321→        <TabsContent value="historial" className="mt-4 space-y-4">
+   322→          {/* Filter bar */}
+   323→          <Card>
+   324→            <CardContent className="p-4">
+   325→              <div className="flex flex-wrap gap-3 items-end">
+   326→                <div className="grid gap-1.5 flex-1 w-full sm:w-auto sm:min-w-[160px]">
+   327→                  <Label className="text-xs text-muted-foreground">Huésped / DNI</Label>
+   328→                  <Input
+   329→                    placeholder="Buscar..."
+   330→                    value={histFiltroHuesped}
+   331→                    onChange={e => { setHistFiltroHuesped(e.target.value); setHistPage(1); }}
+   332→                  />
+   333→                </div>
+   334→                <div className="grid gap-1.5">
+   335→                  <Label className="text-xs text-muted-foreground">Método</Label>
+   336→                  <Select value={histFiltroMetodo} onValueChange={v => { setHistFiltroMetodo(v); setHistPage(1); }}>
+   337→                    <SelectTrigger className="w-full sm:w-auto sm:min-w-[140px]"><SelectValue /></SelectTrigger>
+   338→                    <SelectContent>
+   339→                      <SelectItem value="todos">Todos</SelectItem>
+   340→                      {metodosPago.map(m => (
+   341→                        <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>
+   342→                      ))}
+   343→                    </SelectContent>
+   344→                  </Select>
+   345→                </div>
+   346→                <div className="grid gap-1.5">
+   347→                  <Label className="text-xs text-muted-foreground">Desde</Label>
+   348→                  <Input type="date" value={histFiltroDesde} onChange={e => { setHistFiltroDesde(e.target.value); setHistPage(1); }} className="w-full sm:w-auto sm:min-w-[140px]" />
+   349→                </div>
+   350→                <div className="grid gap-1.5">
+   351→                  <Label className="text-xs text-muted-foreground">Hasta</Label>
+   352→                  <Input type="date" value={histFiltroHasta} onChange={e => { setHistFiltroHasta(e.target.value); setHistPage(1); }} className="w-full sm:w-auto sm:min-w-[140px]" />
+   353→                </div>
+   354→                <Button variant="outline" size="sm" onClick={() => { setHistFiltroHuesped(''); setHistFiltroMetodo('todos'); setHistFiltroDesde(''); setHistFiltroHasta(''); setHistPage(1); }}>
+   355→                  <XCircle className="w-3.5 h-3.5 mr-1" />Limpiar
+   356→                </Button>
+   357→              </div>
+   358→            </CardContent>
+   359→          </Card>
+   360→
+   361→          {/* Payments table */}
+   362→          <Card>
+   363→            <CardContent className="p-0">
+   364→              {/* ── Mobile: Cards ── */}
+   365→              <div className="sm:hidden">
+   366→                {filteredPagos.length === 0 ? (
+   367→                  <div className="text-center py-10 text-muted-foreground">No se encontraron pagos.</div>
+   368→                ) : (
+   369→                  <div className="divide-y">
+   370→                    {pagedPagos.map(p => {
+   371→                      const reserva = reservas.find(r => r.id === p.idReserva);
+   372→                      const metodoNombre = metodosPago.find(m => m.id === p.metodo)?.nombre || p.metodo;
+   373→                      const totalR = reserva ? calcularTotalReserva(reserva.id) : 0;
+   374→                      const pagadoR = reserva ? calcularTotalPagado(reserva.id) : 0;
+   375→                      const saldoR = totalR - pagadoR;
+   376→                      return (
+   377→                        <div key={p.id} className="p-4 space-y-2.5">
+   378→                          {/* Date + Amount */}
+   379→                          <div className="flex items-start justify-between gap-2">
+   380→                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   381→                              <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+   382→                              <span>{formatFecha(p.fecha)}</span>
+   383→                            </div>
+   384→                            <p className="text-base font-bold text-[#166534] shrink-0">{formatMoney(p.monto)}</p>
+   385→                          </div>
+   386→                          {/* Guest + Room */}
+   387→                          <div className="flex items-center gap-2">
+   388→                            <p className="font-semibold text-sm truncate flex-1">{reserva?.huesped || `Reserva #${p.idReserva}`}</p>
+   389→                            <Badge variant="outline" className="shrink-0">{reserva?.habitacion || '—'}</Badge>
+   390→                          </div>
+   391→                          {/* Method */}
+   392→                          <Badge variant="secondary">{metodoNombre}</Badge>
+   393→                          {/* Note */}
+   394→                          {p.nota && (
+   395→                            <p className="text-xs text-muted-foreground leading-relaxed">{p.nota}</p>
+   396→                          )}
+   397→                          {/* Total / Saldo */}
+   398→                          {reserva && (
+   399→                            <div className="flex justify-between text-xs text-muted-foreground">
+   400→                              <span>Total: {formatMoney(totalR)}</span>
+   401→                              <span className={saldoR <= 0 ? 'text-[#166534] font-medium' : 'text-[#991B1B]'}>{saldoR <= 0 ? 'Pagado' : `Saldo: ${formatMoney(saldoR)}`}</span>
+   402→                            </div>
+   403→                          )}
+   404→                          {/* Receipt button */}
+   405→                          {reserva && (
+   406→                            <div className="flex justify-end pt-0.5">
+   407→                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openRecibo(reserva.id)}>
+   408→                                <FileText className="w-3.5 h-3.5 mr-1" />Ver recibo
+   409→                              </Button>
+   410→                            </div>
+   411→                          )}
+   412→                        </div>
+   413→                      );
+   414→                    })}
+   415→                  </div>
+   416→                )}
+   417→              </div>
+   418→
+   419→              {/* ── Desktop: Table ── */}
+   420→              <div className="hidden sm:block overflow-x-auto">
+   421→                <Table>
+   422→                  <TableHeader>
+   423→                    <TableRow>
+   424→                      <TableHead>Fecha</TableHead>
+   425→                      <TableHead>Huésped</TableHead>
+   426→                      <TableHead>Hab.</TableHead>
+   427→                      <TableHead>Método</TableHead>
+   428→                      <TableHead className="text-right">Monto</TableHead>
+   429→                      <TableHead className="hidden md:table-cell text-right">Total</TableHead>
+   430→                      <TableHead className="hidden md:table-cell text-right">Saldo</TableHead>
+   431→                      <TableHead className="hidden lg:table-cell">Nota</TableHead>
+   432→                      <TableHead className="text-right">Recibo</TableHead>
+   433→                    </TableRow>
+   434→                  </TableHeader>
+   435→                  <TableBody>
+   436→                    {filteredPagos.length === 0 ? (
+   437→                      <TableRow>
+   438→                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+   439→                          No se encontraron pagos.
+   440→                        </TableCell>
+   441→                      </TableRow>
+   442→                    ) : (
+   443→                      pagedPagos.map(p => {
+   444→                        const reserva = reservas.find(r => r.id === p.idReserva);
+   445→                        const metodoNombre = metodosPago.find(m => m.id === p.metodo)?.nombre || p.metodo;
+   446→                        const totalR = reserva ? calcularTotalReserva(reserva.id) : 0;
+   447→                        const pagadoR = reserva ? calcularTotalPagado(reserva.id) : 0;
+   448→                        const saldoR = totalR - pagadoR;
+   449→                        return (
+   450→                          <TableRow key={p.id} className="group hover:bg-[#F0FDF4]/30 transition-colors duration-150">
+   451→                            <TableCell>{formatFecha(p.fecha)}</TableCell>
+   452→                            <TableCell className="font-medium">
+   453→                              {reserva?.huesped || `Reserva #${p.idReserva}`}
+   454→                            </TableCell>
+   455→                            <TableCell>
+   456→                              <Badge variant="outline">{reserva?.habitacion || '—'}</Badge>
+   457→                            </TableCell>
+   458→                            <TableCell>
+   459→                              <Badge variant="secondary">{metodoNombre}</Badge>
+   460→                            </TableCell>
+   461→                            <TableCell className="text-right font-bold text-[#059669]">
+   462→                              {formatMoney(p.monto)}
+   463→                            </TableCell>
+   464→                            <TableCell className="hidden md:table-cell text-right text-sm">
+   465→                              {formatMoney(totalR)}
+   466→                            </TableCell>
+   467→                            <TableCell className={`hidden md:table-cell text-right text-sm font-medium ${saldoR <= 0 ? 'text-[#166534]' : 'text-[#991B1B]'}`}>
+   468→                              {saldoR <= 0 ? 'Pagado' : formatMoney(saldoR)}
+   469→                            </TableCell>
+   470→                            <TableCell className="hidden lg:table-cell text-muted-foreground text-sm max-w-[200px] truncate">
+   471→                              {p.nota || '—'}
+   472→                            </TableCell>
+   473→                            <TableCell className="text-right">
+   474→                              {reserva && (
+   475→                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openRecibo(reserva.id)}>
+   476→                                  <FileText className="w-3.5 h-3.5" />
+   477→                                </Button>
+   478→                              )}
+   479→                            </TableCell>
+   480→                          </TableRow>
+   481→                        );
+   482→                      })
+   483→                    )}
+   484→                  </TableBody>
+   485→                </Table>
+   486→              </div>
+   487→              <PaginationBar page={histPage} totalPages={histTotalPages} onPageChange={setHistPage} totalItems={filteredPagos.length} pageSize={PAGE_SIZE} />
+   488→            </CardContent>
+   489→          </Card>
+   490→        </TabsContent>
+   491→      </Tabs>
+   492→
+   493→      {/* =================== MODAL PAGO =================== */}
+   494→      <Dialog open={pagoDialogOpen} onOpenChange={() => setPagoDialogOpen(false)}>
+   495→        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+   496→          <DialogHeader>
+   497→            <DialogTitle className="flex items-center gap-2">
+   498→              <DollarSign className="w-5 h-5" />
+   499→              Registrar pago
+   500→            </DialogTitle>
+   501→          </DialogHeader>
+   502→
+   503→          {pagoReserva && (
+   504→            <>
+   505→              <div className="rounded-lg border p-3 space-y-2 bg-muted/30">
+   506→                <div className="grid grid-cols-2 gap-2 text-sm">
+   507→                  <div>
+   508→                    <span className="text-muted-foreground">Huésped</span>
+   509→                    <p className="font-medium">{pagoReserva.huesped}</p>
+   510→                  </div>
+   511→                  <div>
+   512→                    <span className="text-muted-foreground">Habitación</span>
+   513→                    <p className="font-medium">{pagoReserva.habitacion}</p>
+   514→                  </div>
+   515→                  <div>
+   516→                    <span className="text-muted-foreground">Total reserva</span>
+   517→                    <p className="font-medium">{formatMoney(calcularTotalReserva(pagoReserva.id))}</p>
+   518→                  </div>
+   519→                  <div>
+   520→                    <span className="text-muted-foreground">Ya pagado</span>
+   521→                    <p className="font-medium text-[#166534]">{formatMoney(calcularTotalPagado(pagoReserva.id))}</p>
+   522→                  </div>
+   523→                </div>
+   524→                <Separator />
+   525→                <div className="flex justify-between font-bold text-sm">
+   526→                  <span>Saldo pendiente</span>
+   527→                  <span className="text-[#991B1B]">
+   528→                    {formatMoney(calcularTotalReserva(pagoReserva.id) - calcularTotalPagado(pagoReserva.id))}
+   529→                  </span>
+   530→                </div>
+   531→              </div>
+   532→
+   533→              <div className="grid gap-4 py-2">
+   534→                <div className="grid gap-2">
+   535→                  <Label>Monto *</Label>
+   536→                  <Input
+   537→                    type="number"
+   538→                    min="0"
+   539→                    step="100"
+   540→                    value={pagoMonto}
+   541→                    onChange={e => setPagoMonto(e.target.value)}
+   542→                    placeholder="0"
+   543→                  />
+   544→                </div>
+   545→                <div className="grid gap-2">
+   546→                  <Label>Método de pago *</Label>
+   547→                  <Select value={pagoMetodo} onValueChange={setPagoMetodo}>
+   548→                    <SelectTrigger><SelectValue placeholder="Seleccionar método..." /></SelectTrigger>
+   549→                    <SelectContent>
+   550→                      {metodosPago.map(m => (
+   551→                        <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>
+   552→                      ))}
+   553→                    </SelectContent>
+   554→                  </Select>
+   555→                </div>
+   556→                <div className="grid gap-2">
+   557→                  <Label>Nota (opcional)</Label>
+   558→                  <Textarea
+   559→                    value={pagoNota}
+   560→                    onChange={e => setPagoNota(e.target.value)}
+   561→                    placeholder="Seña, anticipo, referencia..."
+   562→                    rows={2}
+   563→                  />
+   564→                </div>
+   565→              </div>
+   566→
+   567→              <DialogFooter>
+   568→                <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   569→                <Button
+   570→                  onClick={handleSavePago}
+   571→                  disabled={savingPago || !pagoMetodo || !pagoMonto || parseFloat(pagoMonto) <= 0}
+   572→                >
+   573→                  <CreditCard className="w-4 h-4 mr-1" />Registrar pago
+   574→                </Button>
+   575→              </DialogFooter>
+   576→            </>
+   577→          )}
+   578→        </DialogContent>
+   579→      </Dialog>
+   580→
+   581→      {/* =================== MODAL RECIBO =================== */}
+   582→      <Dialog open={reciboDialogOpen} onOpenChange={() => setReciboDialogOpen(false)}>
+   583→        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+   584→          <DialogHeader>
+   585→            <DialogTitle className="flex items-center gap-2">
+   586→              <FileText className="w-5 h-5" />
+   587→              {reciboReserva?.estado === 'Check-Out realizado' ? 'Recibo' : 'Cotización'}
+   588→            </DialogTitle>
+   589→          </DialogHeader>
+   590→
+   591→          {reciboReserva && <ReciboContent reserva={reciboReserva} />}
+   592→        </DialogContent>
+   593→      </Dialog>
+   594→    </div>
+   595→  );
+   596→}
+   597→
+   598→/* =================== RECIBO COMPONENT =================== */
+   599→
+   600→function ReciboContent({ reserva }: { reserva: Reserva }) {
+   601→  const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
+   602→  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
+   603→  const nochesEntre = useHotelStore(s => s.nochesEntre);
+   604→  const pagos = useHotelStore(s => s.pagos);
+   605→  const metodosPago = useHotelStore(s => s.metodosPago);
+   606→  const habitaciones = useHotelStore(s => s.habitaciones);
+   607→  const total = calcularTotalReserva(reserva.id);
+   608→  const pagado = calcularTotalPagado(reserva.id);
+   609→  const saldo = total - pagado;
+   610→  const noches = nochesEntre(reserva.checkin, reserva.checkout);
+   611→  const hab = habitaciones[reserva.habitacion];
+   612→  const reservasPagos = pagos.filter(p => p.idReserva === reserva.id).sort((a, b) => a.fecha.localeCompare(b.fecha));
+   613→
+   614→  return (
+   615→    <div className="border rounded-lg p-6 space-y-4 bg-card">
+   616→      {/* Hotel header */}
+   617→      <div className="text-center space-y-1">
+   618→        <h3 className="text-xl font-bold tracking-wide">HOTEL</h3>
+   619→        <p className="text-xs text-muted-foreground">Dirección del hotel, Ciudad, País</p>
+   620→        <p className="text-xs text-muted-foreground">Tel: (000) 000-0000 · info@hotel.com</p>
+   621→        <p className="text-xs font-semibold mt-2">
+   622→          {reserva.estado === 'Check-Out realizado' ? 'RECIBO DE PAGO' : 'COTIZACIÓN'}
+   623→        </p>
+   624→      </div>
+   625→
+   626→      <Separator />
+   627→
+   628→      {/* Guest info */}
+   629→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-sm">
+   630→        <div className="flex items-center gap-2">
+   631→          <User className="w-3.5 h-3.5 text-muted-foreground" />
+   632→          <span className="text-muted-foreground">Huésped:</span>
+   633→          <span className="font-medium">{reserva.huesped}</span>
+   634→        </div>
+   635→        <div className="flex items-center gap-2">
+   636→          <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+   637→          <span className="text-muted-foreground">Tel:</span>
+   638→          <span>{reserva.telefono || '—'}</span>
+   639→        </div>
+   640→        <div className="flex items-center gap-2">
+   641→          <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+   642→          <span className="text-muted-foreground">Email:</span>
+   643→          <span>{reserva.email || '—'}</span>
+   644→        </div>
+   645→        <div className="flex items-center gap-2">
+   646→          <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+   647→          <span className="text-muted-foreground">DNI:</span>
+   648→          <span>{reserva.dni}</span>
+   649→        </div>
+   650→      </div>
+   651→
+   652→      <Separator />
+   653→
+   654→      {/* Reservation details */}
+   655→      <div className="space-y-2 text-sm">
+   656→        <h4 className="font-semibold">Detalle de la reserva #{reserva.id}</h4>
+   657→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5">
+   658→          <div className="flex items-center gap-2">
+   659→            <BedDoubleIcon className="w-3.5 h-3.5 text-muted-foreground" />
+   660→            <span className="text-muted-foreground">Habitación:</span>
+   661→            <span className="font-medium">{reserva.habitacion} ({hab?.tipo || '—'})</span>
+   662→          </div>
+   663→          <div className="flex items-center gap-2">
+   664→            <CalendarDays className="w-3.5 h-3.5 text-muted-foreground" />
+   665→            <span className="text-muted-foreground">Noches:</span>
+   666→            <span className="font-medium">{noches}</span>
+   667→          </div>
+   668→          <div>
+   669→            <span className="text-muted-foreground">Check-in: </span>
+   670→            <span>{formatFecha(reserva.checkin)}</span>
+   671→          </div>
+   672→          <div>
+   673→            <span className="text-muted-foreground">Check-out: </span>
+   674→            <span>{formatFecha(reserva.checkout)}</span>
+   675→          </div>
+   676→          <div>
+   677→            <span className="text-muted-foreground">Ocupación: </span>
+   678→            <span>{reserva.personas} adulto{reserva.personas !== 1 ? 's' : ''}{reserva.ninos ? ` + ${reserva.ninos} niño${reserva.ninos > 1 ? 's' : ''}` : ''}</span>
+   679→          </div>
+   680→          <div>
+   681→            <span className="text-muted-foreground">Tarifa: </span>
+   682→            <span>{(reserva.tipoTarifa || 'normal').charAt(0).toUpperCase() + (reserva.tipoTarifa || 'normal').slice(1)}</span>
+   683→          </div>
+   684→        </div>
+   685→      </div>
+   686→
+   687→      <Separator />
+   688→
+   689→      {/* Payment breakdown */}
+   690→      <div className="space-y-2">
+   691→        <h4 className="font-semibold text-sm">Desglose de pagos</h4>
+   692→        {reservasPagos.length === 0 ? (
+   693→          <p className="text-sm text-muted-foreground">No hay pagos registrados.</p>
+   694→        ) : (
+   695→          <div className="border rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+   696→            <Table>
+   697→              <TableHeader>
+   698→                <TableRow>
+   699→                  <TableHead className="text-xs">Fecha</TableHead>
+   700→                  <TableHead className="text-xs">Método</TableHead>
+   701→                  <TableHead className="text-xs text-right">Monto</TableHead>
+   702→                </TableRow>
+   703→              </TableHeader>
+   704→              <TableBody>
+   705→                {reservasPagos.map(p => (
+   706→                  <TableRow key={p.id}>
+   707→                    <TableCell className="text-xs py-2">{formatFecha(p.fecha)}</TableCell>
+   708→                    <TableCell className="text-xs py-2">
+   709→                      {metodosPago.find(m => m.id === p.metodo)?.nombre || p.metodo}
+   710→                    </TableCell>
+   711→                    <TableCell className="text-xs py-2 text-right font-medium">{formatMoney(p.monto)}</TableCell>
+   712→                  </TableRow>
+   713→                ))}
+   714→              </TableBody>
+   715→            </Table>
+   716→          </div>
+   717→        )}
+   718→      </div>
+   719→
+   720→      <Separator />
+   721→
+   722→      {/* Totals */}
+   723→      <div className="space-y-1.5">
+   724→        <div className="flex justify-between text-sm">
+   725→          <span className="text-muted-foreground">Total reserva</span>
+   726→          <span className="font-medium">{formatMoney(total)}</span>
+   727→        </div>
+   728→        <div className="flex justify-between text-sm">
+   729→          <span className="text-muted-foreground">Total pagado</span>
+   730→          <span className="font-medium text-[#166534]">{formatMoney(pagado)}</span>
+   731→        </div>
+   732→        {saldo > 0 && (
+   733→          <div className="flex justify-between text-sm font-bold">
+   734→            <span>Saldo pendiente</span>
+   735→            <span className="text-[#991B1B]">{formatMoney(saldo)}</span>
+   736→          </div>
+   737→        )}
+   738→        {saldo <= 0 && (
+   739→          <div className="flex justify-between text-sm font-bold text-[#166534]">
+   740→            <span>Estado</span>
+   741→            <span>PAGADO ✓</span>
+   742→          </div>
+   743→        )}
+   744→      </div>
+   745→
+   746→      {reserva.notas && (
+   747→        <>
+   748→          <Separator />
+   749→          <div className="text-sm">
+   750→            <span className="text-muted-foreground">Notas: </span>
+   751→            <span>{reserva.notas}</span>
+   752→          </div>
+   753→        </>
+   754→      )}
+   755→    </div>
+   756→  );
+   757→}
+   758→
+   759→/* Small icon component to avoid name clash */
+   760→function BedDoubleIcon({ className }: { className?: string }) {
+   761→  return (
+   762→    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+   763→      <path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8" />
+   764→      <path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" />
+   765→      <path d="M12 4v6" />
+   766→      <path d="M2 18h20" />
+   767→    </svg>
+   768→  );
+   769→}

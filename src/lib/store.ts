@@ -363,6 +363,7 @@ interface HotelStore {
   agregarHabitacion: (numero: string, tipo: string, capacidad: number, camasMatrimoniales: number, camasSimples: number) => Promise<boolean>;
   editarHabitacion: (numeroOriginal: string, numeroNuevo: string, tipo: string, capacidad: number, camasMatrimoniales: number, camasSimples: number) => Promise<boolean>;
   eliminarHabitacion: (numero: string) => Promise<boolean>;
+  cambiarEstadoHabitacion: (numero: string, nuevoEstado: EstadoHabitacion) => Promise<boolean>;
 
   // Clientes
   agregarCliente: (datos: { nombre: string; dni: string; telefono?: string; email?: string; preferencias?: string }) => Promise<Cliente | null>;
@@ -640,6 +641,30 @@ export const useHotelStore = create<HotelStore>()(
         } catch (err) {
           console.error('[eliminarHabitacion] API error, rolling back:', err);
           set({ habitaciones: prevHabitaciones, reservas: prevReservas });
+          return false;
+        }
+        return true;
+      },
+
+      cambiarEstadoHabitacion: async (numero, nuevoEstado) => {
+        const { habitaciones } = get();
+        const hab = habitaciones[numero];
+        if (!hab) return false;
+        if (hab.estado === nuevoEstado) return true; // no-op
+
+        const prevHabitaciones = habitaciones;
+        set({
+          habitaciones: {
+            ...habitaciones,
+            [numero]: { ...hab, estado: nuevoEstado },
+          },
+        });
+        get()._registrarAuditoria('Habitación', `Estado cambiado: ${numero} ${hab.estado} → ${nuevoEstado}`);
+        try {
+          await api.habitaciones.update(numero, { estado: nuevoEstado });
+        } catch (err) {
+          console.error('[cambiarEstadoHabitacion] API error, rolling back:', err);
+          set({ habitaciones: prevHabitaciones });
           return false;
         }
         return true;

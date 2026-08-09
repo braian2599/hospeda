@@ -29,7 +29,8 @@ import { Calendar } from '@/components/ui/calendar';
 import {
  CalendarDays, Plus, Pencil, XCircle, Search, BedDouble, Users, Eye,
  AlertTriangle, ChevronDown, ChevronUp, Lightbulb, LayoutList, LayoutGrid,
- Download,
+ Download, LogIn, LogOut, CreditCard, Bed, TrendingUp, TrendingDown,
+ ArrowRight, User,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import TodaySummary from '@/components/modules/TodaySummary';
@@ -424,6 +425,8 @@ export default function ReservasModule() {
  const registrarPago = useHotelStore(s => s.registrarPago);
  const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
+ const realizarCheckIn = useHotelStore(s => s.realizarCheckIn);
+ const realizarCheckOut = useHotelStore(s => s.realizarCheckOut);
 
  // ==================== FILTERS ====================
  const [filtroEstado, setFiltroEstado] = useFilterState<string>('reservas_filtroEstado', 'todos');
@@ -649,6 +652,87 @@ export default function ReservasModule() {
  const total = calcularTotalReserva(r.id);
  const pagado = calcularTotalPagado(r.id);
  return total - pagado;
+ }, [calcularTotalReserva, calcularTotalPagado]);
+
+ // ==================== COMPUTED: STATUS COUNTS (workflow visualization) ====================
+ const statusCounts = useMemo(() => {
+ const confirmadas = reservas.filter(r => r.estado === 'Confirmada').length;
+ const checkIn = reservas.filter(r => r.estado === 'Check-In realizado').length;
+ const checkOut = reservas.filter(r => r.estado === 'Check-Out realizado').length;
+ const canceladas = reservas.filter(r => r.estado === 'Cancelada').length;
+ return { confirmadas, checkIn, checkOut, canceladas, total: reservas.length };
+ }, [reservas]);
+
+ // ==================== COMPUTED: TODAY'S ACTIVITY ====================
+ const todayActivity = useMemo(() => {
+ const hoyStr = todayLocal();
+ const checkinsHoy = reservas.filter(r => r.estado === 'Confirmada' && r.checkin === hoyStr).length;
+ const checkoutsHoy = reservas.filter(r => r.estado === 'Check-In realizado' && r.checkout === hoyStr).length;
+ const inHouse = reservas.filter(r => r.estado === 'Check-In realizado').length;
+ return { checkinsHoy, checkoutsHoy, inHouse };
+ }, [reservas]);
+
+ // ==================== QUICK ACTION HANDLERS ====================
+ const [quickActionLoading, setQuickActionLoading] = useState<string | null>(null);
+
+ const handleQuickCheckIn = useCallback(async (r: Reserva) => {
+ setQuickActionLoading(r.id);
+ try {
+   const ok = await realizarCheckIn(r.id, {});
+   if (ok) {
+     notifySuccess('Check-in realizado', `${r.huesped} - Hab. ${r.habitacion}`);
+   } else {
+     toast.error('No se pudo realizar el check-in');
+   }
+ } catch {
+   toast.error('Error al realizar check-in');
+ } finally {
+   setQuickActionLoading(null);
+ }
+ }, [realizarCheckIn]);
+
+ const handleQuickCheckOut = useCallback(async (r: Reserva) => {
+ setQuickActionLoading(r.id);
+ try {
+   const result = await realizarCheckOut(r.id);
+   if (result) {
+     notifySuccess('Check-out realizado', `${r.huesped} - Hab. ${r.habitacion}`);
+   } else {
+     toast.error('No se pudo realizar el check-out');
+   }
+ } catch {
+   toast.error('Error al realizar check-out');
+ } finally {
+   setQuickActionLoading(null);
+ }
+ }, [realizarCheckOut]);
+
+ // ==================== STATUS COLOR HELPERS ====================
+ const getStatusBorderColor = (estado: string) => {
+ switch (estado) {
+   case 'Confirmada': return 'border-l-[#10B981]';
+   case 'Check-In realizado': return 'border-l-[#3B82F6]';
+   case 'Check-Out realizado': return 'border-l-[#F59E0B]';
+   case 'Cancelada': return 'border-l-[#EF4444]';
+   default: return 'border-l-[#94A3B8]';
+ }
+ };
+
+ const getStatusDotColor = (estado: string) => {
+ switch (estado) {
+   case 'Confirmada': return 'bg-[#10B981]';
+   case 'Check-In realizado': return 'bg-[#3B82F6]';
+   case 'Check-Out realizado': return 'bg-[#F59E0B]';
+   case 'Cancelada': return 'bg-[#EF4444]';
+   default: return 'bg-[#94A3B8]';
+ }
+ };
+
+ const getPaymentProgress = useCallback((r: Reserva) => {
+ const total = calcularTotalReserva(r.id);
+ const pagado = calcularTotalPagado(r.id);
+ if (total <= 0) return 100;
+ return Math.min(100, Math.round((pagado / total) * 100));
  }, [calcularTotalReserva, calcularTotalPagado]);
 
  // ==================== COMPUTED: HABITACIONES FILTRADAS POR CAPACIDAD ====================
@@ -1164,8 +1248,128 @@ export default function ReservasModule() {
  </Button>
  </ModuleHeader>
 
- {/* ==================== TODAY'S SUMMARY ==================== */}
- <TodaySummary />
+ {/* ==================== STATUS WORKFLOW VISUALIZATION ==================== */}
+ <Card className="bg-gradient-to-r from-[#F8FAFC] to-white border-[#E2E8F0]/80 overflow-hidden">
+   <CardContent className="p-4">
+     <div className="flex items-center gap-2 mb-3">
+       <div className="size-2 rounded-full bg-[#0F2B28] animate-pulse" />
+       <p className="text-xs font-semibold text-[#0F2B28] uppercase tracking-wider">Flujo de Reservas</p>
+     </div>
+     <div className="flex items-stretch gap-0">
+       {/* Confirmada segment */}
+       <div className="flex-1 relative">
+         <div className="bg-[#10B981]/10 rounded-l-lg border border-[#10B981]/30 border-r-0 p-3 h-full flex flex-col items-center justify-center gap-1">
+           <div className="flex items-center gap-1.5">
+             <div className="size-2.5 rounded-full bg-[#10B981]" />
+             <span className="text-[11px] font-semibold text-[#10B981] uppercase tracking-wide">Confirmada</span>
+           </div>
+           <span className="text-2xl font-bold text-[#0F2B28]">{statusCounts.confirmadas}</span>
+         </div>
+         <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 size-5 rounded-full bg-white border-2 border-[#E2E8F0] flex items-center justify-center shadow-sm">
+           <ArrowRight className="w-2.5 h-2.5 text-[#64748B]" />
+         </div>
+       </div>
+       {/* Check-In segment */}
+       <div className="flex-1 relative pl-3">
+         <div className="bg-[#3B82F6]/10 border border-[#3B82F6]/30 border-r-0 p-3 h-full flex flex-col items-center justify-center gap-1">
+           <div className="flex items-center gap-1.5">
+             <div className="size-2.5 rounded-full bg-[#3B82F6]" />
+             <span className="text-[11px] font-semibold text-[#3B82F6] uppercase tracking-wide">Check-In</span>
+           </div>
+           <span className="text-2xl font-bold text-[#0F2B28]">{statusCounts.checkIn}</span>
+         </div>
+         <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 size-5 rounded-full bg-white border-2 border-[#E2E8F0] flex items-center justify-center shadow-sm">
+           <ArrowRight className="w-2.5 h-2.5 text-[#64748B]" />
+         </div>
+       </div>
+       {/* Check-Out segment */}
+       <div className="flex-1 pl-3">
+         <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 border-r-0 p-3 h-full flex flex-col items-center justify-center gap-1">
+           <div className="flex items-center gap-1.5">
+             <div className="size-2.5 rounded-full bg-[#F59E0B]" />
+             <span className="text-[11px] font-semibold text-[#F59E0B] uppercase tracking-wide">Check-Out</span>
+           </div>
+           <span className="text-2xl font-bold text-[#0F2B28]">{statusCounts.checkOut}</span>
+         </div>
+       </div>
+       {/* Cancelada segment (smaller, right-aligned) */}
+       {statusCounts.canceladas > 0 && (
+         <div className="w-[80px] sm:w-[100px] pl-3">
+           <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-r-lg p-3 h-full flex flex-col items-center justify-center gap-1">
+             <div className="flex items-center gap-1.5">
+               <div className="size-2 rounded-full bg-[#EF4444]" />
+               <span className="text-[10px] font-semibold text-[#EF4444] uppercase tracking-wide">Cancel.</span>
+             </div>
+             <span className="text-lg font-bold text-[#EF4444]">{statusCounts.canceladas}</span>
+           </div>
+         </div>
+       )}
+     </div>
+     {/* Progress bar showing overall flow */}
+     <div className="mt-3 flex items-center gap-2">
+       <div className="flex-1 h-2 rounded-full bg-[#F1F5F9] overflow-hidden flex">
+         {statusCounts.total > 0 && (
+           <>
+             <div
+               className="bg-[#10B981] transition-all duration-500"
+               style={{ width: `${(statusCounts.confirmadas / statusCounts.total) * 100}%` }}
+             />
+             <div
+               className="bg-[#3B82F6] transition-all duration-500"
+               style={{ width: `${(statusCounts.checkIn / statusCounts.total) * 100}%` }}
+             />
+             <div
+               className="bg-[#F59E0B] transition-all duration-500"
+               style={{ width: `${(statusCounts.checkOut / statusCounts.total) * 100}%` }}
+             />
+             <div
+               className="bg-[#EF4444] transition-all duration-500"
+               style={{ width: `${(statusCounts.canceladas / statusCounts.total) * 100}%` }}
+             />
+           </>
+         )}
+       </div>
+       <span className="text-[11px] text-muted-foreground font-medium whitespace-nowrap">{statusCounts.total} total</span>
+     </div>
+   </CardContent>
+ </Card>
+
+ {/* ==================== TODAY'S ACTIVITY SUMMARY ==================== */}
+ <div className="grid grid-cols-3 gap-3">
+   <div className="p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-[#DCFCE7]/30 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300">
+     <div className="flex items-start gap-2.5">
+       <div className="size-9 rounded-full bg-[#10B981]/10 flex items-center justify-center shrink-0">
+         <TrendingUp className="w-4 h-4 text-[#10B981]" />
+       </div>
+       <div className="min-w-0">
+         <div className="text-xl sm:text-2xl font-bold leading-tight text-foreground">{todayActivity.checkinsHoy}</div>
+         <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide mt-0.5 truncate">Check-ins hoy</div>
+       </div>
+     </div>
+   </div>
+   <div className="p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-[#FFEDD5]/30 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300">
+     <div className="flex items-start gap-2.5">
+       <div className="size-9 rounded-full bg-[#EA580C]/10 flex items-center justify-center shrink-0">
+         <TrendingDown className="w-4 h-4 text-[#EA580C]" />
+       </div>
+       <div className="min-w-0">
+         <div className="text-xl sm:text-2xl font-bold leading-tight text-foreground">{todayActivity.checkoutsHoy}</div>
+         <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide mt-0.5 truncate">Check-outs hoy</div>
+       </div>
+     </div>
+   </div>
+   <div className="p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-[#F0FDF4]/30 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300">
+     <div className="flex items-start gap-2.5">
+       <div className="size-9 rounded-full bg-[#0F2B28]/10 flex items-center justify-center shrink-0">
+         <Bed className="w-4 h-4 text-[#0F2B28]" />
+       </div>
+       <div className="min-w-0">
+         <div className="text-xl sm:text-2xl font-bold leading-tight text-foreground">{todayActivity.inHouse}</div>
+         <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide mt-0.5 truncate">En alojamiento</div>
+       </div>
+     </div>
+   </div>
+ </div>
 
  {/* ==================== FILTER BAR ==================== */}
  <Card className="bg-gradient-to-r from-[#F8FAFC] to-white border-[#E2E8F0]/80">
@@ -1209,7 +1413,7 @@ export default function ReservasModule() {
  </div>
  <DatePickerInline value={filtroDesde} onChange={v => { setFiltroDesde(v); setPage(1); }} placeholder="Desde" label="Fecha desde" />
  <DatePickerInline value={filtroHasta} onChange={v => { setFiltroHasta(v); setPage(1); }} placeholder="Hasta" label="Fecha hasta" />
- <Button variant="outline" size="sm" onClick={() => { const today = new Date().toISOString().split('T')[0]; setFiltroEstado('todos'); setFiltroTipo('todos'); setFiltroEstadoPago('todos'); setFiltroDesde(today); setFiltroHasta(today); setPage(1); }}>
+ <Button variant="outline" size="sm" onClick={() => { const today = new Date().toLocaleDateString('en-CA'); setFiltroEstado('todos'); setFiltroTipo('todos'); setFiltroEstadoPago('todos'); setFiltroDesde(today); setFiltroHasta(today); setPage(1); }}>
  <XCircle className="w-3.5 h-3.5 mr-1" />Limpiar
  </Button>
  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
@@ -1276,14 +1480,16 @@ export default function ReservasModule() {
  {viewMode === 'lista' && (
  <Card>
  <CardContent className="p-0">
- {/* ── Mobile: Card list ── */}
+ {/* ── Mobile: Enhanced Card list ── */}
  <div className="sm:hidden">
  {filteredReservas.length === 0 ? (
  <div className="text-center py-10 text-muted-foreground">No se encontraron reservas.</div>
  ) : (
- <div className="divide-y">
+ <div className="divide-y divide-[#E2E8F0]/60">
  {pagedReservas.map(r => {
  const saldo = getSaldo(r);
+ const payProgress = getPaymentProgress(r);
+ const isActionLoading = quickActionLoading === r.id;
  return (
  <div
  key={r.id}
@@ -1291,55 +1497,124 @@ export default function ReservasModule() {
  tabIndex={0}
  onClick={() => openDetalle(r)}
  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetalle(r); } }}
- className="w-full text-left p-4 space-y-2.5 active:bg-muted/50 transition-colors cursor-pointer"
+ className={cn(
+   'w-full text-left p-4 border-l-4 transition-all duration-200 cursor-pointer',
+   'hover:-translate-y-0.5 hover:shadow-md active:bg-muted/50',
+   getStatusBorderColor(r.estado)
+ )}
  >
- {/* Row 1: Guest + Room */}
+ {/* Row 1: Guest + Room Badge */}
  <div className="flex items-start justify-between gap-2">
- <div className="min-w-0">
- <p className="font-semibold text-sm truncate">{r.huesped}</p>
- <p className="text-xs text-muted-foreground">{r.dni}</p>
+   <div className="min-w-0">
+     <p className="font-semibold text-sm truncate">{r.huesped}</p>
+     <p className="text-xs text-muted-foreground">{r.dni}</p>
+   </div>
+   <div className="flex items-center gap-1 shrink-0 bg-[#0F2B28]/8 rounded-md px-2 py-1">
+     <BedDouble className="w-3.5 h-3.5 text-[#0F2B28]" />
+     <span className="text-xs font-bold text-[#0F2B28] font-mono">{r.habitacion}</span>
+   </div>
  </div>
- <Badge variant="outline" className="shrink-0">{r.habitacion}</Badge>
+ {/* Row 2: Dates with icons */}
+ <div className="flex items-center gap-2 text-xs mt-2">
+   <div className="flex items-center gap-1 text-[#10B981]">
+     <CalendarDays className="w-3 h-3 shrink-0" />
+     <span className="font-medium">{formatFecha(r.checkin)}</span>
+   </div>
+   <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+   <div className="flex items-center gap-1 text-[#F59E0B]">
+     <CalendarDays className="w-3 h-3 shrink-0" />
+     <span className="font-medium">{formatFecha(r.checkout)}</span>
+   </div>
  </div>
- {/* Row 2: Dates */}
- <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
- <CalendarDays className="w-3.5 h-3.5 shrink-0" />
- <span>{formatFecha(r.checkin)}</span>
- <span>→</span>
- <span>{formatFecha(r.checkout)}</span>
+ {/* Row 3: Guest count + Badges */}
+ <div className="flex items-center gap-2 flex-wrap mt-2">
+   <Badge className={estadoReservaBadge[r.estado] || ''}>{r.estado}</Badge>
+   <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+   <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
+     <User className="w-3 h-3" />
+     <span>{r.personas}</span>
+   </div>
  </div>
- {/* Row 3: Badges + Saldo */}
- <div className="flex items-center gap-2 flex-wrap">
- <Badge className={estadoReservaBadge[r.estado] || ''}>{r.estado}</Badge>
- <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+ {/* Row 4: Payment progress bar */}
+ {payProgress < 100 && (
+   <div className="mt-2">
+     <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-0.5">
+       <span>Pago</span>
+       <span className="font-medium">{payProgress}%</span>
+     </div>
+     <div className="h-1.5 rounded-full bg-[#F1F5F9] overflow-hidden">
+       <div
+         className={cn(
+           'h-full rounded-full transition-all duration-500',
+           payProgress >= 80 ? 'bg-[#10B981]' : payProgress >= 40 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'
+         )}
+         style={{ width: `${payProgress}%` }}
+       />
+     </div>
+   </div>
+ )}
+ {/* Row 5: Saldo */}
  {saldo > 0 && (
- <span className="text-xs text-[#991B1B] font-medium ml-auto flex items-center gap-1">
- <AlertTriangle className="w-3 h-3" />
- {formatMoney(saldo)}
- </span>
+   <div className="flex items-center gap-1 mt-1.5 text-xs text-[#991B1B] font-medium">
+     <AlertTriangle className="w-3 h-3" />
+     Saldo: {formatMoney(saldo)}
+   </div>
  )}
+ {/* Row 6: Quick Actions */}
+ <div className="flex gap-1.5 mt-2" onClick={e => e.stopPropagation()}>
+   {r.estado === 'Confirmada' && (
+     <>
+       <Button
+         size="sm"
+         variant="ghost"
+         className="h-7 text-xs px-2 text-[#10B981] hover:bg-[#10B981]/10 hover:text-[#10B981]"
+         disabled={isActionLoading}
+         onClick={() => handleQuickCheckIn(r)}
+       >
+         <LogIn className="w-3 h-3 mr-1" />Check-in
+       </Button>
+       <Button
+         size="sm"
+         variant="ghost"
+         className="h-7 text-xs px-2 text-[#92400E] hover:bg-[#FEF3C7]"
+         onClick={() => openEdit(r)}
+       >
+         <Pencil className="w-3 h-3 mr-1" />Editar
+       </Button>
+       <Button
+         size="sm"
+         variant="ghost"
+         className="h-7 text-xs px-2 text-[#991B1B] hover:bg-[#FEE2E2]"
+         onClick={() => openCancel(r.id)}
+       >
+         <XCircle className="w-3 h-3 mr-1" />Cancelar
+       </Button>
+     </>
+   )}
+   {r.estado === 'Check-In realizado' && (
+     <>
+       <Button
+         size="sm"
+         variant="ghost"
+         className="h-7 text-xs px-2 text-[#EA580C] hover:bg-[#FFEDD5]"
+         disabled={isActionLoading}
+         onClick={() => handleQuickCheckOut(r)}
+       >
+         <LogOut className="w-3 h-3 mr-1" />Check-out
+       </Button>
+     </>
+   )}
+   {saldo > 0 && r.estado !== 'Cancelada' && (
+     <Button
+       size="sm"
+       variant="ghost"
+       className="h-7 text-xs px-2 text-[#7C3AED] hover:bg-[#F5F3FF]"
+       onClick={() => openEdit(r)}
+     >
+       <CreditCard className="w-3 h-3 mr-1" />Pago
+     </Button>
+   )}
  </div>
- {/* Row 4: Actions (only for Confirmada) */}
- {r.estado === 'Confirmada' && (
- <div className="flex gap-2 pt-1" onClick={e => e.stopPropagation()}>
- <Button
- size="sm"
- variant="outline"
- className="flex-1 border-[#FDE68A] text-[#92400E] hover:bg-[#FEF3C7] h-8 text-xs"
- onClick={() => openEdit(r)}
- >
- <Pencil className="w-3.5 h-3.5 mr-1" />Editar
- </Button>
- <Button
- size="sm"
- variant="outline"
- className="flex-1 border-[#FECACA] text-[#991B1B] hover:bg-[#FEE2E2] h-8 text-xs"
- onClick={() => openCancel(r.id)}
- >
- <XCircle className="w-3.5 h-3.5 mr-1" />Cancelar
- </Button>
- </div>
- )}
  </div>
  );
  })}
@@ -1347,88 +1622,163 @@ export default function ReservasModule() {
  )}
  </div>
 
- {/* ── Desktop: Table ── */}
+ {/* ── Desktop: Enhanced Table ── */}
  <div className="hidden sm:block overflow-x-auto">
  <Table>
  <TableHeader>
- <TableRow>
- <TableHead>Huésped</TableHead>
- <TableHead>Habitación</TableHead>
- <TableHead className="hidden sm:table-cell">Check-in</TableHead>
- <TableHead className="hidden sm:table-cell">Check-out</TableHead>
- <TableHead>Estado</TableHead>
- <TableHead>Pago</TableHead>
- <TableHead className="hidden md:table-cell">Saldo</TableHead>
- <TableHead className="text-right">Acciones</TableHead>
+ <TableRow className="bg-[#F8FAFC]">
+   <TableHead className="w-1 p-0" />
+   <TableHead>Huésped</TableHead>
+   <TableHead>Habitación</TableHead>
+   <TableHead>Check-in</TableHead>
+   <TableHead>Check-out</TableHead>
+   <TableHead>Estado</TableHead>
+   <TableHead>Pago</TableHead>
+   <TableHead className="hidden lg:table-cell">Progreso</TableHead>
+   <TableHead className="hidden md:table-cell">Saldo</TableHead>
+   <TableHead className="text-right">Acciones</TableHead>
  </TableRow>
  </TableHeader>
  <TableBody>
  {filteredReservas.length === 0 ? (
  <TableRow>
- <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
- No se encontraron reservas.
- </TableCell>
+   <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+     No se encontraron reservas.
+   </TableCell>
  </TableRow>
  ) : (
  pagedReservas.map(r => {
- const saldo = getSaldo(r);
- return (
- <TableRow key={r.id} className="group hover:bg-[#F0FDF4]/40 transition-colors duration-150">
- <TableCell className="font-medium">
- <button
- className="group-hover:text-[#0F2B28] transition-colors text-left cursor-pointer"
- onClick={() => openDetalle(r)}
- >
- <div>{r.huesped}</div>
- <div className="text-xs text-muted-foreground">{r.dni}</div>
- </button>
- </TableCell>
- <TableCell>
- <Badge variant="outline" className="font-mono">{r.habitacion}</Badge>
- </TableCell>
- <TableCell className="hidden sm:table-cell">{formatFecha(r.checkin)}</TableCell>
- <TableCell className="hidden sm:table-cell">{formatFecha(r.checkout)}</TableCell>
- <TableCell>
- <Badge className={`font-semibold shadow-sm ${estadoReservaBadge[r.estado] || ''}`}>{r.estado}</Badge>
- </TableCell>
- <TableCell>
- <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
- </TableCell>
- <TableCell className="hidden md:table-cell">
- <div className="flex items-center gap-1">
- {saldo > 0 && <AlertTriangle className="w-3.5 h-3.5 text-[#EF4444] shrink-0" />}
- <span className={saldo > 0 ? 'text-[#991B1B] font-medium' : 'text-muted-foreground'}>
- {formatMoney(saldo)}
- </span>
- </div>
- </TableCell>
- <TableCell className="text-right">
- <div className="flex justify-end gap-1 flex-wrap">
- {r.estado === 'Confirmada' && (
- <Button
- size="sm"
- variant="outline"
- className="border-[#FDE68A] text-[#92400E] hover:bg-[#FEF3C7] h-7 text-xs px-2"
- onClick={() => openEdit(r)}
- >
- <Pencil className="w-3 h-3 mr-1" />Editar
- </Button>
- )}
- {r.estado === 'Confirmada' && (
- <Button
- size="sm"
- variant="outline"
- className="border-[#FECACA] text-[#991B1B] hover:bg-[#FEE2E2] h-7 text-xs px-2"
- onClick={() => openCancel(r.id)}
- >
- <XCircle className="w-3 h-3 mr-1" />Cancelar
- </Button>
- )}
-
- </div>
- </TableCell>
- </TableRow>
- );
+   const saldo = getSaldo(r);
+   const payProgress = getPaymentProgress(r);
+   const isActionLoading = quickActionLoading === r.id;
+   return (
+     <TableRow key={r.id} className="group transition-all duration-150 hover:bg-[#F0FDF4]/40 hover:-translate-y-px hover:shadow-sm">
+       {/* Status color indicator */}
+       <TableCell className="w-1 p-0">
+         <div className={cn('w-1 h-full min-h-[20px] rounded-full', getStatusDotColor(r.estado))} />
+       </TableCell>
+       <TableCell className="font-medium">
+         <button
+           className="group-hover:text-[#0F2B28] transition-colors text-left cursor-pointer"
+           onClick={() => openDetalle(r)}
+         >
+           <div>{r.huesped}</div>
+           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+             <span>{r.dni}</span>
+             <span className="text-[#94A3B8]">·</span>
+             <User className="w-3 h-3" />
+             <span>{r.personas}</span>
+           </div>
+         </button>
+       </TableCell>
+       <TableCell>
+         <div className="flex items-center gap-1.5">
+           <BedDouble className="w-3.5 h-3.5 text-[#0F2B28]" />
+           <Badge variant="outline" className="font-mono font-semibold">{r.habitacion}</Badge>
+         </div>
+       </TableCell>
+       <TableCell>
+         <div className="flex items-center gap-1 text-xs">
+           <CalendarDays className="w-3 h-3 text-[#10B981] shrink-0" />
+           <span>{formatFecha(r.checkin)}</span>
+         </div>
+       </TableCell>
+       <TableCell>
+         <div className="flex items-center gap-1 text-xs">
+           <CalendarDays className="w-3 h-3 text-[#F59E0B] shrink-0" />
+           <span>{formatFecha(r.checkout)}</span>
+         </div>
+       </TableCell>
+       <TableCell>
+         <Badge className={`font-semibold shadow-sm ${estadoReservaBadge[r.estado] || ''}`}>{r.estado}</Badge>
+       </TableCell>
+       <TableCell>
+         <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+       </TableCell>
+       <TableCell className="hidden lg:table-cell">
+         {payProgress < 100 ? (
+           <div className="w-20">
+             <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-0.5">
+               <span>{payProgress}%</span>
+             </div>
+             <div className="h-1.5 rounded-full bg-[#F1F5F9] overflow-hidden">
+               <div
+                 className={cn(
+                   'h-full rounded-full transition-all duration-500',
+                   payProgress >= 80 ? 'bg-[#10B981]' : payProgress >= 40 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'
+                 )}
+                 style={{ width: `${payProgress}%` }}
+               />
+             </div>
+           </div>
+         ) : (
+           <span className="text-[10px] text-[#10B981] font-semibold">✓ Completo</span>
+         )}
+       </TableCell>
+       <TableCell className="hidden md:table-cell">
+         <div className="flex items-center gap-1">
+           {saldo > 0 && <AlertTriangle className="w-3.5 h-3.5 text-[#EF4444] shrink-0" />}
+           <span className={saldo > 0 ? 'text-[#991B1B] font-medium' : 'text-muted-foreground'}>
+             {formatMoney(saldo)}
+           </span>
+         </div>
+       </TableCell>
+       <TableCell className="text-right">
+         <div className="flex justify-end gap-1 flex-wrap">
+           {r.estado === 'Confirmada' && (
+             <>
+               <Button
+                 size="sm"
+                 variant="ghost"
+                 className="h-7 text-xs px-2 text-[#10B981] hover:bg-[#10B981]/10 hover:text-[#10B981] opacity-0 group-hover:opacity-100 transition-opacity"
+                 disabled={isActionLoading}
+                 onClick={() => handleQuickCheckIn(r)}
+               >
+                 <LogIn className="w-3 h-3 mr-1" />Check-in
+               </Button>
+               <Button
+                 size="sm"
+                 variant="outline"
+                 className="border-[#FDE68A] text-[#92400E] hover:bg-[#FEF3C7] h-7 text-xs px-2"
+                 onClick={() => openEdit(r)}
+               >
+                 <Pencil className="w-3 h-3 mr-1" />Editar
+               </Button>
+               <Button
+                 size="sm"
+                 variant="outline"
+                 className="border-[#FECACA] text-[#991B1B] hover:bg-[#FEE2E2] h-7 text-xs px-2"
+                 onClick={() => openCancel(r.id)}
+               >
+                 <XCircle className="w-3 h-3 mr-1" />Cancelar
+               </Button>
+             </>
+           )}
+           {r.estado === 'Check-In realizado' && (
+             <Button
+               size="sm"
+               variant="ghost"
+               className="h-7 text-xs px-2 text-[#EA580C] hover:bg-[#FFEDD5] opacity-0 group-hover:opacity-100 transition-opacity"
+               disabled={isActionLoading}
+               onClick={() => handleQuickCheckOut(r)}
+             >
+               <LogOut className="w-3 h-3 mr-1" />Check-out
+             </Button>
+           )}
+           {saldo > 0 && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && (
+             <Button
+               size="sm"
+               variant="ghost"
+               className="h-7 text-xs px-2 text-[#7C3AED] hover:bg-[#F5F3FF] opacity-0 group-hover:opacity-100 transition-opacity"
+               onClick={() => openEdit(r)}
+             >
+               <CreditCard className="w-3 h-3 mr-1" />Pago
+             </Button>
+           )}
+         </div>
+       </TableCell>
+     </TableRow>
+   );
  })
  )}
  </TableBody>
