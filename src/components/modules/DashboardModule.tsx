@@ -10,13 +10,19 @@ import {
   CalendarCheck, BarChart3,
   Bell, CheckCircle, LockOpen, ChevronLeft, ChevronRight,
   CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
-  History,
+  History, TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { useMemo, useState, useCallback, useRef, useEffect, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatedNumber } from '@/components/ui/animated-number';
+import RecentActivity from './dashboard/RecentActivity';
+import {
+  AreaChart, Area, XAxis, YAxis,
+  Tooltip as RechartsTooltip, ResponsiveContainer,
+  type TooltipProps,
+} from 'recharts';
 
 // ==================== HELPERS ====================
 
@@ -356,6 +362,152 @@ function GraficoIngresosEgresos({ pagos, gastos }: { pagos: { fecha: string; mon
             <span className="inline-block w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(to top, #dc2626, #fca5a5)' }} />
             Egresos
           </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ==================== TENDENCIA DE OCUPACIÓN (14 días) ====================
+
+interface OccupancyDayData {
+  fecha: string;
+  ocupadas: number;
+  porcentaje: number;
+  label: string;
+}
+
+function OccupancyTrendChart() {
+  // Granular Zustand selectors (no destructuring) — only re-renders when these slices change
+  const habitaciones = useHotelStore(s => s.habitaciones);
+  const reservas = useHotelStore(s => s.reservas);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 60);
+    return () => clearTimeout(t);
+  }, []);
+
+  const totalHabitaciones = Object.keys(habitaciones).length;
+
+  const datos = useMemo<OccupancyDayData[]>(() => {
+    const hoy = new Date();
+    const out: OccupancyDayData[] = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(hoy);
+      d.setDate(d.getDate() - i);
+      const diaStr = toLocalDateStr(d);
+      // Count unique rooms occupied on this day (checkin <= day < checkout, excluding cancelled)
+      const ocupadasSet = new Set<string>();
+      reservas.forEach(r => {
+        if (r.estado === 'Cancelada') return;
+        if (r.checkin <= diaStr && r.checkout > diaStr) {
+          ocupadasSet.add(r.habitacion);
+        }
+      });
+      const ocupadas = ocupadasSet.size;
+      const porcentaje = totalHabitaciones > 0 ? Math.round((ocupadas / totalHabitaciones) * 100) : 0;
+      const weekday = NOMBRES_DIAS[d.getDay()];
+      out.push({
+        fecha: diaStr,
+        ocupadas,
+        porcentaje,
+        label: `${weekday} ${d.getDate()}`,
+      });
+    }
+    return out;
+  }, [reservas, totalHabitaciones]);
+
+  const hoyData = datos[datos.length - 1];
+  const ayerData = datos[datos.length - 2];
+  const ultimos7 = datos.slice(-7);
+  const promedio7d = ultimos7.length > 0 ? ultimos7.reduce((s, d) => s + d.porcentaje, 0) / ultimos7.length : 0;
+
+  const diffVsAyer = hoyData && ayerData ? hoyData.porcentaje - ayerData.porcentaje : 0;
+  const trendUp = diffVsAyer > 0;
+  const trendDown = diffVsAyer < 0;
+  const trendIcon = trendUp ? '\u2191' : trendDown ? '\u2193' : '\u2192';
+  const trendColor = trendUp ? 'text-[#166534]' : trendDown ? 'text-[#991B1B]' : 'text-muted-foreground';
+
+  const renderTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+    if (!active || !payload || !payload.length) return null;
+    const d = payload[0]?.payload as OccupancyDayData | undefined;
+    if (!d) return null;
+    return (
+      <div className="bg-[#0F2B28] text-white px-3 py-2 rounded-lg shadow-xl text-xs border border-[#059669]/30">
+        <p className="font-semibold text-[#34d399]">{formatearFecha(d.fecha)}</p>
+        <p className="mt-0.5">Ocupación: <span className="font-bold">{d.porcentaje}%</span></p>
+        <p className="text-white/70">{d.ocupadas} de {totalHabitaciones} hab.</p>
+      </div>
+    );
+  };
+
+  return (
+    <Card className={cn('transition-opacity duration-500', mounted ? 'opacity-100' : 'opacity-0')}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-[#059669]" />
+              Tendencia de Ocupación (14 días)
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Hoy: <span className="font-semibold text-[#0F2B28]">{hoyData?.porcentaje ?? 0}%</span>
+              <span className="mx-1.5 text-muted-foreground/50">·</span>
+              Promedio 7d: <span className="font-semibold text-[#0F2B28]">{Math.round(promedio7d)}%</span>
+            </p>
+          </div>
+          {ayerData && (
+            <div className={cn('flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md bg-muted/50 whitespace-nowrap', trendColor)}>
+              <span>{trendIcon}</span>
+              <span>{Math.abs(diffVsAyer)}%</span>
+              <span className="text-muted-foreground font-normal text-[10px]">vs ayer</span>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div style={{ height: 220, minHeight: 200 }} className="w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={datos} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
+              <defs>
+                <linearGradient id="ocupGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34d399" stopOpacity={0.85} />
+                  <stop offset="100%" stopColor="#059669" stopOpacity={0.15} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 10, fill: '#94A3B8' }}
+                tickLine={false}
+                axisLine={{ stroke: '#E2E8F0' }}
+                interval={0}
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={{ fontSize: 10, fill: '#94A3B8' }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `${v}%`}
+                width={36}
+              />
+              <RechartsTooltip
+                content={renderTooltip}
+                cursor={{ stroke: '#059669', strokeOpacity: 0.3, strokeWidth: 1 }}
+              />
+              <Area
+                type="monotone"
+                dataKey="porcentaje"
+                stroke="#059669"
+                strokeWidth={2.5}
+                fill="url(#ocupGradient)"
+                dot={{ r: 2.5, fill: '#059669', strokeWidth: 0 }}
+                activeDot={{ r: 5, fill: '#0F2B28', stroke: '#34d399', strokeWidth: 2 }}
+                isAnimationActive={mounted}
+                animationDuration={800}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
@@ -863,6 +1015,9 @@ export default function DashboardModule() {
         <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-[#7C3AED]" bgGradient="bg-gradient-to-br from-[#F5F3FF] via-[#FAFAFE] to-white" numericValue={reservadas} />
       </div>
 
+      {/* Tendencia de Ocupación (14 días) */}
+      <OccupancyTrendChart />
+
       {/* Room Heatmap */}
       <RoomHeatmap habitaciones={habitaciones} reservas={reservas} />
 
@@ -1062,6 +1217,9 @@ export default function DashboardModule() {
 
       {/* Calendario Gantt de Ocupación */}
       <CalendarioGantt habitaciones={habitaciones} reservas={reservas} fechaInicioBase={hoy} />
+
+      {/* Actividad Reciente — timeline de eventos del sistema */}
+      <RecentActivity />
     </div>
   );
 }

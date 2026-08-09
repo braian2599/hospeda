@@ -30,6 +30,7 @@ import {
  AlertTriangle, ChevronDown, ChevronUp, Lightbulb,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
+import TodaySummary from '@/components/modules/TodaySummary';
 import { toast } from 'sonner';
 import { notifySuccess, notifyWarning } from '@/lib/notify';
 import { format } from 'date-fns';
@@ -1157,6 +1158,9 @@ export default function ReservasModule() {
  <Plus className="w-4 h-4 mr-1" />Nueva Reserva
  </Button>
  </ModuleHeader>
+
+ {/* ==================== TODAY'S SUMMARY ==================== */}
+ <TodaySummary />
 
  {/* ==================== FILTER BAR ==================== */}
  <Card className="bg-gradient-to-r from-[#F8FAFC] to-white border-[#E2E8F0]/80">

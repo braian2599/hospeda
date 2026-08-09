@@ -17,8 +17,10 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Tags, Plus, Trash2, CreditCard, ListChecks, Users, Pencil, Info, Home, UserRound, UsersRound } from 'lucide-react';
+import { Tags, Plus, Trash2, CreditCard, ListChecks, Users, Pencil, Info, Home, UserRound, UsersRound, Star, Zap, Sparkles } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
+import { EmptyState } from '@/components/ui/empty-state';
+import { formatMoney } from '@/lib/format';
 import type { CampoPersonalizado, MetodoPago, Cuota, ModoCobro, RangoPrecio, PromocionesTarifa, AcompananteSinCargo, NinosDiferenciado, NochesCortesia, ModalidadNochesCortesia } from '@/lib/types';
 
 // ==================== COMPONENTES AUXILIARES ====================
@@ -148,7 +150,27 @@ function modoBadgeColor(m: ModoCobro): string {
     case 'porPersona': return 'bg-[#F5F3FF] text-[#6D28D9] border-0';
     case 'porHabitacion': return 'bg-[#FEF3C7] text-[#92400E] border-0';
     case 'porCama': return 'bg-[#DCFCE7] text-[#166534] border-0';
-    default: return 'bg-[#DBEAFE] text-[#1E40AF] border-0';
+    default: return 'bg-[#D1FAE5] text-[#065F46] border-0';
+  }
+}
+
+// Subtle gradient tint per modo for rate cards (decorative, soft tints)
+function modoGradient(m: ModoCobro): string {
+  switch (m) {
+    case 'porPersona': return 'from-[#FFFBEB] to-white';
+    case 'porHabitacion': return 'from-[#FEF2F2] to-white';
+    case 'porCama': return 'from-[#F5F3FF] to-white';
+    default: return 'from-[#F0FDF4] to-white';
+  }
+}
+
+// Colored circle for rate card icon
+function modoIconCircle(m: ModoCobro): string {
+  switch (m) {
+    case 'porPersona': return 'bg-[#FEF3C7] text-[#92400E]';
+    case 'porHabitacion': return 'bg-[#FEE2E2] text-[#991B1B]';
+    case 'porCama': return 'bg-[#EDE9FE] text-[#5B21B6]';
+    default: return 'bg-[#DCFCE7] text-[#166534]';
   }
 }
 
@@ -492,7 +514,7 @@ export default function TarifasModule() {
             <Button onClick={() => openModalTarifa(null)}><Plus className="w-4 h-4 mr-1" />Nueva Tarifa</Button>
           </div>
 
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-[#DBEAFE] border-[#BFDBFE] text-[#1E40AF] text-sm">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-[#F0FDF4] border-[#BBF7D0] text-[#166534] text-sm">
             <Info className="w-4 h-4 mt-0.5 shrink-0" />
             Haga clic en una tarifa para editarla. Los cambios se guardan automáticamente al confirmar.
           </div>
@@ -508,46 +530,123 @@ export default function TarifasModule() {
               const tieneNinos = promos?.ninosDiferenciado?.activo;
               const tieneNoches = promos?.nochesCortesia?.activo;
               const ModoIcon = MODO_OPTIONS.find(o => o.value === modo)?.icon || UsersRound;
+              // Prominent "Desde" price = min positive price, fallback to first range
+              const rangos = t.rangos || [];
+              const preciosPositivos = rangos.map(r => r.precio).filter(p => p > 0);
+              const precioDesde = preciosPositivos.length > 0
+                ? Math.min(...preciosPositivos)
+                : (rangos[0]?.precio || 0);
+              const tienePromo = !!(tieneAcompanante || tieneNinos || tieneNoches);
+              // Decorative icon: Sparkles if any promo active, otherwise the modo icon
+              const CardIcon = tienePromo ? Sparkles : ModoIcon;
               return (
                 <Card
                   key={tipo}
-                  className="card-hover cursor-pointer transition-all duration-200 border-2 border-[#E2E8F0] hover:border-[#0F2B28]/20 group"
+                  className={`card-hover cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border-2 border-[#E2E8F0] hover:border-[#0F2B28]/30 group relative overflow-hidden bg-gradient-to-br ${modoGradient(modo)}`}
                   onClick={() => openModalTarifa(tipo)}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-bold text-base group-hover:text-[#0F2B28] transition-colors">{tipo}</h4>
-                      <div className="flex gap-1 flex-wrap">
-                        {tieneAcompanante && <Badge className="bg-[#DCFCE7] text-[#166534] border-0">{promos!.acompananteSinCargo!.etiqueta || 'Acompañante gratis'}</Badge>}
-                        {tieneNinos && <Badge className="bg-[#F5F3FF] text-[#6D28D9] border-0">Niños $${(promos!.ninosDiferenciado!.precioNino || 0).toLocaleString('es-AR')}/noche</Badge>}
-                        {tieneNoches && <Badge className="bg-[#FEF3C7] text-[#92400E] border-0">Noches cortesía</Badge>}
-                        <Badge className={modoBadgeColor(modo)}>
-                          <ModoIcon className="w-3 h-3 mr-0.5" />{modoLabel(modo)}
-                        </Badge>
+                  {/* Shine overlay — animates in on hover */}
+                  <div
+                    className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                    aria-hidden="true"
+                  />
+                  <CardContent className="p-5 relative">
+                    {/* Top row: icon circle + title + modo badge */}
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-11 h-11 rounded-full flex items-center justify-center shadow-sm shrink-0 ${modoIconCircle(modo)}`}>
+                          <CardIcon className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-base group-hover:text-[#0F2B28] transition-colors truncate">{tipo}</h4>
+                          <p className="text-xs text-muted-foreground">{modoLabel(modo)}</p>
+                        </div>
+                      </div>
+                      <Badge className={modoBadgeColor(modo)}>
+                        <ModoIcon className="w-3 h-3 mr-0.5" />{modoLabel(modo)}
+                      </Badge>
+                    </div>
+
+                    {/* Prominent "Desde" price */}
+                    <div className="mb-3 pb-3 border-b border-[#0F2B28]/10">
+                      <p className="text-[11px] text-muted-foreground mb-0.5 uppercase tracking-wider">Desde</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-extrabold text-[#0F2B28] tabular-nums">{formatMoney(precioDesde)}</span>
+                        <span className="text-xs text-muted-foreground">/noche</span>
                       </div>
                     </div>
-                    <hr className="my-2 border-[#E2E8F0]/60" />
-                    <div className="space-y-1">
-                      {(t.rangos || []).map((r, i) => (
-                        <div key={i} className="flex justify-between items-center text-sm">
-                          <span className="text-muted-foreground">{formatoRango(r)} persona(s)</span>
-                          <span className="font-bold">
-                            ${r.precio.toLocaleString('es-AR')}
+
+                    {/* Range table — zebra striping, hover, mono labels, bold green prices, left border */}
+                    <div className="space-y-0.5">
+                      {rangos.map((r, i) => (
+                        <div
+                          key={i}
+                          className={`flex justify-between items-center text-sm px-2 py-1.5 rounded-md border-l-2 border-[#0F2B28]/30 transition-colors ${
+                            i % 2 === 1 ? 'bg-[#F0FDF4]/30' : ''
+                          } hover:bg-[#F0FDF4]/60`}
+                        >
+                          <span className="text-muted-foreground font-mono text-xs">
+                            {formatoRango(r)} {modo === 'porHabitacion' ? 'hab.' : modo === 'porCama' ? 'cama' : 'pers.'}
+                          </span>
+                          <span className="font-bold text-[#0F2B28] tabular-nums">
+                            {formatMoney(r.precio)}
                             {modo === 'porPersona' && <span className="text-xs font-normal text-muted-foreground"> c/u</span>}
                             {modo === 'porCama' && <span className="text-xs font-normal text-muted-foreground"> c/cama</span>}
                           </span>
                         </div>
                       ))}
                     </div>
-                    {campos > 0 && (
-                      <p className="mt-2 text-xs text-muted-foreground">{campos} campo(s) personalizado(s)</p>
+
+                    {/* Footer: promo badges + campos info */}
+                    {(tieneAcompanante || tieneNinos || tieneNoches || campos > 0) && (
+                      <div className="mt-3 pt-3 border-t border-[#0F2B28]/10 space-y-2">
+                        {(tieneAcompanante || tieneNinos || tieneNoches) && (
+                          <div className="flex gap-1 flex-wrap">
+                            {tieneAcompanante && (
+                              <Badge className="bg-[#DCFCE7] text-[#166534] border-0 shadow-sm">
+                                <Star className="w-3 h-3 mr-0.5" />{promos!.acompananteSinCargo!.etiqueta || 'Acompañante gratis'}
+                              </Badge>
+                            )}
+                            {tieneNinos && (
+                              <Badge className="bg-[#F5F3FF] text-[#6D28D9] border-0 shadow-sm">
+                                Niños {formatMoney(promos!.ninosDiferenciado!.precioNino || 0)}/noche
+                              </Badge>
+                            )}
+                            {tieneNoches && (
+                              <Badge className="bg-[#FEF3C7] text-[#92400E] border-0 shadow-sm">
+                                <Zap className="w-3 h-3 mr-0.5" />Noches cortesía
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                        {campos > 0 && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Info className="w-3 h-3" />{campos} campo(s) personalizado(s)
+                          </p>
+                        )}
+                      </div>
                     )}
                   </CardContent>
                 </Card>
               );
             })}
             {tiposTarifa.length === 0 && (
-              <p className="text-muted-foreground col-span-full">No hay tarifas definidas.</p>
+              <div className="col-span-full">
+                <Card className="border-dashed border-2 bg-gradient-to-br from-[#F8FAFC] to-white">
+                  <CardContent className="p-2">
+                    <EmptyState
+                      variant="generic"
+                      title="No hay tarifas definidas"
+                      description="Creá tu primera tarifa para empezar a configurar precios por noche, modos de cobro y promociones."
+                      action={
+                        <Button onClick={() => openModalTarifa(null)}>
+                          <Plus className="w-4 h-4 mr-1" />Crear primera tarifa
+                        </Button>
+                      }
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </div>
 
@@ -676,7 +775,7 @@ export default function TarifasModule() {
                           onClick={() => handleModoCobroChange(opt.value)}
                           className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all text-center ${
                             selected
-                              ? 'border-[#3B82F6] bg-[#DBEAFE] text-[#1E40AF]'
+                              ? 'border-[#0F2B28] bg-[#DCFCE7] text-[#0F2B28]'
                               : 'border-[#E2E8F0] hover:border-slate-300 text-muted-foreground'
                           }`}
                         >

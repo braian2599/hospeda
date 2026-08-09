@@ -23,7 +23,7 @@ import {
   Search, Eye, BedDouble, Users, UserCog, Wallet,
   FileText, ArrowUpRight, ArrowDownRight, Minus, Hotel,
   Receipt, Percent, Moon, Sun, Sunset, Loader2,
-  Download,
+  Download, Printer, Crown, Star,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
@@ -166,6 +166,90 @@ function ProgressKpi({ label, value, max, color = 'bg-primary', suffix = '%', de
         <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 sm:mt-1.5 text-center">{description || `${pct}%`}</p>
       </CardContent>
     </Card>
+  );
+}
+
+// ==================== REPORT TAB HEADER ====================
+
+/**
+ * Gradient header strip shown at the top of each report tab.
+ * Renders an icon in a tinted circle, the tab title, and a subtitle showing
+ * the date range currently covered by the report.
+ */
+function ReportTabHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-[#0F2B28]/10 bg-gradient-to-r from-[#0F2B28]/5 to-transparent px-4 py-3 flex items-center gap-3">
+      <div className="w-9 h-9 rounded-lg bg-[#0F2B28]/10 flex items-center justify-center text-[#0F2B28] shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <h3 className="text-base font-semibold text-[#0F2B28] truncate">{title}</h3>
+        <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Compact summary KPI card for tab-level metric highlights.
+ * Shows an icon + label + value, with an optional trend indicator (↑/↓).
+ */
+function SummaryCard({ icon, label, value, tint, trend }: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  tint: string;
+  trend?: { dir: 'up' | 'down' | 'flat'; pct: number };
+}) {
+  return (
+    <Card className="overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+      <CardContent className="p-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${tint}`}>
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground truncate">{label}</p>
+            <p className="text-xl font-bold text-[#0F2B28] tabular-nums truncate">{value}</p>
+          </div>
+        </div>
+        {trend && (
+          <div className="flex items-center gap-1 shrink-0">
+            {trend.dir === 'up' ? (
+              <ArrowUpRight className="w-4 h-4 text-[#059669]" />
+            ) : trend.dir === 'down' ? (
+              <ArrowDownRight className="w-4 h-4 text-[#EF4444]" />
+            ) : (
+              <Minus className="w-4 h-4 text-muted-foreground" />
+            )}
+            <span className={`text-xs font-semibold ${trend.dir === 'up' ? 'text-[#059669]' : trend.dir === 'down' ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
+              {trend.pct}%
+            </span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ==================== OCCUPANCY BADGE ====================
+
+/**
+ * Color-coded occupancy badge:
+ *   >80% → green
+ *   50-80% → amber
+ *   <50% → red
+ */
+function OccupancyBadge({ pct }: { pct: number }) {
+  const cls = pct > 80
+    ? 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]'
+    : pct >= 50
+      ? 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]'
+      : 'bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]';
+  return (
+    <Badge variant="outline" className={`text-xs font-semibold shadow-sm ${cls}`}>
+      {pct}%
+    </Badge>
   );
 }
 
@@ -488,6 +572,52 @@ export default function ReportesModule() {
     };
   }, [habitaciones]);
 
+  // Per-room occupancy percentage within the selected period.
+  // Counts nights each room was occupied (clipped to the period range) divided
+  // by the total days in the period. Used for the color-coded occupancy badge
+  // in the habitaciones table.
+  const ocupacionPorHabitacion = useMemo(() => {
+    const map: Record<string, number> = {};
+    const dias = diasPeriodo;
+    reservasSuperpuestas.forEach(r => {
+      const ci = new Date(r.checkin + 'T12:00:00');
+      const co = new Date(r.checkout + 'T12:00:00');
+      const inicio = ci < parseDateRange.from ? parseDateRange.from : ci;
+      const fin = co > toExclusive ? toExclusive : co;
+      const noches = Math.max(0, Math.round((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24)));
+      map[r.habitacion] = (map[r.habitacion] || 0) + noches;
+    });
+    // Convert to percentage of period
+    const pctMap: Record<string, number> = {};
+    Object.keys(map).forEach(hab => {
+      pctMap[hab] = dias > 0 ? Math.min(100, Math.round((map[hab] / dias) * 100)) : 0;
+    });
+    return pctMap;
+  }, [reservasSuperpuestas, parseDateRange, toExclusive, diasPeriodo]);
+
+  // Clientes: nuevos este mes + recurrentes (>=2 estadías)
+  const clientesResumen = useMemo(() => {
+    const ahora = new Date();
+    const mesActual = ahora.getMonth();
+    const anioActual = ahora.getFullYear();
+    let nuevos = 0;
+    let recurrentes = 0;
+    clientes.forEach(c => {
+      if (c.fechaCreacion) {
+        const f = new Date(c.fechaCreacion.includes('T') || c.fechaCreacion.includes(' ') ? c.fechaCreacion : c.fechaCreacion + 'T12:00:00');
+        if (f.getMonth() === mesActual && f.getFullYear() === anioActual) nuevos++;
+      }
+      if (c.historialEstadias.length >= 2) recurrentes++;
+    });
+    return { nuevos, recurrentes };
+  }, [clientes]);
+
+  // Top customer highlight (highest total gasto)
+  const topCliente = useMemo(() => {
+    if (clientesFrecuentes.length === 0) return null;
+    return clientesFrecuentes[0];
+  }, [clientesFrecuentes]);
+
   // Handlers
   const handleAgregarGasto = () => {
     if (!gastoForm.tipo || !gastoForm.descripcion || !gastoForm.monto) return;
@@ -601,9 +731,23 @@ export default function ReportesModule() {
               <Button size="sm" variant={diasPeriodo > 30 ? 'default' : 'outline'} onClick={() => setRango(365)} className="text-xs sm:text-sm">1a</Button>
             </div>
             <div className="w-px h-8 bg-border hidden sm:block" />
-            <Button size="sm" variant="outline" onClick={handleExportCSV} className="text-xs sm:text-sm gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportCSV}
+              className="text-xs sm:text-sm gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors"
+            >
               <Download className="w-3.5 h-3.5" />
               Exportar CSV
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.print()}
+              className="text-xs sm:text-sm gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Imprimir</span>
             </Button>
           </div>
         </CardContent>
@@ -709,6 +853,37 @@ export default function ReportesModule() {
 
         {/* ==================== FINANCIERO ==================== */}
         <TabsContent value="financiero" className="space-y-4">
+          <ReportTabHeader
+            icon={<DollarSign className="w-5 h-5" />}
+            title="Reporte Financiero"
+            subtitle={`Ingresos y pagos del ${formatFecha(desde)} al ${formatFecha(hasta)}`}
+          />
+
+          {/* Summary KPI cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <SummaryCard
+              icon={<TrendingUp className="w-5 h-5 text-[#166534]" />}
+              label="Total Ingresos"
+              value={formatMoneda(totalIngresos)}
+              tint="bg-[#DCFCE7]"
+              trend={prevIngresos > 0 ? { dir: trendPct(totalIngresos, prevIngresos) > 0 ? 'up' : trendPct(totalIngresos, prevIngresos) < 0 ? 'down' : 'flat', pct: Math.abs(trendPct(totalIngresos, prevIngresos)) } : undefined}
+            />
+            <SummaryCard
+              icon={<TrendingDown className="w-5 h-5 text-[#991B1B]" />}
+              label="Total Egresos"
+              value={formatMoneda(totalGastos)}
+              tint="bg-[#FEE2E2]"
+              trend={prevGastos > 0 ? { dir: trendPct(totalGastos, prevGastos) > 0 ? 'up' : trendPct(totalGastos, prevGastos) < 0 ? 'down' : 'flat', pct: Math.abs(trendPct(totalGastos, prevGastos)) } : undefined}
+            />
+            <SummaryCard
+              icon={<Wallet className="w-5 h-5 text-[#0F2B28]" />}
+              label="Balance Neto"
+              value={formatMoneda(gananciaNeta)}
+              tint="bg-[#0F2B28]/10"
+              trend={prevGanancia !== 0 ? { dir: trendPct(gananciaNeta, prevGanancia) > 0 ? 'up' : trendPct(gananciaNeta, prevGanancia) < 0 ? 'down' : 'flat', pct: Math.abs(trendPct(gananciaNeta, prevGanancia)) } : undefined}
+            />
+          </div>
+
           {/* Ingresos por método de pago */}
           {ingresosPorMetodo.length > 0 && (
             <Card>
@@ -787,6 +962,35 @@ export default function ReportesModule() {
 
         {/* ==================== GASTOS ==================== */}
         <TabsContent value="gastos" className="space-y-4">
+          <ReportTabHeader
+            icon={<TrendingDown className="w-5 h-5" />}
+            title="Reporte de Gastos"
+            subtitle={`Egresos del ${formatFecha(desde)} al ${formatFecha(hasta)}`}
+          />
+
+          {/* Summary KPI cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <SummaryCard
+              icon={<TrendingDown className="w-5 h-5 text-[#991B1B]" />}
+              label="Total Egresos"
+              value={formatMoneda(totalGastos)}
+              tint="bg-[#FEE2E2]"
+              trend={prevGastos > 0 ? { dir: trendPct(totalGastos, prevGastos) > 0 ? 'up' : trendPct(totalGastos, prevGastos) < 0 ? 'down' : 'flat', pct: Math.abs(trendPct(totalGastos, prevGastos)) } : undefined}
+            />
+            <SummaryCard
+              icon={<Receipt className="w-5 h-5 text-[#92400E]" />}
+              label="Categoría Top"
+              value={gastosPorCategoria[0] ? gastosPorCategoria[0][0] : '—'}
+              tint="bg-[#FEF3C7]"
+            />
+            <SummaryCard
+              icon={<Wallet className="w-5 h-5 text-[#0F2B28]" />}
+              label="Promedio por Gasto"
+              value={formatMoneda(gastosEnPeriodo.length > 0 ? Math.round(totalGastos / gastosEnPeriodo.length) : 0)}
+              tint="bg-[#0F2B28]/10"
+            />
+          </div>
+
           {/* Gastos por categoría */}
           {gastosPorCategoria.length > 0 && (
             <Card>
@@ -893,6 +1097,12 @@ export default function ReportesModule() {
 
         {/* ==================== AUDITORÍA ==================== */}
         <TabsContent value="auditoria" className="space-y-4">
+          <ReportTabHeader
+            icon={<FileText className="w-5 h-5" />}
+            title="Auditoría de Actividad"
+            subtitle={`Registro de acciones del ${formatFecha(desde)} al ${formatFecha(hasta)}`}
+          />
+
           {/* KPIs de auditoría */}
           <KpiRow>
             <KpiCard
@@ -1020,6 +1230,12 @@ export default function ReportesModule() {
 
         {/* ==================== HISTORIAL CAJA ==================== */}
         <TabsContent value="historial-caja" className="space-y-4">
+          <ReportTabHeader
+            icon={<Wallet className="w-5 h-5" />}
+            title="Historial de Caja"
+            subtitle={`Turnos del ${formatFecha(cajaDesde)} al ${formatFecha(cajaHasta)}`}
+          />
+
           {/* Date filter */}
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex-1 min-w-[130px]">
@@ -1112,6 +1328,34 @@ export default function ReportesModule() {
 
         {/* ==================== HABITACIONES ==================== */}
         <TabsContent value="habitaciones" className="space-y-4">
+          <ReportTabHeader
+            icon={<BedDouble className="w-5 h-5" />}
+            title="Reporte de Habitaciones"
+            subtitle={`Estado y ocupación del ${formatFecha(desde)} al ${formatFecha(hasta)}`}
+          />
+
+          {/* Summary KPI cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <SummaryCard
+              icon={<Percent className="w-5 h-5 text-[#166534]" />}
+              label="Ocupación Promedio"
+              value={`${tasaOcupacion}%`}
+              tint="bg-[#DCFCE7]"
+            />
+            <SummaryCard
+              icon={<Moon className="w-5 h-5 text-[#0F2B28]" />}
+              label="Total Noches Vendidas"
+              value={nochesVendidas}
+              tint="bg-[#0F2B28]/10"
+            />
+            <SummaryCard
+              icon={<DollarSign className="w-5 h-5 text-[#92400E]" />}
+              label="ADR (Daily Rate)"
+              value={formatMoneda(adr)}
+              tint="bg-[#FEF3C7]"
+            />
+          </div>
+
           {/* Estado actual */}
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3">
             {[
@@ -1160,21 +1404,28 @@ export default function ReportesModule() {
                     <TableHead className="text-center">Tipo</TableHead>
                     <TableHead className="text-center hidden sm:table-cell">Capacidad</TableHead>
                     <TableHead className="text-center">Estado</TableHead>
+                    <TableHead className="text-center">Ocup. periodo</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {habResumen.habs.map(h => (
-                    <TableRow key={h.numero}>
-                      <TableCell className="text-center font-medium">{h.numero}</TableCell>
-                      <TableCell className="text-center text-xs sm:text-sm">{h.tipo}</TableCell>
-                      <TableCell className="text-center hidden sm:table-cell text-xs sm:text-sm">{h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant={h.estado === 'Disponible' ? 'default' : h.estado === 'Ocupada' ? 'destructive' : h.estado === 'Reservada' ? 'secondary' : 'outline'} className="text-xs">
-                          {h.estado}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {habResumen.habs.map(h => {
+                    const pct = ocupacionPorHabitacion[h.numero] || 0;
+                    return (
+                      <TableRow key={h.numero} className="hover:bg-[#F0FDF4]/30 transition-colors">
+                        <TableCell className="text-center font-medium">{h.numero}</TableCell>
+                        <TableCell className="text-center text-xs sm:text-sm">{h.tipo}</TableCell>
+                        <TableCell className="text-center hidden sm:table-cell text-xs sm:text-sm">{h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={h.estado === 'Disponible' ? 'default' : h.estado === 'Ocupada' ? 'destructive' : h.estado === 'Reservada' ? 'secondary' : 'outline'} className="text-xs">
+                            {h.estado}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <OccupancyBadge pct={pct} />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -1183,6 +1434,59 @@ export default function ReportesModule() {
 
         {/* ==================== CLIENTES ==================== */}
         <TabsContent value="clientes" className="space-y-4">
+          <ReportTabHeader
+            icon={<Users className="w-5 h-5" />}
+            title="Reporte de Clientes"
+            subtitle={`Análisis de huéspedes — datos acumulados al ${formatFecha(hasta)}`}
+          />
+
+          {/* Summary KPI cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <SummaryCard
+              icon={<Users className="w-5 h-5 text-[#0F2B28]" />}
+              label="Total Clientes"
+              value={clientes.length}
+              tint="bg-[#0F2B28]/10"
+            />
+            <SummaryCard
+              icon={<TrendingUp className="w-5 h-5 text-[#166534]" />}
+              label="Nuevos este mes"
+              value={clientesResumen.nuevos}
+              tint="bg-[#DCFCE7]"
+            />
+            <SummaryCard
+              icon={<Star className="w-5 h-5 text-[#92400E]" />}
+              label="Recurrentes (2+ estadías)"
+              value={clientesResumen.recurrentes}
+              tint="bg-[#FEF3C7]"
+            />
+          </div>
+
+          {/* Top customer highlight */}
+          {topCliente && (
+            <Card className="relative overflow-hidden border-2 border-[#0F2B28]/20 bg-gradient-to-r from-[#0F2B28]/5 to-transparent">
+              <CardContent className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#059669] flex items-center justify-center text-white shadow-md shrink-0">
+                    <Crown className="w-6 h-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Cliente destacado</p>
+                    <h4 className="text-lg font-bold text-[#0F2B28] truncate">{topCliente.nombre}</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {topCliente.cantidadEstadias} estadía{topCliente.cantidadEstadias !== 1 ? 's' : ''}
+                      {topCliente.ultimaVisita !== '—' && ` · última visita ${formatFecha(topCliente.ultimaVisita)}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total gastado</p>
+                  <p className="text-2xl font-extrabold text-[#0F2B28] tabular-nums">{formatMoneda(topCliente.totalGastado)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* KPIs de clientes */}
           <KpiRow>
             <KpiCard
@@ -1244,13 +1548,18 @@ export default function ReportesModule() {
                   {clientesFrecuentes.length === 0 ? (
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No hay clientes que coincidan.</TableCell></TableRow>
                   ) : (
-                    clientesFrecuentes.map(c => (
-                      <TableRow key={c.id}>
-                        <TableCell className="text-center font-medium text-xs sm:text-sm">{c.nombre}</TableCell>
-                        <TableCell className="text-center hidden sm:table-cell text-xs sm:text-sm">{c.dni}</TableCell>
+                    clientesFrecuentes.map((c, i) => (
+                      <TableRow key={c.id} className={`${i % 2 === 1 ? 'bg-[#F0FDF4]/20' : ''} hover:bg-[#F0FDF4]/40 transition-colors`}>
+                        <TableCell className="text-center font-medium text-xs sm:text-sm">
+                          <span className="inline-flex items-center gap-1.5">
+                            {i === 0 && <Crown className="w-3.5 h-3.5 text-[#92400E]" />}
+                            {c.nombre}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center hidden sm:table-cell text-xs sm:text-sm font-mono">{c.dni || '—'}</TableCell>
                         <TableCell className="text-center"><Badge variant="secondary" className="text-xs">{c.cantidadEstadias}</Badge></TableCell>
-                        <TableCell className="text-center font-medium hidden sm:table-cell text-xs sm:text-sm">{formatMoneda(c.totalGastado)}</TableCell>
-                        <TableCell className="text-center hidden md:table-cell text-xs sm:text-sm">{c.ultimaVisita !== '—' ? formatFecha(c.ultimaVisita) : '—'}</TableCell>
+                        <TableCell className="text-center font-bold text-[#0F2B28] hidden sm:table-cell text-xs sm:text-sm tabular-nums">{formatMoneda(c.totalGastado)}</TableCell>
+                        <TableCell className="text-center hidden md:table-cell text-xs sm:text-sm font-mono">{c.ultimaVisita !== '—' ? formatFecha(c.ultimaVisita) : '—'}</TableCell>
                       </TableRow>
                     ))
                   )}
@@ -1262,6 +1571,12 @@ export default function ReportesModule() {
 
         {/* ==================== EMPLEADOS ==================== */}
         <TabsContent value="empleados" className="space-y-4">
+          <ReportTabHeader
+            icon={<UserCog className="w-5 h-5" />}
+            title="Reporte de Empleados"
+            subtitle={`Actividad del staff del ${formatFecha(desde)} al ${formatFecha(hasta)}`}
+          />
+
           {/* KPIs de empleados */}
           <KpiRow>
             <KpiCard

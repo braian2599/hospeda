@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { formatFecha, formatMoney } from '@/lib/format';
+import { formatFecha, formatMoney, safeDate } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,12 +12,20 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, Users, Search, Eye } from 'lucide-react';
+import { Plus, Trash2, Users, Search, Eye, Calendar, DollarSign, TrendingUp, Clock, CalendarOff } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import PaginationBar from '@/components/ui/pagination-bar';
 
 // formatFecha imported from @/lib/format
+
+/** Calculate stay duration in days (checkout - checkin). Uses safeDate to avoid UTC drift. */
+const calcDias = (checkin: string, checkout: string): number => {
+  const c = safeDate(checkin);
+  const o = safeDate(checkout);
+  const diff = Math.round((o.getTime() - c.getTime()) / (1000 * 60 * 60 * 24));
+  return diff > 0 ? diff : 0;
+};
 
 export default function ClientesModule() {
   const clientes = useHotelStore(s => s.clientes);
@@ -81,6 +89,14 @@ export default function ClientesModule() {
   };
 
   const selected = clientes.find(c => c.id === selId);
+
+  // Computed stats for the detail dialog (memoized-free; cheap to recompute on render)
+  const totalEstadias = selected?.historialEstadias.length ?? 0;
+  const totalGastado = selected?.historialEstadias.reduce((sum, h) => sum + (h.gastoTotal || 0), 0) ?? 0;
+  const promedioPorEstadia = totalEstadias > 0 ? totalGastado / totalEstadias : 0;
+  const ultimaVisita = selected && selected.historialEstadias.length > 0
+    ? formatFecha([...selected.historialEstadias].map(h => h.fechaCheckout).sort().pop()!)
+    : 'Sin visitas';
 
   return (
     <div className="space-y-6">
@@ -150,9 +166,47 @@ export default function ClientesModule() {
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           {selected && (
             <>
-              <DialogHeader><DialogTitle>Detalle del cliente</DialogTitle></DialogHeader>
-              <div className="space-y-2 py-2">
+              <DialogHeader>
+                <DialogTitle>Detalle del cliente</DialogTitle>
+                <Badge variant="outline" className="bg-[#F0FDF4] border-[#BBF7D0] text-[#166534] w-fit">
+                  <Clock className="w-3 h-3 mr-1" /> Cliente desde: {formatFecha(selected.fechaCreacion)}
+                </Badge>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
                 <h3 className="text-lg font-bold">{selected.nombre}</h3>
+
+                {/* Customer Stats Summary */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Card className="p-3 bg-gradient-to-br from-[#F0FDF4]/50 to-white border-[#BBF7D0]/40">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-[#166534]" />
+                      <span className="text-xs text-muted-foreground">Total estadías</span>
+                    </div>
+                    <div className="font-bold text-lg text-[#0F2B28] mt-1">{totalEstadias}</div>
+                  </Card>
+                  <Card className="p-3 bg-gradient-to-br from-[#F0FDF4]/50 to-white border-[#BBF7D0]/40">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-[#166534]" />
+                      <span className="text-xs text-muted-foreground">Total gastado</span>
+                    </div>
+                    <div className="font-bold text-lg text-[#0F2B28] mt-1">{formatMoney(totalGastado)}</div>
+                  </Card>
+                  <Card className="p-3 bg-gradient-to-br from-[#F0FDF4]/50 to-white border-[#BBF7D0]/40">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-[#166534]" />
+                      <span className="text-xs text-muted-foreground">Promedio/estadía</span>
+                    </div>
+                    <div className="font-bold text-lg text-[#0F2B28] mt-1">{formatMoney(promedioPorEstadia)}</div>
+                  </Card>
+                  <Card className="p-3 bg-gradient-to-br from-[#F0FDF4]/50 to-white border-[#BBF7D0]/40">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-[#166534]" />
+                      <span className="text-xs text-muted-foreground">Última visita</span>
+                    </div>
+                    <div className="font-bold text-lg text-[#0F2B28] mt-1">{ultimaVisita}</div>
+                  </Card>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <div><span className="text-muted-foreground">DNI:</span> {selected.dni}</div>
                   <div><span className="text-muted-foreground">Teléfono:</span> {selected.telefono || '—'}</div>
@@ -161,22 +215,54 @@ export default function ClientesModule() {
                   <div><span className="text-muted-foreground">Preferencias:</span> {selected.preferencias || '—'}</div>
                   <div><span className="text-muted-foreground">Desde:</span> {formatFecha(selected.fechaCreacion)}</div>
                 </div>
-                {selected.historialEstadias.length > 0 && (
-                  <div className="mt-4">
+
+                {/* History Table or Empty State */}
+                {selected.historialEstadias.length > 0 ? (
+                  <div className="mt-2">
                     <h4 className="font-semibold mb-2">Historial de estadías</h4>
-                    <div className="max-h-48 overflow-y-auto">
-                    <Table><TableHeader><TableRow><TableHead>Check-in</TableHead><TableHead>Check-out</TableHead><TableHead>Hab</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-                      <TableBody>
-                        {selected.historialEstadias.map((h, i) => (
-                          <TableRow key={i}><TableCell>{formatFecha(h.fechaCheckin)}</TableCell><TableCell>{formatFecha(h.fechaCheckout)}</TableCell><TableCell>{h.habitacion}</TableCell><TableCell className="text-right">{formatMoney(h.gastoTotal)}</TableCell></TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <div className="max-h-72 overflow-y-auto rounded-md border border-[#BBF7D0]/30">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-[#F0FDF4]/40">
+                            <TableHead>Check-in</TableHead>
+                            <TableHead>Check-out</TableHead>
+                            <TableHead>Días</TableHead>
+                            <TableHead>Hab</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {selected.historialEstadias.map((h, i) => (
+                            <TableRow key={i} className={`${i % 2 === 1 ? 'bg-[#F0FDF4]/20' : ''} hover:bg-[#F0FDF4]/40 transition-colors`}>
+                              <TableCell>{formatFecha(h.fechaCheckin)}</TableCell>
+                              <TableCell>{formatFecha(h.fechaCheckout)}</TableCell>
+                              <TableCell className="font-mono text-muted-foreground text-sm">{calcDias(h.fechaCheckin, h.fechaCheckout)}</TableCell>
+                              <TableCell>{h.habitacion}</TableCell>
+                              <TableCell className="text-right font-mono font-semibold text-[#0F2B28]">{formatMoney(h.gastoTotal)}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="border-t-2 border-[#BBF7D0]/50 bg-[#F0FDF4]/40 font-semibold">
+                            <TableCell colSpan={4} className="text-right text-[#0F2B28]">TOTAL</TableCell>
+                            <TableCell className="text-right font-mono font-bold text-[#0F2B28]">{formatMoney(totalGastado)}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
                     </div>
+                  </div>
+                ) : (
+                  <div className="mt-2 p-6 text-center rounded-lg bg-muted/30 border border-dashed">
+                    <CalendarOff className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">Sin estadías registradas</p>
                   </div>
                 )}
               </div>
               <DialogFooter>
+                <Button onClick={() => {
+                  window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { type: 'new-reserva', clienteId: selected.id } }));
+                  setModal(null);
+                }} className="bg-[#0F2B28] hover:bg-[#0F2B28]/90">
+                  <Plus className="w-4 h-4 mr-1" /> Nueva reserva
+                </Button>
                 <Button variant="outline" onClick={() => { openEdit(selected.id); }}>Editar</Button>
                 <Button variant="outline" className="text-destructive" onClick={() => { setModal('eliminar'); }}>Eliminar</Button>
                 <DialogClose asChild><Button variant="secondary">Cerrar</Button></DialogClose>

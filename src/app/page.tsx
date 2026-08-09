@@ -226,17 +226,15 @@ function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/login">
-            <Button variant="ghost" size="sm">
-              Iniciar sesión
-            </Button>
-          </Link>
-          <Link href="/register">
-            <Button size="sm" className="shadow-md shadow-primary/20">
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/login">Iniciar sesión</Link>
+          </Button>
+          <Button asChild size="sm" className="shadow-md shadow-primary/20">
+            <Link href="/register">
               Prueba gratis
               <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
 
         <button
@@ -261,15 +259,15 @@ function Navbar() {
               </button>
             ))}
             <div className="pt-3 border-t border-border flex flex-col gap-2">
-              <Link href="/login" onClick={() => setMobileOpen(false)}>
-                <Button variant="outline" className="w-full">Iniciar sesión</Button>
-              </Link>
-              <Link href="/register" onClick={() => setMobileOpen(false)}>
-                <Button className="w-full">
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/login" onClick={() => setMobileOpen(false)}>Iniciar sesión</Link>
+              </Button>
+              <Button asChild className="w-full">
+                <Link href="/register" onClick={() => setMobileOpen(false)}>
                   Prueba gratis
                   <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -328,18 +326,16 @@ function Hero() {
 
         <FadeIn delay={300}>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/register">
-              <Button size="lg" className="w-full sm:w-auto text-base px-8 h-12 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow">
+            <Button asChild size="lg" className="w-full sm:w-auto text-base px-8 h-12 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow">
+              <Link href="/register">
                 Comenzar gratis
                 <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
-            <button onClick={() => scrollTo('como-funciona')}>
-              <Button variant="outline" size="lg" className="w-full sm:w-auto text-base px-8 h-12">
-                Cómo funciona
-                <ChevronDown className="w-4 h-4 ml-1" />
-              </Button>
-            </button>
+              </Link>
+            </Button>
+            <Button variant="outline" size="lg" className="w-full sm:w-auto text-base px-8 h-12" onClick={() => scrollTo('como-funciona')}>
+              Cómo funciona
+              <ChevronDown className="w-4 h-4 ml-1" />
+            </Button>
           </div>
         </FadeIn>
 
@@ -726,25 +722,24 @@ function CtaSection() {
                 Uníte a los hoteles que ya mejoraron su operación con Hospedá.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link href="/register">
-                  <Button
-                    size="lg"
-                    variant="secondary"
-                    className="text-base px-8 h-12 shadow-lg"
-                  >
+                <Button asChild
+                  size="lg"
+                  variant="secondary"
+                  className="text-base px-8 h-12 shadow-lg"
+                >
+                  <Link href="/register">
                     Crear mi cuenta gratis
                     <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                </Link>
-                <button onClick={() => scrollTo('planes')}>
-                  <Button
-                    size="lg"
-                    variant="ghost"
-                    className="text-base px-8 h-12 text-primary-foreground hover:text-primary-foreground/80 hover:bg-white/10"
-                  >
-                    Ver planes
-                  </Button>
-                </button>
+                  </Link>
+                </Button>
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  className="text-base px-8 h-12 text-primary-foreground hover:text-primary-foreground/80 hover:bg-white/10"
+                  onClick={() => scrollTo('planes')}
+                >
+                  Ver planes
+                </Button>
               </div>
             </div>
           </div>
