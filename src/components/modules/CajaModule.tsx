@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useHotelStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +23,8 @@ import { DialogTrigger } from '@/components/ui/dialog';
 import { BILLETES } from '@/lib/types';
 
 const formatFechaHora = (f: string) => {
-  const d = new Date(f);
+  if (!f) return '—';
+  const d = new Date(f.length === 10 ? f + 'T12:00:00' : f);
   return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 };
 
@@ -64,8 +68,9 @@ export default function CajaModule() {
   const [editDesc, setEditDesc] = useState('');
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const saldo = saldoActualCaja();
+  const saldo = useMemo(() => saldoActualCaja(), [caja, caja.movimientos]);
   const movimientos = caja.movimientos || [];
 
   const isAdminOrOwner = usuarioActual?.rol === 'owner' || usuarioActual?.rol === 'admin';
@@ -183,10 +188,14 @@ export default function CajaModule() {
   };
 
   const handleDelete = async (movId: string) => {
-    if (!confirm('Eliminar este movimiento?')) return;
+    setDeleteConfirmId(movId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
     setLoadingDelete(true);
     try {
-      const ok = await eliminarMovimientoCaja(movId);
+      const ok = await eliminarMovimientoCaja(deleteConfirmId);
       if (ok) {
         toast.success('Movimiento eliminado');
       } else {
@@ -196,6 +205,7 @@ export default function CajaModule() {
       toast.error('Error al eliminar movimiento');
     }
     setLoadingDelete(false);
+    setDeleteConfirmId(null);
   };
 
   // Saldo esperado (efectivo only)
@@ -486,6 +496,20 @@ export default function CajaModule() {
           </div>
         </div>
       )}
+
+      {/* ═══════ DELETE CONFIRM DIALOG ═══════ */}
+      <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar movimiento?</AlertDialogTitle>
+            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ═══════ EDIT MOVEMENT DIALOG ═══════ */}
       <Dialog open={!!editingMov} onOpenChange={() => setEditingMov(null)}>

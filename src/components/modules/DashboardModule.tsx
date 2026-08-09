@@ -707,6 +707,7 @@ function calcularBarra(res: GanttReserva, colIdx: Record<string, number>, column
     widthPct = (endCol - startCol + 1) * COL_PCT;
   }
 
+  widthPct = Math.max(widthPct, MITAD_COL_PCT);
   return { leftPct, widthPct };
 }
 
@@ -800,6 +801,13 @@ export default function DashboardModule() {
   const animCheckouts = useCountUp(checkoutsHoy.length, 400, true);
 
   // Alerta de caja abierta
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (caja.estado !== 'abierta') return;
+    const id = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(id);
+  }, [caja.estado]);
+
   const cajaAbiertaHoras = useMemo(() => {
     if (caja.estado === 'abierta' && caja.apertura) {
       return Math.round((Date.now() - new Date(caja.apertura.fecha).getTime()) / (1000 * 60 * 60));

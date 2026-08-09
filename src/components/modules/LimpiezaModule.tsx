@@ -86,21 +86,26 @@ function DatePickerInline({
 }
 
 const formatFechaHora = (f: string) => {
-  const d = new Date(f);
+  if (!f) return '—';
+  const d = new Date(f.length === 10 ? f + 'T12:00:00' : f);
   return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 };
 
 const formatMoney = (n: number) => '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function LimpiezaModule() {
-  const { habitaciones, marcarComoLimpia, reportarMantenimiento, resolverMantenimiento, historialMantenimiento } = useHotelStore();
+  const { habitaciones, marcarComoLimpia, reportarMantenimiento, resolverMantenimiento, historialMantenimiento, reservas } = useHotelStore();
   const [modalResolver, setModalResolver] = useState<string | null>(null);
   const [reparacion, setReparacion] = useState('');
   const [monto, setMonto] = useState('0');
   const [sacarDeCaja, setSacarDeCaja] = useState(true);
 
   // Maintenance history filters
-  const todayStr = new Date().toISOString().split('T')[0];
+  const getLocalToday = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
+  const todayStr = getLocalToday();
   const [fDesde, setFDesde] = useState(todayStr);
   const [fHasta, setFHasta] = useState(todayStr);
   const [fHab, setFHab] = useState('');
@@ -121,10 +126,10 @@ export default function LimpiezaModule() {
   // Check if reporting maintenance would affect active reservations
   const reservasAfectadas = useMemo(() => {
     if (!repHab) return 0;
-    return useHotelStore.getState().reservas.filter(
+    return reservas.filter(
       r => r.habitacion === repHab && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && r.estado !== 'Check-In realizado'
     ).length;
-  }, [repHab]);
+  }, [repHab, reservas]);
 
   // Filtered history
   const listaFiltrada = useMemo(() => {
@@ -133,7 +138,7 @@ export default function LimpiezaModule() {
     if (fHasta) lista = lista.filter(i => i.fecha.split('T')[0] <= fHasta);
     if (fHab) lista = lista.filter(i => i.habitacion.toLowerCase().includes(fHab.toLowerCase()));
     if (fDesc) lista = lista.filter(i => i.problema.toLowerCase().includes(fDesc.toLowerCase()) || i.reparacion.toLowerCase().includes(fDesc.toLowerCase()));
-    if (fMonto) lista = lista.filter(i => i.monto >= parseFloat(fMonto));
+    if (fMonto) { const minMonto = parseFloat(fMonto); if (!isNaN(minMonto)) lista = lista.filter(i => i.monto >= minMonto); }
     return lista;
   }, [historialMantenimiento, fDesde, fHasta, fHab, fDesc, fMonto]);
 
@@ -142,7 +147,7 @@ export default function LimpiezaModule() {
   const inicio = (paginaActual - 1) * FILAS_POR_PAGINA;
   const listaPaginada = listaFiltrada.slice(inicio, inicio + FILAS_POR_PAGINA);
 
-  const limpiarFiltros = () => { const today = new Date().toISOString().split('T')[0]; setFDesde(today); setFHasta(today); setFHab(''); setFDesc(''); setFMonto(''); setPagina(1); };
+  const limpiarFiltros = () => { const today = getLocalToday(); setFDesde(today); setFHasta(today); setFHab(''); setFDesc(''); setFMonto(''); setPagina(1); };
   const [resolviendo, setResolviendo] = useState(false);
   const [reportando, setReportando] = useState(false);
 

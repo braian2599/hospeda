@@ -107,19 +107,31 @@ export default function FacturacionModule() {
 
   // Save payment
   const handleSavePago = async () => {
-    if (!pagoReservaId || !pagoMetodo || !pagoMonto || parseFloat(pagoMonto) <= 0) return;
+    const montoNum = parseFloat(pagoMonto);
+    if (isNaN(montoNum) || montoNum <= 0) {
+      toast.error('Ingresá un monto válido');
+      return;
+    }
+    if (!pagoReservaId || !pagoMetodo) return;
     if (caja.estado !== 'abierta') {
       toast.error('Caja cerrada', { description: 'Debés abrir la caja antes de registrar un cobro.' });
       return;
     }
+    const total = calcularTotalReserva(pagoReservaId);
+    const pagado = calcularTotalPagado(pagoReservaId);
+    const saldo = Math.round((total - pagado) * 100) / 100;
+    if (montoNum > saldo + 0.01) {
+      toast.error('El monto excede el saldo pendiente', { description: `Saldo: $${saldo.toLocaleString('es-AR')}` });
+      return;
+    }
     setSavingPago(true);
-    const result = await registrarPago(pagoReservaId, parseFloat(pagoMonto), pagoMetodo, pagoNota.trim());
+    const result = await registrarPago(pagoReservaId, montoNum, pagoMetodo, pagoNota.trim());
     if (!result) {
       toast.error('Error al registrar pago', { description: 'No se pudo registrar el pago.' });
       setSavingPago(false);
       return;
     }
-    toast.success('Pago registrado', { description: formatMoney(parseFloat(pagoMonto)) });
+    toast.success('Pago registrado', { description: formatMoney(montoNum) });
     setPagoDialogOpen(false);
     setPagoReservaId(null);
     setSavingPago(false);

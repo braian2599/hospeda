@@ -91,23 +91,64 @@
 
 ---
 
+## Round 3: Fixes ALTOS + Features (Completado)
+
+### Fixes CRITICOS restantes
+
+#### CajaModule.tsx (5 fixes)
+1. confirm() nativo reemplazado con AlertDialog custom (deleteConfirmId state + shadcn AlertDialog)
+2. formatFechaHora UTC drift: guard f.length === 10 para T12:00:00
+3. saldoActualCaja() envuelto en useMemo
+
+#### LimpiezaModule.tsx (5 fixes)
+1. todayStr UTC drift reemplazado con getLocalToday()
+2. getState().reservas no reactivo: reservas agregada a destructure y dependencia useMemo
+3. formatFechaHora UTC drift corregido
+4. parseFloat(fMonto) NaN: skip filter cuando isNaN
+5. limpiarFiltros UTC corregido
+
+### Fixes ALTOS
+
+#### DashboardModule.tsx (2 fixes)
+1. cajaAbiertaHoras stale: setTick + setInterval cada 60s cuando caja abierta
+2. calcularBarra ancho 0%: Math.max(widthPct, MITAD_COL_PCT)
+
+#### FacturacionModule.tsx (2 fixes)
+1. NaN validation en monto de pago
+2. Sobrepago validation contra saldo pendiente
+
+#### ReservasModule.tsx (4 fixes)
+1. saving state + disabled en boton
+2. handleSave saving guard try/finally
+3. Filtro superposicion: r.checkout <= filtroDesde en vez de r.checkin < filtroDesde
+
+### Nuevas Features
+
+1. **Shared Format Utilities** (src/lib/format.ts): formatMoney, formatMoneyFull, formatPercent, safeDate, formatFecha, formatFechaHora, todayLocal, daysAgo, daysFromNow, safeFloat, safeInt, roundTo, moneyEq, moneyGte
+2. **Module Loading Skeleton** (src/components/ui/module-skeleton.tsx): ModuleLoadingSkeleton + InlineSkeleton
+3. **Error Boundary** (src/components/ui/error-boundary.tsx): ErrorBoundary + useErrorHandler hook
+4. **Notification Center** (src/components/ui/notification-center.tsx): Popover con campana, badge unread, mark-read, dismiss
+5. **Notification Store** (src/lib/notification-store.ts): useNotificationStore Zustand
+6. **Layout**: ErrorBoundary envuelve app + Toaster richColors position top-right
+
+---
+
 ## Issues Pendientes (Próxima Fase)
 
-### CRÍTICOS restantes
-- CajaModule: `confirm()` nativo (requiere Dialog custom)
-- LimpiezaModule: UTC drift en todayStr + getState() no reactivo
+### ALTOS restantes
+- Reservas: ninos hab2 usan ninosCount de hab1 (requiere form.ninos2)
+- Habitaciones: busqueda huesped no filtra por fecha actual
+- Habitaciones: tipo Record<string,string> en vez de Record<EstadoHabitacion,string>
 
-### ALTOS priorizados
-- Dashboard: cajaAbiertaHoras stale en useMemo
-- Dashboard: calcularBarra ancho 0% en reservas de 1 día
-- Facturación: parseFloat sin NaN check
-- Facturación: sin validación de sobrepago
-- Reservas: doble envío sin loading state
-- Reservas: niños hab2 usan ninosCount de hab1
-- Reservas: filtro fecha excluye reservas que se superponen
-
-### Patrones sistémicos a abordar
-- Suscripción al store sin selector en todos los módulos
+### MEDIOS sistemicos
+- Suscripcion al store sin selector en todos los modulos
 - Falta useMemo/useCallback generalizado
-- Sin paginación en tablas
+- Sin paginacion en tablas
 - Botones icon-only sin aria-label
+- Integrar formatMoney/formatFecha del shared lib en modulos
+
+### Features propuestos
+- Integrar NotificationCenter en Sidebar
+- Dark mode toggle en Sidebar
+- Dashboard: limite de navegacion futura en Gantt
+- Mejoras visuales: gradientes, animaciones, hover effects

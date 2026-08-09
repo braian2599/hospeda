@@ -448,6 +448,7 @@ export default function ReservasModule() {
 
  // ==================== VALIDATION ERRORS ====================
  const [errors, setErrors] = useState<string[]>([]);
+ const [saving, setSaving] = useState(false);
 
  // ==================== COMPUTED: MODO DE COBRO ACTUAL ====================
  const modoCobroActual: string = tarifas[form.tipoTarifa]?.modoCobro || 'porGrupo';
@@ -620,8 +621,8 @@ export default function ReservasModule() {
  if (!hab || hab.tipo !== filtroTipo) return false;
  }
  if (filtroEstadoPago !== 'todos' && r.estadoPago !== filtroEstadoPago) return false;
- if (filtroDesde && r.checkin < filtroDesde) return false;
- if (filtroHasta && r.checkin > filtroHasta) return false;
+ if (filtroDesde && r.checkout <= filtroDesde) return false;
+ if (filtroHasta && r.checkin >= filtroHasta) return false;
  return true;
  }).sort((a, b) => b.checkin.localeCompare(a.checkin));
 
@@ -801,6 +802,8 @@ export default function ReservasModule() {
  // ==================== SAVE LOGIC ====================
 
  const handleSave = async () => {
+ setSaving(true);
+ try {
  const errs: string[] = [];
  if (!form.habitacion) errs.push('Debe seleccionar una habitación');
 
@@ -1068,6 +1071,9 @@ export default function ReservasModule() {
  } else {
  toast.success('Reserva guardada', { description: `${form.huesped} - Hab. ${form.habitacion}` });
  closeModal();
+ }
+ } finally {
+ setSaving(false);
  }
  };
 
@@ -2053,6 +2059,7 @@ export default function ReservasModule() {
        <Button
          onClick={handleSave}
          disabled={
+           saving ||
            !form.habitacion || !form.huesped.trim() || !form.dni.trim() || !form.telefono.trim() ||
            (form.reservaMultiple && !form.habitacion2)
          }
