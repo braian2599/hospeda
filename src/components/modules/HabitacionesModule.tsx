@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Bed, User } from 'lucide-react';
+import {
+  Plus, Pencil, Trash2, Bed, User,
+  CheckCircle, UserCheck, CalendarCheck, SprayCan, Wrench, Ban,
+  type LucideIcon,
+} from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import { type TipoHabitacion, type EstadoHabitacion, CAPACIDAD_POR_TIPO } from '@/lib/types';
@@ -34,6 +38,236 @@ const borderByEstado: Record<EstadoHabitacion, string> = {
   Reservada: 'border-l-[3px] border-l-[#3B82F6]',
   'Fuera de servicio': 'border-l-[3px] border-l-[#94A3B8]',
 };
+
+// ── Configuración visual para el banner de stats ──
+// Cada estado tiene su color de icono, fondo suave del card, acento de borde y color de barra.
+type StatConfig = {
+  key: string;
+  label: string;
+  estado: EstadoHabitacion | 'total';
+  icon: LucideIcon;
+  iconColor: string;
+  iconBg: string;
+  cardBg: string;
+  accentBorder: string;
+  barColor: string;
+};
+
+const STAT_CONFIG: StatConfig[] = [
+  {
+    key: 'total',
+    label: 'Total habitaciones',
+    estado: 'total',
+    icon: Bed,
+    iconColor: 'text-[#0F2B28]',
+    iconBg: 'bg-[#0F2B28]/10',
+    cardBg: 'bg-gradient-to-br from-[#F0FDF4]/40 to-white',
+    accentBorder: 'border-l-[#10B981]',
+    barColor: 'bg-[#0F2B28]',
+  },
+  {
+    key: 'Disponible',
+    label: 'Disponibles',
+    estado: 'Disponible',
+    icon: CheckCircle,
+    iconColor: 'text-[#166534]',
+    iconBg: 'bg-[#166534]/10',
+    cardBg: 'bg-gradient-to-br from-[#DCFCE7]/30 to-white',
+    accentBorder: 'border-l-[#4ADE80]',
+    barColor: 'bg-[#4ADE80]',
+  },
+  {
+    key: 'Ocupada',
+    label: 'Ocupadas',
+    estado: 'Ocupada',
+    icon: UserCheck,
+    iconColor: 'text-[#92400E]',
+    iconBg: 'bg-[#92400E]/10',
+    cardBg: 'bg-gradient-to-br from-[#FEF3C7]/30 to-white',
+    accentBorder: 'border-l-[#F59E0B]',
+    barColor: 'bg-[#F59E0B]',
+  },
+  {
+    key: 'Reservada',
+    label: 'Reservadas',
+    estado: 'Reservada',
+    icon: CalendarCheck,
+    iconColor: 'text-[#1E40AF]',
+    iconBg: 'bg-[#1E40AF]/10',
+    cardBg: 'bg-gradient-to-br from-[#DBEAFE]/30 to-white',
+    accentBorder: 'border-l-[#3B82F6]',
+    barColor: 'bg-[#3B82F6]',
+  },
+  {
+    key: 'Limpieza',
+    label: 'Limpieza',
+    estado: 'Limpieza',
+    icon: SprayCan,
+    iconColor: 'text-[#92400E]',
+    iconBg: 'bg-[#92400E]/10',
+    cardBg: 'bg-gradient-to-br from-[#FEF3C7]/30 to-white',
+    accentBorder: 'border-l-[#FBBF24]',
+    barColor: 'bg-[#FBBF24]',
+  },
+  {
+    key: 'Mantenimiento',
+    label: 'Mantenimiento',
+    estado: 'Mantenimiento',
+    icon: Wrench,
+    iconColor: 'text-[#64748B]',
+    iconBg: 'bg-[#64748B]/10',
+    cardBg: 'bg-gradient-to-br from-[#F8FAFC]/30 to-white',
+    accentBorder: 'border-l-[#94A3B8]',
+    barColor: 'bg-[#94A3B8]',
+  },
+  {
+    key: 'Fuera de servicio',
+    label: 'Fuera de servicio',
+    estado: 'Fuera de servicio',
+    icon: Ban,
+    iconColor: 'text-[#64748B]',
+    iconBg: 'bg-[#64748B]/10',
+    cardBg: 'bg-gradient-to-br from-[#F8FAFC]/30 to-white',
+    accentBorder: 'border-l-[#94A3B8]',
+    barColor: 'bg-[#64748B]',
+  },
+];
+
+/**
+ * RoomStatsBanner
+ *
+ * Banner de stats al inicio del módulo Habitaciones:
+ *  - Card "Total" con ocupación %, span 6 cols en lg
+ *  - 6 cards de status (Disponible / Ocupada / Reservada / Limpieza / Mantenimiento / Fuera de servicio)
+ *  - Barra de ocupación con segmentos proporcionales por estado
+ *
+ * Usa selector granular de Zustand (no destructuring) — solo re-renderiza cuando `habitaciones` cambia.
+ * Animación staggered fade-in con `mounted` + `setTimeout(50)`.
+ */
+function RoomStatsBanner() {
+  // Granular selector — solo re-renderiza cuando `habitaciones` cambia.
+  const habitaciones = useHotelStore(s => s.habitaciones);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 50);
+    return () => clearTimeout(t);
+  }, []);
+
+  const allRooms = Object.values(habitaciones);
+  const total = allRooms.length;
+
+  // Edge case: empty state cuando no hay habitaciones
+  if (total === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+        No hay habitaciones cargadas. Creá la primera con el botón{' '}
+        <span className="font-semibold text-foreground">&quot;Nueva Habitación&quot;</span>.
+      </div>
+    );
+  }
+
+  // Conteo por estado — Record<EstadoHabitacion, number> para type safety
+  const counts = allRooms.reduce<Record<EstadoHabitacion, number>>(
+    (acc, h) => {
+      acc[h.estado] = (acc[h.estado] || 0) + 1;
+      return acc;
+    },
+    {
+      Disponible: 0, Ocupada: 0, Limpieza: 0, Mantenimiento: 0, Reservada: 0, 'Fuera de servicio': 0,
+    }
+  );
+
+  const ocupadas = counts.Ocupada;
+  const ocupacionPct = Math.round((ocupadas / total) * 100);
+
+  return (
+    <div className="space-y-3">
+      {/* ── Stat cards ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {STAT_CONFIG.map((s, i) => {
+          const Icon = s.icon;
+          const value = s.estado === 'total' ? total : counts[s.estado as EstadoHabitacion];
+          const isTotal = s.estado === 'total';
+          return (
+            <div
+              key={s.key}
+              className={`
+                ${isTotal ? 'col-span-2 sm:col-span-3 lg:col-span-6' : ''}
+                p-3 rounded-xl border border-l-[3px] ${s.accentBorder}
+                ${s.cardBg}
+                transition-all duration-500 ease-out
+                hover:-translate-y-0.5 hover:shadow-md
+                ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+              `}
+              style={{ transitionDelay: `${i * 60}ms` }}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`size-8 rounded-full flex items-center justify-center shrink-0 ${s.iconBg}`}>
+                  <Icon className={`w-4 h-4 ${s.iconColor}`} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-2xl font-bold leading-tight text-foreground">
+                    {value}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {s.label}
+                  </div>
+                </div>
+                {isTotal && (
+                  <div className="ml-auto text-right">
+                    <div className="text-xs text-muted-foreground">Ocupación</div>
+                    <div className="text-lg font-bold text-[#0F2B28]">{ocupacionPct}%</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Occupancy progress bar (segmentos proporcionales) ── */}
+      <div
+        className={`
+          transition-all duration-700 ease-out
+          ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+        `}
+        style={{ transitionDelay: `${STAT_CONFIG.length * 60}ms` }}
+      >
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs font-medium text-muted-foreground">
+            Distribución de estados
+          </span>
+          <span className="text-xs font-semibold text-foreground">
+            {ocupadas} de {total} ocupadas · {ocupacionPct}%
+          </span>
+        </div>
+        <div
+          className="h-3 rounded-full bg-muted overflow-hidden flex"
+          role="img"
+          aria-label={`Distribución de estados: ${Object.entries(counts)
+            .filter(([, c]) => c > 0)
+            .map(([e, c]) => `${e}: ${c}`)
+            .join(', ')}`}
+        >
+          {STAT_CONFIG.filter(s => s.estado !== 'total').map(s => {
+            const count = counts[s.estado as EstadoHabitacion];
+            if (count === 0) return null;
+            const pct = (count / total) * 100;
+            return (
+              <div
+                key={s.key}
+                className={`${s.barColor} transition-all duration-300`}
+                style={{ width: `${pct}%` }}
+                title={`${s.label}: ${count} (${Math.round(pct)}%)`}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Opciones de tipo de habitación ──
 const TIPOS_HABITACION: { tipo: TipoHabitacion; label: string; descripcion: string; personas: string }[] = [
@@ -157,6 +391,9 @@ export default function HabitacionesModule() {
       <ModuleHeader icon={Bed} title="Habitaciones" subtitle="Gestioná las habitaciones de tu hotel">
         <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Nueva Habitación</Button>
       </ModuleHeader>
+
+      {/* ── Banner de stats: breakdown por estado + barra de ocupación ── */}
+      <RoomStatsBanner />
 
       {/* ── Grilla de habitaciones ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">

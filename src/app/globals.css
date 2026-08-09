@@ -341,6 +341,78 @@
   50% { opacity: 0.5; }
 }
 
+/* ─────────────────────────────────────────────────────────────
+   CheckInModule enhancements — wave border on card hover,
+   count badge pop-in, celebratory empty-state shimmer.
+   ───────────────────────────────────────────────────────────── */
+@keyframes waveBorder {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(5, 150, 105, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.25);
+  }
+}
+
+.wave-border-hover {
+  transition: box-shadow 400ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 400ms cubic-bezier(0.4, 0, 0.2, 1),
+              transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wave-border-hover:hover {
+  animation: waveBorder 1.6s ease-in-out infinite;
+  border-color: rgba(5, 150, 105, 0.5);
+}
+
+.wave-border-hover-amber {
+  transition: box-shadow 400ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 400ms cubic-bezier(0.4, 0, 0.2, 1),
+              transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wave-border-hover-amber:hover {
+  animation: waveBorderAmber 1.6s ease-in-out infinite;
+  border-color: rgba(234, 88, 12, 0.5);
+}
+
+@keyframes waveBorderAmber {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.25);
+  }
+}
+
+@keyframes countPop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.count-pop {
+  animation: countPop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Subtle celebratory shimmer for empty states */
+@keyframes celebrateShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.celebrate-bg {
+  background: linear-gradient(
+    110deg,
+    rgba(220, 252, 231, 0.4) 0%,
+    rgba(255, 251, 235, 0.5) 50%,
+    rgba(220, 252, 231, 0.4) 100%
+  );
+  background-size: 200% 200%;
+  animation: celebrateShimmer 6s ease-in-out infinite;
+}
+
 /* Compact density */
 .density-compact .space-y-6 > * + * { margin-top: 0.75rem; }
 .density-compact .space-y-4 > * + * { margin-top: 0.5rem; }

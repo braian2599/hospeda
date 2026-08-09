@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useHotelStore } from '@/lib/store';
+import { useFilterState } from '@/hooks/use-filter-state';
 import { cn } from '@/lib/utils';
 import { formatMoney, formatFecha, todayLocal } from '@/lib/format';
 import type { Reserva, HabitacionDisponible, Cliente, CampoPersonalizado, TarifaPrecios, PromocionesTarifa } from '@/lib/types';
@@ -422,7 +423,7 @@ export default function ReservasModule() {
  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
 
  // ==================== FILTERS ====================
- const [filtroEstado, setFiltroEstado] = useState('todos');
+ const [filtroEstado, setFiltroEstado] = useFilterState<string>('reservas_filtroEstado', 'todos');
  const [filtroTipo, setFiltroTipo] = useState('todos');
  const [filtroEstadoPago, setFiltroEstadoPago] = useState('todos');
  const todayStr = todayLocal();

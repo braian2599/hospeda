@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useHotelStore } from '@/lib/store';
+import { useFilterState } from '@/hooks/use-filter-state';
 import { formatFecha, formatMoney, safeDate } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ export default function ClientesModule() {
   const actualizarCliente = useHotelStore(s => s.actualizarCliente);
   const eliminarCliente = useHotelStore(s => s.eliminarCliente);
   const buscarCliente = useHotelStore(s => s.buscarCliente);
-  const [busqueda, setBusqueda] = useState('');
+  const [busqueda, setBusqueda] = useFilterState<string>('clientes_busqueda', '');
   const [modal, setModal] = useState<'crear' | 'editar' | 'detalle' | 'eliminar' | null>(null);
   const [selId, setSelId] = useState<string | null>(null);
   const [form, setForm] = useState({ nombre: '', dni: '', telefono: '', email: '', preferencias: '' });

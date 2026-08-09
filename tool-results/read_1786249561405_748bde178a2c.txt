@@ -1,0 +1,704 @@
+     1→'use client';
+     2→
+     3→import { useState, useMemo, useCallback } from 'react';
+     4→import {
+     5→  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+     6→} from '@/components/ui/alert-dialog';
+     7→import { useHotelStore } from '@/lib/store';
+     8→import { formatFechaHora, formatMoney } from '@/lib/format';
+     9→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+    10→import { Button } from '@/components/ui/button';
+    11→import { Input } from '@/components/ui/input';
+    12→import { Label } from '@/components/ui/label';
+    13→import { Badge } from '@/components/ui/badge';
+    14→import {
+    15→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    16→} from '@/components/ui/dialog';
+    17→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    18→import {
+    19→  Wallet, Lock, Unlock, Plus, Minus, Loader2, Pencil, Trash2, AlertTriangle, Tag,
+    20→} from 'lucide-react';
+    21→import ModuleHeader from '@/components/layout/ModuleHeader';
+    22→import { toast } from 'sonner';
+    23→import { DialogTrigger } from '@/components/ui/dialog';
+    24→import { BILLETES } from '@/lib/types';
+    25→import PaginationBar from '@/components/ui/pagination-bar';
+    26→
+    27→// formatFechaHora and formatMoney imported from @/lib/format
+    28→
+    29→const formatHora = (f: string) => {
+    30→  const d = new Date(f);
+    31→  return d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    32→};
+    33→
+    34→// formatMoney imported from @/lib/format (note: shared uses Intl.NumberFormat with currency style,
+    35→// CajaModule previously used toLocaleString - the shared version is more consistent)
+    36→
+    37→const METODOS = ['Efectivo', 'Transferencia', 'Tarjeta de Credito', 'Tarjeta de Debito', 'Mercado Pago', 'Otro'];
+    38→
+    39→export default function CajaModule() {
+    40→  const caja = useHotelStore(s => s.caja);
+    41→  const abrirCaja = useHotelStore(s => s.abrirCaja);
+    42→  const registrarMovimientoCaja = useHotelStore(s => s.registrarMovimientoCaja);
+    43→  const cerrarCaja = useHotelStore(s => s.cerrarCaja);
+    44→  const saldoActualCaja = useHotelStore(s => s.saldoActualCaja);
+    45→  const editarMovimientoCaja = useHotelStore(s => s.editarMovimientoCaja);
+    46→  const eliminarMovimientoCaja = useHotelStore(s => s.eliminarMovimientoCaja);
+    47→  const usuarioActual = useHotelStore(s => s.usuarioActual);
+    48→  const metodosPago = useHotelStore(s => s.metodosPago);
+    49→  const categoriasGastos = useHotelStore(s => s.categoriasGastos);
+    50→
+    51→  // Loading states
+    52→  const [loadingAbrir, setLoadingAbrir] = useState(false);
+    53→  const [loadingMovimiento, setLoadingMovimiento] = useState(false);
+    54→  const [loadingCerrar, setLoadingCerrar] = useState(false);
+    55→
+    56→  // Form states
+    57→  const [montoInicial, setMontoInicial] = useState('');
+    58→  const [showApertura, setShowApertura] = useState(false);
+    59→  const [showMovForm, setShowMovForm] = useState<'ingreso' | 'egreso' | null>(null);
+    60→  const [movMonto, setMovMonto] = useState('');
+    61→  const [movDesc, setMovDesc] = useState('');
+    62→  const [movMetodo, setMovMetodo] = useState('Efectivo');
+    63→  const [movCategoria, setMovCategoria] = useState('');
+    64→
+    65→  // Close dialog
+    66→  const [showCierre, setShowCierre] = useState(false);
+    67→  const [billetes, setBilletes] = useState<Record<number, number>>(() => Object.fromEntries(BILLETES.map(b => [b, 0])));
+    68→
+    69→  // Edit dialog
+    70→  const [editingMov, setEditingMov] = useState<{ id: string; monto: number; descripcion: string } | null>(null);
+    71→  const [editMonto, setEditMonto] = useState('');
+    72→  const [editDesc, setEditDesc] = useState('');
+    73→  const [loadingEdit, setLoadingEdit] = useState(false);
+    74→  const [loadingDelete, setLoadingDelete] = useState(false);
+    75→  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    76→
+    77→  // Pagination
+    78→  const [page, setPage] = useState(1);
+    79→  const PAGE_SIZE = 15;
+    80→
+    81→  const saldo = useMemo(() => {
+    82→    if (caja.estado !== 'abierta' || !caja.apertura) return 0;
+    83→    let s = caja.apertura.montoInicial;
+    84→    (caja.movimientos || []).forEach(mov => {
+    85→      if (mov.metodo === 'Efectivo') s += mov.tipo === 'ingreso' ? mov.monto : -mov.monto;
+    86→    });
+    87→    return s;
+    88→  }, [caja, caja.movimientos]);
+    89→  const movimientos = caja.movimientos || [];
+    90→
+    91→  // Pagination for movimientos
+    92→  const movTotalPages = Math.ceil(movimientos.length / PAGE_SIZE) || 1;
+    93→  const pagedMovimientos = movimientos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    94→  const reversedPagedMovimientos = [...movimientos].reverse().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    95→
+    96→  const isAdminOrOwner = usuarioActual?.rol === 'owner' || usuarioActual?.rol === 'admin';
+    97→
+    98→  // Summary calculations
+    99→  const resumenOtros = useMemo(() => {
+   100→    const movs = caja.movimientos || [];
+   101→    const res: Record<string, { ingresos: number; egresos: number }> = {};
+   102→    movs.forEach(m => {
+   103→      if (m.metodo !== 'Efectivo') {
+   104→        if (!res[m.metodo]) res[m.metodo] = { ingresos: 0, egresos: 0 };
+   105→        res[m.metodo][m.tipo === 'ingreso' ? 'ingresos' : 'egresos'] += m.monto;
+   106→      }
+   107→    });
+   108→    return res;
+   109→  }, [caja.movimientos]);
+   110→
+   111→  const totalIngresosPorMetodo = useMemo(() => {
+   112→    const movs = caja.movimientos || [];
+   113→    const res: Record<string, number> = {};
+   114→    movs.forEach(m => {
+   115→      if (m.tipo === 'ingreso') res[m.metodo] = (res[m.metodo] || 0) + m.monto;
+   116→    });
+   117→    return res;
+   118→  }, [caja.movimientos]);
+   119→
+   120→  const totalOtros = Object.values(resumenOtros).reduce((s, v) => s + v.ingresos - v.egresos, 0);
+   121→  const totalEfectivo = useMemo(() => BILLETES.reduce((s, b) => s + b * (billetes[b] || 0), 0), [billetes]);
+   122→  const totalTurno = totalEfectivo + totalOtros;
+   123→
+   124→  // Handlers
+   125→  const handleAbrir = async () => {
+   126→    const m = parseFloat(montoInicial);
+   127→    if (isNaN(m) || m < 0) return toast.error('Monto invalido');
+   128→    setLoadingAbrir(true);
+   129→    try {
+   130→      const ok = await abrirCaja(m);
+   131→      if (ok) {
+   132→        toast.success('Caja abierta', { description: 'Turno iniciado' });
+   133→        setShowApertura(false);
+   134→        setMontoInicial('');
+   135→      } else {
+   136→        toast.error('Error al abrir la caja');
+   137→      }
+   138→    } catch (e) {
+   139→      toast.error('Error al abrir la caja');
+   140→    }
+   141→    setLoadingAbrir(false);
+   142→  };
+   143→
+   144→  const handleMovimiento = async () => {
+   145→    if (!showMovForm) return;
+   146→    const m = parseFloat(movMonto);
+   147→    if (isNaN(m) || m <= 0) return toast.error('Monto invalido');
+   148→    if (showMovForm === 'egreso' && !movCategoria) return toast.error('Selecciona una categoria de gasto');
+   149→    const desc = movDesc.trim() || (showMovForm === 'ingreso' ? 'Ingreso manual' : `Egreso: ${movCategoria}`);
+   150→    setLoadingMovimiento(true);
+   151→    try {
+   152→      const ok = await registrarMovimientoCaja(showMovForm, m, desc, movMetodo, showMovForm === 'egreso' ? movCategoria : undefined);
+   153→      if (ok) {
+   154→        toast.success(`${showMovForm === 'ingreso' ? 'Ingreso' : 'Egreso'} registrado`, { description: formatMoney(m) });
+   155→        setShowMovForm(null);
+   156→        setMovMonto('');
+   157→        setMovDesc('');
+   158→        setMovMetodo('Efectivo');
+   159→        setMovCategoria('');
+   160→      } else {
+   161→        toast.error(`Error al registrar ${showMovForm}`);
+   162→      }
+   163→    } catch (e) {
+   164→      toast.error(`Error al registrar ${showMovForm}`);
+   165→    }
+   166→    setLoadingMovimiento(false);
+   167→  };
+   168→
+   169→  const handleCerrar = async () => {
+   170→    setLoadingCerrar(true);
+   171→    try {
+   172→      const cierre = await cerrarCaja(billetes, totalOtros);
+   173→      if (cierre) {
+   174→        toast.success('Caja cerrada', { description: 'Turno finalizado' });
+   175→        setShowCierre(false);
+   176→        setBilletes(Object.fromEntries(BILLETES.map(b => [b, 0])));
+   177→      } else {
+   178→        toast.error('Error al cerrar la caja');
+   179→      }
+   180→    } catch (e) {
+   181→      toast.error('Error al cerrar la caja');
+   182→    }
+   183→    setLoadingCerrar(false);
+   184→  };
+   185→
+   186→  const handleEditOpen = (mov: typeof movimientos[0]) => {
+   187→    setEditingMov({ id: mov.id, monto: mov.monto, descripcion: mov.descripcion });
+   188→    setEditMonto(String(mov.monto));
+   189→    setEditDesc(mov.descripcion);
+   190→  };
+   191→
+   192→  const handleEditSave = async () => {
+   193→    if (!editingMov) return;
+   194→    const m = parseFloat(editMonto);
+   195→    if (isNaN(m) || m <= 0) return toast.error('Monto invalido');
+   196→    if (!editDesc.trim()) return toast.error('Descripcion requerida');
+   197→    setLoadingEdit(true);
+   198→    try {
+   199→      const ok = await editarMovimientoCaja(editingMov.id, { monto: m, descripcion: editDesc.trim() });
+   200→      if (ok) {
+   201→        toast.success('Movimiento actualizado');
+   202→        setEditingMov(null);
+   203→      } else {
+   204→        toast.error('Error al editar');
+   205→      }
+   206→    } catch (e) {
+   207→      toast.error('Error al editar movimiento');
+   208→    }
+   209→    setLoadingEdit(false);
+   210→  };
+   211→
+   212→  const handleDelete = async (movId: string) => {
+   213→    setDeleteConfirmId(movId);
+   214→  };
+   215→
+   216→  const confirmDelete = async () => {
+   217→    if (!deleteConfirmId) return;
+   218→    setLoadingDelete(true);
+   219→    try {
+   220→      const ok = await eliminarMovimientoCaja(deleteConfirmId);
+   221→      if (ok) {
+   222→        toast.success('Movimiento eliminado');
+   223→      } else {
+   224→        toast.error('Error al eliminar');
+   225→      }
+   226→    } catch (e) {
+   227→      toast.error('Error al eliminar movimiento');
+   228→    }
+   229→    setLoadingDelete(false);
+   230→    setDeleteConfirmId(null);
+   231→  };
+   232→
+   233→  // Saldo esperado (efectivo only)
+   234→  const saldoEsperadoEfectivo = useMemo(() => {
+   235→    if (!caja.apertura) return 0;
+   236→    const movs = caja.movimientos || [];
+   237→    let s = caja.apertura.montoInicial;
+   238→    movs.forEach(m => {
+   239→      if (m.metodo === 'Efectivo') s += m.tipo === 'ingreso' ? m.monto : -m.monto;
+   240→    });
+   241→    return s;
+   242→  }, [caja.apertura, caja.movimientos]);
+   243→
+   244→  const diferencia = totalEfectivo - saldoEsperadoEfectivo;
+   245→
+   246→  const cancelarForm = () => { setShowMovForm(null); setMovMonto(''); setMovDesc(''); setMovMetodo('Efectivo'); setMovCategoria(''); };
+   247→
+   248→  return (
+   249→    <div className="space-y-6">
+   250→      <ModuleHeader icon={Wallet} title="Caja" subtitle="Controla los movimientos de dinero del dia" />
+   251→
+   252→      {caja.estado === 'cerrada' ? (
+   253→        /* ═══════ CAJA CERRADA ═══════ */
+   254→        <Card className="bg-gradient-to-br from-[#F1F5F9]/80 to-white">
+   255→          <CardContent className="text-center py-10 space-y-4">
+   256→            <Lock className="w-12 h-12 mx-auto text-muted-foreground" />
+   257→            <div>
+   258→              <h3 className="text-lg font-semibold">Caja cerrada</h3>
+   259→              <p className="text-sm text-muted-foreground">Inicie un nuevo turno para comenzar a operar.</p>
+   260→            </div>
+   261→            {!showApertura ? (
+   262→              <Button size="lg" onClick={() => setShowApertura(true)}><Unlock className="w-4 h-4 mr-1" />Abrir caja</Button>
+   263→            ) : (
+   264→              <div className="max-w-xs mx-auto space-y-2">
+   265→                <Label className="text-sm text-muted-foreground">Monto inicial en efectivo</Label>
+   266→                <Input type="number" placeholder="0.00" step="0.01" min="0" value={montoInicial} onChange={e => setMontoInicial(e.target.value)} autoFocus />
+   267→                <div className="flex gap-2">
+   268→                  <Button onClick={handleAbrir} className="flex-1" disabled={loadingAbrir}>
+   269→                    {loadingAbrir ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}Confirmar apertura
+   270→                  </Button>
+   271→                  <Button variant="secondary" onClick={() => setShowApertura(false)} disabled={loadingAbrir}>Cancelar</Button>
+   272→                </div>
+   273→              </div>
+   274→            )}
+   275→            {caja.historial && caja.historial.length > 0 && (
+   276→              <p className="text-xs text-muted-foreground">Ultimo cierre: {formatFechaHora(caja.historial[caja.historial.length - 1].cierre.fecha)}</p>
+   277→            )}
+   278→          </CardContent>
+   279→        </Card>
+   280→      ) : (
+   281→        /* ═══════ CAJA ABIERTA ═══════ */
+   282→        <div className="space-y-4">
+   283→          {/* ── Mobile: compact status bar ── */}
+   284→          <Card className="lg:hidden">
+   285→            <CardContent className="p-3 space-y-3">
+   286→              <div className="flex items-center justify-between">
+   287→                <h3 className="font-semibold flex items-center gap-2 text-sm"><Unlock className="w-4 h-4 text-[#4ADE80] animate-pulse-subtle" /> Caja abierta</h3>
+   288→                <Dialog open={showCierre} onOpenChange={setShowCierre}>
+   289→                  <DialogTrigger asChild>
+   290→                    <Button variant="destructive" size="sm" className="h-7 text-xs"><Lock className="w-3.5 h-3.5 mr-1" />Cerrar</Button>
+   291→                  </DialogTrigger>
+   292→                  <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+   293→                    <ClosingDialogContent
+   294→                      saldoEsperado={saldoEsperadoEfectivo}
+   295→                      totalEfectivo={totalEfectivo}
+   296→                      diferencia={diferencia}
+   297→                      totalOtros={totalOtros}
+   298→                      resumenOtros={resumenOtros}
+   299→                      totalIngresosPorMetodo={totalIngresosPorMetodo}
+   300→                      billetes={billetes}
+   301→                      setBilletes={setBilletes}
+   302→                      loadingCerrar={loadingCerrar}
+   303→                      handleCerrar={handleCerrar}
+   304→                      setShowCierre={setShowCierre}
+   305→                    />
+   306→                  </DialogContent>
+   307→                </Dialog>
+   308→              </div>
+   309→              {/* Saldo + info */}
+   310→              <div className="grid grid-cols-3 gap-2 text-center rounded-lg border p-2.5 bg-muted/30">
+   311→                <div>
+   312→                  <p className="text-[10px] text-muted-foreground leading-tight">Saldo</p>
+   313→                  <p className="text-sm font-bold">{formatMoney(saldo)}</p>
+   314→                </div>
+   315→                <div>
+   316→                  <p className="text-[10px] text-muted-foreground leading-tight">Movimientos</p>
+   317→                  <p className="text-sm font-semibold">{movimientos.length}</p>
+   318→                </div>
+   319→                <div>
+   320→                  <p className="text-[10px] text-muted-foreground leading-tight">Apertura</p>
+   321→                  <p className="text-sm font-medium">{caja.apertura ? formatHora(caja.apertura.fecha) : '--'}</p>
+   322→                </div>
+   323→              </div>
+   324→              {/* Action buttons */}
+   325→              <div className="grid grid-cols-2 gap-2">
+   326→                <Button variant="outline" className="h-9 text-sm" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+   327→                <Button variant="outline" className="h-9 text-sm" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+   328→              </div>
+   329→              {/* Movement form inline */}
+   330→              {showMovForm && (
+   331→                <MovFormInline
+   332→                  tipo={showMovForm}
+   333→                  movMonto={movMonto}
+   334→                  setMovMonto={setMovMonto}
+   335→                  movDesc={movDesc}
+   336→                  setMovDesc={setMovDesc}
+   337→                  movMetodo={movMetodo}
+   338→                  setMovMetodo={setMovMetodo}
+   339→                  movCategoria={movCategoria}
+   340→                  setMovCategoria={setMovCategoria}
+   341→                  loading={loadingMovimiento}
+   342→                  onGuardar={handleMovimiento}
+   343→                  onCancelar={cancelarForm}
+   344→                  metodosPago={metodosPago}
+   345→                  categoriasGastos={categoriasGastos}
+   346→                />
+   347→              )}
+   348→            </CardContent>
+   349→          </Card>
+   350→
+   351→          {/* ── Mobile: movement cards ── */}
+   352→          <Card className="lg:hidden">
+   353→            <CardHeader className="pb-3"><CardTitle className="text-base">Movimientos del turno</CardTitle></CardHeader>
+   354→            <CardContent className="p-0">
+   355→              {movimientos.length === 0 ? (
+   356→                <div className="text-center py-10 text-muted-foreground">Sin movimientos.</div>
+   357→              ) : (
+   358→                <div className="divide-y">
+   359→                  {reversedPagedMovimientos.map((m) => (
+   360→                    <div key={m.id} className="p-3.5 space-y-1.5">
+   361→                      <div className="flex items-start justify-between gap-2">
+   362→                        <div className="flex items-center gap-2">
+   363→                          {m.tipo === 'ingreso' ? (
+   364→                            <Badge className="bg-[#DCFCE7] text-[#166534]"><Plus className="w-3 h-3 mr-0.5" />Ingreso</Badge>
+   365→                          ) : (
+   366→                            <Badge className="bg-[#FEE2E2] text-[#991B1B]"><Minus className="w-3 h-3 mr-0.5" />Egreso</Badge>
+   367→                          )}
+   368→                          <Badge variant="secondary">{m.metodo}</Badge>
+   369→                        </div>
+   370→                        <p className={`text-sm font-bold shrink-0 ${m.tipo === 'ingreso' ? 'text-[#166534]' : 'text-[#991B1B]'}`}>
+   371→                          {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
+   372→                        </p>
+   373→                      </div>
+   374→                      {m.descripcion && (
+   375→                        <p className="text-xs text-muted-foreground leading-relaxed">{m.descripcion}</p>
+   376→                      )}
+   377→                      <div className="flex items-center justify-between">
+   378→                        <p className="text-[10px] text-muted-foreground">{formatFechaHora(m.fecha)}</p>
+   379→                        {isAdminOrOwner && (
+   380→                          <div className="flex gap-1">
+   381→                            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleEditOpen(m)}><Pencil className="w-3 h-3" /></Button>
+   382→                            <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => handleDelete(m.id)} disabled={loadingDelete}>
+   383→                              {loadingDelete ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+   384→                            </Button>
+   385→                          </div>
+   386→                        )}
+   387→                      </div>
+   388→                    </div>
+   389→                  ))}
+   390→                </div>
+   391→              )}
+   392→            </CardContent>
+   393→            <PaginationBar page={page} totalPages={movTotalPages} onPageChange={setPage} totalItems={movimientos.length} pageSize={PAGE_SIZE} />
+   394→          </Card>
+   395→
+   396→          {/* ═══════ DESKTOP ═══════ */}
+   397→          <div className="hidden lg:grid lg:grid-cols-3 gap-4">
+   398→            <div className="lg:col-span-2 space-y-4">
+   399→              {/* Status bar */}
+   400→              <Card>
+   401→                <CardContent className="flex items-center justify-between py-3">
+   402→                  <h3 className="font-semibold flex items-center gap-2"><Unlock className="w-5 h-5 text-[#4ADE80] animate-pulse-subtle" /> Caja abierta</h3>
+   403→                  <Dialog open={showCierre} onOpenChange={setShowCierre}>
+   404→                    <DialogTrigger asChild>
+   405→                      <Button variant="destructive" disabled={loadingCerrar}><Lock className="w-4 h-4 mr-1" />Cerrar caja</Button>
+   406→                    </DialogTrigger>
+   407→                    <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+   408→                      <ClosingDialogContent
+   409→                        saldoEsperado={saldoEsperadoEfectivo}
+   410→                        totalEfectivo={totalEfectivo}
+   411→                        diferencia={diferencia}
+   412→                        totalOtros={totalOtros}
+   413→                        resumenOtros={resumenOtros}
+   414→                        totalIngresosPorMetodo={totalIngresosPorMetodo}
+   415→                        billetes={billetes}
+   416→                        setBilletes={setBilletes}
+   417→                        loadingCerrar={loadingCerrar}
+   418→                        handleCerrar={handleCerrar}
+   419→                        setShowCierre={setShowCierre}
+   420→                      />
+   421→                    </DialogContent>
+   422→                  </Dialog>
+   423→                </CardContent>
+   424→              </Card>
+   425→
+   426→              {/* Movements table */}
+   427→              <Card>
+   428→                <CardHeader className="pb-3"><CardTitle className="text-base">Movimientos del turno</CardTitle></CardHeader>
+   429→                <CardContent>
+   430→                  {movimientos.length === 0 ? <p className="text-sm text-muted-foreground">Sin movimientos.</p> : (
+   431→                    <Table>
+   432→                      <TableHeader>
+   433→                        <TableRow>
+   434→                          <TableHead>Hora</TableHead>
+   435→                          <TableHead>Tipo</TableHead>
+   436→                          <TableHead>Monto</TableHead>
+   437→                          <TableHead>Metodo</TableHead>
+   438→                          <TableHead>Descripcion</TableHead>
+   439→                          {isAdminOrOwner && <TableHead className="w-[80px]">Acciones</TableHead>}
+   440→                        </TableRow>
+   441→                      </TableHeader>
+   442→                      <TableBody>
+   443→                        {pagedMovimientos.map((m) => (
+   444→                          <TableRow key={m.id}>
+   445→                            <TableCell className="text-xs">{formatFechaHora(m.fecha)}</TableCell>
+   446→                            <TableCell>
+   447→                              {m.tipo === 'ingreso' ? (
+   448→                                <Badge className="bg-[#DCFCE7] text-[#166534]"><Plus className="w-3 h-3 mr-1" />Ingreso</Badge>
+   449→                              ) : (
+   450→                                <Badge className="bg-[#FEE2E2] text-[#991B1B]"><Minus className="w-3 h-3 mr-1" />Egreso</Badge>
+   451→                              )}
+   452→                            </TableCell>
+   453→                            <TableCell className={`font-medium ${m.tipo === 'ingreso' ? 'text-[#166534]' : 'text-[#991B1B]'}`}>
+   454→                              {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
+   455→                            </TableCell>
+   456→                            <TableCell>{m.metodo}</TableCell>
+   457→                            <TableCell className="text-sm text-muted-foreground">{m.descripcion}</TableCell>
+   458→                            {isAdminOrOwner && (
+   459→                              <TableCell>
+   460→                                <div className="flex gap-1">
+   461→                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleEditOpen(m)}><Pencil className="w-3.5 h-3.5" /></Button>
+   462→                                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDelete(m.id)} disabled={loadingDelete}>
+   463→                                    {loadingDelete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+   464→                                  </Button>
+   465→                                </div>
+   466→                              </TableCell>
+   467→                            )}
+   468→                          </TableRow>
+   469→                        ))}
+   470→                      </TableBody>
+   471→                    </Table>
+   472→                  )}
+   473→                  <PaginationBar page={page} totalPages={movTotalPages} onPageChange={setPage} totalItems={movimientos.length} pageSize={PAGE_SIZE} />
+   474→                </CardContent>
+   475→              </Card>
+   476→            </div>
+   477→
+   478→            {/* Info Panel */}
+   479→            <div className="space-y-4">
+   480→              <Card>
+   481→                <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-3"><CardTitle className="text-sm">Informacion</CardTitle></CardHeader>
+   482→                <CardContent className="space-y-2 text-sm">
+   483→                  {caja.apertura && (
+   484→                    <>
+   485→                      <div className="flex justify-between"><span className="text-muted-foreground">Cajero:</span><span className="font-medium">{caja.apertura.empleado}</span></div>
+   486→                      <div className="flex justify-between"><span className="text-muted-foreground">Apertura:</span><span>{formatFechaHora(caja.apertura.fecha)}</span></div>
+   487→                      <div className="flex justify-between"><span className="text-muted-foreground">Inicial:</span><span>{formatMoney(caja.apertura.montoInicial)}</span></div>
+   488→                    </>
+   489→                  )}
+   490→                  <div className="flex justify-between"><span className="text-muted-foreground">Saldo actual:</span><span className="font-bold text-lg text-[#0F2B28]">{formatMoney(saldo)}</span></div>
+   491→                  <div className="flex justify-between"><span className="text-muted-foreground">Movimientos:</span><span>{movimientos.length}</span></div>
+   492→
+   493→                  {/* Action buttons */}
+   494→                  <div className="grid grid-cols-2 gap-2 pt-2">
+   495→                    <Button variant="outline" className="w-full" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+   496→                    <Button variant="outline" className="w-full" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+   497→                  </div>
+   498→
+   499→                  {/* Movement form */}
+   500→                  {showMovForm && (
+   501→                    <MovFormInline
+   502→                      tipo={showMovForm}
+   503→                      movMonto={movMonto}
+   504→                      setMovMonto={setMovMonto}
+   505→                      movDesc={movDesc}
+   506→                      setMovDesc={setMovDesc}
+   507→                      movMetodo={movMetodo}
+   508→                      setMovMetodo={setMovMetodo}
+   509→                      movCategoria={movCategoria}
+   510→                      setMovCategoria={setMovCategoria}
+   511→                      loading={loadingMovimiento}
+   512→                      onGuardar={handleMovimiento}
+   513→                      onCancelar={cancelarForm}
+   514→                      metodosPago={metodosPago}
+   515→                      categoriasGastos={categoriasGastos}
+   516→                    />
+   517→                  )}
+   518→                </CardContent>
+   519→              </Card>
+   520→            </div>
+   521→          </div>
+   522→        </div>
+   523→      )}
+   524→
+   525→      {/* ═══════ DELETE CONFIRM DIALOG ═══════ */}
+   526→      <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+   527→        <AlertDialogContent>
+   528→          <AlertDialogHeader>
+   529→            <AlertDialogTitle>¿Eliminar movimiento?</AlertDialogTitle>
+   530→            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+   531→          </AlertDialogHeader>
+   532→          <AlertDialogFooter>
+   533→            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+   534→            <AlertDialogAction onClick={confirmDelete}>Eliminar</AlertDialogAction>
+   535→          </AlertDialogFooter>
+   536→        </AlertDialogContent>
+   537→      </AlertDialog>
+   538→
+   539→      {/* ═══════ EDIT MOVEMENT DIALOG ═══════ */}
+   540→      <Dialog open={!!editingMov} onOpenChange={() => setEditingMov(null)}>
+   541→        <DialogContent className="sm:max-w-md">
+   542→          <DialogHeader>
+   543→            <DialogTitle>Editar movimiento</DialogTitle>
+   544→          </DialogHeader>
+   545→          <div className="space-y-3">
+   546→            <div>
+   547→              <Label>Monto</Label>
+   548→              <Input type="number" step="0.01" min="0.01" value={editMonto} onChange={e => setEditMonto(e.target.value)} />
+   549→            </div>
+   550→            <div>
+   551→              <Label>Descripcion</Label>
+   552→              <Input value={editDesc} onChange={e => setEditDesc(e.target.value)} />
+   553→            </div>
+   554→          </div>
+   555→          <DialogFooter>
+   556→            <Button variant="secondary" onClick={() => setEditingMov(null)} disabled={loadingEdit}>Cancelar</Button>
+   557→            <Button onClick={handleEditSave} disabled={loadingEdit}>
+   558→              {loadingEdit ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}Guardar
+   559→            </Button>
+   560→          </DialogFooter>
+   561→        </DialogContent>
+   562→      </Dialog>
+   563→    </div>
+   564→  );
+   565→}
+   566→
+   567→/* ═══════════════════════════════════════════════════════════
+   568→   CLOSING DIALOG CONTENT (deduplicated, single render)
+   569→   ═══════════════════════════════════════════════════════════ */
+   570→
+   571→function ClosingDialogContent({
+   572→  saldoEsperado, totalEfectivo, diferencia, totalOtros, resumenOtros,
+   573→  totalIngresosPorMetodo, billetes, setBilletes, loadingCerrar, handleCerrar, setShowCierre,
+   574→}: {
+   575→  saldoEsperado: number; totalEfectivo: number; diferencia: number; totalOtros: number;
+   576→  resumenOtros: Record<string, { ingresos: number; egresos: number }>;
+   577→  totalIngresosPorMetodo: Record<string, number>;
+   578→  billetes: Record<number, number>; setBilletes: (b: Record<number, number>) => void;
+   579→  loadingCerrar: boolean; handleCerrar: () => void; setShowCierre: (v: boolean) => void;
+   580→}) {
+   581→  const fmt = (n: number) => formatMoney(n);
+   582→  return (
+   583→    <>
+   584→      <DialogHeader>
+   585→        <DialogTitle className="flex items-center gap-2"><Lock className="w-5 h-5 text-destructive" /> Cierre de caja</DialogTitle>
+   586→      </DialogHeader>
+   587→      <div className="grid grid-cols-3 gap-2 text-center">
+   588→        <div className="p-2 rounded-lg bg-muted/50"><p className="text-[10px] text-muted-foreground">Esperado</p><p className="font-bold text-sm">{fmt(saldoEsperado)}</p><p className="text-[9px] text-muted-foreground">Solo efectivo</p></div>
+   589→        <div className="p-2 rounded-lg bg-muted/50"><p className="text-[10px] text-muted-foreground">Contado</p><p className="font-bold text-sm">{fmt(totalEfectivo)}</p><p className="text-[9px] text-muted-foreground">Efectivo</p></div>
+   590→        <div className={`p-2 rounded-lg ${diferencia === 0 ? 'bg-[#DCFCE7]' : 'bg-[#FEE2E2]'}`}><p className="text-[10px] text-muted-foreground">Diferencia</p><p className={`font-bold text-sm ${diferencia === 0 ? 'text-[#166534]' : 'text-[#991B1B]'}`}>{diferencia === 0 ? '$0.00' : `${diferencia > 0 ? '+' : ''}${fmt(diferencia)}`}</p></div>
+   591→      </div>
+   592→      {diferencia !== 0 && (
+   593→        <div className="flex items-center gap-2 p-2 bg-[#FEF3C7] rounded-lg text-[#92400E] text-sm"><AlertTriangle className="w-4 h-4 shrink-0" /><span>Hay una diferencia de {fmt(Math.abs(diferencia))} en efectivo</span></div>
+   594→      )}
+   595→      <div className="grid md:grid-cols-2 gap-6 py-2">
+   596→        <div>
+   597→          <h4 className="font-semibold mb-3">Conteo de billetes</h4>
+   598→          <div className="space-y-2">
+   599→            {BILLETES.map(b => (
+   600→              <div key={b} className="flex items-center gap-2">
+   601→                <span className="w-20 text-sm font-medium">{fmt(b)}</span>
+   602→                <Input type="number" min="0" className="w-20 h-8 text-sm" value={billetes[b] || 0} onChange={e => setBilletes({ ...billetes, [b]: parseInt(e.target.value) || 0 })} />
+   603→                <span className="text-sm text-muted-foreground w-20 text-right">{fmt(b * (billetes[b] || 0))}</span>
+   604→              </div>
+   605→            ))}
+   606→          </div>
+   607→          <div className="flex justify-between font-bold mt-3 pt-2 border-t"><span>Total efectivo</span><span>{fmt(totalEfectivo)}</span></div>
+   608→        </div>
+   609→        <div>
+   610→          <h4 className="font-semibold mb-3">Otros metodos</h4>
+   611→          {Object.keys(resumenOtros).length === 0 ? (<p className="text-sm text-muted-foreground">Sin movimientos de otros metodos.</p>) : (
+   612→            <div className="space-y-1">
+   613→              {Object.entries(resumenOtros).map(([metodo, data]) => (
+   614→                <div key={metodo} className="flex justify-between text-sm py-1"><span>{metodo}</span><span className="font-medium">{fmt(data.ingresos - data.egresos)}</span></div>
+   615→              ))}
+   616→              <div className="flex justify-between font-bold mt-2 pt-2 border-t"><span>Total otros</span><span>{fmt(totalOtros)}</span></div>
+   617→            </div>
+   618→          )}
+   619→        </div>
+   620→      </div>
+   621→      {Object.keys(totalIngresosPorMetodo).length > 0 && (
+   622→        <div className="border rounded-lg p-3">
+   623→          <h4 className="font-semibold text-sm mb-2">Desglose de ingresos por metodo</h4>
+   624→          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+   625→            {Object.entries(totalIngresosPorMetodo).map(([metodo, total]) => (
+   626→              <div key={metodo} className="flex justify-between items-center text-sm"><span className="text-muted-foreground">{metodo}</span><Badge variant="secondary">{fmt(total)}</Badge></div>
+   627→            ))}
+   628→          </div>
+   629→        </div>
+   630→      )}
+   631→      <div className="text-center pt-4 border-t mt-4">
+   632→        <p className="text-lg font-bold">Total del dia: <span className="text-primary">{fmt(totalEfectivo + totalOtros)}</span></p>
+   633→        <div className="flex gap-2 justify-center mt-3">
+   634→          <DialogClose asChild><Button variant="secondary" onClick={() => setShowCierre(false)}>Cancelar</Button></DialogClose>
+   635→          <Button variant="destructive" onClick={handleCerrar} disabled={loadingCerrar}>{loadingCerrar ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Lock className="w-4 h-4 mr-1" />}Confirmar cierre</Button>
+   636→        </div>
+   637→      </div>
+   638→    </>
+   639→  );
+   640→}
+   641→
+   642→/* ═══════════════════════════════════════════════════════════
+   643→   MOVEMENT FORM (used in both mobile and desktop)
+   644→   ═══════════════════════════════════════════════════════════ */
+   645→
+   646→function MovFormInline({
+   647→  tipo, movMonto, setMovMonto, movDesc, setMovDesc,
+   648→  movMetodo, setMovMetodo, movCategoria, setMovCategoria,
+   649→  loading, onGuardar, onCancelar, metodosPago, categoriasGastos,
+   650→}: {
+   651→  tipo: 'ingreso' | 'egreso';
+   652→  movMonto: string; setMovMonto: (v: string) => void;
+   653→  movDesc: string; setMovDesc: (v: string) => void;
+   654→  movMetodo: string; setMovMetodo: (v: string) => void;
+   655→  movCategoria: string; setMovCategoria: (v: string) => void;
+   656→  loading: boolean; onGuardar: () => void; onCancelar: () => void;
+   657→  metodosPago: { id: string; nombre: string }[];
+   658→  categoriasGastos: string[];
+   659→}) {
+   660→  const methods = metodosPago.length > 0 ? metodosPago.map(m => m.nombre) : METODOS;
+   661→  return (
+   662→    <div className="border rounded-lg p-3 space-y-2">
+   663→      <p className="font-medium text-sm">
+   664→        {tipo === 'ingreso' ? (
+   665→          <span className="flex items-center gap-1"><Plus className="w-3.5 h-3.5 text-[#166534]" />Registrar ingreso</span>
+   666→        ) : (
+   667→          <span className="flex items-center gap-1"><Minus className="w-3.5 h-3.5 text-[#991B1B]" />Registrar egreso</span>
+   668→        )}
+   669→      </p>
+   670→      <div className="grid grid-cols-2 gap-2">
+   671→        <Input type="number" placeholder="Monto" step="0.01" min="0.01" value={movMonto} onChange={e => setMovMonto(e.target.value)} />
+   672→        <select
+   673→          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+   674→          value={movMetodo}
+   675→          onChange={e => setMovMetodo(e.target.value)}
+   676→        >
+   677→          {methods.map(m => (<option key={m} value={m}>{m}</option>))}
+   678→        </select>
+   679→      </div>
+   680→      {/* Categoria de gasto - solo para egresos */}
+   681→      {tipo === 'egreso' && (
+   682→        <div className="relative">
+   683→          <Tag className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+   684→          <select
+   685→            className="flex h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring appearance-none"
+   686→            value={movCategoria}
+   687→            onChange={e => setMovCategoria(e.target.value)}
+   688→          >
+   689→            <option value="">Categoria de gasto...</option>
+   690→            {categoriasGastos.map(c => (<option key={c} value={c}>{c}</option>))}
+   691→          </select>
+   692→        </div>
+   693→      )}
+   694→      <Input placeholder="Descripcion (opcional)" value={movDesc} onChange={e => setMovDesc(e.target.value)} />
+   695→      <div className="flex gap-2">
+   696→        <Button onClick={onGuardar} className="flex-1" disabled={loading}>
+   697→          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}Guardar
+   698→        </Button>
+   699→        <Button variant="secondary" onClick={onCancelar} disabled={loading} className="flex-1">Cancelar</Button>
+   700→      </div>
+   701→    </div>
+   702→  );
+   703→}
+   704→

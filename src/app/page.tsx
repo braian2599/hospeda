@@ -8,10 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import {
   Hotel, CalendarCheck, CreditCard, Users, BarChart3, Sparkles,
   ArrowRight, Check, Menu, X, Shield, Zap, Clock, Globe,
-  ChevronDown, ChevronUp, Building2, Receipt, Wrench, Mail, Phone
+  ChevronDown, ChevronUp, Building2, Receipt, Wrench, Mail, Phone,
+  Quote, Star, MapPin, FileCheck, MessageCircle, Server, Headphones
 } from 'lucide-react';
 import PlanCard from '@/components/payments/PlanCard';
 import CheckoutDialog from '@/components/payments/CheckoutDialog';
+import { AnimatedNumber } from '@/components/ui/animated-number';
 import type { PlanTipo } from '@/lib/plan-config';
 
 /* ─── Intersection Observer hook ─── */
@@ -159,6 +161,71 @@ const faqs = [
   {
     q: '¿Puedo usarlo para un hostel o solo para hoteles?',
     a: 'Hospedá funciona para cualquier tipo de alojamiento: hoteles, hostels, posadas, cabañas, departamentos turísticos y bed & breakfast. Los módulos se adaptan a tu negocio.',
+  },
+];
+
+const stats = [
+  {
+    icon: Building2,
+    value: 500,
+    format: (n: number) => `${Math.round(n)}+`,
+    label: 'hoteles confían en Hospedá',
+    iconColor: 'bg-[#059669]/10 text-[#059669]',
+  },
+  {
+    icon: CalendarCheck,
+    value: 50,
+    format: (n: number) => `${Math.round(n)}K+`,
+    label: 'reservas gestionadas',
+    iconColor: 'bg-[#0F2B28]/10 text-[#0F2B28]',
+  },
+  {
+    icon: Server,
+    value: 99.9,
+    format: (n: number) => `${n.toFixed(1)}%`,
+    label: 'uptime garantizado',
+    iconColor: 'bg-[#059669]/10 text-[#059669]',
+  },
+  {
+    icon: Headphones,
+    value: 24,
+    format: (n: number) => `${Math.round(n)}/7`,
+    label: 'soporte dedicado',
+    iconColor: 'bg-[#0F2B28]/10 text-[#0F2B28]',
+  },
+];
+
+const trustBadges = [
+  { icon: Shield, label: 'Datos encriptados' },
+  { icon: MapPin, label: 'Servidores en Argentina' },
+  { icon: FileCheck, label: 'Cumple Ley 25.326' },
+  { icon: MessageCircle, label: 'Soporte en español' },
+];
+
+const testimonials = [
+  {
+    nombre: 'María González',
+    rol: 'Gerente, Hotel Sunset',
+    avatar: 'MG',
+    avatarColor: 'bg-[#059669]',
+    texto: 'Hospedá transformó la forma en que gestionamos nuestro hotel. Antes nos llevaba horas hacer el check-in, ahora son segundos.',
+    rating: 5,
+  },
+  {
+    nombre: 'Carlos Rodríguez',
+    rol: 'Dueño, Hostel Centro',
+    avatar: 'CR',
+    avatarColor: 'bg-[#0F2B28]',
+    texto: 'La facturación integrada con la caja nos ahorra un montón de tiempo. Los reportes son claros y útiles para tomar decisiones.',
+    rating: 5,
+  },
+  {
+    nombre: 'Laura Martínez',
+    rol: 'Administradora, Cabañas del Lago',
+    avatar: 'LM',
+    avatarColor: 'bg-[#EA580C]',
+    texto: 'El soporte es excelente y siempre están dispuestos a ayudar. La interfaz es intuitiva, nuestro staff aprendió a usarla en minutos.',
+    rating: 5,
   },
 ];
 
@@ -366,6 +433,52 @@ function Hero() {
   );
 }
 
+/* ─── Stats Counter ─── */
+function StatsSection() {
+  const { ref, inView } = useInView(0.25);
+
+  return (
+    <section className="py-16 sm:py-20 bg-gradient-to-b from-white to-[#F0FDF4]/40">
+      <div ref={ref} className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((s, i) => (
+            <FadeIn key={s.label} delay={i * 100}>
+              <div className="p-6 text-center bg-gradient-to-br from-[#F0FDF4]/50 to-white border border-[#BBF7D0]/40 rounded-2xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 h-full">
+                <div className={`w-12 h-12 rounded-full ${s.iconColor} flex items-center justify-center mx-auto mb-3`}>
+                  <s.icon className="w-6 h-6" />
+                </div>
+                <div className="text-4xl font-extrabold text-[#0F2B28]">
+                  {inView ? (
+                    <AnimatedNumber value={s.value} duration={1500} format={s.format} />
+                  ) : (
+                    <span>0</span>
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">{s.label}</div>
+              </div>
+            </FadeIn>
+          ))}
+        </div>
+
+        {/* Trust badges */}
+        <FadeIn delay={400}>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            {trustBadges.map((b) => (
+              <div
+                key={b.label}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#F0FDF4]/50 border border-[#BBF7D0]/40 text-[#166534] text-sm font-medium"
+              >
+                <b.icon className="w-4 h-4" />
+                {b.label}
+              </div>
+            ))}
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Browser chrome wrapper for screenshots ─── */
 function ScreenshotFrame({ src, alt, priority, className = '' }: {
   src: string; alt: string; priority?: boolean; className?: string;
@@ -525,6 +638,58 @@ function Features() {
               </FadeIn>
             ))}
           </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Testimonials ─── */
+function TestimonialsSection() {
+  return (
+    <section className="py-24 sm:py-32 bg-gradient-to-b from-[#F0FDF4]/30 to-white">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <FadeIn>
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <Badge variant="secondary" className="mb-4 gap-1.5">
+              <Quote className="w-3.5 h-3.5" />
+              Testimonios
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+              Lo que dicen nuestros clientes
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              Hoteles, hostels y cabañas de todo el país ya gestionan su operación con Hospedá.
+            </p>
+          </div>
+        </FadeIn>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {testimonials.map((t, i) => (
+            <FadeIn key={t.nombre} delay={i * 120}>
+              <div className="p-6 bg-white border border-border rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
+                <Quote className="w-10 h-10 text-[#0F2B28]/20 mb-4" />
+                <div className="flex gap-0.5 mb-4">
+                  {Array.from({ length: t.rating }, (_, idx) => (
+                    <Star key={idx} className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />
+                  ))}
+                </div>
+                <p className="italic text-foreground/80 leading-relaxed flex-1">
+                  &ldquo;{t.texto}&rdquo;
+                </p>
+                <div className="my-5 border-t border-border" />
+                <div className="flex items-center gap-3">
+                  <div className={`w-11 h-11 rounded-full ${t.avatarColor} text-white flex items-center justify-center font-semibold text-sm shrink-0`}>
+                    {t.avatar}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-sm truncate">{t.nombre}</div>
+                    <div className="text-xs text-muted-foreground truncate">{t.rol}</div>
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+          ))}
         </div>
       </div>
     </section>
@@ -825,7 +990,9 @@ export default function LandingPage() {
       <Navbar />
       <main className="flex-1">
         <Hero />
+        <StatsSection />
         <Features />
+        <TestimonialsSection />
         <Plans />
         <HowItWorks />
         <FAQ />

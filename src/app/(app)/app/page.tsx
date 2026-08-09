@@ -16,6 +16,7 @@ import TarifasModule from '@/components/modules/TarifasModule';
 import ReportesModule from '@/components/modules/ReportesModule';
 import UsuariosModule from '@/components/modules/UsuariosModule';
 import ConfiguracionModule from '@/components/configuracion/ConfiguracionModule';
+import { ModuleErrorBoundary } from '@/components/layout/ModuleErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import ProfileSettings from '@/components/layout/ProfileSettings';
@@ -47,7 +48,9 @@ export default function AppPage() {
   if ((moduloActivo as string) === 'configuracion') {
     return (
       <AppShell>
-        <ConfiguracionModule />
+        <ModuleErrorBoundary moduleName="Configuración">
+          <ConfiguracionModule />
+        </ModuleErrorBoundary>
         <ModuleLockedDialog />
       </AppShell>
     );
@@ -86,7 +89,13 @@ export default function AppPage() {
 
   return (
     <AppShell>
-      {ModuleComponent ? <div key={moduloActivo} className="module-enter"><ModuleComponent /></div> : (
+      {ModuleComponent ? (
+        <div key={moduloActivo} className="module-enter">
+          <ModuleErrorBoundary moduleName={moduloActivo}>
+            <ModuleComponent />
+          </ModuleErrorBoundary>
+        </div>
+      ) : (
         <div className="flex flex-col items-center justify-center py-20">
           <p className="text-4xl mb-2">❓</p>
           <h2 className="text-xl font-bold">Módulo no encontrado</h2>

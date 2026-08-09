@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useHotelStore } from '@/lib/store';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 import { modulosEfectivos } from '@/lib/plan-config';
+import { useGlobalSearch } from '@/hooks/use-global-search';
 import { Search, CornerDownLeft, ArrowUp, ArrowDown, Lock } from 'lucide-react';
 
 // Lazy icon map (matches Sidebar icon names)
@@ -33,7 +34,14 @@ interface CommandItem {
   onSelect: () => void;
   locked?: boolean;
   keywords?: string[];
+  modulo?: ModuloId; // used by global search results for the Enter hint
 }
+
+// Map modulo id → friendly label for the "Press Enter" hint.
+const MODULO_LABEL: Record<ModuloId, string> = MODULOS_SISTEMA.reduce((acc, m) => {
+  acc[m.id] = m.label;
+  return acc;
+}, {} as Record<ModuloId, string>);
 
 // Recent items tracker (in-memory, persists across palette opens within session)
 const recentItems: { id: string; label: string; icon: string; group: string; timestamp: number }[] = [];
@@ -69,6 +77,9 @@ export default function CommandPalette() {
   // Store data for search
   const habitaciones = useHotelStore(s => s.habitaciones);
   const clientes = useHotelStore(s => s.clientes);
+
+  // Global cross-entity search (reservas, clientes, habitaciones, pagos)
+  const globalResults = useGlobalSearch(query);
 
   // Global keyboard shortcut: Cmd+K / Ctrl+K
   useEffect(() => {
@@ -258,6 +269,27 @@ export default function CommandPalette() {
     return items;
   }, [usuarioActual, planActual, planes, setModulo, setPerfilOpen, setSidebarOpen, habitaciones, clientes]);
 
+  // Convert global search results into CommandItem objects.
+  // Limited to 8 to avoid clutter in the palette (the hook returns up to 20).
+  const searchItems = useMemo<CommandItem[]>(() => {
+    if (query.trim().length < 2) return [];
+    return globalResults.slice(0, 8).map(r => ({
+      id: `search-${r.type}-${r.id}`,
+      label: r.title,
+      hint: r.subtitle,
+      icon: r.icon,
+      group: 'Resultados de búsqueda',
+      modulo: r.modulo,
+      onSelect: () => {
+        addRecent(`search-${r.type}-${r.id}`, r.title, r.icon, 'Resultados de búsqueda');
+        recentVersionRef.current++;
+        setModulo(r.modulo);
+        setOpen(false);
+        setSidebarOpen(false);
+      },
+    }));
+  }, [query, globalResults, setModulo, setSidebarOpen]);
+
   // Filter
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -266,13 +298,25 @@ export default function CommandPalette() {
       // Limit Habitaciones and Clientes when no search to avoid overwhelming
       return commands.filter(c => c.group === 'Módulos' || c.group === 'Acciones' || c.group === 'Recientes');
     }
-    return commands.filter(c => {
+    const matched = commands.filter(c => {
       if (c.label.toLowerCase().includes(q)) return true;
       if (c.hint?.toLowerCase().includes(q)) return true;
       if (c.keywords?.some(k => k.toLowerCase().includes(q))) return true;
       return false;
     });
-  }, [commands, query]);
+    // Prepend global search results so they appear at the top of the list
+    // (above the existing Habitaciones / Clientes / Módulos matches).
+    if (searchItems.length > 0) {
+      return [...searchItems, ...matched];
+    }
+    return matched;
+  }, [commands, query, searchItems]);
+
+  // Active item (for the Enter hint at the bottom). Falls back to the first
+  // search result so the hint is informative even before the user arrows down.
+  const activeItem = filtered[activeIndex];
+  const hintModulo: ModuloId | undefined =
+    activeItem?.modulo ?? (searchItems.length > 0 ? searchItems[0].modulo : undefined);
 
   // Group filtered results preserving order
   const grouped = useMemo(() => {
@@ -404,6 +448,28 @@ export default function CommandPalette() {
             </div>
           )}
         </ScrollArea>
+
+        {query.trim().length >= 2 && (
+          <div className="border-t px-3 py-1.5 text-center text-[11px] text-muted-foreground">
+            {searchItems.length > 0 && hintModulo ? (
+              <span>
+                Presiona{' '}
+                <kbd className="inline-flex items-center rounded border bg-muted px-1 py-0.5 text-[9px] font-semibold text-foreground">
+                  Enter
+                </kbd>{' '}
+                para ver todos los resultados en{' '}
+                <strong className="font-semibold text-[#0F2B28]">
+                  {MODULO_LABEL[hintModulo]}
+                </strong>
+              </span>
+            ) : (
+              <span>
+                No se encontraron resultados para{' '}
+                <strong className="font-semibold text-foreground">&ldquo;{query.trim()}&rdquo;</strong>
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="border-t px-3 py-2 flex items-center justify-between text-[10px] text-muted-foreground">
           <div className="flex items-center gap-3">

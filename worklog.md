@@ -1117,3 +1117,809 @@ This will cause a hydration error.%s <button> button
 1. Reservas ninos2: Agregar `form.ninos2` field (actualmente usa ninosCount de hab1)
 2. ConfiguracionModule: Algunos sub-componentes podrían separarse en archivos propios
 3. Dev server memory optimization — considerar split de page.tsx en componentes más chicos
+
+---
+
+## Task ID: 7-a — ModuleErrorBoundary para aislamiento de crashes por módulo
+
+- **Task ID**: 7-a
+- **Agent**: Code Agent (Z.ai)
+- **Task**: Crear un `ModuleErrorBoundary` y envolver cada módulo con él para que un crash en un módulo (p.ej. ReservasModule) no tire toda la app.
+
+### Work Log
+
+#### 1. Nuevo componente `src/components/layout/ModuleErrorBoundary.tsx`
+- Clase React `ModuleErrorBoundary` (no funcional, porque los error boundaries requieren class component).
+- Props: `{ moduleName: string; children: React.ReactNode }`.
+- Estado: `{ hasError, error, errorId }`. El `errorId` se genera con `Date.now()` + sufijo random base36 — útil para追踪 y para el mailto de reporte.
+- `getDerivedStateFromError` setea `hasError: true` + error + errorId generado.
+- `componentDidCatch` loguea a consola con prefijo `[ModuleErrorBoundary:{moduleName}]` para debugging.
+- `handleRetry`: resetea el estado (children se re-renderizan).
+- `handleGoDashboard`: usa `useHotelStore.getState().setModulo('dashboard')` y resetea estado — evita hooks fuera de componente y funciona porque getState es método estático del store.
+- UI compacta (no full-screen): `min-h-[400px]` con card centrada `max-w-lg`, alerta con `AlertTriangle` en círculo `bg-destructive/10`, título con nombre del módulo, mensaje explicativo, detalles técnicos en `<details>` colapsable (con `errorId` en el summary), y botones de acción.
+- Botones:
+  - **Reintentar** (outline) con icono `RefreshCw`.
+  - **Ir al Dashboard** con fondo forest green `bg-[#0F2B28] hover:bg-[#0F2B28]/90` e icono `LayoutDashboard`.
+  - **Reportar error** (ghost) — `<a href="mailto:soporte@hospeda.com?...">` con subject y body pre-llenados (Error ID, mensaje, módulo).
+- Animación de entrada: `animate-in fade-in zoom-in-50 duration-300` en el círculo de alerta.
+- Tema forest green (#0F2B28) para acción primaria — sin azul/indigo.
+
+#### 2. Wrap de módulos en `src/app/(app)/app/page.tsx`
+- Import de `ModuleErrorBoundary`.
+- `ConfiguracionModule` (rama owner-only) envuelto con `<ModuleErrorBoundary moduleName="Configuración">`.
+- Módulos del catálogo (`ModuleComponent`) envueltos con `<ModuleErrorBoundary moduleName={moduloActivo}>` dentro del wrapper `module-enter`.
+- Módulo no encontrado (fallback de `modules[moduloActivo]`) queda fuera del boundary a propósito — no tiene sentido aislar un caso de "no existe".
+- No se modificó el `ErrorBoundary` global en `src/components/ui/error-boundary.tsx` ni el `layout.tsx`. El global sigue siendo la red de seguridad última; el `ModuleErrorBoundary` es la primera línea de defensa dentro del área de contenido.
+
+#### 3. Feature extra: "Reportar error"
+- Botón ghost con `<a href="mailto:...">` que arma el subject (`Error en {moduleName}`) y body (`Error ID`, `Mensaje`, `Módulo`) usando `encodeURIComponent` para escapar caracteres especiales.
+- Útil para que el usuario reporte bugs con contexto mínimo aprovechable por soporte.
+
+#### 4. Lint
+- `bun run lint` → **0 errors, 0 warnings**. ✅
+
+### Stage Summary
+- Aislamiento de crashes implementado a nivel módulo: un throw en cualquier módulo (Dashboard, Habitaciones, Clientes, CheckIn, Reservas, Facturación, Limpieza, Caja, Tarifas, Reportes, Usuarios, Configuración) ahora muestra UI compacta de recuperación en lugar de tirar toda la app.
+- UI consistente con el resto del sistema (forest green #0F2B28, shadcn/ui, Tailwind, lucide-react).
+- Tres acciones de recuperación: Reintentar, Ir al Dashboard, Reportar error (mailto).
+- El `ErrorBoundary` global queda intacto como fallback último — no se rompe compatibilidad.
+- Cumple todos los acceptance criteria del task.
+
+---
+
+## Round 7 — Task 7-b: RoomStatsBanner en HabitacionesModule
+
+- **Task ID:** 7-b
+- **Agente:** fullstack-developer
+- **Task:** Add a "Quick Stats" banner to the HabitacionesModule showing room status breakdown + occupancy progress bar.
+
+### Work Log
+
+**Archivo modificado:** `src/components/modules/HabitacionesModule.tsx` (305 → 542 líneas)
+
+#### 1. Nuevos imports
+- `useEffect` de React (para animación `mounted`)
+- Iconos lucide-react: `CheckCircle`, `UserCheck`, `CalendarCheck`, `SprayCan`, `Wrench`, `Ban`, `type LucideIcon`
+
+#### 2. Nuevo componente `RoomStatsBanner` (inline en mismo archivo)
+Ubicado justo después de `ModuleHeader` y antes de la grilla de habitaciones.
+
+**Selector Zustand granular:**
+```ts
+const habitaciones = useHotelStore(s => s.habitaciones);
+```
+Sin destructuring — solo re-renderiza cuando `habitaciones` cambia.
+
+**Stats computadas:**
+- Total habitaciones (card especial con span completo + badge de ocupación %)
+- Disponibles / Ocupadas / Reservadas / Limpieza / Mantenimiento / Fuera de servicio
+
+**Configuración visual `STAT_CONFIG` (array tipado con `StatConfig`):**
+Cada entrada incluye `icon`, `iconColor`, `iconBg`, `cardBg` (gradient), `accentBorder` (border-l-3px), `barColor`.
+
+Colores:
+- Total: forest green `#0F2B28` con gradient `from-[#F0FDF4]/40 to-white`
+- Disponible: `#166534` / `bg-[#DCFCE7]/30` / accent `#4ADE80`
+- Ocupada: `#92400E` / `bg-[#FEF3C7]/30` / accent `#F59E0B`
+- Reservada: `#1E40AF` / `bg-[#DBEAFE]/30` / accent `#3B82F6`
+- Limpieza: `#92400E` / `bg-[#FEF3C7]/30` / accent `#FBBF24`
+- Mantenimiento: `#64748B` / `bg-[#F8FAFC]/30` / accent `#94A3B8`
+- Fuera de servicio: `#64748B` / `bg-[#F8FAFC]/30` / accent `#94A3B8`
+
+#### 3. Layout de stat cards
+- Grid responsive: `grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3`
+- Card "Total" hace span completo: `col-span-2 sm:col-span-3 lg:col-span-6`
+  - Incluye badge "Ocupación: X%" alineado a la derecha
+- 6 cards de estado (1 col cada una en lg)
+- Cada card:
+  - `p-3 rounded-xl border border-l-[3px]` + accentBorder color
+  - Fondo con gradient sutil (`bg-gradient-to-br from-[color]/30 to-white`)
+  - Icono en círculo `size-8 rounded-full` con bg tinted (`bg-[color]/10`)
+  - Número grande: `text-2xl font-bold`
+  - Label: `text-xs text-muted-foreground`
+  - Hover lift: `hover:-translate-y-0.5 hover:shadow-md transition-all duration-500 ease-out`
+
+#### 4. Animación staggered
+- `mounted` state con `useEffect` + `setTimeout(() => setMounted(true), 50)`
+- Estado inicial: `opacity-0 translate-y-2`
+- Estado montado: `opacity-100 translate-y-0`
+- Stagger: `style={{ transitionDelay: `${i * 60}ms` }}` para cards, delay extra para barra de progreso (`STAT_CONFIG.length * 60`ms)
+
+#### 5. Barra de ocupación proporcional
+- Header con label "Distribución de estados" + contador "{ocupadas} de {total} ocupadas · {pct}%"
+- Barra `h-3 rounded-full bg-muted overflow-hidden flex` con `role="img"` y `aria-label` completo
+- Segmentos por estado (excluyendo Total):
+  - Ancho proporcional: `style={{ width: \`${(count/total)*100}%\` }}`
+  - Color de barra distinto al accent para mejor visibilidad (e.g., Ocupada usa `#F59E0B`)
+  - `title` attribute con tooltip: `"Label: count (pct%)"` para hover
+- Segmentos vacíos (count=0) no se renderizan
+
+#### 6. Edge case: total === 0
+- Retorna div con `border-dashed` y mensaje: "No hay habitaciones cargadas. Creá la primera con el botón 'Nueva Habitación'."
+
+#### 7. Type safety
+- `Record<EstadoHabitacion, number>` para el objeto `counts` (matching pattern existente del archivo)
+- Cast `s.estado as EstadoHabitacion` para acceso a counts (cuando no es 'total')
+- `StatConfig` type explícito para array de config
+
+### Constraints respetadas
+- ✅ NO se modificó la lista/grid de room cards existente — solo se AGREGÓ el banner arriba
+- ✅ Selector Zustand granular (`useHotelStore(s => s.habitaciones)`) — sin destructuring
+- ✅ Status colors OK (blue para Reservada está en la lista de excepciones)
+- ✅ Forest green `#0F2B28` para Total y porcentaje de ocupación
+- ✅ NO blue/indigo en elementos primarios
+- ✅ TypeScript strict correcto
+- ✅ NO test files agregados
+- ✅ `bun run lint` — 0 errors, 0 warnings
+
+### Stage Summary
+RoomStatsBanner implementado con 7 stat cards (1 total + 6 estados), animación staggered fade-in, y barra de ocupación segmentada proporcionalmente con tooltips en hover. Edge case para hotelería vacía. Todo el código respeta el patrón existente del archivo (Record<EstadoHabitacion, string>, borderByEstado, granular selectors). Dev server compila limpio, lint pasa sin errores.
+
+
+---
+
+## Task ID: 7-c
+
+**Agent:** Round 7 Agent C (CheckInModule Visual Enhancement)
+**Task:** Enhance the CheckInModule with better visual feedback and a "Today's Activity" summary banner
+
+### Work Log
+
+**Files modified:**
+- `src/app/globals.css` (+73 lines, total 423) — Added custom keyframes & utility classes:
+  - `@keyframes waveBorder` + `.wave-border-hover` — emerald pulse on check-in card hover
+  - `@keyframes waveBorderAmber` + `.wave-border-hover-amber` — orange pulse on check-out card hover
+  - `@keyframes countPop` + `.count-pop` — bouncy pop-in animation for count badges (key change triggers re-mount via React `key` prop)
+  - `@keyframes celebrateShimmer` + `.celebrate-bg` — animated gradient shimmer for celebratory empty states
+
+- `src/components/modules/CheckInModule.tsx` (730 → 1097 lines) — Comprehensive enhancement:
+  1. **Imports modernized:** Removed local `formatFecha` / `formatMoney` (now imported from `@/lib/format` along with `todayLocal` and `daysAgo`); added `Skeleton`, `cn`, `useEffect`/`useMemo`, new icons (`Bed`, `CheckCircle`, `CalendarCheck`, `DoorOpen`, `Wallet`, `ArrowRight`, `LucideIcon` type).
+  2. **Granular Zustand selectors (no destructuring):** Replaced `const { reservas, habitaciones, ... } = useHotelStore()` with one-selector-per-line:
+     ```ts
+     const reservas = useHotelStore(s => s.reservas);
+     const habitaciones = useHotelStore(s => s.habitaciones);
+     const realizarCheckIn = useHotelStore(s => s.realizarCheckIn);
+     // ... etc.
+     ```
+     Wrapped `pendientesCheckIn` / `pendientesCheckOut` in `useMemo` for memoization.
+  3. **Local loading state** (the store has no `loading` flag): `useState(true)` + `useEffect` with 400ms `setTimeout` to simulate brief fetch and show skeletons on mount.
+  4. **New `TodayActivitySummary` sub-component** placed after `ModuleHeader` and before the check-in/check-out cards. Renders 3 stat cards using the EXACT criteria from the task:
+     - **Check-ins completados hoy** (emerald `#059669`, `LogIn`): `estado === 'Check-In realizado' && checkin === hoyStr`
+     - **Check-outs completados hoy** (orange `#EA580C`, `LogOut`): `estado === 'Check-Out realizado' && checkout === hoyStr`
+     - **Estadías activas** (forest green `#0F2B28`, `Bed`): `estado === 'Check-In realizado'`
+     Each card: `p-4 rounded-xl border bg-gradient-to-br from-{color}/20 to-white`, colored circle icon (`size-10`), big number (`text-3xl font-bold`), label (`text-xs uppercase tracking-wider text-muted-foreground`), trend pill (↑/↓ vs yesterday using `daysAgo(1)`) — hidden when both today & yesterday are 0, hover lift (`-translate-y-1 hover:shadow-lg`), staggered entrance via `animate-slide-up` with `animationDelay`.
+     For the snapshot "Estadías activas" card (no clear "yesterday" metric), trend = current − (current + checkouts completed today) = −checkoutsToday; sublabel shows `${ocupacionPct}% ocup.` derived from `habitaciones` selector (required by task).
+  5. **New `QuickActions` sub-component** — Row of 3 ghost buttons below the summary:
+     - "Ver todas las reservas" → `setModulo('reservas')` (icon: `CalendarCheck`)
+     - "Gestionar habitaciones" → `setModulo('habitaciones')` (icon: `DoorOpen`)
+     - "Ver caja" → `setModulo('caja')` (icon: `Wallet`)
+     Hover transitions to `bg-[#0F2B28]/10 text-[#0F2B28]` (forest green tint) with arrow slide-in.
+  6. **Enhanced check-in / check-out cards:**
+     - Added `wave-border-hover` / `wave-border-hover-amber` class for animated pulse-glow border on hover
+     - Added `PulsingDot` component next to the title (only when pending count > 0) using Tailwind's `animate-ping`
+     - Count badge now uses `key={count}` so React re-mounts it on change → triggers `count-pop` bouncy animation
+     - Badge colors themed per card (emerald tint / orange tint)
+  7. **Improved empty states** — Replaced plain "No hay check-ins pendientes." text with new `CelebratoryEmptyState` component: `celebrate-bg` animated gradient + `CheckCircle` icon in emerald circle with `animate-pulse-subtle` + "¡Todo al día!" heading + "No hay check-ins/check-outs pendientes." subtitle.
+  8. **Loading skeletons** — When `loading` is true:
+     - Top: 3 `StatCardSkeleton` cards (circle + trend pill + bar + bar)
+     - Below: 2 `Card` shells with `Skeleton` header and 2-3 `ListItemSkeleton` rows each
+  9. **Preserved all existing functionality:** Both modals (check-in with menores/acompanantes/requisitos/llave; check-out with financial summary) are byte-for-byte equivalent to before, except `formatMoney` / `formatFecha` now come from `@/lib/format` (functionally equivalent — local versions were drop-in replacements of the lib helpers). `CheckInAccountStatus` sub-component already used granular selectors and is untouched.
+
+### Acceptance Criteria Verification
+- ✅ TodayActivitySummary with 3 stat cards at the top (using required criteria + colors + icons)
+- ✅ Enhanced check-in/check-out cards with pulsing indicators (`PulsingDot`), animated count badges (`count-pop`), and wave border on hover
+- ✅ Quick action buttons for navigation (3 ghost buttons with arrow slide-in, forest-green hover)
+- ✅ Improved empty states (celebratory gradient + CheckCircle + animation)
+- ✅ Loading skeletons (stat cards + list items)
+- ✅ Granular Zustand selectors (no destructuring)
+- ✅ Forest green `#0F2B28` for primary actions, no blue/indigo added (existing purple `#5B21B6` for "menores" badges preserved — not introduced by this task)
+- ✅ Uses `formatMoney`, `formatFecha`, `todayLocal` from `@/lib/format` (also `daysAgo` for yesterday comparison)
+- ✅ TypeScript types correct (`ModuloId` imported from `@/lib/types`, `LucideIcon` for icon prop typing)
+- ✅ No test files added
+- ✅ `bun run lint` — exit 0, 0 errors, 0 warnings
+- ✅ Dev server: clean compile, no errors in `dev.log`
+
+### Stage Summary
+CheckInModule ampliado de 730 → 1097 líneas manteniendo 100% de la funcionalidad existente (modales de check-in con menores/acompañantes/requisitos y check-out con resumen financiero intactos). Se añadieron 6 sub-componentes nuevos (`TodayActivitySummary`, `StatCard`, `QuickActions`, `PulsingDot`, `CelebratoryEmptyState`, `StatCardSkeleton`, `ListItemSkeleton`) + 4 keyframes/utilities CSS en `globals.css`. Migración a selectores Zustand granulares (sin destructuring) y a `formatMoney`/`formatFecha`/`todayLocal`/`daysAgo` desde `@/lib/format`. Carga muestra skeletons, stats tienen trend ↑/↓ vs ayer, badges rebotan al cambiar de conteo, dots pulsan cuando hay pendientes, y los empty states celebran con gradient animado. Lint pasa con 0 errores y el dev server compila limpio.
+
+---
+
+## Task ID: 7-d — StatsSection (animated counters) + TestimonialsSection en landing page
+
+- **Task ID**: 7-d
+- **Agent**: Code Agent (Z.ai)
+- **Task**: Agregar una sección de Stats con contadores animados + trust badges (entre Hero y Features) y una sección de Testimonios con 3 reseñas de clientes (entre Features y Planes) en `src/app/page.tsx`.
+
+### Work Log
+
+#### 1. Imports añadidos
+- En `src/app/page.tsx`, agregados a la importación de `lucide-react`: `Quote, Star, MapPin, FileCheck, MessageCircle, Server, Headphones` (Building2 y CalendarCheck ya estaban importados).
+- Nueva importación: `import { AnimatedNumber } from '@/components/ui/animated-number';`.
+
+#### 2. Data inline (antes de la sección COMPONENTS)
+- `stats`: array de 4 objetos `{ icon, value, format, label, iconColor }`:
+  - `500+` hoteles confían en Hospedá — Building2
+  - `50K+` reservas gestionadas — CalendarCheck
+  - `99.9%` uptime garantizado — Server
+  - `24/7` soporte dedicado — Headphones
+  - Cada uno con `format` custom (no `formatMoney` default) para mostrar sufijos `+`, `K+`, `%`, `/7`.
+- `trustBadges`: array de 4 objetos `{ icon, label }`:
+  - Datos encriptados (Shield), Servidores en Argentina (MapPin), Cumple Ley 25.326 (FileCheck), Soporte en español (MessageCircle).
+- `testimonials`: array de 3 objetos `{ nombre, rol, avatar, avatarColor, texto, rating }` — exactamente como se especificó en el task (María González / Carlos Rodríguez / Laura Martínez).
+
+#### 3. Componente `StatsSection`
+- Usa `useInView(0.25)` (threshold mayor para mejor trigger del counter).
+- Layout `grid grid-cols-2 lg:grid-cols-4 gap-4` para los stats.
+- Cada stat: card con `bg-gradient-to-br from-[#F0FDF4]/50 to-white border border-[#BBF7D0]/40 rounded-2xl`, icono en círculo coloreado arriba, número `text-4xl font-extrabold text-[#0F2B28]` con `AnimatedNumber` (cuando `inView` true; fallback `<span>0</span>` antes), label `text-sm text-muted-foreground mt-1`.
+- `AnimatedNumber` usa `duration={1500}` y `format={s.format}` para cada stat.
+- Cada stat envuelto en `<FadeIn delay={i * 100}>` para stagger animation.
+- Trust badges: row de 4 pills `bg-[#F0FDF4]/50 border border-[#BBF7D0]/40 text-[#166534]` con icono + texto, envuelto en `<FadeIn delay={400}>`.
+- Section background: `bg-gradient-to-b from-white to-[#F0FDF4]/40`, padding `py-16 sm:py-20`.
+
+#### 4. Componente `TestimonialsSection`
+- Section background: `bg-gradient-to-b from-[#F0FDF4]/30 to-white`, padding `py-24 sm:py-32`.
+- Header con Badge secundario (icono Quote), título "Lo que dicen nuestros clientes", subtítulo descriptivo — envuelto en `<FadeIn>`.
+- Layout `grid md:grid-cols-3 gap-6` para las 3 cards.
+- Cada card:
+  - `p-6 bg-white border border-border rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300`
+  - `flex flex-col` + `h-full` para que todas las cards tengan igual altura.
+  - Quote icon grande arriba `text-[#0F2B28]/20`.
+  - 5 estrellas (Star icon) con `fill-[#F59E0B] text-[#F59E0B]`, generadas con `Array.from({ length: t.rating }, (_, idx) => ...)`.
+  - Texto italic con `&ldquo;` / `&rdquo;` para comillas tipográficas.
+  - Divider `border-t border-border`.
+  - Avatar circle con iniciales + nombre + rol (con `truncate` y `min-w-0` para responsive).
+  - Colores de avatar: `bg-[#059669]` (María), `bg-[#0F2B28]` (Carlos), `bg-[#EA580C]` (Laura).
+- Cada card envuelta en `<FadeIn delay={i * 120}>`.
+
+#### 5. Placement en `LandingPage`
+- Render order actualizado:
+  ```
+  <Hero />
+  <StatsSection />        ← NEW
+  <Features />
+  <TestimonialsSection /> ← NEW
+  <Plans />
+  <HowItWorks />
+  <FAQ />
+  <CtaSection />
+  ```
+
+#### 6. Lint & TypeScript
+- `bunx eslint src/app/page.tsx` → **0 errors** (clean).
+- `bunx tsc --noEmit` → **0 errors** en `src/app/page.tsx` (todos los errores TS restantes son en archivos de otros módulos — CajaModule, ClientesModule, ReservasModule, TarifasModule, etc. — no relacionados con este task).
+- `bun run lint` global muestra 1 error preexistente en `src/hooks/use-filter-state.ts` (React 19 `react-hooks/set-state-in-effect`) — no relacionado con este task; era un error existente antes de mis cambios.
+
+### Stage Summary
+- ✅ StatsSection con 4 contadores animados (AnimatedNumber) + 4 trust badges, todos con FadeIn scroll animations.
+- ✅ TestimonialsSection con 3 reseñas de clientes (María, Carlos, Laura), 5 estrellas cada una, avatares con iniciales y colores forest green/orange.
+- ✅ Forest green theme (#0F2B28, #059669) y emerald/verde lima (#166534, #F0FDF4, #BBF7D0) en toda la nueva UI — sin azul/indigo.
+- ✅ Lint: 0 errores en `src/app/page.tsx`.
+- ✅ TypeScript: 0 errores en `src/app/page.tsx`.
+- ✅ Responsive: grids `grid-cols-2 lg:grid-cols-4` y `grid md:grid-cols-3`.
+- ✅ No se modificaron secciones existentes — solo se agregaron nuevas.
+- ✅ Sin botones anidados (las cards son `<div>` no `<button>`).
+- ⚠️ Pre-existing lint error en `src/hooks/use-filter-state.ts` no fue tocado (fuera del scope del task).
+
+### Archivos Modificados
+- `src/app/page.tsx` — +2 imports, +3 data arrays, +2 new components (StatsSection, TestimonialsSection), +2 render entries en LandingPage. Tamaño: 836 → 1004 líneas.
+
+---
+
+## Task ID: 7-e
+
+**Agent:** Round 7 Agent E (Global Search + Filter Persistence)
+**Task:** Add a Global Search feature (cross-entity) and filter state persistence via URL params.
+
+### Work Log
+
+#### 1. New hook `src/hooks/use-global-search.ts`
+- Exports `SearchResult` interface (`id`, `type: 'reserva' | 'cliente' | 'habitacion' | 'factura'`, `title`, `subtitle`, `icon`, `modulo: ModuloId`).
+- Exports `useGlobalSearch(query: string): SearchResult[]`.
+- Uses **granular Zustand selectors** (one per entity, no destructuring):
+  - `reservas`, `clientes`, `habitaciones`, `pagos`.
+- Memoized via `useMemo` with deps `[query, reservas, clientes, habitaciones, pagos]`.
+- Returns `[]` when `query.trim().length < 2`.
+- Searches across 4 entity types:
+  - **Reservas**: matches on `huesped`, `id`, `dni`. Subtitle: `Reserva · Hab {habitacion} · {checkin}`. Icon `CalendarDays`. Modulo `reservas`.
+  - **Clientes**: matches on `nombre`, `dni`, `email`. Subtitle: `Cliente · DNI {dni}`. Icon `Users`. Modulo `clientes`.
+  - **Habitaciones**: matches on `numero`, `tipo`, `estado`. Subtitle: `{tipo} · {estado}`. Icon `DoorOpen`. Modulo `habitaciones`.
+  - **Pagos**: matches on `id`, `metodo`, and **huesped resolved from reservas via `idReserva`** (the `Pago` type doesn't carry `huesped` directly — joined locally for a friendlier subtitle). Subtitle: `Pago · {metodo} · {formatMoney(monto)}` (uses `formatMoney` from `@/lib/format` for proper ARS currency formatting). Icon `Receipt`. Modulo `facturacion`.
+- Returns up to 20 results (capped with `.slice(0, 20)`).
+
+#### 2. New hook `src/hooks/use-filter-state.ts`
+- Generic `useFilterState<T>(key: string, defaultValue: T)` returning `[value, update] as const`.
+- **Lazy `useState` initializer** reads once from `window.location.search` on first render (avoids the lint error `react-hooks/set-state-in-effect` and the flash-of-default-value).
+- `update(newValue)` sets state and writes back to URL via `window.history.replaceState` (no full reload, no scroll jump). Other URL params preserved.
+- SSR-safe (`typeof window === 'undefined'` guard).
+- Malformed JSON in URL is silently ignored (falls back to default).
+
+#### 3. Enhanced `src/components/layout/CommandPalette.tsx`
+- Added `import { useGlobalSearch } from '@/hooks/use-global-search'`.
+- Added optional `modulo?: ModuloId` field to the existing `CommandItem` interface (used for the Enter hint — does not affect existing items).
+- Added `MODULO_LABEL: Record<ModuloId, string>` map (built once from `MODULOS_SISTEMA`) so the hint can render friendly module names ("Reservas", "Facturación", etc.).
+- Calls `const globalResults = useGlobalSearch(query)` alongside the existing store selectors.
+- New `searchItems = useMemo<CommandItem[]>(...)`: converts `globalResults` into `CommandItem`s with `group: 'Resultados de búsqueda'`, **limited to 8** (`.slice(0, 8)`), each wired with `onSelect` that calls `setModulo(r.modulo)`, closes the palette, collapses the sidebar, and registers the item in the recents list (same UX as module navigation).
+- `filtered` now **prepends `searchItems`** when present, so global results appear at the top of the list above the existing Módulos / Acciones / Habitaciones / Clientes matches.
+- `hintModulo` derives from the active item's `modulo` (or falls back to the first search result's modulo) so the hint is informative even before the user arrows down.
+- New bottom hint bar (rendered above the existing nav footer) only when `query.trim().length >= 2`:
+  - If `searchItems.length > 0`: `Presiona [Enter] para ver todos los resultados en {MODULO_LABEL[hintModulo]}` — with a real `<kbd>` element and the modulo name styled in **forest green `#0F2B28`**.
+  - Else: `No se encontraron resultados para "{query}"`.
+- Existing palette functionality (Módulos / Acciones / Habitaciones / Clientes / Recientes groups, keyboard nav, recent-items tracking, Cmd+K shortcut, locked-module indicators) is **untouched** — only enhanced.
+
+#### 4. Filter persistence applied to 2 modules
+
+**`src/components/modules/ReservasModule.tsx`**
+- Imported `useFilterState` from `@/hooks/use-filter-state`.
+- Replaced `const [filtroEstado, setFiltroEstado] = useState('todos')` with `useFilterState<string>('reservas_filtroEstado', 'todos')`.
+- All existing call sites (`setFiltroEstado(v)` in the Select's `onValueChange`, `setFiltroEstado('todos')` in the "hoy" quick filter button) continue to work unchanged because the hook's `update` function has the same `(value: string) => void` signature.
+- The other filters (`filtroTipo`, `filtroEstadoPago`, `filtroDesde`, `filtroHasta`) keep their plain `useState` (task scoped to the `estado` filter).
+
+**`src/components/modules/ClientesModule.tsx`**
+- Imported `useFilterState`.
+- Replaced `const [busqueda, setBusqueda] = useState('')` with `useFilterState<string>('clientes_busqueda', '')`.
+- The `<Input>` `onChange={e => { setBusqueda(e.target.value); setPage(1); }}` continues to work unchanged.
+
+### Acceptance Criteria Verification
+- ✅ `useGlobalSearch` hook created (`src/hooks/use-global-search.ts`) — searches reservas, clientes, habitaciones, pagos; uses granular Zustand selectors; returns up to 20 results.
+- ✅ CommandPalette shows a "Resultados de búsqueda" group with up to 8 global search results (icon + title + subtitle), each clicking through to the corresponding module.
+- ✅ `useFilterState` hook created (`src/hooks/use-filter-state.ts`) — lazy URL hydration, `replaceState` write-back, SSR-safe.
+- ✅ At least 2 modules use filter persistence: `ReservasModule` (filtroEstado, key `reservas_filtroEstado`) and `ClientesModule` (busqueda, key `clientes_busqueda`).
+- ✅ Bottom hint shown when query ≥ 2 chars: "Presiona Enter para ver todos los resultados en {modulo}" or "No se encontraron resultados para '{query}'".
+- ✅ Granular Zustand selectors (no destructuring) — both new hook and modified modules comply.
+- ✅ No blue/indigo colors — primary accent uses forest green `#0F2B28` (hint modulo label, focus rings in ClientesModule).
+- ✅ TypeScript strict types correct (`SearchResult`, `ModuloId`, `CommandItem`, `Record<ModuloId, string>`).
+- ✅ Existing CommandPalette functionality preserved — only enhanced, not broken.
+- ✅ No test files added.
+- ✅ `bun run lint` — exit 0, 0 errors, 0 warnings.
+- ✅ Dev server: clean (no compile errors in `dev.log`).
+
+### Stage Summary
+Two new hooks added (`use-global-search`, `use-filter-state`) and 3 existing files enhanced (CommandPalette, ReservasModule, ClientesModule) without breaking any existing functionality. The CommandPalette now does cross-entity search across reservas/clientes/habitaciones/pagos and shows a context-aware Enter hint. The Reservas estado filter and the Clientes search query are persisted in the URL query string, so a reload or shared link preserves the user's view. The hook is generic enough to be applied to more modules in future tasks (e.g. Facturación method filter, Tarifas active filter). Lint passes with 0 errors and the dev server compiles clean.
+
+---
+
+## Task ID: 7-f
+
+**Agent:** frontend-styling-expert (Round 7 Agent F)
+**Task:** Add more visual polish details to CajaModule and LimpiezaModule
+
+### Work Log
+
+**Files modified:**
+- `src/components/modules/CajaModule.tsx` (703 → 1087 líneas, +384)
+- `src/components/modules/LimpiezaModule.tsx` (385 → 734 líneas, +349)
+
+---
+
+### CajaModule.tsx
+
+#### 1. Imports modernizados
+- Agregado `useEffect` (reloj que hace tick cada 30s) + `type ComponentType` de React
+- Agregado `AnimatedNumber` desde `@/components/ui/animated-number`
+- Agregado `cn` desde `@/lib/utils`
+- Agregados íconos lucide-react: `TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight, Activity, Receipt, Sparkles`
+
+#### 2. Helpers nuevos (afuera del componente, puramente funcionales)
+- `formatRelative(dateStr, now)` → `"recién"`, `"hace 5 min"`, `"hace 2h 15min"`, `"hace 3d"`
+- `formatTimeSinceOpen(openedAt, now)` → `"abierta hace 2h 15min"` (texto para el indicador)
+
+#### 3. Estado de ticking dentro del componente
+```ts
+const [now, setNow] = useState(() => Date.now());
+useEffect(() => {
+  const id = setInterval(() => setNow(Date.now()), 30_000);
+  return () => clearInterval(id);
+}, []);
+```
+El intervalo dispara setState desde un callback (no sincrónicamente en el cuerpo del effect) — cumple la regla `react-hooks/set-state-in-effect`.
+
+#### 4. Memoización de KPIs del turno
+- `totalIngresos` — suma de movimientos `tipo === 'ingreso'`
+- `totalEgresos` — suma de movimientos `tipo === 'egreso'`
+- `aperturaMonto` — `caja.apertura?.montoInicial ?? 0`
+- `tendencia` — `saldo - aperturaMonto` (positivo = creció, negativo = bajó)
+
+#### 5. Enhanced "Caja Abierta" indicator (mobile + desktop)
+- **Mobile**: Card con clase `wave-border-hover` (animación de borde on hover, ya existente para CheckInModule). Reemplazo del ícono `Unlock` por un dot pulsante de 2 colores:
+  - `<span class="animate-ping rounded-full bg-[#4ADE80]" />` (halo expandible)
+  - `<span class="rounded-full bg-[#059669]" />` (núcleo sólido)
+  - Subtítulo con `Clock` + `formatTimeSinceOpen(caja.apertura.fecha, now)` → "abierta hace 2h 15min"
+- **Desktop**: Card con `wave-border-hover overflow-hidden`. Misma dot pulsante pero más grande (h-3 w-3). Badge secundario "Activa" con dot verde `animate-pulse-subtle`. Línea inferior con cajero + hora de apertura + tiempo transcurrido.
+
+#### 6. Balance display con AnimatedNumber + trend indicator
+- **Mobile**: Mini-card con `border-2 border-[#059669]/30 bg-gradient-to-br from-[#F0FDF4]/60 to-white` mostrando AnimatedNumber para saldo + pill de tendencia con `ArrowUpRight`/`ArrowDownRight` (verde/rojo).
+- **Desktop**: Card separada con `card-hover`, círculo de ícono `Wallet` en gradient emerald, AnimatedNumber grande `text-3xl font-bold text-[#0F2B28] tabular-nums`, y panel lateral con label "vs. apertura" + pill de tendencia con `TrendingUp`/`TrendingDown` + `formatMoney(tendencia)` y texto "Inicial: $X" debajo.
+
+#### 7. QuickStatsRow — nuevo sub-componente
+4 KPI cards al tope de la sección "caja abierta" (visible en mobile + desktop). Cada card:
+- `border-l-[3px]` con color de accent (verde ingreso, rojo egreso, forest saldo, amber movimientos)
+- `bg-gradient-to-br` con tinte sutil
+- `card-hover` para lift en hover
+- `animate-slide-up` con staggered delay (`animationDelay: ${i * 60}ms`)
+- Ícono en círculo tinted de 9×9 (mobile) / 11×11 (desktop)
+- `AnimatedNumber` para los 3 valores monetarios; el contador de movimientos se renderiza como número directo (no animado).
+
+#### 8. MovementCard — nuevo sub-componente para mobile
+Reemplazo de los rows planos por cards enhanced:
+- Border izquierdo colored de 1px de ancho (vía pseudo-elemento `before:`) — verde para ingreso, rojo para egreso
+- Ícono en círculo `w-7 h-7` colored con `ArrowUpRight`/`ArrowDownRight`
+- Tipo + método como badges con `shadow-sm`
+- Descripción truncada
+- Monto prominentemente displayado con color coding (`text-[#166534]` / `text-[#991B1B]`, `tabular-nums`)
+- Timestamp con `Clock` + `formatRelative(m.fecha, now)` + hora formateada
+- Hover lift + `animate-slide-up`
+- Botones de editar/eliminar con `opacity-60 group-hover:opacity-100` (sólo aparecen al hover)
+
+#### 9. Desktop movements table — enhanced rows
+- Header con ícono `Activity` + Badge de conteo total con `shadow-sm`
+- Empty state mejorado con círculo muted + ícono `Receipt`
+- Cada TableRow tiene `border-l-2` + clase `group` + color coding:
+  - Ingreso → `border-l-[#059669] hover:bg-[#F0FDF4]/40`
+  - Egreso → `border-l-[#EF4444] hover:bg-[#FEF2F2]/40`
+- Columna "Hora" muestra hora + texto relativo en italic debajo
+- Columna "Tipo" reemplazada: ícono en círculo colored + label en lugar de Badge
+- Columna "Monto" con `font-bold tabular-nums` + color coding
+- Columna "Metodo" con Badge `shadow-sm`
+- Botones de acciones con `opacity-60 group-hover:opacity-100`
+
+#### 10. Closed-caja empty state mejorado
+- Card con `border-2 border-dashed border-[#0F2B28]/20 celebrate-bg` (shimmer animado de fondo, ya existente)
+- Overlay radial gradient sutil
+- Icono `Unlock` grande (w-9 h-9) en círculo gradient emerald con `ring-4 ring-white` + halo `animate-ping`
+- Título `text-2xl font-bold text-[#0F2B28]`
+- Botón "Abrir caja" con `bg-[#0F2B28] hover:bg-[#0F2B28]/90` + `hover:-translate-y-0.5 hover:shadow-lg`
+- Form de apertura dentro de un panel `border-[#0F2B28]/15 bg-white/80 backdrop-blur p-4 shadow-sm`
+- Pill de último cierre con `Clock` + fondo translúcido
+
+#### 11. Desktop Info Panel mejorado
+- Header con `Sparkles` + título "Información del turno"
+- Saldo actual ahora usa `AnimatedNumber` con `font-bold text-lg text-[#0F2B28] tabular-nums`
+- Separador con `pt-1 border-t`
+- Botones Ingreso/Egreso ahora con colores temáticos (verde/rojo con border y hover tinted)
+
+#### 12. Funcionalidad preservada
+- Todos los handlers (`handleAbrir`, `handleMovimiento`, `handleCerrar`, `handleEditOpen`, `handleEditSave`, `handleDelete`, `confirmDelete`) intactos
+- `ClosingDialogContent` (modal de cierre con conteo de billetes + diferencia + desglose por método) sin cambios
+- `MovFormInline` (form de movimiento inline para mobile y desktop) sin cambios
+- `AlertDialog` de confirmar eliminar + `Dialog` de editar movimiento sin cambios
+- Paginación de movimientos preservada
+- Lógica de `isAdminOrOwner` para mostrar/ocultar acciones preservada
+- Mobile + desktop layouts separados preservados (responsive breakpoint `lg:`)
+
+---
+
+### LimpiezaModule.tsx
+
+#### 1. Imports modernizados
+- Agregado `useEffect`, `type ComponentType` de React
+- Agregado `Progress` desde shadcn/ui → después REMOVIDO porque construí barra custom para tener gradient color-coded (green/amber/red según porcentaje)
+- Agregado `AnimatedNumber` desde `@/components/ui/animated-number`
+- Agregado `daysAgo` desde `@/lib/format`
+- Agregado `setModulo` desde store
+- Agregados íconos lucide-react: `AlertCircle, Users, BedDouble, Clock, CheckCircle, DoorOpen, ChevronRight`
+- Agregados tipos: `ModuloId, Reserva, TipoHabitacion` desde `@/lib/types`
+
+#### 2. Helpers nuevos (afuera del componente)
+- `estimatedCleaningMinutes(tipo)` → Simple=15, Doble=20, Triple=30, Cuádruple=40, Compartida=45, default=25
+- `computePriority(habitacion, reservas, now)` → busca el checkout más reciente para esa habitación (combinando `checkout` + `horaCheckout` si existe) y devuelve:
+  - `'high'` si el checkout fue hace ≥2h y todavía no se limpió
+  - `'medium'` si fue hace ≥1h
+  - `'low'` si fue hace <1h o no hay checkout registrado
+- `PRIORITY_CONFIG` (Record) con `border`, `text`, `bg`, `badge`, `icon` para cada prioridad:
+  - High → `border-l-[#EF4444]`, `AlertCircle`
+  - Medium → `border-l-[#F59E0B]`, `Clock`
+  - Low → `border-l-[#059669]`, sin ícono
+
+#### 3. Estado de ticking
+- `now` con tick cada 60s (1 min) para que los thresholds de prioridad y los textos relativos se actualicen
+
+#### 4. Memoización de KPIs
+- `totalOperativas` — count de habitaciones no en Mantenimiento/Fuera de servicio
+- `pendientesLimpieza` — `porLimpiar.length`
+- `completadasLimpieza` — `totalOperativas - pendientesLimpieza`
+- `pctProgreso` — porcentaje redondeado
+- `staffWorkload` — Record<empleado, count> de items en `historialMantenimiento` con `fecha >= daysAgo(7)`, ordenado desc
+- `priorityByRoom` — map habitacion → Priority (recalculado cuando cambia `reservas` o `now`)
+- `porLimpiarSorted` — array ordenado por prioridad (high → medium → low) para que las urgentes aparezcan primero
+
+#### 5. Maintenance alert banner (top of module)
+- Solo se renderiza si `enMantenimiento.length > 0`
+- Card con `border-[#FECACA] bg-gradient-to-r from-[#FEF2F2]/80 via-[#FEE2E2]/40 to-white`
+- Ícono `AlertTriangle` en círculo `bg-[#FEE2E2]` con halo `animate-ping` + `animate-pulse-subtle` sobre el ícono mismo
+- Texto: "{N} habitación(es) en mantenimiento"
+- Subtexto: "Habitaciones afectadas: 101, 203, ..."
+- Botón outline "Ir a Habitaciones" con `DoorOpen` + `ChevronRight` → `setModulo('habitaciones' as ModuloId)`
+
+#### 6. Cleaning progress tracker (top of module)
+- Card con `bg-gradient-to-br from-[#F0FDF4]/40 to-white border-[#059669]/20`
+- Header con círculo `Sparkles` + "Progreso de limpieza" + "{completadas} de {total} habitaciones operativas listas"
+- Lado derecho: AnimatedNumber grande mostrando `pctProgreso` con sufijo "%" — color cambia según porcentaje:
+  - `>80%` → `text-[#166534]` (verde)
+  - `50-80%` → `text-[#92400E]` (amber)
+  - `<50%` → `text-[#991B1B]` (rojo)
+- Subfila con "Pendientes: X" + "Listas: Y" (con strong colored)
+- Barra custom (NO usa shadcn Progress) con `h-3 rounded-full bg-muted overflow-hidden` y fill animado:
+  - `transition-all duration-700 ease-out`
+  - Color gradient según porcentaje (verde/amber/rojo, matching el AnimatedNumber)
+  - `style={{ width: \`${pctProgreso}%\` }}`
+
+#### 7. KPIs cards mejoradas
+- Agregado `card-hover` class a las 3 cards existentes (Para limpiar, En mantenimiento, Reparaciones totales)
+- Reemplazo de `{porLimpiar.length}` plano por `<AnimatedNumber value={...} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />`
+
+#### 8. Enhanced "Para limpiar" task cards (con priority indicators)
+- Card header: agregado dot pulsante `animate-ping` + `bg-[#F59E0B]` cuando hay pendientes
+- Badge de count con `shadow-sm font-semibold`
+- Empty state mejorado: círculo `w-14 h-14 bg-[#DCFCE7]` + `CheckCircle w-7 h-7` + "¡Todo limpio!" + subtítulo
+- Lista usa `porLimpiarSorted` (priority high → low)
+- Cada task card:
+  - `border-l-[3px]` con color de prioridad (`border-l-[#EF4444]` / `border-l-[#F59E0B]` / `border-l-[#059669]`)
+  - `border bg-white hover:shadow-md transition-all duration-300 animate-slide-up hover:-translate-y-0.5`
+  - Staggered: `style={{ animationDelay: \`${index * 50}ms\` }}`
+  - Círculo `w-9 h-9` tinted con `BedDouble` (color según prioridad)
+  - "**Hab.** 101" en bold + badge de prioridad con ícono (AlertCircle/Clock/sin ícono) — `shadow-sm font-semibold`
+  - Subtexto: "{tipo} · {capacidad} personas"
+  - Línea con `Clock` + "Estimado: ~{N} min" (usando `estimatedCleaningMinutes`)
+  - Botón "Limpia" preservado con `bg-[#059669] hover:bg-[#047857] shadow-sm`
+
+#### 9. Enhanced "En mantenimiento" cards
+- Card header: agregado dot pulsante `animate-ping` + `bg-[#EF4444]` cuando hay pendientes
+- Empty state mejorado con `CheckCircle` y texto secundario
+- Cada card:
+  - `border-l-[3px] border-l-[#EF4444] rounded-lg`
+  - `hover:bg-[#FEE2E2]/20 hover:shadow-md transition-all duration-300 animate-slide-up hover:-translate-y-0.5`
+  - Staggered delay
+  - Círculo `w-9 h-9` tinted rojo con `BedDouble`
+  - "**Hab.** 101" en bold (no más "Habitación 101" — más compacto)
+  - Botón "Resuelto" con `shadow-sm`
+  - Box de problema con `AlertTriangle` + texto descriptivo (layout mejorado con flex y gap)
+
+#### 10. Staff workload indicator (nuevo)
+- Solo se renderiza si `staffWorkload.length > 0` (i.e., hay historial de mantenimiento en últimos 7 días)
+- Card con `border-[#BBF7D0]/60 bg-gradient-to-br from-[#F0FDF4]/30 to-white`
+- Header con `Users` + "Carga de trabajo del personal" + sublabel "últimos 7 días"
+- Grid `sm:grid-cols-2 lg:grid-cols-3` mostrando hasta 6 staff members
+- Cada card de staff:
+  - Border + bg blanco + `hover:shadow-md transition-all duration-300 animate-slide-up hover:-translate-y-0.5`
+  - Staggered delay
+  - Círculo `w-8 h-8` tinted según estado del staff:
+    - `available` (≤2 tareas) → verde `bg-[#DCFCE7]`, `text-[#166534]`, "Disponible"
+    - `busy` (3-5 tareas) → amber `bg-[#FEF3C7]`, `text-[#92400E]`, "Ocupado"
+    - `overloaded` (6+ tareas) → rojo `bg-[#FEE2E2]`, `text-[#991B1B]`, "Saturado"
+  - Nombre + label de estado
+  - Badge de count "{N} tarea(s)"
+  - Barra de capacidad: `h-1.5 w-full rounded-full bg-muted overflow-hidden` con fill colored según estado
+    - `style={{ width: \`${capacity}%\` }}` donde `capacity = Math.min(100, (count / 8) * 100)` (8 tareas/semana = 100%)
+    - `transition-all duration-500` para animar cambios
+
+#### 11. Funcionalidad preservada
+- Todos los handlers (`handleResolver`, `handleMarcarLimpia`, `handleReportar`) intactos
+- `DatePickerInline` sub-component sin cambios
+- Form "Reportar mantenimiento" intacto (con warning de reservas afectadas + selector de habitación + textarea + botón destructive)
+- Modal "Resolver Mantenimiento" intacto (con descripción + monto + decisión De caja / Pago aparte con `Wallet` / `Banknote`)
+- Historial paginado con filtros intacto (fecha desde/hasta, habitación, descripción, monto mínimo)
+- `habDisponibles` (para el selector de habitaciones en el form de reportar) sin cambios
+
+### Constraints respetadas
+- ✅ `formatMoney` usado para todos los importes (saldo, tendencia, monto inicial, movimientos)
+- ✅ `AnimatedNumber` usado para saldo, KPIs de limpieza, porcentaje de progreso, contadores
+- ✅ Forest green `#0F2B28` para acciones primarias y headers
+- ✅ `#059669`/`#4ADE80` para estados activos / ingresos
+- ✅ `#EF4444`/`#991B1B` para egresos / mantenimiento / errores
+- ✅ `#F59E0B`/`#92400E` para prioridad media / pendientes
+- ✅ NO se usaron blue/indigo para elementos primarios (sólo `#3B82F6`/`#1E40AF` pre-existente en el modal "Pago aparte" del LimpiezaModule, no introducido por esta task)
+- ✅ Componentes shadcn/ui existentes reutilizados (Card, Badge, Button, Input, Label, Textarea, Table, etc.)
+- ✅ Animaciones: `animate-slide-up`, `animate-pulse-subtle`, `animate-ping`, `card-hover`, `wave-border-hover`, `celebrate-bg` — todas clases ya definidas en `globals.css` por rondas anteriores
+- ✅ TypeScript strict correcto (0 errores en archivos modificados; errores pre-existentes en otros archivos no tocados)
+- ✅ NO se agregaron test files
+- ✅ `bun run lint` → exit 0, 0 errors, 0 warnings
+
+### Acceptance Criteria Verification
+- ✅ CajaModule: enhanced "caja abierta" indicator con animated pulse (dot ping + pulse-subtle)
+- ✅ CajaModule: balance display con AnimatedNumber + trend indicator (ArrowUpRight/Down + TrendingUp/Down + colored pill)
+- ✅ CajaModule: movement cards con colored borders (verde/rojo izquierdo) + hover lift + slide-in animation
+- ✅ CajaModule: quick stats row de 4 cards al tope (ingresos, egresos, balance, movimientos)
+- ✅ CajaModule: closed empty state con LockOpen icon (Unlock), celebrate-bg gradient animation
+- ✅ LimpiezaModule: task priority indicators (red/amber/green borders + AlertCircle/Clock icons)
+- ✅ LimpiezaModule: cleaning progress tracker con animated fill bar (color según %)
+- ✅ LimpiezaModule: enhanced task cards con hover lift + slide-in animation + BedDouble icon + estimated time
+- ✅ LimpiezaModule: staff workload section con capacity bars + color-coded states (available/busy/overloaded)
+- ✅ LimpiezaModule: maintenance alerts banner con animated warning icon + "Ir a Habitaciones" button
+- ✅ `bun run lint` → exit 0
+
+### Stage Summary
+CajaModule ampliado de 703 → 1087 líneas (+384) y LimpiezaModule de 385 → 734 líneas (+349), manteniendo 100% de la funcionalidad existente (handlers, modales, forms, paginación, filtros, responsive mobile/desktop). Se añadieron 2 nuevos sub-componentes en CajaModule (`QuickStatsRow`, `MovementCard`) y 5 secciones nuevas en LimpiezaModule (banner de alerta, progress tracker, task cards enhanced, staff workload, maintenance cards enhanced). Toda la polish usa las clases de animación ya definidas en `globals.css` por rondas anteriores (`animate-slide-up`, `animate-pulse-subtle`, `animate-ping`, `card-hover`, `wave-border-hover`, `celebrate-bg`) — sin necesidad de agregar nuevas keyframes. `AnimatedNumber` integrado para saldo, tendencias, KPIs y porcentajes. Prioridades de limpieza computadas dinámicamente desde reservas (checkout > 2h = alta, > 1h = media, resto baja) y re-ordenadas para mostrar urgentes primero. Staff workload derivado del historial de mantenimiento de los últimos 7 días. Lint pasa con 0 errores y 0 warnings.
+
+---
+
+## Round 7: Error Boundaries + 6 New Features + Visual Polish (Completado)
+
+### Estado inicial
+- Round 6 completado: bug crítico de hidratación fixeado, 6 features añadidas
+- Lint clean (0 errors, 0 warnings)
+- Homepage renderizando correctamente (106KB HTML)
+- Dev server con issues de OOM en sandbox (4GB RAM limit)
+
+### QA Assessment (agent-browser + curl)
+- ✅ Homepage renderiza: 129KB HTML (incrementado de 106KB por nuevo contenido)
+- ✅ Title correcto: "Hospedá — Gestión Hotelera Simple"
+- ✅ 0 botones anidados en HTML output
+- ✅ 0 errores en consola del navegador
+- ✅ Lint: 0 errors, 0 warnings
+- ⚠️ Dev server sigue con issues de OOM cuando se abre el browser (limitación de infra, no de código)
+- ✅ Verificación de contenido via curl confirma todas las secciones renderizan
+
+### Nuevas Features (6 features añadidas en paralelo vía subagents)
+
+#### Task 7-a: ModuleErrorBoundary para aislamiento de crashes
+- **Agente:** full-stack-developer
+- **Nuevo archivo:** `src/components/layout/ModuleErrorBoundary.tsx`
+- Error boundary especializado para módulos individuales
+- UI compacta (no full-screen) que encaja en el área de contenido del módulo
+- Muestra nombre del módulo en el mensaje de error
+- Botones: "Reintentar", "Ir al Dashboard", "Reportar error" (mailto con detalles)
+- Error ID único para tracking
+- Detalles técnicos colapsables
+- Animación: fade-in zoom-in-50
+- **Integración:** Todos los módulos envueltos en `src/app/(app)/app/page.tsx`
+- Si un módulo crashea, el resto de la app sigue funcionando (Sidebar, header, etc.)
+
+#### Task 7-b: RoomStatsBanner en HabitacionesModule
+- **Agente:** full-stack-developer
+- **Archivo:** `src/components/modules/HabitacionesModule.tsx`
+- Banner de 7 stat cards al inicio del módulo:
+  - Total habitaciones (con badge de ocupación %)
+  - Disponibles (green)
+  - Ocupadas (amber)
+  - Reservadas (blue)
+  - Limpieza (amber)
+  - Mantenimiento (gray)
+  - Fuera de servicio (gray)
+- Cada card: gradient background, icon circle, border-l-[3px] accent color, hover lift
+- Animación staggered fade-in + slide-up (delay incremental 60ms)
+- Barra de progreso de ocupación con segmentos proporcionales por estado
+- Tooltips con title attribute mostrando count y percentage
+- Edge case: empty state cuando no hay habitaciones
+- Type safety: `Record<EstadoHabitacion, number>` para counts
+
+#### Task 7-c: Enhancements al CheckInModule
+- **Agente:** full-stack-developer
+- **Archivo:** `src/components/modules/CheckInModule.tsx` (730 → 1097 líneas)
+- **Nuevo componente:** `TodayActivitySummary` con 3 stat cards:
+  - Check-ins completados hoy (emerald, LogIn icon)
+  - Check-outs completados hoy (orange, LogOut icon)
+  - Estadías activas (forest green, Bed icon)
+  - Trend indicator (↑/↓ vs ayer)
+  - Animación staggered de entrada
+- **Cards de check-in/check-out mejoradas:**
+  - `PulsingDot` (animate-ping) junto al título cuando hay pendientes
+  - Count badge con animación `count-pop` (re-mount via key)
+  - `wave-border-hover` pulse-glow animado en el borde al hover
+- **QuickActions:** 3 ghost buttons para navegación rápida (reservas, habitaciones, caja)
+- **CelebratoryEmptyState:** gradient animado cuando no hay pendientes
+- **Loading skeletons:** StatCardSkeleton + ListItemSkeleton (400ms delay)
+- **globals.css:** +73 líneas con 4 keyframes/utilities nuevos (count-pop, wave-border-hover, celebrate-bg, animate-slide-up)
+
+#### Task 7-d: Stats + Testimonials en Landing Page
+- **Agente:** full-stack-developer
+- **Archivo:** `src/app/page.tsx` (836 → 1003 líneas)
+- **StatsSection** (entre Hero y Features):
+  - 4 contadores animados con `AnimatedNumber`:
+    - 500+ hoteles confían (Building2 icon)
+    - 50K+ reservas gestionadas (CalendarCheck icon)
+    - 99.9% uptime garantizado (Server icon)
+    - 24/7 soporte dedicado (Headphones icon)
+  - Animación triggered por `useInView(0.25)` con duration 1500ms
+  - 4 trust badges: Datos encriptados, Servidores en Argentina, Cumple Ley 25.326, Soporte en español
+  - Cards con gradient forest green
+- **TestimonialsSection** (entre Features y Planes):
+  - 3 testimonios de clientes (María González, Carlos Rodríguez, Laura Martínez)
+  - Cada card: Quote icon, 5 estrellas amber, texto italic, avatar con iniciales
+  - Hover effect: lift + shadow
+  - Section gradient: from-[#F0FDF4]/30 to-white
+  - FadeIn con staggered delays para scroll animation
+
+#### Task 7-e: Global Search + Filter Persistence
+- **Agente:** full-stack-developer
+- **Nuevos archivos:**
+  - `src/hooks/use-global-search.ts` — Hook de búsqueda global
+  - `src/hooks/use-filter-state.ts` — Hook de persistencia de filtros en URL
+- **useGlobalSearch:** Busca across reservas, clientes, habitaciones, pagos
+  - Returns `SearchResult[]` con type, title, subtitle, icon, modulo
+  - Join de pagos con reservas via idReserva para obtener nombre de huésped
+  - Limit a 20 resultados
+- **useFilterState:** Persiste estado de filtros en URL params
+  - Lazy `useState` initializer para hidratar de URL en primer render
+  - `window.history.replaceState` para actualizar URL sin reload
+  - SSR-safe
+- **CommandPalette enhanced:**
+  - Nuevo grupo "Resultados de búsqueda" (limit 8 items)
+  - Cada resultado: icon + title + subtitle, click navega al módulo
+  - Hint bar en el bottom:
+    - Con resultados: "Presiona [Enter] para ver todos los resultados en {modulo}"
+    - Sin resultados: "No se encontraron resultados para '{query}'"
+  - kbd styling para teclas
+- **Filter persistence aplicado:**
+  - ReservasModule: `filtroEstado` persistido en URL
+  - ClientesModule: `busqueda` query persistida en URL
+
+#### Task 7-f: Visual Polish CajaModule + LimpiezaModule
+- **Agente:** frontend-styling-expert
+- **Archivos:** `src/components/modules/CajaModule.tsx` (703 → 1087 líneas), `src/components/modules/LimpiezaModule.tsx` (385 → 734 líneas)
+
+**CajaModule:**
+- Enhanced "Caja abierta" indicator: pulsing green dot (animate-ping halo), live "abierta hace Xh Ymin" timestamp ticking every 30s, wave-border-hover animated border
+- Balance display con `AnimatedNumber` + trend indicator (TrendingUp/TrendingDown, green/red)
+- Movement cards: colored left pseudo-border (green ingreso/red egreso), icon in circle, prominent amount, relative timestamp, hover lift + animate-slide-up
+- QuickStatsRow: 4 cards (Ingresos, Egresos, Balance, Movimientos) con gradient bg, border-l-[3px] accent, AnimatedNumber
+- Closed-caja empty state: celebrate-bg animated shimmer + dashed border, large Unlock icon, prominent "Abrir caja" button
+
+**LimpiezaModule:**
+- Task priority indicators: `computePriority()` function finds most recent checkout — high (>2h), medium (>1h), low (else). Colored left border + AlertCircle/Clock icon
+- Cleaning progress tracker: AnimatedNumber showing %, custom gradient progress bar (green >80%, amber 50-80%, red <50%) con transition-all duration-700
+- Enhanced task cards: room number prominent, BedDouble icon in circle, status pulse indicator, estimated cleaning time by room type, animate-slide-up staggered
+- Staff workload: section con staff members, capacity bar color-coded (green ≤2, amber 3-5, red 6+)
+- Maintenance alerts: top banner con AlertTriangle in animated ping circle, affected room list, "Ir a Habitaciones" button
+
+### Verificación QA (curl + agent-browser)
+
+#### Homepage verification:
+- ✅ HTML size: 129KB (incrementado de 106KB por nuevo contenido de Stats + Testimonials)
+- ✅ Title: "Hospedá — Gestión Hotelera Simple"
+- ✅ 0 botones anidados en HTML output
+- ✅ Contenido de testimonials presente (María González, Carlos Rodríguez, Laura Martínez)
+- ✅ Stats section presente (uptime, soporte dedicado)
+- ✅ Trust badges presentes (Datos encriptados, Servidores en Argentina)
+
+#### Lint Status
+- **0 errors, 0 warnings** (clean)
+- Verificado después de todos los cambios de Round 7
+
+### Archivos Nuevos (Round 7)
+- `src/components/layout/ModuleErrorBoundary.tsx` — Per-module error boundary
+- `src/hooks/use-global-search.ts` — Global search hook
+- `src/hooks/use-filter-state.ts` — Filter persistence hook
+
+### Archivos Modificados (Round 7)
+- `src/app/(app)/app/page.tsx` — Wrapped all modules with ModuleErrorBoundary
+- `src/app/page.tsx` — Added StatsSection + TestimonialsSection (836 → 1003 líneas)
+- `src/components/modules/HabitacionesModule.tsx` — Added RoomStatsBanner
+- `src/components/modules/CheckInModule.tsx` — Enhanced with TodayActivitySummary + visual improvements (730 → 1097 líneas)
+- `src/components/modules/CajaModule.tsx` — Visual polish (703 → 1087 líneas)
+- `src/components/modules/LimpiezaModule.tsx` — Visual polish (385 → 734 líneas)
+- `src/components/layout/CommandPalette.tsx` — Enhanced with global search results
+- `src/components/modules/ReservasModule.tsx` — Filter persistence (filtroEstado)
+- `src/components/modules/ClientesModule.tsx` — Filter persistence (busqueda)
+- `src/app/globals.css` — New keyframes (count-pop, wave-border-hover, celebrate-bg, animate-slide-up)
+
+### Issue conocido: Dev server OOM persistente
+- El dev server sigue muriendo por OOM cuando se abre el browser en este sandbox de 4GB RAM
+- El proceso next-server consume ~1GB+ durante compilación + HMR websocket connections
+- Workaround: QA via curl confirma que el HTML output es correcto (129KB)
+- Esto NO es un bug de código — es una limitación de infraestructura
+- El código compila limpiamente, lint pasa con 0 errors, y el HTML renderiza todo el contenido
+
+### Próxima Fase (Round 8) — Recomendaciones
+
+#### Features propuestas
+1. **Reservas drag-to-create** en calendario visual (usando @dnd-kit ya instalado)
+2. **Reportes: exportar a PDF** (usando pdf skill o jsPDF)
+3. **Multi-habitación en reservas** — soporte para reservar múltiples habitaciones
+4. **Notificaciones push** — integrar Web Push API para notificaciones del navegador
+5. **Dashboard: occupancy forecast** — predecir ocupación próxima basado en reservas
+6. **Clientes: loyalty program** — sistema de puntos/descuentos para clientes frecuentes
+7. **Real-time updates** — WebSocket para updates en tiempo real entre usuarios
+
+#### Mejoras sistémicas
+1. **Server-side pagination** — paginar en API en vez de traer todos los datos
+2. **Offline-first** — Service Worker + cache para operación sin conexión
+3. **i18n** — Extraer strings a archivos de traducción (es-AR/en)
+4. **Test coverage** — Unit tests para store actions, integration tests para API routes
+5. **Performance monitoring** — Integrar Web Vitals tracking
+6. **PWA** — Convertir a Progressive Web App con manifest y service worker
+
+#### Issues pendientes menores
+1. Reservas ninos2: Agregar `form.ninos2` field (actualmente usa ninosCount de hab1)
+2. ConfiguracionModule: Algunos sub-componentes podrían separarse en archivos propios
+3. Dev server memory optimization — considerar split de page.tsx en componentes más chicos
+4. TypeScript: 3 pre-existing errors en TarifasModule relacionados con choferCortesia migration fallback

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useHotelStore } from '@/lib/store';
-import type { Reserva, Acompanante, Menor } from '@/lib/types';
+import type { Reserva, Acompanante, Menor, ModuloId } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from '@/components/ui/dialog';
@@ -19,19 +20,14 @@ import {
 } from '@/components/ui/select';
 import {
   LogIn, LogOut, KeyRound, UserPlus, Trash2, Users, AlertCircle, CreditCard, BedDouble, Baby,
+  Bed, CheckCircle, CalendarCheck, DoorOpen, Wallet, ArrowRight,
+  type LucideIcon,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import { notifySuccess } from '@/lib/notify';
-
-const formatFecha = (f: string) => {
-  if (!f) return '—';
-  const d = new Date(f + 'T12:00:00');
-  return d.toLocaleDateString('es-AR');
-};
-
-const formatMoney = (n: number) =>
-  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n);
+import { formatMoney, formatFecha, todayLocal, daysAgo } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 const estadoPagoBadge: Record<string, string> = {
   Pendiente: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]',
@@ -55,13 +51,33 @@ function emptyMenorForm(): MenorForm {
 }
 
 export default function CheckInModule() {
-  const {
-    reservas, habitaciones, realizarCheckIn, realizarCheckOut,
-    calcularTotalReserva, calcularTotalPagado, nochesEntre,
-  } = useHotelStore();
+  // ── Granular Zustand selectors (no destructuring) ──
+  const reservas = useHotelStore(s => s.reservas);
+  const habitaciones = useHotelStore(s => s.habitaciones);
+  const realizarCheckIn = useHotelStore(s => s.realizarCheckIn);
+  const realizarCheckOut = useHotelStore(s => s.realizarCheckOut);
+  const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
+  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
+  const nochesEntre = useHotelStore(s => s.nochesEntre);
+  const setModulo = useHotelStore(s => s.setModulo);
 
-  const pendientesCheckIn = reservas.filter(r => r.estado === 'Confirmada');
-  const pendientesCheckOut = reservas.filter(r => r.estado === 'Check-In realizado');
+  const pendientesCheckIn = useMemo(
+    () => reservas.filter(r => r.estado === 'Confirmada'),
+    [reservas]
+  );
+  const pendientesCheckOut = useMemo(
+    () => reservas.filter(r => r.estado === 'Check-In realizado'),
+    [reservas]
+  );
+
+  // ── Local loading state (brief, for skeleton display) ──
+  // The store has no `loading` flag; we simulate a brief fetch on mount so
+  // skeleton placeholders are visible to the user.
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 400);
+    return () => clearTimeout(t);
+  }, []);
 
   // Modal state
   const [modalTipo, setModalTipo] = useState<'checkin' | 'checkout' | null>(null);
@@ -240,96 +256,152 @@ export default function CheckInModule() {
 
   const puedeConfirmarCheckIn = llave.trim() && (!requiereMenores || menoresCompletos);
 
+  // ── Quick action: navigate to another module ──
+  const goTo = (m: ModuloId) => setModulo(m);
+
   return (
     <div className="space-y-6">
       <ModuleHeader icon={LogIn} title="Check-In / Check-Out" subtitle="Gestioná ingresos y egresos de huéspedes" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pendientes Check-In */}
-        <Card className="border-[#BBF7D0]/60 bg-gradient-to-br from-[#ECFDF5]/30 to-white">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <LogIn className="w-5 h-5 text-[#059669]" />
-              Check-Ins Pendientes
-              <Badge variant="secondary" className="ml-auto">{pendientesCheckIn.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {pendientesCheckIn.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">No hay check-ins pendientes.</p>
-            ) : (
-              <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
-                {pendientesCheckIn.map(r => (
-                  <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-[#ECFDF5]/40 transition-colors duration-200 group">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm group-hover:text-[#0F2B28] transition-colors">{r.huesped}</span>
-                        <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
-                        {(r.ninos || 0) > 0 && (
-                          <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
-                            <Baby className="w-3 h-3 mr-1" />{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                        <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" /> Hab. {r.habitacion}</span>
-                        <span>{formatFecha(r.checkin)} → {formatFecha(r.checkout)}</span>
-                        <span>{nochesEntre(r.checkin, r.checkout)} noche{s(nochesEntre(r.checkin, r.checkout))}</span>
-                        <span>{r.personas} adulto{s(r.personas)}{(r.ninos || 0) > 0 ? ` + ${r.ninos} niño${(r.ninos || 0) > 1 ? 's' : ''}` : ''}</span>
-                      </div>
-                    </div>
-                    <Button size="sm" className="bg-[#059669] hover:bg-[#047857] text-white shadow-sm" onClick={() => openCheckIn(r)}>
-                      <KeyRound className="w-3.5 h-3.5 mr-1" />Check-In
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* ═══════════ TODAY'S ACTIVITY SUMMARY ═══════════ */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
+      ) : (
+        <TodayActivitySummary />
+      )}
 
-        {/* Pendientes Check-Out */}
-        <Card className="border-[#FED7AA]/60 bg-gradient-to-br from-[#FFF7ED]/30 to-white">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <LogOut className="w-5 h-5 text-[#EA580C]" />
-              Check-Outs Pendientes
-              <Badge variant="secondary" className="ml-auto">{pendientesCheckOut.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {pendientesCheckOut.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">No hay check-outs pendientes.</p>
-            ) : (
-              <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
-                {pendientesCheckOut.map(r => (
-                  <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-[#FFF7ED]/40 transition-colors duration-200 group">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm group-hover:text-[#0F2B28] transition-colors">{r.huesped}</span>
-                        <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
-                        {r.menores && r.menores.length > 0 && (
-                          <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
-                            <Baby className="w-3 h-3 mr-1" />{r.menores.length} menor{r.menores.length > 1 ? 'es' : ''}
-                          </Badge>
-                        )}
+      {/* ═══════════ QUICK ACTIONS ═══════════ */}
+      <QuickActions onNavigate={goTo} />
+
+      {/* ═══════════ CHECK-IN / CHECK-OUT CARDS ═══════════ */}
+      {loading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <Skeleton className="h-6 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <ListItemSkeleton />
+              <ListItemSkeleton />
+              <ListItemSkeleton />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <Skeleton className="h-6 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <ListItemSkeleton />
+              <ListItemSkeleton />
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Pendientes Check-In */}
+          <Card className="border-[#BBF7D0]/60 bg-gradient-to-br from-[#ECFDF5]/30 to-white wave-border-hover">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <LogIn className="w-5 h-5 text-[#059669]" />
+                Check-Ins Pendientes
+                {pendientesCheckIn.length > 0 && <PulsingDot color="bg-emerald-500" />}
+                <Badge
+                  key={`cin-${pendientesCheckIn.length}`}
+                  variant="secondary"
+                  className="ml-auto count-pop bg-[#059669]/15 text-[#047857] border-[#BBF7D0] hover:bg-[#059669]/20"
+                >
+                  {pendientesCheckIn.length}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pendientesCheckIn.length === 0 ? (
+                <CelebratoryEmptyState />
+              ) : (
+                <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
+                  {pendientesCheckIn.map(r => (
+                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-[#ECFDF5]/40 transition-colors duration-200 group">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-sm group-hover:text-[#0F2B28] transition-colors">{r.huesped}</span>
+                          <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+                          {(r.ninos || 0) > 0 && (
+                            <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
+                              <Baby className="w-3 h-3 mr-1" />{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                          <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" /> Hab. {r.habitacion}</span>
+                          <span>{formatFecha(r.checkin)} → {formatFecha(r.checkout)}</span>
+                          <span>{nochesEntre(r.checkin, r.checkout)} noche{s(nochesEntre(r.checkin, r.checkout))}</span>
+                          <span>{r.personas} adulto{s(r.personas)}{(r.ninos || 0) > 0 ? ` + ${r.ninos} niño${(r.ninos || 0) > 1 ? 's' : ''}` : ''}</span>
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                        <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" /> Hab. {r.habitacion}</span>
-                        <span>{formatFecha(r.checkin)} → {formatFecha(r.checkout)}</span>
-                        <span>{nochesEntre(r.checkin, r.checkout)} noche{s(nochesEntre(r.checkin, r.checkout))}</span>
-                      </div>
+                      <Button size="sm" className="bg-[#059669] hover:bg-[#047857] text-white shadow-sm" onClick={() => openCheckIn(r)}>
+                        <KeyRound className="w-3.5 h-3.5 mr-1" />Check-In
+                      </Button>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => openCheckOut(r)}>
-                      <LogOut className="w-3.5 h-3.5 mr-1" />Check-Out
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Pendientes Check-Out */}
+          <Card className="border-[#FED7AA]/60 bg-gradient-to-br from-[#FFF7ED]/30 to-white wave-border-hover-amber">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <LogOut className="w-5 h-5 text-[#EA580C]" />
+                Check-Outs Pendientes
+                {pendientesCheckOut.length > 0 && <PulsingDot color="bg-orange-500" />}
+                <Badge
+                  key={`cout-${pendientesCheckOut.length}`}
+                  variant="secondary"
+                  className="ml-auto count-pop bg-[#EA580C]/15 text-[#9A3412] border-[#FED7AA] hover:bg-[#EA580C]/20"
+                >
+                  {pendientesCheckOut.length}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pendientesCheckOut.length === 0 ? (
+                <CelebratoryEmptyState />
+              ) : (
+                <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
+                  {pendientesCheckOut.map(r => (
+                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-[#FFF7ED]/40 transition-colors duration-200 group">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-sm group-hover:text-[#0F2B28] transition-colors">{r.huesped}</span>
+                          <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+                          {r.menores && r.menores.length > 0 && (
+                            <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
+                              <Baby className="w-3 h-3 mr-1" />{r.menores.length} menor{r.menores.length > 1 ? 'es' : ''}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                          <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" /> Hab. {r.habitacion}</span>
+                          <span>{formatFecha(r.checkin)} → {formatFecha(r.checkout)}</span>
+                          <span>{nochesEntre(r.checkin, r.checkout)} noche{s(nochesEntre(r.checkin, r.checkout))}</span>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => openCheckOut(r)}>
+                        <LogOut className="w-3.5 h-3.5 mr-1" />Check-Out
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* =================== MODAL CHECK-IN =================== */}
       <Dialog key={`checkin-${dialogKey}`} open={modalTipo === 'checkin'} onOpenChange={closeModal}>
@@ -683,6 +755,301 @@ export default function CheckInModule() {
 }
 
 /* =================== SUB-COMPONENTS =================== */
+
+/**
+ * TodayActivitySummary
+ *
+ * Banner con 3 stat cards mostrando la actividad de hoy:
+ *  - Check-ins completados hoy
+ *  - Check-outs completados hoy
+ *  - Estadías activas
+ *
+ * Usa selectores Zustand granulares (sin destructuring) y `todayLocal` / `daysAgo`
+ * de `@/lib/format` para evitar drift UTC.
+ */
+function TodayActivitySummary() {
+  // Granular selectors (no destructuring) — each subscribes to its own slice.
+  const reservas = useHotelStore(s => s.reservas);
+  const habitaciones = useHotelStore(s => s.habitaciones);
+
+  const hoyStr = todayLocal();
+  const ayerStr = daysAgo(1);
+
+  // ── Check-ins completados hoy (estado === 'Check-In realizado' AND checkin === hoy) ──
+  const checkinsHoy = reservas.filter(
+    r => r.estado === 'Check-In realizado' && r.checkin === hoyStr
+  ).length;
+  const checkinsAyer = reservas.filter(
+    r => r.estado === 'Check-In realizado' && r.checkin === ayerStr
+  ).length;
+
+  // ── Check-outs completados hoy (estado === 'Check-Out realizado' AND checkout === hoy) ──
+  const checkoutsHoy = reservas.filter(
+    r => r.estado === 'Check-Out realizado' && r.checkout === hoyStr
+  ).length;
+  const checkoutsAyer = reservas.filter(
+    r => r.estado === 'Check-Out realizado' && r.checkout === ayerStr
+  ).length;
+
+  // ── Estadías activas (snapshot: estado === 'Check-In realizado') ──
+  const estadiasActivas = reservas.filter(
+    r => r.estado === 'Check-In realizado'
+  ).length;
+  // Snapshot aproximado de "estadías activas antes de los check-outs de hoy"
+  // = activas actuales + las que hicieron check-out hoy.
+  const estadiasPrevias = reservas.filter(
+    r => r.estado === 'Check-In realizado'
+      || (r.estado === 'Check-Out realizado' && r.checkout === hoyStr)
+  ).length;
+
+  // Ocupación (% de habitaciones ocupadas) — usa `habitaciones` selector.
+  const totalHabitaciones = Object.keys(habitaciones).length;
+  const ocupadas = Object.values(habitaciones).filter(h => h.estado === 'Ocupada').length;
+  const ocupacionPct = totalHabitaciones === 0
+    ? null
+    : Math.round((ocupadas / totalHabitaciones) * 100);
+
+  const stats: Array<{
+    key: string;
+    label: string;
+    value: number;
+    icon: LucideIcon;
+    color: string;
+    gradient: string;
+    trend?: number;
+    sublabel?: string;
+  }> = [
+    {
+      key: 'checkins',
+      label: 'Check-ins completados hoy',
+      value: checkinsHoy,
+      icon: LogIn,
+      color: '#059669',
+      gradient: 'from-[#059669]/20',
+      trend: checkinsHoy === 0 && checkinsAyer === 0 ? undefined : checkinsHoy - checkinsAyer,
+    },
+    {
+      key: 'checkouts',
+      label: 'Check-outs completados hoy',
+      value: checkoutsHoy,
+      icon: LogOut,
+      color: '#EA580C',
+      gradient: 'from-[#EA580C]/20',
+      trend: checkoutsHoy === 0 && checkoutsAyer === 0 ? undefined : checkoutsHoy - checkoutsAyer,
+    },
+    {
+      key: 'estadias',
+      label: 'Estadías activas',
+      value: estadiasActivas,
+      icon: Bed,
+      color: '#0F2B28',
+      gradient: 'from-[#0F2B28]/20',
+      trend: estadiasActivas === 0 && estadiasPrevias === 0 ? undefined : estadiasActivas - estadiasPrevias,
+      sublabel: ocupacionPct !== null ? `${ocupacionPct}% ocup.` : undefined,
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {stats.map((s, i) => (
+        <StatCard
+          key={s.key}
+          label={s.label}
+          value={s.value}
+          icon={s.icon}
+          color={s.color}
+          gradient={s.gradient}
+          trend={s.trend}
+          sublabel={s.sublabel}
+          delay={i * 80}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * StatCard — single tile for the Today's Activity banner.
+ *
+ * Layout:
+ *   ┌──────────────────────────────┐
+ *   │  ◯ icon            [↑ 2]   │   ← colored circle (size-10) + trend pill
+ *   │                              │
+ *   │  12                          │   ← big number (text-3xl font-bold)
+ *   │  CHECK-INS COMPLETADOS HOY │   ← label (text-xs uppercase tracking-wider)
+ *   └──────────────────────────────┘
+ *
+ * Hover: lift (-translate-y-1) + shadow-lg.
+ * Entrance: animate-slide-up with staggered delay.
+ */
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  color,
+  gradient,
+  trend,
+  sublabel,
+  delay = 0,
+}: {
+  label: string;
+  value: number;
+  icon: LucideIcon;
+  color: string;
+  gradient: string;
+  trend?: number;
+  sublabel?: string;
+  delay?: number;
+}) {
+  return (
+    <div
+      className={cn(
+        'p-4 rounded-xl border bg-gradient-to-br to-white',
+        'transition-all duration-300 ease-out',
+        'hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5',
+        'animate-slide-up',
+        gradient
+      )}
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <div className="flex items-start justify-between">
+        <div
+          className="size-10 rounded-full flex items-center justify-center shrink-0"
+          style={{ backgroundColor: `${color}1A`, color }}
+          aria-hidden="true"
+        >
+          <Icon className="w-5 h-5" />
+        </div>
+        {trend !== undefined && (
+          <div
+            className={cn(
+              'text-xs font-medium flex items-center gap-1 px-2 py-0.5 rounded-full',
+              trend > 0
+                ? 'bg-emerald-100 text-emerald-700'
+                : trend < 0
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-muted text-muted-foreground'
+            )}
+            title={`Ayer: ${value - trend}`}
+          >
+            <span aria-hidden="true">{trend > 0 ? '↑' : trend < 0 ? '↓' : '—'}</span>
+            {trend !== 0 && <span>{Math.abs(trend)}</span>}
+          </div>
+        )}
+        {trend === undefined && sublabel && (
+          <div className="text-xs font-medium text-muted-foreground px-2 py-0.5 rounded-full bg-muted/60">
+            {sublabel}
+          </div>
+        )}
+      </div>
+      <div className="text-3xl font-bold mt-3 leading-none text-foreground">{value}</div>
+      <div className="text-xs uppercase tracking-wider text-muted-foreground mt-1.5">{label}</div>
+    </div>
+  );
+}
+
+/**
+ * QuickActions — row of ghost navigation buttons.
+ *
+ * Hover: bg transitions to forest green (#0F2B28) tint, arrow slides in.
+ */
+function QuickActions({ onNavigate }: { onNavigate: (m: ModuloId) => void }) {
+  const items: Array<{ label: string; icon: LucideIcon; target: ModuloId }> = [
+    { label: 'Ver todas las reservas', icon: CalendarCheck, target: 'reservas' },
+    { label: 'Gestionar habitaciones', icon: DoorOpen, target: 'habitaciones' },
+    { label: 'Ver caja', icon: Wallet, target: 'caja' },
+  ];
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map(({ label, icon: Icon, target }) => (
+        <Button
+          key={target}
+          variant="ghost"
+          size="sm"
+          onClick={() => onNavigate(target)}
+          className={cn(
+            'group h-9 px-3 text-foreground/80',
+            'hover:bg-[#0F2B28]/10 hover:text-[#0F2B28]',
+            'transition-colors duration-200'
+          )}
+        >
+          <Icon className="w-4 h-4 mr-2 text-[#0F2B28]" />
+          <span className="text-sm">{label}</span>
+          <ArrowRight
+            className={cn(
+              'w-3.5 h-3.5 ml-1.5',
+              'opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0',
+              'transition-all duration-200'
+            )}
+          />
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * PulsingDot — small animated indicator for "pending work" signal.
+ * Renders a layered ping + dot using Tailwind's animate-ping.
+ */
+function PulsingDot({ color = 'bg-emerald-500' }: { color?: string }) {
+  return (
+    <span className="relative flex size-2.5 ml-0.5" aria-hidden="true">
+      <span className={cn('absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping', color)} />
+      <span className={cn('relative inline-flex size-2.5 rounded-full', color)} />
+    </span>
+  );
+}
+
+/**
+ * CelebratoryEmptyState — shown when there are no pending check-ins/outs.
+ *
+ * Uses the `celebrate-bg` class (animated gradient shimmer) and a
+ * CheckCircle icon with a subtle pulse animation.
+ */
+function CelebratoryEmptyState() {
+  return (
+    <div className="celebrate-bg rounded-lg p-6 flex flex-col items-center justify-center text-center animate-fade-in border border-emerald-100/60">
+      <div className="size-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3 animate-pulse-subtle">
+        <CheckCircle className="w-7 h-7 text-emerald-600" />
+      </div>
+      <p className="text-sm font-semibold text-foreground">¡Todo al día!</p>
+      <p className="text-xs text-muted-foreground mt-0.5">No hay check-ins/check-outs pendientes.</p>
+    </div>
+  );
+}
+
+/**
+ * StatCardSkeleton — placeholder shown during loading state.
+ */
+function StatCardSkeleton() {
+  return (
+    <div className="p-4 rounded-xl border bg-gradient-to-br from-muted/30 to-white">
+      <div className="flex items-start justify-between">
+        <Skeleton className="size-10 rounded-full" />
+        <Skeleton className="h-5 w-12 rounded-full" />
+      </div>
+      <Skeleton className="h-8 w-16 mt-3" />
+      <Skeleton className="h-3 w-28 mt-2" />
+    </div>
+  );
+}
+
+/**
+ * ListItemSkeleton — placeholder for a single pending reserva row.
+ */
+function ListItemSkeleton() {
+  return (
+    <div className="border rounded-lg p-3 flex items-center justify-between gap-3">
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-4 w-1/3" />
+        <Skeleton className="h-3 w-2/3" />
+      </div>
+      <Skeleton className="h-8 w-20 rounded-md" />
+    </div>
+  );
+}
 
 function CheckInAccountStatus({ reserva }: { reserva: Reserva }) {
   const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
