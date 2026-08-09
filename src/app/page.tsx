@@ -38,6 +38,28 @@ function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/* ─── Scroll progress indicator (top gradient bar) ─── */
+function ScrollProgress() {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  return (
+    <div
+      className="scroll-progress"
+      style={{ width: `${progress}%`, opacity: progress > 0.5 ? 1 : 0 }}
+      aria-hidden="true"
+    />
+  );
+}
+
 /* ═══════════════════════════════════════════
    DATA
    ═══════════════════════════════════════════ */
@@ -272,7 +294,7 @@ function Navbar() {
     >
       <nav className="mx-auto max-w-6xl flex items-center justify-between px-4 sm:px-6 h-16">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20 group-hover:shadow-lg group-hover:shadow-primary/30 transition-shadow">
+          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20 group-hover:shadow-lg group-hover:shadow-primary/40 group-hover:scale-105 transition-all duration-300">
             <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain" />
           </div>
           <span className="font-bold text-lg tracking-tight">
@@ -285,9 +307,10 @@ function Navbar() {
             <button
               key={l.id}
               onClick={() => scrollTo(l.id)}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors relative group"
             >
               {l.label}
+              <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-full origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
             </button>
           ))}
         </div>
@@ -296,7 +319,7 @@ function Navbar() {
           <Button asChild variant="ghost" size="sm">
             <Link href="/login">Iniciar sesión</Link>
           </Button>
-          <Button asChild size="sm" className="shadow-md shadow-primary/20">
+          <Button asChild size="sm" className="cta-premium shadow-md shadow-primary/25">
             <Link href="/register">
               Prueba gratis
               <ArrowRight className="w-4 h-4 ml-1" />
@@ -347,8 +370,9 @@ function Navbar() {
 function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-      {/* Animated dot grid background */}
+      {/* Floating gradient orbs — premium depth */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
+        {/* Subtle dot grid */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(0,0,0,0.06),transparent)]" />
         <div
           className="absolute inset-0 opacity-[0.03]"
@@ -357,27 +381,32 @@ function Hero() {
             backgroundSize: '32px 32px',
           }}
         />
-        <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-primary/3 rounded-full blur-3xl" style={{ animation: 'pulse 4s ease-in-out infinite alternate' }} />
+        {/* Floating orbs with smooth animation */}
+        <div className="hero-orb orb-1 w-[28rem] h-[28rem] bg-[#059669]/12 top-[8%] left-[-8%]" />
+        <div className="hero-orb orb-2 w-[32rem] h-[32rem] bg-[#0F2B28]/8 bottom-[5%] right-[-10%]" />
+        <div className="hero-orb orb-3 w-[20rem] h-[20rem] bg-[#F59E0B]/10 top-[40%] right-[15%]" />
+        {/* Subtle grid pattern overlay */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-50" />
         {/* Gradient fade at bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </div>
 
       <div className="mx-auto max-w-4xl px-4 sm:px-6 text-center relative">
         <FadeIn>
-          <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm font-medium gap-1.5 shadow-sm">
-            <Sparkles className="w-3.5 h-3.5" />
+          <div className="premium-badge mb-6">
+            <Sparkles className="w-3.5 h-3.5 text-[#059669]" />
             30 días de prueba gratuita — sin tarjeta
-          </Badge>
+          </div>
         </FadeIn>
 
         <FadeIn delay={100}>
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] mb-6">
             Tu hotel,{' '}
             <span className="relative inline-block">
-              <span className="relative z-10 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
+              <span className="relative z-10 hero-gradient-text">
                 gestionado
               </span>
+              <span className="hero-underline" aria-hidden="true" />
             </span>
             <br />
             de forma inteligente
@@ -393,13 +422,13 @@ function Hero() {
 
         <FadeIn delay={300}>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button asChild size="lg" className="w-full sm:w-auto text-base px-8 h-12 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow">
+            <Button asChild size="lg" className="cta-premium w-full sm:w-auto text-base px-8 h-12 shadow-lg shadow-primary/25">
               <Link href="/register">
                 Comenzar gratis
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" className="w-full sm:w-auto text-base px-8 h-12" onClick={() => scrollTo('como-funciona')}>
+            <Button variant="outline" size="lg" className="cta-premium w-full sm:w-auto text-base px-8 h-12 bg-white/50 backdrop-blur-sm" onClick={() => scrollTo('como-funciona')}>
               Cómo funciona
               <ChevronDown className="w-4 h-4 ml-1" />
             </Button>
@@ -409,22 +438,24 @@ function Hero() {
         <FadeIn delay={500}>
           <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-chart-2/10 flex items-center justify-center">
-                <Zap className="w-4 h-4 text-chart-2" />
+              <div className="w-9 h-9 rounded-lg bg-[#059669]/10 flex items-center justify-center shadow-sm">
+                <Zap className="w-4 h-4 text-[#059669]" />
               </div>
-              <span>Configuración en 2 min</span>
+              <span className="font-medium">Configuración en 2 min</span>
             </div>
+            <div className="hidden sm:block w-px h-6 bg-border" />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-chart-1/10 flex items-center justify-center">
-                <Shield className="w-4 h-4 text-chart-1" />
+              <div className="w-9 h-9 rounded-lg bg-[#0F2B28]/10 flex items-center justify-center shadow-sm">
+                <Shield className="w-4 h-4 text-[#0F2B28]" />
               </div>
-              <span>Datos aislados</span>
+              <span className="font-medium">Datos aislados</span>
             </div>
+            <div className="hidden sm:block w-px h-6 bg-border" />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-chart-3/10 flex items-center justify-center">
-                <Globe className="w-4 h-4 text-chart-3" />
+              <div className="w-9 h-9 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center shadow-sm">
+                <Globe className="w-4 h-4 text-[#F59E0B]" />
               </div>
-              <span>Desde cualquier dispositivo</span>
+              <span className="font-medium">Desde cualquier dispositivo</span>
             </div>
           </div>
         </FadeIn>
@@ -438,23 +469,41 @@ function StatsSection() {
   const { ref, inView } = useInView(0.25);
 
   return (
-    <section className="py-16 sm:py-20 bg-gradient-to-b from-white to-[#F0FDF4]/40">
-      <div ref={ref} className="mx-auto max-w-6xl px-4 sm:px-6">
+    <section className="py-16 sm:py-20 bg-gradient-to-b from-white to-[#F0FDF4]/40 relative overflow-hidden">
+      {/* Subtle decorative pattern */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
+
+      <div ref={ref} className="mx-auto max-w-6xl px-4 sm:px-6 relative">
+        <FadeIn>
+          <div className="text-center mb-12">
+            <Badge variant="secondary" className="mb-3 gap-1.5">
+              <BarChart3 className="w-3.5 h-3.5" />
+              Confianza comprobada
+            </Badge>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0F2B28]">
+              Números que hablan por sí solos
+            </h2>
+          </div>
+        </FadeIn>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s, i) => (
             <FadeIn key={s.label} delay={i * 100}>
-              <div className="p-6 text-center bg-gradient-to-br from-[#F0FDF4]/50 to-white border border-[#BBF7D0]/40 rounded-2xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 h-full">
-                <div className={`w-12 h-12 rounded-full ${s.iconColor} flex items-center justify-center mx-auto mb-3`}>
-                  <s.icon className="w-6 h-6" />
+              <div className="group relative p-6 text-center bg-gradient-to-br from-[#F0FDF4]/60 to-white border border-[#BBF7D0]/40 rounded-2xl hover:shadow-xl hover:shadow-[#059669]/10 hover:-translate-y-1 transition-all duration-300 h-full overflow-hidden">
+                {/* Decorative gradient ring around icon */}
+                <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-gradient-to-br from-[#059669]/15 to-transparent opacity-50 group-hover:opacity-80 group-hover:scale-110 transition-all duration-500" />
+
+                <div className={`w-14 h-14 rounded-2xl ${s.iconColor} flex items-center justify-center mx-auto mb-4 shadow-sm ring-4 ring-white/60 dark:ring-slate-800/60`}>
+                  <s.icon className="w-7 h-7" />
                 </div>
-                <div className="text-4xl font-extrabold text-[#0F2B28]">
+                <div className="text-4xl sm:text-5xl font-extrabold text-[#0F2B28] tabular-nums">
                   {inView ? (
                     <AnimatedNumber value={s.value} duration={1500} format={s.format} />
                   ) : (
-                    <span>0</span>
+                    <span className="stats-skeleton">&nbsp;&nbsp;&nbsp;&nbsp;</span>
                   )}
                 </div>
-                <div className="text-sm text-muted-foreground mt-1">{s.label}</div>
+                <div className="text-sm text-muted-foreground mt-2 font-medium">{s.label}</div>
               </div>
             </FadeIn>
           ))}
@@ -462,13 +511,13 @@ function StatsSection() {
 
         {/* Trust badges */}
         <FadeIn delay={400}>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
             {trustBadges.map((b) => (
               <div
                 key={b.label}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#F0FDF4]/50 border border-[#BBF7D0]/40 text-[#166534] text-sm font-medium"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-[#BBF7D0]/50 text-[#166534] text-sm font-medium shadow-sm hover:shadow-md hover:border-[#059669]/40 transition-all duration-200"
               >
-                <b.icon className="w-4 h-4" />
+                <b.icon className="w-4 h-4 text-[#059669] group-hover:scale-110 transition-transform" />
                 {b.label}
               </div>
             ))}
@@ -647,8 +696,12 @@ function Features() {
 /* ─── Testimonials ─── */
 function TestimonialsSection() {
   return (
-    <section className="py-24 sm:py-32 bg-gradient-to-b from-[#F0FDF4]/30 to-white">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+    <section className="py-24 sm:py-32 bg-gradient-to-b from-[#F0FDF4]/30 via-white to-white relative overflow-hidden">
+      {/* Decorative gradient orbs */}
+      <div className="absolute top-10 left-10 w-72 h-72 bg-[#059669]/6 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-80 h-80 bg-[#0F2B28]/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 relative">
         <FadeIn>
           <div className="text-center max-w-2xl mx-auto mb-16">
             <Badge variant="secondary" className="mb-4 gap-1.5">
@@ -667,19 +720,30 @@ function TestimonialsSection() {
         <div className="grid md:grid-cols-3 gap-6">
           {testimonials.map((t, i) => (
             <FadeIn key={t.nombre} delay={i * 120}>
-              <div className="p-6 bg-white border border-border rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
-                <Quote className="w-10 h-10 text-[#0F2B28]/20 mb-4" />
-                <div className="flex gap-0.5 mb-4">
+              <div className="feature-grid-item relative p-7 bg-white border border-border rounded-2xl shadow-sm h-full flex flex-col overflow-hidden">
+                {/* Top-right accent gradient blob */}
+                <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-gradient-to-br from-[#059669]/12 to-transparent blur-xl pointer-events-none" />
+
+                {/* Large premium quote mark */}
+                <div className="absolute top-3 right-4 premium-quote select-none pointer-events-none" aria-hidden="true">
+                  &ldquo;
+                </div>
+
+                {/* Star rating */}
+                <div className="flex gap-0.5 mb-4 relative z-10">
                   {Array.from({ length: t.rating }, (_, idx) => (
                     <Star key={idx} className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />
                   ))}
                 </div>
-                <p className="italic text-foreground/80 leading-relaxed flex-1">
+
+                <p className="italic text-foreground/85 leading-relaxed flex-1 relative z-10 text-[15px]">
                   &ldquo;{t.texto}&rdquo;
                 </p>
-                <div className="my-5 border-t border-border" />
-                <div className="flex items-center gap-3">
-                  <div className={`w-11 h-11 rounded-full ${t.avatarColor} text-white flex items-center justify-center font-semibold text-sm shrink-0`}>
+
+                <div className="my-5 border-t border-border/80" />
+
+                <div className="flex items-center gap-3 relative z-10">
+                  <div className={`w-12 h-12 rounded-full ${t.avatarColor} text-white flex items-center justify-center font-semibold text-sm shrink-0 shadow-md ring-2 ring-white`}>
                     {t.avatar}
                   </div>
                   <div className="min-w-0">
@@ -987,6 +1051,7 @@ function Footer() {
 export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <ScrollProgress />
       <Navbar />
       <main className="flex-1">
         <Hero />

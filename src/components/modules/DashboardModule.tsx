@@ -18,6 +18,7 @@ import { useMemo, useState, useCallback, useRef, useEffect, type ComponentType }
 import { createPortal } from 'react-dom';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import RecentActivity from './dashboard/RecentActivity';
+import OccupancyForecast from './dashboard/OccupancyForecast';
 import {
   AreaChart, Area, XAxis, YAxis,
   Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -1014,6 +1015,9 @@ export default function DashboardModule() {
         <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-[#EA580C]" bgGradient="bg-gradient-to-br from-[#FFEDD5] via-[#FFF7ED] to-white" numericValue={checkoutsHoy.length} />
         <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-[#7C3AED]" bgGradient="bg-gradient-to-br from-[#F5F3FF] via-[#FAFAFE] to-white" numericValue={reservadas} />
       </div>
+
+      {/* Pronóstico de ocupación — próximos 7 días */}
+      <OccupancyForecast />
 
       {/* Tendencia de Ocupación (14 días) */}
       <OccupancyTrendChart />

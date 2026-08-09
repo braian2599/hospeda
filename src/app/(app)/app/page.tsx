@@ -17,10 +17,13 @@ import ReportesModule from '@/components/modules/ReportesModule';
 import UsuariosModule from '@/components/modules/UsuariosModule';
 import ConfiguracionModule from '@/components/configuracion/ConfiguracionModule';
 import { ModuleErrorBoundary } from '@/components/layout/ModuleErrorBoundary';
+import { QuickStatsBar } from '@/components/layout/QuickStatsBar';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import ProfileSettings from '@/components/layout/ProfileSettings';
 import CommandPalette from '@/components/layout/CommandPalette';
+import KeyboardShortcuts from '@/components/layout/KeyboardShortcuts';
+import QuickActionsFab from '@/components/layout/QuickActionsFab';
 import ModuleLockedDialog from '@/components/subscription/ModuleLockedDialog';
 import PaymentResultBanner from '@/components/payments/PaymentResultBanner';
 import type { ModuloId } from '@/lib/types';
@@ -103,6 +106,7 @@ export default function AppPage() {
       )}
       <ProfileSettings open={perfilOpen} onOpenChange={setPerfilOpen} />
       <CommandPalette />
+      <QuickActionsFab />
       <ModuleLockedDialog />
     </AppShell>
   );
@@ -110,6 +114,7 @@ export default function AppPage() {
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const setSidebarOpen = useHotelStore(s => s.setSidebarOpen);
+  const usuarioActual = useHotelStore(s => s.usuarioActual);
   return (
     <div className="fixed inset-0 bg-background flex">
       <Sidebar />
@@ -118,6 +123,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <Suspense fallback={null}>
           <PaymentResultBanner />
         </Suspense>
+
+        {/* Quick stats bar — mobile only, above the mobile header */}
+        {usuarioActual && <QuickStatsBar />}
 
         {/* Mobile header */}
         <header className="lg:hidden sticky top-0 z-20 bg-background border-b px-4 py-2 flex items-center gap-2">
@@ -132,6 +140,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </main>
+      {/* Global keyboard shortcuts overlay (? to toggle) */}
+      <KeyboardShortcuts />
     </div>
   );
 }

@@ -215,6 +215,25 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
                 label="Ir a Clientes"
               />
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full mt-1 gap-1.5 text-xs h-8 text-[#0F2B28] hover:bg-[#0F2B28]/5"
+              onClick={() => {
+                setOpen(false);
+                // Defer to let this dialog close before opening the full overlay.
+                window.setTimeout(
+                  () =>
+                    window.dispatchEvent(
+                      new CustomEvent('hospeda:open-shortcuts'),
+                    ),
+                  80,
+                );
+              }}
+            >
+              <Keyboard className="w-3.5 h-3.5" />
+              Ver atajos de teclado completos
+            </Button>
           </section>
 
           {/* Consejos rápidos */}
