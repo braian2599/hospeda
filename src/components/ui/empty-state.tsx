@@ -25,10 +25,10 @@ interface EmptyStateProps {
 export function EmptyState({ variant = 'generic', title, description, action, compact }: EmptyStateProps) {
   const v = variants[variant] || variants.generic;
   const Icon = v.icon;
-  
+
   if (compact) {
     return (
-      <div className="flex flex-col items-center justify-center py-6 text-center">
+      <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
         <Icon className="w-8 h-8 text-muted-foreground/40 mb-2" />
         <p className="text-sm text-muted-foreground">{title || v.title}</p>
       </div>
@@ -36,13 +36,23 @@ export function EmptyState({ variant = 'generic', title, description, action, co
   }
 
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className={`w-14 h-14 rounded-2xl ${v.color} flex items-center justify-center mb-4`}>
+    <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
+      <div
+        className={`w-14 h-14 rounded-2xl ${v.color} flex items-center justify-center mb-4 relative overflow-hidden`}
+        style={{
+          backgroundImage:
+            'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 60%)',
+        }}
+      >
         <Icon className="w-7 h-7" />
       </div>
       <h3 className="text-base font-semibold mb-1">{title || v.title}</h3>
       <p className="text-sm text-muted-foreground max-w-sm mb-4">{description || v.description}</p>
-      {action}
+      {action ? (
+        <div className="transition-transform duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:-translate-y-0.5">
+          {action}
+        </div>
+      ) : null}
     </div>
   );
 }

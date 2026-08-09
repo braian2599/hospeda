@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
+import { notifySuccess } from '@/lib/notify';
 
 const formatFecha = (f: string) => {
   if (!f) return '—';
@@ -184,7 +185,8 @@ export default function CheckInModule() {
       const resultado = await realizarCheckIn(selReserva.id, datos);
       if (resultado) {
         closeModal();
-        toast.success('Check-in realizado', { description: `${selReserva.huesped} - Hab. ${selReserva.habitacion}${cantNinos > 0 ? ` (${cantNinos} menor${cantNinos > 1 ? 'es' : ''} registrados)` : ''}` });
+        const desc = `${selReserva.huesped} - Hab. ${selReserva.habitacion}${cantNinos > 0 ? ` (${cantNinos} menor${cantNinos > 1 ? 'es' : ''} registrados)` : ''}`;
+        notifySuccess('Check-in realizado', desc);
       } else {
         toast.error('No se pudo realizar el check-in', { description: 'La reserva ya no está en estado Confirmada, faltan datos de menores, o hubo un error de conexión.' });
       }
@@ -203,7 +205,7 @@ export default function CheckInModule() {
       const resultado = await realizarCheckOut(selReserva.id);
       if (resultado) {
         closeModal();
-        toast.success('Check-out realizado', { description: `${selReserva.huesped} - Hab. ${selReserva.habitacion}` });
+        notifySuccess('Check-out realizado', `${selReserva.huesped} - Hab. ${selReserva.habitacion}`);
       } else {
         toast.error('No se pudo realizar el check-out', { description: 'La reserva ya no está en estado Check-In realizado o hubo un error de conexión.' });
       }

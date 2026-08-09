@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,10 +13,11 @@ import {
 import { Plus, Pencil, Trash2, Bed, User } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
-import { type TipoHabitacion, CAPACIDAD_POR_TIPO } from '@/lib/types';
+import { type TipoHabitacion, type EstadoHabitacion, CAPACIDAD_POR_TIPO } from '@/lib/types';
+import { todayLocal, safeDate } from '@/lib/format';
 
 // ── Mapeo de estados visuales ──
-const estados: Record<string, string> = {
+const estados: Record<EstadoHabitacion, string> = {
   Disponible: 'bg-[#DCFCE7] text-[#166534]',
   Ocupada: 'bg-[#FEE2E2] text-[#991B1B]',
   Limpieza: 'bg-[#FEF3C7] text-[#92400E]',
@@ -35,7 +36,12 @@ const TIPOS_HABITACION: { tipo: TipoHabitacion; label: string; descripcion: stri
 ];
 
 export default function HabitacionesModule() {
-  const { habitaciones, reservas, agregarHabitacion, editarHabitacion, eliminarHabitacion } = useHotelStore();
+  // Granular selectors — avoids re-rendering on unrelated store changes
+  const habitaciones = useHotelStore(s => s.habitaciones);
+  const reservas = useHotelStore(s => s.reservas);
+  const agregarHabitacion = useHotelStore(s => s.agregarHabitacion);
+  const editarHabitacion = useHotelStore(s => s.editarHabitacion);
+  const eliminarHabitacion = useHotelStore(s => s.eliminarHabitacion);
   const [modal, setModal] = useState<'nueva' | 'editar' | 'eliminar' | null>(null);
   const [sel, setSel] = useState<string>('');
   const [form, setForm] = useState({
@@ -47,7 +53,24 @@ export default function HabitacionesModule() {
   });
 
   const esCompartida = form.tipo === 'Compartida';
-  const sorted = Object.entries(habitaciones).sort(([a], [b]) => a.localeCompare(b));
+  const today = useMemo(() => todayLocal(), []);
+  const sorted = useMemo(
+    () => Object.entries(habitaciones).sort(([a], [b]) => a.localeCompare(b)),
+    [habitaciones]
+  );
+
+  // Find the active guest for a room — only reservations active TODAY count.
+  // Previously, any "Confirmada" or "Check-In realizado" reservation would show
+  // even if it's for next month, misleading the operator.
+  const getHuespedActual = (num: string) => {
+    const todayDate = safeDate(today).getTime();
+    return reservas.find(r =>
+      r.habitacion === num &&
+      (r.estado === 'Check-In realizado' || r.estado === 'Confirmada') &&
+      safeDate(r.checkin).getTime() <= todayDate &&
+      safeDate(r.checkout).getTime() >= todayDate
+    );
+  };
 
   // ── Helpers ──
   const capacidadDesdeTipo = (tipo: TipoHabitacion) => {
@@ -130,7 +153,7 @@ export default function HabitacionesModule() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {sorted.map(([num, hab]) => {
           const huesped = (hab.estado === 'Ocupada' || hab.estado === 'Reservada')
-            ? reservas.find(r => r.habitacion === num && (r.estado === 'Check-In realizado' || r.estado === 'Confirmada'))
+            ? getHuespedActual(num)
             : null;
           const camasText = hab.tipo === 'Compartida'
             ? `${hab.capacidad} camas`
@@ -140,19 +163,19 @@ export default function HabitacionesModule() {
               ].filter(Boolean).join(' + ') || '—';
 
           return (
-            <Card key={num} className="relative">
+            <Card key={num} className="relative card-hover transition-all duration-200">
               <CardContent className="p-3 flex flex-col items-center text-center gap-1">
                 <Badge className={`absolute top-2 left-2 text-xs px-2 ${estados[hab.estado] || ''}`}>
                   {hab.estado}
                 </Badge>
                 <span className="text-lg font-bold mt-2">{num}</span>
                 <span className="text-xs text-muted-foreground">{hab.tipo} · {camasText}</span>
-                {huesped && <span className="text-xs font-medium text-primary truncate w-full">{huesped.huesped}</span>}
+                {huesped && <span className="text-xs font-medium text-primary truncate w-full" title={huesped.huesped}>{huesped.huesped}</span>}
                 <div className="flex gap-1 mt-2">
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(num)}>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(num)} aria-label={`Editar habitación ${num}`}>
                     <Pencil className="w-3.5 h-3.5" />
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDelete(num)}>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDelete(num)} aria-label={`Eliminar habitación ${num}`}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </div>

@@ -2,12 +2,28 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+interface CardProps extends React.ComponentProps<"div"> {
+  /**
+   * When true, the card shows a subtle shadow lift on hover.
+   * Use for clickable / interactive cards in dashboards and lists.
+   */
+  hover?: boolean
+  /**
+   * Alias for `hover` — semantic flag for cards that act as links/actions.
+   * Adds the `.card-hover` utility (translateY + soft shadow) on hover.
+   */
+  interactive?: boolean
+}
+
+function Card({ className, hover = false, interactive = false, ...props }: CardProps) {
+  const isInteractive = hover || interactive
   return (
     <div
       data-slot="card"
       className={cn(
         "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        "transition-[box-shadow,border-color,transform] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+        isInteractive && "card-hover hover:shadow-md cursor-pointer",
         className
       )}
       {...props}

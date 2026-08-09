@@ -102,11 +102,12 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.22 0.02 260);
+  /* Deeper, more refined sidebar tone for stronger contrast with content area */
+  --sidebar: oklch(0.18 0.025 260);
   --sidebar-foreground: oklch(0.708 0 0);
   --sidebar-primary: oklch(0.800 0.182 151.7);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.33 0.04 186.1);
+  --sidebar-accent: oklch(0.28 0.035 186.1);
   --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.800 0.182 151.7);
@@ -115,22 +116,164 @@
 @layer base {
   * {
     @apply border-border;
-    transition-property: color, background-color, border-color, box-shadow, opacity;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
   }
+
   html, body {
     @apply bg-background text-foreground;
   }
+
+  /* Global focus-visible ring for keyboard accessibility.
+     Scoped to interactive-ish elements to avoid layout shift on non-interactive nodes. */
+  *:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
 }
 
-/* Hide ALL scrollbars globally — scroll still works */
+/* ─────────────────────────────────────────────────────────────
+   Custom themed scrollbars (thin, themed, with hover)
+   Replaces the previous global "hide all scrollbars" rule.
+   ───────────────────────────────────────────────────────────── */
 * {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent) transparent;
 }
+
 *::-webkit-scrollbar {
-  display: none;
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklch, var(--muted-foreground) 60%, transparent);
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Animation keyframes
+   ───────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Animation utility classes
+   ───────────────────────────────────────────────────────────── */
+.animate-fade-in {
+  animation: fadeIn 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-slide-up {
+  animation: slideUp 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-slide-down {
+  animation: slideDown 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Skeleton shimmer background */
+.shimmer-bg {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    var(--accent) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Sidebar gradient accent — adds depth without overwhelming.
+   Apply to the sidebar root element (e.g. via className).
+   ───────────────────────────────────────────────────────────── */
+.sidebar-gradient {
+  background-image: linear-gradient(
+    180deg,
+    rgba(74, 222, 128, 0.04) 0%,
+    transparent 30%
+  );
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Card hover lift utility
+   ───────────────────────────────────────────────────────────── */
+.card-hover {
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -8px rgba(15, 43, 40, 0.15);
+}
+
+.dark .card-hover:hover {
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.5);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Button press effect
+   ───────────────────────────────────────────────────────────── */
+.btn-press:active {
+  transform: scale(0.97);
 }
 
 /* Form improvements */

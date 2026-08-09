@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
+import { notifySuccess, notifyWarning } from '@/lib/notify';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -116,17 +117,17 @@ function DateRangePickerInline({
   const [localRange, setLocalRange] = useState<{ from?: Date; to?: Date }>({});
   const syncedRef = useRef(false);
 
-  // Al abrir el popover, sincronizar el estado local con el form.
-  // Al cerrar, resetear el flag para la próxima vez.
-  useEffect(() => {
-    if (open && !syncedRef.current) {
+  // Sync local state with the form when the popover opens (event-driven, not effect-driven).
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (next && !syncedRef.current) {
       syncedRef.current = true;
       const f = checkin ? new Date(checkin + 'T12:00:00') : undefined;
       const t = checkout ? new Date(checkout + 'T12:00:00') : undefined;
       setLocalRange(f ? { from: f, to: t } : {});
     }
-    if (!open) syncedRef.current = false;
-  }, [open, checkin, checkout]);
+    if (!next) syncedRef.current = false;
+  };
 
   const handleSelect = (range: { from?: Date; to?: Date } | undefined) => {
     if (!range?.from) {
@@ -147,7 +148,7 @@ function DateRangePickerInline({
     if (!localRange.from) return;
     onChangeCheckin(fmt(localRange.from));
     onChangeCheckout(localRange.to ? fmt(localRange.to) : '');
-    setOpen(false);
+    handleOpenChange(false);
   };
 
   const from = checkin ? new Date(checkin + 'T12:00:00') : undefined;
@@ -169,14 +170,14 @@ function DateRangePickerInline({
           !checkin && 'text-muted-foreground'
         )}
         disabled={disabled}
-        onClick={() => setOpen(true)}
+        onClick={() => handleOpenChange(true)}
       >
         <CalendarDays className="w-4 h-4 mr-2 text-muted-foreground" />
         {displayText}
       </Button>
       {open
         ? createPortal(
-            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40" onClick={() => setOpen(false)}>
+            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40" onClick={() => handleOpenChange(false)}>
               <div
                 className="bg-white rounded-xl shadow-2xl border border-[#E2E8F0] pointer-events-auto"
                 onClick={e => e.stopPropagation()}
@@ -790,7 +791,7 @@ export default function ReservasModule() {
  const reserva = reservas.find(r => r.id === cancelId);
  const ok = await cancelarReserva(cancelId);
  if (ok) {
- toast.success('Reserva cancelada', { description: `Reserva de ${reserva?.huesped}` });
+ notifyWarning('Reserva cancelada', `Reserva de ${reserva?.huesped}`);
  } else {
  toast.error('Error al cancelar reserva', { description: 'No se pudo comunicar con el servidor. Se revirtió el cambio.' });
  }
@@ -980,7 +981,7 @@ export default function ReservasModule() {
  const habAcomDisponible = dispoAcom.find(h => h.numero === acomMulti.habitacionAsignada);
  if (!habAcomDisponible) {
  toast.warning(`La habitación ${acomMulti.habitacionAsignada} asignada al ${acomMulti.etiqueta.toLowerCase()} no está disponible para esas fechas.`);
- toast.success('Reserva guardada', { description: `${form.huesped} - Hab. ${form.habitacion}` });
+ notifySuccess('Reserva guardada', `${form.huesped} - Hab. ${form.habitacion}`);
  closeModal();
  return;
  }
@@ -993,7 +994,7 @@ export default function ReservasModule() {
  return;
  }
 
- toast.success('Reserva guardada', { description: `${form.huesped} - Hab. ${form.habitacion}` });
+ notifySuccess('Reserva guardada', `${form.huesped} - Hab. ${form.habitacion}`);
  closeModal();
  return;
  } catch (err: any) {
@@ -1058,7 +1059,7 @@ export default function ReservasModule() {
  const habAcomDisponible = dispoAcom.find(h => h.numero === acom.habitacionAsignada);
  if (!habAcomDisponible) {
  toast.warning(`La habitación ${acom.habitacionAsignada} asignada al ${acom.etiqueta.toLowerCase()} no está disponible para esas fechas.`);
- toast.success('Reserva guardada', { description: `${form.huesped} - Hab. ${form.habitacion}` });
+ notifySuccess('Reserva guardada', `${form.huesped} - Hab. ${form.habitacion}`);
  closeModal();
  return;
  }
@@ -1069,7 +1070,7 @@ export default function ReservasModule() {
  setAcompananteEtiqueta(acom.etiqueta || 'Acompañante');
  setModalChoferOpen(true);
  } else {
- toast.success('Reserva guardada', { description: `${form.huesped} - Hab. ${form.habitacion}` });
+ notifySuccess('Reserva guardada', `${form.huesped} - Hab. ${form.habitacion}`);
  closeModal();
  }
  } finally {
@@ -1094,7 +1095,7 @@ export default function ReservasModule() {
  estadoPago: 'Pagado',
  });
  setModalChoferOpen(false);
- toast.success('Reserva guardada', { description: `${form.huesped} - Hab. ${form.habitacion}` });
+ notifySuccess('Reserva guardada', `${form.huesped} - Hab. ${form.habitacion}`);
  closeModal();
  } catch (err: any) {
  const msg = err?.message || 'Error desconocido';
@@ -1108,7 +1109,7 @@ export default function ReservasModule() {
 
  const handleAcompananteNo = () => {
  setModalChoferOpen(false);
- toast.success('Reserva guardada', { description: `${form.huesped} - Hab. ${form.habitacion}` });
+ notifySuccess('Reserva guardada', `${form.huesped} - Hab. ${form.habitacion}`);
  closeModal();
  };
 

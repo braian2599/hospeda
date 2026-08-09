@@ -126,13 +126,6 @@ export default function SmsVerificationDialog({
     handleSendCode(phone.trim());
   };
 
-  // Handle OTP complete — auto-verify when all 6 digits entered
-  const handleOtpComplete = useCallback((value: string) => {
-    if (value.length === 6) {
-      handleVerify(value);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Verify code
   const handleVerify = async (codeStr: string) => {
     setVerifying(true);
@@ -158,6 +151,13 @@ export default function SmsVerificationDialog({
     }
     setVerifying(false);
   };
+
+  // Handle OTP complete — auto-verify when all 6 digits entered
+  const handleOtpComplete = useCallback((value: string) => {
+    if (value.length === 6) {
+      handleVerify(value);
+    }
+  }, [handleVerify]);
 
   // Resend code
   const handleResend = () => {

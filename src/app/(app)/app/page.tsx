@@ -19,6 +19,7 @@ import ConfiguracionModule from '@/components/configuracion/ConfiguracionModule'
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import ProfileSettings from '@/components/layout/ProfileSettings';
+import CommandPalette from '@/components/layout/CommandPalette';
 import ModuleLockedDialog from '@/components/subscription/ModuleLockedDialog';
 import PaymentResultBanner from '@/components/payments/PaymentResultBanner';
 import type { ModuloId } from '@/lib/types';
@@ -92,6 +93,7 @@ export default function AppPage() {
         </div>
       )}
       <ProfileSettings open={perfilOpen} onOpenChange={setPerfilOpen} />
+      <CommandPalette />
       <ModuleLockedDialog />
     </AppShell>
   );

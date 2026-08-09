@@ -3,12 +3,13 @@
 import { useState, useRef, useCallback, useEffect, forwardRef } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useHotelStore } from '@/lib/store';
+import { useNotificationStore } from '@/lib/notification-store';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 import { modulosEfectivos } from '@/lib/plan-config';
 import { Button } from '@/components/ui/button';
-import { LogOut, X, Lock, Settings, Users, LayoutDashboard } from 'lucide-react';
-
-let _handleLogout: (() => void) | null = null;
+import { NotificationCenter } from '@/components/ui/notification-center';
+import ThemeToggle from '@/components/layout/ThemeToggle';
+import { LogOut, X, Lock, Settings, Users, LayoutDashboard, Search } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, DoorOpen: require('lucide-react').DoorOpen, CalendarDays: require('lucide-react').CalendarDays, LogIn: require('lucide-react').LogIn, Receipt: require('lucide-react').Receipt, Sparkles: require('lucide-react').Sparkles, Wallet: require('lucide-react').Wallet, Users: require('lucide-react').Users, BarChart3: require('lucide-react').BarChart3, UserCog: require('lucide-react').UserCog, Tags: require('lucide-react').Tags,
@@ -108,11 +109,22 @@ export default function Sidebar() {
   const { usuarioActual, moduloActivo, setModulo, sidebarOpen, setSidebarOpen, planActual } = useHotelStore();
   const { update } = useSession();
 
-  _handleLogout = () => {
+  // Notification store subscriptions (granular selectors to avoid re-renders)
+  const notifications = useNotificationStore(s => s.notifications);
+  const markRead = useNotificationStore(s => s.markRead);
+  const markAllRead = useNotificationStore(s => s.markAllRead);
+  const dismiss = useNotificationStore(s => s.dismiss);
+  const clearAll = useNotificationStore(s => s.clearAll);
+
+  // Planes — must be called BEFORE any early return to satisfy rules-of-hooks
+  const planes = useHotelStore(s => s.planes);
+
+  const handleLogout = useCallback(() => {
     useHotelStore.getState().logout();
     sessionStorage.setItem('hospeda-logging-out', 'true');
     update({ clearTenant: true }).then(() => { window.location.href = '/app'; });
-  };
+  }, [update]);
+
   const [desktopExpanded, setDesktopExpanded] = useState(false);
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navRef = useRef<HTMLElement>(null);
@@ -149,7 +161,6 @@ export default function Sidebar() {
   if (!usuarioActual) return null;
 
   const isFullAccess = usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin';
-  const planes = useHotelStore(s => s.planes);
   const efectivos = isFullAccess ? MODULOS_SISTEMA.map(m => m.id) : modulosEfectivos(usuarioActual.permisos, planActual, planes);
   const efectivosSet = new Set(efectivos);
   const modulosVisibles = MODULOS_SISTEMA.filter(m => usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin' || usuarioActual.permisos.includes(m.id));
@@ -166,10 +177,30 @@ export default function Sidebar() {
     >
       <div className="flex items-center gap-3 px-3 py-4 min-h-[56px]">
         <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain shrink-0" />
-        <div className="overflow-hidden whitespace-nowrap transition-opacity duration-200" style={{ opacity: isExpanded ? 1 : 0, width: isExpanded ? 'auto' : 0 }}>
+        <div className="overflow-hidden whitespace-nowrap transition-opacity duration-200 flex-1" style={{ opacity: isExpanded ? 1 : 0, width: isExpanded ? 'auto' : 0 }}>
           <h2 className="font-bold text-sm leading-tight text-sidebar-accent-foreground">Hospedá</h2>
           <p className="text-[11px] text-sidebar-foreground/50">Gestión Hotelera</p>
         </div>
+        {isExpanded && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('hospeda:open-command-palette'))}
+              className="p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-[#162826] transition-colors"
+              aria-label="Búsqueda rápida (Cmd+K)"
+              title="Búsqueda rápida (Cmd+K)"
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
+            <NotificationCenter
+              notifications={notifications}
+              onMarkRead={markRead}
+              onMarkAllRead={markAllRead}
+              onDismiss={dismiss}
+              onClearAll={clearAll}
+            />
+            <ThemeToggle compact />
+          </div>
+        )}
       </div>
 
       <div className="border-t border-sidebar-border" />
@@ -216,7 +247,7 @@ export default function Sidebar() {
           {isExpanded && <span className="text-[13px] font-medium truncate text-sidebar-foreground">{userName}</span>}
         </button>
 
-        <Button variant="ghost" size="icon" onClick={() => _handleLogout?.()} className={`text-sidebar-foreground/70 hover:text-red-400 transition-colors ${isExpanded ? 'w-full justify-start gap-3 px-3 h-9' : 'w-full'}`}>
+        <Button variant="ghost" size="icon" onClick={handleLogout} className={`text-sidebar-foreground/70 hover:text-red-400 transition-colors ${isExpanded ? 'w-full justify-start gap-3 px-3 h-9' : 'w-full'}`}>
           <LogOut className="w-4 h-4 shrink-0" />
           {isExpanded && <span className="text-[13px]">Cerrar sesión</span>}
         </Button>
@@ -234,10 +265,26 @@ export default function Sidebar() {
         </button>
         <div className="flex items-center gap-3 px-4 py-4">
           <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain shrink-0" />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h2 className="font-bold text-sm leading-tight text-sidebar-accent-foreground">Hospedá</h2>
             <p className="text-[11px] text-sidebar-foreground/50">Gestión Hotelera</p>
           </div>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('hospeda:open-command-palette'))}
+            className="p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-[#162826] transition-colors"
+            aria-label="Búsqueda rápida (Cmd+K)"
+            title="Búsqueda rápida (Cmd+K)"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+          <NotificationCenter
+            notifications={notifications}
+            onMarkRead={markRead}
+            onMarkAllRead={markAllRead}
+            onDismiss={dismiss}
+            onClearAll={clearAll}
+          />
+          <ThemeToggle compact />
         </div>
         <div className="border-t border-sidebar-border" />
         <nav className="flex-1 overflow-y-auto scrollbar-none px-2 py-1.5">
@@ -286,7 +333,7 @@ export default function Sidebar() {
             <div className="w-7 h-7 rounded-full bg-sidebar-accent/60 flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">{userName?.charAt(0)?.toUpperCase() || 'A'}</div>
             <span className="text-[13px] font-medium truncate text-sidebar-foreground">{userName}</span>
           </button>
-          <Button variant="ghost" size="sm" onClick={() => _handleLogout?.()} className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-red-400">
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-red-400">
             <LogOut className="w-4 h-4" /><span className="text-[13px]">Cerrar sesión</span>
           </Button>
         </div>
@@ -294,5 +341,31 @@ export default function Sidebar() {
     </div>
   );
 
-  return <>{desktopSidebar}{mobileSidebar}</>;
+  return (
+    <>
+      {desktopSidebar}
+      {mobileSidebar}
+      {/* Collapsed sidebar quick actions: search + notifications + theme */}
+      {!isExpanded && (
+        <div className="hidden lg:flex flex-col items-center gap-1 py-2 fixed left-3 bottom-20 z-30">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('hospeda:open-command-palette'))}
+            className="p-2 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-[#162826] transition-colors"
+            aria-label="Búsqueda rápida (Cmd+K)"
+            title="Búsqueda rápida (Cmd+K)"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+          <NotificationCenter
+            notifications={notifications}
+            onMarkRead={markRead}
+            onMarkAllRead={markAllRead}
+            onDismiss={dismiss}
+            onClearAll={clearAll}
+          />
+          <ThemeToggle compact />
+        </div>
+      )}
+    </>
+  );
 }

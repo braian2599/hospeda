@@ -8,18 +8,19 @@ export default function PaymentResultBanner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const paymentStatus = searchParams.get('payment');
-  const [visible, setVisible] = useState(false);
+  // Track only user dismissal; visibility is derived from URL state.
+  const [dismissed, setDismissed] = useState(false);
 
+  // Side-effect only: clear the URL param so refresh doesn't re-show banner.
+  // No setState here — visibility is derived.
   useEffect(() => {
-    if (paymentStatus) {
-      setVisible(true);
-      // Limpiar el query param de la URL
-      const url = new URL(window.location.href);
-      url.searchParams.delete('payment');
-      router.replace(url.pathname, { scroll: false });
-    }
+    if (!paymentStatus) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('payment');
+    router.replace(url.pathname, { scroll: false });
   }, [paymentStatus, router]);
 
+  const visible = !!paymentStatus && !dismissed;
   if (!visible || !paymentStatus) return null;
 
   const config = {
@@ -59,7 +60,7 @@ export default function PaymentResultBanner() {
         <p className="text-xs text-muted-foreground mt-0.5">{c.message}</p>
       </div>
       <button
-        onClick={() => setVisible(false)}
+        onClick={() => setDismissed(true)}
         className="p-1 rounded-md hover:bg-accent/50 transition-colors shrink-0"
         aria-label="Cerrar"
       >
