@@ -11,19 +11,21 @@ import {
   Bell, CheckCircle, LockOpen, ChevronLeft, ChevronRight,
   CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
   History, TrendingUp,
+  CalendarPlus, Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { useMemo, useState, useCallback, useRef, useEffect, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatedNumber } from '@/components/ui/animated-number';
-import RecentActivity from './dashboard/RecentActivity';
+import ActivityTimeline from './dashboard/ActivityTimeline';
 import OccupancyForecast from './dashboard/OccupancyForecast';
 import {
   AreaChart, Area, XAxis, YAxis,
   Tooltip as RechartsTooltip, ResponsiveContainer,
   type TooltipProps,
 } from 'recharts';
+import { daysAgo } from '@/lib/format';
 
 // ==================== HELPERS ====================
 
@@ -43,9 +45,38 @@ function formatearFecha(fechaStr: string): string {
   return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
 }
 
+// ==================== SPARKLINE ====================
+
+function Sparkline({ data, color, height = 24 }: { data: number[]; color: string; height?: number }) {
+  const chartData = useMemo(() => data.map((v, i) => ({ i, v })), [data]);
+  if (data.length < 2) return null;
+  return (
+    <div style={{ width: 60, height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 1, right: 0, bottom: 1, left: 0 }}>
+          <defs>
+            <linearGradient id={`sparkGrad-${color}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <Area
+            type="monotone"
+            dataKey="v"
+            stroke={color}
+            strokeWidth={1.5}
+            fill={`url(#sparkGrad-${color})`}
+            isAnimationActive={false}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 // ==================== ANIMATED KPI ====================
 
-function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, trend, numericValue, suffix }: {
+function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, trend, numericValue, suffix, sparkData, sparkColor, accentColor }: {
   icon: ComponentType<{ className?: string }>;
   label: string;
   value: string;
@@ -55,15 +86,28 @@ function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, trend, 
   trend?: { value: number; label: string };
   numericValue?: number;
   suffix?: string;
+  sparkData?: number[];
+  sparkColor?: string;
+  accentColor?: string;
 }) {
   const trendUp = trend && trend.value > 0;
   const trendDown = trend && trend.value < 0;
   const trendIcon = trendUp ? '\u2191' : trendDown ? '\u2193' : '';
   const trendColor = trendUp ? 'text-[#4ADE80]' : trendDown ? 'text-[#EF4444]' : 'text-muted-foreground';
+  const glowColor = accentColor || '#059669';
 
   return (
-    <Card className={`overflow-hidden group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 !py-0 !gap-0 border-0 ${bgGradient || 'bg-gradient-to-br from-slate-50 to-slate-100'}`}>
-      <CardContent className="p-4">
+    <Card
+      className={`overflow-hidden group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 !py-0 !gap-0 border-0 relative ${bgGradient || 'bg-gradient-to-br from-slate-50 to-slate-100'}`}
+    >
+      {/* Subtle gradient overlay at bottom */}
+      <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/[0.03] to-transparent pointer-events-none" />
+      {/* Border glow on hover */}
+      <div
+        className="absolute inset-0 rounded-[inherit] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{ boxShadow: `inset 0 0 0 1.5px ${glowColor}40, 0 0 12px -2px ${glowColor}30` }}
+      />
+      <CardContent className="p-4 relative z-10">
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
@@ -74,10 +118,25 @@ function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, trend, 
             </p>
             {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
           </div>
-          <div className="p-2.5 rounded-xl bg-white/80 shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-200">
-            <Icon className={`w-5 h-5 ${color}`} />
+          <div className="relative p-2.5 rounded-xl bg-white/80 shadow-sm group-hover:shadow-md transition-all duration-200">
+            {/* Decorative dots pattern */}
+            <div className="absolute inset-0 rounded-xl opacity-[0.06] pointer-events-none"
+              style={{
+                backgroundImage: 'radial-gradient(circle, currentColor 0.8px, transparent 0.8px)',
+                backgroundSize: '5px 5px',
+                color: glowColor,
+              }}
+            />
+            <Icon className={`w-5 h-5 ${color} group-hover:animate-[kpiBounce_0.4s_ease]`} />
           </div>
         </div>
+        {/* Sparkline row */}
+        {sparkData && sparkData.length >= 2 && sparkColor && (
+          <div className="mt-2 flex items-end justify-between">
+            <Sparkline data={sparkData} color={sparkColor} height={24} />
+            <span className="text-[9px] text-muted-foreground/60 ml-1">7d</span>
+          </div>
+        )}
         {trend && (
           <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${trendColor}`}>
             <span>{trendIcon}</span>
@@ -949,6 +1008,39 @@ export default function DashboardModule() {
   const checkinsHoy = useMemo(() => reservas.filter(r => r.estado === 'Confirmada' && r.checkin === hoyStr), [reservas, hoyStr]);
   const checkoutsHoy = useMemo(() => reservas.filter(r => r.estado === 'Check-In realizado' && r.checkout === hoyStr), [reservas, hoyStr]);
 
+  // ==================== 7-day sparkline data ====================
+  const sparkOccupancy = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const day = daysAgo(6 - i);
+      const active = reservas.filter(r =>
+        (r.estado === 'Check-In realizado' || r.estado === 'Confirmada') &&
+        r.checkin <= day && r.checkout >= day
+      ).length;
+      return totalHabitaciones > 0 ? Math.round((active / totalHabitaciones) * 100) : 0;
+    });
+  }, [reservas, totalHabitaciones]);
+
+  const sparkCheckins = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const day = daysAgo(6 - i);
+      return reservas.filter(r => r.estado === 'Confirmada' && r.checkin === day).length;
+    });
+  }, [reservas]);
+
+  const sparkCheckouts = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const day = daysAgo(6 - i);
+      return reservas.filter(r => r.estado === 'Check-In realizado' && r.checkout === day).length;
+    });
+  }, [reservas]);
+
+  const sparkRevenue = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const day = daysAgo(6 - i);
+      return pagos.filter(p => p.fecha === day).reduce((sum, p) => sum + p.monto, 0);
+    });
+  }, [pagos]);
+
   // Alerta de caja abierta
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -1010,10 +1102,32 @@ export default function DashboardModule() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-[#166534]" bgGradient="bg-gradient-to-br from-[#DCFCE7] via-[#ECFDF5] to-white" numericValue={tasaOcupacion} suffix="%" />
-        <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-[#1E40AF]" bgGradient="bg-gradient-to-br from-[#DBEAFE] via-[#EFF6FF] to-white" numericValue={checkinsHoy.length} />
-        <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-[#EA580C]" bgGradient="bg-gradient-to-br from-[#FFEDD5] via-[#FFF7ED] to-white" numericValue={checkoutsHoy.length} />
-        <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-[#7C3AED]" bgGradient="bg-gradient-to-br from-[#F5F3FF] via-[#FAFAFE] to-white" numericValue={reservadas} />
+        <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-[#166534]" bgGradient="bg-gradient-to-br from-[#DCFCE7] via-[#ECFDF5] to-white" numericValue={tasaOcupacion} suffix="%" sparkData={sparkOccupancy} sparkColor="#059669" accentColor="#059669" />
+        <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-[#059669]" bgGradient="bg-gradient-to-br from-[#DCFCE7] via-[#ECFDF5] to-white" numericValue={checkinsHoy.length} sparkData={sparkCheckins} sparkColor="#059669" accentColor="#059669" />
+        <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-[#EA580C]" bgGradient="bg-gradient-to-br from-[#FFEDD5] via-[#FFF7ED] to-white" numericValue={checkoutsHoy.length} sparkData={sparkCheckouts} sparkColor="#F59E0B" accentColor="#F59E0B" />
+        <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-[#059669]" bgGradient="bg-gradient-to-br from-[#DCFCE7] via-[#ECFDF5] to-white" numericValue={reservadas} sparkData={sparkRevenue} sparkColor="#059669" accentColor="#059669" />
+      </div>
+
+      {/* Quick Actions */}
+      <div className="flex flex-wrap gap-2">
+        {[
+          { icon: CalendarPlus, label: 'Nueva Reserva', modulo: 'reservas' as const, color: '#059669' },
+          { icon: LogIn, label: 'Check-in', modulo: 'checkin' as const, color: '#059669' },
+          { icon: Wallet, label: 'Abrir Caja', modulo: 'caja' as const, color: '#F59E0B' },
+          { icon: BarChart3, label: 'Ver Reportes', modulo: 'reportes' as const, color: '#0F2B28' },
+        ].map(action => (
+          <Button
+            key={action.label}
+            variant="outline"
+            size="sm"
+            className="h-9 gap-2 text-xs font-medium border-dashed hover:border-solid transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm"
+            style={{ borderColor: `${action.color}40`, color: action.color }}
+            onClick={() => setModulo(action.modulo)}
+          >
+            <action.icon className="w-3.5 h-3.5" />
+            {action.label}
+          </Button>
+        ))}
       </div>
 
       {/* Pronóstico de ocupación — próximos 7 días */}
@@ -1222,8 +1336,8 @@ export default function DashboardModule() {
       {/* Calendario Gantt de Ocupación */}
       <CalendarioGantt habitaciones={habitaciones} reservas={reservas} fechaInicioBase={hoy} />
 
-      {/* Actividad Reciente — timeline de eventos del sistema */}
-      <RecentActivity />
+      {/* Línea de Actividad — timeline mejorado con filtros y detalles expandibles */}
+      <ActivityTimeline />
     </div>
   );
 }

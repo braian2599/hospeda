@@ -13,12 +13,15 @@ import {
 import {
   Plus, Pencil, Trash2, Bed, User,
   CheckCircle, UserCheck, CalendarCheck, SprayCan, Wrench, Ban,
+  Download, LayoutGrid, List,
   type LucideIcon,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import { type TipoHabitacion, type EstadoHabitacion, CAPACIDAD_POR_TIPO } from '@/lib/types';
 import { todayLocal, safeDate } from '@/lib/format';
+import { exportToCSV } from '@/lib/csv-export';
+import RoomStatusMap from './RoomStatusMap';
 
 // ── Mapeo de estados visuales ──
 const estados: Record<EstadoHabitacion, string> = {
@@ -287,6 +290,7 @@ export default function HabitacionesModule() {
   const eliminarHabitacion = useHotelStore(s => s.eliminarHabitacion);
   const [modal, setModal] = useState<'nueva' | 'editar' | 'eliminar' | null>(null);
   const [sel, setSel] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'lista' | 'mapa'>('lista');
   const [form, setForm] = useState({
     numero: '',
     tipo: 'Doble' as TipoHabitacion,
@@ -389,13 +393,70 @@ export default function HabitacionesModule() {
   return (
     <div className="space-y-6">
       <ModuleHeader icon={Bed} title="Habitaciones" subtitle="Gestioná las habitaciones de tu hotel">
-        <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Nueva Habitación</Button>
+        <div className="flex items-center gap-2">
+          {/* ── View toggle (Lista / Mapa) ── */}
+          <div className="flex items-center gap-0.5 rounded-lg border bg-muted/50 p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode('lista')}
+              className={`
+                flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium
+                transition-all duration-200
+                ${viewMode === 'lista'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                }
+              `}
+              aria-label="Vista de lista"
+            >
+              <List className="w-3.5 h-3.5" />
+              Lista
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('mapa')}
+              className={`
+                flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium
+                transition-all duration-200
+                ${viewMode === 'mapa'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                }
+              `}
+              aria-label="Vista de mapa"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Mapa
+            </button>
+          </div>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+            const headers = ['Número', 'Tipo', 'Estado', 'Piso', 'Precio'];
+            const rows = sorted.map(([, h]) => [
+              h.numero || '',
+              h.tipo || '',
+              h.estado || '',
+              (h.numero || '').replace(/\D/g, '').charAt(0) || '',
+              h.precioPorCama ?? '',
+            ]);
+            exportToCSV('habitaciones.csv', headers, rows);
+            toast.success('CSV exportado');
+          }}>
+            <Download className="w-3.5 h-3.5" />Exportar CSV
+          </Button>
+          <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Nueva Habitación</Button>
+        </div>
       </ModuleHeader>
 
       {/* ── Banner de stats: breakdown por estado + barra de ocupación ── */}
       <RoomStatsBanner />
 
-      {/* ── Grilla de habitaciones ── */}
+      {/* ── Map view ── */}
+      {viewMode === 'mapa' && (
+        <RoomStatusMap onEditRoom={openEdit} onDeleteRoom={openDelete} />
+      )}
+
+      {/* ── Grilla de habitaciones (lista view) ── */}
+      {viewMode === 'lista' && (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {sorted.map(([num, hab]) => {
           const huesped = (hab.estado === 'Ocupada' || hab.estado === 'Reservada')
@@ -430,6 +491,7 @@ export default function HabitacionesModule() {
           );
         })}
       </div>
+      )}
 
       {/* ── Modal Nueva / Editar ── */}
       <Dialog open={modal === 'nueva' || modal === 'editar'} onOpenChange={() => setModal(null)}>

@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import {
   Wallet, Lock, Unlock, Plus, Minus, Loader2, Pencil, Trash2, AlertTriangle, Tag,
   TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight, Activity, Receipt, Sparkles,
+  Download,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
@@ -26,6 +27,7 @@ import { BILLETES } from '@/lib/types';
 import PaginationBar from '@/components/ui/pagination-bar';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { cn } from '@/lib/utils';
+import { exportToCSV } from '@/lib/csv-export';
 
 // formatFechaHora and formatMoney imported from @/lib/format
 
@@ -296,7 +298,22 @@ export default function CajaModule() {
 
   return (
     <div className="space-y-6">
-      <ModuleHeader icon={Wallet} title="Caja" subtitle="Controla los movimientos de dinero del dia" />
+      <ModuleHeader icon={Wallet} title="Caja" subtitle="Controla los movimientos de dinero del dia">
+        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+          const headers = ['Fecha', 'Tipo', 'Monto', 'Descripción', 'Método'];
+          const rows = movimientos.map(m => [
+            m.fecha || '',
+            m.tipo || '',
+            m.monto,
+            m.descripcion || '',
+            m.metodo || '',
+          ]);
+          exportToCSV('caja_movimientos.csv', headers, rows);
+          toast.success('CSV exportado');
+        }}>
+          <Download className="w-3.5 h-3.5" />Exportar CSV
+        </Button>
+      </ModuleHeader>
 
       {caja.estado === 'cerrada' ? (
         /* ═══════ CAJA CERRADA — inviting empty state ═══════ */

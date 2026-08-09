@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,8 @@ import {
   Hotel, CalendarCheck, CreditCard, Users, BarChart3, Sparkles,
   ArrowRight, Check, Menu, X, Shield, Zap, Clock, Globe,
   ChevronDown, ChevronUp, Building2, Receipt, Wrench, Mail, Phone,
-  Quote, Star, MapPin, FileCheck, MessageCircle, Server, Headphones
+  Quote, Star, MapPin, FileCheck, MessageCircle, Server, Headphones,
+  ArrowUp, Linkedin, Twitter, Instagram
 } from 'lucide-react';
 import PlanCard from '@/components/payments/PlanCard';
 import CheckoutDialog from '@/components/payments/CheckoutDialog';
@@ -273,6 +274,61 @@ function FadeIn({ children, className = '', delay = 0 }: { children: React.React
   );
 }
 
+/* ─── Typewriter text effect ─── */
+function TypewriterText({ text, className = '' }: { text: string; className?: string }) {
+  const [displayed, setDisplayed] = useState('');
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      if (i <= text.length) {
+        setDisplayed(text.slice(0, i));
+      } else {
+        setDone(true);
+        clearInterval(interval);
+      }
+    }, 65);
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return (
+    <span className={className}>
+      {displayed}
+      {!done && <span className="typewriter-cursor" aria-hidden="true" />}
+    </span>
+  );
+}
+
+/* ─── Back to top button ─── */
+function BackToTop() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      setVisible(docHeight > 0 && scrollTop / docHeight > 0.5);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <button
+      className="back-to-top-btn"
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      aria-label="Volver arriba"
+    >
+      <ArrowUp className="w-4 h-4" />
+    </button>
+  );
+}
+
 /* ─── Navbar ─── */
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -299,6 +355,9 @@ function Navbar() {
           </div>
           <span className="font-bold text-lg tracking-tight">
             Hospedá
+          </span>
+          <span className="version-badge-pulse inline-flex items-center px-1.5 py-0.5 rounded-md bg-[#059669]/10 text-[10px] font-semibold text-[#059669] border border-[#059669]/20">
+            v2.1
           </span>
         </Link>
 
@@ -401,10 +460,10 @@ function Hero() {
 
         <FadeIn delay={100}>
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] mb-6">
-            Tu hotel,{' '}
+            <TypewriterText text="Tu hotel," className="inline" />{' '}
             <span className="relative inline-block">
               <span className="relative z-10 hero-gradient-text">
-                gestionado
+                <TypewriterText text="gestionado" className="inline" />
               </span>
               <span className="hero-underline" aria-hidden="true" />
             </span>
@@ -493,7 +552,7 @@ function StatsSection() {
                 {/* Decorative gradient ring around icon */}
                 <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-gradient-to-br from-[#059669]/15 to-transparent opacity-50 group-hover:opacity-80 group-hover:scale-110 transition-all duration-500" />
 
-                <div className={`w-14 h-14 rounded-2xl ${s.iconColor} flex items-center justify-center mx-auto mb-4 shadow-sm ring-4 ring-white/60 dark:ring-slate-800/60`}>
+                <div className={`stat-icon-pulse w-14 h-14 rounded-2xl ${s.iconColor} flex items-center justify-center mx-auto mb-4 shadow-sm ring-4 ring-white/60 dark:ring-slate-800/60`}>
                   <s.icon className="w-7 h-7" />
                 </div>
                 <div className="text-4xl sm:text-5xl font-extrabold text-[#0F2B28] tabular-nums">
@@ -676,10 +735,10 @@ function Features() {
                     </div>
 
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors text-muted-foreground shrink-0">
+                      <div className="icon-shimmer-hover w-9 h-9 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors text-muted-foreground shrink-0">
                         <f.icon className="w-4.5 h-4.5" />
                       </div>
-                      <h4 className="font-semibold">{f.title}</h4>
+                      <h4 className="font-semibold feature-connector">{f.title}</h4>
                     </div>
                     <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
                   </div>
@@ -695,6 +754,17 @@ function Features() {
 
 /* ─── Testimonials ─── */
 function TestimonialsSection() {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (isHovered) return;
+    const timer = setInterval(() => {
+      setActiveIdx((prev) => (prev + 1) % testimonials.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [isHovered]);
+
   return (
     <section className="py-24 sm:py-32 bg-gradient-to-b from-[#F0FDF4]/30 via-white to-white relative overflow-hidden">
       {/* Decorative gradient orbs */}
@@ -717,15 +787,31 @@ function TestimonialsSection() {
           </div>
         </FadeIn>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {testimonials.map((t, i) => (
-            <FadeIn key={t.nombre} delay={i * 120}>
-              <div className="feature-grid-item relative p-7 bg-white border border-border rounded-2xl shadow-sm h-full flex flex-col overflow-hidden">
+        {/* Desktop: all cards visible; Mobile: carousel */}
+        <div
+          className="grid md:grid-cols-3 gap-6"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          {testimonials.map((t, i) => {
+            const isMobileActive = i === activeIdx;
+            return (
+              <div
+                key={t.nombre}
+                className={`
+                  feature-grid-item relative p-7 bg-white border border-border rounded-2xl shadow-sm h-full flex flex-col overflow-hidden
+                  transition-all duration-300
+                  md:opacity-100 md:translate-x-0 md:scale-100
+                  ${isMobileActive ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-8 scale-95 pointer-events-none absolute'}
+                  md:!relative md:!pointer-events-auto
+                `}
+                style={{ animationDelay: `${i * 120}ms` }}
+              >
                 {/* Top-right accent gradient blob */}
                 <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-gradient-to-br from-[#059669]/12 to-transparent blur-xl pointer-events-none" />
 
-                {/* Large premium quote mark */}
-                <div className="absolute top-3 right-4 premium-quote select-none pointer-events-none" aria-hidden="true">
+                {/* Large premium quote mark with fade-in */}
+                <div className="absolute top-3 right-4 premium-quote quote-fade-in select-none pointer-events-none" aria-hidden="true">
                   &ldquo;
                 </div>
 
@@ -752,7 +838,21 @@ function TestimonialsSection() {
                   </div>
                 </div>
               </div>
-            </FadeIn>
+            );
+          })}
+        </div>
+
+        {/* Mobile carousel dots */}
+        <div className="flex items-center justify-center gap-2 mt-6 md:hidden">
+          {testimonials.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveIdx(i)}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                i === activeIdx ? 'bg-[#059669] w-6' : 'bg-[#059669]/25'
+              }`}
+              aria-label={`Testimonio ${i + 1}`}
+            />
           ))}
         </div>
       </div>
@@ -808,14 +908,16 @@ function Plans() {
           </div>
         </FadeIn>
 
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+        <div className="pricing-group grid md:grid-cols-3 gap-6 lg:gap-8">
           {(['basico', 'profesional', 'premium'] as const).map((tipo, i) => (
             <FadeIn key={tipo} delay={i * 150}>
-              <PlanCard
-                planTipo={tipo}
-                destacado={tipo === 'profesional'}
-                onSelect={handleSelectPlan}
-              />
+              <div className={`pricing-card ${tipo === 'profesional' ? 'badge-glow' : ''}`}>
+                <PlanCard
+                  planTipo={tipo}
+                  destacado={tipo === 'profesional'}
+                  onSelect={handleSelectPlan}
+                />
+              </div>
             </FadeIn>
           ))}
         </div>
@@ -980,8 +1082,15 @@ function CtaSection() {
 
 /* ─── Footer ─── */
 function Footer() {
+  const socialLinks = [
+    { icon: Linkedin, label: 'LinkedIn', href: '#' },
+    { icon: Twitter, label: 'Twitter', href: '#' },
+    { icon: Instagram, label: 'Instagram', href: '#' },
+    { icon: Mail, label: 'Email', href: 'mailto:hola@hospeda.com' },
+  ];
+
   return (
-    <footer className="border-t border-border bg-secondary/20">
+    <footer className="footer-wave-divider border-t border-border bg-secondary/20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           {/* Brand */}
@@ -1035,9 +1144,23 @@ function Footer() {
           <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} Hospedá. Todos los derechos reservados.
           </p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Shield className="w-3 h-3" />
-            <span>Datos encriptados y seguros</span>
+          <div className="flex items-center gap-3">
+            {/* Social media icons with hover animations */}
+            {socialLinks.map((s) => (
+              <a
+                key={s.label}
+                href={s.href}
+                className="social-icon-hover text-muted-foreground hover:text-[#059669]"
+                aria-label={s.label}
+              >
+                <s.icon className="w-4 h-4" />
+              </a>
+            ))}
+            <div className="w-px h-3 bg-border mx-1" />
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Shield className="w-3 h-3" />
+              <span>Datos encriptados</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1050,7 +1173,7 @@ function Footer() {
    ═══════════════════════════════════════════ */
 export default function LandingPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <div className="page-transition min-h-screen flex flex-col bg-background text-foreground">
       <ScrollProgress />
       <Navbar />
       <main className="flex-1">
@@ -1064,6 +1187,7 @@ export default function LandingPage() {
         <CtaSection />
       </main>
       <Footer />
+      <BackToTop />
     </div>
   );
 }

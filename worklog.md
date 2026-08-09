@@ -1,6 +1,51 @@
 # Hospeda - Worklog de Desarrollo
 
-## Estado del Proyecto: FASE 5 - Lint Clean + Features + Visual Polish Completado
+## Estado del Proyecto: FASE 9 - Features Expansion + Visual Polish + Data Export Completado
+
+---
+
+## Task 9-a: PDF Export to Reportes Module (Completado)
+
+### Implementation
+- ✅ Created `/src/lib/pdf-export.ts` — client-side PDF export utility
+  - `PdfReportData` interface for structured report data (hotelName, reportTitle, dateRange, kpis, tables, summary)
+  - `exportReportAsPdf()` generates a professional HTML document in a new browser window
+  - Uses forest green color palette (#0F2B28) consistent with Hospeda branding
+  - Includes A4 print-optimized layout with `@page` margins
+  - Renders KPI summary cards, data tables with alternating rows, and optional summary callout
+  - Auto-hides print button in print mode; shows "Guardar como PDF" + "Cerrar" floating buttons
+  - Zero external dependencies — uses browser's built-in print-to-PDF capability
+
+- ✅ Added `@media print` styles in `globals.css`
+  - Hides sidebar, nav, scroll progress, FAB, quick-stats bar
+  - Forces white background and black text for clean print output
+  - Ensures cards have visible borders, avoids page breaks inside cards/rows
+  - Forces `print-color-adjust: exact` so badges/KPI backgrounds print correctly
+  - Expands main content to full width (no sidebar margin)
+  - Shrinks headings for compact print layout
+
+- ✅ Added `handleExportPDF` callback in `ReportesModule.tsx`
+  - Supports all 7 report tabs: financiero, gastos, auditoria, habitaciones, clientes, empleados, historial-caja
+  - Each tab exports: hotel name, report title, date range, KPI summaries, data tables, and optional context summary
+  - Uses `usuarioActual.tenantNombre` for hotel name (falls back to 'Hospeda')
+  - Toast notifications on success/error
+
+- ✅ Added "Exportar PDF" button between CSV and Imprimir buttons
+  - Uses `FileDown` icon from lucide-react
+  - Same visual style as existing export buttons (hover: forest green)
+  - Responsive text sizing
+
+### Key Design Decisions
+- Chose client-side HTML→Print→PDF approach over server-side PDF generation
+  - Works in sandbox without external dependencies (no jsPDF, no wkhtmltopdf)
+  - Leverages browser's native print dialog → "Save as PDF"
+  - Generates clean, print-ready HTML with professional formatting
+  - No API route needed — all computation happens client-side with existing data
+
+### Files Modified
+- `src/lib/pdf-export.ts` (new)
+- `src/components/modules/ReportesModule.tsx` (added import, handleExportPDF, Exportar PDF button, usuarioActual from store)
+- `src/app/globals.css` (added @media print block)
 
 ---
 
@@ -2229,3 +2274,355 @@ Key metrics:
 | VLM polish rating | 8.5/10 (up from B+ baseline; matches Round 8 final summary rating) |
 
 Conclusion: All Round 8 deliverables verified end-to-end. Lint clean, dev server healthy, all premium CSS classes rendering on homepage, all 3 new layout components (QuickStatsBar, KeyboardShortcuts, QuickActionsFab) confirmed bundled into /app route JS, screenshot captured successfully, VLM independently rated visual polish at 8.5/10 with strengths in typography, color palette, and information architecture. Project state: STABLE. Ready for Round 9.
+
+---
+Task ID: 9-c
+Agent: frontend-styling-expert
+Task: Enhance Dashboard KPI cards with sparklines and visual improvements
+
+Work Log:
+- Read worklog (Rounds 1-8: critical/high bug fixes, shared utilities, visual polish, premium landing) and existing DashboardModule.tsx (1343 lines) to understand KPIAnimated component structure and data flow
+- Created Sparkline component using recharts AreaChart (60x24px, no axes/labels/tooltip, monotone curve with gradient fill via linearGradient defs, isAnimationActive=false for instant render)
+- Added 7-day sparkline data computation with useMemo for 4 KPIs:
+  - sparkOccupancy: active reservations / totalHabitaciones × 100 per day (6 days ago → today)
+  - sparkCheckins: count of Confirmada reservas with matching checkin date per day
+  - sparkCheckouts: count of Check-In realizado reservas with matching checkout date per day
+  - sparkRevenue: sum of pagos.monto per day
+  - All use daysAgo() from @/lib/format
+- Enhanced KPIAnimated component with:
+  - Subtle gradient overlay at bottom of card (from-black/0.03 → transparent, h-8)
+  - Decorative dots pattern in icon area (radial-gradient CSS, 5px grid, opacity 0.06, color matches accentColor)
+  - Icon bounce animation on hover (group-hover:animate-[kpiBounce_0.4s_ease], using new @keyframes kpiBounce in globals.css)
+  - Border glow on hover (inset box-shadow with accentColor at 25%/19% opacity, transition-opacity duration-300)
+  - New props: sparkData, sparkColor, accentColor
+- Changed KPI card color scheme to forest green palette:
+  - Ocupación: #059669 emerald (was #166534 only)
+  - Check-ins: #059669 emerald (was #1E40AF blue — removed indigo/blue per palette rules)
+  - Check-outs: #F59E0B amber (accentColor, keeps #EA580C text)
+  - Reservadas: #059669 emerald (was #7C3AED purple — removed per palette rules)
+- Added Quick Actions row below KPI cards:
+  - 4 dashed-border outline buttons: Nueva Reserva (CalendarPlus), Check-in (LogIn), Abrir Caja (Wallet), Ver Reportes (BarChart3)
+  - Each dispatches setModulo() to navigate to the corresponding module
+  - Color-coded borders: emerald for reservas/checkin, amber for caja, forest green for reportes
+  - Hover effects: border-solid, -translate-y-0.5 lift, shadow-sm
+- Added CalendarPlus and Wallet to lucide-react imports
+- Added daysAgo to @/lib/format imports
+- Added @keyframes kpiBounce to globals.css (scale 1→1.18→0.95→1, 0.4s)
+- Verified: lint clean (0 errors), no new TS errors in DashboardModule.tsx
+
+Stage Summary:
+- Dashboard KPI cards now feature mini sparkline charts (7-day trends) rendered via recharts AreaChart
+- Visual design enhanced with gradient overlays, decorative dot patterns, icon bounce animation on hover, and colored border glow on hover
+- All colors migrated to forest green palette (#0F2B28, #059669, #F59E0B) — no indigo/blue/purple
+- Quick Actions row provides one-click navigation to common tasks (Nueva Reserva, Check-in, Abrir Caja, Ver Reportes)
+- Zero lint errors, zero new TypeScript errors
+
+---
+Task ID: 9-d
+Agent: frontend-styling-expert
+Task: Polish landing page with enhanced animations and visual details
+
+Work Log:
+- Read worklog.md, page.tsx (1193 lines), globals.css, animated-number.tsx, PlanCard.tsx to understand existing code and patterns
+- Added 15+ new CSS keyframes and utility classes to globals.css: cursorBlink, iconShimmer, badgeGlow, slideInRight, quoteFadeIn, socialBounce, fadeInUp, pageFadeIn, statPulse, staggerFadeUp, versionPulse, waveBorder variants
+- Added reduced-motion media query that disables ALL custom animations and transitions when prefers-reduced-motion is active
+- Added smooth scroll behavior (scroll-behavior: smooth) on html/body
+- Created TypewriterText component: types out text letter by letter with blinking cursor, used for hero heading ("Tu hotel," and "gestionado")
+- Created BackToTop component: floating button appears after scrolling 50% of page, uses forest green gradient, fadeInUp animation
+- Added v2.1 pulsing version badge next to logo in Navbar (version-badge-pulse animation)
+- Added icon-shimmer-hover effect on feature grid card icons (diagonal light sweep on hover)
+- Added feature-connector decorative dots/lines between feature card titles
+- Added stat-icon-pulse animation on stats section icon containers
+- Converted TestimonialsSection to carousel with auto-rotation (every 5s, pauses on hover), mobile-only with dot navigation, desktop shows all 3 cards
+- Added quote-fade-in animation to testimonial quote marks (scale+rotate entrance)
+- Added pricing-group wrapper with hover dim effect (non-hovered cards fade to 55% opacity and scale down)
+- Added badge-glow animation on "Most Popular" pricing card (pulsing emerald box-shadow)
+- Added footer-wave-divider gradient bar at footer top (emerald→green→amber→emerald)
+- Added social media icons (LinkedIn, Twitter, Instagram, Email) in footer with social-icon-hover bounce animation
+- Added page-transition micro-fade on LandingPage root div
+- Verified: lint passes (0 new errors), tsc --noEmit shows only pre-existing errors (none in page.tsx or globals.css), build compiles successfully
+
+Stage Summary:
+- Landing page now has 7 enhanced sections (hero, features, stats, testimonials, pricing, footer, global)
+- All animations use forest green palette (#0F2B28, #059669, #F59E0B) — no indigo/blue
+- Full prefers-reduced-motion support via CSS media query
+- Back-to-top button with smooth scroll, typewriter hero heading, testimonial carousel, pricing comparison hover, social icon bounces
+- Zero new lint/TS errors introduced
+
+---
+Task ID: 9-b
+Agent: full-stack-developer
+Task: Add Visual Calendar View to Reservas module
+
+Work Log:
+- Read ReservasModule.tsx (2156 lines) to understand data model, state, filter bar, and existing card/table structure
+- Read Reserva type from @/lib/types (fields: id, huesped, dni, habitacion, checkin, checkout, estado, total, etc.)
+- Read existing badge color maps: estadoReservaBadge (Confirmada=green, Cancelada=red, Check-In=blue, Check-Out=gray)
+- Read existing animation classes from globals.css (animate-slide-up, card-hover, btn-press)
+- Read Tooltip component from @/components/ui/tooltip (uses @radix-ui/react-tooltip)
+- Created new component: /src/components/modules/ReservationCalendarView.tsx (375 lines)
+  - Gantt-like chart: Y axis = room numbers, X axis = dates of month
+  - Color-coded bars: Confirmada=#059669 (emerald), Check-In=#D97706 (amber), Check-Out=#94A3B8 (gray), Cancelada=#DC2626 (red)
+  - Cancelled bars have opacity-60 + dashed border for visual distinction
+  - Hover tooltips with dark forest green bg (#0F2B28) showing guest name, room, DNI, dates, status, total
+  - Month navigation (prev/next chevron buttons + "Hoy" today button)
+  - Today indicator: green line + highlighted day cell with emerald bg
+  - Weekend highlighting (lighter bg)
+  - Responsive: horizontally scrollable grid with sticky room labels and sticky day headers
+  - Staggered animation on mount (animate-slide-up) with per-bar animation delays
+  - Bar hover: -translate-y-0.5 lift + shadow-md + z-10
+  - Performance: useMemo for days, roomNumbers, reservationBars, barsByRoom, activeRoomNumbers, todayOffset
+  - Legend shown on desktop (header) and mobile (bottom)
+  - Summary stats: reservation count + room count
+  - Uses date-fns for all date calculations (eachDayOfInterval, startOfMonth, endOfMonth, etc.)
+  - Uses es locale for month name formatting
+- Modified ReservasModule.tsx:
+  - Added imports: LayoutList, LayoutGrid from lucide-react, ReservationCalendarView
+  - Added viewMode state: useState<'lista' | 'calendario'>('lista')
+  - Added view mode toggle UI between filter bar and content (pill-style toggle with bg-[#F1F5F9])
+  - Conditional rendering: viewMode === 'calendario' shows ReservationCalendarView, viewMode === 'lista' shows existing card/table
+  - Calendar receives filteredReservas, habitaciones, openDetalle callback, todayStr
+  - Click on a bar opens the existing detail dialog (openDetalle)
+- Ran lint: 0 new errors
+- Dev server compiles successfully
+
+Stage Summary:
+- New ReservationCalendarView component (Gantt-like chart) with full visual calendar for reservations
+- Toggle between List and Calendario views with pill-style buttons
+- Calendar shows month grid with rooms as rows, dates as columns, colored reservation bars
+- Full forest green palette (#0F2B28, #059669, etc.) — no indigo/blue
+- Hover tooltips, click-to-detail, today indicator, month navigation
+- Responsive with horizontal scroll, sticky headers/labels
+- Performance-optimized with useMemo for all heavy computations
+- Staggered animations and hover lift effects
+
+---
+Task ID: 9-f
+Agent: full-stack-developer
+Task: Add Activity Timeline to Dashboard
+
+Work Log:
+- Read existing RecentActivity.tsx and DashboardModule.tsx to understand current structure
+- Read store.ts, types.ts, and format.ts to understand data sources and conventions
+- Created /src/components/modules/dashboard/ActivityTimeline.tsx with enhanced features:
+  - 7 event types: reserva, cancelacion, checkin, checkout, pago, limpieza, mantenimiento
+  - Filter tabs: Todos | Reservas | Check-in/out | Pagos | Limpieza
+  - date-fns formatDistanceToNow with es locale for time-relative labels ("Hace 5 min", "Hace 2 horas", "Ayer")
+  - Color-coded dots and left-border per activity type using forest green palette
+  - Expandable details on click (border-l-2 with type color)
+  - Max 20 items with INITIAL_VISIBLE=8 and "Ver más" button with count badge
+  - Staggered slide-in-from-left animation on mount (40ms delay per item)
+  - Hover effects (bg-muted/40, icon scale-105)
+  - Scrollable container with max-h-[520px]
+  - useMemo for allEvents, filteredEvents, and visibleEvents
+  - Granular Zustand selectors (no destructuring)
+  - Sources: reservas, pagos, gastos, caja.movimientos, historialMantenimiento, mantenimientoPendientes, habitaciones
+- Updated DashboardModule.tsx: replaced RecentActivity import with ActivityTimeline
+- Lint check passed clean (0 errors)
+- Dev server confirmed running
+
+Stage Summary:
+- New ActivityTimeline.tsx replaces RecentActivity with significantly enhanced functionality
+- Key improvements over RecentActivity: filter tabs, expandable details, more event sources (limpieza, mantenimiento), more items (20 vs 10), date-fns locale-aware relative time, color-coded borders, "Ver más" pagination
+- DashboardModule now imports ActivityTimeline instead of RecentActivity
+- Zero lint errors
+
+---
+Task ID: 9-e
+Agent: full-stack-developer
+Task: Add CSV export to all tabular modules
+
+Work Log:
+- Created shared CSV export utility at `/src/lib/csv-export.ts` with `escapeCSV`, `downloadCSV`, and `exportToCSV` functions
+- Updated `ReportesModule.tsx` to import `downloadCSV` from shared utility instead of inline definitions, removed local `escapeCSV` and `downloadCSV` functions
+- Added CSV export button to `HabitacionesModule.tsx` — exports Número, Tipo, Estado, Piso (derived from room number first digit), Precio
+- Added CSV export button to `ClientesModule.tsx` — exports Nombre, DNI, Email, Teléfono, Dirección (empty if unavailable in model)
+- Added CSV export button to `ReservasModule.tsx` — exports Huésped, DNI, Habitación, Check-in, Check-out, Estado, Total (via calcularTotalReserva)
+- Added CSV export button to `CajaModule.tsx` — exports Fecha, Tipo, Monto, Descripción, Método
+- All buttons use outline variant, h-8, text-xs, Download icon, forest green hover style
+- Lint passes clean with zero errors
+- Dev server running correctly
+
+Stage Summary:
+- Created `/src/lib/csv-export.ts` shared utility (escapeCSV, downloadCSV, exportToCSV)
+- Refactored ReportesModule to use shared CSV utility instead of inline helpers
+- Added "Exportar CSV" buttons to 4 modules: Habitaciones, Clientes, Reservas, Caja
+- All buttons positioned in module header/toolbar areas alongside existing action buttons
+- Export uses currently filtered/visible data (filteredReservas for Reservas, lista for Clientes, sorted for Habitaciones, movimientos for Caja)
+
+---
+Task ID: 9-g
+Agent: full-stack-developer
+Task: Add Interactive Room Status Map
+
+Work Log:
+- Read existing HabitacionesModule.tsx to understand data model, UI patterns, and status badge configurations
+- Read types.ts to understand Habitacion interface, EstadoHabitacion type, and CAPACIDAD_POR_TIPO
+- Created /src/components/modules/RoomStatusMap.tsx with full interactive room status map:
+  - Visual grid/floor plan representation with rooms as colored card/cells
+  - 6 status colors matching spec: Disponible=#059669, Ocupada=#D97706, Reservada=#0D9488, Limpieza=#EAB308, Mantenimiento=#DC2626, Fuera de servicio=#94A3B8
+  - Each room cell shows: room number (large bold), room type (small text), status icon, guest name (if occupied)
+  - Color-coded 4px left border per status with subtle background tint
+  - Pulsing dot (animate-pulse) for rooms needing attention (Limpieza, Mantenimiento)
+  - Click on room cell opens detail dialog with status badge, room details grid, guest info, problem note, Editar/Eliminar actions
+  - Hover tooltip (shadcn Tooltip) shows room number, type, capacity, status, guest, problem
+  - Rooms grouped by floor (extracted from room number first digit, e.g., "101" → Piso 1)
+  - Floor headers with Bed icon, floor number, and room count
+  - Legend bar at top showing all status colors, icons, labels, and counts
+  - Segmented status summary bar showing proportional distribution of each status
+  - Grid layout: auto-fill columns with min 100px per cell
+  - Staggered fade-in animation on mount with per-cell delay
+  - Hover: -translate-y-0.5 lift + shadow-md
+  - Focus-visible ring for keyboard accessibility
+  - Responsive auto-fill grid
+  - useMemo for allRooms, sortedRooms, counts, floors
+  - useCallback for getHuespedActual
+  - Granular Zustand selectors
+- Updated HabitacionesModule.tsx:
+  - Added "Lista | Mapa" pill-style view toggle with List and LayoutGrid icons
+  - Toggle uses border + bg-muted/50 container with active state bg-card + shadow-sm
+  - viewMode state: 'lista' | 'mapa', defaults to 'lista'
+  - "Mapa" view renders RoomStatusMap component with onEditRoom/onDeleteRoom callbacks
+  - "Lista" view renders existing grid card layout (conditionally rendered)
+  - Added LayoutGrid and List imports from lucide-react
+  - Added RoomStatusMap import
+- Lint check passed clean (0 errors)
+- Dev server running correctly
+
+Stage Summary:
+- New RoomStatusMap.tsx component provides interactive floor plan visualization of all rooms
+- HabitacionesModule now has Lista/Mapa view toggle in header
+- Map view features: color-coded cells by status, floor grouping, pulsing attention dots, hover tooltips, click-to-detail dialog, segmented status bar, legend with counts
+- Forest green palette throughout — no indigo/blue
+- All animations, hover effects, and accessibility features implemented as specified
+- Zero lint errors
+
+---
+
+## Round 9: Features Expansion + Visual Polish + Data Export (Completado)
+
+### Estado inicial
+- Round 8 completado: lint clean (0 errors), dev server corriendo, 4 features nuevas
+- VLM polish rating: 8.5/10
+- Homepage: 132KB, /app route: 45KB
+
+### QA Inicial
+- ✅ Lint: 0 errors, 0 warnings
+- ✅ Dev server: 200 OK en localhost:3000
+- ✅ Homepage: 200 OK, 136KB HTML
+- ✅ Landing page: 9 sections, 10920px height
+- ✅ agent-browser: captura exitosa, title correcto
+
+### Nuevas Features (7 features en paralelo vía subagents)
+
+#### Task 9-a: PDF Export para Reportes
+- **Nuevo archivo:** `src/lib/pdf-export.ts` — Utility de exportación PDF client-side
+- **PdfReportData interface:** hotelName, reportTitle, dateRange, kpis, tables, summary
+- **exportReportAsPdf():** Genera HTML profesional con estilos A4, abre en nueva ventana para Save as PDF
+- **@media print** en globals.css: Oculta sidebar/nav/FAB/quick-stats, fuerza bg blanco, previene page-break dentro de cards
+- **"Exportar PDF" button** en ReportesModule (entre CSV e Imprimir) con FileDown icon
+- Soporta 7 tabs de reportes: Financiero, Gastos, Auditoría, Habitaciones, Clientes, Empleados, Caja
+- Zero dependencias externas — usa Print → Save as PDF del browser
+
+#### Task 9-b: Reservation Calendar View
+- **Nuevo archivo:** `src/components/modules/ReservationCalendarView.tsx` (375 líneas)
+- Gantt-like chart: Y=room numbers, X=dates of month
+- Color-coded bars: Confirmada=#059669, Check-In=#D97706, Check-Out=#94A3B8, Cancelada=#DC2626
+- Hover tooltips con forest green bg, month navigation, today indicator, weekend highlighting
+- Click on bar → open detail dialog
+- Responsive: horizontal scroll con sticky headers
+- "Lista / Calendario" toggle en ReservasModule
+
+#### Task 9-c: Dashboard Sparklines + Visual Enhancements
+- **Sparkline component** (60x24px) via recharts AreaChart con gradient fill
+- 7-day trend data para 4 KPIs (occupancy, checkins, checkouts, revenue)
+- KPIAnimated mejorado: gradient overlay, decorative dots, icon bounce, border glow
+- Colores migrados a forest green palette (eliminado blue/purple)
+- Quick Actions row: 4 buttons (Nueva Reserva, Check-in, Abrir Caja, Ver Reportes)
+- @keyframes kpiBounce en globals.css
+
+#### Task 9-d: Landing Page Visual Polish
+- **TypewriterText** component: hero heading types out letter by letter
+- **BackToTop** button: aparece after 50% scroll, forest green gradient
+- v2.1 pulsing badge next to logo
+- icon-shimmer-hover en feature icons
+- Testimonials carousel con auto-rotation (5s)
+- Pricing comparison hover (non-hovered dim to 55%)
+- footer-wave-divider, social icon bounces
+- 15+ new CSS keyframes + prefers-reduced-motion support
+- scroll-behavior: smooth
+
+#### Task 9-e: CSV Export para Todos los Módulos
+- **Nuevo archivo:** `src/lib/csv-export.ts` — Shared utility (escapeCSV, downloadCSV, exportToCSV)
+- ReportesModule refactorizado: usa shared utility
+- "Exportar CSV" buttons en: Habitaciones, Clientes, Reservas, Caja
+- Exporta datos filtrados/visibles (no todos los datos)
+- Todos: outline variant, h-8, text-xs, Download icon
+
+#### Task 9-f: Activity Timeline
+- **Nuevo archivo:** `src/components/modules/dashboard/ActivityTimeline.tsx`
+- Reemplaza RecentActivity con enhanced version:
+  - 7 event types (reserva, cancelacion, checkin, checkout, pago, limpieza, mantenimiento)
+  - Filter tabs: Todos | Reservas | Check-in/out | Pagos | Limpieza
+  - Expandable details on click
+  - date-fns formatDistanceToNow con es locale
+  - Max 20 items con "Ver más"
+  - Staggered slide-in animation
+
+#### Task 9-g: Interactive Room Status Map
+- **Nuevo archivo:** `src/components/modules/RoomStatusMap.tsx`
+- Visual grid/floor plan con rooms como colored cells
+- 6 status colors: Disponible=#059669, Ocupada=#D97706, Reservada=#0D9488, Limpieza=#EAB308, Mantenimiento=#DC2626, Fuera de servicio=#94A3B8
+- Floor grouping, pulsing attention dots, hover tooltips, click-to-detail
+- Segmented status bar, legend con counts
+- "Lista | Mapa" toggle en HabitacionesModule
+
+### Verificación Final
+
+| Check | Result |
+|---|---|
+| Lint | 0 errors, 0 warnings ✅ |
+| Dev server | 200 OK ✅ |
+| Homepage | 200 OK, 136,749 bytes ✅ |
+| Landing page | 9 sections, 10920px height ✅ |
+| Title | "Hospedá — Gestión Hotelera Simple" ✅ |
+| New files | 7 (pdf-export.ts, csv-export.ts, ReservationCalendarView.tsx, ActivityTimeline.tsx, RoomStatusMap.tsx + updates) ✅ |
+| Agent-browser | Screenshot captured ✅ |
+
+### Archivos Nuevos (Round 9)
+- `src/lib/pdf-export.ts` — PDF export utility
+- `src/lib/csv-export.ts` — Shared CSV export utility
+- `src/components/modules/ReservationCalendarView.tsx` — Calendar view for Reservas
+- `src/components/modules/dashboard/ActivityTimeline.tsx` — Enhanced activity timeline
+- `src/components/modules/RoomStatusMap.tsx` — Interactive room status map
+
+### Archivos Modificados (Round 9)
+- `src/app/page.tsx` — TypewriterText, BackToTop, v2.1 badge, testimonials carousel, pricing hover
+- `src/app/globals.css` — 15+ keyframes, print styles, reduced-motion, smooth scroll
+- `src/components/modules/ReportesModule.tsx` — PDF export button + refactored CSV import
+- `src/components/modules/ReservasModule.tsx` — Calendar view toggle + CSV export button
+- `src/components/modules/DashboardModule.tsx` — Sparklines, Quick Actions, ActivityTimeline
+- `src/components/modules/HabitacionesModule.tsx` — Room status map toggle + CSV export button
+- `src/components/modules/ClientesModule.tsx` — CSV export button
+- `src/components/modules/CajaModule.tsx` — CSV export button
+
+### Próxima Fase (Round 10) — Recomendaciones
+
+#### Features propuestas
+1. **WebSocket real-time updates** — Mini service para updates en tiempo real entre usuarios
+2. **Drag-to-create en Reservation Calendar** — Crear reservas arrastrando en el calendario
+3. **PWA conversion** — Service worker + manifest para instalación como app
+4. **i18n extraction** — Extraer strings a archivos de traducción (es-AR / en)
+5. **Clientes loyalty program** — Sistema de puntos/descuentos para clientes frecuentes
+6. **Notificaciones push** — Web Push API para notificaciones del navegador
+
+#### Mejoras sistémicas
+1. **Server-side pagination** — Paginar en API en vez de traer todos los datos
+2. **Test coverage** — Unit tests para store actions, integration tests para API routes
+3. **Performance monitoring** — Web Vitals tracking
+4. **TypeScript strict mode** — Resolver los 3 pre-existing TS errors en TarifasModule
+
+#### Issues pendientes menores
+1. Reservas ninos2: Agregar `form.ninos2` field (actualmente usa ninosCount de hab1)
+2. Dev server OOM en sandbox 4GB (pre-existing, limitación de infraestructura)
+3. 3 TypeScript errors en TarifasModule (choferCortesia migration fallback)

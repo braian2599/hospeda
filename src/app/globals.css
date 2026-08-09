@@ -120,6 +120,7 @@
 
   html, body {
     @apply bg-background text-foreground;
+    scroll-behavior: smooth;
   }
 
   /* Global focus-visible ring for keyboard accessibility.
@@ -203,6 +204,13 @@
 @keyframes pulse-subtle {
   0%, 100% { opacity: 0.8; }
   50% { opacity: 1; }
+}
+
+@keyframes kpiBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -753,4 +761,350 @@
 
 .animate-fade-in-scale {
   animation: fadeInScale 220ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Print styles — clean layout when using Imprimir / Save as PDF
+   Hides sidebar, navigation, and interactive-only elements.
+   ───────────────────────────────────────────────────────────── */
+@media print {
+  /* Hide non-essential UI chrome */
+  nav,
+  aside,
+  [data-sidebar],
+  [data-slot="sidebar"],
+  .sidebar-gradient,
+  .scroll-progress,
+  .fab-container,
+  .quick-stats-bar,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Remove background colors and shadows for cleaner print */
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Ensure cards have visible borders in print */
+  .rounded-xl,
+  .rounded-lg {
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+  }
+
+  /* Expand full width — no sidebar margin */
+  main,
+  [role="main"],
+  .min-h-screen {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Avoid page breaks inside cards/tables */
+  .card,
+  [data-slot="card"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  table {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Force backgrounds to print for badges/KPI cards */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Shrink large headings slightly for print */
+  h1 { font-size: 1.5rem !important; }
+  h2 { font-size: 1.25rem !important; }
+  h3 { font-size: 1.1rem !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Round 9d — Landing page polish animations & utilities
+   ───────────────────────────────────────────────────────────── */
+
+/* Typewriter cursor blink */
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.typewriter-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  background: #059669;
+  vertical-align: text-bottom;
+  animation: cursorBlink 1s step-end infinite;
+}
+
+/* Icon shimmer on hover — diagonal light sweep */
+@keyframes iconShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.icon-shimmer-hover {
+  position: relative;
+  overflow: hidden;
+}
+
+.icon-shimmer-hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    rgba(5, 150, 105, 0.15) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.icon-shimmer-hover:hover::after {
+  opacity: 1;
+  animation: iconShimmer 800ms ease-out forwards;
+}
+
+/* "Most Popular" glow badge */
+@keyframes badgeGlow {
+  0%, 100% { box-shadow: 0 0 8px 2px rgba(5, 150, 105, 0.25); }
+  50% { box-shadow: 0 0 16px 4px rgba(5, 150, 105, 0.45); }
+}
+
+.badge-glow {
+  animation: badgeGlow 2.4s ease-in-out infinite;
+}
+
+/* Pricing comparison — dim non-hovered cards */
+.pricing-group .pricing-card {
+  transition: opacity 300ms ease, transform 300ms ease, box-shadow 300ms ease;
+}
+
+.pricing-group:hover .pricing-card {
+  opacity: 0.55;
+  transform: scale(0.98);
+}
+
+.pricing-group:hover .pricing-card:hover {
+  opacity: 1;
+  transform: scale(1.02);
+  z-index: 10;
+}
+
+/* Testimonial carousel slide */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideOutLeft {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-40px); }
+}
+
+.testimonial-enter {
+  animation: slideInRight 400ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Quote mark fade-in */
+@keyframes quoteFadeIn {
+  from { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+  to { opacity: 0.25; transform: scale(1) rotate(0deg); }
+}
+
+.quote-fade-in {
+  animation: quoteFadeIn 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Footer wave gradient divider */
+.footer-wave-divider {
+  position: relative;
+}
+
+.footer-wave-divider::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #059669 15%,
+    #4ADE80 40%,
+    #F59E0B 65%,
+    #059669 85%,
+    transparent 100%
+  );
+  opacity: 0.35;
+  border-radius: 0 0 9999px 9999px;
+}
+
+/* Social icon bounce on hover */
+@keyframes socialBounce {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+  50% { transform: translateY(-2px); }
+  70% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+
+.social-icon-hover {
+  transition: color 200ms ease;
+}
+
+.social-icon-hover:hover {
+  color: #059669;
+  animation: socialBounce 500ms ease;
+}
+
+/* Back-to-top floating button */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.back-to-top-btn {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 40;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #0F2B28 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(15, 43, 40, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 200ms ease;
+  animation: fadeInUp 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.back-to-top-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(15, 43, 40, 0.4);
+}
+
+.back-to-top-btn:active {
+  transform: scale(0.95);
+}
+
+/* Page transition micro-fade */
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.page-transition {
+  animation: pageFadeIn 400ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Stat icon subtle pulse */
+@keyframes statPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+.stat-icon-pulse {
+  animation: statPulse 2s ease-in-out infinite;
+}
+
+/* Staggered feature card entrance */
+@keyframes staggerFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-fade-up {
+  animation: staggerFadeUp 500ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Connecting dots between feature cards */
+.feature-connector {
+  position: relative;
+}
+
+.feature-connector::before {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(5, 150, 105, 0.25);
+  top: 50%;
+  left: -18px;
+  transform: translateY(-50%);
+}
+
+.feature-connector::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 1px;
+  background: rgba(5, 150, 105, 0.15);
+  top: 50%;
+  left: -12px;
+  transform: translateY(-50%);
+}
+
+/* v2.1 version badge pulse */
+@keyframes versionPulse {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.version-badge-pulse {
+  animation: versionPulse 2.5s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Reduced motion — disable ALL custom animations
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .scroll-progress { transition: none; }
 }

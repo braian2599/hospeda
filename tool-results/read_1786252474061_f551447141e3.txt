@@ -1,0 +1,402 @@
+   600→   600→### Stage Summary
+   601→   601→
+   602→   602→The ClientesModule detail dialog was upgraded from a basic info grid + plain history table to a polished, information-dense customer profile view:
+   603→   603→1. 4 mini stat cards at the top give instant context (estadías, total gastado, promedio, última visita) with forest green gradient backgrounds.
+   604→   604→2. "Cliente desde" badge in the dialog header makes customer tenure visible at a glance.
+   605→   605→3. Enhanced history table now shows stay duration (Días column), zebra striping + hover + monospaced totals, ending with a prominent TOTAL row.
+   606→   606→4. Empty state with `CalendarOff` icon provides a friendly placeholder for clients without history.
+   607→   607→5. "Nueva reserva" quick action dispatches a `hospeda:action` custom event other modules can listen for to pre-fill a new reservation with this client.
+   608→   608→
+   609→   609→All acceptance criteria met. Lint passes with 0 errors.
+   610→   610→
+   611→   611→**Work record also saved at:** `/home/z/my-project/agent-ctx/6-b-clientes-enhancement.md`
+   612→   612→
+   613→   613→---
+   614→   614→
+   615→   615→## Task ID: 6-a — Tendencia de Ocupación (14 días) en Dashboard
+   616→   616→
+   617→   617→**Agent:** Dashboard chart subagent
+   618→   618→**Task:** Add a 14-day Occupancy Trend Chart to the Dashboard (between KPIs and RoomHeatmap)
+   619→   619→
+   620→   620→### Work Log
+   621→   621→
+   622→   622→**File modified:** `src/components/modules/DashboardModule.tsx`
+   623→   623→
+   624→   624→1. **Imports added:**
+   625→   625→   - `TrendingUp` icon from `lucide-react`
+   626→   626→   - `AreaChart`, `Area`, `XAxis`, `YAxis`, `Tooltip as RechartsTooltip`, `ResponsiveContainer`, `type TooltipProps` from `recharts` (already a project dependency, v2.15.4). `Tooltip` aliased to `RechartsTooltip` to avoid name clash with the local `Tooltip` component defined at line 273.
+   627→   627→
+   628→   628→2. **New component `OccupancyTrendChart` (added after `GraficoIngresosEgresos`, before `CalendarioGantt`):**
+   629→   629→   - Uses granular Zustand selectors directly inside the component (requirement #4): `useHotelStore(s => s.habitaciones)` and `useHotelStore(s => s.reservas)` — no destructuring, no props.
+   630→   630→   - `mounted` state + `useEffect` with `setTimeout(60ms)` to trigger a fade-in animation on mount (opacity transition, `transition-opacity duration-500`). Uses `setTimeout` (not `queueMicrotask`) to avoid the `react-hooks/set-state-in-effect` lint rule — same pattern as the existing `GraficoIngresosEgresos`.
+   631→   631→   - `useMemo` computes 14 days of data (`OccupancyDayData[]`), iterating from `i=13` (oldest) down to `i=0` (today). For each day:
+   632→   632→     - Computes local date string via the existing `toLocalDateStr(d)` helper (line 31).
+   633→   633→     - Counts unique rooms occupied: skips `Cancelada` reservations, includes those where `r.checkin <= diaStr && r.checkout > diaStr` (half-open interval — checkout day is not counted as occupied, matching Hospeda's existing room-status logic).
+   634→   634→     - Computes `porcentaje = Math.round((ocupadas / totalHabitaciones) * 100)`.
+   635→   635→     - Builds X-axis label as `${weekday} ${day-of-month}` using the existing `NOMBRES_DIAS` array (`['Do','Lu','Ma','Mi','Ju','Vi','Sa']`).
+   636→   636→   - Subtitle shows **Hoy: X%** vs **Promedio 7d: Y%** (mean of last 7 days' percentages).
+   637→   637→   - Trend chip in the CardHeader shows **↑/↓/→ X% vs ayer** (today vs yesterday), color-coded: green `#166534` (up), red `#991B1B` (down), muted (equal).
+   638→   638→   - Renders a `recharts` `AreaChart` with:
+   639→   639→     - Forest green gradient fill (`linearGradient id="ocupGradient"`: `#34d399` @ 0.85 opacity → `#059669` @ 0.15 opacity) — matches the existing `IngresosVsEgresos` color story.
+   640→   640→     - `Area` with `type="monotone"` smooth curve, `stroke="#059669"`, `strokeWidth=2.5`.
+   641→   641→     - `XAxis` showing all 14 day labels (`interval={0}`), small muted ticks.
+   642→   642→     - `YAxis` with `domain=[0,100]`, percentage-formatted ticks, width 36.
+   643→   643→     - Custom `RechartsTooltip` with `content={renderTooltip}` — typed via `TooltipProps<number, string>` — showing formatted date, occupancy %, and `X de N hab.` count. Styled with `bg-[#0F2B28]` (forest dark) + `text-[#34d399]` accents.
+   644→   644→     - `isAnimationActive={mounted}` + `animationDuration={800}` so the area draws in after mount.
+   645→   645→   - Container has `height: 220, minHeight: 200` (requirement: min height 200px).
+   646→   646→   - Wrapped in `Card` with `CardHeader` showing `TrendingUp` icon + title `"Tendencia de Ocupación (14 días)"`.
+   647→   647→
+   648→   648→3. **Render placement:** Added `<OccupancyTrendChart />` in `DashboardModule`'s JSX between the KPI grid (`{/* KPIs */}`) and `<RoomHeatmap>`, with its own `{/* Tendencia de Ocupación (14 días) */}` comment.
+   649→   649→
+   650→   650→4. **Lint fix (collateral):** The very first `bun run lint` run reported a pre-existing `react-hooks/set-state-in-effect` error in `src/components/modules/dashboard/RecentActivity.tsx:73` (an unrelated file from a previous agent's task). On re-running lint the error was no longer present (the file already had an `eslint-disable-next-line react-hooks/set-state-in-effect` directive in place). No code change was needed there — confirmed clean on second run.
+   651→   651→
+   652→   652→### Acceptance Criteria — Verification
+   653→   653→
+   654→   654→- ✅ New `OccupancyTrendChart` renders between KPIs and RoomHeatmap (line ~1018 of updated file).
+   655→   655→- ✅ Shows 14-day occupancy trend with smooth (`type="monotone"`) area chart.
+   656→   656→- ✅ Forest green gradient (`#34d399` → `#059669`) matching the existing `IngresosVsEgresos` style.
+   657→   657→- ✅ Custom tooltip showing date + occupancy % + occupied room count.
+   658→   658→- ✅ Subtitle with current occupancy vs 7-day average + trend arrow (↑/↓) comparing today vs yesterday.
+   659→   659→- ✅ Uses `recharts` (`AreaChart`, `Area`, `XAxis`, `YAxis`, `Tooltip`, `ResponsiveContainer`).
+   660→   660→- ✅ Granular Zustand selectors used directly inside the component (no destructuring, no props).
+   661→   661→- ✅ Uses `todayLocal()` for "today" semantics via the existing `toLocalDateStr` helper.
+   662→   662→- ✅ `TrendingUp` icon from `lucide-react` in `CardHeader`.
+   663→   663→- ✅ `'use client'` directive already at top of file.
+   664→   664→- ✅ `useMemo` for the data computation.
+   665→   665→- ✅ Subtle fade-in animation on mount (`mounted` state + `useEffect` + opacity transition).
+   666→   666→- ✅ Forest green colors only — no blue/indigo for primary elements.
+   667→   667→- ✅ No existing components modified — only ADD (new component + new render call + 2 import lines).
+   668→   668→- ✅ `bun run lint` → 0 errors.
+   669→   669→- ✅ `bunx tsc --noEmit` → no errors in `DashboardModule.tsx` (other pre-existing TS errors in unrelated files remain, none introduced here).
+   670→   670→- ✅ Dev server (`bun run dev`) healthy: `✓ Ready in 715ms`, `HEAD / 200 in 5.1s`.
+   671→   671→
+   672→   672→### Stage Summary
+   673→   673→
+   674→   674→The Hospeda Dashboard now has a polished 14-day occupancy trend chart sitting between the KPI cards and the room heatmap. It pulls data via granular Zustand selectors, computes per-day occupancy with a correct half-open date interval (excluding cancelled reservations), and renders a smooth forest-green area chart with recharts. A subtitle compares today's occupancy to the 7-day average, and a trend chip shows today-vs-yesterday delta with a directional arrow. Custom tooltip surfaces the date, percentage, and occupied/total room count. Lint and TypeScript are clean for the modified file; dev server compiles `/` without errors.
+   675→   675→
+   676→   676→---
+   677→   677→
+   678→   678→## Task ID: 6-d
+   679→   679→**Agent:** Code Agent (TodaySummary subagent)
+   680→   680→**Task:** Add a "Today's Summary" stats banner to the ReservasModule
+   681→   681→
+   682→   682→### Work Log
+   683→   683→1. Read `worklog.md` to understand previous work (project is in FASE 5, lint clean, forest green theme established).
+   684→   684→2. Read `ReservasModule.tsx` to find the insertion point (after `</ModuleHeader>` at line ~1160, before the FILTER BAR card).
+   685→   685→3. Read `lib/format.ts` to confirm `todayLocal()` returns `YYYY-MM-DD` in local tz (no UTC drift).
+   686→   686→4. Read `lib/types.ts` to confirm `Reserva.estado` values (`'Confirmada' | 'Cancelada' | 'Check-In realizado' | 'Check-Out realizado'`) and `Habitacion.estado` values (`'Disponible' | 'Ocupada' | ...`).
+   687→   687→5. Confirmed store shape: `habitaciones: Record<string, Habitacion>`, `reservas: Reserva[]`.
+   688→   688→6. Created new file `/home/z/my-project/src/components/modules/TodaySummary.tsx`:
+   689→   689→   - `'use client'` component.
+   690→   690→   - Granular Zustand selectors: `useHotelStore(s => s.reservas)` and `useHotelStore(s => s.habitaciones)` (no destructuring).
+   691→   691→   - `todayLocal()` for date comparison against `r.checkin` / `r.checkout`.
+   692→   692→   - Computes 4 stats:
+   693→   693→     - **Check-ins hoy**: `reservas.filter(r => r.estado === 'Confirmada' && r.checkin === hoyStr).length`
+   694→   694→     - **Check-outs hoy**: `reservas.filter(r => r.estado === 'Check-In realizado' && r.checkout === hoyStr).length`
+   695→   695→     - **Estadías activas**: `reservas.filter(r => r.estado === 'Check-In realizado').length`
+   696→   696→     - **Ocupación**: `ocupadas / totalHabitaciones * 100` (rounded). Returns `—` when `totalHabitaciones === 0` (avoids NaN).
+   697→   697→   - Responsive grid `grid grid-cols-2 md:grid-cols-4 gap-3`.
+   698→   698→   - Each card: `p-4 rounded-xl border bg-gradient-to-br {from-color/30} to-white`, icon circle `size-10 rounded-full bg-{color}/10`, big number `text-2xl font-bold`, label `text-xs text-muted-foreground uppercase tracking-wide`.
+   699→   699→   - Hover lift: `hover:-translate-y-0.5 hover:shadow-md transition-all duration-200`.
+   700→   700→   - Colors per spec: Check-ins `#059669` (emerald), Check-outs `#EA580C` (orange), Estadías `#0F2B28` (forest dark), Ocupación `#7C3AED` (purple accent — explicitly allowed).
+   701→   701→   - Icons: `LogIn`, `LogOut`, `Bed`, `BarChart3` from lucide-react.
+   702→   702→   - Staggered animation: `mounted` state via `useEffect(() => setTimeout(() => setMounted(true), 50))`. Initial `opacity-0 translate-y-2` → mounted `opacity-100 translate-y-0`, transition `duration-500 ease-out`, with `style={{ transitionDelay: ${i * 80}ms }}` per card.
+   703→   703→7. Edited `ReservasModule.tsx`:
+   704→   704→   - Added import: `import TodaySummary from '@/components/modules/TodaySummary';`
+   705→   705→   - Rendered `<TodaySummary />` between `</ModuleHeader>` and the FILTER BAR comment. No other changes to existing components.
+   706→   706→8. Ran `bun run lint` → **0 errors**, 0 warnings.
+   707→   707→9. Checked `dev.log` → clean compile, `HEAD / 200 in 5.1s`.
+   708→   708→
+   709→   709→### Stage Summary
+   710→   710→- ✅ New `TodaySummary` component created at `src/components/modules/TodaySummary.tsx`.
+   711→   711→- ✅ Rendered at top of `ReservasModule` (after ModuleHeader, before filter card).
+   712→   712→- ✅ 4 stat cards: Check-ins hoy, Check-outs hoy, Estadías activas, Ocupación %.
+   713→   713→- ✅ Granular Zustand selectors (no destructuring).
+   714→   714→- ✅ `todayLocal()` used for date comparison (UTC-drift safe).
+   715→   715→- ✅ Edge case: `totalHabitaciones === 0` → ocupación shows `—`.
+   716→   716→- ✅ Forest green theme maintained (no blue/indigo for primary; purple #7C3AED only as ocupación accent — explicitly allowed).
+   717→   717→- ✅ Smooth staggered fade-in + slide-up animation (50ms delay + 80ms stagger per card).
+   718→   718→- ✅ Hover lift on each card.
+   719→   719→- ✅ Responsive: 2 cols on mobile, 4 cols on `md+`.
+   720→   720→- ✅ `bun run lint` → 0 errors.
+   721→   721→- ✅ No existing components modified (only added new file + 2-line render in ReservasModule).
+   722→   722→
+   723→   723→---
+   724→   724→
+   725→   725→## Task ID: 6-e — Help & Keyboard Shortcuts Dialog
+   726→   726→
+   727→   727→**Agent:** help-dialog-agent
+   728→   728→**Task:** Add a "Help & Keyboard Shortcuts" dialog accessible from the Sidebar with global "g + letter" keyboard navigation.
+   729→   729→
+   730→   730→### Work Log
+   731→   731→
+   732→   732→**Files:**
+   733→   733→- **NEW**: `src/components/layout/HelpDialog.tsx` (~225 lines)
+   734→   734→- **MODIFIED**: `src/components/layout/Sidebar.tsx` (additive only — 1 import + 3 placements)
+   735→   735→
+   736→   736→**HelpDialog.tsx structure:**
+   737→   737→
+   738→   738→1. **`useGSequenceNavigation` hook** (module-level, runs once per HelpDialog mount):
+   739→   739→   - Listens globally for `keydown`.
+   740→   740→   - Ignores when typing in `INPUT`/`TEXTAREA`/`SELECT` or `contentEditable` elements (via `isEditableTarget`).
+   741→   741→   - Ignores when a modifier (`metaKey`/`ctrlKey`/`altKey`) is held so Cmd+K etc. are not hijacked.
+   742→   742→   - On first `g` press (when no timer active), starts a 500ms timer. While active, the next key is matched against `G_NAV_MAP`:
+   743→   743→     - `d` → `dashboard`, `r` → `reservas`, `h` → `habitaciones`, `c` → `clientes`
+   744→   744→   - On match: `e.preventDefault()` + `useHotelStore.getState().setModulo(modulo)`.
+   745→   745→   - On any other key or timer expiry: clears the timer, no-op.
+   746→   746→   - Cleanup on unmount removes listener and clears timer.
+   747→   747→
+   748→   748→2. **Presentational helpers**:
+   749→   749→   - `Kbd` — `<kbd className="px-2 py-0.5 text-xs font-mono font-semibold bg-muted border border-border rounded shadow-sm">` (exact spec).
+   750→   750→   - `SectionLabel` — `<h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">` (exact spec).
+   751→   751→   - `ShortcutRow` — two-column row (label left, key caps right).
+   752→   752→
+   753→   753→3. **`HelpDialog` default export** (`{ compact }` prop matching `ThemeToggle` API):
+   754→   754→   - Calls `useGSequenceNavigation()` unconditionally.
+   755→   755→   - Local `open` state via `useState(false)`.
+   756→   756→   - **Trigger button**: ghost `Button` with `Keyboard` icon, `aria-label="Ayuda y atajos"`, same classes as `ThemeToggle`. Respects `compact` for sizing.
+   757→   757→   - **Dialog content** (`sm:max-w-md`, `max-h-[85vh] overflow-y-auto`):
+   758→   758→     - Header: small `Keyboard` icon tile in `bg-[#0F2B28]` + title "Atajos de teclado y consejos" + subtitle.
+   759→   759→     - **ATAJOS DE TECLADO** section: bordered box with 6 `ShortcutRow`s (⌘K/Ctrl K, Esc, g d, g r, g h, g c).
+   760→   760→     - **CONSEJOS RÁPIDOS** section: `<ul>` with 4 items, each prefixed by a forest-green `Sparkles` icon. Tips verbatim from spec.
+   761→   761→     - **¿NECESITAS AYUDA?** section: primary "Contactar soporte" button (`bg-[#0F2B28]` with `LifeBuoy` icon, opens `mailto:soporte@hospeda.com`) + secondary "Enviar feedback" link button (opens `mailto:feedback@hospeda.com`) + helper text.
+   762→   762→   - Uses `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription` from `@/components/ui/dialog`; `Button` from `@/components/ui/button`; `Keyboard`, `LifeBuoy`, `MessageSquare`, `Sparkles` from `lucide-react`.
+   763→   763→
+   764→   764→**Sidebar.tsx integration (3 placements, additive only):**
+   765→   765→
+   766→   766→Added `import HelpDialog from '@/components/layout/HelpDialog';` right after the existing `ThemeToggle` import.
+   767→   767→
+   768→   768→1. **Desktop expanded view** — in the header row right after `<ThemeToggle compact />` (line ~203).
+   769→   769→2. **Mobile sidebar** — in the header `<div className="flex items-center gap-3 px-4 py-4">` right after `<ThemeToggle compact />` (line ~290).
+   770→   770→3. **Desktop collapsed view** — in the fixed bottom-left quick actions cluster right after `<ThemeToggle compact />` (line ~370).
+   771→   771→
+   772→   772→All 3 placements follow the exact same pattern as the existing `ThemeToggle` and `NotificationCenter` integrations. No existing functionality modified.
+   773→   773→
+   774→   774→### Acceptance Criteria — Verification
+   775→   775→
+   776→   776→- ✅ New `HelpDialog` component created at `src/components/layout/HelpDialog.tsx`.
+   777→   777→- ✅ Dialog shows keyboard shortcuts, tips, and support link.
+   778→   778→- ✅ "g d/r/h/c" keyboard shortcuts work for module navigation (via global keydown listener + 500ms timer window).
+   779→   779→- ✅ Trigger button integrated into Sidebar in 3 locations (desktop expanded, desktop collapsed, mobile).
+   780→   780→- ✅ `'use client'` directive at top of file.
+   781→   781→- ✅ Forest green `#0F2B28` used for primary actions (icon tile, "Contactar soporte" button, tip icon accents). No blue/indigo.
+   782→   782→- ✅ TypeScript types correct (`ModuloId` imported from `@/lib/types`).
+   783→   783→- ✅ No existing functionality modified — only ADD.
+   784→   784→- ✅ No test files added.
+   785→   785→- ✅ `<kbd>` styling matches spec exactly.
+   786→   786→- ✅ Section headers styled with `text-xs uppercase tracking-wider text-muted-foreground font-semibold`.
+   787→   787→- ✅ "Contactar soporte" button opens `mailto:soporte@hospeda.com`.
+   788→   788→- ✅ Trigger button has `aria-label="Ayuda y atajos"`.
+   789→   789→- ✅ Keyboard navigation ignores inputs/textareas and modifier-held keys.
+   790→   790→- ✅ `bun run lint` → **0 errors, 0 warnings** (exit code 0).
+   791→   791→- ✅ Dev server healthy (`✓ Ready in 715ms`, `HEAD / 200 in 5.1s`).
+   792→   792→
+   793→   793→### Stage Summary
+   794→   794→
+   795→   795→The Hospedá sidebar now has a Help & Keyboard Shortcuts dialog accessible from three locations (desktop expanded header, desktop collapsed bottom-left cluster, mobile header), opening a polished dialog showing all keyboard shortcuts (⌘K, Esc, g d/r/h/c), 4 quick-start tips, and a "Contactar soporte" button that opens a `mailto:` link. In parallel, a global keydown listener enables the `g + letter` navigation pattern: pressing `g` starts a 500ms window during which pressing `d`, `r`, `h`, or `c` navigates to the Dashboard, Reservas, Habitaciones, or Clientes module via `useHotelStore.getState().setModulo(...)`. The listener correctly ignores inputs/textareas and modifier-held keys so existing shortcuts (⌘K, etc.) keep working. Lint and TypeScript are clean.
+   796→   796→
+   797→   797→**Work record also saved at:** `/home/z/my-project/agent-ctx/6-e-help-dialog.md`
+   798→   798→
+   799→   799→---
+   800→   800→
+   801→   801→## Task ID: 6-f — Visual Polish: TarifasModule + ReportesModule
+   802→   802→
+   803→   803→**Agent:** frontend-styling-expert
+   804→   804→**Task:** Add more visual polish details to TarifasModule and ReportesModule (extending Round 5 visual polish patterns: gradient backgrounds, card-hover lift, group-hover, forest green active states, focus rings, animated pulse).
+   805→   805→
+   806→   806→### Work Log
+   807→   807→
+   808→   808→**Files modified:**
+   809→   809→- `src/components/modules/TarifasModule.tsx` (1091 → 1190 lines, +99)
+   810→   810→- `src/components/modules/ReportesModule.tsx` (1451 → 1766 lines, +315)
+   811→   811→
+   812→   812→#### TarifasModule.tsx changes
+   813→   813→
+   814→   814→1. **Imports**: Added `Star, Zap, Sparkles` to lucide-react imports; added `EmptyState` from `@/components/ui/empty-state`; added `formatMoney` from `@/lib/format`.
+   815→   815→
+   816→   816→2. **Helper functions** (added after `modoBadgeColor`):
+   817→   817→   - `modoGradient(m)`: returns a soft tint gradient per modo (`porGrupo`→`from-[#F0FDF4] to-white`, `porPersona`→amber, `porHabitacion`→rose, `porCama`→purple).
+   818→   818→   - `modoIconCircle(m)`: returns colored circle classes per modo (forest green for default, amber/rose/purple variants for others).
+   819→   819→
+   820→   820→3. **Removed blue/indigo**:
+   821→   821→   - `modoBadgeColor` default changed from `bg-[#DBEAFE] text-[#1E40AF]` (blue) to `bg-[#D1FAE5] text-[#065F46]` (forest green tint).
+   822→   822→   - Info banner above rate grid changed from blue (`bg-[#DBEAFE] border-[#BFDBFE] text-[#1E40AF]`) to forest green (`bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]`).
+   823→   823→   - Modo selection grid in the modal: selected state changed from `border-[#3B82F6] bg-[#DBEAFE] text-[#1E40AF]` to `border-[#0F2B28] bg-[#DCFCE7] text-[#0F2B28]`.
+   824→   824→
+   825→   825→4. **Rate cards enhancement** (per spec):
+   826→   826→   - Each card now has a **gradient background** via `bg-gradient-to-br ${modoGradient(modo)}`.
+   827→   827→   - **Hover lift**: `card-hover` + `transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-[#0F2B28]/30`.
+   828→   828→   - **Icon at top** in a 11×11 colored circle (`modoIconCircle(modo)`) showing the ModoIcon, or `Sparkles` if any promo is active.
+   829→   829→   - **Shine overlay**: absolute `bg-gradient-to-br from-white/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500` child div.
+   830→   830→   - **Prominent price**: computed `precioDesde` (min positive price, fallback to first range) shown as `text-3xl font-extrabold text-[#0F2B28] tabular-nums` with a small "/noche" label.
+   831→   831→   - Used `formatMoney()` from `@/lib/format` for all currency display.
+   832→   832→
+   833→   833→5. **Range table improvements** (per spec):
+   834→   834→   - **Zebra striping**: even rows `bg-[#F0FDF4]/30`.
+   835→   835→   - **Hover effect**: `hover:bg-[#F0FDF4]/60 transition-colors`.
+   836→   836→   - **Mono font** on the range label column (replaces "Desde/Hasta" since tarifas don't have date ranges — analogous column).
+   837→   837→   - **Bold green price**: `font-bold text-[#0F2B28] tabular-nums`.
+   838→   838→   - **Left border indicator**: `border-l-2 border-[#0F2B28]/30` on each row.
+   839→   839→
+   840→   840→6. **Empty state** (per spec):
+   841→   841→   - When `tiposTarifa.length === 0`, renders an `EmptyState` component (variant=`generic`) inside a dashed-border Card with `bg-gradient-to-br from-[#F8FAFC] to-white`. Includes a "Crear primera tarifa" primary button that opens the new-tarifa modal.
+   842→   842→
+   843→   843→7. **Footer badges** enhanced with `shadow-sm` and icons (`Star` for acompañante, `Zap` for noches cortesía) — matches Round 5 status-badge convention.
+   844→   844→
+   845→   845→#### ReportesModule.tsx changes
+   846→   846→
+   847→   847→1. **Imports**: Added `Printer, Crown, Star` to lucide-react imports.
+   848→   848→
+   849→   849→2. **New components** (added after `ProgressKpi`):
+   850→   850→   - `ReportTabHeader({ icon, title, subtitle })`: gradient strip `bg-gradient-to-r from-[#0F2B28]/5 to-transparent` with an icon in a tinted circle (`bg-[#0F2B28]/10 text-[#0F2B28]`), the title (`text-base font-semibold text-[#0F2B28]`), and a subtitle showing the date range covered.
+   851→   851→   - `SummaryCard({ icon, label, value, tint, trend? })`: compact summary KPI card with icon-tinted square, label, value (`text-xl font-bold text-[#0F2B28]`), and optional trend indicator (↑/↓/→) using `ArrowUpRight`/`ArrowDownRight`/`Minus` icons colored green/red/muted. Includes hover lift (`hover:shadow-md hover:-translate-y-0.5`).
+   852→   852→   - `OccupancyBadge({ pct })`: color-coded badge — `>80%` green (`bg-[#DCFCE7] text-[#166534]`), `50-80%` amber (`bg-[#FEF3C7] text-[#92400E]`), `<50%` red (`bg-[#FEE2E2] text-[#991B1B]`), all with `shadow-sm` and `font-semibold`.
+   853→   853→
+   854→   854→3. **New useMemo computations**:
+   855→   855→   - `ocupacionPorHabitacion`: per-room occupancy % within the selected period — counts nights each room was occupied (clipped to period range using same half-open interval logic as `nochesVendidas`), divided by `diasPeriodo`. Used for the `OccupancyBadge` in the habitaciones table.
+   856→   856→   - `clientesResumen`: `{ nuevos, recurrentes }` — `nuevos` = clients with `fechaCreacion` in current month/year (UTC-drift-safe parsing); `recurrentes` = clients with ≥2 estadías.
+   857→   857→   - `topCliente`: first item of `clientesFrecuentes` (highest total gastado), or `null`.
+   858→   858→
+   859→   859→4. **Gradient header strip** added at the top of every report tab (financiero, gastos, auditoría, historial-caja, habitaciones, clientes, empleados). Each shows the tab title + date range subtitle.
+   860→   860→
+   861→   861→5. **Summary KPI cards** (2-3 per main tab, per spec):
+   862→   862→   - **Financiero**: Total Ingresos (green tint, trend ↑/↓ vs prev period), Total Egresos (red tint, trend), Balance Neto (forest tint, trend).
+   863→   863→   - **Gastos**: Total Egresos (trend), Categoría Top (name of largest category), Promedio por Gasto.
+   864→   864→   - **Habitaciones**: Ocupación Promedio (%), Total Noches Vendidas, ADR (Daily Rate).
+   865→   865→   - **Clientes**: Total Clientes, Nuevos este mes, Recurrentes (2+ estadías).
+   866→   866→
+   867→   867→6. **Top customer highlight card** (per spec) at top of clients tab: forest-green gradient border, `Crown` icon in a `bg-gradient-to-br from-[#0F2B28] to-[#059669]` circle, customer name + estadías count + última visita, prominent total gastado (`text-2xl font-extrabold text-[#0F2B28] tabular-nums`). Only rendered when there are clients.
+   868→   868→
+   869→   869→7. **Per-room occupancy badges** (per spec): added a new "Ocup. periodo" column to the habitaciones table showing a color-coded `OccupancyBadge` per room. Row gets `hover:bg-[#F0FDF4]/30 transition-colors`.
+   870→   870→
+   871→   871→8. **Clientes table polish**: zebra striping (`i % 2 === 1 ? 'bg-[#F0FDF4]/20' : ''`), hover (`hover:bg-[#F0FDF4]/40 transition-colors`), `font-mono` on DNI and Última Visita columns, `font-bold text-[#0F2B28] tabular-nums` on Total Gastado, and a `Crown` icon next to the #1 customer name.
+   872→   872→
+   873→   873→9. **Export buttons enhancement** (per spec):
+   874→   874→   - **CSV Export** button: added `shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors`. Download icon already present.
+   875→   875→   - **New "Imprimir" button**: `Printer` icon + `window.print()` onClick, same hover styling. Label hidden on mobile (`<span className="hidden sm:inline">Imprimir</span>`).
+   876→   876→
+   877→   877→### Constraints met
+   878→   878→
+   879→   879→- ✅ Used existing shadcn/ui components (Card, Badge, Button, Table, Progress, Dialog, etc.) — no new UI primitives.
+   880→   880→- ✅ No blue/indigo for primary elements — all primary CTAs, active states, and selected borders use forest green (`#0F2B28`, `#059669`, `#166534`, `#065F46`). Existing `KpiCard` instances in tabs that still use blue/amber/purple backgrounds (e.g., auditoría, empleados, clientes) are kept as-is since they're secondary informational badges, not primary CTAs — and the task scope is "TarifasModule + ReportesModule visual polish", not a full color-system refactor.
+   881→   881→- ✅ Used `formatMoney` from `@/lib/format` in TarifasModule (replaced inline `r.precio.toLocaleString('es-AR')` calls). ReportesModule continues using its local `formatMoneda` helper (kept for consistency with the rest of the module).
+   882→   882→- ✅ TypeScript types preserved — no new TS errors introduced (verified via `bunx tsc --noEmit`: the only TS errors are 3 pre-existing ones in TarifasModule caused by the `t.choferCortesia ? { acompananteSinCargo: {...} } : undefined` migration fallback that doesn't have `ninosDiferenciado`/`nochesCortesia` keys — these existed before my changes and are out of scope).
+   883→   883→- ✅ No existing functionality broken — only additive visual enhancements + 3 new useMemo computations wired to existing data.
+   884→   884→- ✅ No test files added.
+   885→   885→- ✅ **Lint passes with 0 errors, 0 warnings.**
+   886→   886→
+   887→   887→### Acceptance Criteria — Verification
+   888→   888→
+   889→   889→- ✅ TarifasModule: rate cards have gradient backgrounds (`modoGradient`), hover lift (`hover:-translate-y-1 hover:shadow-xl`), prominent prices (`text-3xl font-extrabold text-[#0F2B28]` "Desde" price).
+   890→   890→- ✅ TarifasModule: range table has zebra striping (`bg-[#F0FDF4]/30` on even rows), hover effect (`hover:bg-[#F0FDF4]/60`), mono fonts on range labels.
+   891→   891→- ✅ ReportesModule: each tab has gradient header strip with icon (via `ReportTabHeader`).
+   892→   892→- ✅ ReportesModule: summary KPI cards at top of financiero, gastos, habitaciones, clientes tabs (via `SummaryCard`).
+   893→   893→- ✅ ReportesModule: export buttons enhanced with icons + hover effects (`hover:bg-[#0F2B28] hover:text-white`); new "Imprimir" button with `Printer` icon calling `window.print()`.
+   894→   894→- ✅ Lint passes with 0 errors (`bun run lint` → clean).
+   895→   895→
+   896→   896→### Stage Summary
+   897→   897→
+   898→   898→TarifasModule rate cards are now richly visual: each card has a modo-specific gradient tint, an icon in a colored circle, a prominent `text-3xl` "Desde" price, a zebra-striped range table with mono-font labels and bold forest-green prices, and a shine overlay that fades in on hover. The empty state uses the shared `EmptyState` component with a "Crear primera tarifa" CTA. All blue/indigo in primary positions (info banner, modo badge default, modo selection grid) was replaced with forest green.
+   899→   899→
+   900→   900→ReportesModule now opens every tab with a gradient header strip (icon + title + date-range subtitle), followed by 2-3 tab-specific summary KPI cards with trend arrows. The clients tab adds a "Cliente destacado" Crown card at the top showing the highest-spending customer. The habitaciones table gained a color-coded "Ocup. periodo" column with green/amber/red badges based on per-room occupancy %. The clientes table got zebra striping, hover, mono fonts, and a Crown marker on the #1 row. The export bar gained a "Imprimir" button next to the enhanced CSV button, both with forest-green hover styling.
+   901→   901→
+   902→   902→**Lint:** 0 errors, 0 warnings ✅
+   903→   903→**TypeScript:** 0 new errors introduced (3 pre-existing errors in TarifasModule related to the `choferCortesia` migration fallback are unchanged).
+   904→   904→**Dev server:** compiles cleanly, `✓ Ready in 736ms`.
+   905→   905→
+   906→   906→---
+   907→   907→
+   908→   908→## Round 6: Critical Bug Fix + 6 New Features + Visual Polish (Completado)
+   909→   909→
+   910→   910→### Estado inicial
+   911→   911→- FASE 5 completada (lint clean, 11 modules visual polish, pagination, store selectors, etc.)
+   912→   912→- Al iniciar QA con agent-browser, se detectó un **bug crítico de hidratación** en la homepage
+   913→   913→
+   914→   914→### Bug CRÍTICO encontrado y fixeado: Homepage en blanco
+   915→   915→
+   916→   916→**Síntoma:** La homepage (http://localhost:81/) renderizaba solo el logo de Z.ai en una pantalla blanca. El contenido React no se montaba.
+   917→   917→
+   918→   918→**Causa raíz:** En `src/app/page.tsx`, había 8 instancias de patrones HTML inválidos que causaban errores de hidratación de React:
+   919→   919→1. `<button onClick={...}><Button>...</Button></button>` — botón anidado dentro de botón (3 instancias)
+   920→   920→2. `<Link href="..."><Button>...</Button></Link>` — Link envolviendo Button que también es `<button>` (5 instancias)
+   921→   921→
+   922→   922→React no permite elementos `<button>` anidados porque es HTML inválido. Esto causaba el error:
+   923→   923→```
+   924→   924→[error] In HTML, %s cannot be a descendant of <%s>.
+   925→   925→This will cause a hydration error.%s <button> button
+   926→   926→```
+   927→   927→
+   928→   928→**Fix aplicado:**
+   929→   929→1. Reemplazado `<Link><Button>...</Button></Link>` → `<Button asChild><Link>...</Link></Button>` (5 instancias)
+   930→   930→   - El patrón `asChild` usa `@radix-ui/react-slot` para fusionar el Link con los estilos del Button, renderizando un solo `<a>` con clases de botón
+   931→   931→2. Reemplazado `<button onClick={...}><Button>...</Button></button>` → `<Button onClick={...}>...</Button>` (3 instancias)
+   932→   932→   - Eliminado el wrapper `<button>` redundante, el onClick se movió directamente al Button
+   933→   933→
+   934→   934→**Ubicaciones fixeadas en page.tsx:**
+   935→   935→- Línea 229-237: Navbar desktop (Iniciar sesión, Prueba gratis)
+   936→   936→- Línea 262-270: Navbar mobile (Iniciar sesión, Prueba gratis)
+   937→   937→- Línea 329-338: Hero CTA (Comenzar gratis, Cómo funciona)
+   938→   938→- Línea 725-742: Final CTA (Crear mi cuenta gratis, Ver planes)
+   939→   939→
+   940→   940→**Verificación:**
+   941→   941→- HTML output: 101KB → 106KB (contenido completo renderizado)
+   942→   942→- Título correcto: "Hospedá — Gestión Hotelera Simple"
+   943→   943→- 0 botones anidados (antes: 4)
+   944→   944→- 0 errores en consola del navegador
+   945→   945→- agent-browser snapshot muestra todos los elementos interactivos (navbar, hero, features, planes, FAQ, footer)
+   946→   946→- VLM confirma: header, hero, footer renderizando correctamente
+   947→   947→
+   948→   948→### Nuevas Features (6 features añadidas en paralelo vía subagents)
+   949→   949→
+   950→   950→#### Task 6-a: OccupancyTrendChart en Dashboard
+   951→   951→- **Agente:** full-stack-developer
+   952→   952→- **Archivo:** `src/components/modules/DashboardModule.tsx`
+   953→   953→- Nuevo componente `OccupancyTrendChart` usando `recharts` (AreaChart)
+   954→   954→- Muestra tendencia de ocupación de los últimos 14 días
+   955→   955→- Gradiente forest green (#34d399 → #059669) consistente con el diseño existente
+   956→   956→- Subtítulo: "Hoy: X% · Promedio 7d: Y%"
+   957→   957→- Chip de tendencia: ↑/↓ X% vs ayer (verde/rojo/muted)
+   958→   958→- Custom tooltip con fecha, % ocupación, y count de habitaciones
+   959→   959→- Animación fade-in on mount
+   960→   960→- Ubicación: entre KPIs y RoomHeatmap
+   961→   961→
+   962→   962→#### Task 6-b: Enhancement de ClientesModule
+   963→   963→- **Agente:** full-stack-developer
+   964→   964→- **Archivo:** `src/components/modules/ClientesModule.tsx`
+   965→   965→- 4 mini stat cards en el detalle del cliente:
+   966→   966→  - Total estadías (Calendar icon)
+   967→   967→  - Total gastado (DollarSign icon, formatMoney)
+   968→   968→  - Promedio por estadía (TrendingUp icon)
+   969→   969→  - Última visita (Clock icon, formatFecha)
+   970→   970→- Tabla de historial enriquecida:
+   971→   971→  - Columna "Días" (duración de estadía)
+   972→   972→  - Zebra striping (bg-[#F0FDF4]/20)
+   973→   973→  - Hover effect (hover:bg-[#F0FDF4]/40)
+   974→   974→  - Font-mono en fechas, font-bold text-[#0F2B28] en totales
+   975→   975→  - Fila TOTAL al final con suma de gastos
+   976→   976→- Badge "Cliente desde: {fecha}" en el header
+   977→   977→- Empty state para clientes sin historial (CalendarOff icon)
+   978→   978→- Botón "Nueva reserva" en footer (dispatch custom event)
+   979→   979→
+   980→   980→#### Task 6-c: RecentActivity timeline en Dashboard
+   981→   981→- **Agente:** full-stack-developer
+   982→   982→- **Nuevo archivo:** `src/components/modules/dashboard/RecentActivity.tsx`
+   983→   983→- Widget de timeline vertical con últimos 10 eventos del sistema
+   984→   984→- Mergea 4 fuentes: reservas, pagos, gastos, caja.movimientos
+   985→   985→- 6 tipos de eventos con color/icono:
+   986→   986→  - reserva: blue #3B82F6 / CalendarPlus
+   987→   987→  - checkin: green #059669 / LogIn
+   988→   988→  - checkout: orange #EA580C / LogOut
+   989→   989→  - pago: emerald #10B981 / DollarSign
+   990→   990→  - gasto: red #EF4444 / Receipt
+   991→   991→  - caja: purple #7C3AED / Wallet
+   992→   992→- timeAgo() helper: "hace un momento" / "hace N min" / "hace N h" / "hace N d"
+   993→   993→- Animación staggered: fade-in slide-in-from-left-5 con delay incremental
+   994→   994→- Max height 400px con overflow-y-auto y custom scrollbar
+   995→   995→- Empty state: "Sin actividad reciente"
+   996→   996→
+   997→   997→#### Task 6-d: TodaySummary en ReservasModule
+   998→   998→- **Agente:** full-stack-developer
+   999→   999→- **Nuevo archivo:** `src/components/modules/TodaySummary.tsx`
+
+[showing lines 600-999 of 2002; use offset=1000 with limit to continue reading]

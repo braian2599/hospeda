@@ -13,10 +13,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, Users, Search, Eye, Calendar, DollarSign, TrendingUp, Clock, CalendarOff } from 'lucide-react';
+import { Plus, Trash2, Users, Search, Eye, Calendar, DollarSign, TrendingUp, Clock, CalendarOff, Download } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import PaginationBar from '@/components/ui/pagination-bar';
+import { exportToCSV } from '@/lib/csv-export';
 
 // formatFecha imported from @/lib/format
 
@@ -102,7 +103,23 @@ export default function ClientesModule() {
   return (
     <div className="space-y-6">
       <ModuleHeader icon={Users} title="Clientes" subtitle="Base de huéspedes y datos de contacto">
-        <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Agregar Cliente</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+            const headers = ['Nombre', 'DNI', 'Email', 'Teléfono', 'Dirección'];
+            const rows = lista.map(c => [
+              c.nombre || '',
+              c.dni || '',
+              c.email || '',
+              c.telefono || '',
+              '',
+            ]);
+            exportToCSV('clientes.csv', headers, rows);
+            toast.success('CSV exportado');
+          }}>
+            <Download className="w-3.5 h-3.5" />Exportar CSV
+          </Button>
+          <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Agregar Cliente</Button>
+        </div>
       </ModuleHeader>
 
       <div className="relative max-w-sm">

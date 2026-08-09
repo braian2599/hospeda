@@ -23,34 +23,12 @@ import {
   Search, Eye, BedDouble, Users, UserCog, Wallet,
   FileText, ArrowUpRight, ArrowDownRight, Minus, Hotel,
   Receipt, Percent, Moon, Sun, Sunset, Loader2,
-  Download, Printer, Crown, Star,
+  Download, Printer, Crown, Star, FileDown,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
-
-// ==================== CSV EXPORT HELPER ====================
-
-function escapeCSV(val: string | number | undefined): string {
-  const str = val == null ? '' : String(val);
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
-
-function downloadCSV(filename: string, headers: string[], rows: (string | number | undefined)[][]) {
-  const lines = [
-    headers.map(escapeCSV).join(','),
-    ...rows.map(r => r.map(escapeCSV).join(',')),
-  ];
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+import { exportReportAsPdf, type PdfReportData } from '@/lib/pdf-export';
+import { downloadCSV } from '@/lib/csv-export';
 
 // ==================== HELPERS ====================
 
@@ -259,7 +237,7 @@ export default function ReportesModule() {
   const {
     reservas, pagos, gastos, auditoria, habitaciones, caja, clientes,
     categoriasGastos, agregarGasto,
-    _synced,
+    _synced, usuarioActual,
   } = useHotelStore();
 
   // Usuarios: no están en el store, se obtienen directamente de la API
@@ -677,6 +655,192 @@ export default function ReportesModule() {
     }
   }, [activeTab, desde, hasta, pagosFiltrados, gastosFiltrados, habResumen, clientesFrecuentes, auditFiltrada, reservaMap]);
 
+  // ==================== PDF EXPORT HANDLER ====================
+
+  const handleExportPDF = useCallback(() => {
+    const hotelName = usuarioActual?.tenantNombre || 'Hospeda';
+    const dateRange = `${formatFecha(desde)} al ${formatFecha(hasta)}`;
+    const generatedAt = new Date().toLocaleString('es-AR', { dateStyle: 'long', timeStyle: 'short' });
+
+    try {
+      if (activeTab === 'financiero') {
+        const data: PdfReportData = {
+          hotelName,
+          reportTitle: 'Reporte Financiero',
+          dateRange,
+          generatedAt,
+          kpis: [
+            { label: 'Total Ingresos', value: formatMoneda(totalIngresos) },
+            { label: 'Total Gastos', value: formatMoneda(totalGastos) },
+            { label: 'Ganancia Neta', value: formatMoneda(gananciaNeta) },
+            { label: 'Reservas', value: String(reservasEnPeriodo.length) },
+          ],
+          tables: [
+            {
+              title: `Pagos recibidos (${pagosFiltrados.length})`,
+              headers: ['Fecha', 'Método', 'Reserva', 'Huésped', 'Monto', 'Nota'],
+              rows: pagosFiltrados.map(p => {
+                const res = reservaMap.get(p.idReserva);
+                return [formatFecha(p.fecha), p.metodo, p.idReserva, res?.huesped || '', formatMoneda(p.monto), p.nota || ''];
+              }),
+            },
+            ...(ingresosPorMetodo.length > 0 ? [{
+              title: 'Desglose por Método de Pago',
+              headers: ['Método', 'Monto', 'Porcentaje'],
+              rows: ingresosPorMetodo.map(([metodo, monto]) => [metodo, formatMoneda(monto), totalIngresos > 0 ? `${Math.round((monto / totalIngresos) * 100)}%` : '0%']),
+            }] : []),
+          ],
+          summary: `Periodo: ${dateRange} · ${pagosFiltrados.length} pagos · Ingreso promedio: ${formatMoneda(ticketPromedio)}`,
+        };
+        exportReportAsPdf(data);
+        toast.success('PDF generado', { description: 'Se abrió una ventana para guardar el reporte' });
+      } else if (activeTab === 'gastos') {
+        const data: PdfReportData = {
+          hotelName,
+          reportTitle: 'Reporte de Gastos',
+          dateRange,
+          generatedAt,
+          kpis: [
+            { label: 'Total Gastos', value: formatMoneda(totalGastos) },
+            { label: 'Categoría Top', value: gastosPorCategoria[0] ? gastosPorCategoria[0][0] : '—' },
+            { label: 'Promedio', value: formatMoneda(gastosEnPeriodo.length > 0 ? Math.round(totalGastos / gastosEnPeriodo.length) : 0) },
+            { label: 'Registros', value: String(gastosFiltrados.length) },
+          ],
+          tables: [
+            {
+              title: `Gastos del periodo (${gastosFiltrados.length})`,
+              headers: ['Fecha', 'Tipo', 'Descripción', 'Monto', 'Empleado'],
+              rows: gastosFiltrados.map(g => [formatFecha(g.fecha), g.tipo, g.descripcion, formatMoneda(g.monto), g.empleado || '']),
+            },
+            ...(gastosPorCategoria.length > 0 ? [{
+              title: 'Distribución por Categoría',
+              headers: ['Categoría', 'Monto', 'Porcentaje'],
+              rows: gastosPorCategoria.map(([cat, monto]) => [cat, formatMoneda(monto), totalGastos > 0 ? `${Math.round((monto / totalGastos) * 100)}%` : '0%']),
+            }] : []),
+          ],
+          summary: `Periodo: ${dateRange} · ${gastosFiltrados.length} gastos · Total filtrado: ${formatMoneda(gastosTotalFiltrado)}`,
+        };
+        exportReportAsPdf(data);
+        toast.success('PDF generado', { description: 'Se abrió una ventana para guardar el reporte' });
+      } else if (activeTab === 'auditoria') {
+        const data: PdfReportData = {
+          hotelName,
+          reportTitle: 'Auditoría de Actividad',
+          dateRange,
+          generatedAt,
+          kpis: [
+            { label: 'Total Acciones', value: String(auditFiltrada.length) },
+            { label: 'Check-Ins', value: String(auditoriaEnPeriodo.filter(a => a.tipo === 'Check-In').length) },
+            { label: 'Check-Outs', value: String(auditoriaEnPeriodo.filter(a => a.tipo === 'Check-Out').length) },
+            { label: 'Pagos', value: String(auditoriaEnPeriodo.filter(a => a.tipo === 'Pago').length) },
+          ],
+          tables: [{
+            title: `Registro de auditoría (${auditFiltrada.length})`,
+            headers: ['Fecha', 'Tipo', 'Detalle', 'Empleado'],
+            rows: auditFiltrada.map(a => [formatFechaHora(a.fecha), a.tipo, a.detalle, a.empleado]),
+          }],
+        };
+        exportReportAsPdf(data);
+        toast.success('PDF generado', { description: 'Se abrió una ventana para guardar el reporte' });
+      } else if (activeTab === 'habitaciones') {
+        const data: PdfReportData = {
+          hotelName,
+          reportTitle: 'Reporte de Habitaciones',
+          dateRange,
+          generatedAt,
+          kpis: [
+            { label: 'Total', value: String(habResumen.total) },
+            { label: 'Ocupadas', value: String(habResumen.ocupadas) },
+            { label: 'Disponibles', value: String(habResumen.disponibles) },
+            { label: 'Ocupación', value: `${tasaOcupacion}%` },
+          ],
+          tables: [
+            {
+              title: `Habitaciones (${habResumen.habs.length})`,
+              headers: ['Número', 'Tipo', 'Capacidad', 'Estado'],
+              rows: habResumen.habs.map(h => [h.numero, h.tipo, String(h.capacidad), h.estado]),
+            },
+            ...(Object.keys(ocupacionPorHabitacion).length > 0 ? [{
+              title: 'Ocupación por Habitación',
+              headers: ['Habitación', 'Ocupación'],
+              rows: Object.entries(ocupacionPorHabitacion).map(([hab, pct]) => [hab, `${pct}%`]),
+            }] : []),
+          ],
+          summary: `ADR: ${formatMoneda(adr)} · RevPAR: ${formatMoneda(revpar)} · Noches vendidas: ${nochesVendidas} de ${nochesDisponibles}`,
+        };
+        exportReportAsPdf(data);
+        toast.success('PDF generado', { description: 'Se abrió una ventana para guardar el reporte' });
+      } else if (activeTab === 'clientes') {
+        const data: PdfReportData = {
+          hotelName,
+          reportTitle: 'Reporte de Clientes',
+          dateRange,
+          generatedAt,
+          kpis: [
+            { label: 'Total Clientes', value: String(clientesFrecuentes.length) },
+            { label: 'Nuevos (mes)', value: String(clientesResumen.nuevos) },
+            { label: 'Recurrentes', value: String(clientesResumen.recurrentes) },
+            { label: 'Top Gasto', value: topCliente ? formatMoneda(topCliente.totalGastado) : '—' },
+          ],
+          tables: [{
+            title: `Clientes frecuentes (${clientesFrecuentes.length})`,
+            headers: ['Nombre', 'DNI', 'Teléfono', 'Email', 'Estadías', 'Gasto Total'],
+            rows: clientesFrecuentes.map(c => [c.nombre, c.dni, c.telefono, c.email, String(c.cantidadEstadias), formatMoneda(c.totalGastado)]),
+          }],
+        };
+        exportReportAsPdf(data);
+        toast.success('PDF generado', { description: 'Se abrió una ventana para guardar el reporte' });
+      } else if (activeTab === 'empleados') {
+        const data: PdfReportData = {
+          hotelName,
+          reportTitle: 'Reporte de Empleados',
+          dateRange,
+          generatedAt,
+          kpis: [
+            { label: 'Empleados', value: String(empleadosResumen.length) },
+          ],
+          tables: [{
+            title: `Resumen de actividad por empleado (${empleadosResumen.length})`,
+            headers: ['Nombre', 'Check-Ins', 'Check-Outs', 'Pagos', 'Gastos', 'Reservas', 'Total Auditorías'],
+            rows: empleadosResumen.map(e => [e.nombre, String(e.checkins), String(e.checkouts), String(e.pagos), String(e.gastos), String(e.reservas), String(e.auditorias)]),
+          }],
+        };
+        exportReportAsPdf(data);
+        toast.success('PDF generado', { description: 'Se abrió una ventana para guardar el reporte' });
+      } else if (activeTab === 'historial-caja') {
+        const data: PdfReportData = {
+          hotelName,
+          reportTitle: 'Historial de Caja',
+          dateRange: `${formatFecha(cajaDesde)} al ${formatFecha(cajaHasta)}`,
+          generatedAt,
+          kpis: [
+            { label: 'Turnos', value: String(cajaTurnosAMostrar.length) },
+            { label: 'Cuadrados', value: String(cajaTurnosAMostrar.filter(t => t.cierre.diferencia === 0).length) },
+            { label: 'Dif. Total', value: formatMoneda(cajaTurnosAMostrar.reduce((s, t) => s + Math.abs(t.cierre.diferencia), 0)) },
+            { label: 'Movimientos', value: String(cajaTurnosAMostrar.reduce((s, t) => s + t.movimientos.length, 0)) },
+          ],
+          tables: [{
+            title: `Turnos de caja (${cajaTurnosAMostrar.length})`,
+            headers: ['Empleado', 'Apertura', 'Cierre', 'Diferencia', 'Movimientos'],
+            rows: cajaTurnosAMostrar.map(t => [
+              t.apertura.empleado,
+              formatFechaHora(t.apertura.fecha),
+              formatFechaHora(t.cierre.fecha),
+              formatMoneda(t.cierre.diferencia),
+              String(t.movimientos.length),
+            ]),
+          }],
+        };
+        exportReportAsPdf(data);
+        toast.success('PDF generado', { description: 'Se abrió una ventana para guardar el reporte' });
+      } else {
+        toast.info('Exportar PDF', { description: 'No hay datos exportables en esta pestaña' });
+      }
+    } catch (err) {
+      toast.error('Error al generar PDF');
+    }
+  }, [activeTab, desde, hasta, usuarioActual, pagosFiltrados, gastosFiltrados, habResumen, clientesFrecuentes, auditFiltrada, reservaMap, totalIngresos, totalGastos, gananciaNeta, reservasEnPeriodo, ingresosPorMetodo, gastosPorCategoria, gastosTotalFiltrado, ticketPromedio, empleadosResumen, tasaOcupacion, adr, revpar, nochesVendidas, nochesDisponibles, ocupacionPorHabitacion, clientesResumen, topCliente, cajaTurnosAMostrar, cajaDesde, cajaHasta]);
+
   // Números de página visibles para paginación de auditoría (máx. 9 con ventana deslizante)
   const auditPageNumbers = useMemo(() => {
     const total = auditTotalPages;
@@ -739,6 +903,15 @@ export default function ReportesModule() {
             >
               <Download className="w-3.5 h-3.5" />
               Exportar CSV
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportPDF}
+              className="text-xs sm:text-sm gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              Exportar PDF
             </Button>
             <Button
               size="sm"

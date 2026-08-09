@@ -1,0 +1,402 @@
+  1000→  1000→- Banner de 4 stat cards al inicio del módulo Reservas:
+  1001→  1001→  - Check-ins hoy (LogIn icon, emerald)
+  1002→  1002→  - Check-outs hoy (LogOut icon, orange)
+  1003→  1003→  - Estadías activas (Bed icon, forest green)
+  1004→  1004→  - Ocupación % (BarChart3 icon, purple)
+  1005→  1005→- Grid responsive: 2 cols mobile, 4 cols desktop
+  1006→  1006→- Cards con gradient background sutil, icon circle, hover lift
+  1007→  1007→- Animación staggered fade-in + slide-up (delay incremental 80ms)
+  1008→  1008→- Edge case: muestra "—" si no hay habitaciones
+  1009→  1009→
+  1010→  1010→#### Task 6-e: HelpDialog con atajos de teclado
+  1011→  1011→- **Agente:** full-stack-developer
+  1012→  1012→- **Nuevo archivo:** `src/components/layout/HelpDialog.tsx`
+  1013→  1013→- Dialog de ayuda con 3 secciones:
+  1014→  1014→  1. ATAJOS DE TECLADO: Cmd+K, Esc, g+d/r/h/c (con <kbd> styling)
+  1015→  1015→  2. CONSEJOS RÁPIDOS: 4 tips con Sparkles icons
+  1016→  1016→  3. ¿NECESITAS AYUDA?: Contactar soporte (mailto) + feedback
+  1017→  1017→- Hook `useGSequenceNavigation`:
+  1018→  1018→  - Escucha keydown global
+  1019→  1019→  - Presiona "g" → inicia timer 500ms
+  1020→  1020→  - Si siguiente tecla es d/r/h/c → navega a dashboard/reservas/habitaciones/clientes
+  1021→  1021→  - Ignora cuando está en inputs/textareas
+  1022→  1022→  - No interfere con modificadores (Cmd/Ctrl/Alt)
+  1023→  1023→- Integrado en Sidebar en 3 ubicaciones (desktop expandido, mobile, desktop colapsado)
+  1024→  1024→- Trigger: ghost button con Keyboard icon, aria-label="Ayuda y atajos"
+  1025→  1025→
+  1026→  1026→#### Task 6-f: Visual polish TarifasModule + ReportesModule
+  1027→  1027→- **Agente:** frontend-styling-expert
+  1028→  1028→- **Archivos:** `src/components/modules/TarifasModule.tsx`, `src/components/modules/ReportesModule.tsx`
+  1029→  1029→
+  1030→  1030→**TarifasModule:**
+  1031→  1031→- Rate cards con gradient background por modo (verde/amber/rose/púrpura)
+  1032→  1032→- Hover lift: `hover:-translate-y-1 hover:shadow-xl transition-all duration-300`
+  1033→  1033→- Icono en círculo colorado (Sparkles cuando hay promos)
+  1034→  1034→- Shine overlay effect on hover
+  1035→  1035→- Precio "Desde" prominente: text-3xl font-extrabold text-[#0F2B28]
+  1036→  1036→- Range table: zebra striping, hover, font-mono fechas, font-bold precios, border-l-2 indicator
+  1037→  1037→- Empty state con EmptyState component y "Crear primera tarifa" button
+  1038→  1038→- Removido blue/indigo, reemplazado con forest green
+  1039→  1039→
+  1040→  1040→**ReportesModule:**
+  1041→  1041→- Nuevo componente `ReportTabHeader`: gradient strip con icon + title + date-range subtitle
+  1042→  1042→- Nuevo componente `SummaryCard`: KPI compacto con trend arrow opcional
+  1043→  1043→- Nuevo componente `OccupancyBadge`: color-coded (>80% green, 50-80% amber, <50% red)
+  1044→  1044→- Summary KPI cards en cada tab:
+  1045→  1045→  - Financiero: Ingresos/Egresos/Balance con trends
+  1046→  1046→  - Gastos: Total/Categoría Top/Promedio
+  1047→  1047→  - Habitaciones: Ocupación/Noches/ADR
+  1048→  1048→  - Clientes: Total/Nuevos/Recurrentes
+  1049→  1049→- "Cliente destacado" Crown card en tab de clientes
+  1050→  1050→- Per-room occupancy badges en tabla de habitaciones
+  1051→  1051→- Clientes table: zebra striping, hover, mono fonts, Crown en #1
+  1052→  1052→- CSV export button enhanced con Download icon + hover forest green
+  1053→  1053→- Nuevo "Imprimir" button con Printer icon (window.print())
+  1054→  1054→
+  1055→  1055→### Verificación QA (agent-browser)
+  1056→  1056→
+  1057→  1057→#### Bug fix verificado:
+  1058→  1058→- ✅ Homepage carga completamente (title: "Hospedá — Gestión Hotelera Simple")
+  1059→  1059→- ✅ HTML body: 102KB+ (contenido completo, antes era 152 bytes)
+  1060→  1060→- ✅ 0 botones anidados en HTML output (antes: 4)
+  1061→  1061→- ✅ 0 errores en consola del navegador
+  1062→  1062→- ✅ agent-browser snapshot muestra todos los elementos interactivos:
+  1063→  1063→  - Navbar: Hospedá link, Características, Planes, Cómo funciona, FAQ, Iniciar sesión, Prueba gratis
+  1064→  1064→  - Hero: H1 "Tu hotel, gestionado de forma inteligente", Comenzar gratis, Cómo funciona
+  1065→  1065→  - Features: 6 cards (Panel de Control, Reservas, Habitaciones, Facturación, Reportes, Y mucho más)
+  1066→  1066→  - Planes: Básico, Profesional, Premium con botones "Comenzar con X"
+  1067→  1067→  - How it works: 3 steps
+  1068→  1068→  - FAQ: 6 preguntas expandibles
+  1069→  1069→  - Final CTA: Crear mi cuenta gratis, Ver planes
+  1070→  1070→  - Footer: Producto, Empresa, Contacto
+  1071→  1071→
+  1072→  1072→#### Lint Status
+  1073→  1073→- **0 errors, 0 warnings** (clean)
+  1074→  1074→- Verificado después de todos los cambios
+  1075→  1075→
+  1076→  1076→### Archivos Nuevos (Round 6)
+  1077→  1077→- `src/components/modules/dashboard/RecentActivity.tsx` — Recent activity timeline widget
+  1078→  1078→- `src/components/modules/TodaySummary.tsx` — Today's stats banner for ReservasModule
+  1079→  1079→- `src/components/layout/HelpDialog.tsx` — Help dialog with keyboard shortcuts
+  1080→  1080→
+  1081→  1081→### Archivos Modificados (Round 6)
+  1082→  1082→- `src/app/page.tsx` — **CRITICAL FIX**: 8 nested button patterns fixed using asChild
+  1083→  1083→- `src/components/modules/DashboardModule.tsx` — Added OccupancyTrendChart + RecentActivity
+  1084→  1084→- `src/components/modules/ClientesModule.tsx` — Enhanced detail view with stats + visual polish
+  1085→  1085→- `src/components/modules/ReservasModule.tsx` — Added TodaySummary widget
+  1086→  1086→- `src/components/layout/Sidebar.tsx` — Integrated HelpDialog in 3 locations
+  1087→  1087→- `src/components/modules/TarifasModule.tsx` — Visual polish (rate cards, range table, empty state)
+  1088→  1088→- `src/components/modules/ReportesModule.tsx` — Visual polish (headers, KPIs, badges, export buttons)
+  1089→  1089→
+  1090→  1090→### Issue conocido: Dev server OOM
+  1091→  1091→- El dev server (Next.js 16 con Turbopack) consume ~1GB+ de RAM durante compilación
+  1092→  1092→- En este sandbox con 4GB RAM, el OOM killer termina el proceso después de varios requests
+  1093→  1093→- Workaround: cerrar agent-browser antes de restart, usar `--webpack` flag, o restart frecuente
+  1094→  1094→- Esto NO es un bug de código — es una limitación de infraestructura
+  1095→  1095→- El código compila limpiamente y el HTML output es correcto
+  1096→  1096→
+  1097→  1097→### Próxima Fase (Round 7) — Recomendaciones
+  1098→  1098→
+  1099→  1099→#### Features propuestas
+  1100→  1100→1. **Reservas drag-to-create** en calendario visual (usando @dnd-kit ya instalado)
+  1101→  1101→2. **Reportes: exportar a PDF** (usando pdf skill o jsPDF)
+  1102→  1102→3. **Multi-habitación en reservas** — soporte para reservar múltiples habitaciones
+  1103→  1103→4. **Notificaciones push** — integrar Web Push API para notificaciones del navegador
+  1104→  1104→5. **Dashboard: occupancy forecast** — predecir ocupación próxima basado en reservas
+  1105→  1105→6. **Clientes: loyalty program** — sistema de puntos/descuentos para clientes frecuentes
+  1106→  1106→7. **Auditoría visual** — timeline de cambios en el sistema con diff visual
+  1107→  1107→
+  1108→  1108→#### Mejoras sistémicas
+  1109→  1109→1. **Server-side pagination** — paginar en API en vez de traer todos los datos
+  1110→  1110→2. **Offline-first** — Service Worker + cache para operación sin conexión
+  1111→  1111→3. **i18n** — Extraer strings a archivos de traducción (es-AR/en)
+  1112→  1112→4. **Test coverage** — Unit tests para store actions, integration tests para API routes
+  1113→  1113→5. **Performance monitoring** — Integrar Web Vitals tracking
+  1114→  1114→6. **Error boundaries** — Error boundaries por módulo para aislar fallos
+  1115→  1115→
+  1116→  1116→#### Issues pendientes menores
+  1117→  1117→1. Reservas ninos2: Agregar `form.ninos2` field (actualmente usa ninosCount de hab1)
+  1118→  1118→2. ConfiguracionModule: Algunos sub-componentes podrían separarse en archivos propios
+  1119→  1119→3. Dev server memory optimization — considerar split de page.tsx en componentes más chicos
+  1120→  1120→
+  1121→  1121→---
+  1122→  1122→
+  1123→  1123→## Task ID: 7-a — ModuleErrorBoundary para aislamiento de crashes por módulo
+  1124→  1124→
+  1125→  1125→- **Task ID**: 7-a
+  1126→  1126→- **Agent**: Code Agent (Z.ai)
+  1127→  1127→- **Task**: Crear un `ModuleErrorBoundary` y envolver cada módulo con él para que un crash en un módulo (p.ej. ReservasModule) no tire toda la app.
+  1128→  1128→
+  1129→  1129→### Work Log
+  1130→  1130→
+  1131→  1131→#### 1. Nuevo componente `src/components/layout/ModuleErrorBoundary.tsx`
+  1132→  1132→- Clase React `ModuleErrorBoundary` (no funcional, porque los error boundaries requieren class component).
+  1133→  1133→- Props: `{ moduleName: string; children: React.ReactNode }`.
+  1134→  1134→- Estado: `{ hasError, error, errorId }`. El `errorId` se genera con `Date.now()` + sufijo random base36 — útil para追踪 y para el mailto de reporte.
+  1135→  1135→- `getDerivedStateFromError` setea `hasError: true` + error + errorId generado.
+  1136→  1136→- `componentDidCatch` loguea a consola con prefijo `[ModuleErrorBoundary:{moduleName}]` para debugging.
+  1137→  1137→- `handleRetry`: resetea el estado (children se re-renderizan).
+  1138→  1138→- `handleGoDashboard`: usa `useHotelStore.getState().setModulo('dashboard')` y resetea estado — evita hooks fuera de componente y funciona porque getState es método estático del store.
+  1139→  1139→- UI compacta (no full-screen): `min-h-[400px]` con card centrada `max-w-lg`, alerta con `AlertTriangle` en círculo `bg-destructive/10`, título con nombre del módulo, mensaje explicativo, detalles técnicos en `<details>` colapsable (con `errorId` en el summary), y botones de acción.
+  1140→  1140→- Botones:
+  1141→  1141→  - **Reintentar** (outline) con icono `RefreshCw`.
+  1142→  1142→  - **Ir al Dashboard** con fondo forest green `bg-[#0F2B28] hover:bg-[#0F2B28]/90` e icono `LayoutDashboard`.
+  1143→  1143→  - **Reportar error** (ghost) — `<a href="mailto:soporte@hospeda.com?...">` con subject y body pre-llenados (Error ID, mensaje, módulo).
+  1144→  1144→- Animación de entrada: `animate-in fade-in zoom-in-50 duration-300` en el círculo de alerta.
+  1145→  1145→- Tema forest green (#0F2B28) para acción primaria — sin azul/indigo.
+  1146→  1146→
+  1147→  1147→#### 2. Wrap de módulos en `src/app/(app)/app/page.tsx`
+  1148→  1148→- Import de `ModuleErrorBoundary`.
+  1149→  1149→- `ConfiguracionModule` (rama owner-only) envuelto con `<ModuleErrorBoundary moduleName="Configuración">`.
+  1150→  1150→- Módulos del catálogo (`ModuleComponent`) envueltos con `<ModuleErrorBoundary moduleName={moduloActivo}>` dentro del wrapper `module-enter`.
+  1151→  1151→- Módulo no encontrado (fallback de `modules[moduloActivo]`) queda fuera del boundary a propósito — no tiene sentido aislar un caso de "no existe".
+  1152→  1152→- No se modificó el `ErrorBoundary` global en `src/components/ui/error-boundary.tsx` ni el `layout.tsx`. El global sigue siendo la red de seguridad última; el `ModuleErrorBoundary` es la primera línea de defensa dentro del área de contenido.
+  1153→  1153→
+  1154→  1154→#### 3. Feature extra: "Reportar error"
+  1155→  1155→- Botón ghost con `<a href="mailto:...">` que arma el subject (`Error en {moduleName}`) y body (`Error ID`, `Mensaje`, `Módulo`) usando `encodeURIComponent` para escapar caracteres especiales.
+  1156→  1156→- Útil para que el usuario reporte bugs con contexto mínimo aprovechable por soporte.
+  1157→  1157→
+  1158→  1158→#### 4. Lint
+  1159→  1159→- `bun run lint` → **0 errors, 0 warnings**. ✅
+  1160→  1160→
+  1161→  1161→### Stage Summary
+  1162→  1162→- Aislamiento de crashes implementado a nivel módulo: un throw en cualquier módulo (Dashboard, Habitaciones, Clientes, CheckIn, Reservas, Facturación, Limpieza, Caja, Tarifas, Reportes, Usuarios, Configuración) ahora muestra UI compacta de recuperación en lugar de tirar toda la app.
+  1163→  1163→- UI consistente con el resto del sistema (forest green #0F2B28, shadcn/ui, Tailwind, lucide-react).
+  1164→  1164→- Tres acciones de recuperación: Reintentar, Ir al Dashboard, Reportar error (mailto).
+  1165→  1165→- El `ErrorBoundary` global queda intacto como fallback último — no se rompe compatibilidad.
+  1166→  1166→- Cumple todos los acceptance criteria del task.
+  1167→  1167→
+  1168→  1168→---
+  1169→  1169→
+  1170→  1170→## Round 7 — Task 7-b: RoomStatsBanner en HabitacionesModule
+  1171→  1171→
+  1172→  1172→- **Task ID:** 7-b
+  1173→  1173→- **Agente:** fullstack-developer
+  1174→  1174→- **Task:** Add a "Quick Stats" banner to the HabitacionesModule showing room status breakdown + occupancy progress bar.
+  1175→  1175→
+  1176→  1176→### Work Log
+  1177→  1177→
+  1178→  1178→**Archivo modificado:** `src/components/modules/HabitacionesModule.tsx` (305 → 542 líneas)
+  1179→  1179→
+  1180→  1180→#### 1. Nuevos imports
+  1181→  1181→- `useEffect` de React (para animación `mounted`)
+  1182→  1182→- Iconos lucide-react: `CheckCircle`, `UserCheck`, `CalendarCheck`, `SprayCan`, `Wrench`, `Ban`, `type LucideIcon`
+  1183→  1183→
+  1184→  1184→#### 2. Nuevo componente `RoomStatsBanner` (inline en mismo archivo)
+  1185→  1185→Ubicado justo después de `ModuleHeader` y antes de la grilla de habitaciones.
+  1186→  1186→
+  1187→  1187→**Selector Zustand granular:**
+  1188→  1188→```ts
+  1189→  1189→const habitaciones = useHotelStore(s => s.habitaciones);
+  1190→  1190→```
+  1191→  1191→Sin destructuring — solo re-renderiza cuando `habitaciones` cambia.
+  1192→  1192→
+  1193→  1193→**Stats computadas:**
+  1194→  1194→- Total habitaciones (card especial con span completo + badge de ocupación %)
+  1195→  1195→- Disponibles / Ocupadas / Reservadas / Limpieza / Mantenimiento / Fuera de servicio
+  1196→  1196→
+  1197→  1197→**Configuración visual `STAT_CONFIG` (array tipado con `StatConfig`):**
+  1198→  1198→Cada entrada incluye `icon`, `iconColor`, `iconBg`, `cardBg` (gradient), `accentBorder` (border-l-3px), `barColor`.
+  1199→  1199→
+  1200→  1200→Colores:
+  1201→  1201→- Total: forest green `#0F2B28` con gradient `from-[#F0FDF4]/40 to-white`
+  1202→  1202→- Disponible: `#166534` / `bg-[#DCFCE7]/30` / accent `#4ADE80`
+  1203→  1203→- Ocupada: `#92400E` / `bg-[#FEF3C7]/30` / accent `#F59E0B`
+  1204→  1204→- Reservada: `#1E40AF` / `bg-[#DBEAFE]/30` / accent `#3B82F6`
+  1205→  1205→- Limpieza: `#92400E` / `bg-[#FEF3C7]/30` / accent `#FBBF24`
+  1206→  1206→- Mantenimiento: `#64748B` / `bg-[#F8FAFC]/30` / accent `#94A3B8`
+  1207→  1207→- Fuera de servicio: `#64748B` / `bg-[#F8FAFC]/30` / accent `#94A3B8`
+  1208→  1208→
+  1209→  1209→#### 3. Layout de stat cards
+  1210→  1210→- Grid responsive: `grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3`
+  1211→  1211→- Card "Total" hace span completo: `col-span-2 sm:col-span-3 lg:col-span-6`
+  1212→  1212→  - Incluye badge "Ocupación: X%" alineado a la derecha
+  1213→  1213→- 6 cards de estado (1 col cada una en lg)
+  1214→  1214→- Cada card:
+  1215→  1215→  - `p-3 rounded-xl border border-l-[3px]` + accentBorder color
+  1216→  1216→  - Fondo con gradient sutil (`bg-gradient-to-br from-[color]/30 to-white`)
+  1217→  1217→  - Icono en círculo `size-8 rounded-full` con bg tinted (`bg-[color]/10`)
+  1218→  1218→  - Número grande: `text-2xl font-bold`
+  1219→  1219→  - Label: `text-xs text-muted-foreground`
+  1220→  1220→  - Hover lift: `hover:-translate-y-0.5 hover:shadow-md transition-all duration-500 ease-out`
+  1221→  1221→
+  1222→  1222→#### 4. Animación staggered
+  1223→  1223→- `mounted` state con `useEffect` + `setTimeout(() => setMounted(true), 50)`
+  1224→  1224→- Estado inicial: `opacity-0 translate-y-2`
+  1225→  1225→- Estado montado: `opacity-100 translate-y-0`
+  1226→  1226→- Stagger: `style={{ transitionDelay: `${i * 60}ms` }}` para cards, delay extra para barra de progreso (`STAT_CONFIG.length * 60`ms)
+  1227→  1227→
+  1228→  1228→#### 5. Barra de ocupación proporcional
+  1229→  1229→- Header con label "Distribución de estados" + contador "{ocupadas} de {total} ocupadas · {pct}%"
+  1230→  1230→- Barra `h-3 rounded-full bg-muted overflow-hidden flex` con `role="img"` y `aria-label` completo
+  1231→  1231→- Segmentos por estado (excluyendo Total):
+  1232→  1232→  - Ancho proporcional: `style={{ width: \`${(count/total)*100}%\` }}`
+  1233→  1233→  - Color de barra distinto al accent para mejor visibilidad (e.g., Ocupada usa `#F59E0B`)
+  1234→  1234→  - `title` attribute con tooltip: `"Label: count (pct%)"` para hover
+  1235→  1235→- Segmentos vacíos (count=0) no se renderizan
+  1236→  1236→
+  1237→  1237→#### 6. Edge case: total === 0
+  1238→  1238→- Retorna div con `border-dashed` y mensaje: "No hay habitaciones cargadas. Creá la primera con el botón 'Nueva Habitación'."
+  1239→  1239→
+  1240→  1240→#### 7. Type safety
+  1241→  1241→- `Record<EstadoHabitacion, number>` para el objeto `counts` (matching pattern existente del archivo)
+  1242→  1242→- Cast `s.estado as EstadoHabitacion` para acceso a counts (cuando no es 'total')
+  1243→  1243→- `StatConfig` type explícito para array de config
+  1244→  1244→
+  1245→  1245→### Constraints respetadas
+  1246→  1246→- ✅ NO se modificó la lista/grid de room cards existente — solo se AGREGÓ el banner arriba
+  1247→  1247→- ✅ Selector Zustand granular (`useHotelStore(s => s.habitaciones)`) — sin destructuring
+  1248→  1248→- ✅ Status colors OK (blue para Reservada está en la lista de excepciones)
+  1249→  1249→- ✅ Forest green `#0F2B28` para Total y porcentaje de ocupación
+  1250→  1250→- ✅ NO blue/indigo en elementos primarios
+  1251→  1251→- ✅ TypeScript strict correcto
+  1252→  1252→- ✅ NO test files agregados
+  1253→  1253→- ✅ `bun run lint` — 0 errors, 0 warnings
+  1254→  1254→
+  1255→  1255→### Stage Summary
+  1256→  1256→RoomStatsBanner implementado con 7 stat cards (1 total + 6 estados), animación staggered fade-in, y barra de ocupación segmentada proporcionalmente con tooltips en hover. Edge case para hotelería vacía. Todo el código respeta el patrón existente del archivo (Record<EstadoHabitacion, string>, borderByEstado, granular selectors). Dev server compila limpio, lint pasa sin errores.
+  1257→  1257→
+  1258→  1258→
+  1259→  1259→---
+  1260→  1260→
+  1261→  1261→## Task ID: 7-c
+  1262→  1262→
+  1263→  1263→**Agent:** Round 7 Agent C (CheckInModule Visual Enhancement)
+  1264→  1264→**Task:** Enhance the CheckInModule with better visual feedback and a "Today's Activity" summary banner
+  1265→  1265→
+  1266→  1266→### Work Log
+  1267→  1267→
+  1268→  1268→**Files modified:**
+  1269→  1269→- `src/app/globals.css` (+73 lines, total 423) — Added custom keyframes & utility classes:
+  1270→  1270→  - `@keyframes waveBorder` + `.wave-border-hover` — emerald pulse on check-in card hover
+  1271→  1271→  - `@keyframes waveBorderAmber` + `.wave-border-hover-amber` — orange pulse on check-out card hover
+  1272→  1272→  - `@keyframes countPop` + `.count-pop` — bouncy pop-in animation for count badges (key change triggers re-mount via React `key` prop)
+  1273→  1273→  - `@keyframes celebrateShimmer` + `.celebrate-bg` — animated gradient shimmer for celebratory empty states
+  1274→  1274→
+  1275→  1275→- `src/components/modules/CheckInModule.tsx` (730 → 1097 lines) — Comprehensive enhancement:
+  1276→  1276→  1. **Imports modernized:** Removed local `formatFecha` / `formatMoney` (now imported from `@/lib/format` along with `todayLocal` and `daysAgo`); added `Skeleton`, `cn`, `useEffect`/`useMemo`, new icons (`Bed`, `CheckCircle`, `CalendarCheck`, `DoorOpen`, `Wallet`, `ArrowRight`, `LucideIcon` type).
+  1277→  1277→  2. **Granular Zustand selectors (no destructuring):** Replaced `const { reservas, habitaciones, ... } = useHotelStore()` with one-selector-per-line:
+  1278→  1278→     ```ts
+  1279→  1279→     const reservas = useHotelStore(s => s.reservas);
+  1280→  1280→     const habitaciones = useHotelStore(s => s.habitaciones);
+  1281→  1281→     const realizarCheckIn = useHotelStore(s => s.realizarCheckIn);
+  1282→  1282→     // ... etc.
+  1283→  1283→     ```
+  1284→  1284→     Wrapped `pendientesCheckIn` / `pendientesCheckOut` in `useMemo` for memoization.
+  1285→  1285→  3. **Local loading state** (the store has no `loading` flag): `useState(true)` + `useEffect` with 400ms `setTimeout` to simulate brief fetch and show skeletons on mount.
+  1286→  1286→  4. **New `TodayActivitySummary` sub-component** placed after `ModuleHeader` and before the check-in/check-out cards. Renders 3 stat cards using the EXACT criteria from the task:
+  1287→  1287→     - **Check-ins completados hoy** (emerald `#059669`, `LogIn`): `estado === 'Check-In realizado' && checkin === hoyStr`
+  1288→  1288→     - **Check-outs completados hoy** (orange `#EA580C`, `LogOut`): `estado === 'Check-Out realizado' && checkout === hoyStr`
+  1289→  1289→     - **Estadías activas** (forest green `#0F2B28`, `Bed`): `estado === 'Check-In realizado'`
+  1290→  1290→     Each card: `p-4 rounded-xl border bg-gradient-to-br from-{color}/20 to-white`, colored circle icon (`size-10`), big number (`text-3xl font-bold`), label (`text-xs uppercase tracking-wider text-muted-foreground`), trend pill (↑/↓ vs yesterday using `daysAgo(1)`) — hidden when both today & yesterday are 0, hover lift (`-translate-y-1 hover:shadow-lg`), staggered entrance via `animate-slide-up` with `animationDelay`.
+  1291→  1291→     For the snapshot "Estadías activas" card (no clear "yesterday" metric), trend = current − (current + checkouts completed today) = −checkoutsToday; sublabel shows `${ocupacionPct}% ocup.` derived from `habitaciones` selector (required by task).
+  1292→  1292→  5. **New `QuickActions` sub-component** — Row of 3 ghost buttons below the summary:
+  1293→  1293→     - "Ver todas las reservas" → `setModulo('reservas')` (icon: `CalendarCheck`)
+  1294→  1294→     - "Gestionar habitaciones" → `setModulo('habitaciones')` (icon: `DoorOpen`)
+  1295→  1295→     - "Ver caja" → `setModulo('caja')` (icon: `Wallet`)
+  1296→  1296→     Hover transitions to `bg-[#0F2B28]/10 text-[#0F2B28]` (forest green tint) with arrow slide-in.
+  1297→  1297→  6. **Enhanced check-in / check-out cards:**
+  1298→  1298→     - Added `wave-border-hover` / `wave-border-hover-amber` class for animated pulse-glow border on hover
+  1299→  1299→     - Added `PulsingDot` component next to the title (only when pending count > 0) using Tailwind's `animate-ping`
+  1300→  1300→     - Count badge now uses `key={count}` so React re-mounts it on change → triggers `count-pop` bouncy animation
+  1301→  1301→     - Badge colors themed per card (emerald tint / orange tint)
+  1302→  1302→  7. **Improved empty states** — Replaced plain "No hay check-ins pendientes." text with new `CelebratoryEmptyState` component: `celebrate-bg` animated gradient + `CheckCircle` icon in emerald circle with `animate-pulse-subtle` + "¡Todo al día!" heading + "No hay check-ins/check-outs pendientes." subtitle.
+  1303→  1303→  8. **Loading skeletons** — When `loading` is true:
+  1304→  1304→     - Top: 3 `StatCardSkeleton` cards (circle + trend pill + bar + bar)
+  1305→  1305→     - Below: 2 `Card` shells with `Skeleton` header and 2-3 `ListItemSkeleton` rows each
+  1306→  1306→  9. **Preserved all existing functionality:** Both modals (check-in with menores/acompanantes/requisitos/llave; check-out with financial summary) are byte-for-byte equivalent to before, except `formatMoney` / `formatFecha` now come from `@/lib/format` (functionally equivalent — local versions were drop-in replacements of the lib helpers). `CheckInAccountStatus` sub-component already used granular selectors and is untouched.
+  1307→  1307→
+  1308→  1308→### Acceptance Criteria Verification
+  1309→  1309→- ✅ TodayActivitySummary with 3 stat cards at the top (using required criteria + colors + icons)
+  1310→  1310→- ✅ Enhanced check-in/check-out cards with pulsing indicators (`PulsingDot`), animated count badges (`count-pop`), and wave border on hover
+  1311→  1311→- ✅ Quick action buttons for navigation (3 ghost buttons with arrow slide-in, forest-green hover)
+  1312→  1312→- ✅ Improved empty states (celebratory gradient + CheckCircle + animation)
+  1313→  1313→- ✅ Loading skeletons (stat cards + list items)
+  1314→  1314→- ✅ Granular Zustand selectors (no destructuring)
+  1315→  1315→- ✅ Forest green `#0F2B28` for primary actions, no blue/indigo added (existing purple `#5B21B6` for "menores" badges preserved — not introduced by this task)
+  1316→  1316→- ✅ Uses `formatMoney`, `formatFecha`, `todayLocal` from `@/lib/format` (also `daysAgo` for yesterday comparison)
+  1317→  1317→- ✅ TypeScript types correct (`ModuloId` imported from `@/lib/types`, `LucideIcon` for icon prop typing)
+  1318→  1318→- ✅ No test files added
+  1319→  1319→- ✅ `bun run lint` — exit 0, 0 errors, 0 warnings
+  1320→  1320→- ✅ Dev server: clean compile, no errors in `dev.log`
+  1321→  1321→
+  1322→  1322→### Stage Summary
+  1323→  1323→CheckInModule ampliado de 730 → 1097 líneas manteniendo 100% de la funcionalidad existente (modales de check-in con menores/acompañantes/requisitos y check-out con resumen financiero intactos). Se añadieron 6 sub-componentes nuevos (`TodayActivitySummary`, `StatCard`, `QuickActions`, `PulsingDot`, `CelebratoryEmptyState`, `StatCardSkeleton`, `ListItemSkeleton`) + 4 keyframes/utilities CSS en `globals.css`. Migración a selectores Zustand granulares (sin destructuring) y a `formatMoney`/`formatFecha`/`todayLocal`/`daysAgo` desde `@/lib/format`. Carga muestra skeletons, stats tienen trend ↑/↓ vs ayer, badges rebotan al cambiar de conteo, dots pulsan cuando hay pendientes, y los empty states celebran con gradient animado. Lint pasa con 0 errores y el dev server compila limpio.
+  1324→  1324→
+  1325→  1325→---
+  1326→  1326→
+  1327→  1327→## Task ID: 7-d — StatsSection (animated counters) + TestimonialsSection en landing page
+  1328→  1328→
+  1329→  1329→- **Task ID**: 7-d
+  1330→  1330→- **Agent**: Code Agent (Z.ai)
+  1331→  1331→- **Task**: Agregar una sección de Stats con contadores animados + trust badges (entre Hero y Features) y una sección de Testimonios con 3 reseñas de clientes (entre Features y Planes) en `src/app/page.tsx`.
+  1332→  1332→
+  1333→  1333→### Work Log
+  1334→  1334→
+  1335→  1335→#### 1. Imports añadidos
+  1336→  1336→- En `src/app/page.tsx`, agregados a la importación de `lucide-react`: `Quote, Star, MapPin, FileCheck, MessageCircle, Server, Headphones` (Building2 y CalendarCheck ya estaban importados).
+  1337→  1337→- Nueva importación: `import { AnimatedNumber } from '@/components/ui/animated-number';`.
+  1338→  1338→
+  1339→  1339→#### 2. Data inline (antes de la sección COMPONENTS)
+  1340→  1340→- `stats`: array de 4 objetos `{ icon, value, format, label, iconColor }`:
+  1341→  1341→  - `500+` hoteles confían en Hospedá — Building2
+  1342→  1342→  - `50K+` reservas gestionadas — CalendarCheck
+  1343→  1343→  - `99.9%` uptime garantizado — Server
+  1344→  1344→  - `24/7` soporte dedicado — Headphones
+  1345→  1345→  - Cada uno con `format` custom (no `formatMoney` default) para mostrar sufijos `+`, `K+`, `%`, `/7`.
+  1346→  1346→- `trustBadges`: array de 4 objetos `{ icon, label }`:
+  1347→  1347→  - Datos encriptados (Shield), Servidores en Argentina (MapPin), Cumple Ley 25.326 (FileCheck), Soporte en español (MessageCircle).
+  1348→  1348→- `testimonials`: array de 3 objetos `{ nombre, rol, avatar, avatarColor, texto, rating }` — exactamente como se especificó en el task (María González / Carlos Rodríguez / Laura Martínez).
+  1349→  1349→
+  1350→  1350→#### 3. Componente `StatsSection`
+  1351→  1351→- Usa `useInView(0.25)` (threshold mayor para mejor trigger del counter).
+  1352→  1352→- Layout `grid grid-cols-2 lg:grid-cols-4 gap-4` para los stats.
+  1353→  1353→- Cada stat: card con `bg-gradient-to-br from-[#F0FDF4]/50 to-white border border-[#BBF7D0]/40 rounded-2xl`, icono en círculo coloreado arriba, número `text-4xl font-extrabold text-[#0F2B28]` con `AnimatedNumber` (cuando `inView` true; fallback `<span>0</span>` antes), label `text-sm text-muted-foreground mt-1`.
+  1354→  1354→- `AnimatedNumber` usa `duration={1500}` y `format={s.format}` para cada stat.
+  1355→  1355→- Cada stat envuelto en `<FadeIn delay={i * 100}>` para stagger animation.
+  1356→  1356→- Trust badges: row de 4 pills `bg-[#F0FDF4]/50 border border-[#BBF7D0]/40 text-[#166534]` con icono + texto, envuelto en `<FadeIn delay={400}>`.
+  1357→  1357→- Section background: `bg-gradient-to-b from-white to-[#F0FDF4]/40`, padding `py-16 sm:py-20`.
+  1358→  1358→
+  1359→  1359→#### 4. Componente `TestimonialsSection`
+  1360→  1360→- Section background: `bg-gradient-to-b from-[#F0FDF4]/30 to-white`, padding `py-24 sm:py-32`.
+  1361→  1361→- Header con Badge secundario (icono Quote), título "Lo que dicen nuestros clientes", subtítulo descriptivo — envuelto en `<FadeIn>`.
+  1362→  1362→- Layout `grid md:grid-cols-3 gap-6` para las 3 cards.
+  1363→  1363→- Cada card:
+  1364→  1364→  - `p-6 bg-white border border-border rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300`
+  1365→  1365→  - `flex flex-col` + `h-full` para que todas las cards tengan igual altura.
+  1366→  1366→  - Quote icon grande arriba `text-[#0F2B28]/20`.
+  1367→  1367→  - 5 estrellas (Star icon) con `fill-[#F59E0B] text-[#F59E0B]`, generadas con `Array.from({ length: t.rating }, (_, idx) => ...)`.
+  1368→  1368→  - Texto italic con `&ldquo;` / `&rdquo;` para comillas tipográficas.
+  1369→  1369→  - Divider `border-t border-border`.
+  1370→  1370→  - Avatar circle con iniciales + nombre + rol (con `truncate` y `min-w-0` para responsive).
+  1371→  1371→  - Colores de avatar: `bg-[#059669]` (María), `bg-[#0F2B28]` (Carlos), `bg-[#EA580C]` (Laura).
+  1372→  1372→- Cada card envuelta en `<FadeIn delay={i * 120}>`.
+  1373→  1373→
+  1374→  1374→#### 5. Placement en `LandingPage`
+  1375→  1375→- Render order actualizado:
+  1376→  1376→  ```
+  1377→  1377→  <Hero />
+  1378→  1378→  <StatsSection />        ← NEW
+  1379→  1379→  <Features />
+  1380→  1380→  <TestimonialsSection /> ← NEW
+  1381→  1381→  <Plans />
+  1382→  1382→  <HowItWorks />
+  1383→  1383→  <FAQ />
+  1384→  1384→  <CtaSection />
+  1385→  1385→  ```
+  1386→  1386→
+  1387→  1387→#### 6. Lint & TypeScript
+  1388→  1388→- `bunx eslint src/app/page.tsx` → **0 errors** (clean).
+  1389→  1389→- `bunx tsc --noEmit` → **0 errors** en `src/app/page.tsx` (todos los errores TS restantes son en archivos de otros módulos — CajaModule, ClientesModule, ReservasModule, TarifasModule, etc. — no relacionados con este task).
+  1390→  1390→- `bun run lint` global muestra 1 error preexistente en `src/hooks/use-filter-state.ts` (React 19 `react-hooks/set-state-in-effect`) — no relacionado con este task; era un error existente antes de mis cambios.
+  1391→  1391→
+  1392→  1392→### Stage Summary
+  1393→  1393→- ✅ StatsSection con 4 contadores animados (AnimatedNumber) + 4 trust badges, todos con FadeIn scroll animations.
+  1394→  1394→- ✅ TestimonialsSection con 3 reseñas de clientes (María, Carlos, Laura), 5 estrellas cada una, avatares con iniciales y colores forest green/orange.
+  1395→  1395→- ✅ Forest green theme (#0F2B28, #059669) y emerald/verde lima (#166534, #F0FDF4, #BBF7D0) en toda la nueva UI — sin azul/indigo.
+  1396→  1396→- ✅ Lint: 0 errores en `src/app/page.tsx`.
+  1397→  1397→- ✅ TypeScript: 0 errores en `src/app/page.tsx`.
+  1398→  1398→- ✅ Responsive: grids `grid-cols-2 lg:grid-cols-4` y `grid md:grid-cols-3`.
+  1399→  1399→- ✅ No se modificaron secciones existentes — solo se agregaron nuevas.
+
+[showing lines 1000-1399 of 2002; use offset=1400 with limit to continue reading]

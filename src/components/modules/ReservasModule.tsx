@@ -28,7 +28,8 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import {
  CalendarDays, Plus, Pencil, XCircle, Search, BedDouble, Users, Eye,
- AlertTriangle, ChevronDown, ChevronUp, Lightbulb,
+ AlertTriangle, ChevronDown, ChevronUp, Lightbulb, LayoutList, LayoutGrid,
+ Download,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import TodaySummary from '@/components/modules/TodaySummary';
@@ -37,6 +38,8 @@ import { notifySuccess, notifyWarning } from '@/lib/notify';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PaginationBar from '@/components/ui/pagination-bar';
+import ReservationCalendarView from '@/components/modules/ReservationCalendarView';
+import { exportToCSV } from '@/lib/csv-export';
 
 // ==================== DATE PICKER HELPER ====================
 
@@ -459,6 +462,7 @@ export default function ReservasModule() {
  // ==================== VALIDATION ERRORS ====================
  const [errors, setErrors] = useState<string[]>([]);
  const [saving, setSaving] = useState(false);
+ const [viewMode, setViewMode] = useState<'lista' | 'calendario'>('lista');
 
  // ==================== COMPUTED: MODO DE COBRO ACTUAL ====================
  const modoCobroActual: string = tarifas[form.tipoTarifa]?.modoCobro || 'porGrupo';
@@ -1208,11 +1212,68 @@ export default function ReservasModule() {
  <Button variant="outline" size="sm" onClick={() => { const today = new Date().toISOString().split('T')[0]; setFiltroEstado('todos'); setFiltroTipo('todos'); setFiltroEstadoPago('todos'); setFiltroDesde(today); setFiltroHasta(today); setPage(1); }}>
  <XCircle className="w-3.5 h-3.5 mr-1" />Limpiar
  </Button>
+ <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+   const headers = ['Huésped', 'DNI', 'Habitación', 'Check-in', 'Check-out', 'Estado', 'Total'];
+   const rows = filteredReservas.map(r => [
+     r.huesped || '',
+     r.dni || '',
+     r.habitacion || '',
+     r.checkin || '',
+     r.checkout || '',
+     r.estado || '',
+     calcularTotalReserva(r.id),
+   ]);
+   exportToCSV('reservas.csv', headers, rows);
+   toast.success('CSV exportado');
+ }}>
+ <Download className="w-3.5 h-3.5" />Exportar CSV
+ </Button>
  </div>
  </CardContent>
  </Card>
 
+ {/* ==================== VIEW MODE TOGGLE ==================== */}
+ <div className="flex items-center gap-2">
+ <div className="flex bg-[#F1F5F9] rounded-lg p-0.5 border border-[#E2E8F0]/80">
+ <button
+ type="button"
+ onClick={() => setViewMode('lista')}
+ className={cn(
+ 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer',
+ viewMode === 'lista'
+ ? 'bg-white text-[#0F2B28] font-semibold shadow-sm'
+ : 'text-[#64748B] hover:text-[#475569]'
+ )}
+ >
+ <LayoutList className="w-3.5 h-3.5" />Lista
+ </button>
+ <button
+ type="button"
+ onClick={() => setViewMode('calendario')}
+ className={cn(
+ 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer',
+ viewMode === 'calendario'
+ ? 'bg-white text-[#0F2B28] font-semibold shadow-sm'
+ : 'text-[#64748B] hover:text-[#475569]'
+ )}
+ >
+ <LayoutGrid className="w-3.5 h-3.5" />Calendario
+ </button>
+ </div>
+ </div>
+
+ {/* ==================== CALENDAR VIEW ==================== */}
+ {viewMode === 'calendario' && (
+ <ReservationCalendarView
+ reservas={filteredReservas}
+ habitaciones={habitaciones}
+ onReservationClick={openDetalle}
+ todayStr={todayStr}
+ />
+ )}
+
  {/* ==================== CARDS (mobile) / TABLE (desktop) ==================== */}
+ {viewMode === 'lista' && (
  <Card>
  <CardContent className="p-0">
  {/* ── Mobile: Card list ── */}
@@ -1376,6 +1437,7 @@ export default function ReservasModule() {
  <PaginationBar page={page} totalPages={totalPages} onPageChange={setPage} totalItems={filteredReservas.length} pageSize={PAGE_SIZE} />
  </CardContent>
  </Card>
+ )}
 
  {/* ==================== MODAL DETALLE ==================== */}
  <Dialog open={modalDetalleOpen} onOpenChange={setModalDetalleOpen}>
