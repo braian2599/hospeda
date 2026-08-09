@@ -1,0 +1,709 @@
+     1→'use client';
+     2→
+     3→import { useState } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import type { Reserva, Acompanante, Menor } from '@/lib/types';
+     6→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     7→import { Button } from '@/components/ui/button';
+     8→import { Input } from '@/components/ui/input';
+     9→import { Label } from '@/components/ui/label';
+    10→import { Badge } from '@/components/ui/badge';
+    11→import { Checkbox } from '@/components/ui/checkbox';
+    12→import { Textarea } from '@/components/ui/textarea';
+    13→import { Separator } from '@/components/ui/separator';
+    14→import {
+    15→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    16→} from '@/components/ui/dialog';
+    17→import {
+    18→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    19→} from '@/components/ui/select';
+    20→import {
+    21→  LogIn, LogOut, KeyRound, UserPlus, Trash2, Users, AlertCircle, CreditCard, BedDouble, Baby,
+    22→} from 'lucide-react';
+    23→import ModuleHeader from '@/components/layout/ModuleHeader';
+    24→import { toast } from 'sonner';
+    25→
+    26→const formatFecha = (f: string) => {
+    27→  if (!f) return '—';
+    28→  const d = new Date(f + 'T12:00:00');
+    29→  return d.toLocaleDateString('es-AR');
+    30→};
+    31→
+    32→const formatMoney = (n: number) =>
+    33→  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n);
+    34→
+    35→const estadoPagoBadge: Record<string, string> = {
+    36→  Pendiente: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]',
+    37→  Parcial: 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA]',
+    38→  Pagado: 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]',
+    39→};
+    40→
+    41→const PARENTESCO_OPTIONS = [
+    42→  'Hijo/a', 'Hijo/astra', 'Nieto/a', 'Sobrino/a', 'Primo/a', 'Otro',
+    43→];
+    44→
+    45→interface MenorForm {
+    46→  nombre: string;
+    47→  documento: string;
+    48→  edad: string;
+    49→  parentesco: string;
+    50→}
+    51→
+    52→function emptyMenorForm(): MenorForm {
+    53→  return { nombre: '', documento: '', edad: '', parentesco: 'Hijo/a' };
+    54→}
+    55→
+    56→export default function CheckInModule() {
+    57→  const {
+    58→    reservas, habitaciones, realizarCheckIn, realizarCheckOut,
+    59→    calcularTotalReserva, calcularTotalPagado, nochesEntre,
+    60→  } = useHotelStore();
+    61→
+    62→  const pendientesCheckIn = reservas.filter(r => r.estado === 'Confirmada');
+    63→  const pendientesCheckOut = reservas.filter(r => r.estado === 'Check-In realizado');
+    64→
+    65→  // Modal state
+    66→  const [modalTipo, setModalTipo] = useState<'checkin' | 'checkout' | null>(null);
+    67→  const [selReserva, setSelReserva] = useState<Reserva | null>(null);
+    68→  const [dialogKey, setDialogKey] = useState(0);
+    69→
+    70→  // Check-in form
+    71→  const [docVerificado, setDocVerificado] = useState(false);
+    72→  const [firmaConformidad, setFirmaConformidad] = useState(false);
+    73→  const [llave, setLlave] = useState('');
+    74→  const [emergenciaNombre, setEmergenciaNombre] = useState('');
+    75→  const [emergenciaTelefono, setEmergenciaTelefono] = useState('');
+    76→  const [observaciones, setObservaciones] = useState('');
+    77→  const [acompanantes, setAcompanantes] = useState<Acompanante[]>([
+    78→    { nombre: '', dni: '', celular: '' },
+    79→  ]);
+    80→
+    81→  // Menores form state
+    82→  const [menoresForms, setMenoresForms] = useState<MenorForm[]>([]);
+    83→  const [menoresErrors, setMenoresErrors] = useState<string[]>([]);
+    84→
+    85→  const openCheckIn = (r: Reserva) => {
+    86→    setSelReserva(r);
+    87→    setDocVerificado(false);
+    88→    setFirmaConformidad(false);
+    89→    setLlave('');
+    90→    setEmergenciaNombre(r.contactoEmergencia?.nombre || '');
+    91→    setEmergenciaTelefono(r.contactoEmergencia?.telefono || '');
+    92→    setObservaciones(r.observacionesHuesped || '');
+    93→    setAcompanantes(r.acompanantes?.length ? [...r.acompanantes] : [{ nombre: '', dni: '', celular: '' }]);
+    94→
+    95→    // Si ya tiene menores registrados (check-in previo), precargar
+    96→    if (r.menores && r.menores.length > 0) {
+    97→      setMenoresForms(r.menores.map(m => ({
+    98→        nombre: m.nombre,
+    99→        documento: m.documento,
+   100→        edad: String(m.edad),
+   101→        parentesco: m.parentesco,
+   102→      })));
+   103→    } else if ((r.ninos || 0) > 0) {
+   104→      // Generar formularios vacíos según la cantidad de menores declarados
+   105→      const forms: MenorForm[] = [];
+   106→      for (let i = 0; i < r.ninos!; i++) {
+   107→        forms.push(emptyMenorForm());
+   108→      }
+   109→      setMenoresForms(forms);
+   110→    } else {
+   111→      setMenoresForms([]);
+   112→    }
+   113→    setMenoresErrors([]);
+   114→
+   115→    setModalTipo('checkin');
+   116→  };
+   117→
+   118→  const openCheckOut = (r: Reserva) => {
+   119→    setSelReserva(r);
+   120→    setModalTipo('checkout');
+   121→  };
+   122→
+   123→  const closeModal = () => {
+   124→    setModalTipo(null);
+   125→    setSelReserva(null);
+   126→    setDialogKey(prev => prev + 1);
+   127→  };
+   128→
+   129→  const validateMenores = (): boolean => {
+   130→    const errs: string[] = [];
+   131→    for (let i = 0; i < menoresForms.length; i++) {
+   132→      const m = menoresForms[i];
+   133→      if (!m.nombre.trim()) errs.push(`Menor ${i + 1}: nombre obligatorio`);
+   134→      if (!m.documento.trim()) errs.push(`Menor ${i + 1}: documento obligatorio`);
+   135→      const edad = parseInt(m.edad);
+   136→      if (isNaN(edad) || edad < 0 || edad > 17) errs.push(`Menor ${i + 1}: edad debe ser entre 0 y 17`);
+   137→      if (!m.parentesco.trim()) errs.push(`Menor ${i + 1}: parentesco obligatorio`);
+   138→    }
+   139→    setMenoresErrors(errs);
+   140→    return errs.length === 0;
+   141→  };
+   142→
+   143→  const handleConfirmCheckIn = async () => {
+   144→    if (!selReserva || !llave.trim()) return;
+   145→
+   146→    // Validar menores si la reserva tiene ninos > 0
+   147→    const cantNinos = selReserva.ninos || 0;
+   148→    if (cantNinos > 0) {
+   149→      if (menoresForms.length !== cantNinos) {
+   150→        toast.error(`Se requieren datos de ${cantNinos} menor${cantNinos > 1 ? 'es' : ''}`);
+   151→        return;
+   152→      }
+   153→      if (!validateMenores()) {
+   154→        toast.error('Completá todos los datos obligatorios de los menores');
+   155→        return;
+   156→      }
+   157→    }
+   158→
+   159→    const datos: Parameters<typeof realizarCheckIn>[1] = {};
+   160→    if (docVerificado) datos.documentoVerificado = true;
+   161→    if (firmaConformidad) datos.firmaConformidad = true;
+   162→    datos.llaveEntregada = llave.trim();
+   163→    if (emergenciaNombre.trim() || emergenciaTelefono.trim()) {
+   164→      datos.contactoEmergencia = { nombre: emergenciaNombre.trim(), telefono: emergenciaTelefono.trim() };
+   165→    }
+   166→    if (observaciones.trim()) datos.observacionesHuesped = observaciones.trim();
+   167→    const validAcomp = acompanantes.filter(a => a.nombre.trim());
+   168→    if (validAcomp.length > 0) datos.acompanantes = validAcomp;
+   169→
+   170→    // Pasar menores al store
+   171→    if (cantNinos > 0 && menoresForms.length > 0) {
+   172→      datos.menores = menoresForms.map(m => ({
+   173→        nombre: m.nombre.trim(),
+   174→        documento: m.documento.trim(),
+   175→        edad: parseInt(m.edad) || 0,
+   176→        parentesco: m.parentesco.trim(),
+   177→      }));
+   178→    }
+   179→
+   180→    const resultado = await realizarCheckIn(selReserva.id, datos);
+   181→    closeModal();
+   182→    if (resultado) {
+   183→      toast.success('Check-in realizado', { description: `${selReserva.huesped} - Hab. ${selReserva.habitacion}${cantNinos > 0 ? ` (${cantNinos} menor${cantNinos > 1 ? 'es' : ''} registrados)` : ''}` });
+   184→    } else {
+   185→      toast.error('No se pudo realizar el check-in', { description: 'La reserva ya no está en estado Confirmada, faltan datos de menores, o hubo un error de conexión.' });
+   186→    }
+   187→  };
+   188→
+   189→  const handleConfirmCheckOut = async () => {
+   190→    if (!selReserva) return;
+   191→    const resultado = await realizarCheckOut(selReserva.id);
+   192→    closeModal();
+   193→    if (resultado) {
+   194→      toast.success('Check-out realizado', { description: `${selReserva.huesped} - Hab. ${selReserva.habitacion}` });
+   195→    } else {
+   196→      toast.error('No se pudo realizar el check-out', { description: 'La reserva ya no está en estado Check-In realizado o hubo un error de conexión.' });
+   197→    }
+   198→  };
+   199→
+   200→  const addAcompanante = () => {
+   201→    setAcompanantes(prev => [...prev, { nombre: '', dni: '', celular: '' }]);
+   202→  };
+   203→
+   204→  const removeAcompanante = (idx: number) => {
+   205→    setAcompanantes(prev => prev.filter((_, i) => i !== idx));
+   206→  };
+   207→
+   208→  const updateAcompanante = (idx: number, field: keyof Acompanante, value: string) => {
+   209→    setAcompanantes(prev => prev.map((a, i) => (i === idx ? { ...a, [field]: value } : a)));
+   210→  };
+   211→
+   212→  const updateMenor = (idx: number, field: keyof MenorForm, value: string) => {
+   213→    setMenoresForms(prev => prev.map((m, i) => (i === idx ? { ...m, [field]: value } : m)));
+   214→  };
+   215→
+   216→  // Determinar si la reserva seleccionada requiere datos de menores
+   217→  const requiereMenores = selReserva && (selReserva.ninos || 0) > 0;
+   218→  const menoresCompletos = requiereMenores && menoresForms.length === (selReserva?.ninos || 0)
+   219→    && menoresForms.every(m => m.nombre.trim() && m.documento.trim() && m.edad.trim() && m.parentesco.trim());
+   220→
+   221→  const puedeConfirmarCheckIn = llave.trim() && (!requiereMenores || menoresCompletos);
+   222→
+   223→  return (
+   224→    <div className="space-y-6">
+   225→      <ModuleHeader icon={LogIn} title="Check-In / Check-Out" subtitle="Gestioná ingresos y egresos de huéspedes" />
+   226→
+   227→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   228→        {/* Pendientes Check-In */}
+   229→        <Card>
+   230→          <CardHeader className="pb-3">
+   231→            <CardTitle className="text-lg flex items-center gap-2">
+   232→              <LogIn className="w-5 h-5 text-[#166534]" />
+   233→              Check-Ins Pendientes
+   234→              <Badge variant="secondary" className="ml-auto">{pendientesCheckIn.length}</Badge>
+   235→            </CardTitle>
+   236→          </CardHeader>
+   237→          <CardContent>
+   238→            {pendientesCheckIn.length === 0 ? (
+   239→              <p className="text-sm text-muted-foreground text-center py-6">No hay check-ins pendientes.</p>
+   240→            ) : (
+   241→              <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
+   242→                {pendientesCheckIn.map(r => (
+   243→                  <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors">
+   244→                    <div className="min-w-0 flex-1">
+   245→                      <div className="flex items-center gap-2 flex-wrap">
+   246→                        <span className="font-semibold text-sm">{r.huesped}</span>
+   247→                        <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+   248→                        {(r.ninos || 0) > 0 && (
+   249→                          <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
+   250→                            <Baby className="w-3 h-3 mr-1" />{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}
+   251→                          </Badge>
+   252→                        )}
+   253→                      </div>
+   254→                      <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+   255→                        <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" /> Hab. {r.habitacion}</span>
+   256→                        <span>{formatFecha(r.checkin)} → {formatFecha(r.checkout)}</span>
+   257→                        <span>{nochesEntre(r.checkin, r.checkout)} noche{s(nochesEntre(r.checkin, r.checkout))}</span>
+   258→                        <span>{r.personas} adulto{s(r.personas)}{(r.ninos || 0) > 0 ? ` + ${r.ninos} niño${(r.ninos || 0) > 1 ? 's' : ''}` : ''}</span>
+   259→                      </div>
+   260→                    </div>
+   261→                    <Button size="sm" onClick={() => openCheckIn(r)}>
+   262→                      <KeyRound className="w-3.5 h-3.5 mr-1" />Check-In
+   263→                    </Button>
+   264→                  </div>
+   265→                ))}
+   266→              </div>
+   267→            )}
+   268→          </CardContent>
+   269→        </Card>
+   270→
+   271→        {/* Pendientes Check-Out */}
+   272→        <Card>
+   273→          <CardHeader className="pb-3">
+   274→            <CardTitle className="text-lg flex items-center gap-2">
+   275→              <LogOut className="w-5 h-5 text-[#92400E]" />
+   276→              Check-Outs Pendientes
+   277→              <Badge variant="secondary" className="ml-auto">{pendientesCheckOut.length}</Badge>
+   278→            </CardTitle>
+   279→          </CardHeader>
+   280→          <CardContent>
+   281→            {pendientesCheckOut.length === 0 ? (
+   282→              <p className="text-sm text-muted-foreground text-center py-6">No hay check-outs pendientes.</p>
+   283→            ) : (
+   284→              <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
+   285→                {pendientesCheckOut.map(r => (
+   286→                  <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors">
+   287→                    <div className="min-w-0 flex-1">
+   288→                      <div className="flex items-center gap-2 flex-wrap">
+   289→                        <span className="font-semibold text-sm">{r.huesped}</span>
+   290→                        <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+   291→                        {r.menores && r.menores.length > 0 && (
+   292→                          <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
+   293→                            <Baby className="w-3 h-3 mr-1" />{r.menores.length} menor{r.menores.length > 1 ? 'es' : ''}
+   294→                          </Badge>
+   295→                        )}
+   296→                      </div>
+   297→                      <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+   298→                        <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" /> Hab. {r.habitacion}</span>
+   299→                        <span>{formatFecha(r.checkin)} → {formatFecha(r.checkout)}</span>
+   300→                        <span>{nochesEntre(r.checkin, r.checkout)} noche{s(nochesEntre(r.checkin, r.checkout))}</span>
+   301→                      </div>
+   302→                    </div>
+   303→                    <Button size="sm" variant="outline" onClick={() => openCheckOut(r)}>
+   304→                      <LogOut className="w-3.5 h-3.5 mr-1" />Check-Out
+   305→                    </Button>
+   306→                  </div>
+   307→                ))}
+   308→              </div>
+   309→            )}
+   310→          </CardContent>
+   311→        </Card>
+   312→      </div>
+   313→
+   314→      {/* =================== MODAL CHECK-IN =================== */}
+   315→      <Dialog key={`checkin-${dialogKey}`} open={modalTipo === 'checkin'} onOpenChange={closeModal}>
+   316→        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+   317→          {selReserva && (
+   318→            <>
+   319→              <DialogHeader>
+   320→                <DialogTitle className="flex items-center gap-2">
+   321→                  <KeyRound className="w-5 h-5" />
+   322→                  Check-In — {selReserva.huesped}
+   323→                </DialogTitle>
+   324→              </DialogHeader>
+   325→
+   326→              {/* Estado de cuenta */}
+   327→              <CheckInAccountStatus reserva={selReserva} />
+   328→
+   329→              <Separator />
+   330→
+   331→              {/* ═══════════ DATOS DE MENORES (OBLIGATORIO si ninos > 0) ═══════════ */}
+   332→              {requiereMenores && (
+   333→                <div className="space-y-4">
+   334→                  <div className="flex items-center gap-2">
+   335→                    <Baby className="w-5 h-5 text-[#5B21B6]" />
+   336→                    <h4 className="font-semibold text-sm">
+   337→                      Datos de menores ({selReserva.ninos}) — <span className="text-[#EF4444]">Obligatorio</span>
+   338→                    </h4>
+   339→                  </div>
+   340→                  <p className="text-xs text-muted-foreground">
+   341→                    La reserva registra {selReserva.ninos} menor{selReserva.ninos! > 1 ? 'es' : ''}.
+   342→                    Debes completar los datos de cada uno para poder realizar el check-in.
+   343→                  </p>
+   344→
+   345→                  {menoresErrors.length > 0 && (
+   346→                    <div className="rounded-lg border border-[#FECACA] bg-[#FEE2E2] p-3 space-y-1">
+   347→                      {menoresErrors.map((err, i) => (
+   348→                        <p key={i} className="text-xs text-[#991B1B]">{err}</p>
+   349→                      ))}
+   350→                    </div>
+   351→                  )}
+   352→
+   353→                  <div className="space-y-4">
+   354→                    {menoresForms.map((menor, idx) => (
+   355→                      <div key={idx} className="rounded-lg border p-4 space-y-3 bg-muted/30">
+   356→                        <div className="flex items-center justify-between">
+   357→                          <span className="text-sm font-semibold flex items-center gap-1.5">
+   358→                            <Baby className="w-4 h-4 text-[#7C3AED]" />
+   359→                            Menor {idx + 1}
+   360→                          </span>
+   361→                        </div>
+   362→                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   363→                          <div className="grid gap-2">
+   364→                            <Label htmlFor={`menor-nombre-${idx}`}>Nombre completo *</Label>
+   365→                            <Input
+   366→                              id={`menor-nombre-${idx}`}
+   367→                              value={menor.nombre}
+   368→                              onChange={e => updateMenor(idx, 'nombre', e.target.value)}
+   369→                              placeholder="Nombre del menor"
+   370→                            />
+   371→                          </div>
+   372→                          <div className="grid gap-2">
+   373→                            <Label htmlFor={`menor-doc-${idx}`}>Documento / DNI *</Label>
+   374→                            <Input
+   375→                              id={`menor-doc-${idx}`}
+   376→                              value={menor.documento}
+   377→                              onChange={e => updateMenor(idx, 'documento', e.target.value)}
+   378→                              placeholder="Documento del menor"
+   379→                            />
+   380→                          </div>
+   381→                          <div className="grid gap-2">
+   382→                            <Label htmlFor={`menor-edad-${idx}`}>Edad (años) *</Label>
+   383→                            <Input
+   384→                              id={`menor-edad-${idx}`}
+   385→                              type="number"
+   386→                              min="0"
+   387→                              max="17"
+   388→                              value={menor.edad}
+   389→                              onChange={e => updateMenor(idx, 'edad', e.target.value)}
+   390→                              placeholder="Ej: 8"
+   391→                            />
+   392→                          </div>
+   393→                          <div className="grid gap-2">
+   394→                            <Label htmlFor={`menor-parentesco-${idx}`}>Parentesco *</Label>
+   395→                            <Select
+   396→                              value={menor.parentesco}
+   397→                              onValueChange={v => updateMenor(idx, 'parentesco', v)}
+   398→                            >
+   399→                              <SelectTrigger id={`menor-parentesco-${idx}`}>
+   400→                                <SelectValue placeholder="Seleccionar" />
+   401→                              </SelectTrigger>
+   402→                              <SelectContent>
+   403→                                {PARENTESCO_OPTIONS.map(p => (
+   404→                                  <SelectItem key={p} value={p}>{p}</SelectItem>
+   405→                                ))}
+   406→                              </SelectContent>
+   407→                            </Select>
+   408→                          </div>
+   409→                        </div>
+   410→                      </div>
+   411→                    ))}
+   412→                  </div>
+   413→
+   414→                  <Separator />
+   415→                </div>
+   416→              )}
+   417→
+   418→              {/* Requerimientos */}
+   419→              <div className="space-y-4">
+   420→                <h4 className="font-semibold text-sm flex items-center gap-2">
+   421→                  <AlertCircle className="w-4 h-4 text-[#F59E0B]" />
+   422→                  Requisitos
+   423→                </h4>
+   424→                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   425→                  <div className="flex items-start gap-3">
+   426→                    <Checkbox
+   427→                      id="docVerificado"
+   428→                      checked={docVerificado}
+   429→                      onCheckedChange={(v) => setDocVerificado(v === true)}
+   430→                      className="mt-0.5"
+   431→                    />
+   432→                    <Label htmlFor="docVerificado" className="text-sm cursor-pointer">
+   433→                      Documento verificado
+   434→                    </Label>
+   435→                  </div>
+   436→                  <div className="flex items-start gap-3">
+   437→                    <Checkbox
+   438→                      id="firmaConformidad"
+   439→                      checked={firmaConformidad}
+   440→                      onCheckedChange={(v) => setFirmaConformidad(v === true)}
+   441→                      className="mt-0.5"
+   442→                    />
+   443→                    <Label htmlFor="firmaConformidad" className="text-sm cursor-pointer">
+   444→                      Conformidad del huésped
+   445→                    </Label>
+   446→                  </div>
+   447→                </div>
+   448→
+   449→                {/* Llave */}
+   450→                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   451→                  <div className="grid gap-2">
+   452→                    <Label htmlFor="llave">Nº de Llave *</Label>
+   453→                    <Input
+   454→                      id="llave"
+   455→                      value={llave}
+   456→                      onChange={e => setLlave(e.target.value)}
+   457→                      placeholder="Ej: L-01"
+   458→                    />
+   459→                  </div>
+   460→                </div>
+   461→
+   462→                {/* Contacto de emergencia */}
+   463→                <div>
+   464→                  <h4 className="font-semibold text-sm mb-2">Contacto de emergencia</h4>
+   465→                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   466→                    <div className="grid gap-2">
+   467→                      <Label>Nombre</Label>
+   468→                      <Input
+   469→                        value={emergenciaNombre}
+   470→                        onChange={e => setEmergenciaNombre(e.target.value)}
+   471→                        placeholder="Nombre del contacto"
+   472→                      />
+   473→                    </div>
+   474→                    <div className="grid gap-2">
+   475→                      <Label>Teléfono</Label>
+   476→                      <Input
+   477→                        value={emergenciaTelefono}
+   478→                        onChange={e => setEmergenciaTelefono(e.target.value)}
+   479→                        placeholder="Teléfono del contacto"
+   480→                      />
+   481→                    </div>
+   482→                  </div>
+   483→                </div>
+   484→
+   485→                {/* Observaciones */}
+   486→                <div className="grid gap-2">
+   487→                  <Label>Observaciones del huésped</Label>
+   488→                  <Textarea
+   489→                    value={observaciones}
+   490→                    onChange={e => setObservaciones(e.target.value)}
+   491→                    placeholder="Notas u observaciones..."
+   492→                    rows={2}
+   493→                  />
+   494→                </div>
+   495→
+   496→                {/* Acompañantes */}
+   497→                <div>
+   498→                  <div className="flex items-center justify-between mb-2">
+   499→                    <h4 className="font-semibold text-sm flex items-center gap-2">
+   500→                      <Users className="w-4 h-4" />
+   501→                      Acompañantes
+   502→                    </h4>
+   503→                    <Button type="button" size="sm" variant="outline" onClick={addAcompanante}>
+   504→                      <UserPlus className="w-3.5 h-3.5 mr-1" />Agregar
+   505→                    </Button>
+   506→                  </div>
+   507→                  <div className="space-y-3 max-h-48 overflow-y-auto">
+   508→                    {acompanantes.map((ac, idx) => (
+   509→                      <div key={idx} className="flex gap-2 items-start">
+   510→                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+   511→                          <Input
+   512→                            placeholder="Nombre"
+   513→                            value={ac.nombre}
+   514→                            onChange={e => updateAcompanante(idx, 'nombre', e.target.value)}
+   515→                          />
+   516→                          <Input
+   517→                            placeholder="DNI"
+   518→                            value={ac.dni}
+   519→                            onChange={e => updateAcompanante(idx, 'dni', e.target.value)}
+   520→                          />
+   521→                          <Input
+   522→                            placeholder="Celular"
+   523→                            value={ac.celular}
+   524→                            onChange={e => updateAcompanante(idx, 'celular', e.target.value)}
+   525→                          />
+   526→                        </div>
+   527→                        {acompanantes.length > 1 && (
+   528→                          <Button
+   529→                            type="button"
+   530→                            size="icon"
+   531→                            variant="ghost"
+   532→                            className="h-9 w-9 text-destructive hover:text-destructive shrink-0"
+   533→                            onClick={() => removeAcompanante(idx)}
+   534→                          >
+   535→                            <Trash2 className="w-3.5 h-3.5" />
+   536→                          </Button>
+   537→                        )}
+   538→                      </div>
+   539→                    ))}
+   540→                  </div>
+   541→                </div>
+   542→              </div>
+   543→
+   544→              <DialogFooter className="mt-4">
+   545→                <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   546→                <Button
+   547→                  onClick={handleConfirmCheckIn}
+   548→                  disabled={!puedeConfirmarCheckIn}
+   549→                >
+   550→                  <KeyRound className="w-4 h-4 mr-1" />Confirmar Check-In
+   551→                </Button>
+   552→              </DialogFooter>
+   553→            </>
+   554→          )}
+   555→        </DialogContent>
+   556→      </Dialog>
+   557→
+   558→      {/* =================== MODAL CHECK-OUT =================== */}
+   559→      <Dialog key={`checkout-${dialogKey}`} open={modalTipo === 'checkout'} onOpenChange={closeModal}>
+   560→        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+   561→          {selReserva && (() => {
+   562→            const total = calcularTotalReserva(selReserva.id);
+   563→            const pagado = calcularTotalPagado(selReserva.id);
+   564→            const saldo = total - pagado;
+   565→            const noches = nochesEntre(selReserva.checkin, selReserva.checkout);
+   566→            const hab = habitaciones[selReserva.habitacion];
+   567→
+   568→            return (
+   569→              <>
+   570→                <DialogHeader>
+   571→                  <DialogTitle className="flex items-center gap-2">
+   572→                    <LogOut className="w-5 h-5" />
+   573→                    Check-Out — {selReserva.huesped}
+   574→                  </DialogTitle>
+   575→                </DialogHeader>
+   576→
+   577→                <div className="space-y-4 py-2">
+   578→                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+   579→                    <div>
+   580→                      <span className="text-muted-foreground">Habitación</span>
+   581→                      <p className="font-medium">{selReserva.habitacion} — {hab?.tipo || '—'}</p>
+   582→                    </div>
+   583→                    <div>
+   584→                      <span className="text-muted-foreground">Tarifa</span>
+   585→                      <p className="font-medium">{selReserva.tipoTarifa || 'Normal'}</p>
+   586→                    </div>
+   587→                    <div>
+   588→                      <span className="text-muted-foreground">Check-in</span>
+   589→                      <p className="font-medium">{formatFecha(selReserva.checkin)}</p>
+   590→                    </div>
+   591→                    <div>
+   592→                      <span className="text-muted-foreground">Check-out</span>
+   593→                      <p className="font-medium">{formatFecha(selReserva.checkout)}</p>
+   594→                    </div>
+   595→                    <div>
+   596→                      <span className="text-muted-foreground">Noches</span>
+   597→                      <p className="font-medium">{noches} noche{s(noches)}</p>
+   598→                    </div>
+   599→                    <div>
+   600→                      <span className="text-muted-foreground">Ocupación</span>
+   601→                      <p className="font-medium">
+   602→                        {selReserva.personas} adulto{s(selReserva.personas)}
+   603→                        {selReserva.ninos ? ` + ${selReserva.ninos} niño${selReserva.ninos > 1 ? 's' : ''}` : ''}
+   604→                      </p>
+   605→                    </div>
+   606→                    {/* Mostrar datos de menores si los hay */}
+   607→                    {selReserva.menores && selReserva.menores.length > 0 && (
+   608→                      <div className="sm:col-span-2">
+   609→                        <span className="text-muted-foreground">Menores registrados</span>
+   610→                        <div className="mt-1 space-y-1">
+   611→                          {selReserva.menores.map((m, i) => (
+   612→                            <p key={m.id || i} className="text-sm font-medium">
+   613→                              {m.nombre} — DNI: {m.documento} — {m.edad} años ({m.parentesco})
+   614→                            </p>
+   615→                          ))}
+   616→                        </div>
+   617→                      </div>
+   618→                    )}
+   619→                  </div>
+   620→
+   621→                  <Separator />
+   622→
+   623→                  {/* Resumen financiero */}
+   624→                  <div className="rounded-lg border p-4 space-y-2">
+   625→                    <div className="flex justify-between text-sm">
+   626→                      <span className="text-muted-foreground">Total</span>
+   627→                      <span className="font-semibold">{formatMoney(total)}</span>
+   628→                    </div>
+   629→                    <div className="flex justify-between text-sm">
+   630→                      <span className="text-muted-foreground">Pagado</span>
+   631→                      <span className="font-semibold text-[#166534]">{formatMoney(pagado)}</span>
+   632→                    </div>
+   633→                    <Separator />
+   634→                    <div className="flex justify-between text-sm font-bold">
+   635→                      <span>Saldo</span>
+   636→                      <span className={saldo > 0 ? 'text-[#991B1B]' : 'text-[#166534]'}>
+   637→                        {formatMoney(saldo)}
+   638→                      </span>
+   639→                    </div>
+   640→                  </div>
+   641→
+   642→                  {saldo > 0 && (
+   643→                    <div className="flex items-center gap-2 text-[#92400E] text-sm">
+   644→                      <CreditCard className="w-4 h-4" />
+   645→                      <span>El huésped tiene un saldo pendiente de {formatMoney(saldo)}.</span>
+   646→                    </div>
+   647→                  )}
+   648→                </div>
+   649→
+   650→                <DialogFooter>
+   651→                  <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   652→                  <Button variant="destructive" onClick={handleConfirmCheckOut}>
+   653→                    <LogOut className="w-4 h-4 mr-1" />Confirmar Check-Out
+   654→                  </Button>
+   655→                </DialogFooter>
+   656→              </>
+   657→            );
+   658→          })()}
+   659→        </DialogContent>
+   660→      </Dialog>
+   661→    </div>
+   662→  );
+   663→}
+   664→
+   665→/* =================== SUB-COMPONENTS =================== */
+   666→
+   667→function CheckInAccountStatus({ reserva }: { reserva: Reserva }) {
+   668→  const { calcularTotalReserva, calcularTotalPagado, nochesEntre } = useHotelStore();
+   669→  const total = calcularTotalReserva(reserva.id);
+   670→  const pagado = calcularTotalPagado(reserva.id);
+   671→  const saldo = total - pagado;
+   672→  const noches = nochesEntre(reserva.checkin, reserva.checkout);
+   673→  const cantNinos = reserva.ninos || 0;
+   674→
+   675→  return (
+   676→    <div className="rounded-lg border p-4 space-y-2">
+   677→      <h4 className="font-semibold text-sm flex items-center gap-2">
+   678→        <CreditCard className="w-4 h-4" />
+   679→        Estado de cuenta
+   680→      </h4>
+   681→      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+   682→        <div>
+   683→          <span className="text-muted-foreground text-xs block">Total</span>
+   684→          <span className="font-bold text-base">{formatMoney(total)}</span>
+   685→        </div>
+   686→        <div>
+   687→          <span className="text-muted-foreground text-xs block">Pagado</span>
+   688→          <span className="font-bold text-base text-[#166534]">{formatMoney(pagado)}</span>
+   689→        </div>
+   690→        <div>
+   691→          <span className="text-muted-foreground text-xs block">Saldo</span>
+   692→          <span className={`font-bold text-base ${saldo > 0 ? 'text-[#991B1B]' : 'text-[#166534]'}`}>
+   693→            {formatMoney(saldo)}
+   694→          </span>
+   695→        </div>
+   696→      </div>
+   697→      <div className="text-xs text-muted-foreground">
+   698→        {reserva.personas} adulto{s(reserva.personas)}
+   699→        {cantNinos > 0 ? <span className="text-[#5B21B6] font-medium"> + {cantNinos} niño{s(cantNinos)}</span> : null}
+   700→        {' · '}{noches} noche{s(noches)} · {reserva.tipoTarifa || 'Normal'}
+   701→      </div>
+   702→    </div>
+   703→  );
+   704→}
+   705→
+   706→function s(n: number) {
+   707→  return n !== 1 ? 's' : '';
+   708→}
+   709→

@@ -1,0 +1,655 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useState, useMemo, useCallback } from 'react';
+     4→     4→import { useHotelStore } from '@/lib/store';
+     5→     5→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     6→     6→import { Button } from '@/components/ui/button';
+     7→     7→import { Input } from '@/components/ui/input';
+     8→     8→import { Label } from '@/components/ui/label';
+     9→     9→import { Badge } from '@/components/ui/badge';
+    10→    10→import {
+    11→    11→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    12→    12→} from '@/components/ui/dialog';
+    13→    13→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    14→    14→import {
+    15→    15→  Wallet, Lock, Unlock, Plus, Minus, Loader2, Pencil, Trash2, AlertTriangle, Tag,
+    16→    16→} from 'lucide-react';
+    17→    17→import ModuleHeader from '@/components/layout/ModuleHeader';
+    18→    18→import { toast } from 'sonner';
+    19→    19→import { DialogTrigger } from '@/components/ui/dialog';
+    20→    20→import { BILLETES } from '@/lib/types';
+    21→    21→
+    22→    22→const formatFechaHora = (f: string) => {
+    23→    23→  const d = new Date(f);
+    24→    24→  return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    25→    25→};
+    26→    26→
+    27→    27→const formatHora = (f: string) => {
+    28→    28→  const d = new Date(f);
+    29→    29→  return d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    30→    30→};
+    31→    31→
+    32→    32→const formatMoney = (n: number) => '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    33→    33→
+    34→    34→const METODOS = ['Efectivo', 'Transferencia', 'Tarjeta de Credito', 'Tarjeta de Debito', 'Mercado Pago', 'Otro'];
+    35→    35→
+    36→    36→export default function CajaModule() {
+    37→    37→  const {
+    38→    38→    caja, abrirCaja, registrarMovimientoCaja, cerrarCaja, saldoActualCaja,
+    39→    39→    editarMovimientoCaja, eliminarMovimientoCaja, usuarioActual,
+    40→    40→    metodosPago, categoriasGastos,
+    41→    41→  } = useHotelStore();
+    42→    42→
+    43→    43→  // Loading states
+    44→    44→  const [loadingAbrir, setLoadingAbrir] = useState(false);
+    45→    45→  const [loadingMovimiento, setLoadingMovimiento] = useState(false);
+    46→    46→  const [loadingCerrar, setLoadingCerrar] = useState(false);
+    47→    47→
+    48→    48→  // Form states
+    49→    49→  const [montoInicial, setMontoInicial] = useState('');
+    50→    50→  const [showApertura, setShowApertura] = useState(false);
+    51→    51→  const [showMovForm, setShowMovForm] = useState<'ingreso' | 'egreso' | null>(null);
+    52→    52→  const [movMonto, setMovMonto] = useState('');
+    53→    53→  const [movDesc, setMovDesc] = useState('');
+    54→    54→  const [movMetodo, setMovMetodo] = useState('Efectivo');
+    55→    55→  const [movCategoria, setMovCategoria] = useState('');
+    56→    56→
+    57→    57→  // Close dialog
+    58→    58→  const [showCierre, setShowCierre] = useState(false);
+    59→    59→  const [billetes, setBilletes] = useState<Record<number, number>>(() => Object.fromEntries(BILLETES.map(b => [b, 0])));
+    60→    60→
+    61→    61→  // Edit dialog
+    62→    62→  const [editingMov, setEditingMov] = useState<{ id: string; monto: number; descripcion: string } | null>(null);
+    63→    63→  const [editMonto, setEditMonto] = useState('');
+    64→    64→  const [editDesc, setEditDesc] = useState('');
+    65→    65→  const [loadingEdit, setLoadingEdit] = useState(false);
+    66→    66→  const [loadingDelete, setLoadingDelete] = useState(false);
+    67→    67→
+    68→    68→  const saldo = saldoActualCaja();
+    69→    69→  const movimientos = caja.movimientos || [];
+    70→    70→
+    71→    71→  const isAdminOrOwner = usuarioActual?.rol === 'owner' || usuarioActual?.rol === 'admin';
+    72→    72→
+    73→    73→  // Summary calculations
+    74→    74→  const resumenOtros = useMemo(() => {
+    75→    75→    const res: Record<string, { ingresos: number; egresos: number }> = {};
+    76→    76→    movimientos.forEach(m => {
+    77→    77→      if (m.metodo !== 'Efectivo') {
+    78→    78→        if (!res[m.metodo]) res[m.metodo] = { ingresos: 0, egresos: 0 };
+    79→    79→        res[m.metodo][m.tipo === 'ingreso' ? 'ingresos' : 'egresos'] += m.monto;
+    80→    80→      }
+    81→    81→    });
+    82→    82→    return res;
+    83→    83→  }, [movimientos]);
+    84→    84→
+    85→    85→  const totalIngresosPorMetodo = useMemo(() => {
+    86→    86→    const res: Record<string, number> = {};
+    87→    87→    movimientos.forEach(m => {
+    88→    88→      if (m.tipo === 'ingreso') res[m.metodo] = (res[m.metodo] || 0) + m.monto;
+    89→    89→    });
+    90→    90→    return res;
+    91→    91→  }, [movimientos]);
+    92→    92→
+    93→    93→  const totalOtros = Object.values(resumenOtros).reduce((s, v) => s + v.ingresos - v.egresos, 0);
+    94→    94→  const totalEfectivo = useMemo(() => BILLETES.reduce((s, b) => s + b * (billetes[b] || 0), 0), [billetes]);
+    95→    95→  const totalTurno = totalEfectivo + totalOtros;
+    96→    96→
+    97→    97→  // Handlers
+    98→    98→  const handleAbrir = async () => {
+    99→    99→    const m = parseFloat(montoInicial);
+   100→   100→    if (isNaN(m) || m < 0) return toast.error('Monto invalido');
+   101→   101→    setLoadingAbrir(true);
+   102→   102→    try {
+   103→   103→      const ok = await abrirCaja(m);
+   104→   104→      if (ok) {
+   105→   105→        toast.success('Caja abierta', { description: 'Turno iniciado' });
+   106→   106→        setShowApertura(false);
+   107→   107→        setMontoInicial('');
+   108→   108→      } else {
+   109→   109→        toast.error('Error al abrir la caja');
+   110→   110→      }
+   111→   111→    } catch (e) {
+   112→   112→      toast.error('Error al abrir la caja');
+   113→   113→    }
+   114→   114→    setLoadingAbrir(false);
+   115→   115→  };
+   116→   116→
+   117→   117→  const handleMovimiento = async () => {
+   118→   118→    if (!showMovForm) return;
+   119→   119→    const m = parseFloat(movMonto);
+   120→   120→    if (isNaN(m) || m <= 0) return toast.error('Monto invalido');
+   121→   121→    if (showMovForm === 'egreso' && !movCategoria) return toast.error('Selecciona una categoria de gasto');
+   122→   122→    const desc = movDesc.trim() || (showMovForm === 'ingreso' ? 'Ingreso manual' : `Egreso: ${movCategoria}`);
+   123→   123→    setLoadingMovimiento(true);
+   124→   124→    try {
+   125→   125→      const ok = await registrarMovimientoCaja(showMovForm, m, desc, movMetodo, showMovForm === 'egreso' ? movCategoria : undefined);
+   126→   126→      if (ok) {
+   127→   127→        toast.success(`${showMovForm === 'ingreso' ? 'Ingreso' : 'Egreso'} registrado`, { description: formatMoney(m) });
+   128→   128→        setShowMovForm(null);
+   129→   129→        setMovMonto('');
+   130→   130→        setMovDesc('');
+   131→   131→        setMovMetodo('Efectivo');
+   132→   132→        setMovCategoria('');
+   133→   133→      } else {
+   134→   134→        toast.error(`Error al registrar ${showMovForm}`);
+   135→   135→      }
+   136→   136→    } catch (e) {
+   137→   137→      toast.error(`Error al registrar ${showMovForm}`);
+   138→   138→    }
+   139→   139→    setLoadingMovimiento(false);
+   140→   140→  };
+   141→   141→
+   142→   142→  const handleCerrar = async () => {
+   143→   143→    setLoadingCerrar(true);
+   144→   144→    try {
+   145→   145→      const cierre = await cerrarCaja(billetes, totalOtros);
+   146→   146→      if (cierre) {
+   147→   147→        toast.success('Caja cerrada', { description: 'Turno finalizado' });
+   148→   148→        setShowCierre(false);
+   149→   149→        setBilletes(Object.fromEntries(BILLETES.map(b => [b, 0])));
+   150→   150→      } else {
+   151→   151→        toast.error('Error al cerrar la caja');
+   152→   152→      }
+   153→   153→    } catch (e) {
+   154→   154→      toast.error('Error al cerrar la caja');
+   155→   155→    }
+   156→   156→    setLoadingCerrar(false);
+   157→   157→  };
+   158→   158→
+   159→   159→  const handleEditOpen = (mov: typeof movimientos[0]) => {
+   160→   160→    setEditingMov({ id: mov.id, monto: mov.monto, descripcion: mov.descripcion });
+   161→   161→    setEditMonto(String(mov.monto));
+   162→   162→    setEditDesc(mov.descripcion);
+   163→   163→  };
+   164→   164→
+   165→   165→  const handleEditSave = async () => {
+   166→   166→    if (!editingMov) return;
+   167→   167→    const m = parseFloat(editMonto);
+   168→   168→    if (isNaN(m) || m <= 0) return toast.error('Monto invalido');
+   169→   169→    if (!editDesc.trim()) return toast.error('Descripcion requerida');
+   170→   170→    setLoadingEdit(true);
+   171→   171→    try {
+   172→   172→      const ok = await editarMovimientoCaja(editingMov.id, { monto: m, descripcion: editDesc.trim() });
+   173→   173→      if (ok) {
+   174→   174→        toast.success('Movimiento actualizado');
+   175→   175→        setEditingMov(null);
+   176→   176→      } else {
+   177→   177→        toast.error('Error al editar');
+   178→   178→      }
+   179→   179→    } catch (e) {
+   180→   180→      toast.error('Error al editar movimiento');
+   181→   181→    }
+   182→   182→    setLoadingEdit(false);
+   183→   183→  };
+   184→   184→
+   185→   185→  const handleDelete = async (movId: string) => {
+   186→   186→    if (!confirm('Eliminar este movimiento?')) return;
+   187→   187→    setLoadingDelete(true);
+   188→   188→    try {
+   189→   189→      const ok = await eliminarMovimientoCaja(movId);
+   190→   190→      if (ok) {
+   191→   191→        toast.success('Movimiento eliminado');
+   192→   192→      } else {
+   193→   193→        toast.error('Error al eliminar');
+   194→   194→      }
+   195→   195→    } catch (e) {
+   196→   196→      toast.error('Error al eliminar movimiento');
+   197→   197→    }
+   198→   198→    setLoadingDelete(false);
+   199→   199→  };
+   200→   200→
+   201→   201→  // Saldo esperado (efectivo only)
+   202→   202→  const saldoEsperadoEfectivo = useMemo(() => {
+   203→   203→    if (!caja.apertura) return 0;
+   204→   204→    let s = caja.apertura.montoInicial;
+   205→   205→    movimientos.forEach(m => {
+   206→   206→      if (m.metodo === 'Efectivo') s += m.tipo === 'ingreso' ? m.monto : -m.monto;
+   207→   207→    });
+   208→   208→    return s;
+   209→   209→  }, [caja.apertura, movimientos]);
+   210→   210→
+   211→   211→  const diferencia = totalEfectivo - saldoEsperadoEfectivo;
+   212→   212→
+   213→   213→  const cancelarForm = () => { setShowMovForm(null); setMovMonto(''); setMovDesc(''); setMovMetodo('Efectivo'); setMovCategoria(''); };
+   214→   214→
+   215→   215→  return (
+   216→   216→    <div className="space-y-6">
+   217→   217→      <ModuleHeader icon={Wallet} title="Caja" subtitle="Controla los movimientos de dinero del dia" />
+   218→   218→
+   219→   219→      {caja.estado === 'cerrada' ? (
+   220→   220→        /* ═══════ CAJA CERRADA ═══════ */
+   221→   221→        <Card>
+   222→   222→          <CardContent className="text-center py-10 space-y-4">
+   223→   223→            <Lock className="w-12 h-12 mx-auto text-destructive" />
+   224→   224→            <div>
+   225→   225→              <h3 className="text-lg font-semibold">Caja cerrada</h3>
+   226→   226→              <p className="text-sm text-muted-foreground">Inicie un nuevo turno para comenzar a operar.</p>
+   227→   227→            </div>
+   228→   228→            {!showApertura ? (
+   229→   229→              <Button size="lg" onClick={() => setShowApertura(true)}><Unlock className="w-4 h-4 mr-1" />Abrir caja</Button>
+   230→   230→            ) : (
+   231→   231→              <div className="max-w-xs mx-auto space-y-2">
+   232→   232→                <Label className="text-sm text-muted-foreground">Monto inicial en efectivo</Label>
+   233→   233→                <Input type="number" placeholder="0.00" step="0.01" min="0" value={montoInicial} onChange={e => setMontoInicial(e.target.value)} autoFocus />
+   234→   234→                <div className="flex gap-2">
+   235→   235→                  <Button onClick={handleAbrir} className="flex-1" disabled={loadingAbrir}>
+   236→   236→                    {loadingAbrir ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}Confirmar apertura
+   237→   237→                  </Button>
+   238→   238→                  <Button variant="secondary" onClick={() => setShowApertura(false)} disabled={loadingAbrir}>Cancelar</Button>
+   239→   239→                </div>
+   240→   240→              </div>
+   241→   241→            )}
+   242→   242→            {caja.historial && caja.historial.length > 0 && (
+   243→   243→              <p className="text-xs text-muted-foreground">Ultimo cierre: {formatFechaHora(caja.historial[caja.historial.length - 1].cierre.fecha)}</p>
+   244→   244→            )}
+   245→   245→          </CardContent>
+   246→   246→        </Card>
+   247→   247→      ) : (
+   248→   248→        /* ═══════ CAJA ABIERTA ═══════ */
+   249→   249→        <div className="space-y-4">
+   250→   250→          {/* ── Mobile: compact status bar ── */}
+   251→   251→          <Card className="lg:hidden">
+   252→   252→            <CardContent className="p-3 space-y-3">
+   253→   253→              <div className="flex items-center justify-between">
+   254→   254→                <h3 className="font-semibold flex items-center gap-2 text-sm"><Unlock className="w-4 h-4 text-[#166534]" /> Caja abierta</h3>
+   255→   255→                <Dialog open={showCierre} onOpenChange={setShowCierre}>
+   256→   256→                  <DialogTrigger asChild>
+   257→   257→                    <Button variant="destructive" size="sm" className="h-7 text-xs"><Lock className="w-3.5 h-3.5 mr-1" />Cerrar</Button>
+   258→   258→                  </DialogTrigger>
+   259→   259→                  <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+   260→   260→                    <ClosingDialogContent
+   261→   261→                      saldoEsperado={saldoEsperadoEfectivo}
+   262→   262→                      totalEfectivo={totalEfectivo}
+   263→   263→                      diferencia={diferencia}
+   264→   264→                      totalOtros={totalOtros}
+   265→   265→                      resumenOtros={resumenOtros}
+   266→   266→                      totalIngresosPorMetodo={totalIngresosPorMetodo}
+   267→   267→                      billetes={billetes}
+   268→   268→                      setBilletes={setBilletes}
+   269→   269→                      loadingCerrar={loadingCerrar}
+   270→   270→                      handleCerrar={handleCerrar}
+   271→   271→                      setShowCierre={setShowCierre}
+   272→   272→                    />
+   273→   273→                  </DialogContent>
+   274→   274→                </Dialog>
+   275→   275→              </div>
+   276→   276→              {/* Saldo + info */}
+   277→   277→              <div className="grid grid-cols-3 gap-2 text-center rounded-lg border p-2.5 bg-muted/30">
+   278→   278→                <div>
+   279→   279→                  <p className="text-[10px] text-muted-foreground leading-tight">Saldo</p>
+   280→   280→                  <p className="text-sm font-bold">{formatMoney(saldo)}</p>
+   281→   281→                </div>
+   282→   282→                <div>
+   283→   283→                  <p className="text-[10px] text-muted-foreground leading-tight">Movimientos</p>
+   284→   284→                  <p className="text-sm font-semibold">{movimientos.length}</p>
+   285→   285→                </div>
+   286→   286→                <div>
+   287→   287→                  <p className="text-[10px] text-muted-foreground leading-tight">Apertura</p>
+   288→   288→                  <p className="text-sm font-medium">{caja.apertura ? formatHora(caja.apertura.fecha) : '--'}</p>
+   289→   289→                </div>
+   290→   290→              </div>
+   291→   291→              {/* Action buttons */}
+   292→   292→              <div className="grid grid-cols-2 gap-2">
+   293→   293→                <Button variant="outline" className="h-9 text-sm" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+   294→   294→                <Button variant="outline" className="h-9 text-sm" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+   295→   295→              </div>
+   296→   296→              {/* Movement form inline */}
+   297→   297→              {showMovForm && (
+   298→   298→                <MovFormInline
+   299→   299→                  tipo={showMovForm}
+   300→   300→                  movMonto={movMonto}
+   301→   301→                  setMovMonto={setMovMonto}
+   302→   302→                  movDesc={movDesc}
+   303→   303→                  setMovDesc={setMovDesc}
+   304→   304→                  movMetodo={movMetodo}
+   305→   305→                  setMovMetodo={setMovMetodo}
+   306→   306→                  movCategoria={movCategoria}
+   307→   307→                  setMovCategoria={setMovCategoria}
+   308→   308→                  loading={loadingMovimiento}
+   309→   309→                  onGuardar={handleMovimiento}
+   310→   310→                  onCancelar={cancelarForm}
+   311→   311→                  metodosPago={metodosPago}
+   312→   312→                  categoriasGastos={categoriasGastos}
+   313→   313→                />
+   314→   314→              )}
+   315→   315→            </CardContent>
+   316→   316→          </Card>
+   317→   317→
+   318→   318→          {/* ── Mobile: movement cards ── */}
+   319→   319→          <Card className="lg:hidden">
+   320→   320→            <CardHeader className="pb-3"><CardTitle className="text-base">Movimientos del turno</CardTitle></CardHeader>
+   321→   321→            <CardContent className="p-0">
+   322→   322→              {movimientos.length === 0 ? (
+   323→   323→                <div className="text-center py-10 text-muted-foreground">Sin movimientos.</div>
+   324→   324→              ) : (
+   325→   325→                <div className="divide-y">
+   326→   326→                  {[...movimientos].reverse().map((m) => (
+   327→   327→                    <div key={m.id} className="p-3.5 space-y-1.5">
+   328→   328→                      <div className="flex items-start justify-between gap-2">
+   329→   329→                        <div className="flex items-center gap-2">
+   330→   330→                          {m.tipo === 'ingreso' ? (
+   331→   331→                            <Badge className="bg-[#DCFCE7] text-[#166534]"><Plus className="w-3 h-3 mr-0.5" />Ingreso</Badge>
+   332→   332→                          ) : (
+   333→   333→                            <Badge className="bg-[#FEE2E2] text-[#991B1B]"><Minus className="w-3 h-3 mr-0.5" />Egreso</Badge>
+   334→   334→                          )}
+   335→   335→                          <Badge variant="secondary">{m.metodo}</Badge>
+   336→   336→                        </div>
+   337→   337→                        <p className={`text-sm font-bold shrink-0 ${m.tipo === 'ingreso' ? 'text-[#166534]' : 'text-[#991B1B]'}`}>
+   338→   338→                          {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
+   339→   339→                        </p>
+   340→   340→                      </div>
+   341→   341→                      {m.descripcion && (
+   342→   342→                        <p className="text-xs text-muted-foreground leading-relaxed">{m.descripcion}</p>
+   343→   343→                      )}
+   344→   344→                      <div className="flex items-center justify-between">
+   345→   345→                        <p className="text-[10px] text-muted-foreground">{formatFechaHora(m.fecha)}</p>
+   346→   346→                        {isAdminOrOwner && (
+   347→   347→                          <div className="flex gap-1">
+   348→   348→                            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleEditOpen(m)}><Pencil className="w-3 h-3" /></Button>
+   349→   349→                            <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => handleDelete(m.id)} disabled={loadingDelete}>
+   350→   350→                              {loadingDelete ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+   351→   351→                            </Button>
+   352→   352→                          </div>
+   353→   353→                        )}
+   354→   354→                      </div>
+   355→   355→                    </div>
+   356→   356→                  ))}
+   357→   357→                </div>
+   358→   358→              )}
+   359→   359→            </CardContent>
+   360→   360→          </Card>
+   361→   361→
+   362→   362→          {/* ═══════ DESKTOP ═══════ */}
+   363→   363→          <div className="hidden lg:grid lg:grid-cols-3 gap-4">
+   364→   364→            <div className="lg:col-span-2 space-y-4">
+   365→   365→              {/* Status bar */}
+   366→   366→              <Card>
+   367→   367→                <CardContent className="flex items-center justify-between py-3">
+   368→   368→                  <h3 className="font-semibold flex items-center gap-2"><Unlock className="w-5 h-5 text-[#166534]" /> Caja abierta</h3>
+   369→   369→                  <Dialog open={showCierre} onOpenChange={setShowCierre}>
+   370→   370→                    <DialogTrigger asChild>
+   371→   371→                      <Button variant="destructive" disabled={loadingCerrar}><Lock className="w-4 h-4 mr-1" />Cerrar caja</Button>
+   372→   372→                    </DialogTrigger>
+   373→   373→                    <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+   374→   374→                      <ClosingDialogContent
+   375→   375→                        saldoEsperado={saldoEsperadoEfectivo}
+   376→   376→                        totalEfectivo={totalEfectivo}
+   377→   377→                        diferencia={diferencia}
+   378→   378→                        totalOtros={totalOtros}
+   379→   379→                        resumenOtros={resumenOtros}
+   380→   380→                        totalIngresosPorMetodo={totalIngresosPorMetodo}
+   381→   381→                        billetes={billetes}
+   382→   382→                        setBilletes={setBilletes}
+   383→   383→                        loadingCerrar={loadingCerrar}
+   384→   384→                        handleCerrar={handleCerrar}
+   385→   385→                        setShowCierre={setShowCierre}
+   386→   386→                      />
+   387→   387→                    </DialogContent>
+   388→   388→                  </Dialog>
+   389→   389→                </CardContent>
+   390→   390→              </Card>
+   391→   391→
+   392→   392→              {/* Movements table */}
+   393→   393→              <Card>
+   394→   394→                <CardHeader className="pb-3"><CardTitle className="text-base">Movimientos del turno</CardTitle></CardHeader>
+   395→   395→                <CardContent>
+   396→   396→                  {movimientos.length === 0 ? <p className="text-sm text-muted-foreground">Sin movimientos.</p> : (
+   397→   397→                    <Table>
+   398→   398→                      <TableHeader>
+   399→   399→                        <TableRow>
+   400→   400→                          <TableHead>Hora</TableHead>
+   401→   401→                          <TableHead>Tipo</TableHead>
+   402→   402→                          <TableHead>Monto</TableHead>
+   403→   403→                          <TableHead>Metodo</TableHead>
+   404→   404→                          <TableHead>Descripcion</TableHead>
+   405→   405→                          {isAdminOrOwner && <TableHead className="w-[80px]">Acciones</TableHead>}
+   406→   406→                        </TableRow>
+   407→   407→                      </TableHeader>
+   408→   408→                      <TableBody>
+   409→   409→                        {movimientos.map((m) => (
+   410→   410→                          <TableRow key={m.id}>
+   411→   411→                            <TableCell className="text-xs">{formatFechaHora(m.fecha)}</TableCell>
+   412→   412→                            <TableCell>
+   413→   413→                              {m.tipo === 'ingreso' ? (
+   414→   414→                                <Badge className="bg-[#DCFCE7] text-[#166534]"><Plus className="w-3 h-3 mr-1" />Ingreso</Badge>
+   415→   415→                              ) : (
+   416→   416→                                <Badge className="bg-[#FEE2E2] text-[#991B1B]"><Minus className="w-3 h-3 mr-1" />Egreso</Badge>
+   417→   417→                              )}
+   418→   418→                            </TableCell>
+   419→   419→                            <TableCell className={`font-medium ${m.tipo === 'ingreso' ? 'text-[#166534]' : 'text-[#991B1B]'}`}>
+   420→   420→                              {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
+   421→   421→                            </TableCell>
+   422→   422→                            <TableCell>{m.metodo}</TableCell>
+   423→   423→                            <TableCell className="text-sm text-muted-foreground">{m.descripcion}</TableCell>
+   424→   424→                            {isAdminOrOwner && (
+   425→   425→                              <TableCell>
+   426→   426→                                <div className="flex gap-1">
+   427→   427→                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleEditOpen(m)}><Pencil className="w-3.5 h-3.5" /></Button>
+   428→   428→                                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDelete(m.id)} disabled={loadingDelete}>
+   429→   429→                                    {loadingDelete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+   430→   430→                                  </Button>
+   431→   431→                                </div>
+   432→   432→                              </TableCell>
+   433→   433→                            )}
+   434→   434→                          </TableRow>
+   435→   435→                        ))}
+   436→   436→                      </TableBody>
+   437→   437→                    </Table>
+   438→   438→                  )}
+   439→   439→                </CardContent>
+   440→   440→              </Card>
+   441→   441→            </div>
+   442→   442→
+   443→   443→            {/* Info Panel */}
+   444→   444→            <div className="space-y-4">
+   445→   445→              <Card>
+   446→   446→                <CardHeader className="bg-[#F1F5F9] pb-3"><CardTitle className="text-sm">Informacion</CardTitle></CardHeader>
+   447→   447→                <CardContent className="space-y-2 text-sm">
+   448→   448→                  {caja.apertura && (
+   449→   449→                    <>
+   450→   450→                      <div className="flex justify-between"><span className="text-muted-foreground">Cajero:</span><span className="font-medium">{caja.apertura.empleado}</span></div>
+   451→   451→                      <div className="flex justify-between"><span className="text-muted-foreground">Apertura:</span><span>{formatFechaHora(caja.apertura.fecha)}</span></div>
+   452→   452→                      <div className="flex justify-between"><span className="text-muted-foreground">Inicial:</span><span>{formatMoney(caja.apertura.montoInicial)}</span></div>
+   453→   453→                    </>
+   454→   454→                  )}
+   455→   455→                  <div className="flex justify-between"><span className="text-muted-foreground">Saldo actual:</span><span className="font-bold text-lg">{formatMoney(saldo)}</span></div>
+   456→   456→                  <div className="flex justify-between"><span className="text-muted-foreground">Movimientos:</span><span>{movimientos.length}</span></div>
+   457→   457→
+   458→   458→                  {/* Action buttons */}
+   459→   459→                  <div className="grid grid-cols-2 gap-2 pt-2">
+   460→   460→                    <Button variant="outline" className="w-full" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+   461→   461→                    <Button variant="outline" className="w-full" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+   462→   462→                  </div>
+   463→   463→
+   464→   464→                  {/* Movement form */}
+   465→   465→                  {showMovForm && (
+   466→   466→                    <MovFormInline
+   467→   467→                      tipo={showMovForm}
+   468→   468→                      movMonto={movMonto}
+   469→   469→                      setMovMonto={setMovMonto}
+   470→   470→                      movDesc={movDesc}
+   471→   471→                      setMovDesc={setMovDesc}
+   472→   472→                      movMetodo={movMetodo}
+   473→   473→                      setMovMetodo={setMovMetodo}
+   474→   474→                      movCategoria={movCategoria}
+   475→   475→                      setMovCategoria={setMovCategoria}
+   476→   476→                      loading={loadingMovimiento}
+   477→   477→                      onGuardar={handleMovimiento}
+   478→   478→                      onCancelar={cancelarForm}
+   479→   479→                      metodosPago={metodosPago}
+   480→   480→                      categoriasGastos={categoriasGastos}
+   481→   481→                    />
+   482→   482→                  )}
+   483→   483→                </CardContent>
+   484→   484→              </Card>
+   485→   485→            </div>
+   486→   486→          </div>
+   487→   487→        </div>
+   488→   488→      )}
+   489→   489→
+   490→   490→      {/* ═══════ EDIT MOVEMENT DIALOG ═══════ */}
+   491→   491→      <Dialog open={!!editingMov} onOpenChange={() => setEditingMov(null)}>
+   492→   492→        <DialogContent className="sm:max-w-md">
+   493→   493→          <DialogHeader>
+   494→   494→            <DialogTitle>Editar movimiento</DialogTitle>
+   495→   495→          </DialogHeader>
+   496→   496→          <div className="space-y-3">
+   497→   497→            <div>
+   498→   498→              <Label>Monto</Label>
+   499→   499→              <Input type="number" step="0.01" min="0.01" value={editMonto} onChange={e => setEditMonto(e.target.value)} />
+   500→   500→            </div>
+   501→   501→            <div>
+   502→   502→              <Label>Descripcion</Label>
+   503→   503→              <Input value={editDesc} onChange={e => setEditDesc(e.target.value)} />
+   504→   504→            </div>
+   505→   505→          </div>
+   506→   506→          <DialogFooter>
+   507→   507→            <Button variant="secondary" onClick={() => setEditingMov(null)} disabled={loadingEdit}>Cancelar</Button>
+   508→   508→            <Button onClick={handleEditSave} disabled={loadingEdit}>
+   509→   509→              {loadingEdit ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}Guardar
+   510→   510→            </Button>
+   511→   511→          </DialogFooter>
+   512→   512→        </DialogContent>
+   513→   513→      </Dialog>
+   514→   514→    </div>
+   515→   515→  );
+   516→   516→}
+   517→   517→
+   518→   518→/* ═══════════════════════════════════════════════════════════
+   519→   519→   CLOSING DIALOG CONTENT (deduplicated, single render)
+   520→   520→   ═══════════════════════════════════════════════════════════ */
+   521→   521→
+   522→   522→function ClosingDialogContent({
+   523→   523→  saldoEsperado, totalEfectivo, diferencia, totalOtros, resumenOtros,
+   524→   524→  totalIngresosPorMetodo, billetes, setBilletes, loadingCerrar, handleCerrar, setShowCierre,
+   525→   525→}: {
+   526→   526→  saldoEsperado: number; totalEfectivo: number; diferencia: number; totalOtros: number;
+   527→   527→  resumenOtros: Record<string, { ingresos: number; egresos: number }>;
+   528→   528→  totalIngresosPorMetodo: Record<string, number>;
+   529→   529→  billetes: Record<number, number>; setBilletes: (b: Record<number, number>) => void;
+   530→   530→  loadingCerrar: boolean; handleCerrar: () => void; setShowCierre: (v: boolean) => void;
+   531→   531→}) {
+   532→   532→  const fmt = (n: number) => formatMoney(n);
+   533→   533→  return (
+   534→   534→    <>
+   535→   535→      <DialogHeader>
+   536→   536→        <DialogTitle className="flex items-center gap-2"><Lock className="w-5 h-5 text-destructive" /> Cierre de caja</DialogTitle>
+   537→   537→      </DialogHeader>
+   538→   538→      <div className="grid grid-cols-3 gap-2 text-center">
+   539→   539→        <div className="p-2 rounded-lg bg-muted/50"><p className="text-[10px] text-muted-foreground">Esperado</p><p className="font-bold text-sm">{fmt(saldoEsperado)}</p><p className="text-[9px] text-muted-foreground">Solo efectivo</p></div>
+   540→   540→        <div className="p-2 rounded-lg bg-muted/50"><p className="text-[10px] text-muted-foreground">Contado</p><p className="font-bold text-sm">{fmt(totalEfectivo)}</p><p className="text-[9px] text-muted-foreground">Efectivo</p></div>
+   541→   541→        <div className={`p-2 rounded-lg ${diferencia === 0 ? 'bg-[#DCFCE7]' : 'bg-[#FEE2E2]'}`}><p className="text-[10px] text-muted-foreground">Diferencia</p><p className={`font-bold text-sm ${diferencia === 0 ? 'text-[#166534]' : 'text-[#991B1B]'}`}>{diferencia === 0 ? '$0.00' : `${diferencia > 0 ? '+' : ''}${fmt(diferencia)}`}</p></div>
+   542→   542→      </div>
+   543→   543→      {diferencia !== 0 && (
+   544→   544→        <div className="flex items-center gap-2 p-2 bg-[#FEF3C7] rounded-lg text-[#92400E] text-sm"><AlertTriangle className="w-4 h-4 shrink-0" /><span>Hay una diferencia de {fmt(Math.abs(diferencia))} en efectivo</span></div>
+   545→   545→      )}
+   546→   546→      <div className="grid md:grid-cols-2 gap-6 py-2">
+   547→   547→        <div>
+   548→   548→          <h4 className="font-semibold mb-3">Conteo de billetes</h4>
+   549→   549→          <div className="space-y-2">
+   550→   550→            {BILLETES.map(b => (
+   551→   551→              <div key={b} className="flex items-center gap-2">
+   552→   552→                <span className="w-20 text-sm font-medium">{fmt(b)}</span>
+   553→   553→                <Input type="number" min="0" className="w-20 h-8 text-sm" value={billetes[b] || 0} onChange={e => setBilletes({ ...billetes, [b]: parseInt(e.target.value) || 0 })} />
+   554→   554→                <span className="text-sm text-muted-foreground w-20 text-right">{fmt(b * (billetes[b] || 0))}</span>
+   555→   555→              </div>
+   556→   556→            ))}
+   557→   557→          </div>
+   558→   558→          <div className="flex justify-between font-bold mt-3 pt-2 border-t"><span>Total efectivo</span><span>{fmt(totalEfectivo)}</span></div>
+   559→   559→        </div>
+   560→   560→        <div>
+   561→   561→          <h4 className="font-semibold mb-3">Otros metodos</h4>
+   562→   562→          {Object.keys(resumenOtros).length === 0 ? (<p className="text-sm text-muted-foreground">Sin movimientos de otros metodos.</p>) : (
+   563→   563→            <div className="space-y-1">
+   564→   564→              {Object.entries(resumenOtros).map(([metodo, data]) => (
+   565→   565→                <div key={metodo} className="flex justify-between text-sm py-1"><span>{metodo}</span><span className="font-medium">{fmt(data.ingresos - data.egresos)}</span></div>
+   566→   566→              ))}
+   567→   567→              <div className="flex justify-between font-bold mt-2 pt-2 border-t"><span>Total otros</span><span>{fmt(totalOtros)}</span></div>
+   568→   568→            </div>
+   569→   569→          )}
+   570→   570→        </div>
+   571→   571→      </div>
+   572→   572→      {Object.keys(totalIngresosPorMetodo).length > 0 && (
+   573→   573→        <div className="border rounded-lg p-3">
+   574→   574→          <h4 className="font-semibold text-sm mb-2">Desglose de ingresos por metodo</h4>
+   575→   575→          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+   576→   576→            {Object.entries(totalIngresosPorMetodo).map(([metodo, total]) => (
+   577→   577→              <div key={metodo} className="flex justify-between items-center text-sm"><span className="text-muted-foreground">{metodo}</span><Badge variant="secondary">{fmt(total)}</Badge></div>
+   578→   578→            ))}
+   579→   579→          </div>
+   580→   580→        </div>
+   581→   581→      )}
+   582→   582→      <div className="text-center pt-4 border-t mt-4">
+   583→   583→        <p className="text-lg font-bold">Total del dia: <span className="text-primary">{fmt(totalEfectivo + totalOtros)}</span></p>
+   584→   584→        <div className="flex gap-2 justify-center mt-3">
+   585→   585→          <DialogClose asChild><Button variant="secondary" onClick={() => setShowCierre(false)}>Cancelar</Button></DialogClose>
+   586→   586→          <Button variant="destructive" onClick={handleCerrar} disabled={loadingCerrar}>{loadingCerrar ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Lock className="w-4 h-4 mr-1" />}Confirmar cierre</Button>
+   587→   587→        </div>
+   588→   588→      </div>
+   589→   589→    </>
+   590→   590→  );
+   591→   591→}
+   592→   592→
+   593→   593→/* ═══════════════════════════════════════════════════════════
+   594→   594→   MOVEMENT FORM (used in both mobile and desktop)
+   595→   595→   ═══════════════════════════════════════════════════════════ */
+   596→   596→
+   597→   597→function MovFormInline({
+   598→   598→  tipo, movMonto, setMovMonto, movDesc, setMovDesc,
+   599→   599→  movMetodo, setMovMetodo, movCategoria, setMovCategoria,
+   600→   600→  loading, onGuardar, onCancelar, metodosPago, categoriasGastos,
+   601→   601→}: {
+   602→   602→  tipo: 'ingreso' | 'egreso';
+   603→   603→  movMonto: string; setMovMonto: (v: string) => void;
+   604→   604→  movDesc: string; setMovDesc: (v: string) => void;
+   605→   605→  movMetodo: string; setMovMetodo: (v: string) => void;
+   606→   606→  movCategoria: string; setMovCategoria: (v: string) => void;
+   607→   607→  loading: boolean; onGuardar: () => void; onCancelar: () => void;
+   608→   608→  metodosPago: { id: string; nombre: string }[];
+   609→   609→  categoriasGastos: string[];
+   610→   610→}) {
+   611→   611→  const methods = metodosPago.length > 0 ? metodosPago.map(m => m.nombre) : METODOS;
+   612→   612→  return (
+   613→   613→    <div className="border rounded-lg p-3 space-y-2">
+   614→   614→      <p className="font-medium text-sm">
+   615→   615→        {tipo === 'ingreso' ? (
+   616→   616→          <span className="flex items-center gap-1"><Plus className="w-3.5 h-3.5 text-[#166534]" />Registrar ingreso</span>
+   617→   617→        ) : (
+   618→   618→          <span className="flex items-center gap-1"><Minus className="w-3.5 h-3.5 text-[#991B1B]" />Registrar egreso</span>
+   619→   619→        )}
+   620→   620→      </p>
+   621→   621→      <div className="grid grid-cols-2 gap-2">
+   622→   622→        <Input type="number" placeholder="Monto" step="0.01" min="0.01" value={movMonto} onChange={e => setMovMonto(e.target.value)} />
+   623→   623→        <select
+   624→   624→          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+   625→   625→          value={movMetodo}
+   626→   626→          onChange={e => setMovMetodo(e.target.value)}
+   627→   627→        >
+   628→   628→          {methods.map(m => (<option key={m} value={m}>{m}</option>))}
+   629→   629→        </select>
+   630→   630→      </div>
+   631→   631→      {/* Categoria de gasto - solo para egresos */}
+   632→   632→      {tipo === 'egreso' && (
+   633→   633→        <div className="relative">
+   634→   634→          <Tag className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+   635→   635→          <select
+   636→   636→            className="flex h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring appearance-none"
+   637→   637→            value={movCategoria}
+   638→   638→            onChange={e => setMovCategoria(e.target.value)}
+   639→   639→          >
+   640→   640→            <option value="">Categoria de gasto...</option>
+   641→   641→            {categoriasGastos.map(c => (<option key={c} value={c}>{c}</option>))}
+   642→   642→          </select>
+   643→   643→        </div>
+   644→   644→      )}
+   645→   645→      <Input placeholder="Descripcion (opcional)" value={movDesc} onChange={e => setMovDesc(e.target.value)} />
+   646→   646→      <div className="flex gap-2">
+   647→   647→        <Button onClick={onGuardar} className="flex-1" disabled={loading}>
+   648→   648→          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}Guardar
+   649→   649→        </Button>
+   650→   650→        <Button variant="secondary" onClick={onCancelar} disabled={loading} className="flex-1">Cancelar</Button>
+   651→   651→      </div>
+   652→   652→    </div>
+   653→   653→  );
+   654→   654→}
+   655→   655→
