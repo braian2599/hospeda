@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hospedá — Sistema de Gestión Hotelera</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#F5F5F0;color:#334155;font-size:14px;overflow:hidden}
+::-webkit-scrollbar{display:none}*{scrollbar-width:none;-ms-overflow-style:none}
+.app-layout{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:260px;min-width:260px;background:#0F2B28;display:flex;flex-direction:column;height:100vh;overflow-y:auto;z-index:100;transition:transform 300ms cubic-bezier(.4,0,.2,1)}
+.sidebar-brand{padding:24px 20px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sidebar-brand-icon{width:36px;height:36px;background:rgba(74,222,128,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-brand-icon svg{width:20px;height:20px;color:#4ADE80}
+.sidebar-brand-text{font-size:20px;font-weight:700;color:#FFF;letter-spacing:-.02em}
+.sidebar-brand-sub{font-size:11px;color:rgba(255,255,255,.35);font-weight:400;margin-top:1px}
+.sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto}
+.sidebar-group-label{font-size:10px;font-weight:600;color:rgba(100,116,139,.6);text-transform:uppercase;letter-spacing:.1em;padding:16px 12px 8px}
+.sidebar-group-label:first-child{padding-top:4px}
+.sidebar-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:all 150ms cubic-bezier(.4,0,.2,1);color:#CBD5E1;font-size:14px;font-weight:500;text-decoration:none;border-left:3px solid transparent;margin-bottom:2px;user-select:none}
+.sidebar-item:hover{background:#162826;color:#FFF}
+.sidebar-item.active{background:#1A4D43;color:#FFF;border-left-color:#4ADE80}
+.sidebar-item.active svg{color:#4ADE80}
+.sidebar-item svg{width:18px;height:18px;color:#94A3B8;flex-shrink:0;transition:color 150ms}
+.sidebar-item:hover svg{color:#CBD5E1}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:12px}
+.sidebar-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1A4D43,#4ADE80);display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:13px;flex-shrink:0}
+.sidebar-user-name{font-size:13px;font-weight:600;color:#FFF}
+.sidebar-user-role{font-size:11px;color:rgba(255,255,255,.4)}
+.main-content{flex:1;overflow-y:auto;background:#F5F5F0;height:100vh}
+.main-inner{padding:32px;max-width:1400px}
+.module-header{margin-bottom:28px}
+.module-header-top{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.module-header-icon{width:40px;height:40px;background:rgba(15,43,40,.08);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.module-header-icon svg{width:20px;height:20px;color:#0F2B28}
+.module-header h1{font-size:24px;font-weight:700;color:#0F2B28;letter-spacing:-.02em}
+.module-header .subtitle{font-size:14px;color:#64748B;margin-left:52px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:24px}
+.kpi-card{background:#FFF;border:1px solid #E2E8F0;border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 6px rgba(0,0,0,.02);transition:all 150ms}
+.kpi-card:hover{box-shadow:0 10px 15px -3px rgba(0,0,0,.08)}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.kpi-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.kpi-icon svg{width:20px;height:20px}
+.kpi-icon.green{background:#DCFCE7}.kpi-icon.green svg{color:#166534}
+.kpi-icon.blue{background:#DBEAFE}.kpi-icon.blue svg{color:#1E40AF}
+.kpi-icon.emerald{background:#D1FAE5}.kpi-icon.emerald svg{color:#065F46}
+.kpi-icon.amber{background:#FEF3C7}.kpi-icon.amber svg{color:#92400E}.kpi-icon.red{background:#FEE2E2}.kpi-icon.red svg{color:#991B1B}
+.kpi-trend{font-size:12px;font-weight:600;padding:4px 8px;border-radius:6px}
+.kpi-trend.up{background:#DCFCE7;color:#166534}
+.kpi-trend.down{background:#FEE2E2;color:#991B1B}
+.kpi-value{font-size:28px;font-weight:700;color:#1E293B;letter-spacing:-.02em;margin-bottom:4px}
+.kpi-label{font-size:13px;color:#64748B;font-weight:500}
+.card{background:#FFF;border:1px solid #E2E8F0;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 6px rgba(0,0,0,.02);transition:all 150ms}
+.card:hover{box-shadow:0 10px 15px -3px rgba(0,0,0,.08)}
+.card-header{padding:20px 24px;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;justify-content:space-between}
+.card-header h2{font-size:16px;font-weight:600;color:#1E293B}
+.card-body{padding:24px}
+.card-body-np{padding:0}
+.two-col{display:grid;grid-template-columns:1.2fr .8fr;gap:20px}
+.table-wrapper{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{background:#F1F5F9;color:#64748B;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:12px 16px;text-align:left;border-bottom:1px solid #E2E8F0;white-space:nowrap}
+thead th:first-child{border-radius:8px 0 0 0}thead th:last-child{border-radius:0 8px 0 0}
+tbody td{padding:14px 16px;border-bottom:1px solid #F1F5F9;font-size:14px;color:#334155;vertical-align:middle}
+tbody tr{transition:background 150ms}tbody tr:hover{background:#F8FAFC}tbody tr:last-child td{border-bottom:none}
+.badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:9999px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-green{background:#DCFCE7;color:#166534}.badge-amber{background:#FEF3C7;color:#92400E}.badge-blue{background:#DBEAFE;color:#1E40AF}.badge-red{background:#FEE2E2;color:#991B1B}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;border:none;transition:all 150ms;white-space:nowrap}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:#0F2B28;color:#FFF;box-shadow:0 2px 4px rgba(15,43,40,.2)}.btn-primary:hover{background:#1A4D43}
+.btn-secondary{background:#FFF;color:#0F2B28;border:1px solid #CBD5E1}.btn-secondary:hover{border-color:#0F2B28}
+.btn-ghost{background:transparent;color:#64748B}.btn-ghost:hover{background:#F1F5F9}
+.btn-danger{background:#FFF1F2;color:#E11D48;border:1px solid #FECDD3}.btn-danger:hover{background:#FEE2E2}
+.btn-sm{padding:6px 14px;font-size:13px}
+.tabs-container{border-bottom:1px solid #E2E8F0;margin-bottom:24px}
+.tabs-list{display:flex;gap:0}
+.tab-item{padding:12px 20px;font-size:14px;font-weight:500;color:#64748B;cursor:pointer;border-bottom:2px solid transparent;transition:all 150ms;user-select:none;background:none;border-top:none;border-left:none;border-right:none;font-family:'Inter',sans-serif}
+.tab-item:hover{color:#1E293B}
+.tab-item.active{color:#0F2B28;font-weight:600;border-bottom-color:#0F2B28}
+.input,.select{width:100%;height:42px;border:1px solid #E2E8F0;border-radius:8px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:#334155;background:#FFF;outline:none;transition:all 150ms;appearance:none}
+.input::placeholder{color:#94A3B8}
+.input:focus,.select:focus{border-color:#0F2B28;box-shadow:0 0 0 3px rgba(15,43,40,.1)}
+.input-icon-wrapper{position:relative}
+.input-icon-wrapper svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#94A3B8;pointer-events:none}
+.input-icon-wrapper .input{padding-left:38px}
+label{display:block;font-size:13px;font-weight:500;color:#1E293B;margin-bottom:6px}
+.filter-bar{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px}
+.filter-bar .filter-group{display:flex;flex-direction:column}
+.filter-bar .filter-group label{font-size:12px;font-weight:500;color:#64748B;margin-bottom:6px}
+.filter-bar .input,.filter-bar .select{width:auto;min-width:180px}
+.timeline{display:flex;flex-direction:column}
+.timeline-item{display:flex;gap:16px;padding-bottom:20px;position:relative}
+.timeline-item:last-child{padding-bottom:0}
+.timeline-item:not(:last-child)::after{content:'';position:absolute;left:15px;top:36px;bottom:0;width:2px;background:#F1F5F9}
+.timeline-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1}
+.timeline-dot svg{width:14px;height:14px}
+.timeline-dot.green{background:#DCFCE7;color:#166534}.timeline-dot.blue{background:#DBEAFE;color:#1E40AF}.timeline-dot.amber{background:#FEF3C7;color:#92400E}.timeline-dot.slate{background:#F1F5F9;color:#64748B}
+.timeline-content{flex:1;padding-top:4px}
+.timeline-title{font-size:13px;font-weight:600;color:#1E293B;margin-bottom:2px}
+.timeline-desc{font-size:12px;color:#94A3B8}
+.room-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.room-card{background:#FFF;border:1px solid #E2E8F0;border-radius:12px;padding:20px 20px 20px 24px;box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 6px rgba(0,0,0,.02);border-left:4px solid #E2E8F0;transition:all 150ms}
+.room-card:hover{box-shadow:0 10px 15px -3px rgba(0,0,0,.08)}
+.room-card.available{border-left-color:#4ADE80}.room-card.occupied{border-left-color:#3B82F6}.room-card.maintenance{border-left-color:#EF4444}
+.room-number{font-size:28px;font-weight:700;color:#1E293B;letter-spacing:-.02em}
+.room-type{font-size:13px;color:#64748B;margin-top:2px;margin-bottom:12px}
+.room-guest{font-size:12px;color:#94A3B8;margin-top:8px}.room-guest span{color:#64748B;font-weight:500}
+.checkin-list{display:flex;flex-direction:column;gap:12px}
+.checkin-card{background:#FFF;border:1px solid #E2E8F0;border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 6px rgba(0,0,0,.02);transition:all 150ms}
+.checkin-card:hover{box-shadow:0 10px 15px -3px rgba(0,0,0,.08)}
+.checkin-info h3{font-size:15px;font-weight:600;color:#1E293B;margin-bottom:4px}
+.checkin-meta{display:flex;gap:20px;font-size:13px;color:#64748B;flex-wrap:wrap}
+.checkin-meta span{display:flex;align-items:center;gap:6px}
+.checkin-meta svg{width:14px;height:14px;color:#94A3B8}
+.progress-item{margin-bottom:18px}.progress-item:last-child{margin-bottom:0}
+.progress-label-row{display:flex;justify-content:space-between;margin-bottom:6px}
+.progress-label{font-size:13px;font-weight:500;color:#334155}
+.progress-value{font-size:13px;font-weight:600;color:#64748B}
+.progress-bar-bg{width:100%;height:8px;background:#F1F5F9;border-radius:4px;overflow:hidden}
+.progress-bar-fill{height:100%;border-radius:4px;transition:width 500ms ease}
+.progress-bar-fill.green{background:#4ADE80}.progress-bar-fill.blue{background:#3B82F6}.progress-bar-fill.amber{background:#F59E0B}.progress-bar-fill.red{background:#EF4444}
+.tariff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.tariff-card{background:#FFF;border:1px solid #E2E8F0;border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 6px rgba(0,0,0,.02);transition:all 150ms}
+.tariff-card:hover{box-shadow:0 10px 15px -3px rgba(0,0,0,.08)}
+.tariff-name{font-size:16px;font-weight:600;color:#1E293B;margin-bottom:4px}
+.tariff-type{font-size:12px;color:#94A3B8;margin-bottom:16px}
+.tariff-price{font-size:24px;font-weight:700;color:#0F2B28;margin-bottom:4px}
+.tariff-price-range{font-size:12px;color:#64748B;margin-bottom:16px}
+.tariff-badges{display:flex;gap:8px;flex-wrap:wrap}
+.category-item{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #F1F5F9;transition:background 150ms}
+.category-item:hover{background:#F8FAFC}.category-item:last-child{border-bottom:none}
+.category-left{display:flex;align-items:center;gap:12px}
+.category-color-dot{width:10px;height:10px;border-radius:50%}
+.category-name{font-size:14px;font-weight:500;color:#334155}
+.category-actions{display:flex;gap:8px}
+.icon-btn{width:32px;height:32px;border-radius:6px;border:1px solid #E2E8F0;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 150ms}
+.icon-btn:hover{background:#F8FAFC;border-color:#CBD5E1}
+.icon-btn svg{width:14px;height:14px;color:#64748B}
+.icon-btn.danger:hover{background:#FFF1F2;border-color:#FECDD3}.icon-btn.danger:hover svg{color:#E11D48}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,43,40,.6);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity 200ms}
+.modal-overlay.visible{opacity:1;pointer-events:auto}
+.modal-container{background:#FFF;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25);max-width:640px;width:100%;margin:20px;transform:scale(.95);transition:transform 200ms}
+.modal-overlay.visible .modal-container{transform:scale(1)}
+.modal-header{background:#0D3D33;color:#FFF;font-size:18px;font-weight:600;padding:20px 24px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between}
+.modal-close{width:32px;height:32px;border-radius:6px;background:rgba(255,255,255,.1);border:none;color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 150ms}
+.modal-close:hover{background:rgba(255,255,255,.2)}.modal-close svg{width:16px;height:16px}
+.modal-body{padding:24px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.form-row.full{grid-template-columns:1fr}
+.modal-footer{padding:16px 24px;border-top:1px solid #F1F5F9;display:flex;justify-content:flex-end;gap:12px}
+.module-section{display:none}.module-section.active{display:block}
+.checkin-subtab{display:none}.checkin-subtab.active{display:block}
+.tariff-subtab{display:none}.tariff-subtab.active{display:block}
+.sidebar-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:90}
+.mobile-menu-btn{display:none;position:fixed;top:16px;left:16px;z-index:80;width:40px;height:40px;border-radius:8px;background:#0F2B28;color:white;border:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 4px rgba(15,43,40,.3)}
+.mobile-menu-btn svg{width:20px;height:20px}
+@media(max-width:1024px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.room-grid{grid-template-columns:repeat(2,1fr)}.tariff-grid{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}}
+@media(max-width:768px){.sidebar{position:fixed;top:0;left:0;height:100vh;transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.sidebar-overlay.visible{display:block}.mobile-menu-btn{display:flex}.main-inner{padding:24px 16px;padding-top:64px}.kpi-grid{grid-template-columns:1fr}.room-grid{grid-template-columns:1fr}.tariff-grid{grid-template-columns:1fr}.filter-bar{flex-direction:column;align-items:stretch}.filter-bar .input,.filter-bar .select{width:100%;min-width:0}.form-row{grid-template-columns:1fr}.checkin-card{flex-direction:column;align-items:flex-start;gap:12px}}
+</style>
+</head>
+<body>
+<button class="mobile-menu-btn" onclick="toggleSidebar()"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<div class="app-layout">
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+<div class="sidebar-brand"><div class="sidebar-brand-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg></div><div><div class="sidebar-brand-text">Hospedá</div><div class="sidebar-brand-sub">Sistema de Gestión</div></div></div>
+<nav class="sidebar-nav">
+<div class="sidebar-group-label">Operativo</div>
+<a class="sidebar-item active" data-section="dashboard" onclick="switchSection('dashboard',this)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>Dashboard</a>
+<a class="sidebar-item" data-section="habitaciones" onclick="switchSection('habitaciones',this)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"></path><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"></path><path d="M12 4v6"></path><path d="M2 18h20"></path></svg>Habitaciones</a>
+<a class="sidebar-item" data-section="checkin" onclick="switchSection('checkin',this)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>Check-In / Out</a>
+<a class="sidebar-item" data-section="limpieza" onclick="switchSection('limpieza',this)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>Limpieza y Mant.</a>
+<div class="sidebar-group-label">Comercial</div>
+<a class="sidebar-item" data-section="reservas" onclick="switchSection('reservas',this)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>Reservas</a>
+<a class="sidebar-item" data-section="clientes" onclick="switchSection('clientes',this)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Clientes</a>
+<div class="sidebar-group-label">Financiero</div>
+<a class="sidebar-item" data-section="tarifas" onclick="switchSection('tarifas',this)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"></path><path d="M7 7h.01"></path></svg>Tarifas</a>
+<a class="sidebar-item" data-section="facturacion" onclick="switchSection('facturacion',this)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 17.5v-11"></path></svg>Facturación</a>
+<a class="sidebar-item" data-section="caja" onclick="switchSection('caja',this)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg>Caja</a>
+<a class="sidebar-item" data-section="reportes" onclick="switchSection('reportes',this)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>Reportes</a>
+<div class="sidebar-group-label">Admin</div>
+<a class="sidebar-item" data-section="usuarios" onclick="switchSection('usuarios',this)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="19" cy="11" r="2"></circle><path d="M19 8v1"></path><path d="M19 13v1"></path><path d="M21 11h-1"></path><path d="M17 11h-1"></path></svg>Usuarios</a>
+</nav>
+<div class="sidebar-footer"><div class="sidebar-avatar">AD</div><div><div class="sidebar-user-name">Administrador</div><div class="sidebar-user-role">Admin General</div></div></div>
+</aside>
+<!-- MAIN CONTENT -->
+<main class="main-content"><div class="main-inner">
+
+<!-- DASHBOARD -->
+<div class="module-section active" id="section-dashboard">
+<div class="module-header"><div class="module-header-top"><div class="module-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg></div><h1>Dashboard</h1></div><p class="subtitle">Vista general del hotel</p></div>
+<div class="kpi-grid">
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon green"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"></path><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"></path><path d="M12 4v6"></path><path d="M2 18h20"></path></svg></div><span class="kpi-trend up">+2 hoy</span></div><div class="kpi-value">8/12</div><div class="kpi-label">Habitaciones Disponibles</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon blue"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></div><span class="kpi-trend up">+5%</span></div><div class="kpi-value">75%</div><div class="kpi-label">Ocupación Hoy</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon emerald"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg></div><span class="kpi-trend up">+1</span></div><div class="kpi-value">3</div><div class="kpi-label">Check-Ins Hoy</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon amber"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><span class="kpi-trend up">+12%</span></div><div class="kpi-value">$1.250.000</div><div class="kpi-label">Ingresos del Mes</div></div>
+</div>
+<div class="two-col">
+<div class="card"><div class="card-header"><h2>Últimas Reservas</h2><button class="btn btn-ghost btn-sm">Ver todas</button></div><div class="card-body-np"><div class="table-wrapper"><table><thead><tr><th>Huésped</th><th>Hab.</th><th>Check-In</th><th>Check-Out</th><th>Estado</th></tr></thead><tbody>
+<tr><td style="font-weight:600;color:#1E293B">María García</td><td>101</td><td>15 Ene</td><td>18 Ene</td><td><span class="badge badge-blue">Check-In</span></td></tr>
+<tr><td style="font-weight:600;color:#1E293B">Carlos López</td><td>203</td><td>16 Ene</td><td>19 Ene</td><td><span class="badge badge-green">Confirmado</span></td></tr>
+<tr><td style="font-weight:600;color:#1E293B">Ana Martínez</td><td>305</td><td>17 Ene</td><td>20 Ene</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+<tr><td style="font-weight:600;color:#1E293B">Roberto Díaz</td><td>102</td><td>14 Ene</td><td>16 Ene</td><td><span class="badge badge-red">Cancelada</span></td></tr>
+</tbody></table></div></div></div>
+<div class="card"><div class="card-header"><h2>Actividad Reciente</h2></div><div class="card-body"><div class="timeline">
+<div class="timeline-item"><div class="timeline-dot green"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><div class="timeline-content"><div class="timeline-title">Check-In realizado</div><div class="timeline-desc">María García — Hab. 101 · Hace 15 min</div></div></div>
+<div class="timeline-item"><div class="timeline-dot blue"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div><div class="timeline-content"><div class="timeline-title">Nueva reserva</div><div class="timeline-desc">Carlos López — Hab. 203 · Hace 1 hora</div></div></div>
+<div class="timeline-item"><div class="timeline-dot amber"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></div><div class="timeline-content"><div class="timeline-title">Check-Out programado</div><div class="timeline-desc">Pedro Sánchez — Hab. 204 · Hoy 11:00</div></div></div>
+<div class="timeline-item"><div class="timeline-dot slate"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg></div><div class="timeline-content"><div class="timeline-title">Habitación limpiada</div><div class="timeline-desc">Hab. 107 — Limpieza completada · Hace 2 hs</div></div></div>
+</div></div></div>
+</div>
+</div>
+
+<!-- HABITACIONES -->
+<div class="module-section" id="section-habitaciones">
+<div class="module-header"><div class="module-header-top"><div class="module-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"></path><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"></path><path d="M12 4v6"></path><path d="M2 18h20"></path></svg></div><h1>Habitaciones</h1></div><p class="subtitle">Gestión de habitaciones</p></div>
+<div class="room-grid">
+<div class="room-card available"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="room-number">101</div><span class="badge badge-green">Disponible</span></div><div class="room-type">Simple · Planta Baja</div><div style="display:flex;gap:12px;font-size:12px;color:#94A3B8"><span>1 cama</span><span>·</span><span>WiFi</span><span>·</span><span>A/C</span></div></div>
+<div class="room-card occupied"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="room-number">102</div><span class="badge badge-blue">Ocupada</span></div><div class="room-type">Doble · Planta Baja</div><div class="room-guest">Huésped: <span>Lucía Fernández</span></div></div>
+<div class="room-card available"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="room-number">103</div><span class="badge badge-green">Disponible</span></div><div class="room-type">Simple · Planta Baja</div><div style="display:flex;gap:12px;font-size:12px;color:#94A3B8"><span>1 cama</span><span>·</span><span>WiFi</span><span>·</span><span>TV</span></div></div>
+<div class="room-card occupied"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="room-number">201</div><span class="badge badge-blue">Ocupada</span></div><div class="room-type">Doble · Primer Piso</div><div class="room-guest">Huésped: <span>Diego Morales</span></div></div>
+<div class="room-card maintenance"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="room-number">202</div><span class="badge badge-red">Mantenimiento</span></div><div class="room-type">Triple · Primer Piso</div><div class="room-guest" style="color:#991B1B">Reparación de cañería — Est. 18 Ene</div></div>
+<div class="room-card occupied"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="room-number">203</div><span class="badge badge-blue">Ocupada</span></div><div class="room-type">Doble · Primer Piso</div><div class="room-guest">Huésped: <span>Carolina Ruiz</span></div></div>
+</div>
+</div>
+
+<!-- CHECK-IN / CHECK-OUT -->
+<div class="module-section" id="section-checkin">
+<div class="module-header"><div class="module-header-top"><div class="module-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg></div><h1>Check-In / Check-Out</h1></div><p class="subtitle">Registro de huéspedes</p></div>
+<div class="tabs-container"><div class="tabs-list">
+<button class="tab-item active" onclick="switchTab(this,'ci-pendientes')">Pendientes</button>
+<button class="tab-item" onclick="switchTab(this,'ci-encurso')">En Curso</button>
+<button class="tab-item" onclick="switchTab(this,'ci-checkout')">Check-Out Hoy</button>
+</div></div>
+<div id="ci-pendientes" class="checkin-subtab active"><div class="checkin-list">
+<div class="checkin-card"><div class="checkin-info"><h3>María García</h3><div class="checkin-meta"><span>RES-2024-0089</span><span>Hab. 101 — Simple</span><span>15 Ene → 18 Ene</span></div></div><button class="btn btn-primary">Realizar Check-In</button></div>
+<div class="checkin-card"><div class="checkin-info"><h3>Carlos López</h3><div class="checkin-meta"><span>RES-2024-0090</span><span>Hab. 203 — Doble</span><span>16 Ene → 19 Ene</span></div></div><button class="btn btn-primary">Realizar Check-In</button></div>
+<div class="checkin-card"><div class="checkin-info"><h3>Ana Martínez</h3><div class="checkin-meta"><span>RES-2024-0091</span><span>Hab. 305 — Triple</span><span>17 Ene → 20 Ene</span></div></div><button class="btn btn-primary">Realizar Check-In</button></div>
+</div></div>
+<div id="ci-encurso" class="checkin-subtab"><div class="checkin-list">
+<div class="checkin-card"><div class="checkin-info"><h3>Lucía Fernández</h3><div class="checkin-meta"><span>RES-2024-0082</span><span>Hab. 102 — Doble</span><span>13 Ene → 18 Ene</span></div></div><span class="badge badge-blue">Check-In Realizado</span></div>
+<div class="checkin-card"><div class="checkin-info"><h3>Diego Morales</h3><div class="checkin-meta"><span>RES-2024-0085</span><span>Hab. 201 — Doble</span><span>14 Ene → 17 Ene</span></div></div><span class="badge badge-blue">Check-In Realizado</span></div>
+</div></div>
+<div id="ci-checkout" class="checkin-subtab"><div class="checkin-list">
+<div class="checkin-card"><div class="checkin-info"><h3>Pedro Sánchez</h3><div class="checkin-meta"><span>RES-2024-0078</span><span>Hab. 204 — Simple</span><span>12 Ene → 15 Ene</span></div></div><button class="btn btn-secondary">Realizar Check-Out</button></div>
+<div class="checkin-card"><div class="checkin-info"><h3>Valentina Torres</h3><div class="checkin-meta"><span>RES-2024-0080</span><span>Hab. 106 — Doble</span><span>11 Ene → 15 Ene</span></div></div><button class="btn btn-secondary">Realizar Check-Out</button></div>
+</div></div>
+</div>
+
+<!-- RESERVAS -->
+<div class="module-section" id="section-reservas">
+<div class="module-header"><div class="module-header-top"><div class="module-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div><h1>Reservas</h1></div><p class="subtitle">Gestión de reservas</p></div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+<div class="filter-bar" style="margin-bottom:0">
+<div class="filter-group"><div class="input-icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input class="input" placeholder="Buscar huésped o ID..."></div></div>
+<div class="filter-group"><label>Estado</label><select class="select"><option>Todos</option><option>Confirmada</option><option>Pendiente</option><option>Cancelada</option></select></div>
+<div class="filter-group"><label>Desde</label><input type="date" class="input" value="2024-01-01"></div>
+<div class="filter-group"><label>Hasta</label><input type="date" class="input" value="2024-01-31"></div>
+</div>
+<button class="btn btn-primary">Nueva Reserva</button>
+</div>
+<div class="card"><div class="card-body-np"><div class="table-wrapper"><table><thead><tr><th>ID</th><th>Huésped</th><th>Habitación</th><th>Check-In</th><th>Check-Out</th><th>Estado</th><th>Total</th></tr></thead><tbody>
+<tr><td style="font-weight:500;color:#64748B">RES-0085</td><td style="font-weight:600;color:#1E293B">Diego Morales</td><td>201</td><td>14 Ene</td><td>17 Ene</td><td><span class="badge badge-blue">Check-In</span></td><td style="font-weight:600">$135.000</td></tr>
+<tr><td style="font-weight:500;color:#64748B">RES-0089</td><td style="font-weight:600;color:#1E293B">María García</td><td>101</td><td>15 Ene</td><td>18 Ene</td><td><span class="badge badge-blue">Check-In</span></td><td style="font-weight:600">$90.000</td></tr>
+<tr><td style="font-weight:500;color:#64748B">RES-0090</td><td style="font-weight:600;color:#1E293B">Carlos López</td><td>203</td><td>16 Ene</td><td>19 Ene</td><td><span class="badge badge-green">Confirmada</span></td><td style="font-weight:600">$180.000</td></tr>
+<tr><td style="font-weight:500;color:#64748B">RES-0091</td><td style="font-weight:600;color:#1E293B">Ana Martínez</td><td>305</td><td>17 Ene</td><td>20 Ene</td><td><span class="badge badge-amber">Pendiente</span></td><td style="font-weight:600">$225.000</td></tr>
+<tr><td style="font-weight:500;color:#64748B">RES-0084</td><td style="font-weight:600;color:#1E293B">Roberto Díaz</td><td>102</td><td>14 Ene</td><td>16 Ene</td><td><span class="badge badge-red">Cancelada</span></td><td style="font-weight:600;color:#94A3B8;text-decoration:line-through">$120.000</td></tr>
+</tbody></table></div></div></div>
+</div>
+
+<!-- REPORTES -->
+<div class="module-section" id="section-reportes">
+<div class="module-header"><div class="module-header-top"><div class="module-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg></div><h1>Reportes</h1></div><p class="subtitle">Estadísticas y análisis</p></div>
+<div class="kpi-grid">
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon green"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><span class="kpi-trend up">+12%</span></div><div class="kpi-value">$1.250.000</div><div class="kpi-label">Total Ingresos</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon red"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg></div><span class="kpi-trend down">+3%</span></div><div class="kpi-value">$480.000</div><div class="kpi-label">Total Gastos</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon emerald"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></div><span class="kpi-trend up">+18%</span></div><div class="kpi-value">$770.000</div><div class="kpi-label">Ganancia Neta</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon blue"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></div><span class="kpi-trend up">+2%</span></div><div class="kpi-value">72%</div><div class="kpi-label">Ocupación Promedio</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+<div class="card"><div class="card-header"><h2>Distribución por Categoría</h2></div><div class="card-body">
+<div class="progress-item"><div class="progress-label-row"><span class="progress-label">Personal y Sueldos</span><span class="progress-value">$280.000 (58%)</span></div><div class="progress-bar-bg"><div class="progress-bar-fill blue" style="width:58%"></div></div></div>
+<div class="progress-item"><div class="progress-label-row"><span class="progress-label">Insumos de Limpieza</span><span class="progress-value">$85.000 (18%)</span></div><div class="progress-bar-bg"><div class="progress-bar-fill green" style="width:18%"></div></div></div>
+<div class="progress-item"><div class="progress-label-row"><span class="progress-label">Mantenimiento</span><span class="progress-value">$65.000 (14%)</span></div><div class="progress-bar-bg"><div class="progress-bar-fill amber" style="width:14%"></div></div></div>
+<div class="progress-item"><div class="progress-label-row"><span class="progress-label">Servicios Públicos</span><span class="progress-value">$50.000 (10%)</span></div><div class="progress-bar-bg"><div class="progress-bar-fill red" style="width:10%"></div></div></div>
+</div></div>
+<div class="card"><div class="card-header"><h2>Filtros</h2></div><div class="card-body">
+<div class="form-row full"><label>Período</label><select class="select"><option>Enero 2024</option><option>Diciembre 2023</option><option>Noviembre 2023</option></select></div>
+<div class="form-row full" style="margin-top:16px"><label>Tipo de Reporte</label><select class="select"><option>Resumen Mensual</option><option>Ocupación</option><option>Ingresos vs Gastos</option></select></div>
+<div class="form-row full" style="margin-top:16px"><label>Comparar con</label><select class="select"><option>Período anterior</option><option>Mismo mes año anterior</option><option>Sin comparación</option></select></div>
+</div></div>
+</div>
+</div>
+
+<!-- TARIFAS -->
+<div class="module-section" id="section-tarifas">
+<div class="module-header"><div class="module-header-top"><div class="module-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"></path><path d="M7 7h.01"></path></svg></div><h1>Tarifas y Métodos de Pago</h1></div><p class="subtitle">Configurá precios y formas de cobro</p></div>
+<div class="tabs-container"><div class="tabs-list">
+<button class="tab-item active" onclick="switchTab(this,'tf-tarifas')">Tarifas</button>
+<button class="tab-item" onclick="switchTab(this,'tf-metodos')">Métodos de Pago</button>
+<button class="tab-item" onclick="switchTab(this,'tf-categorias')">Categorías de Gastos</button>
+</div></div>
+<div id="tf-tarifas" class="tariff-subtab active">
+<div class="tariff-grid">
+<div class="tariff-card"><div class="tariff-name">Tarifa Simple</div><div class="tariff-type">Habitación individual</div><div class="tariff-price">$30.000</div><div class="tariff-price-range">Noche individual · $45.000 doble uso</div><div class="tariff-badges"><span class="badge badge-green">Estándar</span><span class="badge badge-amber">Temporada Alta +20%</span></div></div>
+<div class="tariff-card"><div class="tariff-name">Tarifa Doble</div><div class="tariff-type">Habitación doble</div><div class="tariff-price">$45.000</div><div class="tariff-price-range">Noche doble · $60.000 triple uso</div><div class="tariff-badges"><span class="badge badge-green">Estándar</span><span class="badge badge-blue">Desayuno incluido</span></div></div>
+<div class="tariff-card"><div class="tariff-name">Tarifa Triple</div><div class="tariff-type">Habitación triple</div><div class="tariff-price">$60.000</div><div class="tariff-price-range">Noche triple · $75.000 4 personas</div><div class="tariff-badges"><span class="badge badge-green">Estándar</span><span class="badge badge-blue">Desayuno incluido</span><span class="badge badge-amber">Promo 3x2</span></div></div>
+</div>
+</div>
+<div id="tf-metodos" class="tariff-subtab">
+<div class="card"><div class="card-body-np"><table><thead><tr><th>Método de Pago</th><th>Estado</th><th>Configuración</th></tr></thead><tbody>
+<tr><td style="font-weight:600;color:#1E293B">Efectivo</td><td><span class="badge badge-green">Activo</span></td><td style="color:#64748B">Pago en recepción</td></tr>
+<tr><td style="font-weight:600;color:#1E293B">Transferencia Bancaria</td><td><span class="badge badge-green">Activo</span></td><td style="color:#64748B">CVU: 0000003100000000000000</td></tr>
+<tr><td style="font-weight:600;color:#1E293B">Mercado Pago</td><td><span class="badge badge-green">Activo</span></td><td style="color:#64748B">Integrado con API</td></tr>
+<tr><td style="font-weight:600;color:#1E293B">Tarjeta de Crédito</td><td><span class="badge badge-amber">Configurando</span></td><td style="color:#94A3B8">Pendiente de activación</td></tr>
+</tbody></table></div></div>
+</div>
+<div id="tf-categorias" class="tariff-subtab">
+<div class="card"><div class="card-header"><h2>Categorías de Gastos</h2><button class="btn btn-primary btn-sm">+ Nueva Categoría</button></div><div class="card-body-np">
+<div class="category-item"><div class="category-left"><div class="category-color-dot" style="background:#3B82F6"></div><span class="category-name">Personal y Sueldos</span></div><div class="category-actions"><button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg></button><button class="icon-btn danger"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div></div>
+<div class="category-item"><div class="category-left"><div class="category-color-dot" style="background:#4ADE80"></div><span class="category-name">Insumos de Limpieza</span></div><div class="category-actions"><button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg></button><button class="icon-btn danger"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div></div>
+<div class="category-item"><div class="category-left"><div class="category-color-dot" style="background:#F59E0B"></div><span class="category-name">Mantenimiento</span></div><div class="category-actions"><button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg></button><button class="icon-btn danger"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div></div>
+<div class="category-item"><div class="category-left"><div class="category-color-dot" style="background:#EF4444"></div><span class="category-name">Servicios Públicos</span></div><div class="category-actions"><button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg></button><button class="icon-btn danger"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div></div>
+<div class="category-item"><div class="category-left"><div class="category-color-dot" style="background:#8B5CF6"></div><span class="category-name">Marketing y Publicidad</span></div><div class="category-actions"><button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg></button><button class="icon-btn danger"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button></div></div>
+</div></div>
+</div>
+</div>
+
+<!-- CLIENTES -->
+<div class="module-section" id="section-clientes">
+<div class="module-header"><div class="module-header-top"><div class="module-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div><h1>Clientes</h1></div><p class="subtitle">Gestión de huéspedes</p></div>
+<div class="filter-bar" style="max-width:400px">
+<div class="input-icon-wrapper" style="width:100%"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input class="input" placeholder="Buscar por nombre, DNI o email..."></div>
+</div>
+<div class="card"><div class="card-body-np"><div class="table-wrapper"><table><thead><tr><th>Nombre</th><th>DNI</th><th>Email</th><th>Teléfono</th><th>Total Estadías</th><th>Total Gastado</th></tr></thead><tbody>
+<tr><td style="font-weight:600;color:#1E293B">María García</td><td>32.456.789</td><td>maria@email.com</td><td>+54 11 4567-8901</td><td>5</td><td style="font-weight:600">$540.000</td></tr>
+<tr><td style="font-weight:600;color:#1E293B">Diego Morales</td><td>28.123.456</td><td>diego@email.com</td><td>+54 11 5678-9012</td><td>3</td><td style="font-weight:600">$380.000</td></tr>
+<tr><td style="font-weight:600;color:#1E293B">Lucía Fernández</td><td>35.789.012</td><td>lucia@email.com</td><td>+54 11 6789-0123</td><td>8</td><td style="font-weight:600">$920.000</td></tr>
+<tr><td style="font-weight:600;color:#1E293B">Carlos López</td><td>40.234.567</td><td>carlos@email.com</td><td>+54 11 7890-1234</td><td>2</td><td style="font-weight:600">$270.000</td></tr>
+</tbody></table></div></div></div>
+</div>
+
+<!-- LIMPIEZA Y MANTENIMIENTO -->
+<div class="module-section" id="section-limpieza">
+<div class="module-header"><div class="module-header-top"><div class="module-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg></div><h1>Limpieza y Mantenimiento</h1></div><p class="subtitle">Estado de habitaciones y tareas</p></div>
+<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon green"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div></div><div class="kpi-value">5</div><div class="kpi-label">Limpias</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon amber"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></div></div><div class="kpi-value">3</div><div class="kpi-label">Pendientes</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon blue"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></div></div><div class="kpi-value">1</div><div class="kpi-label">En Mantenimiento</div></div>
+</div>
+<div class="card"><div class="card-header"><h2>Cola de Limpieza</h2></div><div class="card-body-np"><table><thead><tr><th>Habitación</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Asignado a</th></tr></thead><tbody>
+<tr><td style="font-weight:600;color:#1E293B">102</td><td>Limpieza post-checkout</td><td><span class="badge badge-red">Alta</span></td><td><span class="badge badge-amber">Pendiente</span></td><td>Rosa M.</td></tr>
+<tr><td style="font-weight:600;color:#1E293B">204</td><td>Limpieza post-checkout</td><td><span class="badge badge-red">Alta</span></td><td><span class="badge badge-amber">Pendiente</span></td><td>Sin asignar</td></tr>
+<tr><td style="font-weight:600;color:#1E293B">107</td><td>Limpieza diaria</td><td><span class="badge badge-green">Normal</span></td><td><span class="badge badge-green">Completada</span></td><td>Ana P.</td></tr>
+</tbody></table></div></div>
+</div>
+
+<!-- FACTURACION -->
+<div class="module-section" id="section-facturacion">
+<div class="module-header"><div class="module-header-top"><div class="module-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 17.5v-11"></path></svg></div><h1>Facturación</h1></div><p class="subtitle">Gestión de comprobantes fiscales</p></div>
+<div class="kpi-grid">
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon green"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div></div><div class="kpi-value">24</div><div class="kpi-label">Facturas Emitidas</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon amber"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></div></div><div class="kpi-value">3</div><div class="kpi-label">Pendientes de Emitir</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon blue"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div></div><div class="kpi-value">$985.000</div><div class="kpi-label">Total Facturado</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon emerald"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg></div></div><div class="kpi-value">92%</div><div class="kpi-label">Tasa de Cobro</div></div>
+</div>
+<div class="card"><div class="card-header"><h2>Últimas Facturas</h2></div><div class="card-body-np"><table><thead><tr><th>N° Factura</th><th>Cliente</th><th>Fecha</th><th>Monto</th><th>Estado</th></tr></thead><tbody>
+<tr><td style="font-weight:500;color:#64748B">FAC-0024</td><td style="font-weight:600;color:#1E293B">Lucía Fernández</td><td>14 Ene 2024</td><td style="font-weight:600">$135.000</td><td><span class="badge badge-green">Pagada</span></td></tr>
+<tr><td style="font-weight:500;color:#64748B">FAC-0023</td><td style="font-weight:600;color:#1E293B">Diego Morales</td><td>14 Ene 2024</td><td style="font-weight:600">$135.000</td><td><span class="badge badge-green">Pagada</span></td></tr>
+<tr><td style="font-weight:500;color:#64748B">FAC-0022</td><td style="font-weight:600;color:#1E293B">Pedro Sánchez</td><td>12 Ene 2024</td><td style="font-weight:600">$90.000</td><td><span class="badge badge-amber">Pendiente</span></td></tr>
+</tbody></table></div></div>
+</div>
+
+<!-- CAJA -->
+<div class="module-section" id="section-caja">
+<div class="module-header"><div class="module-header-top"><div class="module-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg></div><h1>Caja</h1></div><p class="subtitle">Movimientos y cierre de caja</p></div>
+<div class="kpi-grid">
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon green"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div></div><div class="kpi-value">$87.500</div><div class="kpi-label">Saldo en Caja</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon blue"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg></div></div><div class="kpi-value">$120.000</div><div class="kpi-label">Ingresos Hoy</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon red" style="background:#FEE2E2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#991B1B"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg></div></div><div class="kpi-value">$32.500</div><div class="kpi-label">Egresos Hoy</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon emerald"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div></div><div class="kpi-value">15</div><div class="kpi-label">Movimientos Hoy</div></div>
+</div>
+<div class="card"><div class="card-header"><h2>Movimientos Recientes</h2><button class="btn btn-secondary btn-sm">Registrar Movimiento</button></div><div class="card-body-np"><table><thead><tr><th>Hora</th><th>Concepto</th><th>Tipo</th><th>Método</th><th>Monto</th></tr></thead><tbody>
+<tr><td>10:30</td><td style="font-weight:600;color:#1E293B">Check-In María García</td><td><span class="badge badge-green">Ingreso</span></td><td>Efectivo</td><td style="font-weight:600;color:#166534">+$90.000</td></tr>
+<tr><td>09:15</td><td style="font-weight:600;color:#1E293B">Pago proveedor limpieza</td><td><span class="badge badge-red">Egreso</span></td><td>Transferencia</td><td style="font-weight:600;color:#991B1B">-$25.000</td></tr>
+<tr><td>08:00</td><td style="font-weight:600;color:#1E293B">Apertura de caja</td><td><span class="badge badge-blue">Inicial</span></td><td>Efectivo</td><td style="font-weight:600">$55.000</td></tr>
+</tbody></table></div></div>
+</div>
+
+<!-- USUARIOS -->
+<div class="module-section" id="section-usuarios">
+<div class="module-header"><div class="module-header-top"><div class="module-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path></svg></div><h1>Usuarios</h1></div><p class="subtitle">Administración de accesos</p></div>
+<div style="display:flex;justify-content:flex-end;margin-bottom:20px"><button class="btn btn-primary">+ Nuevo Usuario</button></div>
+<div class="card"><div class="card-body-np"><table><thead><tr><th>Usuario</th><th>Email</th><th>Rol</th><th>Estado</th><th>Último Acceso</th></tr></thead><tbody>
+<tr><td><div style="display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#1A4D43,#4ADE80);display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:13px">AD</div><span style="font-weight:600;color:#1E293B">Administrador</span></div></td><td>admin@hospeda.com</td><td><span class="badge badge-green">Admin</span></td><td><span class="badge badge-green">Activo</span></td><td>Ahora</td></tr>
+<tr><td><div style="display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:50%;background:#DBEAFE;display:flex;align-items:center;justify-content:center;color:#1E40AF;font-weight:600;font-size:13px">RM</div><span style="font-weight:600;color:#1E293B">Rosa Martínez</span></div></td><td>rosa@hospeda.com</td><td><span class="badge badge-blue">Recepcionista</span></td><td><span class="badge badge-green">Activo</span></td><td>Hace 2 hs</td></tr>
+<tr><td><div style="display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:50%;background:#FEF3C7;display:flex;align-items:center;justify-content:center;color:#92400E;font-weight:600;font-size:13px">AP</div><span style="font-weight:600;color:#1E293B">Ana Pérez</span></div></td><td>ana@hospeda.com</td><td><span class="badge badge-amber">Limpieza</span></td><td><span class="badge badge-green">Activo</span></td><td>Hace 1 día</td></tr>
+</tbody></table></div></div>
+</div>
+
+<!-- MODAL DIALOG -->
+<div class="modal-overlay" id="modalOverlay">
+<div class="modal-container">
+<div class="modal-header"><span>Nueva Reserva</span><button class="modal-close" onclick="closeModal()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+<div class="modal-body">
+<div class="form-row"><div><label>Huésped</label><input class="input" placeholder="Nombre del huésped"></div><div><label>DNI</label><input class="input" placeholder="32.456.789"></div></div>
+<div class="form-row"><div><label>Email</label><input class="input" type="email" placeholder="email@ejemplo.com"></div><div><label>Teléfono</label><input class="input" placeholder="+54 11 1234-5678"></div></div>
+<div class="form-row"><div><label>Habitación</label><select class="select"><option>Seleccionar habitación</option><option>101 — Simple</option><option>103 — Simple</option><option>201 — Doble</option><option>203 — Doble</option><option>305 — Triple</option></select></div><div><label>Tarifa</label><select class="select"><option>Seleccionar tarifa</option><option>Tarifa Simple — $30.000/noche</option><option>Tarifa Doble — $45.000/noche</option><option>Tarifa Triple — $60.000/noche</option></select></div></div>
+<div class="form-row"><div><label>Check-In</label><input class="input" type="date" value="2024-01-15"></div><div><label>Check-Out</label><input class="input" type="date" value="2024-01-18"></div></div>
+<div class="form-row full"><label>Notas</label><input class="input" placeholder="Observaciones adicionales..."></div>
+<div class="form-row full"><label>Método de Pago</label><select class="select"><option>Efectivo</option><option>Transferencia Bancaria</option><option>Mercado Pago</option><option>Tarjeta de Crédito</option></select></div>
+</div>
+<div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Cancelar</button><button class="btn btn-primary">Crear Reserva</button></div>
+</div>
+</div>
+
+</div></div></main>
+
+<!-- MODAL TRIGGER (floating) -->
+<div style="position:fixed;bottom:24px;right:24px;z-index:50;display:flex;gap:12px">
+<button class="btn btn-primary" style="box-shadow:0 4px 12px rgba(15,43,40,.3)" onclick="openModal()">Ver ejemplo de Modal</button>
+</div>
+
+<script>
+function switchSection(section, el) {
+  document.querySelectorAll('.module-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-' + section).classList.add('active');
+  if (el) el.classList.add('active');
+  // Close sidebar on mobile
+  if (window.innerWidth <= 768) toggleSidebar();
+}
+function switchTab(el, tabId) {
+  var parent = el.closest('.module-section');
+  parent.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  var container = el.closest('.tabs-container');
+  var next = container.nextElementSibling;
+  while (next) {
+    if (next.classList.contains('tabs-container') || next.classList.contains('module-header')) break;
+    if (next.classList.contains('checkin-subtab') || next.classList.contains('tariff-subtab')) {
+      next.classList.remove('active');
+    }
+    next = next.nextElementSibling;
+  }
+  document.getElementById(tabId).classList.add('active');
+}
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('visible');
+}
+function openModal() { document.getElementById('modalOverlay').classList.add('visible'); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('visible'); }
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>

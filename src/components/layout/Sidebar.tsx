@@ -1,0 +1,298 @@
+'use client';
+
+import { useState, useRef, useCallback, useEffect, forwardRef } from 'react';
+import { signOut, useSession } from 'next-auth/react';
+import { useHotelStore } from '@/lib/store';
+import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
+import { modulosEfectivos } from '@/lib/plan-config';
+import { Button } from '@/components/ui/button';
+import { LogOut, X, Lock, Settings, Users, LayoutDashboard } from 'lucide-react';
+
+let _handleLogout: (() => void) | null = null;
+
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  LayoutDashboard, DoorOpen: require('lucide-react').DoorOpen, CalendarDays: require('lucide-react').CalendarDays, LogIn: require('lucide-react').LogIn, Receipt: require('lucide-react').Receipt, Sparkles: require('lucide-react').Sparkles, Wallet: require('lucide-react').Wallet, Users: require('lucide-react').Users, BarChart3: require('lucide-react').BarChart3, UserCog: require('lucide-react').UserCog, Tags: require('lucide-react').Tags,
+};
+
+const GROUP_LABELS: Record<string, string> = {
+  operativo: 'Operativo',
+  comercial: 'Comercial',
+  financiero: 'Financiero',
+  admin: 'Admin',
+};
+
+const NavItem = forwardRef<HTMLButtonElement, { m: (typeof MODULOS_SISTEMA)[number]; expanded: boolean; locked: boolean }>(
+  function NavItem({ m, expanded, locked }, ref) {
+    const moduloActivo = useHotelStore(s => s.moduloActivo);
+    const setModulo = useHotelStore(s => s.setModulo);
+    const Icon = (iconMap as Record<string, React.ComponentType<{ className?: string }>>)[m.icon] || LayoutDashboard;
+    const isActive = moduloActivo === m.id;
+
+    return (
+      <button
+        ref={ref}
+        onClick={() => setModulo(m.id)}
+        className={`
+          w-full flex items-center rounded-lg transition-colors duration-200 relative
+          ${expanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
+          ${locked
+            ? 'opacity-50 hover:opacity-70'
+            : isActive
+              ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary'
+              : 'text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground'
+          }
+        `}
+        title={!expanded ? (locked ? `${m.label} (no disponible)` : m.label) : undefined}
+      >
+        <span className={`
+          shrink-0 flex items-center justify-center rounded-md relative
+          ${expanded ? 'w-7 h-7' : 'w-8 h-8'}
+          ${isActive && !locked
+            ? 'text-sidebar-primary'
+            : locked
+              ? 'text-sidebar-foreground/40'
+              : 'text-sidebar-foreground/50'
+          }
+        `}>
+          <Icon className={expanded ? 'w-4 h-4' : 'w-[18px] h-[18px]'} />
+          {locked && (
+            <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-sidebar-foreground/60 flex items-center justify-center">
+              <Lock className="w-1.5 h-1.5 text-sidebar" />
+            </span>
+          )}
+        </span>
+
+        {expanded && (
+          <span className={`text-[13px] font-medium truncate transition-colors duration-200 flex-1 text-left ${isActive && !locked ? 'text-sidebar-accent-foreground' : ''}`}>
+            {m.label}
+          </span>
+        )}
+      </button>
+    );
+  }
+);
+
+function GroupedNav({ modulos, expanded, efectivosSet, activeItemRef }: {
+  modulos: typeof MODULOS_SISTEMA; expanded: boolean; efectivosSet: Set<string>; activeItemRef: React.RefObject<HTMLButtonElement | null>;
+}) {
+  const elements: React.ReactNode[] = [];
+  let lastGroup: string | undefined;
+
+  for (const m of modulos) {
+    const grupo = m.grupo;
+    if (grupo && grupo !== lastGroup && expanded) {
+      elements.push(
+        <div key={`label-${grupo}`} className="pt-3 pb-1 px-3 first:pt-1">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+            {GROUP_LABELS[grupo]}
+          </span>
+        </div>
+      );
+    }
+    if (grupo && grupo !== lastGroup && !expanded && lastGroup !== undefined) {
+      elements.push(
+        <div key={`sep-${grupo}`} className="my-1.5 mx-3 border-t border-sidebar-border" />
+      );
+    }
+    lastGroup = grupo;
+    elements.push(
+      <NavItem key={m.id} m={m} expanded={expanded} locked={!efectivosSet.has(m.id)}
+        ref={m.id === useHotelStore.getState().moduloActivo ? activeItemRef : undefined} />
+    );
+  }
+
+  return <>{elements}</>;
+}
+
+export default function Sidebar() {
+  const { usuarioActual, moduloActivo, setModulo, sidebarOpen, setSidebarOpen, planActual } = useHotelStore();
+  const { update } = useSession();
+
+  _handleLogout = () => {
+    useHotelStore.getState().logout();
+    sessionStorage.setItem('hospeda-logging-out', 'true');
+    update({ clearTenant: true }).then(() => { window.location.href = '/app'; });
+  };
+  const [desktopExpanded, setDesktopExpanded] = useState(false);
+  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const activeItemRef = useRef<HTMLButtonElement>(null);
+
+  const [sidebarFixed, setSidebarFixed] = useState(false);
+  useEffect(() => {
+    const readPref = () => { setSidebarFixed(useHotelStore.getState().sidebarFixed || false); };
+    readPref();
+    window.addEventListener('hotel-prefs-changed', readPref);
+    return () => window.removeEventListener('hotel-prefs-changed', readPref);
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    if (collapseTimer.current) { clearTimeout(collapseTimer.current); collapseTimer.current = null; }
+    setDesktopExpanded(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (sidebarFixed) return;
+    collapseTimer.current = setTimeout(() => { setDesktopExpanded(false); }, 150);
+  }, [sidebarFixed]);
+
+  useEffect(() => {
+    const el = activeItemRef.current;
+    const nav = navRef.current;
+    if (el && nav && !desktopExpanded) {
+      const navH = nav.clientHeight; const elTop = el.offsetTop - nav.offsetTop;
+      const elH = el.offsetHeight; const scroll = nav.scrollTop;
+      if (elTop < scroll || elTop + elH > scroll + navH) { nav.scrollTop = elTop - navH / 2 + elH / 2; }
+    }
+  }, [moduloActivo, desktopExpanded]);
+
+  if (!usuarioActual) return null;
+
+  const isFullAccess = usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin';
+  const planes = useHotelStore(s => s.planes);
+  const efectivos = isFullAccess ? MODULOS_SISTEMA.map(m => m.id) : modulosEfectivos(usuarioActual.permisos, planActual, planes);
+  const efectivosSet = new Set(efectivos);
+  const modulosVisibles = MODULOS_SISTEMA.filter(m => usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin' || usuarioActual.permisos.includes(m.id));
+  const userName = usuarioActual.nombreCompleto || usuarioActual.nombre;
+  const isExpanded = desktopExpanded || sidebarFixed;
+  const isActive = (id: string) => (moduloActivo as string) === id;
+
+  /* ── Desktop sidebar ── */
+  const desktopSidebar = (
+    <aside
+      className="hidden lg:flex flex-col h-full shrink-0 bg-sidebar overflow-hidden transition-all duration-300 ease-in-out w-16 hover:w-60 border-r border-sidebar-border"
+      style={{ width: isExpanded ? 240 : undefined }}
+      onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+    >
+      <div className="flex items-center gap-3 px-3 py-4 min-h-[56px]">
+        <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain shrink-0" />
+        <div className="overflow-hidden whitespace-nowrap transition-opacity duration-200" style={{ opacity: isExpanded ? 1 : 0, width: isExpanded ? 'auto' : 0 }}>
+          <h2 className="font-bold text-sm leading-tight text-sidebar-accent-foreground">Hospedá</h2>
+          <p className="text-[11px] text-sidebar-foreground/50">Gestión Hotelera</p>
+        </div>
+      </div>
+
+      <div className="border-t border-sidebar-border" />
+
+      <nav ref={navRef} className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-none px-2 py-1.5">
+        <GroupedNav modulos={modulosVisibles} expanded={isExpanded} efectivosSet={efectivosSet} activeItemRef={activeItemRef} />
+      </nav>
+
+      <div className="border-t border-sidebar-border" />
+
+      {usuarioActual.rol === 'owner' && (
+        <div className="px-2 py-1.5">
+          <button
+            onClick={() => setModulo('configuracion' as ModuloId)}
+            className={`w-full flex items-center rounded-lg transition-colors duration-200 relative
+              ${isExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
+              ${isActive('configuracion')
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary'
+                : 'text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground'
+              }`}
+            title={!isExpanded ? 'Configuración' : undefined}
+          >
+            <span className={`shrink-0 flex items-center justify-center rounded-md ${isExpanded ? 'w-7 h-7' : 'w-8 h-8'} ${isActive('configuracion') ? 'text-sidebar-primary' : 'text-sidebar-foreground/50'}`}>
+              <Settings className={isExpanded ? 'w-4 h-4' : 'w-[18px] h-[18px]'} />
+            </span>
+            {isExpanded && <span className={`text-[13px] font-medium truncate ${isActive('configuracion') ? 'text-sidebar-accent-foreground' : ''}`}>Configuración</span>}
+          </button>
+        </div>
+      )}
+
+      <div className="border-t border-sidebar-border" />
+
+      <div className="px-2 py-2 space-y-0.5">
+        <button
+          onClick={() => useHotelStore.getState().setPerfilOpen(true)}
+          className={`w-full flex items-center rounded-lg transition-colors duration-200
+            ${isExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
+            text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground`}
+          title={!isExpanded ? userName : undefined}
+        >
+          <span className="w-7 h-7 rounded-full bg-sidebar-accent/60 flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">
+            {userName?.charAt(0)?.toUpperCase() || 'A'}
+          </span>
+          {isExpanded && <span className="text-[13px] font-medium truncate text-sidebar-foreground">{userName}</span>}
+        </button>
+
+        <Button variant="ghost" size="icon" onClick={() => _handleLogout?.()} className={`text-sidebar-foreground/70 hover:text-red-400 transition-colors ${isExpanded ? 'w-full justify-start gap-3 px-3 h-9' : 'w-full'}`}>
+          <LogOut className="w-4 h-4 shrink-0" />
+          {isExpanded && <span className="text-[13px]">Cerrar sesión</span>}
+        </Button>
+      </div>
+    </aside>
+  );
+
+  /* ── Mobile sidebar ── */
+  const mobileSidebar = sidebarOpen && (
+    <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
+      <div className="fixed inset-0 bg-[#0F2B28]/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+      <aside className="fixed inset-y-0 left-0 w-72 z-50 bg-sidebar border-r border-sidebar-border shadow-xl flex flex-col">
+        <button onClick={() => setSidebarOpen(false)} className="absolute top-3 right-3 z-10 p-1.5 rounded-md hover:bg-white/10 text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors" aria-label="Cerrar menú">
+          <X className="w-5 h-5" />
+        </button>
+        <div className="flex items-center gap-3 px-4 py-4">
+          <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain shrink-0" />
+          <div className="min-w-0">
+            <h2 className="font-bold text-sm leading-tight text-sidebar-accent-foreground">Hospedá</h2>
+            <p className="text-[11px] text-sidebar-foreground/50">Gestión Hotelera</p>
+          </div>
+        </div>
+        <div className="border-t border-sidebar-border" />
+        <nav className="flex-1 overflow-y-auto scrollbar-none px-2 py-1.5">
+          {modulosVisibles.map((m, idx) => {
+            const Icon = (iconMap as Record<string, React.ComponentType<{ className?: string }>>)[m.icon] || LayoutDashboard;
+            const active = moduloActivo === m.id;
+            const locked = !efectivosSet.has(m.id);
+            const grupo = m.grupo;
+            const prevGrupo = idx > 0 ? modulosVisibles[idx - 1].grupo : undefined;
+            const showLabel = grupo && grupo !== prevGrupo;
+            return (
+              <div key={m.id}>
+                {showLabel && (
+                  <div className="pt-4 pb-1.5 px-3 first:pt-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">{GROUP_LABELS[grupo]}</span>
+                  </div>
+                )}
+                <button
+                  onClick={() => setModulo(m.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-200 text-left relative
+                    ${locked ? 'opacity-50 hover:opacity-70' : active ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground'}`}
+                >
+                  <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-md relative ${active && !locked ? 'text-sidebar-primary' : locked ? 'text-sidebar-foreground/40' : 'text-sidebar-foreground/50'}`}>
+                    <Icon className="w-4 h-4" />
+                    {locked && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-sidebar-foreground/60 flex items-center justify-center"><Lock className="w-1.5 h-1.5 text-sidebar" /></span>}
+                  </span>
+                  <span className={`flex-1 text-left ${active && !locked ? 'text-sidebar-accent-foreground' : ''}`}>{m.label}</span>
+                  {locked && <span className="text-[10px] text-sidebar-foreground/50">Upgrade</span>}
+                </button>
+              </div>
+            );
+          })}
+        </nav>
+        <div className="border-t border-sidebar-border" />
+        {usuarioActual.rol === 'owner' && (
+          <div className="px-2 py-1.5">
+            <button onClick={() => { setModulo('configuracion' as ModuloId); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-200 text-left relative ${isActive('configuracion') ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground'}`}>
+              <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-md ${isActive('configuracion') ? 'text-sidebar-primary' : 'text-sidebar-foreground/50'}`}><Settings className="w-4 h-4" /></span>
+              <span className={`flex-1 ${isActive('configuracion') ? 'text-sidebar-accent-foreground' : ''}`}>Configuración</span>
+            </button>
+          </div>
+        )}
+        <div className="border-t border-sidebar-border" />
+        <div className="p-3 space-y-1">
+          <button onClick={() => { useHotelStore.getState().setPerfilOpen(true); }} className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground transition-colors">
+            <div className="w-7 h-7 rounded-full bg-sidebar-accent/60 flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">{userName?.charAt(0)?.toUpperCase() || 'A'}</div>
+            <span className="text-[13px] font-medium truncate text-sidebar-foreground">{userName}</span>
+          </button>
+          <Button variant="ghost" size="sm" onClick={() => _handleLogout?.()} className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-red-400">
+            <LogOut className="w-4 h-4" /><span className="text-[13px]">Cerrar sesión</span>
+          </Button>
+        </div>
+      </aside>
+    </div>
+  );
+
+  return <>{desktopSidebar}{mobileSidebar}</>;
+}

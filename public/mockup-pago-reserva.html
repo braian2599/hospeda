@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup - Sección Pago - Nueva Reserva</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #E8E8E3;
+    color: #1a1a1a;
+    padding: 32px;
+  }
+  :root {
+    --sidebar: #0F2B28;
+    --bg: #F5F5F0;
+    --accent: #4ADE80;
+    --header: #0D3D33;
+    --accent-dark: #059669;
+    --muted: #94A3B8;
+    --border: #E2E8F0;
+    --card-bg: #FFFFFF;
+  }
+  .page-title { text-align: center; margin-bottom: 8px; font-size: 20px; font-weight: 700; color: var(--sidebar); }
+  .page-subtitle { text-align: center; margin-bottom: 40px; font-size: 13px; color: var(--muted); }
+  .mockups-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1440px; margin: 0 auto; }
+  @media (max-width: 1200px) { .mockups-grid { grid-template-columns: 1fr; max-width: 420px; } }
+  .mockup-card { background: var(--card-bg); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  .mockup-header { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .mockup-label { font-size: 13px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+  .mockup-badge { font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 99px; }
+  .dialog-bar { height: 48px; display: flex; align-items: center; padding: 0 20px; font-size: 14px; font-weight: 600; color: white; }
+  .tab-bar { display: flex; gap: 0; padding: 0 16px; border-bottom: 1px solid var(--border); background: var(--card-bg); }
+  .tab-item { padding: 10px 16px; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; cursor: default; }
+  .tab-item.active { color: var(--accent-dark); border-bottom-color: var(--accent); }
+  .content-area { padding: 20px; background: var(--bg); min-height: 400px; }
+
+  /* === OPTION A === */
+  .opt-a .dialog-bar { background: var(--header); }
+  .opt-a .mockup-header { background: #F0FDF4; border-bottom: 1px solid #BBF7D0; }
+  .opt-a .mockup-label { color: #166534; }
+  .opt-a .mockup-badge { background: #DCFCE7; color: #166534; }
+  .a-total-bar { background: var(--sidebar); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .a-total-bar .label { color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 500; }
+  .a-total-bar .amount { color: var(--accent); font-size: 22px; font-weight: 700; }
+  .a-total-bar .nights { color: rgba(255,255,255,0.5); font-size: 11px; }
+  .a-price-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.04); font-size: 13px; }
+  .a-price-row:last-child { border-bottom: none; }
+  .a-price-row .key { color: #64748B; }
+  .a-price-row .val { font-weight: 600; color: #1E293B; }
+  .a-price-row .val.discount { color: var(--accent-dark); }
+  .a-divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .a-section-label { font-size: 11px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .a-radio-group { display: flex; gap: 8px; margin-bottom: 14px; }
+  .a-radio-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1.5px solid var(--border); text-align: center; font-size: 12px; font-weight: 500; color: #64748B; cursor: default; background: white; }
+  .a-radio-btn.selected { border-color: var(--accent-dark); background: #F0FDF4; color: var(--accent-dark); font-weight: 600; }
+  .a-select-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .a-select { flex: 1; height: 38px; border-radius: 8px; border: 1.5px solid var(--border); padding: 0 12px; font-size: 13px; color: #1E293B; background: white; display: flex; align-items: center; }
+  .a-select.placeholder { color: #94A3B8; }
+  .a-save-bar { display: flex; justify-content: flex-end; gap: 8px; padding-top: 14px; border-top: 1px solid var(--border); margin-top: 16px; }
+  .a-btn-cancel { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: white; font-size: 13px; font-weight: 500; color: #64748B; }
+  .a-btn-save { padding: 8px 20px; border-radius: 8px; border: none; background: var(--accent-dark); color: white; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .a-btn-save .amount { font-weight: 700; }
+
+  /* === OPTION B === */
+  .opt-b .dialog-bar { background: var(--header); }
+  .opt-b .mockup-header { background: #EFF6FF; border-bottom: 1px solid #BFDBFE; }
+  .opt-b .mockup-label { color: #1E40AF; }
+  .opt-b .mockup-badge { background: #DBEAFE; color: #1E40AF; }
+  .b-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .b-stat { text-align: center; padding: 10px 4px; border-radius: 10px; background: white; border: 1px solid var(--border); }
+  .b-stat .num { font-size: 15px; font-weight: 700; color: #1E293B; }
+  .b-stat .lbl { font-size: 9px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+  .b-total { background: white; border: 1.5px solid var(--accent); border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .b-total .label { font-size: 13px; font-weight: 600; color: #1E293B; }
+  .b-total .amount { font-size: 18px; font-weight: 700; color: var(--accent-dark); }
+  .b-radio-inline { display: flex; gap: 6px; padding: 10px 14px; background: white; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; }
+  .b-radio-pill { padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 500; color: #94A3B8; background: #F8FAFC; cursor: default; }
+  .b-radio-pill.active { background: var(--sidebar); color: white; }
+  .b-payment-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: white; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; }
+  .b-payment-row .icon-circle { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .b-payment-row .info { flex: 1; }
+  .b-payment-row .info .title { font-size: 13px; font-weight: 600; color: #1E293B; }
+  .b-payment-row .info .desc { font-size: 11px; color: #94A3B8; margin-top: 1px; }
+  .b-payment-row .chevron { color: #CBD5E1; font-size: 16px; }
+  .b-save-bar { display: flex; justify-content: flex-end; gap: 8px; padding-top: 14px; border-top: 1px solid var(--border); margin-top: 16px; }
+  .b-btn-cancel { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: white; font-size: 13px; font-weight: 500; color: #64748B; }
+  .b-btn-save { padding: 8px 20px; border-radius: 8px; border: none; background: var(--sidebar); color: white; font-size: 13px; font-weight: 600; }
+
+  /* === OPTION C === */
+  .opt-c .dialog-bar { background: var(--header); }
+  .opt-c .mockup-header { background: var(--sidebar); }
+  .opt-c .mockup-label { color: var(--accent); }
+  .opt-c .mockup-badge { background: rgba(74,222,128,0.15); color: var(--accent-dark); }
+  .c-line { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px; }
+  .c-line .key { color: #64748B; }
+  .c-line .val { font-weight: 600; color: #1E293B; }
+  .c-line.total { padding: 12px 16px; background: var(--sidebar); border-radius: 10px; margin: 10px 0 16px 0; }
+  .c-line.total .key { color: rgba(255,255,255,0.7); }
+  .c-line.total .val { color: var(--accent); font-size: 20px; }
+  .c-toggle-row { display: flex; gap: 0; background: #F1F5F9; border-radius: 8px; padding: 3px; margin-bottom: 12px; }
+  .c-toggle-btn { flex: 1; padding: 7px 0; text-align: center; font-size: 12px; font-weight: 500; color: #64748B; border-radius: 6px; cursor: default; }
+  .c-toggle-btn.active { background: white; color: #1E293B; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .c-field { margin-bottom: 10px; }
+  .c-field-label { font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 4px; }
+  .c-field-input { height: 36px; border-radius: 8px; border: 1.5px solid var(--border); background: white; padding: 0 12px; font-size: 13px; color: #1E293B; display: flex; align-items: center; }
+  .c-fields-row { display: flex; gap: 10px; }
+  .c-fields-row > * { flex: 1; }
+  .c-save-bar { display: flex; justify-content: flex-end; gap: 8px; padding-top: 14px; border-top: 1px solid var(--border); margin-top: 16px; }
+  .c-btn-cancel { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: white; font-size: 13px; font-weight: 500; color: #64748B; }
+  .c-btn-save { padding: 8px 20px; border-radius: 8px; border: none; background: var(--accent-dark); color: white; font-size: 13px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<p class="page-title">Sección Pago — Nueva Reserva</p>
+<p class="page-subtitle">3 opciones de rediseño · Paleta: sidebar #0F2B28 · bg #F5F5F0 · accent #4ADE80 · header #0D3D33</p>
+
+<div class="mockups-grid">
+
+<!-- OPCIÓN A -->
+<div class="mockup-card opt-a">
+  <div class="mockup-header">
+    <span class="mockup-label">A — Compacto integrado</span>
+    <span class="mockup-badge">~40% menos scroll</span>
+  </div>
+  <div class="dialog-bar">Nueva reserva</div>
+  <div class="tab-bar">
+    <div class="tab-item">Disponibilidad</div>
+    <div class="tab-item">Datos</div>
+    <div class="tab-item active">Pago</div>
+  </div>
+  <div class="content-area">
+    <div class="a-total-bar">
+      <div><div class="label">Total final</div><div class="nights">3 noches · Hab. 204 · Normal</div></div>
+      <div class="amount">$105.000</div>
+    </div>
+    <div class="a-price-row"><span class="key">Subtotal (3 noches × $35.000)</span><span class="val">$105.000</span></div>
+    <div class="a-price-row"><span class="key">1 noche de cortesía</span><span class="val discount">− $35.000</span></div>
+    <div class="a-price-row"><span class="key">Acompañante sin cargo</span><span class="val discount">Incluido</span></div>
+    <div class="a-divider"></div>
+    <div class="a-section-label">Forma de pago</div>
+    <div class="a-radio-group">
+      <div class="a-radio-btn selected">✕ No abonado</div>
+      <div class="a-radio-btn">◐ Parcial</div>
+      <div class="a-radio-btn">● Total</div>
+    </div>
+    <div class="a-select-row">
+      <div class="a-select">Efectivo</div>
+      <div class="a-select placeholder">Cuotas</div>
+    </div>
+    <div class="a-save-bar">
+      <div class="a-btn-cancel">Cancelar</div>
+      <div class="a-btn-save">Crear reserva <span class="amount">($70.000)</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- OPCIÓN B -->
+<div class="mockup-card opt-b">
+  <div class="mockup-header">
+    <span class="mockup-label">B — Tarjetas minimalistas</span>
+    <span class="mockup-badge">Líneas limpias</span>
+  </div>
+  <div class="dialog-bar">Nueva reserva</div>
+  <div class="tab-bar">
+    <div class="tab-item">Disponibilidad</div>
+    <div class="tab-item">Datos</div>
+    <div class="tab-item active">Pago</div>
+  </div>
+  <div class="content-area">
+    <div class="b-summary">
+      <div class="b-stat"><div class="num">Normal</div><div class="lbl">Tarifa</div></div>
+      <div class="b-stat"><div class="num">2</div><div class="lbl">Noches</div></div>
+      <div class="b-stat"><div class="num">2</div><div class="lbl">Personas</div></div>
+      <div class="b-stat"><div class="num">$70.000</div><div class="lbl">Subtotal</div></div>
+    </div>
+    <div class="b-total">
+      <span class="label">Total final</span>
+      <span class="amount">$70.000</span>
+    </div>
+    <div class="b-radio-inline">
+      <div class="b-radio-pill active">No cobrar ahora</div>
+      <div class="b-radio-pill">Pago parcial</div>
+      <div class="b-radio-pill">Pago total</div>
+    </div>
+    <div class="b-payment-row">
+      <div class="icon-circle" style="background:#F0FDF4;color:#166534;">💳</div>
+      <div class="info"><div class="title">Método de pago</div><div class="desc">Efectivo</div></div>
+      <div class="chevron">›</div>
+    </div>
+    <div class="b-payment-row">
+      <div class="icon-circle" style="background:#F8FAFC;color:#64748B;">📋</div>
+      <div class="info"><div class="title">Cuotas</div><div class="desc">1 cuota (sin recargo)</div></div>
+      <div class="chevron">›</div>
+    </div>
+    <div class="b-save-bar">
+      <div class="b-btn-cancel">Cancelar</div>
+      <div class="b-btn-save">Crear reserva</div>
+    </div>
+  </div>
+</div>
+
+<!-- OPCIÓN C -->
+<div class="mockup-card opt-c">
+  <div class="mockup-header">
+    <span class="mockup-label">C — Ultra-plano</span>
+    <span class="mockup-badge">Mínimo scroll</span>
+  </div>
+  <div class="dialog-bar">Nueva reserva</div>
+  <div class="tab-bar">
+    <div class="tab-item">Disponibilidad</div>
+    <div class="tab-item">Datos</div>
+    <div class="tab-item active">Pago</div>
+  </div>
+  <div class="content-area">
+    <div class="c-line"><span class="key">Tarifa</span><span class="val">Normal</span></div>
+    <div class="c-line"><span class="key">Noches</span><span class="val">2</span></div>
+    <div class="c-line"><span class="key">Personas</span><span class="val">2</span></div>
+    <div class="c-line"><span class="key">Subtotal</span><span class="val">$70.000</span></div>
+    <div class="c-line"><span class="key">1 noche cortesía</span><span class="val" style="color:var(--accent-dark)">− $35.000</span></div>
+    <div class="c-line total"><span class="key">Total</span><span class="val">$35.000</span></div>
+    <div class="c-toggle-row">
+      <div class="c-toggle-btn active">Sin pago</div>
+      <div class="c-toggle-btn">Parcial</div>
+      <div class="c-toggle-btn">Total</div>
+    </div>
+    <div class="c-fields-row">
+      <div class="c-field"><div class="c-field-label">Método de pago</div><div class="c-field-input">Efectivo</div></div>
+      <div class="c-field"><div class="c-field-label">Cuotas</div><div class="c-field-input">1 cuota</div></div>
+    </div>
+    <div class="c-save-bar">
+      <div class="c-btn-cancel">Cancelar</div>
+      <div class="c-btn-save">Crear reserva ($35.000)</div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

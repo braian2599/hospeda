@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup - Sección Disponibilidad</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #F5F5F0;
+    color: #1E293B;
+    line-height: 1.5;
+  }
+
+  /* ── Layout general ── */
+  .page { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
+  .variant-title {
+    font-size: 20px; font-weight: 700; margin-bottom: 6px; color: #0F2B28;
+  }
+  .variant-desc {
+    font-size: 13px; color: #64748B; margin-bottom: 16px;
+  }
+  .mockup-frame {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04);
+    padding: 20px;
+    margin-bottom: 48px;
+    border: 1px solid #E2E8F0;
+  }
+  .mockup-frame h3 {
+    font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #0D3D33;
+  }
+
+  /* ── Reutilizables ── */
+  .label { font-size: 11px; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .input-field {
+    width: 100%; height: 36px; border: 1px solid #E2E8F0; border-radius: 8px;
+    padding: 0 10px; font-size: 13px; color: #1E293B; background: #fff;
+    outline: none; transition: border .15s;
+  }
+  .input-field:focus { border-color: #4ADE80; }
+  .input-sm { height: 30px; font-size: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0 14px; height: 36px; border-radius: 8px; font-size: 13px;
+    font-weight: 600; border: none; cursor: pointer; transition: all .15s;
+  }
+  .btn-green { background: #059669; color: #fff; }
+  .btn-green:hover { background: #047857; }
+  .btn-outline { background: #fff; border: 1px solid #E2E8F0; color: #1E293B; }
+  .btn-outline:hover { background: #F8FAFC; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 6px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-outline { background: transparent; border: 1px solid #CBD5E1; color: #475569; }
+  .badge-green { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+  .badge-blue { background: #DBEAFE; color: #1E40AF; border: 1px solid #BFDBFE; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; }
+  .checkbox-row input[type=checkbox] { accent-color: #059669; }
+  .separator { height: 1px; background: #E2E8F0; margin: 12px 0; }
+  .text-muted { font-size: 12px; color: #94A3B8; }
+  .text-xs { font-size: 11px; }
+
+  /* ── Habitación card ── */
+  .room-card {
+    border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 12px;
+    cursor: pointer; transition: all .15s; background: #fff;
+  }
+  .room-card:hover { background: #F8FAFC; }
+  .room-card .room-num { font-weight: 700; font-size: 16px; }
+  .room-card .room-info { font-size: 11px; color: #94A3B8; margin-top: 2px; }
+
+  /* Selected states */
+  .room-selected-green { border-color: #4ADE80; background: #DCFCE7; box-shadow: 0 0 0 1px #4ADE80; }
+  .room-selected-blue { border-color: #3B82F6; background: #DBEAFE/50; box-shadow: 0 0 0 1px #3B82F6; }
+
+  /* ── Date Range Picker mockup ── */
+  .date-range-field {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid #E2E8F0; border-radius: 8px; height: 36px;
+    padding: 0 12px; cursor: pointer; background: #fff; transition: border .15s;
+  }
+  .date-range-field:hover { border-color: #CBD5E1; }
+  .date-range-field .date-val { font-size: 13px; color: #1E293B; font-weight: 500; }
+  .date-range-field .date-placeholder { font-size: 13px; color: #94A3B8; }
+  .date-range-field .date-arrow { color: #CBD5E1; font-size: 14px; }
+  .date-range-field .calendar-icon { color: #64748B; }
+
+  /* ── Calendar dropdown mockup ── */
+  .calendar-dropdown {
+    position: absolute; top: 44px; left: 0; z-index: 50;
+    background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    border: 1px solid #E2E8F0; padding: 16px;
+    display: flex; gap: 16px;
+  }
+  .cal-mini { width: 220px; }
+  .cal-mini-header { font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 8px; color: #1E293B; }
+  .cal-mini-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; font-size: 11px; }
+  .cal-mini-grid .day-header { color: #94A3B8; font-weight: 600; padding: 4px 0; }
+  .cal-mini-grid .day {
+    padding: 5px 0; border-radius: 6px; cursor: pointer; color: #475569;
+  }
+  .cal-mini-grid .day:hover { background: #F1F5F9; }
+  .cal-mini-grid .day.disabled { color: #CBD5E1; cursor: default; text-decoration: line-through; }
+  .cal-mini-grid .day.today { background: #F1F5F9; font-weight: 700; color: #1E293B; }
+  .cal-mini-grid .day.range-start { background: #0D3D33; color: #fff; font-weight: 600; border-radius: 6px 0 0 6px; }
+  .cal-mini-grid .day.range-end { background: #0D3D33; color: #fff; font-weight: 600; border-radius: 0 6px 6px 0; }
+  .cal-mini-grid .day.in-range { background: #DCFCE7; color: #166534; }
+
+  /* ── Custom fields ── */
+  .custom-fields-box {
+    background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 12px;
+  }
+  .custom-fields-box .cf-title { font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 8px; }
+
+  /* ── Price summary ── */
+  .price-box {
+    background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px;
+  }
+  .price-row { display: flex; justify-content: space-between; font-size: 13px; padding: 2px 0; }
+  .price-row .price-label { color: #64748B; }
+  .price-row .price-value { font-weight: 600; }
+  .price-total { border-top: 1px solid #E2E8F0; padding-top: 8px; margin-top: 6px; }
+  .price-total .price-label { font-weight: 600; color: #1E293B; }
+  .price-total .price-value { font-size: 16px; font-weight: 700; color: #0D3D33; }
+
+  /* ── Combination suggestion ── */
+  .combo-card {
+    border: 2px solid transparent; border-radius: 10px; padding: 10px; transition: all .15s; cursor: pointer;
+  }
+  .combo-card:hover { border-color: #BBF7D0; background: #F8FAFC; }
+  .combo-card.combo-selected-green { border-color: #4ADE80; background: #DCFCE7; }
+  .combo-card.combo-selected-blue { border-color: #3B82F6; background: #DBEAFE; }
+
+  /* ── Person count compact ── */
+  .person-compact {
+    display: flex; align-items: center; gap: 6px; margin-top: 6px;
+  }
+  .person-compact label { font-size: 11px; color: #64748B; white-space: nowrap; }
+  .person-compact input {
+    width: 56px; height: 28px; border: 1px solid #E2E8F0; border-radius: 6px;
+    text-align: center; font-size: 12px; font-weight: 600;
+  }
+
+  /* Nav between variants */
+  .variant-nav {
+    position: sticky; top: 0; z-index: 100; background: #0F2B28;
+    display: flex; gap: 0; padding: 0;
+  }
+  .variant-nav a {
+    flex: 1; text-align: center; padding: 14px 16px; color: rgba(255,255,255,.6);
+    text-decoration: none; font-size: 13px; font-weight: 600; transition: all .15s;
+    border-bottom: 3px solid transparent;
+  }
+  .variant-nav a:hover { color: rgba(255,255,255,.85); background: rgba(255,255,255,.05); }
+  .variant-nav a.active { color: #4ADE80; border-bottom-color: #4ADE80; }
+
+  /* Inline person-in-room */
+  .room-selected-details {
+    display: flex; align-items: center; gap: 12px; margin-top: 8px;
+    padding-top: 8px; border-top: 1px solid rgba(74,222,128,.3);
+  }
+  .room-selected-details .check-mark {
+    font-size: 11px; font-weight: 600; color: #166534;
+  }
+
+  /* Grid helpers */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+  .flex-row { display: flex; align-items: center; gap: 10px; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  .mb-2 { margin-bottom: 8px; }
+  .mb-3 { margin-bottom: 12px; }
+  .mb-4 { margin-bottom: 16px; }
+  .mt-3 { margin-top: 12px; }
+
+  /* Annotation bubbles */
+  .annotation {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #FEF3C7; border: 1px solid #FDE68A; border-radius: 6px;
+    padding: 2px 8px; font-size: 10px; color: #92400E; font-weight: 600;
+    margin-left: 6px;
+  }
+  .annotation::before { content: '★'; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ NAV ═══════════ -->
+<nav class="variant-nav">
+  <a href="#opcion-a" class="active" onclick="setActive(this)">Opción A: Compacto Horizontal</a>
+  <a href="#opcion-b" onclick="setActive(this)">Opción B: Secciones en Cards</a>
+  <a href="#opcion-c" onclick="setActive(this)">Opción C: Ultra-Compacto</a>
+</nav>
+
+<div class="page">
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  OPCIÓN A — COMPACTO HORIZONTAL                            ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<section id="opcion-a">
+  <div class="variant-title">Opción A — Compacto Horizontal</div>
+  <div class="variant-desc">Fila 1: Date range picker unificado + Personas + Tarifa en una sola línea. Campos personalizados 2 por fila. Habitaciones en grilla compacta con personas inline.</div>
+
+  <div class="mockup-frame">
+    <h3>Nueva Reserva — Disponibilidad</h3>
+
+    <!-- Fila 1: Fecha rango + Personas + Tarifa -->
+    <div class="grid-4 mb-4">
+      <!-- Date Range Picker (unificado) -->
+      <div style="grid-column: span 2; position: relative;">
+        <div class="label">Fechas <span class="annotation">Unificado</span></div>
+        <div class="date-range-field" onclick="toggleCalendar('cal-a')">
+          <svg class="calendar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="date-val">09/08/2026</span>
+          <span class="date-arrow">→</span>
+          <span class="date-val">12/08/2026</span>
+        </div>
+        <!-- Calendar dropdown (oculto por defecto, solo demo) -->
+        <div id="cal-a" class="calendar-dropdown" style="display:none;">
+          <div class="cal-mini">
+            <div class="cal-mini-header">Agosto 2026</div>
+            <div class="cal-mini-grid">
+              <span class="day-header">Do</span><span class="day-header">Lu</span><span class="day-header">Ma</span><span class="day-header">Mi</span><span class="day-header">Ju</span><span class="day-header">Vi</span><span class="day-header">Sá</span>
+              <span class="day disabled">1</span><span class="day disabled">2</span><span class="day disabled">3</span><span class="day disabled">4</span><span class="day disabled">5</span><span class="day disabled">6</span><span class="day disabled">7</span><span class="day disabled">8</span>
+              <span class="day range-start">9</span><span class="day in-range">10</span><span class="day in-range">11</span><span class="day range-end">12</span><span class="day">13</span><span class="day">14</span><span class="day">15</span>
+              <span class="day">16</span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20</span><span class="day">21</span><span class="day">22</span>
+              <span class="day">23</span><span class="day">24</span><span class="day">25</span><span class="day">26</span><span class="day">27</span><span class="day">28</span><span class="day">29</span>
+              <span class="day">30</span><span class="day">31</span>
+            </div>
+          </div>
+          <div class="cal-mini">
+            <div class="cal-mini-header">Septiembre 2026</div>
+            <div class="cal-mini-grid">
+              <span class="day-header">Do</span><span class="day-header">Lu</span><span class="day-header">Ma</span><span class="day-header">Mi</span><span class="day-header">Ju</span><span class="day-header">Vi</span><span class="day-header">Sá</span>
+              <span class="day">1</span><span class="day">2</span><span class="day">3</span><span class="day">4</span><span class="day">5</span><span class="day">6</span><span class="day">7</span>
+              <span class="day">8</span><span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day">12</span><span class="day">13</span><span class="day">14</span>
+              <span class="day">15</span><span class="day">16</span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20</span><span class="day">21</span>
+              <span class="day">22</span><span class="day">23</span><span class="day">24</span><span class="day">25</span><span class="day">26</span><span class="day">27</span><span class="day">28</span>
+              <span class="day">29</span><span class="day">30</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Personas -->
+      <div>
+        <div class="label">Personas</div>
+        <input type="number" class="input-field" value="2" min="1" max="20" />
+      </div>
+
+      <!-- Tarifa -->
+      <div>
+        <div class="label">Tarifa <span class="annotation">Default: primera</span></div>
+        <select class="input-field">
+          <option selected>Normal</option>
+          <option>Agencia</option>
+          <option>Booking</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Campos personalizados 2 por línea -->
+    <div class="custom-fields-box mb-4">
+      <div class="cf-title">Campos adicionales de tarifa</div>
+      <div class="grid-2">
+        <div>
+          <div class="label">Empresa *</div>
+          <input class="input-field input-sm" placeholder="Nombre empresa" />
+        </div>
+        <div>
+          <div class="label">Número de convenio *</div>
+          <input class="input-field input-sm" placeholder="Ej: 001-ABC" />
+        </div>
+        <div>
+          <div class="label">Vendedor</div>
+          <input class="input-field input-sm" placeholder="Nombre vendedor" />
+        </div>
+        <div>
+          <div class="label">Observaciones</div>
+          <input class="input-field input-sm" placeholder="Opcional" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtro + Buscar -->
+    <div class="flex-between mb-4">
+      <label class="checkbox-row">
+        <input type="checkbox" /> Solo cama matrimonial
+      </label>
+      <button class="btn btn-green">🔍 Buscar habitaciones</button>
+    </div>
+
+    <!-- Habitaciones: grilla 3 columnas, compacta -->
+    <div class="text-xs text-muted mb-2">5 de 8 habitación(es) disponible(s)</div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-height: 200px; overflow-y: auto;">
+      <!-- Hab 1: NO seleccionada -->
+      <div class="room-card">
+        <div class="flex-between">
+          <span class="room-num">101</span>
+          <span class="badge badge-outline">Privada</span>
+        </div>
+        <div class="room-info">Cap. 2 · 1M / 0S</div>
+      </div>
+      <!-- Hab 2: NO seleccionada -->
+      <div class="room-card">
+        <div class="flex-between">
+          <span class="room-num">102</span>
+          <span class="badge badge-outline">Privada</span>
+        </div>
+        <div class="room-info">Cap. 3 · 1M / 1S</div>
+      </div>
+      <!-- Hab 3: SELECCIONADA (verde) -->
+      <div class="room-card room-selected-green">
+        <div class="flex-between">
+          <span class="room-num">103</span>
+          <span class="badge badge-green">Privada</span>
+        </div>
+        <div class="room-info">Cap. 4 · 2M / 0S</div>
+        <div class="room-selected-details">
+          <span class="check-mark">✓ Seleccionada</span>
+          <div class="person-compact">
+            <label>Pers.:</label>
+            <input type="number" value="2" min="1" max="4" />
+          </div>
+        </div>
+      </div>
+      <!-- Hab 4 -->
+      <div class="room-card">
+        <div class="flex-between">
+          <span class="room-num">201</span>
+          <span class="badge badge-outline">Compartida</span>
+        </div>
+        <div class="room-info">Cap. 6 · 0M / 6S · 3 camas libres</div>
+      </div>
+      <!-- Hab 5 -->
+      <div class="room-card">
+        <div class="flex-between">
+          <span class="room-num">202</span>
+          <span class="badge badge-outline">Privada</span>
+        </div>
+        <div class="room-info">Cap. 2 · 1M / 0S</div>
+      </div>
+    </div>
+
+    <!-- Sugerencias de combinación -->
+    <div class="separator" style="margin: 14px 0;"></div>
+    <button class="btn btn-outline" style="width:100%; justify-content:center; margin-bottom:10px;">
+      💡 Mostrar sugerencias de combinación
+    </button>
+
+    <!-- Combo seleccionado en VERDE -->
+    <div class="combo-card combo-selected-green mb-3">
+      <div class="grid-2" style="gap:8px;">
+        <div class="room-card" style="border: 1px dashed #BBF7D0; background: #F0FDF4; padding: 8px 10px;">
+          <div class="flex-between">
+            <span style="font-weight:700;">101</span>
+            <span class="badge badge-outline" style="font-size:10px;">Privada</span>
+          </div>
+          <div class="room-info">Cap. 2 · 1M / 0S</div>
+          <div class="person-compact">
+            <label>Pers.:</label>
+            <input type="number" value="1" min="1" max="2" />
+          </div>
+        </div>
+        <div class="room-card" style="border: 1px dashed #BBF7D0; background: #F0FDF4; padding: 8px 10px;">
+          <div class="flex-between">
+            <span style="font-weight:700;">102</span>
+            <span class="badge badge-outline" style="font-size:10px;">Privada</span>
+          </div>
+          <div class="room-info">Cap. 3 · 1M / 1S</div>
+          <div class="person-compact">
+            <label>Pers.:</label>
+            <input type="number" value="2" min="1" max="3" />
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center; margin-top:8px;">
+        <span class="badge badge-green">Personas: 3 / 5</span>
+        <span class="text-xs" style="color:#166534; font-weight:600; margin-left:6px;">✓ Seleccionada</span>
+      </div>
+    </div>
+
+    <!-- Resumen precio -->
+    <div class="price-box">
+      <div class="price-row">
+        <span class="price-label">2 adultos × 3 noches</span>
+        <span class="price-value">$45.000</span>
+      </div>
+      <div class="price-row price-total">
+        <span class="price-label">Total final</span>
+        <span class="price-value">$45.000</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  OPCIÓN B — SECCIONES EN CARDS                             ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<section id="opcion-b">
+  <div class="variant-title">Opción B — Secciones en Cards</div>
+  <div class="variant-desc">Cada grupo de datos en una mini-card con título. Date range unificado. Habitaciones tipo "chips" horizontales. Campos personalizados en grid 2x2. Combo en verde.</div>
+
+  <div class="mockup-frame">
+    <h3>Nueva Reserva — Disponibilidad</h3>
+
+    <!-- Card 1: Fechas y búsqueda -->
+    <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:14px; margin-bottom:12px;">
+      <div style="font-size:12px; font-weight:700; color:#0D3D33; margin-bottom:10px; text-transform:uppercase; letter-spacing:.5px;">📅 Fechas y Búsqueda</div>
+      <div class="grid-3">
+        <!-- Date range: ocupa 2 columnas -->
+        <div style="grid-column: span 2; position:relative;">
+          <div class="label">Período de estadía <span class="annotation">Unificado + sin pasados</span></div>
+          <div class="date-range-field" onclick="toggleCalendar('cal-b')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="date-val">09/08/2026</span>
+            <span class="date-arrow">→</span>
+            <span class="date-val">12/08/2026</span>
+          </div>
+          <div id="cal-b" class="calendar-dropdown" style="display:none;">
+            <div class="cal-mini">
+              <div class="cal-mini-header">Agosto 2026</div>
+              <div class="cal-mini-grid">
+                <span class="day-header">Do</span><span class="day-header">Lu</span><span class="day-header">Ma</span><span class="day-header">Mi</span><span class="day-header">Ju</span><span class="day-header">Vi</span><span class="day-header">Sá</span>
+                <span class="day disabled">1</span><span class="day disabled">2</span><span class="day disabled">3</span><span class="day disabled">4</span><span class="day disabled">5</span><span class="day disabled">6</span><span class="day disabled">7</span><span class="day disabled">8</span>
+                <span class="day range-start">9</span><span class="day in-range">10</span><span class="day in-range">11</span><span class="day range-end">12</span><span class="day">13</span><span class="day">14</span><span class="day">15</span>
+                <span class="day">16</span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20</span><span class="day">21</span><span class="day">22</span>
+                <span class="day">23</span><span class="day">24</span><span class="day">25</span><span class="day">26</span><span class="day">27</span><span class="day">28</span><span class="day">29</span>
+                <span class="day">30</span><span class="day">31</span>
+              </div>
+            </div>
+            <div class="cal-mini">
+              <div class="cal-mini-header">Septiembre 2026</div>
+              <div class="cal-mini-grid">
+                <span class="day-header">Do</span><span class="day-header">Lu</span><span class="day-header">Ma</span><span class="day-header">Mi</span><span class="day-header">Ju</span><span class="day-header">Vi</span><span class="day-header">Sá</span>
+                <span class="day">1</span><span class="day">2</span><span class="day">3</span><span class="day">4</span><span class="day">5</span><span class="day">6</span><span class="day">7</span>
+                <span class="day">8</span><span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day">12</span><span class="day">13</span><span class="day">14</span>
+                <span class="day">15</span><span class="day">16</span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20</span><span class="day">21</span>
+                <span class="day">22</span><span class="day">23</span><span class="day">24</span><span class="day">25</span><span class="day">26</span><span class="day">27</span><span class="day">28</span>
+                <span class="day">29</span><span class="day">30</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Personas -->
+        <div>
+          <div class="label">Personas</div>
+          <input type="number" class="input-field" value="2" min="1" max="20" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Tarifa + campos personalizados -->
+    <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:14px; margin-bottom:12px;">
+      <div style="font-size:12px; font-weight:700; color:#0D3D33; margin-bottom:10px; text-transform:uppercase; letter-spacing:.5px;">💰 Tarifa</div>
+      <div class="grid-2 mb-3">
+        <div>
+          <div class="label">Tarifa <span class="annotation">Default: primera</span></div>
+          <select class="input-field">
+            <option selected>Normal</option>
+            <option>Agencia</option>
+          </select>
+        </div>
+        <div>
+          <div class="label">Filtro adicional</div>
+          <label class="checkbox-row" style="margin-top:6px;">
+            <input type="checkbox" /> Solo cama matrimonial
+          </label>
+        </div>
+      </div>
+      <!-- Campos personalizados 2x2 -->
+      <div class="grid-2" style="gap:8px;">
+        <div>
+          <div class="label">Empresa *</div>
+          <input class="input-field input-sm" placeholder="Nombre empresa" />
+        </div>
+        <div>
+          <div class="label">Convenio *</div>
+          <input class="input-field input-sm" placeholder="Nro. convenio" />
+        </div>
+        <div>
+          <div class="label">Vendedor</div>
+          <input class="input-field input-sm" placeholder="Nombre" />
+        </div>
+        <div>
+          <div class="label">Observaciones</div>
+          <input class="input-field input-sm" placeholder="Opcional" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Buscar -->
+    <button class="btn btn-green" style="width:100%; justify-content:center; margin-bottom:12px;">🔍 Buscar habitaciones</button>
+
+    <!-- Card 3: Habitaciones -->
+    <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:14px; margin-bottom:12px;">
+      <div class="flex-between mb-3">
+        <div style="font-size:12px; font-weight:700; color:#0D3D33; text-transform:uppercase; letter-spacing:.5px;">🛏️ Habitaciones</div>
+        <span class="text-xs text-muted">5 de 8 disponible(s)</span>
+      </div>
+
+      <!-- Grid 3 columnas, más compacto -->
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; max-height:180px; overflow-y:auto;">
+        <div class="room-card" style="padding:8px 10px;">
+          <div class="flex-between">
+            <span style="font-weight:700; font-size:15px;">101</span>
+            <span class="badge badge-outline" style="font-size:10px;">Privada</span>
+          </div>
+          <div class="room-info">Cap. 2 · 1M / 0S</div>
+        </div>
+        <div class="room-card" style="padding:8px 10px;">
+          <div class="flex-between">
+            <span style="font-weight:700; font-size:15px;">102</span>
+            <span class="badge badge-outline" style="font-size:10px;">Privada</span>
+          </div>
+          <div class="room-info">Cap. 3 · 1M / 1S</div>
+        </div>
+        <!-- Seleccionada -->
+        <div class="room-card room-selected-green" style="padding:8px 10px;">
+          <div class="flex-between">
+            <span style="font-weight:700; font-size:15px;">103</span>
+            <span class="badge badge-green" style="font-size:10px;">Privada</span>
+          </div>
+          <div class="room-info">Cap. 4 · 2M / 0S</div>
+          <div class="room-selected-details" style="margin-top:6px; padding-top:6px;">
+            <span class="check-mark">✓</span>
+            <div class="person-compact">
+              <label>Pers.:</label>
+              <input type="number" value="2" min="1" max="4" />
+            </div>
+          </div>
+        </div>
+        <div class="room-card" style="padding:8px 10px;">
+          <div class="flex-between">
+            <span style="font-weight:700; font-size:15px;">201</span>
+            <span class="badge badge-outline" style="font-size:10px;">Compartida</span>
+          </div>
+          <div class="room-info">Cap. 6 · 0M / 6S · 3 libres</div>
+        </div>
+        <div class="room-card" style="padding:8px 10px;">
+          <div class="flex-between">
+            <span style="font-weight:700; font-size:15px;">202</span>
+            <span class="badge badge-outline" style="font-size:10px;">Privada</span>
+          </div>
+          <div class="room-info">Cap. 2 · 1M / 0S</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: Combinaciones (verde) -->
+    <button class="btn btn-outline" style="width:100%; justify-content:center; margin-bottom:10px;">
+      💡 Ocultar sugerencias de combinación
+    </button>
+    <div class="combo-card combo-selected-green" style="margin-bottom:12px;">
+      <div class="grid-2" style="gap:6px;">
+        <div style="background:#F0FDF4; border:1px dashed #BBF7D0; border-radius:8px; padding:8px 10px;">
+          <div class="flex-between">
+            <span style="font-weight:700;">101</span>
+            <span class="badge badge-outline" style="font-size:10px;">Privada</span>
+          </div>
+          <div class="room-info">Cap. 2 · 1M / 0S</div>
+          <div class="person-compact">
+            <label>Pers.:</label>
+            <input type="number" value="1" min="1" max="2" />
+          </div>
+        </div>
+        <div style="background:#F0FDF4; border:1px dashed #BBF7D0; border-radius:8px; padding:8px 10px;">
+          <div class="flex-between">
+            <span style="font-weight:700;">102</span>
+            <span class="badge badge-outline" style="font-size:10px;">Privada</span>
+          </div>
+          <div class="room-info">Cap. 3 · 1M / 1S</div>
+          <div class="person-compact">
+            <label>Pers.:</label>
+            <input type="number" value="2" min="1" max="3" />
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center; margin-top:6px;">
+        <span class="badge badge-green">Personas: 3 / 5</span>
+        <span class="text-xs" style="color:#166534; font-weight:600; margin-left:6px;">✓</span>
+      </div>
+    </div>
+
+    <!-- Resumen precio -->
+    <div class="price-box">
+      <div class="price-row">
+        <span class="price-label">2 adultos × 3 noches</span>
+        <span class="price-value">$45.000</span>
+      </div>
+      <div class="price-row price-total">
+        <span class="price-label">Total final</span>
+        <span class="price-value">$45.000</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ╔══════════════════════════════════════════════════════════════╗ -->
+<!-- ║  OPCIÓN C — ULTRA-COMPACTO                                ║ -->
+<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<section id="opcion-c">
+  <div class="variant-title">Opción C — Ultra-Compacto</div>
+  <div class="variant-desc">Todo en la menor cantidad de líneas posible. Date range + personas + tarifa en una sola fila. Habitaciones como chips seleccionables inline. Persona como chip dentro de la card. Sin combo expandido (solo botón).</div>
+
+  <div class="mockup-frame">
+    <h3>Nueva Reserva — Disponibilidad</h3>
+
+    <!-- Fila ultra-compacta: Fecha + Personas + Tarifa -->
+    <div style="display:flex; gap:8px; align-items:flex-end; margin-bottom:10px; flex-wrap:wrap;">
+      <!-- Date range: 40% -->
+      <div style="flex:2; min-width:220px; position:relative;">
+        <div class="label">Fechas <span class="annotation">Unificado</span></div>
+        <div class="date-range-field" onclick="toggleCalendar('cal-c')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="date-val" style="font-size:12px;">09/08 → 12/08</span>
+        </div>
+        <div id="cal-c" class="calendar-dropdown" style="display:none;">
+          <div class="cal-mini">
+            <div class="cal-mini-header">Agosto 2026</div>
+            <div class="cal-mini-grid">
+              <span class="day-header">Do</span><span class="day-header">Lu</span><span class="day-header">Ma</span><span class="day-header">Mi</span><span class="day-header">Ju</span><span class="day-header">Vi</span><span class="day-header">Sá</span>
+              <span class="day disabled">1</span><span class="day disabled">2</span><span class="day disabled">3</span><span class="day disabled">4</span><span class="day disabled">5</span><span class="day disabled">6</span><span class="day disabled">7</span><span class="day disabled">8</span>
+              <span class="day range-start">9</span><span class="day in-range">10</span><span class="day in-range">11</span><span class="day range-end">12</span><span class="day">13</span><span class="day">14</span><span class="day">15</span>
+            </div>
+          </div>
+          <div class="cal-mini">
+            <div class="cal-mini-header">Septiembre 2026</div>
+            <div class="cal-mini-grid">
+              <span class="day-header">Do</span><span class="day-header">Lu</span><span class="day-header">Ma</span><span class="day-header">Mi</span><span class="day-header">Ju</span><span class="day-header">Vi</span><span class="day-header">Sá</span>
+              <span class="day">1</span><span class="day">2</span><span class="day">3</span><span class="day">4</span><span class="day">5</span><span class="day">6</span><span class="day">7</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Personas: chico -->
+      <div style="flex:0 0 70px;">
+        <div class="label">Pers.</div>
+        <input type="number" class="input-field" value="2" min="1" max="20" style="text-align:center;" />
+      </div>
+      <!-- Tarifa -->
+      <div style="flex:1; min-width:130px;">
+        <div class="label">Tarifa</div>
+        <select class="input-field" style="font-size:12px;">
+          <option selected>Normal</option>
+          <option>Agencia</option>
+        </select>
+      </div>
+      <!-- Buscar -->
+      <button class="btn btn-green" style="flex-shrink:0; height:36px;">🔍</button>
+    </div>
+
+    <!-- Campos personalizados inline (2 por línea, compactos) -->
+    <div class="custom-fields-box mb-3" style="padding:8px 12px;">
+      <div class="grid-2" style="gap:6px;">
+        <div>
+          <div class="label" style="font-size:10px;">Empresa *</div>
+          <input class="input-field input-sm" placeholder="Nombre" style="height:28px; font-size:11px;" />
+        </div>
+        <div>
+          <div class="label" style="font-size:10px;">Convenio *</div>
+          <input class="input-field input-sm" placeholder="Nro." style="height:28px; font-size:11px;" />
+        </div>
+        <div>
+          <div class="label" style="font-size:10px;">Vendedor</div>
+          <input class="input-field input-sm" placeholder="Nombre" style="height:28px; font-size:11px;" />
+        </div>
+        <div>
+          <div class="label" style="font-size:10px;">Observaciones</div>
+          <input class="input-field input-sm" placeholder="Opcional" style="height:28px; font-size:11px;" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtro + count -->
+    <div class="flex-between mb-2">
+      <label class="checkbox-row" style="font-size:12px;"><input type="checkbox" /> Cama matrimonial</label>
+      <span class="text-xs text-muted">5 de 8 disponibles</span>
+    </div>
+
+    <!-- Habitaciones: estilo chips en fila -->
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+      <div class="room-card" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius:20px;">
+        <span style="font-weight:700; font-size:14px;">101</span>
+        <span style="font-size:10px; color:#94A3B8;">Cap.2</span>
+        <span class="badge badge-outline" style="font-size:9px;">Privada</span>
+      </div>
+      <div class="room-card" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius:20px;">
+        <span style="font-weight:700; font-size:14px;">102</span>
+        <span style="font-size:10px; color:#94A3B8;">Cap.3</span>
+        <span class="badge badge-outline" style="font-size:9px;">Privada</span>
+      </div>
+      <!-- Seleccionada -->
+      <div class="room-card room-selected-green" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius:20px;">
+        <span style="font-weight:700; font-size:14px;">103</span>
+        <span style="font-size:10px; color:#166534;">Cap.4</span>
+        <span class="badge badge-green" style="font-size:9px;">Privada</span>
+        <span style="width:1px; height:16px; background:#BBF7D0; margin:0 2px;"></span>
+        <label style="font-size:10px; color:#166534;">Pers:</label>
+        <input type="number" value="2" min="1" max="4" style="width:40px; height:22px; border:1px solid #BBF7D0; border-radius:4px; text-align:center; font-size:11px; font-weight:600; background:#fff;" />
+      </div>
+      <div class="room-card" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius:20px;">
+        <span style="font-weight:700; font-size:14px;">201</span>
+        <span style="font-size:10px; color:#94A3B8;">Cap.6</span>
+        <span class="badge badge-outline" style="font-size:9px;">Compartida</span>
+      </div>
+      <div class="room-card" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius:20px;">
+        <span style="font-weight:700; font-size:14px;">202</span>
+        <span style="font-size:10px; color:#94A3B8;">Cap.2</span>
+        <span class="badge badge-outline" style="font-size:9px;">Privada</span>
+      </div>
+    </div>
+
+    <!-- Combo botón -->
+    <button class="btn btn-outline" style="width:100%; justify-content:center; margin-bottom:10px; font-size:12px;">
+      💡 2 sugerencias de combinación disponibles
+    </button>
+
+    <!-- Resumen precio inline -->
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:10px 14px;">
+      <span style="font-size:12px; color:#64748B;">2 adultos × 3 noches</span>
+      <span style="font-size:16px; font-weight:700; color:#0D3D33;">$45.000</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════ TABLA COMPARATIVA ═══════════ -->
+<section style="margin-top: 32px;">
+  <div class="variant-title">Comparativa de cambios aplicados en las 3 opciones</div>
+  <div class="variant-desc">Todos los puntos que pediste están cubiertos en cada variante. Elegí la que más te guste.</div>
+
+  <div class="mockup-frame" style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+      <thead>
+        <tr style="border-bottom:2px solid #E2E8F0;">
+          <th style="text-align:left; padding:8px; color:#64748B; font-weight:600;">Punto</th>
+          <th style="text-align:left; padding:8px; color:#64748B; font-weight:600;">Opción A</th>
+          <th style="text-align:left; padding:8px; color:#64748B; font-weight:600;">Opción B</th>
+          <th style="text-align:left; padding:8px; color:#64748B; font-weight:600;">Opción C</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #F1F5F9;">
+          <td style="padding:8px; font-weight:500;">1. Calendario unificado (sin pasados)</td>
+          <td style="padding:8px;">✅ Un campo, 2 calendarios, días pasados tachados</td>
+          <td style="padding:8px;">✅ Igual, dentro de card "Fechas"</td>
+          <td style="padding:8px;">✅ Igual, formato corto "09/08 → 12/08"</td>
+        </tr>
+        <tr style="border-bottom:1px solid #F1F5F9;">
+          <td style="padding:8px; font-weight:500;">2. Búsqueda de personas</td>
+          <td style="padding:8px;">✅ Sin cambios (ok)</td>
+          <td style="padding:8px;">✅ Sin cambios (ok)</td>
+          <td style="padding:8px;">✅ Label corto "Pers.", campo centrado</td>
+        </tr>
+        <tr style="border-bottom:1px solid #F1F5F9;">
+          <td style="padding:8px; font-weight:500;">3. Tarifa con default</td>
+          <td style="padding:8px;">✅ "Normal" pre-seleccionado</td>
+          <td style="padding:8px;">✅ "Normal" pre-seleccionado</td>
+          <td style="padding:8px;">✅ "Normal" pre-seleccionado</td>
+        </tr>
+        <tr style="border-bottom:1px solid #F1F5F9;">
+          <td style="padding:8px; font-weight:500;">4. Campos personalizados 2/ línea</td>
+          <td style="padding:8px;">✅ Grid 2 columnas</td>
+          <td style="padding:8px;">✅ Grid 2 columnas dentro de card</td>
+          <td style="padding:8px;">✅ Grid 2 columnas, campos más chicos</td>
+        </tr>
+        <tr style="border-bottom:1px solid #F1F5F9;">
+          <td style="padding:8px; font-weight:500;">5. Card habitación + personas compacto</td>
+          <td style="padding:8px;">✅ 3 columnas, personas inline (56px)</td>
+          <td style="padding:8px;">✅ 3 columnas, padding reducido, personas inline</td>
+          <td style="padding:8px;">✅ Chips horizontales, personas dentro del chip (40px)</td>
+        </tr>
+        <tr>
+          <td style="padding:8px; font-weight:500;">6. Combo verde + comprimido</td>
+          <td style="padding:8px;">✅ Azul → verde, personas inline</td>
+          <td style="padding:8px;">✅ Azul → verde, dentro de card</td>
+          <td style="padding:8px;">✅ Solo botón (no expandido)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div>
+
+<script>
+function toggleCalendar(id) {
+  const el = document.getElementById(id);
+  const isVisible = el.style.display !== 'none';
+  // Close all first
+  document.querySelectorAll('.calendar-dropdown').forEach(d => d.style.display = 'none');
+  if (!isVisible) el.style.display = 'flex';
+}
+
+// Close calendars on outside click
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.date-range-field') && !e.target.closest('.calendar-dropdown')) {
+    document.querySelectorAll('.calendar-dropdown').forEach(d => d.style.display = 'none');
+  }
+});
+
+// Nav active state
+function setActive(el) {
+  document.querySelectorAll('.variant-nav a').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Highlight nav on scroll
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.variant-nav a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 80) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.remove('active');
+    if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
