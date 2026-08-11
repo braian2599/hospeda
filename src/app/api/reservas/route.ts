@@ -40,11 +40,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Text search: huesped name or DNI (SQLite doesn't support mode: insensitive)
+    // Text search: huesped name or DNI (PostgreSQL supports mode: insensitive)
     if (q) {
       where.OR = [
-        { huesped: { contains: q } },
-        { dni: { contains: q } },
+        { huesped: { contains: q, mode: 'insensitive' } },
+        { dni: { contains: q, mode: 'insensitive' } },
       ];
     }
 

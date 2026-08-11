@@ -121,7 +121,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  tenantId     String
+  tenantId     String   @default("")
 
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
