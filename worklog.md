@@ -3,6 +3,57 @@
 ## Estado del Proyecto: FASE 10 - Major Visual & Feature Enhancement Round Completado
 
 ---
+Task ID: 4
+Agent: Dark Mode + ThemeToggle Developer
+Task: Implement complete Dark Mode system with system preference detection
+
+Work Log:
+- Read existing project infrastructure: layout.tsx (ThemeProvider already configured), ThemeToggle.tsx (basic dropdown), globals.css (oklch dark vars), tailwind.config.ts (darkMode: class), Sidebar.tsx (already integrates ThemeToggle)
+- Enhanced ThemeToggle component with:
+  - Animated Sun/Moon icon swap using CSS transforms (rotate-90, scale-0/100, opacity transitions) on the trigger button
+  - 3-state dropdown (Claro/Sistema/Oscuro) with Lucide icons (Sun/Monitor/Moon) and Check mark for active state
+  - Keyboard shortcut Ctrl+Shift+D registered via useEffect to toggle between light/dark
+  - System mode indicator: pulsing green dot on trigger button when theme='system'
+  - Keyboard shortcut hint displayed in dropdown footer using kbd-key styled elements
+  - Compact mode support (h-8 w-8) for sidebar integration
+  - Hydration-safe rendering via useSyncExternalStore
+- Replaced oklch-based dark theme CSS variables with intentional forest-green brand dark palette:
+  - Background: #0C1B19 (deep forest black with green undertone, not pure black)
+  - Card: #132624 (lifted surface with green tint)
+  - Primary: #2D7A6E (brighter forest green for dark bg contrast)
+  - Accent: #1A4D43 (forest green mid-tone for surfaces)
+  - Sidebar: #0A1F1C (deepest forest for sidebar)
+  - Sidebar accent: #1A4D43, primary: #4ADE80 (bright green indicators)
+  - All colors designed for WCAG AA contrast compliance
+- Added smooth body transition for theme switching: background-color 300ms + color 200ms
+- Added comprehensive dark mode variants for custom CSS classes:
+  - .dark .celebrate-bg (forest-tinted shimmer)
+  - .dark .premium-badge (green text + adjusted gradients/borders)
+  - .dark .cta-premium (green glow shadow on hover)
+  - .dark .stats-skeleton (green-tinted shimmer)
+  - .dark .hero-gradient-text (reversed green gradient)
+  - .dark .scroll-progress (brighter forest gradient)
+  - .dark .sidebar-gradient (slightly more visible green gradient)
+  - .dark .feature-grid-item (deeper shadows)
+  - .dark .fab-button (brighter green gradient)
+  - .dark .back-to-top-btn (brighter green gradient)
+  - .dark .premium-quote (green gradient text)
+  - .dark .feature-connector (green dot/line connectors)
+  - .dark .bg-grid-pattern (green-tinted grid lines)
+- Verified ThemeProvider configuration in layout.tsx: attribute="class", defaultTheme="system", enableSystem, disableTransitionOnChange ✅
+- Verified Sidebar integration: ThemeToggle present in 3 locations (desktop header, mobile header, collapsed floating actions) ✅
+- Ran lint: only pre-existing CajaModule.tsx error, no new issues
+- Checked dev server log: all compilations successful, no errors
+
+Stage Summary:
+- Complete dark mode system operational with forest-green brand identity preserved in both light and dark themes
+- ThemeToggle enhanced with animated icon transitions, 3-state dropdown, keyboard shortcut (Ctrl+Shift+D), and system preference detection indicator
+- All shadcn/ui components work in dark mode via CSS variables
+- Custom utility classes (celebrate-bg, premium-badge, glass-card, fab-button, scroll-progress, etc.) have proper dark variants
+- Smooth theme transitions on body element
+- ThemeProvider properly configured with class-based dark mode and system preference detection
+
+---
 
 ## Task 9-a: PDF Export to Reportes Module (Completado)
 
@@ -3469,3 +3520,181 @@ SQLite doesn't support Prisma enums. Removed enum imports and replaced with loca
 8. **Mobile UX audit** — Several new modals/wizards need mobile-specific testing
 9. **Accessibility audit** — New dialogs and dropdowns should be keyboard-navigable and ARIA-compliant
 10. **Database indexes** — Add indexes for frequently-queried fields (reservas.checkin, pagos.fecha, etc.)
+
+---
+Task ID: 7
+Agent: LimpiezaModule Kanban Developer
+Task: Add Kanban board and task management to LimpiezaModule
+
+Work Log:
+- Added `prioridad` (urgente/normal/baja) and `tipo` (limpieza/mantenimiento/preparacion/inspeccion) fields to TareaLimpieza Prisma model
+- Ran `bun run db:push` to sync schema with SQLite database
+- Updated `/api/limpieza` POST route to accept prioridad and tipo on creation
+- Updated `/api/limpieza/[id]` PUT route to accept prioridad and tipo on update
+- Updated DbTareaLimpieza interface in api-client.ts to include prioridad and tipo fields
+- Updated api.limpieza.create and api.limpieza.update signatures with new optional fields
+- Completely rewrote LimpiezaModule.tsx with the following enhancements:
+  - **Kanban Board View**: Three columns (Pendiente, En Progreso, Completada) with independent scrolling, count badges, and drag-and-drop between columns via HTML5 drag API with visual feedback (opacity, scale, ring on target column)
+  - **View Mode Toggle**: Tabs component to switch between Kanban and List views
+  - **Priority System**: Three priority levels (Urgente/Normal/Baja) with color-coded borders, badges, and pulsing red indicator for urgent tasks. Priority filter dropdown at top. Quick-change priority buttons in expanded card view.
+  - **Task Type Icons**: Four task types (Limpieza, Mantenimiento, Preparación, Inspección) each with distinct Lucide icon and color
+  - **Enhanced Task Cards**: Left border color by priority, hover shadow elevation, click-to-expand with full details, quick action buttons (Iniciar/Completar/Asignar/Reasignar), animated transitions, staff color-coding by assigned person
+  - **Staff Assignment System**: Assignment in task detail expand, Reasignar quick action, staff workload display with capacity bars, staff color-coding (10-color palette)
+  - **Scheduling Visualization**: Mini timeline for today showing task blocks with estimated times, color-coded by room floor/section, current time indicator red line, hour grid from 8:00 to 18:00, floor legend
+  - **Summary Stats**: Four KPI cards at top (Tareas Pendientes, En Progreso, Completadas Hoy, Tiempo Promedio) using AnimatedNumber component with trend indicators
+  - **New Task Dialog**: Create tasks with room selection, priority, type, and notes
+  - **Nueva Tarea button**: In ModuleHeader and at top of Pendiente Kanban column
+  - Responsive design: Kanban columns stack vertically on mobile (grid md:grid-cols-3), all cards and controls are mobile-friendly
+  - Preserved all existing functionality: maintenance section, staff panel, reportar mantenimiento, historial with filters/pagination, resolver mantenimiento dialog, assignment modal, reassign modal, staff history modal, confirm-complete alert dialog
+
+Stage Summary:
+- Prisma schema extended with prioridad + tipo fields on TareaLimpieza
+- API routes updated for prioridad/tipo on create and update
+- api-client.ts types updated with new fields
+- LimpiezaModule fully rewritten (~750 lines) with Kanban board, priority system, scheduling timeline, enhanced cards, staff color-coding, and responsive design
+- Dev server compiles successfully, no new lint errors introduced
+
+---
+Task ID: 6
+Agent: CajaModule Enhancement Developer
+Task: Enhance CajaModule with cash flow timeline and denomination breakdown
+
+Work Log:
+- Read and analyzed the full CajaModule.tsx (2800+ lines), store.ts, format.ts, and types.ts to understand existing structure
+- Added new Lucide icon imports: Printer, Coins, CircleDot, Timer, Scale
+- Added Tabs and Separator UI component imports
+- Created DENOMINACIONES constant with extended denominations including coins ($20000, $10000, $2000, $1000, $500, $200, $100, $50, $20, $10, $5, $2, $1)
+- Added getMetodoIcon() helper function for payment method icon mapping
+- Created CashFlowTimeline component: vertical timeline with chronological movements, running balance, staggered fade-in animation, opening/closing balance entries, connecting lines, color-coded dots (green=ingreso, red=egreso)
+- Created DenominationBreakdownPanel component: bills section + coins section, quantity inputs per denomination, subtotal calculation, total vs system comparison, difference highlighting
+- Enhanced QuickStatsRow: replaced 4 cards (Ingresos, Egresos, Balance, Movimientos) with new set (Saldo Inicial with Wallet icon, Ingresos Hoy with TrendingUp, Egresos Hoy with TrendingDown, Saldo Actual with Wallet - most prominent with larger font, border emphasis, and gradient icon background)
+- Added quick filter tabs (Todos|Ingresos|Egresos) to both mobile and desktop movements sections
+- Added inline search input to both mobile and desktop movements sections
+- Added payment method icon to desktop table Method column (Banknote/CreditCard/ArrowRightLeft/QrCode based on method name)
+- Added CashFlowTimeline to desktop info panel (right sidebar) and as mobile card
+- Enhanced ClosingWizard step 1: replaced BILLETES-only counter with DenominationBreakdownPanel (bills + coins)
+- Enhanced ClosingWizard step 4: added day activity summary card (apertura, ingresos, egresos, movimientos, cajero, neto), difference alert with contextual messages, print receipt button
+- Added denomQuantities state to CajaModule and wired to ClosingWizard
+- Added daySummary prop to ClosingWizard with full day activity data
+- Renamed wizard steps: "Billetes" → "Denominaciones", "Notas y cierre" → "Resumen y cierre"
+- Implemented print receipt function: opens new window with monospace receipt layout, all key figures, auto-triggers print dialog
+- Fixed lint error: replaced mutable balance variable in useMemo with immutable reduce pattern
+- Verified: lint passes clean, dev server compiles successfully
+
+Stage Summary:
+- CashFlowTimeline: Full vertical timeline with animated entries, running balance, opening/closing markers, connecting lines, payment method icons, and relative time display
+- DenominationBreakdownPanel: Extended denomination counter covering bills ($20K-$100) and coins ($50-$1), with per-row subtotals and difference calculation vs system total
+- Summary Statistics: Redesigned 4-card KPI row - Saldo Inicial, Ingresos Hoy, Egresos Hoy, Saldo Actual (prominent/largest)
+- Quick Filters: Inline Todos|Ingresos|Egresos toggle + search bar in both mobile and desktop
+- Payment Method Icons: Contextual icons (Banknote, CreditCard, ArrowRightLeft, QrCode) shown in table and timeline
+- Closing Wizard Enhancements: Day summary, denomination breakdown with coins, print receipt button, contextual difference alerts
+- All changes follow existing project patterns, use shadcn/ui components, Lucide icons, and Hospeda color scheme (#0F2B28, #059669)
+
+---
+Task ID: 8
+Agent: Styling Micro-Interactions Developer
+Task: Add micro-interactions, transitions, and visual hierarchy improvements
+
+Work Log:
+- Read existing globals.css (1236 lines), Sidebar.tsx, and key module files to understand current state
+- Added comprehensive micro-interaction utility classes to globals.css (~640 new lines):
+  - **Hover Interactions**: `.hover-lift` (translateY(-2px) + shadow), `.hover-scale` (scale 1.02), `.hover-glow` (primary color glow), `.press-shrink` (scale 0.97 on active)
+  - **Staggered Children**: `.stagger-children > *` with 10 stagger delays (0ms → 500ms) using `staggerChildIn` keyframe
+  - **Mount Animations**: `.slide-in-right`, `.slide-in-up`, `.fade-in` with dedicated keyframes
+  - **Shimmer/Skeleton**: `.shimmer` (full element), `.shimmer-block` (rectangular), `.shimmer-circle` (avatar) using themed gradients
+  - **Soft Pulse**: `.pulse-soft` (3s gentle opacity pulse, not aggressive)
+  - **Sidebar Enhancements**: `navIndicatorSlide` animation, `.sidebar-active-indicator`, `.sidebar-stagger` (staggered entrance), `.sidebar-nav-item` (hover transitions), `.sidebar-active-glow` (inset glow), `.sidebar-collapse-transition`
+  - **Card Enhancements**: `.card-interactive` (hover elevation + border transition), `.card-grid-stagger` (9-item stagger), `.status-border-*` (6 status variants: success/warning/danger/info/neutral/purple with dark mode)
+  - **Button Enhancements**: `.btn-ripple` (CSS-only ripple via ::after), `.btn-loading` (spinner overlay), `.btn-smooth-transition`, `.btn-disabled-polished`
+  - **Table Enhancements**: `.table-striped` (alternating rows), `.table-row-hover` (primary-tinted hover), `.table-sortable-header`, `.table-row-click` (flash animation)
+  - **Dialog/Modal**: `.dialog-overlay-animated` (backdrop blur animation), `.dialog-content-animated` (scale-in + slide-up)
+  - **Loading States**: `.skeleton-card`/`.skeleton-card-header`/`.skeleton-card-line`, `.spinner-branded` (sm/default/lg), `.progress-branded`/`.progress-branded-fill`, `.progress-indeterminate-fill`
+  - **Module Transitions**: `.module-enter-polished` (scale + blur + translateY), `.content-fade-switch`
+  - **Interaction States**: `.focus-ring-branded`, `.drag-hint`, `.item-selected`, `.value-flash`
+  - **Scrollbar**: `.scrollbar-expand` (thin → auto on hover)
+  - **Tooltips**: `.tooltip-animated`
+- Enhanced Sidebar.tsx:
+  - Added `sidebar-stagger` class to both desktop and mobile nav containers for staggered entrance animation
+  - Added `sidebar-nav-item` class to NavItem buttons for smooth hover transitions
+  - Added `sidebar-active-glow` class to active nav items for inset glow effect
+  - Applied to both desktop NavItem and mobile nav buttons
+- Enhanced Module Cards across all modules:
+  - Added `card-grid-stagger` to: DashboardModule (3 grids), FacturacionModule, ClientesModule, HabitacionesModule, ReservasModule
+  - Added `card-interactive` to: ClientesModule stats cards, FacturacionModule analytics cards, ReservasModule activity cards, HabitacionesModule room cards, DashboardModule KPI cards
+- Enhanced Button component (button.tsx):
+  - Added `btn-ripple` to base variant class for CSS-only ripple effect on all buttons
+- Enhanced Table component (table.tsx):
+  - Added `table-striped` for alternating row backgrounds
+  - Added `table-row-hover` for primary-tinted hover highlight
+  - Added `table-row-click` for click flash animation on rows
+- Enhanced Dialog component (dialog.tsx):
+  - Added `dialog-overlay-animated` for backdrop blur animation
+  - Added `dialog-content-animated` for smooth scale-in + slide-up entrance
+- Enhanced Module Transition (app/page.tsx):
+  - Upgraded from `module-enter` to `module-enter-polished` for smoother scale + blur + translate animation
+- All changes passed ESLint with no errors
+- Dev server compiled successfully with hot reload
+
+Stage Summary:
+- Added ~640 lines of micro-interaction CSS utilities to globals.css
+- All 8 requirements addressed: hover effects, staggered animations, sidebar polish, card interactions, button ripple, table enhancements, dialog animations, loading states
+- Surgical edits only — no full file rewrites, all changes applied via className additions
+- CSS-only approach for most interactions (no JS required), leveraging existing animation system
+- Dark mode support included for all new utilities via `.dark` selectors
+- Respects `prefers-reduced-motion` media query (already handled by existing reduced-motion block)
+
+---
+Task ID: 5
+Agent: Notification Center Developer
+Task: Enhance Notification Center with real-time events and smart categorization
+
+Work Log:
+- Added `timeAgo()` helper to `/src/lib/format.ts` for relative time display in Spanish (e.g. "hace 5 min", "hace 2 h", "hace 3 días")
+- Enhanced `/src/lib/notification-store.ts` with:
+  - Notification categories: reserva, pago, checkin, habitacion, sistema, limpieza
+  - Priority levels: info, warning, urgent
+  - `actionUrl` and `actionLabel` fields for actionable notifications (navigate to relevant module)
+  - `persisted` flag for important notifications that survive auto-dismiss
+  - Auto-dismiss for non-persisted, non-urgent notifications after 10 seconds
+  - `hasNew` state flag for bell animation on new notifications
+  - `getGrouped()` method for smart grouping of similar notifications by category+title+hour
+  - `clearHasNew()` to reset the animation trigger
+  - Category colors, backgrounds, and priority indicator constants
+  - Proper timer cleanup on dismiss/clearAll
+- Enhanced `/src/lib/notify.ts` with:
+  - New `notify()` function with full control over category, priority, actionUrl, actionLabel, persisted
+  - Backward-compatible legacy shortcuts (notifySuccess, notifyInfo, notifyWarning, notifyError)
+  - Category-specific helpers: notifyReserva, notifyPago, notifyCheckin, notifyHabitacion, notifyLimpieza, notifySistema
+- Rewrote `/src/components/ui/notification-center.tsx` as a Sheet slide-out panel:
+  - Uses Sheet component instead of Popover for a full slide-out panel from the right
+  - Category filter tabs: Todas | Reservas | Pagos | Hab. | Sistema
+  - Unread count badge with zoom-in animation on the bell icon
+  - Each notification shows: category icon with color, title, description, relative time, action button, unread dot indicator
+  - "Mark all as read" and "Clear all" buttons
+  - Empty state with bell icon and "Todo tranquilo" message
+  - Staggered slide-in animation for notification items (50ms delay per item)
+  - Self-contained component (no props needed) — subscribes to store directly
+  - Exports `NotificationBell` for standalone bell usage
+- Updated `/src/lib/store.ts` auto-generated notifications with categories:
+  - crearReserva → category 'reserva', actionLabel 'Ver reserva'
+  - realizarCheckIn → category 'checkin', actionLabel 'Ver reserva'
+  - realizarCheckOut → category 'checkin' + limpieza notification for room cleaning
+  - registrarPago → category 'pago', actionLabel 'Cobrar'
+  - marcarComoLimpia → category 'limpieza', actionLabel 'Ver habitación'
+  - abrirCaja → category 'sistema'
+  - cerrarCaja → category 'sistema' with warning priority if difference ≠ 0
+- Updated `/src/components/layout/Sidebar.tsx`:
+  - Replaced NotificationCenter props-based usage with self-contained `<NotificationCenter />`
+  - Added notification bell next to user section in both desktop and mobile sidebars
+  - Removed unnecessary notification store subscriptions from Sidebar (now handled by NotificationCenter internally)
+- All ESLint checks pass, dev server compiles successfully
+
+Stage Summary:
+- NotificationCenter is now a self-contained Sheet-based slide-out panel with category filtering
+- 6 notification categories with distinct icons and colors (reserva=blue, pago=green, checkin=orange, habitacion=purple, sistema=gray, limpieza=yellow)
+- 3 priority levels with visual indicators (info, warning, urgent)
+- Auto-dismiss for non-critical notifications (10s), persisted flag for important ones
+- Smart grouping by category+title+hour for consolidating similar notifications
+- All hotel operations (reserva, pago, checkin, checkout, limpieza, caja) now generate categorized notifications with action buttons
+- Bounce animation on bell icon when new notifications arrive
+- Unread count badge with zoom-in animation

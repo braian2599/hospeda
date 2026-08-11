@@ -93,7 +93,7 @@ export default function AppPage() {
   return (
     <AppShell>
       {ModuleComponent ? (
-        <div key={moduloActivo} className="module-enter">
+        <div key={moduloActivo} className="module-enter-polished">
           <ModuleErrorBoundary moduleName={moduloActivo}>
             <ModuleComponent />
           </ModuleErrorBoundary>

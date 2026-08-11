@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect, forwardRef } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useHotelStore } from '@/lib/store';
-import { useNotificationStore } from '@/lib/notification-store';
+// Notification store no longer needed here — NotificationCenter is self-contained
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 import { modulosEfectivos } from '@/lib/plan-config';
 import { Button } from '@/components/ui/button';
@@ -35,12 +35,12 @@ const NavItem = forwardRef<HTMLButtonElement, { m: (typeof MODULOS_SISTEMA)[numb
         ref={ref}
         onClick={() => setModulo(m.id)}
         className={`
-          w-full flex items-center rounded-lg transition-colors duration-200 relative
+          w-full flex items-center rounded-lg transition-colors duration-200 relative sidebar-nav-item
           ${expanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
           ${locked
             ? 'opacity-50 hover:opacity-70'
             : isActive
-              ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary'
+              ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary sidebar-active-glow'
               : 'text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground'
           }
         `}
@@ -109,13 +109,6 @@ function GroupedNav({ modulos, expanded, efectivosSet, activeItemRef }: {
 export default function Sidebar() {
   const { usuarioActual, moduloActivo, setModulo, sidebarOpen, setSidebarOpen, planActual } = useHotelStore();
   const { update } = useSession();
-
-  // Notification store subscriptions (granular selectors to avoid re-renders)
-  const notifications = useNotificationStore(s => s.notifications);
-  const markRead = useNotificationStore(s => s.markRead);
-  const markAllRead = useNotificationStore(s => s.markAllRead);
-  const dismiss = useNotificationStore(s => s.dismiss);
-  const clearAll = useNotificationStore(s => s.clearAll);
 
   // Planes — must be called BEFORE any early return to satisfy rules-of-hooks
   const planes = useHotelStore(s => s.planes);
@@ -192,13 +185,7 @@ export default function Sidebar() {
             >
               <Search className="w-3.5 h-3.5" />
             </button>
-            <NotificationCenter
-              notifications={notifications}
-              onMarkRead={markRead}
-              onMarkAllRead={markAllRead}
-              onDismiss={dismiss}
-              onClearAll={clearAll}
-            />
+            <NotificationCenter />
             <ThemeToggle compact />
             <HelpDialog compact />
           </div>
@@ -207,7 +194,7 @@ export default function Sidebar() {
 
       <div className="border-t border-sidebar-border" />
 
-      <nav ref={navRef} className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-none px-2 py-1.5">
+      <nav ref={navRef} className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-none px-2 py-1.5 sidebar-stagger">
         <GroupedNav modulos={modulosVisibles} expanded={isExpanded} efectivosSet={efectivosSet} activeItemRef={activeItemRef} />
       </nav>
 
@@ -236,18 +223,22 @@ export default function Sidebar() {
       <div className="border-t border-sidebar-border" />
 
       <div className="px-2 py-2 space-y-0.5">
-        <button
-          onClick={() => useHotelStore.getState().setPerfilOpen(true)}
-          className={`w-full flex items-center rounded-lg transition-colors duration-200
-            ${isExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
-            text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground`}
-          title={!isExpanded ? userName : undefined}
-        >
-          <span className="w-7 h-7 rounded-full bg-sidebar-accent/60 flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">
-            {userName?.charAt(0)?.toUpperCase() || 'A'}
-          </span>
-          {isExpanded && <span className="text-[13px] font-medium truncate text-sidebar-foreground">{userName}</span>}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => useHotelStore.getState().setPerfilOpen(true)}
+            className={`w-full flex items-center rounded-lg transition-colors duration-200
+              ${isExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
+              text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground`}
+            title={!isExpanded ? userName : undefined}
+          >
+            <span className="w-7 h-7 rounded-full bg-sidebar-accent/60 flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">
+              {userName?.charAt(0)?.toUpperCase() || 'A'}
+            </span>
+            {isExpanded && <span className="text-[13px] font-medium truncate text-sidebar-foreground">{userName}</span>}
+          </button>
+          {/* Notification bell next to user */}
+          {!isExpanded && <NotificationCenter />}
+        </div>
 
         <Button variant="ghost" size="icon" onClick={handleLogout} className={`text-sidebar-foreground/70 hover:text-red-400 transition-colors ${isExpanded ? 'w-full justify-start gap-3 px-3 h-9' : 'w-full'}`}>
           <LogOut className="w-4 h-4 shrink-0" />
@@ -279,18 +270,12 @@ export default function Sidebar() {
           >
             <Search className="w-4 h-4" />
           </button>
-          <NotificationCenter
-            notifications={notifications}
-            onMarkRead={markRead}
-            onMarkAllRead={markAllRead}
-            onDismiss={dismiss}
-            onClearAll={clearAll}
-          />
+          <NotificationCenter />
           <ThemeToggle compact />
           <HelpDialog compact />
         </div>
         <div className="border-t border-sidebar-border" />
-        <nav className="flex-1 overflow-y-auto scrollbar-none px-2 py-1.5">
+        <nav className="flex-1 overflow-y-auto scrollbar-none px-2 py-1.5 sidebar-stagger">
           {modulosVisibles.map((m, idx) => {
             const Icon = (iconMap as Record<string, React.ComponentType<{ className?: string }>>)[m.icon] || LayoutDashboard;
             const active = moduloActivo === m.id;
@@ -307,8 +292,8 @@ export default function Sidebar() {
                 )}
                 <button
                   onClick={() => setModulo(m.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-200 text-left relative
-                    ${locked ? 'opacity-50 hover:opacity-70' : active ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground'}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-200 text-left relative sidebar-nav-item
+                    ${locked ? 'opacity-50 hover:opacity-70' : active ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary sidebar-active-glow' : 'text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground'}`}
                 >
                   <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-md relative ${active && !locked ? 'text-sidebar-primary' : locked ? 'text-sidebar-foreground/40' : 'text-sidebar-foreground/50'}`}>
                     <Icon className="w-4 h-4" />
@@ -336,6 +321,9 @@ export default function Sidebar() {
             <div className="w-7 h-7 rounded-full bg-sidebar-accent/60 flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">{userName?.charAt(0)?.toUpperCase() || 'A'}</div>
             <span className="text-[13px] font-medium truncate text-sidebar-foreground">{userName}</span>
           </button>
+          <div className="flex items-center gap-1">
+            <NotificationCenter />
+          </div>
           <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-red-400">
             <LogOut className="w-4 h-4" /><span className="text-[13px]">Cerrar sesión</span>
           </Button>
@@ -359,13 +347,7 @@ export default function Sidebar() {
           >
             <Search className="w-4 h-4" />
           </button>
-          <NotificationCenter
-            notifications={notifications}
-            onMarkRead={markRead}
-            onMarkAllRead={markAllRead}
-            onDismiss={dismiss}
-            onClearAll={clearAll}
-          />
+          <NotificationCenter />
           <ThemeToggle compact />
           <HelpDialog compact />
         </div>

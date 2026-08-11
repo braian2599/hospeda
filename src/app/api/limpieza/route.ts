@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   try {
     const tenantId = await requireTenantId();
     const body = await req.json();
-    const { habitacion, nota } = body;
+    const { habitacion, nota, prioridad, tipo } = body;
 
     if (!habitacion?.trim()) {
       return NextResponse.json({ error: 'La habitación es obligatoria' }, { status: 400 });
@@ -50,6 +50,8 @@ export async function POST(req: NextRequest) {
         tenantId,
         habitacion: habitacion.trim(),
         estado: 'pendiente',
+        prioridad: prioridad && ['urgente', 'normal', 'baja'].includes(prioridad) ? prioridad : 'normal',
+        tipo: tipo && ['limpieza', 'mantenimiento', 'preparacion', 'inspeccion'].includes(tipo) ? tipo : 'limpieza',
         nota: nota?.trim() || null,
       },
     });

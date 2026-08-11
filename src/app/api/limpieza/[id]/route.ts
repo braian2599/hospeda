@@ -13,7 +13,7 @@ export async function PUT(
     const tenantId = await requireTenantId();
     const { id } = await params;
     const body = await req.json();
-    const { estado, empleadoId, empleado, nota } = body;
+    const { estado, empleadoId, empleado, nota, prioridad, tipo } = body;
 
     // Buscar tarea
     const tarea = await db.tareaLimpieza.findFirst({
@@ -47,6 +47,14 @@ export async function PUT(
 
     if (nota !== undefined) {
       data.nota = typeof nota === 'string' ? nota.trim() || null : null;
+    }
+
+    if (prioridad && ['urgente', 'normal', 'baja'].includes(prioridad)) {
+      data.prioridad = prioridad;
+    }
+
+    if (tipo && ['limpieza', 'mantenimiento', 'preparacion', 'inspeccion'].includes(tipo)) {
+      data.tipo = tipo;
     }
 
     const updated = await db.tareaLimpieza.update({

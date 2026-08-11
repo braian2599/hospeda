@@ -494,6 +494,8 @@ model TareaLimpieza {
   tenant      Tenant              @relation(fields: [tenantId], references: [id])
   habitacion  String
   estado      String @default("pendiente")
+  prioridad   String @default("normal")  // urgente, normal, baja
+  tipo        String @default("limpieza") // limpieza, mantenimiento, preparacion, inspeccion
   empleadoId  String?
   empleado    String?
   nota        String?

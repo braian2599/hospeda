@@ -250,9 +250,9 @@ export default function FacturacionModule() {
       <ModuleHeader icon={Receipt} title="Facturación" subtitle="Comprobantes y pagos de tus reservas" />
 
       {/* ══════════════════ PAYMENT ANALYTICS SUMMARY ══════════════════ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
         {/* Total Pendiente */}
-        <div className="relative rounded-xl border-l-[3px] border-l-amber-500 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+        <div className="relative rounded-xl border-l-[3px] border-l-amber-500 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Total Pendiente</p>
@@ -266,7 +266,7 @@ export default function FacturacionModule() {
         </div>
 
         {/* Total Cobrado Hoy */}
-        <div className="relative rounded-xl border-l-[3px] border-l-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+        <div className="relative rounded-xl border-l-[3px] border-l-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Cobrado Hoy</p>
@@ -280,7 +280,7 @@ export default function FacturacionModule() {
         </div>
 
         {/* Cobros este Mes */}
-        <div className="relative rounded-xl border-l-[3px] border-l-sky-500 bg-gradient-to-br from-sky-50 to-sky-100/50 dark:from-sky-950/30 dark:to-sky-900/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+        <div className="relative rounded-xl border-l-[3px] border-l-sky-500 bg-gradient-to-br from-sky-50 to-sky-100/50 dark:from-sky-950/30 dark:to-sky-900/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-sky-700 dark:text-sky-400">Cobros este Mes</p>
@@ -294,7 +294,7 @@ export default function FacturacionModule() {
         </div>
 
         {/* Promedio por Reserva */}
-        <div className="relative rounded-xl border-l-[3px] border-l-violet-500 bg-gradient-to-br from-violet-50 to-violet-100/50 dark:from-violet-950/30 dark:to-violet-900/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+        <div className="relative rounded-xl border-l-[3px] border-l-violet-500 bg-gradient-to-br from-violet-50 to-violet-100/50 dark:from-violet-950/30 dark:to-violet-900/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-violet-700 dark:text-violet-400">Promedio por Reserva</p>

@@ -234,9 +234,9 @@ export default function ClientesModule() {
       </ModuleHeader>
 
       {/* ═══════════ CLIENT STATS SUMMARY ═══════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
         {/* Total Clientes */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-[#0F2B28] bg-gradient-to-br from-[#0F2B28]/5 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-[#0F2B28] bg-gradient-to-br from-[#0F2B28]/5 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -251,7 +251,7 @@ export default function ClientesModule() {
         </Card>
 
         {/* Clientes Recurrentes */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-amber-400 bg-gradient-to-br from-amber-50/60 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-amber-400 bg-gradient-to-br from-amber-50/60 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -266,7 +266,7 @@ export default function ClientesModule() {
         </Card>
 
         {/* Nuevos este Mes */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-emerald-400 bg-gradient-to-br from-emerald-50/60 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-emerald-400 bg-gradient-to-br from-emerald-50/60 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -281,7 +281,7 @@ export default function ClientesModule() {
         </Card>
 
         {/* Ocupación Promedio */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-sky-400 bg-gradient-to-br from-sky-50/60 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-sky-400 bg-gradient-to-br from-sky-50/60 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">

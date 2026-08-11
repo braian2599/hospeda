@@ -1,0 +1,502 @@
+   930→                    />
+   931→                  )}
+   932→                </CardHeader>
+   933→                <CardContent>
+   934→                  {movimientos.length === 0 ? (
+   935→                    <div className="text-center py-10">
+   936→                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
+   937→                        <Receipt className="w-6 h-6 text-muted-foreground/60" />
+   938→                      </div>
+   939→                      <p className="text-sm text-muted-foreground">Sin movimientos todavía. Registrá el primero arriba.</p>
+   940→                    </div>
+   941→                  ) : filteredMovimientos.length === 0 ? (
+   942→                    <div className="text-center py-10 text-muted-foreground">
+   943→                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
+   944→                        <Search className="w-6 h-6 text-muted-foreground/60" />
+   945→                      </div>
+   946→                      <p className="text-sm">Sin resultados para los filtros aplicados.</p>
+   947→                      <Button size="sm" variant="ghost" className="mt-2 text-xs" onClick={clearFilters}>Limpiar filtros</Button>
+   948→                    </div>
+   949→                  ) : (
+   950→                    <div className="overflow-x-auto -mx-6 px-6">
+   951→                      <Table>
+   952→                        <TableHeader>
+   953→                          <TableRow>
+   954→                            <TableHead>Hora</TableHead>
+   955→                            <TableHead>Tipo</TableHead>
+   956→                            <TableHead>Monto</TableHead>
+   957→                            <TableHead>Metodo</TableHead>
+   958→                            <TableHead>Categoria</TableHead>
+   959→                            <TableHead>Descripcion</TableHead>
+   960→                            {isAdminOrOwner && <TableHead className="w-[120px]">Acciones</TableHead>}
+   961→                          </TableRow>
+   962→                        </TableHeader>
+   963→                        <TableBody>
+   964→                          {pagedMovimientos.map((m) => {
+   965→                            const gasto = m.gastoId ? gastos.find(g => g.id === m.gastoId) : undefined;
+   966→                            const cat = categorizeMovement(m, gasto?.tipo);
+   967→                            const CatIcon = CATEGORY_CONFIG[cat].icon;
+   968→                            return (
+   969→                              <TableRow
+   970→                                key={m.id}
+   971→                                className={cn(
+   972→                                  'group transition-colors border-l-2',
+   973→                                  m.tipo === 'ingreso'
+   974→                                    ? 'border-l-[#059669] hover:bg-[#F0FDF4]/40'
+   975→                                    : 'border-l-[#EF4444] hover:bg-[#FEF2F2]/40'
+   976→                                )}
+   977→                              >
+   978→                                <TableCell className="text-xs">
+   979→                                  <div className="flex flex-col">
+   980→                                    <span>{formatHora(m.fecha)}</span>
+   981→                                    <span className="text-[10px] text-muted-foreground italic">{formatRelative(m.fecha, now)}</span>
+   982→                                  </div>
+   983→                                </TableCell>
+   984→                                <TableCell>
+   985→                                  <div className="flex items-center gap-2">
+   986→                                    <span className={cn(
+   987→                                      'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
+   988→                                      m.tipo === 'ingreso' ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-[#FEE2E2] text-[#991B1B]'
+   989→                                    )}>
+   990→                                      {m.tipo === 'ingreso'
+   991→                                        ? <ArrowUpRight className="w-3.5 h-3.5" />
+   992→                                        : <ArrowDownRight className="w-3.5 h-3.5" />}
+   993→                                    </span>
+   994→                                    <span className={cn(
+   995→                                      'text-xs font-semibold',
+   996→                                      m.tipo === 'ingreso' ? 'text-[#166534]' : 'text-[#991B1B]'
+   997→                                    )}>
+   998→                                      {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
+   999→                                    </span>
+  1000→                                    {m.gastoId && (
+  1001→                                      <span title="Movimiento vinculado a un gasto" className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-100 text-amber-700">
+  1002→                                        <FileText className="w-3 h-3" />
+  1003→                                      </span>
+  1004→                                    )}
+  1005→                                  </div>
+  1006→                                </TableCell>
+  1007→                                <TableCell className={cn(
+  1008→                                  'font-bold tabular-nums',
+  1009→                                  m.tipo === 'ingreso' ? 'text-[#166534]' : 'text-[#991B1B]'
+  1010→                                )}>
+  1011→                                  {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
+  1012→                                </TableCell>
+  1013→                                <TableCell>
+  1014→                                  <Badge variant="secondary" className="shadow-sm">{m.metodo}</Badge>
+  1015→                                </TableCell>
+  1016→                                <TableCell>
+  1017→                                  <Badge className={cn('shadow-sm text-[10px] gap-1', CATEGORY_CONFIG[cat].badgeBg, CATEGORY_CONFIG[cat].badgeText)}>
+  1018→                                    <CatIcon className="w-2.5 h-2.5" />
+  1019→                                    {CATEGORY_CONFIG[cat].label}
+  1020→                                  </Badge>
+  1021→                                </TableCell>
+  1022→                                <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+  1023→                                  {m.descripcion}
+  1024→                                  {gasto && (
+  1025→                                    <div className="text-[10px] text-amber-700 inline-flex items-center gap-1 mt-0.5">
+  1026→                                      <ExternalLink className="w-2.5 h-2.5" />Gasto: {gasto.tipo}
+  1027→                                    </div>
+  1028→                                  )}
+  1029→                                </TableCell>
+  1030→                                {isAdminOrOwner && (
+  1031→                                  <TableCell>
+  1032→                                    <div className="flex gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+  1033→                                      <Popover open={detailMovId === m.id} onOpenChange={(o) => setDetailMovId(o ? m.id : null)}>
+  1034→                                        <PopoverTrigger asChild>
+  1035→                                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Ver detalle">
+  1036→                                            <Eye className="w-3.5 h-3.5" />
+  1037→                                          </Button>
+  1038→                                        </PopoverTrigger>
+  1039→                                        <PopoverContent className="w-72 p-3" align="end">
+  1040→                                          <MovementDetailPopover
+  1041→                                            movimiento={m}
+  1042→                                            gasto={gasto}
+  1043→                                            categoria={cat}
+  1044→                                          />
+  1045→                                        </PopoverContent>
+  1046→                                      </Popover>
+  1047→                                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleEditOpen(m)} title="Editar"><Pencil className="w-3.5 h-3.5" /></Button>
+  1048→                                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDelete(m.id)} disabled={loadingDelete} title="Eliminar">
+  1049→                                        {loadingDelete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+  1050→                                      </Button>
+  1051→                                    </div>
+  1052→                                  </TableCell>
+  1053→                                )}
+  1054→                              </TableRow>
+  1055→                            );
+  1056→                          })}
+  1057→                        </TableBody>
+  1058→                      </Table>
+  1059→                    </div>
+  1060→                  )}
+  1061→                  <PaginationBar page={safePage} totalPages={movTotalPages} onPageChange={setPage} totalItems={filteredMovimientos.length} pageSize={PAGE_SIZE} />
+  1062→                </CardContent>
+  1063→              </Card>
+  1064→            </div>
+  1065→
+  1066→            {/* Info Panel */}
+  1067→            <div className="space-y-4">
+  1068→              <Card className="overflow-hidden">
+  1069→                <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#0F2B28]" />Información del turno</CardTitle></CardHeader>
+  1070→                <CardContent className="space-y-2 text-sm">
+  1071→                  {caja.apertura && (
+  1072→                    <>
+  1073→                      <div className="flex justify-between"><span className="text-muted-foreground">Cajero:</span><span className="font-medium">{caja.apertura.empleado}</span></div>
+  1074→                      <div className="flex justify-between"><span className="text-muted-foreground">Apertura:</span><span>{formatFechaHora(caja.apertura.fecha)}</span></div>
+  1075→                      <div className="flex justify-between"><span className="text-muted-foreground">Inicial:</span><span className="font-medium">{formatMoney(caja.apertura.montoInicial)}</span></div>
+  1076→                    </>
+  1077→                  )}
+  1078→                  <div className="flex justify-between items-center pt-1 border-t">
+  1079→                    <span className="text-muted-foreground">Saldo actual:</span>
+  1080→                    <AnimatedNumber
+  1081→                      value={saldo}
+  1082→                      className="font-bold text-lg text-[#0F2B28] tabular-nums"
+  1083→                    />
+  1084→                  </div>
+  1085→                  <div className="flex justify-between"><span className="text-muted-foreground">Movimientos:</span><span className="font-medium">{movimientos.length}</span></div>
+  1086→
+  1087→                  {/* Action buttons */}
+  1088→                  <div className="grid grid-cols-2 gap-2 pt-2">
+  1089→                    <Button variant="outline" className="w-full border-[#059669]/30 text-[#166534] hover:bg-[#F0FDF4] hover:text-[#166534]" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+  1090→                    <Button variant="outline" className="w-full border-[#991B1B]/30 text-[#991B1B] hover:bg-[#FEF2F2] hover:text-[#991B1B]" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+  1091→                  </div>
+  1092→
+  1093→                  {/* Movement form */}
+  1094→                  {showMovForm && (
+  1095→                    <MovFormInline
+  1096→                      tipo={showMovForm}
+  1097→                      movMonto={movMonto}
+  1098→                      setMovMonto={setMovMonto}
+  1099→                      movDesc={movDesc}
+  1100→                      setMovDesc={setMovDesc}
+  1101→                      movMetodo={movMetodo}
+  1102→                      setMovMetodo={setMovMetodo}
+  1103→                      movCategoria={movCategoria}
+  1104→                      setMovCategoria={setMovCategoria}
+  1105→                      loading={loadingMovimiento}
+  1106→                      onGuardar={handleMovimiento}
+  1107→                      onCancelar={cancelarForm}
+  1108→                      metodosPago={metodosPago}
+  1109→                      categoriasGastos={categoriasGastos}
+  1110→                    />
+  1111→                  )}
+  1112→                </CardContent>
+  1113→              </Card>
+  1114→
+  1115→              {/* Movement categories pie chart */}
+  1116→              {categoriaBreakdown.length > 0 && (
+  1117→                <MovementCategoryPie data={categoriaBreakdown} />
+  1118→              )}
+  1119→            </div>
+  1120→          </div>
+  1121→        </div>
+  1122→      )}
+  1123→
+  1124→      {/* ═══════ DELETE CONFIRM DIALOG ═══════ */}
+  1125→      <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+  1126→        <AlertDialogContent>
+  1127→          <AlertDialogHeader>
+  1128→            <AlertDialogTitle>¿Eliminar movimiento?</AlertDialogTitle>
+  1129→            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+  1130→          </AlertDialogHeader>
+  1131→          <AlertDialogFooter>
+  1132→            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+  1133→            <AlertDialogAction onClick={confirmDelete}>Eliminar</AlertDialogAction>
+  1134→          </AlertDialogFooter>
+  1135→        </AlertDialogContent>
+  1136→      </AlertDialog>
+  1137→
+  1138→      {/* ═══════ EDIT MOVEMENT DIALOG ═══════ */}
+  1139→      <Dialog open={!!editingMov} onOpenChange={() => setEditingMov(null)}>
+  1140→        <DialogContent className="sm:max-w-md">
+  1141→          <DialogHeader>
+  1142→            <DialogTitle>Editar movimiento</DialogTitle>
+  1143→          </DialogHeader>
+  1144→          <div className="space-y-3">
+  1145→            <div>
+  1146→              <Label>Monto</Label>
+  1147→              <Input type="number" step="0.01" min="0.01" value={editMonto} onChange={e => setEditMonto(e.target.value)} />
+  1148→            </div>
+  1149→            <div>
+  1150→              <Label>Descripcion</Label>
+  1151→              <Input value={editDesc} onChange={e => setEditDesc(e.target.value)} />
+  1152→            </div>
+  1153→          </div>
+  1154→          <DialogFooter>
+  1155→            <Button variant="secondary" onClick={() => setEditingMov(null)} disabled={loadingEdit}>Cancelar</Button>
+  1156→            <Button onClick={handleEditSave} disabled={loadingEdit}>
+  1157→              {loadingEdit ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}Guardar
+  1158→            </Button>
+  1159→          </DialogFooter>
+  1160→        </DialogContent>
+  1161→      </Dialog>
+  1162→    </div>
+  1163→  );
+  1164→}
+  1165→
+  1166→/* ═══════════════════════════════════════════════════════════
+  1167→   CLOSING WIZARD — 4-step enhanced reconciliation flow
+  1168→   ═══════════════════════════════════════════════════════════ */
+  1169→
+  1170→interface ClosingWizardProps {
+  1171→  step: 1 | 2 | 3 | 4;
+  1172→  setStep: (s: 1 | 2 | 3 | 4) => void;
+  1173→  saldoEsperadoEfectivo: number;
+  1174→  totalEfectivo: number;
+  1175→  diferenciaEfectivo: number;
+  1176→  resumenOtros: Record<string, { ingresos: number; egresos: number }>;
+  1177→  otrosContados: Record<string, number>;
+  1178→  setOtrosContados: (v: Record<string, number>) => void;
+  1179→  otrosContadosTotal: number;
+  1180→  totalOtros: number;
+  1181→  expectedTotal: number;
+  1182→  totalContado: number;
+  1183→  diferenciaTotal: number;
+  1184→  billetes: Record<number, number>;
+  1185→  setBilletes: (b: Record<number, number>) => void;
+  1186→  cierreNotes: string;
+  1187→  setCierreNotes: (v: string) => void;
+  1188→  discrepancyExplain: string;
+  1189→  setDiscrepancyExplain: (v: string) => void;
+  1190→  diffExceedsThreshold: boolean;
+  1191→  canFinalizar: boolean;
+  1192→  loadingCerrar: boolean;
+  1193→  onCerrar: () => void;
+  1194→  onCancel: () => void;
+  1195→}
+  1196→
+  1197→function ClosingWizard(props: ClosingWizardProps) {
+  1198→  const fmt = (n: number) => formatMoney(n);
+  1199→  const steps = [
+  1200→    { n: 1, label: 'Billetes', icon: Banknote },
+  1201→    { n: 2, label: 'Otros métodos', icon: CreditCard },
+  1202→    { n: 3, label: 'Comparación', icon: ClipboardCheck },
+  1203→    { n: 4, label: 'Notas y cierre', icon: StickyNote },
+  1204→  ] as const;
+  1205→
+  1206→  return (
+  1207→    <>
+  1208→      <DialogHeader>
+  1209→        <DialogTitle className="flex items-center gap-2"><Lock className="w-5 h-5 text-destructive" /> Cierre de caja</DialogTitle>
+  1210→      </DialogHeader>
+  1211→
+  1212→      {/* Stepper */}
+  1213→      <div className="flex items-center gap-1 mb-2">
+  1214→        {steps.map((s, idx) => {
+  1215→          const SIcon = s.icon;
+  1216→          const isActive = props.step === s.n;
+  1217→          const isDone = props.step > s.n;
+  1218→          return (
+  1219→            <div key={s.n} className="flex-1 flex items-center gap-1">
+  1220→              <button
+  1221→                type="button"
+  1222→                onClick={() => props.setStep(s.n)}
+  1223→                className={cn(
+  1224→                  'flex-1 flex flex-col items-center gap-1 py-1.5 px-1 rounded-md transition-all',
+  1225→                  isActive && 'bg-[#0F2B28] text-white shadow-sm',
+  1226→                  isDone && 'text-[#059669]',
+  1227→                  !isActive && !isDone && 'text-muted-foreground hover:bg-muted/40'
+  1228→                )}
+  1229→              >
+  1230→                <span className={cn(
+  1231→                  'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border',
+  1232→                  isActive && 'bg-white text-[#0F2B28] border-white',
+  1233→                  isDone && 'bg-[#DCFCE7] text-[#166534] border-[#059669]',
+  1234→                  !isActive && !isDone && 'border-muted-foreground/40'
+  1235→                )}>
+  1236→                  {isDone ? <Check className="w-3 h-3" /> : <SIcon className="w-3 h-3" />}
+  1237→                </span>
+  1238→                <span className="text-[10px] font-medium leading-tight text-center">{s.label}</span>
+  1239→              </button>
+  1240→              {idx < steps.length - 1 && (
+  1241→                <div className={cn('h-0.5 w-4 rounded', props.step > s.n ? 'bg-[#059669]' : 'bg-muted-foreground/20')} />
+  1242→              )}
+  1243→            </div>
+  1244→          );
+  1245→        })}
+  1246→      </div>
+  1247→
+  1248→      {/* Step 1: Billetes */}
+  1249→      {props.step === 1 && (
+  1250→        <div className="space-y-3">
+  1251→          <div className="flex items-center justify-between">
+  1252→            <div>
+  1253→              <h4 className="font-semibold text-sm flex items-center gap-2"><Banknote className="w-4 h-4 text-[#0F2B28]" />Conteo de billetes</h4>
+  1254→              <p className="text-xs text-muted-foreground mt-0.5">Ingresá la cantidad de cada denominación.</p>
+  1255→            </div>
+  1256→            <Badge className="bg-[#DCFCE7] text-[#166534] shadow-sm">Esperado: {fmt(props.saldoEsperadoEfectivo)}</Badge>
+  1257→          </div>
+  1258→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+  1259→            {BILLETES.map(b => (
+  1260→              <div key={b} className="flex items-center gap-2 p-2 rounded-md border bg-gradient-to-r from-[#F0FDF4]/40 to-transparent hover:from-[#F0FDF4]/70 transition-colors">
+  1261→                <Banknote className="w-4 h-4 text-[#059669] shrink-0" />
+  1262→                <span className="w-16 text-sm font-semibold tabular-nums">{fmt(b)}</span>
+  1263→                <Input
+  1264→                  type="number"
+  1265→                  min="0"
+  1266→                  className="w-16 h-8 text-sm text-center"
+  1267→                  value={props.billetes[b] || 0}
+  1268→                  onChange={e => props.setBilletes({ ...props.billetes, [b]: parseInt(e.target.value) || 0 })}
+  1269→                />
+  1270→                <span className="text-sm text-muted-foreground w-20 text-right tabular-nums">{fmt(b * (props.billetes[b] || 0))}</span>
+  1271→              </div>
+  1272→            ))}
+  1273→          </div>
+  1274→          <div className="flex justify-between font-bold pt-2 border-t bg-[#F0FDF4]/40 rounded-md p-2 px-3">
+  1275→            <span>Total efectivo</span><span className="text-[#0F2B28] tabular-nums">{fmt(props.totalEfectivo)}</span>
+  1276→          </div>
+  1277→        </div>
+  1278→      )}
+  1279→
+  1280→      {/* Step 2: Other methods */}
+  1281→      {props.step === 2 && (
+  1282→        <div className="space-y-3">
+  1283→          <div>
+  1284→            <h4 className="font-semibold text-sm flex items-center gap-2"><CreditCard className="w-4 h-4 text-[#0F2B28]" />Otros métodos de pago</h4>
+  1285→            <p className="text-xs text-muted-foreground mt-0.5">Verificá los totales calculados por el sistema. Podés ajustarlos si es necesario.</p>
+  1286→          </div>
+  1287→          {Object.keys(props.resumenOtros).length === 0 ? (
+  1288→            <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+  1289→              <QrCode className="w-8 h-8 mx-auto mb-2 opacity-40" />
+  1290→              <p className="text-sm">No hubo movimientos en otros métodos durante este turno.</p>
+  1291→            </div>
+  1292→          ) : (
+  1293→            <div className="space-y-2">
+  1294→              {Object.entries(props.resumenOtros).map(([metodo, data]) => {
+  1295→                const systemTotal = data.ingresos - data.egresos;
+  1296→                const counted = props.otrosContados[metodo] ?? systemTotal;
+  1297→                const diff = (counted || 0) - systemTotal;
+  1298→                const MetodoIcon = metodo.toLowerCase().includes('tarjeta')
+  1299→                  ? CreditCard
+  1300→                  : metodo.toLowerCase().includes('transferencia')
+  1301→                  ? ArrowRightLeft
+  1302→                  : metodo.toLowerCase().includes('mercado')
+  1303→                  ? QrCode
+  1304→                  : Wallet;
+  1305→                return (
+  1306→                  <div key={metodo} className="border rounded-md p-2.5 space-y-1.5">
+  1307→                    <div className="flex items-center gap-2">
+  1308→                      <MetodoIcon className="w-4 h-4 text-[#0F2B28] shrink-0" />
+  1309→                      <span className="text-sm font-medium flex-1">{metodo}</span>
+  1310→                      <Badge variant="outline" className="text-[10px]">Sistema: {fmt(systemTotal)}</Badge>
+  1311→                    </div>
+  1312→                    <div className="flex items-center gap-2">
+  1313→                      <Label className="text-[10px] text-muted-foreground w-16">Contado:</Label>
+  1314→                      <Input
+  1315→                        type="number"
+  1316→                        step="0.01"
+  1317→                        className="h-8 text-sm flex-1 tabular-nums"
+  1318→                        value={counted}
+  1319→                        onChange={e => props.setOtrosContados({ ...props.otrosContados, [metodo]: parseFloat(e.target.value) || 0 })}
+  1320→                      />
+  1321→                      <span className={cn(
+  1322→                        'text-xs font-semibold w-20 text-right tabular-nums',
+  1323→                        diff === 0 ? 'text-[#166534]' : diff > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
+  1324→                      )}>
+  1325→                        {diff === 0 ? '✓' : diff > 0 ? '+' : ''}{fmt(diff)}
+  1326→                      </span>
+  1327→                    </div>
+  1328→                  </div>
+  1329→                );
+  1330→              })}
+  1331→              <div className="flex justify-between font-bold pt-2 border-t bg-[#F0FDF4]/40 rounded-md p-2 px-3">
+  1332→                <span>Total otros métodos</span><span className="text-[#0F2B28] tabular-nums">{fmt(props.otrosContadosTotal)}</span>
+  1333→              </div>
+  1334→            </div>
+  1335→          )}
+  1336→        </div>
+  1337→      )}
+  1338→
+  1339→      {/* Step 3: Comparison */}
+  1340→      {props.step === 3 && (
+  1341→        <div className="space-y-3">
+  1342→          <div>
+  1343→            <h4 className="font-semibold text-sm flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-[#0F2B28]" />Comparación vs sistema</h4>
+  1344→            <p className="text-xs text-muted-foreground mt-0.5">Revisá las diferencias antes de cerrar el turno.</p>
+  1345→          </div>
+  1346→          <div className="grid grid-cols-2 gap-2">
+  1347→            <ComparisonRow label="Esperado (sistema)" value={props.expectedTotal} variant="neutral" />
+  1348→            <ComparisonRow label="Contado (real)" value={props.totalContado} variant="neutral" />
+  1349→            <ComparisonRow
+  1350→              label="Diferencia total"
+  1351→              value={props.diferenciaTotal}
+  1352→              variant={props.diferenciaTotal === 0 ? 'success' : props.diferenciaTotal > 0 ? 'warning' : 'danger'}
+  1353→              showSign
+  1354→            />
+  1355→            <ComparisonRow
+  1356→              label="Diferencia efectivo"
+  1357→              value={props.diferenciaEfectivo}
+  1358→              variant={props.diferenciaEfectivo === 0 ? 'success' : props.diferenciaEfectivo > 0 ? 'warning' : 'danger'}
+  1359→              showSign
+  1360→            />
+  1361→          </div>
+  1362→
+  1363→          {/* Breakdown by method */}
+  1364→          <div className="border rounded-md p-3">
+  1365→            <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Detalle por método</h5>
+  1366→            <div className="space-y-1.5">
+  1367→              <div className="flex justify-between items-center text-sm py-1 border-b border-dashed">
+  1368→                <span className="flex items-center gap-2"><Banknote className="w-3.5 h-3.5 text-[#059669]" />Efectivo</span>
+  1369→                <div className="flex items-center gap-3">
+  1370→                  <span className="text-xs text-muted-foreground">Esp: {fmt(props.saldoEsperadoEfectivo)}</span>
+  1371→                  <span className="text-xs font-semibold tabular-nums">Cont: {fmt(props.totalEfectivo)}</span>
+  1372→                  <span className={cn(
+  1373→                    'text-xs font-bold tabular-nums w-16 text-right',
+  1374→                    props.diferenciaEfectivo === 0 ? 'text-[#166534]' : 'text-[#991B1B]'
+  1375→                  )}>
+  1376→                    {props.diferenciaEfectivo === 0 ? '✓' : `${props.diferenciaEfectivo > 0 ? '+' : ''}${fmt(props.diferenciaEfectivo)}`}
+  1377→                  </span>
+  1378→                </div>
+  1379→              </div>
+  1380→              {Object.entries(props.resumenOtros).map(([metodo, data]) => {
+  1381→                const systemTotal = data.ingresos - data.egresos;
+  1382→                const counted = props.otrosContados[metodo] ?? systemTotal;
+  1383→                const diff = (counted || 0) - systemTotal;
+  1384→                return (
+  1385→                  <div key={metodo} className="flex justify-between items-center text-sm py-1 border-b border-dashed last:border-0">
+  1386→                    <span>{metodo}</span>
+  1387→                    <div className="flex items-center gap-3">
+  1388→                      <span className="text-xs text-muted-foreground">Esp: {fmt(systemTotal)}</span>
+  1389→                      <span className="text-xs font-semibold tabular-nums">Cont: {fmt(counted || 0)}</span>
+  1390→                      <span className={cn(
+  1391→                        'text-xs font-bold tabular-nums w-16 text-right',
+  1392→                        diff === 0 ? 'text-[#166534]' : 'text-[#991B1B]'
+  1393→                      )}>
+  1394→                        {diff === 0 ? '✓' : `${diff > 0 ? '+' : ''}${fmt(diff)}`}
+  1395→                      </span>
+  1396→                    </div>
+  1397→                  </div>
+  1398→                );
+  1399→              })}
+  1400→            </div>
+  1401→          </div>
+  1402→
+  1403→          {props.diferenciaTotal !== 0 && (
+  1404→            <div className={cn(
+  1405→              'flex items-center gap-2 p-2.5 rounded-md text-sm',
+  1406→              props.diferenciaTotal > 0 ? 'bg-[#FEF3C7] text-[#92400E]' : 'bg-[#FEE2E2] text-[#991B1B]'
+  1407→            )}>
+  1408→              <AlertTriangle className="w-4 h-4 shrink-0" />
+  1409→              <span>
+  1410→                {props.diferenciaTotal > 0
+  1411→                  ? `Hay un sobrante de ${fmt(Math.abs(props.diferenciaTotal))}.`
+  1412→                  : `Hay un faltante de ${fmt(Math.abs(props.diferenciaTotal))}.`}
+  1413→                {' '}Explicalo en el siguiente paso.
+  1414→              </span>
+  1415→            </div>
+  1416→          )}
+  1417→        </div>
+  1418→      )}
+  1419→
+  1420→      {/* Step 4: Notes & close */}
+  1421→      {props.step === 4 && (
+  1422→        <div className="space-y-3">
+  1423→          <div>
+  1424→            <h4 className="font-semibold text-sm flex items-center gap-2"><StickyNote className="w-4 h-4 text-[#0F2B28]" />Notas y cierre</h4>
+  1425→            <p className="text-xs text-muted-foreground mt-0.5">Agregá notas internas sobre el turno antes de cerrar.</p>
+  1426→          </div>
+  1427→
+  1428→          {/* Final summary */}
+  1429→          <div className="grid grid-cols-2 gap-2 text-center">
+
+[showing lines 930-1429 of 2342; use offset=1430 with limit to continue reading]

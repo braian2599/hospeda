@@ -112,3 +112,34 @@ export const moneyEq = (a: number, b: number): boolean =>
 
 export const moneyGte = (a: number, b: number): boolean =>
   Math.round(a * 100) >= Math.round(b * 100);
+
+// ═══════════════════════════════════════════════════════════
+// RELATIVE TIME
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Format a date/timestamp as a relative time string in Spanish.
+ * e.g. "hace 5 min", "hace 2 h", "hace 3 días"
+ */
+export const timeAgo = (dateOrStr: string | Date): string => {
+  const date = typeof dateOrStr === 'string' ? new Date(dateOrStr) : dateOrStr;
+  const now = Date.now();
+  const diff = now - date.getTime();
+
+  if (diff < 0) return 'ahora';
+  if (diff < 60_000) return 'ahora';
+  if (diff < 3_600_000) {
+    const mins = Math.floor(diff / 60_000);
+    return `hace ${mins} min`;
+  }
+  if (diff < 86_400_000) {
+    const hrs = Math.floor(diff / 3_600_000);
+    return `hace ${hrs} h`;
+  }
+  if (diff < 604_800_000) {
+    const days = Math.floor(diff / 86_400_000);
+    return days === 1 ? 'hace 1 día' : `hace ${days} días`;
+  }
+  // Fall back to formatted date
+  return formatFecha(typeof dateOrStr === 'string' ? dateOrStr : date.toISOString());
+};

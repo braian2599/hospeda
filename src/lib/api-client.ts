@@ -183,9 +183,9 @@ export const api = {
   // ── Limpieza ──
   limpieza: {
     list: (estado?: string) => apiFetch<DbTareaLimpieza[]>(`/limpieza${estado ? `?estado=${estado}` : ''}`),
-    create: (data: { habitacion: string; nota?: string }) =>
+    create: (data: { habitacion: string; nota?: string; prioridad?: string; tipo?: string }) =>
       apiFetch<DbTareaLimpieza>('/limpieza', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: { estado?: string; empleadoId?: string; empleado?: string; nota?: string }) =>
+    update: (id: string, data: { estado?: string; empleadoId?: string; empleado?: string; nota?: string; prioridad?: string; tipo?: string }) =>
       apiFetch<DbTareaLimpieza>(`/limpieza/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   },
 
@@ -376,6 +376,8 @@ export interface DbCajaState {
 
 export interface DbTareaLimpieza {
   id: string; habitacion: string; estado: string;
+  prioridad: string; // urgente, normal, baja
+  tipo: string; // limpieza, mantenimiento, preparacion, inspeccion
   empleadoId?: string | null; empleado?: string | null;
   nota?: string | null; fechaCreacion: string; fechaCompletado?: string | null;
 }

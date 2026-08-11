@@ -10,14 +10,26 @@ import type {
 } from './types';
 import { type PlanTipo, type PlanInfo, modulosEfectivos as calcModulosEfectivos, PLANES } from './plan-config';
 import { api } from './api-client';
-import { useNotificationStore } from './notification-store';
+import { useNotificationStore, type NotificationCategory, type NotificationPriority } from './notification-store';
 
 
 // ==================== NOTIFICATION HELPER ====================
 
-function pushNotif(type: 'success' | 'info' | 'warning', title: string, message: string) {
+function pushNotif(
+  type: 'success' | 'info' | 'warning',
+  title: string,
+  message: string,
+  category: NotificationCategory = 'sistema',
+  priority: NotificationPriority = 'info',
+  actionUrl?: string,
+  actionLabel?: string,
+) {
   try {
-    useNotificationStore.getState().addNotification({ type, title, message });
+    useNotificationStore.getState().addNotification({
+      type, title, message, category, priority,
+      persisted: priority === 'urgent' || priority === 'warning',
+      actionUrl, actionLabel,
+    });
   } catch { /* store may not be ready during SSR */ }
 }
 
@@ -869,7 +881,7 @@ export const useHotelStore = create<HotelStore>()(
           });
           // Actualizar el ID local antes de retornar para que registrarPago pueda encontrar la reserva
           reserva.id = updatedId;
-          pushNotif('success', 'Reserva creada', `${datos.huesped} — Hab. ${datos.habitacion}`);
+          pushNotif('success', 'Reserva creada', `${datos.huesped} — Hab. ${datos.habitacion}`, 'reserva', 'info', 'reservas', 'Ver reserva');
         } catch (err) {
           const isAuth = err && typeof err === 'object' && 'status' in err && (err as any).status === 401;
           console.error('[crearReserva] Error al guardar en BD:', isAuth ? 'Error de autenticación (401)' : err);
@@ -1052,7 +1064,7 @@ export const useHotelStore = create<HotelStore>()(
           });
           return false;
         }
-        pushNotif('success', 'Check-In realizado', `${reserva.huesped} — Hab. ${reserva.habitacion}`);
+        pushNotif('success', 'Check-In realizado', `${reserva.huesped} — Hab. ${reserva.habitacion}`, 'checkin', 'info', 'checkin', 'Ver reserva');
         return true;
       },
 
@@ -1089,6 +1101,7 @@ export const useHotelStore = create<HotelStore>()(
 
         set({ reservas: updatedReservas, habitaciones: newHabs, clientes: newClientes });
         state._registrarAuditoria('Check-Out', `Check-Out: ${reserva.huesped} - Hab ${reserva.habitacion} (Total: ${total})`);
+        pushNotif('info', `Hab. ${reserva.habitacion} requiere limpieza`, `Check-out de ${reserva.huesped}`, 'limpieza', 'info', 'habitaciones', 'Ver habitación');
 
         // 2) Llamar a la API
         try {
@@ -1104,7 +1117,7 @@ export const useHotelStore = create<HotelStore>()(
           });
           return null;
         }
-        pushNotif('info', 'Check-Out realizado', `${reserva.huesped} — Hab. ${reserva.habitacion}`);
+        pushNotif('info', 'Check-Out realizado', `${reserva.huesped} — Hab. ${reserva.habitacion}`, 'checkin', 'info', 'reservas', 'Ver reserva');
         return { noches, total };
       },
 
@@ -1165,6 +1178,7 @@ export const useHotelStore = create<HotelStore>()(
           set({ pagos: prevPagos, reservas: prevReservas });
           return null;
         }
+        pushNotif('success', `Pago de $${montoNum} recibido`, `${reserva.huesped} — ${metodoResuelto}`, 'pago', 'info', 'caja', 'Cobrar');
         return nuevoPago;
       },
 
@@ -1192,7 +1206,7 @@ export const useHotelStore = create<HotelStore>()(
           // 2. Todo OK — actualizar estado local
           set({ habitaciones: { ...prevHabitaciones, [numero]: { ...hab, estado: 'Disponible' as const } } });
           get()._registrarAuditoria('Limpieza', `Habitación ${numero} marcada como limpia`);
-          pushNotif('success', 'Limpieza completada', `Habitación ${numero} disponible`);
+          pushNotif('success', 'Limpieza completada', `Habitación ${numero} disponible`, 'limpieza', 'info', 'habitaciones', 'Ver habitación');
         } catch (err) {
           console.error('[marcarComoLimpia] error:', err);
           throw err;
@@ -1348,7 +1362,7 @@ export const useHotelStore = create<HotelStore>()(
         get()._registrarAuditoria('Caja', `Apertura - ${empleado} - Inicial: ${montoInicial}`);
         try {
           await api.caja.abrir(Math.round(parseFloat(String(montoInicial)) * 100));
-          pushNotif('success', 'Caja abierta', `Se abrió la caja con $${montoInicial}`);
+          pushNotif('success', 'Caja abierta', `Se abrió la caja con $${montoInicial}`, 'sistema', 'info');
           return true;
         } catch (err) {
           console.error('abrirCaja API error:', err);
@@ -1431,7 +1445,7 @@ export const useHotelStore = create<HotelStore>()(
         get()._registrarAuditoria('Caja', `Cierre - ${empleado} - Esperado: ${saldoEsperado} Contado: ${saldoContado} Dif: ${diferencia}`);
         try {
           await api.caja.cerrar({ billetes, totalOtrosMetodos: Math.round(totalOtros * 100) });
-          pushNotif('info', 'Caja cerrada', `Diferencia: $${diferencia.toFixed(2)}`);
+          pushNotif('info', 'Caja cerrada', `Diferencia: $${diferencia.toFixed(2)}`, 'sistema', diferencia !== 0 ? 'warning' : 'info');
           return cierre;
         } catch (err) {
           console.error('cerrarCaja API error:', err);

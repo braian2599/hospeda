@@ -79,38 +79,42 @@
 }
 
 .dark {
-  --background: oklch(0.17 0.02 260);
-  --foreground: oklch(0.922 0 0);
-  --card: oklch(0.22 0.015 260);
-  --card-foreground: oklch(0.922 0 0);
-  --popover: oklch(0.22 0.015 260);
-  --popover-foreground: oklch(0.922 0 0);
-  --primary: oklch(0.266 0.034 186.1);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.922 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.922 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.266 0.034 186.1);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  /* Deeper, more refined sidebar tone for stronger contrast with content area */
-  --sidebar: oklch(0.18 0.025 260);
-  --sidebar-foreground: oklch(0.708 0 0);
-  --sidebar-primary: oklch(0.800 0.182 151.7);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.28 0.035 186.1);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.800 0.182 151.7);
+  /* ── Forest-green brand dark theme ──
+     Primary brand #0F2B28 lightens to #1A4D43 / #2D7A6E for dark mode.
+     Background uses deep forest-tinted grays (not pure blue-gray) to keep brand cohesion.
+     All colors ensure WCAG AA contrast (4.5:1 for normal text, 3:1 for large/UI). */
+  --background: #0C1B19;        /* Deep forest black — not pure black, subtle green undertone */
+  --foreground: #E2E8F0;        /* Cool light gray for body text */
+  --card: #132624;              /* Slightly lifted card surface with green tint */
+  --card-foreground: #E2E8F0;   /* Matches foreground */
+  --popover: #162E2B;           /* Elevated popover surface */
+  --popover-foreground: #E2E8F0;
+  --primary: #2D7A6E;           /* Forest green — brighter for dark bg contrast */
+  --primary-foreground: #FFFFFF;
+  --secondary: #1A2F2C;         /* Subtle green-tinted secondary */
+  --secondary-foreground: #CBD5E1;
+  --muted: #1A2F2C;             /* Muted surface */
+  --muted-foreground: #94A3B8;  /* Readable secondary text */
+  --accent: #1A4D43;            /* Accent surface — forest green mid-tone */
+  --accent-foreground: #E2E8F0;
+  --destructive: #F87171;       /* Bright red for dark backgrounds */
+  --border: rgba(255, 255, 255, 0.08); /* Very subtle border */
+  --input: rgba(255, 255, 255, 0.12);  /* Slightly more visible for inputs */
+  --ring: #2D7A6E;              /* Focus ring matches primary */
+  --chart-1: #FBBF24;           /* Amber — warm accent */
+  --chart-2: #4ADE80;           /* Green — success/nature */
+  --chart-3: #38BDF8;           /* Sky blue — info */
+  --chart-4: #FB923C;           /* Orange — warning */
+  --chart-5: #A78BFA;           /* Purple — special */
+  /* Sidebar — deep forest with brand green accents */
+  --sidebar: #0A1F1C;           /* Deepest forest for sidebar */
+  --sidebar-foreground: #94A3B8;
+  --sidebar-primary: #4ADE80;   /* Bright green for active indicators */
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1A4D43;    /* Hover/active nav item */
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: #4ADE80;
 }
 
 @layer base {
@@ -121,6 +125,11 @@
   html, body {
     @apply bg-background text-foreground;
     scroll-behavior: smooth;
+    /* Smooth theme transition — colors animate when switching light/dark.
+       disableTransitionOnChange in ThemeProvider prevents flash, this handles
+       the smooth interpolation for all themed properties. */
+    transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+                color 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Global focus-visible ring for keyboard accessibility.
@@ -256,6 +265,14 @@
   );
   background-repeat: no-repeat;
   background-attachment: fixed;
+}
+
+.dark .sidebar-gradient {
+  background-image: linear-gradient(
+    180deg,
+    rgba(74, 222, 128, 0.06) 0%,
+    transparent 25%
+  );
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -421,6 +438,15 @@
   animation: celebrateShimmer 6s ease-in-out infinite;
 }
 
+.dark .celebrate-bg {
+  background: linear-gradient(
+    110deg,
+    rgba(15, 43, 40, 0.5) 0%,
+    rgba(45, 122, 110, 0.3) 50%,
+    rgba(15, 43, 40, 0.5) 100%
+  );
+}
+
 /* Compact density */
 .density-compact .space-y-6 > * + * { margin-top: 0.75rem; }
 .density-compact .space-y-4 > * + * { margin-top: 0.5rem; }
@@ -450,6 +476,17 @@
   z-index: 100;
   transition: width 100ms ease-out;
   box-shadow: 0 0 12px rgba(5, 150, 105, 0.5);
+}
+
+.dark .scroll-progress {
+  background: linear-gradient(
+    90deg,
+    #2D7A6E 0%,
+    #4ADE80 40%,
+    #6EE7B7 80%,
+    #FBBF24 100%
+  );
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
 }
 
 /* Floating gradient orbs for hero section */
@@ -505,6 +542,20 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
+.dark .premium-badge {
+  color: #4ADE80;
+  background: linear-gradient(
+    90deg,
+    rgba(45, 122, 110, 0.15) 0%,
+    rgba(74, 222, 128, 0.08) 100%
+  );
+  border: 1px solid rgba(45, 122, 110, 0.3);
+  border-left: 3px solid #4ADE80;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
 /* Premium CTA button — lift + glow on hover */
 .cta-premium {
   position: relative;
@@ -526,6 +577,17 @@
   box-shadow: 0 4px 12px -2px rgba(15, 43, 40, 0.25);
 }
 
+.dark .cta-premium:hover {
+  box-shadow:
+    0 12px 24px -6px rgba(45, 122, 110, 0.4),
+    0 4px 8px -2px rgba(45, 122, 110, 0.2),
+    0 0 20px rgba(74, 222, 128, 0.15);
+}
+
+.dark .cta-premium:active {
+  box-shadow: 0 4px 12px -2px rgba(45, 122, 110, 0.3);
+}
+
 /* Skeleton shimmer for stats initial state */
 .stats-skeleton {
   background: linear-gradient(
@@ -539,6 +601,15 @@
   border-radius: 0.5rem;
   display: inline-block;
   min-width: 4ch;
+}
+
+.dark .stats-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(74, 222, 128, 0.03) 25%,
+    rgba(74, 222, 128, 0.08) 50%,
+    rgba(74, 222, 128, 0.03) 75%
+  );
 }
 
 /* Glass card — frosted glass effect */
@@ -572,6 +643,17 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
+}
+
+.dark .hero-gradient-text {
+  background: linear-gradient(
+    135deg,
+    #4ADE80 0%,
+    #2D7A6E 50%,
+    #059669 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 /* Underline shimmer for hero word */
@@ -613,6 +695,13 @@
   opacity: 0.25;
 }
 
+.dark .premium-quote {
+  background: linear-gradient(135deg, #4ADE80 0%, #2D7A6E 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  opacity: 0.2;
+}
+
 /* Feature grid item hover effect */
 .feature-grid-item {
   position: relative;
@@ -628,6 +717,12 @@
   box-shadow:
     0 20px 40px -12px rgba(15, 43, 40, 0.18),
     0 4px 12px -2px rgba(15, 43, 40, 0.08);
+}
+
+.dark .feature-grid-item:hover {
+  box-shadow:
+    0 20px 40px -12px rgba(0, 0, 0, 0.5),
+    0 4px 12px -2px rgba(45, 122, 110, 0.15);
 }
 
 /* Floating action button (mobile) */
@@ -668,6 +763,19 @@
 
 .fab-button:active {
   transform: scale(0.96);
+}
+
+.dark .fab-button {
+  background: linear-gradient(135deg, #2D7A6E 0%, #4ADE80 100%);
+  box-shadow:
+    0 8px 16px -4px rgba(45, 122, 110, 0.5),
+    0 4px 8px -2px rgba(45, 122, 110, 0.3);
+}
+
+.dark .fab-button:hover {
+  box-shadow:
+    0 12px 24px -4px rgba(45, 122, 110, 0.6),
+    0 6px 12px -2px rgba(74, 222, 128, 0.3);
 }
 
 /* Quick stats mobile bar — sticky top */
@@ -749,8 +857,8 @@
 
 .dark .bg-grid-pattern {
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(74, 222, 128, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(74, 222, 128, 0.04) 1px, transparent 1px);
 }
 
 /* Fade-in scale for modal-like overlays */
@@ -1019,6 +1127,15 @@
   transform: scale(0.95);
 }
 
+.dark .back-to-top-btn {
+  background: linear-gradient(135deg, #2D7A6E 0%, #4ADE80 100%);
+  box-shadow: 0 4px 12px rgba(45, 122, 110, 0.4);
+}
+
+.dark .back-to-top-btn:hover {
+  box-shadow: 0 6px 20px rgba(45, 122, 110, 0.5);
+}
+
 /* Page transition micro-fade */
 @keyframes pageFadeIn {
   from { opacity: 0; }
@@ -1083,6 +1200,14 @@
   transform: translateY(-50%);
 }
 
+.dark .feature-connector::before {
+  background: rgba(74, 222, 128, 0.3);
+}
+
+.dark .feature-connector::after {
+  background: rgba(74, 222, 128, 0.15);
+}
+
 /* v2.1 version badge pulse */
 @keyframes versionPulse {
   0%, 100% { opacity: 0.85; transform: scale(1); }
@@ -1091,6 +1216,641 @@
 
 .version-badge-pulse {
   animation: versionPulse 2.5s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TASK 8 — Micro-Interaction & Transition Utilities
+   Global classes for polished, professional feel across all modules.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Hover Interactions ─── */
+
+/* Lift effect: translateY(-2px) + shadow elevation on hover */
+.hover-lift {
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -8px rgba(15, 43, 40, 0.15);
+}
+.dark .hover-lift:hover {
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.45);
+}
+
+/* Scale effect: subtle scale(1.02) on hover */
+.hover-scale {
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* Glow effect: subtle box-shadow glow with primary color on hover */
+.hover-glow {
+  transition: box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hover-glow:hover {
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15),
+              0 4px 16px -4px rgba(5, 150, 105, 0.2);
+}
+.dark .hover-glow:hover {
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.15),
+              0 4px 16px -4px rgba(74, 222, 128, 0.2);
+}
+
+/* Press shrink: scale(0.97) on active/press */
+.press-shrink {
+  transition: transform 100ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.press-shrink:active {
+  transform: scale(0.97);
+}
+
+/* ─── Staggered Children ─── */
+
+/* Staggered fade-in for child elements — use with .stagger-children on parent */
+@keyframes staggerChildIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-children > * {
+  animation: staggerChildIn 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.stagger-children > *:nth-child(1)  { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2)  { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3)  { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4)  { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5)  { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6)  { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7)  { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8)  { animation-delay: 350ms; }
+.stagger-children > *:nth-child(9)  { animation-delay: 400ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 450ms; }
+.stagger-children > *:nth-child(n+11) { animation-delay: 500ms; }
+
+/* ─── Mount Animations ─── */
+
+/* Slide in from right on mount */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.slide-in-right {
+  animation: slideInRight 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Slide in from bottom on mount */
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-in-up {
+  animation: slideInUp 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Simple opacity fade-in on mount */
+.fade-in {
+  animation: fadeIn 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ─── Shimmer / Skeleton Loading ─── */
+
+/* Full shimmer effect for skeleton placeholders */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  color: transparent !important;
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    color-mix(in oklch, var(--muted) 80%, var(--primary)) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: var(--radius-sm);
+}
+.shimmer::after {
+  content: '\00a0';
+}
+
+/* Shimmer block — a rectangular skeleton placeholder */
+.shimmer-block {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    color-mix(in oklch, var(--muted) 80%, var(--primary)) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: var(--radius-sm);
+}
+
+/* Shimmer circle — for avatar placeholders */
+.shimmer-circle {
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    color-mix(in oklch, var(--muted) 80%, var(--primary)) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* ─── Pulse Soft ─── */
+
+/* Gentle pulsing animation — not aggressive like animate-pulse */
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.pulse-soft {
+  animation: pulseSoft 3s ease-in-out infinite;
+}
+
+/* ─── Sidebar Enhancements ─── */
+
+/* Active nav left border indicator slides in */
+@keyframes navIndicatorSlide {
+  from { transform: scaleY(0); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 1; }
+}
+
+.sidebar-active-indicator {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--sidebar-primary);
+  animation: navIndicatorSlide 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  transform-origin: center;
+}
+
+/* Staggered entrance for sidebar nav items */
+@keyframes navItemEnter {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.sidebar-stagger > * {
+  animation: navItemEnter 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.sidebar-stagger > *:nth-child(1)  { animation-delay: 30ms; }
+.sidebar-stagger > *:nth-child(2)  { animation-delay: 60ms; }
+.sidebar-stagger > *:nth-child(3)  { animation-delay: 90ms; }
+.sidebar-stagger > *:nth-child(4)  { animation-delay: 120ms; }
+.sidebar-stagger > *:nth-child(5)  { animation-delay: 150ms; }
+.sidebar-stagger > *:nth-child(6)  { animation-delay: 180ms; }
+.sidebar-stagger > *:nth-child(7)  { animation-delay: 210ms; }
+.sidebar-stagger > *:nth-child(8)  { animation-delay: 240ms; }
+.sidebar-stagger > *:nth-child(9)  { animation-delay: 270ms; }
+.sidebar-stagger > *:nth-child(10) { animation-delay: 300ms; }
+.sidebar-stagger > *:nth-child(n+11) { animation-delay: 330ms; }
+
+/* Nav item hover background transition */
+.sidebar-nav-item {
+  transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 200ms ease;
+}
+
+/* Active sidebar item glow */
+.sidebar-active-glow {
+  box-shadow: inset 3px 0 8px -3px rgba(74, 222, 128, 0.3);
+}
+.dark .sidebar-active-glow {
+  box-shadow: inset 3px 0 12px -3px rgba(74, 222, 128, 0.25);
+}
+
+/* Sidebar collapse/expand animation */
+.sidebar-collapse-transition {
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Module Card Enhancements ─── */
+
+/* Card hover elevation: shadow-sm → shadow-md with border transition */
+.card-interactive {
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px -4px rgba(15, 43, 40, 0.1),
+              0 2px 4px -2px rgba(15, 43, 40, 0.06);
+  border-color: color-mix(in oklch, var(--border) 70%, var(--primary));
+}
+.dark .card-interactive:hover {
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.4),
+              0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  border-color: color-mix(in oklch, var(--border) 70%, var(--primary));
+}
+
+/* Staggered card grid entrance */
+@keyframes cardGridEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.card-grid-stagger > * {
+  animation: cardGridEnter 350ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.card-grid-stagger > *:nth-child(1)  { animation-delay: 0ms; }
+.card-grid-stagger > *:nth-child(2)  { animation-delay: 60ms; }
+.card-grid-stagger > *:nth-child(3)  { animation-delay: 120ms; }
+.card-grid-stagger > *:nth-child(4)  { animation-delay: 180ms; }
+.card-grid-stagger > *:nth-child(5)  { animation-delay: 240ms; }
+.card-grid-stagger > *:nth-child(6)  { animation-delay: 300ms; }
+.card-grid-stagger > *:nth-child(7)  { animation-delay: 360ms; }
+.card-grid-stagger > *:nth-child(8)  { animation-delay: 420ms; }
+.card-grid-stagger > *:nth-child(n+9) { animation-delay: 480ms; }
+
+/* Status-based left border colors for cards */
+.status-border-success  { border-left: 3px solid #059669; }
+.status-border-warning  { border-left: 3px solid #D97706; }
+.status-border-danger   { border-left: 3px solid #EF4444; }
+.status-border-info     { border-left: 3px solid #0EA5E9; }
+.status-border-neutral  { border-left: 3px solid #94A3B8; }
+.status-border-purple   { border-left: 3px solid #8B5CF6; }
+
+.dark .status-border-success  { border-left-color: #4ADE80; }
+.dark .status-border-warning  { border-left-color: #FBBF24; }
+.dark .status-border-danger   { border-left-color: #F87171; }
+.dark .status-border-info     { border-left-color: #38BDF8; }
+.dark .status-border-neutral  { border-left-color: #94A3B8; }
+.dark .status-border-purple   { border-left-color: #A78BFA; }
+
+/* ─── Button Enhancements ─── */
+
+/* CSS-only ripple effect using ::after pseudo-element */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+  transition: transform 100ms cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 200ms ease,
+              border-color 200ms ease,
+              box-shadow 200ms ease;
+}
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
+    rgba(255, 255, 255, 0.3) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 400ms ease, transform 400ms ease;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.btn-ripple:active::after {
+  opacity: 1;
+  transform: scale(2.5);
+  transition: opacity 0ms, transform 0ms;
+}
+
+/* Button loading state with spinner */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+.btn-loading::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1em;
+  height: 1em;
+  margin: -0.5em 0 0 -0.5em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: btnSpinner 600ms linear infinite;
+  color: var(--primary-foreground);
+}
+
+@keyframes btnSpinner {
+  to { transform: rotate(360deg); }
+}
+
+/* Smooth color transition for all interactive buttons */
+.btn-smooth-transition {
+  transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              transform 100ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Disabled button state */
+.btn-disabled-polished {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(30%);
+}
+
+/* ─── Table Enhancements ─── */
+
+/* Alternating row backgrounds with subtle gradient */
+.table-striped > tbody > tr:nth-child(even) {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--muted) 40%, transparent) 0%,
+    transparent 100%
+  );
+}
+
+/* Hover row highlight with transition */
+.table-row-hover > tbody > tr {
+  transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 150ms ease;
+}
+.table-row-hover > tbody > tr:hover {
+  background-color: color-mix(in oklch, var(--primary) 6%, transparent);
+}
+
+.dark .table-row-hover > tbody > tr:hover {
+  background-color: color-mix(in oklch, var(--primary) 10%, transparent);
+}
+
+/* Sortable column header indicator */
+.table-sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: color 150ms ease;
+}
+.table-sortable-header:hover {
+  color: var(--primary);
+}
+
+/* Row click animation — brief highlight flash */
+@keyframes rowClickFlash {
+  0%   { background-color: color-mix(in oklch, var(--primary) 15%, transparent); }
+  100% { background-color: transparent; }
+}
+.table-row-click {
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+.table-row-click:active {
+  animation: rowClickFlash 400ms ease-out;
+}
+
+/* ─── Dialog/Modal Enhancements ─── */
+
+/* Backdrop blur animation for dialog overlays */
+@keyframes dialogOverlayIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+}
+
+.dialog-overlay-animated {
+  animation: dialogOverlayIn 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  background: rgba(15, 43, 40, 0.4);
+}
+.dark .dialog-overlay-animated {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Smooth scale-in animation for dialog content */
+@keyframes dialogContentIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.dialog-content-animated {
+  animation: dialogContentIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── Loading States ─── */
+
+/* Skeleton card placeholder */
+.skeleton-card {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.skeleton-card-header {
+  height: 2.5rem;
+  margin: 1rem 1rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+.skeleton-card-line {
+  height: 0.75rem;
+  margin: 0.375rem 1rem;
+  border-radius: var(--radius-sm);
+}
+.skeleton-card-line:last-child {
+  width: 60%;
+  margin-bottom: 1rem;
+}
+
+/* Branded spinner — uses primary color */
+@keyframes brandedSpin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner-branded {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid color-mix(in oklch, var(--primary) 30%, transparent);
+  border-top-color: var(--primary);
+  border-radius: 9999px;
+  animation: brandedSpin 700ms linear infinite;
+}
+
+.spinner-branded-sm {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-width: 1.5px;
+}
+
+.spinner-branded-lg {
+  width: 2rem;
+  height: 2rem;
+  border-width: 3px;
+}
+
+/* Progress bar with branded gradient */
+.progress-branded {
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.progress-branded-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #059669, #4ADE80);
+  transition: width 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dark .progress-branded-fill {
+  background: linear-gradient(90deg, #2D7A6E, #4ADE80);
+}
+
+/* Indeterminate progress animation */
+@keyframes progressIndeterminate {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+.progress-indeterminate-fill {
+  width: 40%;
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #059669, #4ADE80);
+  animation: progressIndeterminate 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.dark .progress-indeterminate-fill {
+  background: linear-gradient(90deg, #2D7A6E, #4ADE80);
+}
+
+/* ─── Module Transition Enhancement ─── */
+
+/* Enhanced module enter with subtle scale + opacity */
+@keyframes moduleEnterPolished {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.module-enter-polished {
+  animation: moduleEnterPolished 350ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Content area fade-in for module switches */
+@keyframes contentFadeSwitch {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.content-fade-switch {
+  animation: contentFadeSwitch 200ms ease-out both;
+}
+
+/* ─── Interaction States ─── */
+
+/* Focus ring with branded color */
+.focus-ring-branded:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Drag hint — subtle dotted border */
+.drag-hint {
+  border: 2px dashed var(--border);
+  transition: border-color 200ms ease, background-color 200ms ease;
+}
+.drag-hint:hover {
+  border-color: var(--primary);
+  background-color: color-mix(in oklch, var(--primary) 5%, transparent);
+}
+
+/* Selected/higlighted state for list items */
+.item-selected {
+  background-color: color-mix(in oklch, var(--primary) 8%, transparent);
+  border-left: 3px solid var(--primary);
+}
+
+/* ─── Number / Value Transitions ─── */
+
+/* Value change flash — briefly highlights a value that changed */
+@keyframes valueFlash {
+  0%   { color: var(--primary); text-shadow: 0 0 8px rgba(5, 150, 105, 0.4); }
+  100% { color: inherit; text-shadow: none; }
+}
+.value-flash {
+  animation: valueFlash 800ms ease-out both;
+}
+
+.dark .value-flash {
+  animation-name: valueFlashDark;
+}
+@keyframes valueFlashDark {
+  0%   { color: #4ADE80; text-shadow: 0 0 8px rgba(74, 222, 128, 0.4); }
+  100% { color: inherit; text-shadow: none; }
+}
+
+/* ─── Scrollbar Micro-Interaction ─── */
+
+/* Expand scrollbar on hover for better usability */
+.scrollbar-expand {
+  scrollbar-width: thin;
+}
+.scrollbar-expand:hover {
+  scrollbar-width: auto;
+}
+.scrollbar-expand::-webkit-scrollbar {
+  width: 6px;
+  transition: width 200ms ease;
+}
+.scrollbar-expand:hover::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* ─── Tooltip / Popover Animations ─── */
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: scale(0.96) translateY(2px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.tooltip-animated {
+  animation: tooltipFadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* ─────────────────────────────────────────────────────────────

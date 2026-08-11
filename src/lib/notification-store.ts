@@ -1,23 +1,92 @@
 /**
- * Notification store for Hospeda.
- * Manages in-app notifications with read/unread state, dismiss, and auto-expiry.
+ * Enhanced Notification store for Hospeda.
+ * Manages in-app notifications with categories, priorities, read/unread state,
+ * action URLs, persisted flag, auto-dismiss, and smart grouping.
  */
 import { create } from 'zustand';
-import type { Notification } from '@/components/ui/notification-center';
+
+// ═══════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════
+
+/** Notification categories aligned with hotel operations */
+export type NotificationCategory = 'reserva' | 'pago' | 'checkin' | 'habitacion' | 'sistema' | 'limpieza';
+
+/** Priority levels for notifications */
+export type NotificationPriority = 'info' | 'warning' | 'urgent';
+
+/** Legacy type alias for backward compatibility */
+export type NotificationType = 'info' | 'success' | 'warning' | 'error';
+
+export interface Notification {
+  id: string;
+  /** Legacy type field — kept for backward compat; maps to priority internally */
+  type: NotificationType;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  /** Category for filtering and icon display */
+  category: NotificationCategory;
+  /** Priority level */
+  priority: NotificationPriority;
+  /** URL to navigate to when notification is clicked (e.g. module route) */
+  actionUrl?: string;
+  /** Label for the action button (e.g. "Ver reserva", "Cobrar") */
+  actionLabel?: string;
+  /** If true, notification survives auto-dismiss and page reload */
+  persisted: boolean;
+}
+
+/** Input type for adding a notification (omits auto-generated fields) */
+export type NotificationInput = Omit<Notification, 'id' | 'timestamp' | 'read'>;
+
+/** Smart group: merged similar notifications */
+export interface NotificationGroup {
+  key: string;
+  category: NotificationCategory;
+  title: string;
+  count: number;
+  notifications: Notification[];
+}
+
+// ═══════════════════════════════════════════════════════════
+// STORE
+// ═══════════════════════════════════════════════════════════
 
 interface NotificationStore {
   notifications: Notification[];
-  addNotification: (n: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
+  /** Track if a new notification was just added (for bell animation) */
+  hasNew: boolean;
+  addNotification: (n: NotificationInput) => void;
   markRead: (id: string) => void;
   markAllRead: () => void;
   dismiss: (id: string) => void;
   clearAll: () => void;
+  clearHasNew: () => void;
+  /** Get unread count */
+  getUnreadCount: () => number;
+  /** Get grouped notifications for a category */
+  getGrouped: (category?: NotificationCategory | 'all') => NotificationGroup[];
 }
 
 let nextId = 0;
 
+/** Auto-dismiss timers (non-persisted, non-urgent notifications) */
+const dismissTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Clean up a timer */
+function clearDismissTimer(id: string) {
+  const timer = dismissTimers.get(id);
+  if (timer) {
+    clearTimeout(timer);
+    dismissTimers.delete(id);
+  }
+}
+
 export const useNotificationStore = create<NotificationStore>()((set, get) => ({
   notifications: [],
+  hasNew: false,
 
   addNotification: (n) => {
     const id = `notif-${++nextId}-${Date.now()}`;
@@ -27,13 +96,18 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
       timestamp: new Date().toISOString(),
       read: false,
     };
-    set({ notifications: [notification, ...get().notifications].slice(0, 50) });
+    set({
+      notifications: [notification, ...get().notifications].slice(0, 100),
+      hasNew: true,
+    });
 
-    // Auto-dismiss info/success after 30 seconds
-    if (n.type === 'info' || n.type === 'success') {
-      setTimeout(() => {
+    // Auto-dismiss non-persisted, non-urgent notifications after 10 seconds
+    if (!n.persisted && n.priority !== 'urgent') {
+      clearDismissTimer(id);
+      dismissTimers.set(id, setTimeout(() => {
         set({ notifications: get().notifications.filter(x => x.id !== id) });
-      }, 30000);
+        dismissTimers.delete(id);
+      }, 10_000));
     }
   },
 
@@ -52,10 +126,107 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
   },
 
   dismiss: (id) => {
+    clearDismissTimer(id);
     set({ notifications: get().notifications.filter(n => n.id !== id) });
   },
 
   clearAll: () => {
+    // Clear all timers
+    for (const id of dismissTimers.keys()) {
+      clearDismissTimer(id);
+    }
     set({ notifications: [] });
   },
+
+  clearHasNew: () => {
+    set({ hasNew: false });
+  },
+
+  getUnreadCount: () => {
+    return get().notifications.filter(n => !n.read).length;
+  },
+
+  getGrouped: (category = 'all') => {
+    const notifs = get().notifications;
+    const filtered = category === 'all'
+      ? notifs
+      : notifs.filter(n => n.category === category);
+
+    // Sort by timestamp descending
+    const sorted = [...filtered].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+    // Group by category + title similarity (within the same hour)
+    const groups: NotificationGroup[] = [];
+    const grouped = new Map<string, Notification[]>();
+
+    for (const n of sorted) {
+      // Group key: category + title (normalize for similar titles)
+      const hourBucket = new Date(n.timestamp).toISOString().slice(0, 13); // YYYY-MM-DDTHH
+      const key = `${n.category}:${n.title}:${hourBucket}`;
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.push(n);
+      } else {
+        grouped.set(key, [n]);
+        groups.push({
+          key,
+          category: n.category,
+          title: n.title,
+          count: 1,
+          notifications: [n],
+        });
+      }
+    }
+
+    // Update counts and titles for merged groups
+    for (const g of groups) {
+      const items = grouped.get(g.key) || [];
+      g.notifications = items;
+      g.count = items.length;
+      if (items.length > 1) {
+        // Smart grouping title
+        const categoryLabel = CATEGORY_LABELS[g.category] || g.category;
+        g.title = `${items.length} ${categoryLabel.toLowerCase()} — ${g.title}`;
+      }
+    }
+
+    return groups;
+  },
 }));
+
+// ═══════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════
+
+export const CATEGORY_LABELS: Record<NotificationCategory, string> = {
+  reserva: 'Reservas',
+  pago: 'Pagos',
+  checkin: 'Check-in',
+  habitacion: 'Habitaciones',
+  sistema: 'Sistema',
+  limpieza: 'Limpieza',
+};
+
+export const CATEGORY_COLORS: Record<NotificationCategory, string> = {
+  reserva: 'text-blue-500',
+  pago: 'text-emerald-500',
+  checkin: 'text-orange-500',
+  habitacion: 'text-purple-500',
+  sistema: 'text-gray-500',
+  limpieza: 'text-yellow-500',
+};
+
+export const CATEGORY_BG: Record<NotificationCategory, string> = {
+  reserva: 'bg-blue-50 dark:bg-blue-950/30 border-l-blue-400',
+  pago: 'bg-emerald-50 dark:bg-emerald-950/30 border-l-emerald-400',
+  checkin: 'bg-orange-50 dark:bg-orange-950/30 border-l-orange-400',
+  habitacion: 'bg-purple-50 dark:bg-purple-950/30 border-l-purple-400',
+  sistema: 'bg-gray-50 dark:bg-gray-950/30 border-l-gray-400',
+  limpieza: 'bg-yellow-50 dark:bg-yellow-950/30 border-l-yellow-400',
+};
+
+export const PRIORITY_INDICATOR: Record<NotificationPriority, string> = {
+  info: '',
+  warning: 'border-amber-400',
+  urgent: 'border-red-500',
+};

@@ -601,7 +601,7 @@ function EnhancedRoomCard({
 
   return (
     <Card className={`
-      relative card-hover transition-all duration-200 group
+      relative card-hover card-interactive transition-all duration-200 group
       ${vis.borderClass}
       ${vis.bgTint}
       hover:-translate-y-1 hover:shadow-lg
@@ -817,7 +817,7 @@ function FloorGroup({
         {/* Room grid */}
         <CollapsibleContent>
           <div className="p-3 pt-0">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 card-grid-stagger">
               {rooms.map(hab => {
                 const huesped = (hab.estado === 'Ocupada' || hab.estado === 'Reservada')
                   ? getHuespedActual(hab.numero)

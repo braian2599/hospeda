@@ -1,0 +1,1522 @@
+     1→'use client';
+     2→
+     3→import { useState, useMemo, useEffect, useCallback, type ComponentType } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import { api, type DbTareaLimpieza, type DbTenantUser } from '@/lib/api-client';
+     6→import { formatFechaHora, formatMoney, todayLocal, daysAgo } from '@/lib/format';
+     7→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     8→import { Button } from '@/components/ui/button';
+     9→import { Input } from '@/components/ui/input';
+    10→import { Label } from '@/components/ui/label';
+    11→import { Badge } from '@/components/ui/badge';
+    12→import { Textarea } from '@/components/ui/textarea';
+    13→import {
+    14→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    15→} from '@/components/ui/dialog';
+    16→import {
+    17→  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    18→  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+    19→} from '@/components/ui/alert-dialog';
+    20→import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+    21→import { Calendar } from '@/components/ui/calendar';
+    22→import { format, parseISO } from 'date-fns';
+    23→import { es } from 'date-fns/locale';
+    24→import {
+    25→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    26→} from '@/components/ui/select';
+    27→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    28→import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+    29→import { AreaChart, Area, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis } from 'recharts';
+    30→import {
+    31→  SprayCan, Wrench, Check, Search, AlertTriangle, X, Sparkles, Loader2, Wallet, Banknote,
+    32→  AlertCircle, Users, BedDouble, Clock, CheckCircle, DoorOpen, ChevronRight,
+    33→  UserPlus, Play, Square, ChevronUp, ChevronDown, History, TrendingUp, TrendingDown,
+    34→  Gauge, RefreshCw, Timer, ClipboardList, ArrowRight,
+    35→} from 'lucide-react';
+    36→import ModuleHeader from '@/components/layout/ModuleHeader';
+    37→import { toast } from 'sonner';
+    38→import { cn } from '@/lib/utils';
+    39→import PaginationBar from '@/components/ui/pagination-bar';
+    40→import { AnimatedNumber } from '@/components/ui/animated-number';
+    41→import type { ModuloId, Reserva, TipoHabitacion } from '@/lib/types';
+    42→
+    43→const PAGE_SIZE = 15;
+    44→
+    45→function DatePickerInline({
+    46→  value,
+    47→  onChange,
+    48→  placeholder,
+    49→  label,
+    50→  disabled,
+    51→}: {
+    52→  value: string;
+    53→  onChange: (val: string) => void;
+    54→  placeholder: string;
+    55→  label?: string;
+    56→  disabled?: boolean;
+    57→}) {
+    58→  const [open, setOpen] = useState(false);
+    59→  const selectedDate = value ? parseISO(value) : undefined;
+    60→
+    61→  const handleSelect = (date: Date | undefined) => {
+    62→    if (date) {
+    63→      const yyyy = date.getFullYear();
+    64→      const mm = String(date.getMonth() + 1).padStart(2, '0');
+    65→      const dd = String(date.getDate()).padStart(2, '0');
+    66→      onChange(`${yyyy}-${mm}-${dd}`);
+    67→    }
+    68→    setOpen(false);
+    69→  };
+    70→
+    71→  return (
+    72→    <div className="grid gap-1.5">
+    73→      {label && <Label>{label}</Label>}
+    74→      <Popover open={open} onOpenChange={setOpen}>
+    75→        <PopoverTrigger asChild>
+    76→          <Button
+    77→            variant="outline"
+    78→            className={cn(
+    79→              'w-full justify-start text-left font-normal h-9',
+    80→              !value && 'text-muted-foreground'
+    81→            )}
+    82→            disabled={disabled}
+    83→          >
+    84→            {selectedDate
+    85→              ? format(selectedDate, 'dd/MM/yyyy')
+    86→              : placeholder}
+    87→          </Button>
+    88→        </PopoverTrigger>
+    89→        <PopoverContent className="w-auto p-0" align="start">
+    90→          <Calendar
+    91→            mode="single"
+    92→            selected={selectedDate}
+    93→            onSelect={handleSelect}
+    94→            autoFocus
+    95→          />
+    96→        </PopoverContent>
+    97→      </Popover>
+    98→    </div>
+    99→  );
+   100→}
+   101→
+   102→/** Estimated cleaning time (in minutes) based on room type. */
+   103→function estimatedCleaningMinutes(tipo: string | undefined): number {
+   104→  switch (tipo as TipoHabitacion) {
+   105→    case 'Compartida': return 45;
+   106→    case 'Cuádruple': return 40;
+   107→    case 'Triple': return 30;
+   108→    case 'Doble': return 20;
+   109→    case 'Simple': return 15;
+   110→    default: return 25;
+   111→  }
+   112→}
+   113→
+   114→/** Priority of a cleaning task based on how long ago the room was checked out. */
+   115→type Priority = 'high' | 'medium' | 'low';
+   116→
+   117→function getLastCheckoutMs(habitacion: string, reservas: Reserva[]): number {
+   118→  const checkouts = reservas
+   119→    .filter(r => r.habitacion === habitacion && (r.estado === 'Check-Out realizado' || r.estado === 'Check-In realizado'))
+   120→    .map(r => {
+   121→      const base = r.checkout ? new Date(r.checkout + 'T12:00:00') : null;
+   122→      if (base && r.horaCheckout) {
+   123→        const [hh, mm] = r.horaCheckout.split(':').map(n => parseInt(n, 10));
+   124→        if (!isNaN(hh)) base.setHours(hh, isNaN(mm) ? 0 : mm, 0, 0);
+   125→      }
+   126→      return base ? base.getTime() : 0;
+   127→    })
+   128→    .filter(t => t > 0)
+   129→    .sort((a, b) => b - a);
+   130→  return checkouts[0] || 0;
+   131→}
+   132→
+   133→function computePriority(habitacion: string, reservas: Reserva[], now: number): Priority {
+   134→  const lastCheckout = getLastCheckoutMs(habitacion, reservas);
+   135→  if (lastCheckout === 0) return 'low';
+   136→  const diffHours = (now - lastCheckout) / 3_600_000;
+   137→  if (diffHours >= 2) return 'high';
+   138→  if (diffHours >= 1) return 'medium';
+   139→  return 'low';
+   140→}
+   141→
+   142→const PRIORITY_CONFIG: Record<Priority, {
+   143→  label: string;
+   144→  border: string;
+   145→  text: string;
+   146→  bg: string;
+   147→  badge: string;
+   148→  dot: string;
+   149→  icon: ComponentType<{ className?: string }> | null;
+   150→}> = {
+   151→  high: {
+   152→    label: 'Alta',
+   153→    border: 'border-l-[#EF4444]',
+   154→    text: 'text-[#991B1B]',
+   155→    bg: 'bg-[#FEE2E2]',
+   156→    badge: 'bg-[#FEE2E2] text-[#991B1B]',
+   157→    dot: 'bg-[#EF4444]',
+   158→    icon: AlertCircle,
+   159→  },
+   160→  medium: {
+   161→    label: 'Media',
+   162→    border: 'border-l-[#F59E0B]',
+   163→    text: 'text-[#92400E]',
+   164→    bg: 'bg-[#FEF3C7]',
+   165→    badge: 'bg-[#FEF3C7] text-[#92400E]',
+   166→    dot: 'bg-[#F59E0B]',
+   167→    icon: Clock,
+   168→  },
+   169→  low: {
+   170→    label: 'Baja',
+   171→    border: 'border-l-[#0EA5E9]',
+   172→    text: 'text-[#0369A1]',
+   173→    bg: 'bg-[#E0F2FE]',
+   174→    badge: 'bg-[#E0F2FE] text-[#0369A1]',
+   175→    dot: 'bg-[#0EA5E9]',
+   176→    icon: null,
+   177→  },
+   178→};
+   179→
+   180→/** Format a duration in ms as "12m 30s" / "1h 05m" / "45s". */
+   181→function formatDuration(ms: number): string {
+   182→  if (ms < 0) ms = 0;
+   183→  const totalSec = Math.floor(ms / 1000);
+   184→  const h = Math.floor(totalSec / 3600);
+   185→  const m = Math.floor((totalSec % 3600) / 60);
+   186→  const s = totalSec % 60;
+   187→  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
+   188→  if (m > 0) return `${m}m ${String(s).padStart(2, '0')}s`;
+   189→  return `${s}s`;
+   190→}
+   191→
+   192→/** Get initials from a full name (max 2 chars). */
+   193→function getInitials(name: string): string {
+   194→  const parts = name.trim().split(/\s+/).filter(Boolean);
+   195→  if (parts.length === 0) return '?';
+   196→  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+   197→  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+   198→}
+   199→
+   200→type StaffState = 'available' | 'busy' | 'overloaded';
+   201→const STAFF_STATE_CONFIG: Record<StaffState, { label: string; bar: string; text: string; bg: string; ring: string }> = {
+   202→  available: { label: 'Disponible', bar: 'bg-[#059669]', text: 'text-[#166534]', bg: 'bg-[#DCFCE7]', ring: 'ring-[#059669]/30' },
+   203→  busy: { label: 'Ocupado', bar: 'bg-[#F59E0B]', text: 'text-[#92400E]', bg: 'bg-[#FEF3C7]', ring: 'ring-[#F59E0B]/30' },
+   204→  overloaded: { label: 'Saturado', bar: 'bg-[#EF4444]', text: 'text-[#991B1B]', bg: 'bg-[#FEE2E2]', ring: 'ring-[#EF4444]/30' },
+   205→};
+   206→
+   207→export default function LimpiezaModule() {
+   208→  const habitaciones = useHotelStore(s => s.habitaciones);
+   209→  const marcarComoLimpia = useHotelStore(s => s.marcarComoLimpia);
+   210→  const cambiarEstadoHabitacion = useHotelStore(s => s.cambiarEstadoHabitacion);
+   211→  const reportarMantenimiento = useHotelStore(s => s.reportarMantenimiento);
+   212→  const resolverMantenimiento = useHotelStore(s => s.resolverMantenimiento);
+   213→  const historialMantenimiento = useHotelStore(s => s.historialMantenimiento);
+   214→  const reservas = useHotelStore(s => s.reservas);
+   215→  const setModulo = useHotelStore(s => s.setModulo);
+   216→
+   217→  // ── Existing modal/form state ──
+   218→  const [modalResolver, setModalResolver] = useState<string | null>(null);
+   219→  const [reparacion, setReparacion] = useState('');
+   220→  const [monto, setMonto] = useState('0');
+   221→  const [sacarDeCaja, setSacarDeCaja] = useState(true);
+   222→
+   223→  // Ticking clock — 60s for priority thresholds, 1s for active task timers.
+   224→  const [now, setNow] = useState(() => Date.now());
+   225→  const [nowSec, setNowSec] = useState(() => Date.now());
+   226→  useEffect(() => {
+   227→    const id = setInterval(() => setNow(Date.now()), 60_000);
+   228→    return () => clearInterval(id);
+   229→  }, []);
+   230→  useEffect(() => {
+   231→    const id = setInterval(() => setNowSec(Date.now()), 1000);
+   232→    return () => clearInterval(id);
+   233→  }, []);
+   234→
+   235→  // Maintenance history filters
+   236→  const todayStr = todayLocal();
+   237→  const [fDesde, setFDesde] = useState(todayStr);
+   238→  const [fHasta, setFHasta] = useState(todayStr);
+   239→  const [fHab, setFHab] = useState('');
+   240→  const [fDesc, setFDesc] = useState('');
+   241→  const [fMonto, setFMonto] = useState('');
+   242→  const [pagina, setPagina] = useState(1);
+   243→
+   244→  // Reportar mantenimiento form
+   245→  const [showReportForm, setShowReportForm] = useState(false);
+   246→  const [repHab, setRepHab] = useState('');
+   247→  const [repDesc, setRepDesc] = useState('');
+   248→  const [repConfirm, setRepConfirm] = useState(false);
+   249→
+   250→  // ── NEW: Cleaning tasks (API) + staff list ──
+   251→  const [tareasLimpieza, setTareasLimpieza] = useState<DbTareaLimpieza[]>([]);
+   252→  const [staff, setStaff] = useState<DbTenantUser[]>([]);
+   253→  const [loadingTasks, setLoadingTasks] = useState(false);
+   254→  // In-memory start timestamps for in-progress tasks (1s timer source)
+   255→  const [startedAtMap, setStartedAtMap] = useState<Record<string, number>>({});
+   256→
+   257→  // ── NEW: Assignment modal state ──
+   258→  const [assignCtx, setAssignCtx] = useState<{ taskId: string; habitacion: string; reassignFromStaffId?: string } | null>(null);
+   259→  const [assignStaffId, setAssignStaffId] = useState('');
+   260→  const [assignNote, setAssignNote] = useState('');
+   261→  const [assigning, setAssigning] = useState(false);
+   262→
+   263→  // ── NEW: Staff history modal ──
+   264→  const [historyStaff, setHistoryStaff] = useState<DbTenantUser | null>(null);
+   265→
+   266→  // ── NEW: Reassign-from-staff modal (lists active tasks for an overloaded staff member) ──
+   267→  const [reassignFromStaff, setReassignFromStaff] = useState<DbTenantUser | null>(null);
+   268→
+   269→  // ── NEW: Confirm-complete alert ──
+   270→  const [confirmComplete, setConfirmComplete] = useState<{ taskId: string; habitacion: string } | null>(null);
+   271→  const [completingTask, setCompletingTask] = useState<string | null>(null);
+   272→
+   273→  // ── NEW: Manual reorder (room numbers in custom order) ──
+   274→  const [manualOrder, setManualOrder] = useState<string[]>([]);
+   275→
+   276→  // ── Derived room state ──
+   277→  const porLimpiar = Object.entries(habitaciones).filter(([, h]) => h.estado === 'Limpieza');
+   278→  const enMantenimiento = Object.entries(habitaciones).filter(([, h]) => h.estado === 'Mantenimiento');
+   279→  const habDisponibles = Object.entries(habitaciones).filter(([, h]) => h.estado !== 'Mantenimiento' && h.estado !== 'Fuera de servicio');
+   280→
+   281→  const totalOperativas = Object.values(habitaciones).filter(h => h.estado !== 'Mantenimiento' && h.estado !== 'Fuera de servicio').length;
+   282→  const pendientesLimpieza = porLimpiar.length;
+   283→  const completadasLimpieza = Math.max(0, totalOperativas - pendientesLimpieza);
+   284→  const pctProgreso = totalOperativas > 0 ? Math.round((completadasLimpieza / totalOperativas) * 100) : 100;
+   285→
+   286→  // ── Fetch cleaning tasks + staff on mount + after mutations ──
+   287→  const refreshTasks = useCallback(async () => {
+   288→    setLoadingTasks(true);
+   289→    try {
+   290→      const [allTasks, staffList] = await Promise.all([
+   291→        api.limpieza.list(),
+   292→        api.usuarios.list('limpieza').catch(() => [] as DbTenantUser[]),
+   293→      ]);
+   294→      setTareasLimpieza(allTasks);
+   295→      setStaff(staffList);
+   296→    } catch (err) {
+   297→      console.error('Error loading cleaning tasks:', err);
+   298→    } finally {
+   299→      setLoadingTasks(false);
+   300→    }
+   301→  }, []);
+   302→
+   303→  useEffect(() => { refreshTasks(); }, [refreshTasks]);
+   304→
+   305→  // ── Staff workload (last 7 days from maintenance history) — kept for backwards compat ──
+   306→  const staffWorkload = useMemo(() => {
+   307→    const cutoff = daysAgo(7);
+   308→    const counts: Record<string, number> = {};
+   309→    historialMantenimiento.forEach(item => {
+   310→      if (item.fecha.split('T')[0] >= cutoff) {
+   311→        const emp = item.empleado || 'Sin asignar';
+   312→        counts[emp] = (counts[emp] || 0) + 1;
+   313→      }
+   314→    });
+   315→    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+   316→  }, [historialMantenimiento]);
+   317→
+   318→  // ── NEW: Build a unified cleaning queue (rooms in Limpieza state + matching API task) ──
+   319→  const cleaningQueue = useMemo(() => {
+   320→    const taskByHab: Record<string, DbTareaLimpieza> = {};
+   321→    tareasLimpieza.forEach(t => {
+   322→      const existing = taskByHab[t.habitacion];
+   323→      if (!existing || (t.estado !== 'completada' && existing.estado === 'completada')) {
+   324→        taskByHab[t.habitacion] = t;
+   325→      }
+   326→    });
+   327→    return porLimpiar.map(([num, h]) => ({
+   328→      num,
+   329→      hab: h,
+   330→      task: taskByHab[num] || null,
+   331→      priority: computePriority(num, reservas, now),
+   332→      lastCheckoutMs: getLastCheckoutMs(num, reservas),
+   333→      estMin: estimatedCleaningMinutes(h.tipo as string | undefined),
+   334→    }));
+   335→  }, [porLimpiar, tareasLimpieza, reservas, now]);
+   336→
+   337→  // ── NEW: Sort queue — manual order first (if user reordered), then priority, then oldest checkout ──
+   338→  const cleaningQueueSorted = useMemo(() => {
+   339→    const order: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
+   340→    return [...cleaningQueue].sort((a, b) => {
+   341→      const ia = manualOrder.indexOf(a.num);
+   342→      const ib = manualOrder.indexOf(b.num);
+   343→      if (ia !== -1 && ib !== -1) return ia - ib;
+   344→      if (ia !== -1) return -1;
+   345→      if (ib !== -1) return 1;
+   346→      const pdiff = order[a.priority] - order[b.priority];
+   347→      if (pdiff !== 0) return pdiff;
+   348→      // Within same priority, oldest checkout first (ascending timestamp)
+   349→      return a.lastCheckoutMs - b.lastCheckoutMs;
+   350→    });
+   351→  }, [cleaningQueue, manualOrder]);
+   352→
+   353→  const moveTask = (num: string, dir: 'up' | 'down') => {
+   354→    const idx = cleaningQueueSorted.findIndex(t => t.num === num);
+   355→    if (idx < 0) return;
+   356→    const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+   357→    if (targetIdx < 0 || targetIdx >= cleaningQueueSorted.length) return;
+   358→    const newOrder = cleaningQueueSorted.map(t => t.num);
+   359→    [newOrder[idx], newOrder[targetIdx]] = [newOrder[targetIdx], newOrder[idx]];
+   360→    setManualOrder(newOrder);
+   361→  };
+   362→
+   363→  // ── NEW: Staff stats (active tasks, completed today, efficiency) ──
+   364→  const staffStats = useMemo(() => {
+   365→    return staff.map(s => {
+   366→      const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || 'Sin nombre';
+   367→      const userTasks = tareasLimpieza.filter(t =>
+   368→        (s.id && t.empleadoId === s.id) || t.empleado === displayName
+   369→      );
+   370→      const active = userTasks.filter(t => t.estado !== 'completada').length;
+   371→      const completedToday = userTasks.filter(t =>
+   372→        t.estado === 'completada' && t.fechaCompletado && t.fechaCompletado.split('T')[0] === todayStr
+   373→      ).length;
+   374→      const totalCompleted = userTasks.filter(t => t.estado === 'completada').length;
+   375→      const efficiency = userTasks.length === 0 ? 100 : Math.round((totalCompleted / userTasks.length) * 100);
+   376→      const state: StaffState = active <= 2 ? 'available' : active <= 5 ? 'busy' : 'overloaded';
+   377→      return { staff: s, displayName, active, completedToday, totalCompleted, efficiency, state };
+   378→    });
+   379→  }, [staff, tareasLimpieza, todayStr]);
+   380→
+   381→  // ── NEW: Daily cleaning summary (today vs yesterday + 7-day mini chart) ──
+   382→  const dailySummary = useMemo(() => {
+   383→    const today = todayStr;
+   384→    const yesterday = daysAgo(1);
+   385→    const todayTasks = tareasLimpieza.filter(t => t.fechaCreacion.split('T')[0] === today);
+   386→    const yesterdayTasks = tareasLimpieza.filter(t => t.fechaCreacion.split('T')[0] === yesterday);
+   387→
+   388→    const pending = todayTasks.filter(t => t.estado === 'pendiente').length;
+   389→    const inProgress = todayTasks.filter(t => t.estado === 'en_progreso').length;
+   390→    const completed = todayTasks.filter(t => t.estado === 'completada').length;
+   391→    const yCompleted = yesterdayTasks.filter(t => t.estado === 'completada').length;
+   392→
+   393→    const completedTimes = todayTasks
+   394→      .filter(t => t.estado === 'completada' && t.fechaCompletado)
+   395→      .map(t => new Date(t.fechaCompletado!).getTime() - new Date(t.fechaCreacion).getTime());
+   396→    const avgMs = completedTimes.length > 0 ? completedTimes.reduce((a, b) => a + b, 0) / completedTimes.length : 0;
+   397→    const avgMin = Math.round(avgMs / 60000);
+   398→
+   399→    const yCompletedTimes = yesterdayTasks
+   400→      .filter(t => t.estado === 'completada' && t.fechaCompletado)
+   401→      .map(t => new Date(t.fechaCompletado!).getTime() - new Date(t.fechaCreacion).getTime());
+   402→    const yAvgMs = yCompletedTimes.length > 0 ? yCompletedTimes.reduce((a, b) => a + b, 0) / yCompletedTimes.length : 0;
+   403→    const yAvgMin = Math.round(yAvgMs / 60000);
+   404→
+   405→    const last7 = Array.from({ length: 7 }, (_, i) => {
+   406→      const day = daysAgo(6 - i);
+   407→      const count = tareasLimpieza.filter(t =>
+   408→        t.estado === 'completada' && t.fechaCompletado && t.fechaCompletado.split('T')[0] === day
+   409→      ).length;
+   410→      return { day: format(parseISO(day), 'EEE', { locale: es }), count };
+   411→    });
+   412→
+   413→    const variation = yCompleted === 0 ? (completed > 0 ? 100 : 0) : Math.round(((completed - yCompleted) / yCompleted) * 100);
+   414→    const avgVariation = yAvgMin === 0 ? 0 : Math.round(((avgMin - yAvgMin) / yAvgMin) * 100);
+   415→
+   416→    return { pending, inProgress, completed, avgMin, yCompleted, variation, avgVariation, last7, yAvgMin };
+   417→  }, [tareasLimpieza, todayStr]);
+   418→
+   419→  // Check if reporting maintenance would affect active reservations
+   420→  const reservasAfectadas = useMemo(() => {
+   421→    if (!repHab) return 0;
+   422→    return reservas.filter(
+   423→      r => r.habitacion === repHab && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && r.estado !== 'Check-In realizado'
+   424→    ).length;
+   425→  }, [repHab, reservas]);
+   426→
+   427→  // Filtered maintenance history
+   428→  const listaFiltrada = useMemo(() => {
+   429→    let lista = [...historialMantenimiento].reverse();
+   430→    if (fDesde) lista = lista.filter(i => i.fecha.split('T')[0] >= fDesde);
+   431→    if (fHasta) lista = lista.filter(i => i.fecha.split('T')[0] <= fHasta);
+   432→    if (fHab) lista = lista.filter(i => i.habitacion.toLowerCase().includes(fHab.toLowerCase()));
+   433→    if (fDesc) lista = lista.filter(i => i.problema.toLowerCase().includes(fDesc.toLowerCase()) || i.reparacion.toLowerCase().includes(fDesc.toLowerCase()));
+   434→    if (fMonto) { const minMonto = parseFloat(fMonto); if (!isNaN(minMonto)) lista = lista.filter(i => i.monto >= minMonto); }
+   435→    return lista;
+   436→  }, [historialMantenimiento, fDesde, fHasta, fHab, fDesc, fMonto]);
+   437→
+   438→  const totalPaginas = Math.ceil(listaFiltrada.length / PAGE_SIZE) || 1;
+   439→  const paginaActual = Math.min(pagina, totalPaginas);
+   440→  const inicio = (paginaActual - 1) * PAGE_SIZE;
+   441→  const listaPaginada = listaFiltrada.slice(inicio, inicio + PAGE_SIZE);
+   442→
+   443→  const limpiarFiltros = () => { const today = todayLocal(); setFDesde(today); setFHasta(today); setFHab(''); setFDesc(''); setFMonto(''); setPagina(1); };
+   444→  const [resolviendo, setResolviendo] = useState(false);
+   445→  const [reportando, setReportando] = useState(false);
+   446→
+   447→  const handleResolver = async () => {
+   448→    if (!modalResolver || !reparacion.trim()) return;
+   449→    setResolviendo(true);
+   450→    try {
+   451→      await resolverMantenimiento(modalResolver, reparacion.trim(), parseFloat(monto) || 0, sacarDeCaja);
+   452→      toast.success('Mantenimiento resuelto', { description: `Habitación ${modalResolver}${parseFloat(monto) > 0 ? (sacarDeCaja ? ' - Egreso registrado en caja' : ' - Gasto registrado (pago aparte)') : ''}` });
+   453→      setModalResolver(null);
+   454→      setReparacion('');
+   455→      setMonto('0');
+   456→      setSacarDeCaja(true);
+   457→    } catch (err: any) {
+   458→      toast.error(err.message || 'Error al resolver mantenimiento');
+   459→    } finally {
+   460→      setResolviendo(false);
+   461→    }
+   462→  };
+   463→
+   464→  // ── NEW: Open assignment modal ──
+   465→  const openAssignModal = (task: DbTareaLimpieza | null, habitacion: string, reassignFromStaffId?: string) => {
+   466→    setAssignCtx({ taskId: task?.id || '', habitacion, reassignFromStaffId });
+   467→    setAssignStaffId(reassignFromStaffId ? '' : (task?.empleadoId || ''));
+   468→    setAssignNote(task?.nota || '');
+   469→  };
+   470→
+   471→  const handleAssign = async () => {
+   472→    if (!assignCtx || !assignStaffId) return;
+   473→    setAssigning(true);
+   474→    try {
+   475→      const staffMember = staff.find(s => s.id === assignStaffId);
+   476→      const empleadoName = staffMember?.nombreCompleto || staffMember?.nombreUsuario || staffMember?.user?.name || '';
+   477→      if (assignCtx.taskId) {
+   478→        await api.limpieza.update(assignCtx.taskId, {
+   479→          empleadoId: assignStaffId,
+   480→          empleado: empleadoName,
+   481→          ...(assignNote.trim() ? { nota: assignNote.trim() } : {}),
+   482→        });
+   483→      } else {
+   484→        // No existing task — create one with the assignment + note
+   485→        const created = await api.limpieza.create({
+   486→          habitacion: assignCtx.habitacion,
+   487→          nota: assignNote.trim() || undefined,
+   488→        });
+   489→        await api.limpieza.update(created.id, {
+   490→          empleadoId: assignStaffId,
+   491→          empleado: empleadoName,
+   492→        });
+   493→      }
+   494→      toast.success('Tarea asignada', { description: `${empleadoName} → Hab. ${assignCtx.habitacion}` });
+   495→      setAssignCtx(null);
+   496→      setAssignStaffId('');
+   497→      setAssignNote('');
+   498→      await refreshTasks();
+   499→    } catch (err: any) {
+   500→      toast.error(err.message || 'Error al asignar tarea');
+   501→    } finally {
+   502→      setAssigning(false);
+   503→    }
+   504→  };
+   505→
+   506→  // ── NEW: Start a task (pendiente → en_progreso) ──
+   507→  const handleStartTask = async (task: DbTareaLimpieza | null, habitacion: string) => {
+   508→    try {
+   509→      if (task?.id) {
+   510→        await api.limpieza.update(task.id, { estado: 'en_progreso' });
+   511→        setStartedAtMap(m => ({ ...m, [task.id]: Date.now() }));
+   512→      } else {
+   513→        const created = await api.limpieza.create({ habitacion });
+   514→        await api.limpieza.update(created.id, { estado: 'en_progreso' });
+   515→        setStartedAtMap(m => ({ ...m, [created.id]: Date.now() }));
+   516→      }
+   517→      toast.success('Tarea iniciada', { description: `Hab. ${habitacion}` });
+   518→      await refreshTasks();
+   519→    } catch (err: any) {
+   520→      toast.error(err.message || 'Error al iniciar tarea');
+   521→    }
+   522→  };
+   523→
+   524→  // ── NEW: Confirm complete (opens AlertDialog) ──
+   525→  const openCompleteConfirm = (task: DbTareaLimpieza | null, habitacion: string) => {
+   526→    setConfirmComplete({ taskId: task?.id || '', habitacion });
+   527→  };
+   528→
+   529→  const handleConfirmComplete = async () => {
+   530→    if (!confirmComplete) return;
+   531→    const { taskId, habitacion } = confirmComplete;
+   532→    setCompletingTask(taskId || habitacion);
+   533→    try {
+   534→      // 1. Mark the API task as completada (also sets room to Disponible in DB)
+   535→      if (taskId) {
+   536→        await api.limpieza.update(taskId, { estado: 'completada' });
+   537→      } else {
+   538→        const created = await api.limpieza.create({ habitacion });
+   539→        await api.limpieza.update(created.id, { estado: 'completada' });
+   540→      }
+   541→      // 2. Use store action — marcarComoLimpia handles room state + audit + notification.
+   542→      //    It also tries to complete the API task (idempotent if already done).
+   543→      await marcarComoLimpia(habitacion);
+   544→      // 3. Fallback: ensure room is Disponible (in case marcarComoLimpia short-circuited because
+   545→      //    the room state had already changed).
+   546→      if (habitaciones[habitacion]?.estado === 'Limpieza') {
+   547→        await cambiarEstadoHabitacion(habitacion, 'Disponible');
+   548→      }
+   549→      toast.success('Habitación marcada como limpia', { description: `Hab. ${habitacion} disponible` });
+   550→      setStartedAtMap(m => { const c = { ...m }; delete c[taskId]; return c; });
+   551→      await refreshTasks();
+   552→    } catch (err: any) {
+   553→      toast.error(err.message || 'Error al completar tarea');
+   554→    } finally {
+   555→      setCompletingTask(null);
+   556→      setConfirmComplete(null);
+   557→    }
+   558→  };
+   559→
+   560→  const handleReportar = async () => {
+   561→    if (!repHab || !repDesc.trim()) return;
+   562→    if (reservasAfectadas > 0 && !repConfirm) {
+   563→      setRepConfirm(true);
+   564→      return;
+   565→    }
+   566→    setReportando(true);
+   567→    try {
+   568→      await reportarMantenimiento(repHab, repDesc.trim());
+   569→      toast.success('Mantenimiento reportado', { description: `Habitación ${repHab}` });
+   570→      setRepHab('');
+   571→      setRepDesc('');
+   572→      setShowReportForm(false);
+   573→      setRepConfirm(false);
+   574→    } catch (err: any) {
+   575→      toast.error(err.message || 'Error al reportar mantenimiento');
+   576→    } finally {
+   577→      setReportando(false);
+   578→    }
+   579→  };
+   580→
+   581→  const hasFiltros = fDesde || fHasta || fHab || fDesc || fMonto;
+   582→
+   583→  // ── NEW: Active tasks assigned to a given staff member ──
+   584→  const getActiveTasksForStaff = (s: DbTenantUser) => {
+   585→    const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || '';
+   586→    return tareasLimpieza.filter(t =>
+   587→      t.estado !== 'completada' && ((s.id && t.empleadoId === s.id) || t.empleado === displayName)
+   588→    );
+   589→  };
+   590→
+   591→  // ── NEW: Completed tasks (history) for a given staff member ──
+   592→  const getCompletedTasksForStaff = (s: DbTenantUser) => {
+   593→    const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || '';
+   594→    return tareasLimpieza
+   595→      .filter(t => t.estado === 'completada' && ((s.id && t.empleadoId === s.id) || t.empleado === displayName))
+   596→      .sort((a, b) => (b.fechaCompletado || '').localeCompare(a.fechaCompletado || ''));
+   597→  };
+   598→
+   599→  return (
+   600→    <div className="space-y-6">
+   601→      <ModuleHeader icon={SprayCan} title="Limpieza y Mantenimiento" subtitle="Gestioná el estado de habitaciones y tareas" />
+   602→
+   603→      {/* ── Maintenance alert banner ── */}
+   604→      {enMantenimiento.length > 0 && (
+   605→        <Card className="border-[#FECACA] bg-gradient-to-r from-[#FEF2F2]/80 via-[#FEE2E2]/40 to-white overflow-hidden">
+   606→          <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+   607→            <div className="flex items-center gap-3 flex-1 min-w-0">
+   608→              <div className="relative w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center shrink-0">
+   609→                <span className="absolute inset-0 rounded-full bg-[#EF4444]/20 animate-ping" />
+   610→                <AlertTriangle className="relative w-5 h-5 text-[#991B1B] animate-pulse-subtle" />
+   611→              </div>
+   612→              <div className="min-w-0">
+   613→                <p className="text-sm font-semibold text-[#991B1B]">
+   614→                  {enMantenimiento.length} habitación{enMantenimiento.length !== 1 ? 'es' : ''} en mantenimiento
+   615→                </p>
+   616→                <p className="text-xs text-muted-foreground truncate">
+   617→                  Habitaciones afectadas: {enMantenimiento.map(([n]) => n).join(', ')}
+   618→                </p>
+   619→              </div>
+   620→            </div>
+   621→            <Button
+   622→              size="sm"
+   623→              variant="outline"
+   624→              className="border-[#991B1B]/30 text-[#991B1B] hover:bg-[#FEE2E2] hover:text-[#991B1B] shrink-0"
+   625→              onClick={() => setModulo('habitaciones' as ModuloId)}
+   626→            >
+   627→              <DoorOpen className="w-3.5 h-3.5 mr-1.5" />Ir a Habitaciones
+   628→              <ChevronRight className="w-3.5 h-3.5 ml-1" />
+   629→            </Button>
+   630→          </CardContent>
+   631→        </Card>
+   632→      )}
+   633→
+   634→      {/* ── NEW: Daily Cleaning Summary Card ── */}
+   635→      <Card className="border-[#BBF7D0]/60 bg-gradient-to-br from-[#F0FDF4]/40 to-white">
+   636→        <CardHeader className="pb-3">
+   637→          <div className="flex items-center justify-between gap-2 flex-wrap">
+   638→            <CardTitle className="text-base flex items-center gap-2">
+   639→              <ClipboardList className="w-4 h-4 text-[#0F2B28]" />
+   640→              Resumen diario de limpieza
+   641→              <span className="text-xs font-normal text-muted-foreground ml-1">{format(parseISO(todayStr), "EEEE d 'de' MMM", { locale: es })}</span>
+   642→            </CardTitle>
+   643→            <Button variant="ghost" size="sm" onClick={refreshTasks} disabled={loadingTasks} className="h-7 text-xs">
+   644→              <RefreshCw className={cn('w-3 h-3 mr-1', loadingTasks && 'animate-spin')} />
+   645→              Actualizar
+   646→            </Button>
+   647→          </div>
+   648→        </CardHeader>
+   649→        <CardContent>
+   650→          <div className="grid lg:grid-cols-3 gap-4">
+   651→            {/* Stats grid */}
+   652→            <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+   653→              <div className="rounded-lg border border-[#FDE68A] bg-[#FEF9C3]/40 p-3">
+   654→                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#92400E] font-semibold">
+   655→                  <SprayCan className="w-3 h-3" />Pendientes
+   656→                </div>
+   657→                <AnimatedNumber value={dailySummary.pending} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight text-[#92400E]" />
+   658→              </div>
+   659→              <div className="rounded-lg border border-[#BAE6FD] bg-[#E0F2FE]/40 p-3">
+   660→                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#0369A1] font-semibold">
+   661→                  <Timer className="w-3 h-3" />En progreso
+   662→                </div>
+   663→                <AnimatedNumber value={dailySummary.inProgress} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight text-[#0369A1]" />
+   664→              </div>
+   665→              <div className="rounded-lg border border-[#BBF7D0] bg-[#DCFCE7]/40 p-3">
+   666→                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#166534] font-semibold">
+   667→                  <CheckCircle className="w-3 h-3" />Completadas
+   668→                </div>
+   669→                <div className="flex items-baseline gap-1.5">
+   670→                  <AnimatedNumber value={dailySummary.completed} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight text-[#166534]" />
+   671→                  {dailySummary.yCompleted > 0 && (
+   672→                    <span className={cn('inline-flex items-center text-[10px] font-semibold', dailySummary.variation >= 0 ? 'text-[#166534]' : 'text-[#991B1B]')}>
+   673→                      {dailySummary.variation >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+   674→                      {Math.abs(dailySummary.variation)}%
+   675→                    </span>
+   676→                  )}
+   677→                </div>
+   678→              </div>
+   679→              <div className="rounded-lg border border-[#DDD6FE] bg-[#F5F3FF]/40 p-3">
+   680→                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#6D28D9] font-semibold">
+   681→                  <Clock className="w-3 h-3" />Tiempo prom.
+   682→                </div>
+   683→                <div className="flex items-baseline gap-1.5">
+   684→                  <span className="text-2xl font-bold block leading-tight text-[#6D28D9]">
+   685→                    {dailySummary.avgMin > 0 ? `${dailySummary.avgMin}'` : '—'}
+   686→                  </span>
+   687→                  {dailySummary.yAvgMin > 0 && dailySummary.avgMin > 0 && (
+   688→                    <span className={cn('inline-flex items-center text-[10px] font-semibold', dailySummary.avgVariation <= 0 ? 'text-[#166534]' : 'text-[#991B1B]')}>
+   689→                      {dailySummary.avgVariation <= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+   690→                      {Math.abs(dailySummary.avgVariation)}%
+   691→                    </span>
+   692→                  )}
+   693→                </div>
+   694→                <p className="text-[9px] text-muted-foreground mt-0.5">vs ayer {dailySummary.yAvgMin > 0 ? `${dailySummary.yAvgMin}'` : '—'}</p>
+   695→              </div>
+   696→            </div>
+   697→
+   698→            {/* 7-day mini AreaChart */}
+   699→            <div className="rounded-lg border bg-white p-3 flex flex-col">
+   700→              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Completadas · últimos 7 días</p>
+   701→              <div className="flex-1 min-h-[80px]">
+   702→                <ResponsiveContainer width="100%" height={80}>
+   703→                  <AreaChart data={dailySummary.last7} margin={{ top: 5, right: 5, bottom: 0, left: 5 }}>
+   704→                    <defs>
+   705→                      <linearGradient id="cleanGrad" x1="0" y1="0" x2="0" y2="1">
+   706→                        <stop offset="5%" stopColor="#0F2B28" stopOpacity={0.35} />
+   707→                        <stop offset="95%" stopColor="#0F2B28" stopOpacity={0} />
+   708→                      </linearGradient>
+   709→                    </defs>
+   710→                    <XAxis
+   711→                      dataKey="day"
+   712→                      tick={{ fontSize: 9, fill: '#94A3B8' }}
+   713→                      axisLine={false}
+   714→                      tickLine={false}
+   715→                    />
+   716→                    <RechartsTooltip
+   717→                      contentStyle={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #E2E8F0' }}
+   718→                      labelStyle={{ color: '#475569' }}
+   719→                    />
+   720→                    <Area
+   721→                      type="monotone"
+   722→                      dataKey="count"
+   723→                      stroke="#0F2B28"
+   724→                      strokeWidth={1.5}
+   725→                      fill="url(#cleanGrad)"
+   726→                      dot={{ r: 2, fill: '#0F2B28' }}
+   727→                    />
+   728→                  </AreaChart>
+   729→                </ResponsiveContainer>
+   730→              </div>
+   731→            </div>
+   732→          </div>
+   733→        </CardContent>
+   734→      </Card>
+   735→
+   736→      {/* ── Cleaning progress tracker ── */}
+   737→      <Card className="bg-gradient-to-br from-[#F0FDF4]/40 to-white border-[#059669]/20">
+   738→        <CardContent className="p-4 space-y-3">
+   739→          <div className="flex items-center justify-between gap-2 flex-wrap">
+   740→            <div className="flex items-center gap-2">
+   741→              <div className="w-8 h-8 rounded-full bg-[#DCFCE7] flex items-center justify-center shadow-sm">
+   742→                <Sparkles className="w-4 h-4 text-[#166534]" />
+   743→              </div>
+   744→              <div>
+   745→                <p className="text-sm font-semibold text-[#0F2B28]">Progreso de limpieza</p>
+   746→                <p className="text-xs text-muted-foreground">{completadasLimpieza} de {totalOperativas} habitaciones operativas listas</p>
+   747→              </div>
+   748→            </div>
+   749→            <div className="flex items-center gap-3">
+   750→              <div className="text-right">
+   751→                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Completado</p>
+   752→                <AnimatedNumber
+   753→                  value={pctProgreso}
+   754→                  duration={500}
+   755→                  format={(n) => `${Math.round(n)}%`}
+   756→                  className={cn(
+   757→                    'text-2xl font-bold tabular-nums',
+   758→                    pctProgreso > 80 ? 'text-[#166534]' : pctProgreso >= 50 ? 'text-[#92400E]' : 'text-[#991B1B]'
+   759→                  )}
+   760→                />
+   761→              </div>
+   762→            </div>
+   763→          </div>
+   764→          <div className="space-y-1.5">
+   765→            <div className="flex items-center justify-between text-xs">
+   766→              <span className="text-muted-foreground">Pendientes: <strong className="text-[#92400E]">{pendientesLimpieza}</strong></span>
+   767→              <span className="text-muted-foreground">Listas: <strong className="text-[#166534]">{completadasLimpieza}</strong></span>
+   768→            </div>
+   769→            <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
+   770→              <div
+   771→                className={cn(
+   772→                  'h-full rounded-full transition-all duration-700 ease-out',
+   773→                  pctProgreso > 80
+   774→                    ? 'bg-gradient-to-r from-[#059669] to-[#4ADE80]'
+   775→                    : pctProgreso >= 50
+   776→                      ? 'bg-gradient-to-r from-[#F59E0B] to-[#FBBF24]'
+   777→                      : 'bg-gradient-to-r from-[#EF4444] to-[#F87171]'
+   778→                )}
+   779→                style={{ width: `${pctProgreso}%` }}
+   780→              />
+   781→            </div>
+   782→          </div>
+   783→        </CardContent>
+   784→      </Card>
+   785→
+   786→      {/* ── KPIs ── */}
+   787→      <div className="grid grid-cols-3 gap-3">
+   788→        <Card className="border-[#FDE68A] bg-gradient-to-br from-[#FEF9C3]/50 to-white card-hover">
+   789→          <CardContent className="p-3 flex items-center gap-3">
+   790→            <div className="p-2 rounded-lg bg-[#FEF9C3]"><SprayCan className="w-5 h-5 text-[#92400E]" /></div>
+   791→            <div>
+   792→              <AnimatedNumber value={porLimpiar.length} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
+   793→              <p className="text-xs text-muted-foreground">Para limpiar</p>
+   794→            </div>
+   795→          </CardContent>
+   796→        </Card>
+   797→        <Card className="border-[#FECACA] bg-gradient-to-br from-[#FEE2E2]/50 to-white card-hover">
+   798→          <CardContent className="p-3 flex items-center gap-3">
+   799→            <div className="p-2 rounded-lg bg-[#FEE2E2]"><Wrench className="w-5 h-5 text-[#991B1B]" /></div>
+   800→            <div>
+   801→              <AnimatedNumber value={enMantenimiento.length} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
+   802→              <p className="text-xs text-muted-foreground">En mantenimiento</p>
+   803→            </div>
+   804→          </CardContent>
+   805→        </Card>
+   806→        <Card className="border-[#BBF7D0] bg-gradient-to-br from-[#DCFCE7]/50 to-white card-hover">
+   807→          <CardContent className="p-3 flex items-center gap-3">
+   808→            <div className="p-2 rounded-lg bg-[#DCFCE7]"><Sparkles className="w-5 h-5 text-[#166534]" /></div>
+   809→            <div>
+   810→              <AnimatedNumber value={historialMantenimiento.length} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
+   811→              <p className="text-xs text-muted-foreground">Reparaciones totales</p>
+   812→            </div>
+   813→          </CardContent>
+   814→        </Card>
+   815→      </div>
+   816→
+   817→      <div className="grid md:grid-cols-2 gap-4">
+   818→        {/* ── NEW: Cleaning Queue with Priority Sorting + Progress Tracker ── */}
+   819→        <Card className="border-[#FDE68A]">
+   820→          <CardHeader className="pb-3">
+   821→            <div className="flex items-center justify-between gap-2">
+   822→              <CardTitle className="text-base flex items-center gap-2">
+   823→                <SprayCan className="w-4 h-4 text-[#92400E]" />
+   824→                Cola de limpieza
+   825→                {porLimpiar.length > 0 && (
+   826→                  <span className="relative flex h-2 w-2 ml-1">
+   827→                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#F59E0B] opacity-75" />
+   828→                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#F59E0B]" />
+   829→                  </span>
+   830→                )}
+   831→              </CardTitle>
+   832→              <div className="flex items-center gap-1.5">
+   833→                <Badge variant="outline" className="text-[10px] border-[#FDE68A] text-[#92400E]">Prioridad ↓</Badge>
+   834→                <Badge variant="secondary" className="bg-[#FEF9C3] text-[#92400E] shadow-sm font-semibold">{porLimpiar.length}</Badge>
+   835→              </div>
+   836→            </div>
+   837→          </CardHeader>
+   838→          <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto custom-scroll">
+   839→            {porLimpiar.length === 0 ? (
+   840→              <div className="text-center py-8">
+   841→                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#DCFCE7] flex items-center justify-center shadow-sm">
+   842→                  <CheckCircle className="w-7 h-7 text-[#166534]" />
+   843→                </div>
+   844→                <p className="text-sm font-medium text-[#166534]">¡Todo limpio!</p>
+   845→                <p className="text-xs text-muted-foreground mt-0.5">No hay habitaciones pendientes.</p>
+   846→              </div>
+   847→            ) : cleaningQueueSorted.map((item, index) => {
+   848→              const priority = item.priority;
+   849→              const cfg = PRIORITY_CONFIG[priority];
+   850→              const PriorityIcon = cfg.icon;
+   851→              const estMin = item.estMin;
+   852→              const task = item.task;
+   853→              const taskState = task?.estado || 'pendiente';
+   854→              const isInProgress = taskState === 'en_progreso';
+   855→              const isCompleted = taskState === 'completada';
+   856→              const assignedName = task?.empleado || '';
+   857→              const isHighPulsing = priority === 'high' && item.lastCheckoutMs > 0 && ((nowSec - item.lastCheckoutMs) / 3_600_000) >= 2;
+   858→
+   859→              // Elapsed time for in-progress tasks
+   860→              const startedAt = task?.id ? startedAtMap[task.id] : undefined;
+   861→              const elapsedMs = isInProgress && startedAt ? nowSec - startedAt : 0;
+   862→              const estimatedMs = estMin * 60_000;
+   863→              const overBudgetMs = isInProgress && startedAt ? Math.max(0, elapsedMs - estimatedMs - 30 * 60_000) : 0;
+   864→              const isOverBudget = overBudgetMs > 0;
+   865→
+   866→              // Time remaining for pending tasks (since checkout, until estimated start needed)
+   867→              const sinceCheckoutMs = item.lastCheckoutMs > 0 ? nowSec - item.lastCheckoutMs : 0;
+   868→
+   869→              return (
+   870→                <div
+   871→                  key={item.num}
+   872→                  className={cn(
+   873→                    'group relative pl-3 pr-2.5 py-2.5 rounded-lg border-l-[3px] border bg-white hover:shadow-md transition-all duration-300 animate-slide-up',
+   874→                    cfg.border,
+   875→                    'hover:-translate-y-0.5',
+   876→                    isOverBudget && 'ring-2 ring-[#EF4444]/40'
+   877→                  )}
+   878→                  style={{ animationDelay: `${index * 40}ms` }}
+   879→                >
+   880→                  <div className="flex items-start justify-between gap-2">
+   881→                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+   882→                      {/* Reorder arrows */}
+   883→                      <div className="flex flex-col gap-0.5 self-center shrink-0">
+   884→                        <button
+   885→                          type="button"
+   886→                          aria-label="Mover arriba"
+   887→                          className="text-muted-foreground/50 hover:text-[#0F2B28] disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+   888→                          onClick={() => moveTask(item.num, 'up')}
+   889→                          disabled={index === 0}
+   890→                        >
+   891→                          <ChevronUp className="w-3.5 h-3.5" />
+   892→                        </button>
+   893→                        <button
+   894→                          type="button"
+   895→                          aria-label="Mover abajo"
+   896→                          className="text-muted-foreground/50 hover:text-[#0F2B28] disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+   897→                          onClick={() => moveTask(item.num, 'down')}
+   898→                          disabled={index === cleaningQueueSorted.length - 1}
+   899→                        >
+   900→                          <ChevronDown className="w-3.5 h-3.5" />
+   901→                        </button>
+   902→                      </div>
+   903→
+   904→                      <div className={cn('w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm relative', cfg.bg)}>
+   905→                        <BedDouble className={cn('w-4 h-4', cfg.text)} />
+   906→                        {isHighPulsing && (
+   907→                          <span className="absolute -top-0.5 -right-0.5 relative flex h-2.5 w-2.5">
+   908→                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
+   909→                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#EF4444] border border-white" />
+   910→                          </span>
+   911→                        )}
+   912→                      </div>
+   913→                      <div className="min-w-0 flex-1">
+   914→                        <div className="flex items-center gap-1.5 flex-wrap">
+   915→                          <p className="text-sm font-bold text-[#0F2B28]">Hab. {item.num}</p>
+   916→                          <Badge className={cn('text-[10px] shadow-sm font-semibold', cfg.badge)}>
+   917→                            {PriorityIcon && <PriorityIcon className="w-2.5 h-2.5 mr-0.5" />}
+   918→                            {cfg.label}
+   919→                          </Badge>
+   920→                          {isInProgress && (
+   921→                            <Badge className="text-[10px] bg-[#E0F2FE] text-[#0369A1] shadow-sm">
+   922→                              <Timer className="w-2.5 h-2.5 mr-0.5" />En curso
+   923→                            </Badge>
+   924→                          )}
+   925→                          {isOverBudget && (
+   926→                            <Badge className="text-[10px] bg-[#FEE2E2] text-[#991B1B] shadow-sm animate-pulse">
+   927→                              <AlertCircle className="w-2.5 h-2.5 mr-0.5" />Excedido
+   928→                            </Badge>
+   929→                          )}
+   930→                        </div>
+   931→                        <p className="text-xs text-muted-foreground mt-0.5">
+   932→                          {item.hab.tipo} · {item.hab.capacidad} persona{item.hab.capacidad !== 1 ? 's' : ''}
+   933→                        </p>
+   934→                        <div className="flex items-center gap-2 flex-wrap mt-1 text-[10px] text-muted-foreground">
+   935→                          <span className="inline-flex items-center gap-1">
+   936→                            <Clock className="w-2.5 h-2.5" />Estimado: ~{estMin} min
+   937→                          </span>
+   938→                          {item.lastCheckoutMs > 0 && sinceCheckoutMs > 0 && !isInProgress && !isCompleted && (
+   939→                            <span className={cn('inline-flex items-center gap-1', priority === 'high' ? 'text-[#991B1B] font-semibold' : '')}>
+   940→                              <AlertCircle className="w-2.5 h-2.5" />Checkout: hace {formatDuration(sinceCheckoutMs)}
+   941→                            </span>
+   942→                          )}
+   943→                        </div>
+   944→                        {assignedName && (
+   945→                          <p className="text-[10px] mt-1 inline-flex items-center gap-1 text-[#0F2B28]">
+   946→                            <Users className="w-2.5 h-2.5" />
+   947→                            <span className="font-medium truncate max-w-[120px]">{assignedName}</span>
+   948→                          </p>
+   949→                        )}
+   950→                        {task?.nota && (
+   951→                          <p className="text-[10px] mt-0.5 text-muted-foreground italic line-clamp-1">“{task.nota}”</p>
+   952→                        )}
+   953→                        {isInProgress && startedAt && (
+   954→                          <div className="mt-1.5 flex items-center gap-2">
+   955→                            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+   956→                              <div
+   957→                                className={cn(
+   958→                                  'h-full rounded-full transition-all',
+   959→                                  isOverBudget ? 'bg-[#EF4444]' : 'bg-[#0EA5E9]'
+   960→                                )}
+   961→                                style={{ width: `${Math.min(100, (elapsedMs / (estimatedMs + 30 * 60_000)) * 100)}%` }}
+   962→                              />
+   963→                            </div>
+   964→                            <span className={cn('text-[10px] font-mono font-semibold tabular-nums', isOverBudget ? 'text-[#991B1B]' : 'text-[#0369A1]')}>
+   965→                              {formatDuration(elapsedMs)}
+   966→                            </span>
+   967→                          </div>
+   968→                        )}
+   969→                      </div>
+   970→                    </div>
+   971→                    <div className="flex flex-col gap-1 shrink-0">
+   972→                      {!isInProgress && !isCompleted && (
+   973→                        <>
+   974→                          <Button
+   975→                            size="sm"
+   976→                            variant="outline"
+   977→                            className="h-7 text-xs border-[#0F2B28]/20 text-[#0F2B28] hover:bg-[#0F2B28]/5"
+   978→                            onClick={() => openAssignModal(task, item.num)}
+   979→                          >
+   980→                            <UserPlus className="w-3 h-3 mr-1" />
+   981→                            {assignedName ? 'Reasignar' : 'Asignar'}
+   982→                          </Button>
+   983→                          <Button
+   984→                            size="sm"
+   985→                            variant="outline"
+   986→                            className="h-7 text-xs border-[#0EA5E9]/30 text-[#0369A1] hover:bg-[#E0F2FE]"
+   987→                            onClick={() => handleStartTask(task, item.num)}
+   988→                          >
+   989→                            <Play className="w-3 h-3 mr-1" />Iniciar
+   990→                          </Button>
+   991→                        </>
+   992→                      )}
+   993→                      {isInProgress && (
+   994→                        <Button
+   995→                          size="sm"
+   996→                          className="h-7 text-xs bg-[#059669] hover:bg-[#047857] text-white shadow-sm"
+   997→                          disabled={completingTask === (task?.id || item.num)}
+   998→                          onClick={() => openCompleteConfirm(task, item.num)}
+   999→                        >
+  1000→                          {completingTask === (task?.id || item.num)
+  1001→                            ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+  1002→                            : <Check className="w-3 h-3 mr-1" />}
+  1003→                          Completar
+  1004→                        </Button>
+  1005→                      )}
+  1006→                      {!isInProgress && !isCompleted && !task?.id && (
+  1007→                        <Button
+  1008→                          size="sm"
+  1009→                          variant="ghost"
+  1010→                          className="h-7 text-xs text-[#166534] hover:bg-[#DCFCE7]"
+  1011→                          disabled={completingTask === item.num}
+  1012→                          onClick={() => openCompleteConfirm(task, item.num)}
+  1013→                        >
+  1014→                          {completingTask === item.num
+  1015→                            ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+  1016→                            : <Check className="w-3 h-3 mr-1" />}
+  1017→                          Limpia
+  1018→                        </Button>
+  1019→                      )}
+  1020→                    </div>
+  1021→                  </div>
+  1022→                </div>
+  1023→              );
+  1024→            })}
+  1025→          </CardContent>
+  1026→        </Card>
+  1027→
+  1028→        {/* En mantenimiento */}
+  1029→        <Card className="border-[#FECACA]">
+  1030→          <CardHeader className="pb-3">
+  1031→            <div className="flex items-center justify-between">
+  1032→              <CardTitle className="text-base flex items-center gap-2">
+  1033→                <Wrench className="w-4 h-4 text-[#991B1B]" />
+  1034→                En mantenimiento
+  1035→                {enMantenimiento.length > 0 && (
+  1036→                  <span className="relative flex h-2 w-2 ml-1">
+  1037→                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
+  1038→                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#EF4444]" />
+  1039→                  </span>
+  1040→                )}
+  1041→              </CardTitle>
+  1042→              <Badge variant="secondary" className="bg-[#FECACA] text-[#991B1B] shadow-sm font-semibold">{enMantenimiento.length}</Badge>
+  1043→            </div>
+  1044→          </CardHeader>
+  1045→          <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto custom-scroll">
+  1046→            {enMantenimiento.length === 0 ? (
+  1047→              <div className="text-center py-8">
+  1048→                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#F1F5F9] flex items-center justify-center shadow-sm">
+  1049→                  <CheckCircle className="w-7 h-7 text-[#94A3B8]" />
+  1050→                </div>
+  1051→                <p className="text-sm font-medium">Sin problemas activos</p>
+  1052→                <p className="text-xs text-muted-foreground mt-0.5">Todo funciona correctamente.</p>
+  1053→              </div>
+  1054→            ) : enMantenimiento.map(([num, h], index) => (
+  1055→              <div
+  1056→                key={num}
+  1057→                className="group border-l-[3px] border-l-[#EF4444] rounded-lg p-2.5 space-y-1.5 hover:bg-[#FEE2E2]/20 hover:shadow-md transition-all duration-300 animate-slide-up hover:-translate-y-0.5"
+  1058→                style={{ animationDelay: `${index * 50}ms` }}
+  1059→              >
+  1060→                <div className="flex items-center justify-between">
+  1061→                  <div className="flex items-center gap-2">
+  1062→                    <div className="w-9 h-9 rounded-full bg-[#FEE2E2] flex items-center justify-center shadow-sm shrink-0">
+  1063→                      <BedDouble className="w-4 h-4 text-[#991B1B]" />
+  1064→                    </div>
+  1065→                    <div>
+  1066→                      <p className="text-sm font-bold text-[#0F2B28]">Hab. {num}</p>
+  1067→                      <p className="text-xs text-muted-foreground">{h.tipo} · {h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</p>
+  1068→                    </div>
+  1069→                  </div>
+  1070→                  <Button size="sm" className="bg-[#059669] hover:bg-[#047857] text-white shadow-sm shrink-0" onClick={() => setModalResolver(num)}>
+  1071→                    <Check className="w-3.5 h-3.5 mr-1" />Resuelto
+  1072→                  </Button>
+  1073→                </div>
+  1074→                <div className="bg-[#FEE2E2] rounded p-2 flex items-start gap-1.5">
+  1075→                  <AlertTriangle className="w-3 h-3 text-[#991B1B] shrink-0 mt-0.5" />
+  1076→                  <span className="text-xs text-[#991B1B]">{h.problema || 'Sin descripción'}</span>
+  1077→                </div>
+  1078→              </div>
+  1079→            ))}
+  1080→          </CardContent>
+  1081→        </Card>
+  1082→      </div>
+  1083→
+  1084→      {/* ── NEW: Staff Workload Dashboard ── */}
+  1085→      <Card className="border-[#BBF7D0]/60 bg-gradient-to-br from-[#F0FDF4]/30 to-white">
+  1086→        <CardHeader className="pb-3">
+  1087→          <div className="flex items-center justify-between gap-2 flex-wrap">
+  1088→            <CardTitle className="text-base flex items-center gap-2">
+  1089→              <Users className="w-4 h-4 text-[#0F2B28]" />
+  1090→              Personal de limpieza
+  1091→              <span className="text-xs font-normal text-muted-foreground ml-1">{staff.length} miembro{staff.length !== 1 ? 's' : ''}</span>
+  1092→            </CardTitle>
+  1093→            <div className="flex items-center gap-3 text-[10px]">
+  1094→              <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#059669]" /> ≤2</span>
+  1095→              <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#F59E0B]" /> 3-5</span>
+  1096→              <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#EF4444]" /> 6+</span>
+  1097→            </div>
+  1098→          </div>
+  1099→        </CardHeader>
+  1100→        <CardContent>
+  1101→          {staff.length === 0 ? (
+  1102→            <div className="text-center py-8">
+  1103→              <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-muted flex items-center justify-center shadow-sm">
+  1104→                <Users className="w-7 h-7 text-muted-foreground/50" />
+  1105→              </div>
+  1106→              <p className="text-sm font-medium">Sin personal de limpieza registrado</p>
+  1107→              <p className="text-xs text-muted-foreground mt-0.5">Agregá usuarios con rol “limpieza” desde el módulo Usuarios.</p>
+  1108→            </div>
+  1109→          ) : (
+  1110→            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+  1111→              {staffStats.map(({ staff: s, displayName, active, completedToday, efficiency, state }, index) => {
+  1112→                const stateCfg = STAFF_STATE_CONFIG[state];
+  1113→                const capacityPct = Math.min(100, (active / 8) * 100);
+  1114→                const initials = getInitials(displayName);
+  1115→                return (
+  1116→                  <div
+  1117→                    key={s.id}
+  1118→                    className={cn(
+  1119→                      'p-3 rounded-lg border bg-white hover:shadow-md transition-all duration-300 animate-slide-up hover:-translate-y-0.5 ring-1',
+  1120→                      stateCfg.ring
+  1121→                    )}
+  1122→                    style={{ animationDelay: `${index * 40}ms` }}
+  1123→                  >
+  1124→                    <div className="flex items-start gap-2.5 mb-2.5">
+  1125→                      <Avatar className="w-10 h-10 ring-2 ring-offset-2 ring-offset-white" style={{ ['--tw-ring-color' as any]: state === 'available' ? '#059669' : state === 'busy' ? '#F59E0B' : '#EF4444' }}>
+  1126→                        <AvatarFallback className={cn('text-xs font-bold', stateCfg.bg, stateCfg.text)}>
+  1127→                          {initials}
+  1128→                        </AvatarFallback>
+  1129→                      </Avatar>
+  1130→                      <div className="min-w-0 flex-1">
+  1131→                        <p className="text-sm font-semibold truncate text-[#0F2B28]">{displayName}</p>
+  1132→                        <p className="text-[10px] text-muted-foreground truncate">{s.user?.email || s.nombreUsuario || 'Sin email'}</p>
+  1133→                        <Badge className={cn('mt-1 text-[9px] font-semibold', stateCfg.bg, stateCfg.text)}>{stateCfg.label}</Badge>
+  1134→                      </div>
+  1135→                    </div>
+  1136→
+  1137→                    <div className="grid grid-cols-3 gap-1.5 mb-2">
+  1138→                      <div className="text-center rounded bg-muted/40 py-1">
+  1139→                        <p className="text-sm font-bold text-[#0F2B28] leading-tight">{active}</p>
+  1140→                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Activas</p>
+  1141→                      </div>
+  1142→                      <div className="text-center rounded bg-muted/40 py-1">
+  1143→                        <p className="text-sm font-bold text-[#166534] leading-tight">{completedToday}</p>
+  1144→                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Hoy</p>
+  1145→                      </div>
+  1146→                      <div className="text-center rounded bg-muted/40 py-1">
+  1147→                        <p className={cn('text-sm font-bold leading-tight inline-flex items-center gap-0.5', efficiency >= 80 ? 'text-[#166534]' : efficiency >= 50 ? 'text-[#92400E]' : 'text-[#991B1B]')}>
+  1148→                          <Gauge className="w-2.5 h-2.5" />{efficiency}%
+  1149→                        </p>
+  1150→                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Efic.</p>
+  1151→                      </div>
+  1152→                    </div>
+  1153→
+  1154→                    <div className="space-y-1 mb-2">
+  1155→                      <div className="flex items-center justify-between text-[10px]">
+  1156→                        <span className="text-muted-foreground">Capacidad</span>
+  1157→                        <span className={cn('font-semibold', stateCfg.text)}>{active}/8</span>
+  1158→                      </div>
+  1159→                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+  1160→                        <div
+  1161→                          className={cn('h-full rounded-full transition-all duration-500', stateCfg.bar)}
+  1162→                          style={{ width: `${capacityPct}%` }}
+  1163→                        />
+  1164→                      </div>
+  1165→                    </div>
+  1166→
+  1167→                    <div className="flex gap-1.5">
+  1168→                      <Button
+  1169→                        size="sm"
+  1170→                        variant="outline"
+  1171→                        className="flex-1 h-7 text-xs"
+  1172→                        disabled={active === 0}
+  1173→                        onClick={() => setReassignFromStaff(s)}
+  1174→                      >
+  1175→                        <ArrowRight className="w-3 h-3 mr-1" />Reasignar
+  1176→                      </Button>
+  1177→                      <Button
+  1178→                        size="sm"
+  1179→                        variant="ghost"
+  1180→                        className="flex-1 h-7 text-xs hover:bg-muted"
+  1181→                        onClick={() => setHistoryStaff(s)}
+  1182→                      >
+  1183→                        <History className="w-3 h-3 mr-1" />Historial
+  1184→                      </Button>
+  1185→                    </div>
+  1186→                  </div>
+  1187→                );
+  1188→              })}
+  1189→            </div>
+  1190→          )}
+  1191→        </CardContent>
+  1192→      </Card>
+  1193→
+  1194→      {/* ── Reportar mantenimiento ── */}
+  1195→      <Card className={showReportForm ? 'border-[#FDE68A]' : ''}>
+  1196→        <CardHeader className="pb-3 cursor-pointer" onClick={() => setShowReportForm(!showReportForm)}>
+  1197→          <div className="flex items-center justify-between">
+  1198→            <CardTitle className="text-base flex items-center gap-2"><Wrench className="w-4 h-4 text-[#92400E]" /> Reportar mantenimiento</CardTitle>
+  1199→            <Button variant="ghost" size="sm">{showReportForm ? 'Cancelar' : 'Abrir formulario'}</Button>
+  1200→          </div>
+  1201→        </CardHeader>
+  1202→        {showReportForm && (
+  1203→          <CardContent className="space-y-3">
+  1204→            {repConfirm && reservasAfectadas > 0 && (
+  1205→              <div className="flex items-center gap-2 p-2.5 bg-[#FEF3C7] rounded-lg text-[#92400E] text-sm">
+  1206→                <AlertTriangle className="w-4 h-4 shrink-0" />
+  1207→                <span>Esta habitación tiene <strong>{reservasAfectadas}</strong> reserva{reservasAfectadas !== 1 ? 's' : ''} activa{reservasAfectadas !== 1 ? 's' : ''} que serán canceladas.</span>
+  1208→                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 ml-auto" onClick={() => setRepConfirm(false)}><X className="w-3.5 h-3.5" /></Button>
+  1209→              </div>
+  1210→            )}
+  1211→            <Select value={repHab} onValueChange={v => { setRepHab(v); setRepConfirm(false); }}>
+  1212→              <SelectTrigger><SelectValue placeholder="-- Elegir habitación --" /></SelectTrigger>
+  1213→              <SelectContent>{habDisponibles.map(([num, h]) => <SelectItem key={num} value={num}>{num} - {h.tipo}</SelectItem>)}</SelectContent>
+  1214→            </Select>
+  1215→            <Textarea placeholder="Describí el problema detectado..." value={repDesc} onChange={e => setRepDesc(e.target.value)} rows={2} />
+  1216→            <Button onClick={handleReportar} variant="destructive" disabled={!repHab || !repDesc.trim() || reportando}>{reportando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wrench className="w-4 h-4 mr-1" />}{repConfirm ? 'Confirmar y reportar' : 'Reportar mantenimiento'}</Button>
+  1217→          </CardContent>
+  1218→        )}
+  1219→      </Card>
+  1220→
+  1221→      {/* Historial */}
+  1222→      <Card>
+  1223→        <CardHeader className="bg-muted/50"><CardTitle className="text-base flex items-center gap-2"><Search className="w-4 h-4" /> Historial de Mantenimiento</CardTitle></CardHeader>
+  1224→        <CardContent className="space-y-3">
+  1225→          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 items-end">
+  1226→            <DatePickerInline value={fDesde} onChange={v => { setFDesde(v); setPagina(1); }} placeholder="Desde" label="Desde" />
+  1227→            <DatePickerInline value={fHasta} onChange={v => { setFHasta(v); setPagina(1); }} placeholder="Hasta" label="Hasta" />
+  1228→            <div className="space-y-1"><Label className="text-xs">Habitación</Label><Input placeholder="Ej: 101" value={fHab} onChange={e => { setFHab(e.target.value); setPagina(1); }} /></div>
+  1229→            <div className="space-y-1"><Label className="text-xs">Descripción</Label><Input placeholder="Buscar..." value={fDesc} onChange={e => { setFDesc(e.target.value); setPagina(1); }} /></div>
+  1230→            <div className="flex gap-2 items-end"><div className="space-y-1 flex-1"><Label className="text-xs">Monto mín.</Label><Input type="number" placeholder="$0" value={fMonto} onChange={e => { setFMonto(e.target.value); setPagina(1); }} /></div><Button variant="outline" size="icon" className="h-9 w-9" onClick={limpiarFiltros} title="Limpiar filtros">{hasFiltros ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}</Button></div>
+  1231→          </div>
+  1232→          {listaPaginada.length === 0 ? (
+  1233→            <div className="text-center py-8">
+  1234→              <Wrench className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
+  1235→              <p className="text-sm text-muted-foreground">No hay reparaciones registradas.</p>
+  1236→            </div>
+  1237→          ) : (
+  1238→            <div className="overflow-x-auto -mx-6 px-6">
+  1239→              <Table><TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Hab.</TableHead><TableHead>Problema</TableHead><TableHead className="hidden md:table-cell">Reparación</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="hidden sm:table-cell">Empleado</TableHead></TableRow></TableHeader>
+  1240→                <TableBody>{listaPaginada.map(item => (
+  1241→                  <TableRow key={item.id}><TableCell className="text-xs whitespace-nowrap">{formatFechaHora(item.fecha)}</TableCell><TableCell className="font-medium">{item.habitacion}</TableCell><TableCell className="max-w-[200px] truncate">{item.problema}</TableCell><TableCell className="hidden md:table-cell max-w-[200px] truncate">{item.reparacion}</TableCell><TableCell className={`text-right font-medium ${item.monto > 0 ? 'text-[#991B1B]' : 'text-muted-foreground'}`}>{formatMoney(item.monto)}</TableCell><TableCell className="hidden sm:table-cell text-xs text-muted-foreground">{item.empleado}</TableCell></TableRow>
+  1242→                ))}</TableBody></Table>
+  1243→            </div>
+  1244→          )}
+  1245→          <PaginationBar page={paginaActual} totalPages={totalPaginas} onPageChange={setPagina} totalItems={listaFiltrada.length} pageSize={PAGE_SIZE} />
+  1246→        </CardContent>
+  1247→      </Card>
+  1248→
+  1249→      {/* ── NEW: Task Assignment Modal ── */}
+  1250→      <Dialog open={!!assignCtx} onOpenChange={(o) => { if (!o) { setAssignCtx(null); setAssignStaffId(''); setAssignNote(''); } }}>
+  1251→        <DialogContent className="sm:max-w-md">
+  1252→          <DialogHeader>
+  1253→            <DialogTitle className="flex items-center gap-2">
+  1254→              <UserPlus className="w-4 h-4 text-[#0F2B28]" />
+  1255→              {assignCtx?.reassignFromStaffId ? 'Reasignar tarea' : 'Asignar tarea'}
+  1256→              {assignCtx && <span className="text-muted-foreground font-normal">· Hab. {assignCtx.habitacion}</span>}
+  1257→            </DialogTitle>
+  1258→          </DialogHeader>
+  1259→          <div className="space-y-3 py-1">
+  1260→            {/* Task summary */}
+  1261→            {assignCtx && habitaciones[assignCtx.habitacion] && (
+  1262→              <div className="rounded-lg border bg-muted/30 p-2.5 text-xs space-y-1">
+  1263→                <div className="flex justify-between"><span className="text-muted-foreground">Habitación:</span><strong>{assignCtx.habitacion}</strong></div>
+  1264→                <div className="flex justify-between"><span className="text-muted-foreground">Tipo:</span><strong>{habitaciones[assignCtx.habitacion].tipo}</strong></div>
+  1265→                <div className="flex justify-between"><span className="text-muted-foreground">Estimado:</span><strong>~{estimatedCleaningMinutes(habitaciones[assignCtx.habitacion].tipo as string | undefined)} min</strong></div>
+  1266→                <div className="flex justify-between items-center">
+  1267→                  <span className="text-muted-foreground">Prioridad:</span>
+  1268→                  {(() => {
+  1269→                    const p = computePriority(assignCtx.habitacion, reservas, now);
+  1270→                    const cfg = PRIORITY_CONFIG[p];
+  1271→                    const PI = cfg.icon;
+  1272→                    return <Badge className={cn('text-[10px]', cfg.badge)}>{PI && <PI className="w-2.5 h-2.5 mr-0.5" />}{cfg.label}</Badge>;
+  1273→                  })()}
+  1274→                </div>
+  1275→              </div>
+  1276→            )}
+  1277→
+  1278→            <div className="space-y-1.5">
+  1279→              <Label className="text-xs font-semibold">Asignar a *</Label>
+  1280→              <Select value={assignStaffId} onValueChange={setAssignStaffId}>
+  1281→                <SelectTrigger><SelectValue placeholder="-- Elegir personal --" /></SelectTrigger>
+  1282→                <SelectContent>
+  1283→                  {staff.length === 0 ? (
+  1284→                    <SelectItem value="_no_staff" disabled>Sin personal de limpieza</SelectItem>
+  1285→                  ) : staff.map(s => {
+  1286→                    const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || 'Sin nombre';
+  1287→                    const active = tareasLimpieza.filter(t =>
+  1288→                      t.estado !== 'completada' && ((s.id && t.empleadoId === s.id) || t.empleado === displayName)
+  1289→                    ).length;
+  1290→                    const st: StaffState = active <= 2 ? 'available' : active <= 5 ? 'busy' : 'overloaded';
+  1291→                    const stCfg = STAFF_STATE_CONFIG[st];
+  1292→                    const excluded = assignCtx?.reassignFromStaffId === s.id;
+  1293→                    if (excluded) return null;
+  1294→                    return (
+  1295→                      <SelectItem key={s.id} value={s.id} disabled={st === 'overloaded'}>
+  1296→                        <span className="inline-flex items-center gap-2">
+  1297→                          <span className={cn('w-1.5 h-1.5 rounded-full', stCfg.bar)} />
+  1298→                          {displayName}
+  1299→                          <span className="text-muted-foreground text-[10px]">({active} activa{active !== 1 ? 's' : ''}{st === 'overloaded' ? ' · saturado' : ''})</span>
+  1300→                        </span>
+  1301→                      </SelectItem>
+  1302→                    );
+  1303→                  })}
+  1304→                </SelectContent>
+  1305→              </Select>
+  1306→            </div>
+  1307→
+  1308→            {/* Selected staff preview */}
+  1309→            {assignStaffId && staff.find(s => s.id === assignStaffId) && (() => {
+  1310→              const s = staff.find(s => s.id === assignStaffId)!;
+  1311→              const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || 'Sin nombre';
+  1312→              const active = tareasLimpieza.filter(t =>
+  1313→                t.estado !== 'completada' && ((s.id && t.empleadoId === s.id) || t.empleado === displayName)
+  1314→              ).length;
+  1315→              const st: StaffState = active <= 2 ? 'available' : active <= 5 ? 'busy' : 'overloaded';
+  1316→              const stCfg = STAFF_STATE_CONFIG[st];
+  1317→              return (
+  1318→                <div className={cn('rounded-lg border p-2.5 text-xs flex items-center gap-2', stCfg.bg)}>
+  1319→                  <Avatar className="w-8 h-8">
+  1320→                    <AvatarFallback className={cn('text-[10px] font-bold bg-white', stCfg.text)}>
+  1321→                      {getInitials(displayName)}
+  1322→                    </AvatarFallback>
+  1323→                  </Avatar>
+  1324→                  <div className="flex-1">
+  1325→                    <p className="font-semibold text-[#0F2B28]">{displayName}</p>
+  1326→                    <p className={cn('text-[10px]', stCfg.text)}>{stCfg.label} · {active} tarea{active !== 1 ? 's' : ''} activa{active !== 1 ? 's' : ''}</p>
+  1327→                  </div>
+  1328→                </div>
+  1329→              );
+  1330→            })()}
+  1331→
+  1332→            <div className="space-y-1.5">
+  1333→              <Label className="text-xs font-semibold">Notas</Label>
+  1334→              <Textarea
+  1335→                placeholder="Ej: Llevar toallas extra,_change colchón, etc."
+  1336→                value={assignNote}
+  1337→                onChange={e => setAssignNote(e.target.value)}
+  1338→                rows={2}
+  1339→              />
+  1340→              <p className="text-[10px] text-muted-foreground">Opcional. Visible para el personal asignado.</p>
+  1341→            </div>
+  1342→          </div>
+  1343→          <DialogFooter>
+  1344→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+  1345→            <Button
+  1346→              onClick={handleAssign}
+  1347→              disabled={!assignStaffId || assigning || assignStaffId === '_no_staff'}
+  1348→              className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white"
+  1349→            >
+  1350→              {assigning ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <UserPlus className="w-4 h-4 mr-1" />}
+  1351→              Asignar tarea
+  1352→            </Button>
+  1353→          </DialogFooter>
+  1354→        </DialogContent>
+  1355→      </Dialog>
+  1356→
+  1357→      {/* ── NEW: Reassign-from-staff modal (pick which task to reassign) ── */}
+  1358→      <Dialog open={!!reassignFromStaff} onOpenChange={(o) => { if (!o) setReassignFromStaff(null); }}>
+  1359→        <DialogContent className="sm:max-w-md">
+  1360→          <DialogHeader>
+  1361→            <DialogTitle className="flex items-center gap-2">
+  1362→              <ArrowRight className="w-4 h-4 text-[#0F2B28]" />
+  1363→              Reasignar tareas de {reassignFromStaff?.nombreCompleto || reassignFromStaff?.nombreUsuario || ''}
+  1364→            </DialogTitle>
+  1365→          </DialogHeader>
+  1366→          <div className="space-y-2 py-1 max-h-80 overflow-y-auto custom-scroll">
+  1367→            {reassignFromStaff && getActiveTasksForStaff(reassignFromStaff).length === 0 ? (
+  1368→              <p className="text-sm text-muted-foreground text-center py-6">Sin tareas activas para reasignar.</p>
+  1369→            ) : reassignFromStaff && getActiveTasksForStaff(reassignFromStaff).map(t => {
+  1370→              const hab = habitaciones[t.habitacion];
+  1371→              const p = computePriority(t.habitacion, reservas, now);
+  1372→              const cfg = PRIORITY_CONFIG[p];
+  1373→              return (
+  1374→                <button
+  1375→                  key={t.id}
+  1376→                  type="button"
+  1377→                  onClick={() => {
+  1378→                    const s = reassignFromStaff;
+  1379→                    setReassignFromStaff(null);
+  1380→                    openAssignModal(t, t.habitacion, s.id);
+  1381→                  }}
+  1382→                  className="w-full text-left p-2.5 rounded-lg border bg-white hover:bg-muted/30 hover:shadow-sm transition-all flex items-center gap-2.5"
+  1383→                >
+  1384→                  <div className={cn('w-8 h-8 rounded-full flex items-center justify-center shrink-0', cfg.bg)}>
+  1385→                    <BedDouble className={cn('w-3.5 h-3.5', cfg.text)} />
+  1386→                  </div>
+  1387→                  <div className="flex-1 min-w-0">
+  1388→                    <p className="text-sm font-semibold text-[#0F2B28]">Hab. {t.habitacion}</p>
+  1389→                    <p className="text-[10px] text-muted-foreground">{hab?.tipo || '—'} · {t.estado === 'en_progreso' ? 'En curso' : 'Pendiente'}</p>
+  1390→                  </div>
+  1391→                  <Badge className={cn('text-[9px]', cfg.badge)}>{cfg.label}</Badge>
+  1392→                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
+  1393→                </button>
+  1394→              );
+  1395→            })}
+  1396→          </div>
+  1397→          <DialogFooter>
+  1398→            <DialogClose asChild><Button variant="secondary">Cerrar</Button></DialogClose>
+  1399→          </DialogFooter>
+  1400→        </DialogContent>
+  1401→      </Dialog>
+  1402→
+  1403→      {/* ── NEW: Staff History Modal ── */}
+  1404→      <Dialog open={!!historyStaff} onOpenChange={(o) => { if (!o) setHistoryStaff(null); }}>
+  1405→        <DialogContent className="sm:max-w-md">
+  1406→          <DialogHeader>
+  1407→            <DialogTitle className="flex items-center gap-2">
+  1408→              <History className="w-4 h-4 text-[#0F2B28]" />
+  1409→              Historial de {historyStaff?.nombreCompleto || historyStaff?.nombreUsuario || ''}
+  1410→            </DialogTitle>
+  1411→          </DialogHeader>
+  1412→          <div className="space-y-2 py-1 max-h-96 overflow-y-auto custom-scroll">
+  1413→            {historyStaff && getCompletedTasksForStaff(historyStaff).length === 0 ? (
+  1414→              <p className="text-sm text-muted-foreground text-center py-6">Sin tareas completadas registradas.</p>
+  1415→            ) : historyStaff && getCompletedTasksForStaff(historyStaff).slice(0, 30).map(t => {
+  1416→              const hab = habitaciones[t.habitacion];
+  1417→              const duration = t.fechaCompletado
+  1418→                ? new Date(t.fechaCompletado).getTime() - new Date(t.fechaCreacion).getTime()
+  1419→                : 0;
+  1420→              return (
+  1421→                <div key={t.id} className="p-2.5 rounded-lg border bg-white flex items-center gap-2.5">
+  1422→                  <div className="w-8 h-8 rounded-full bg-[#DCFCE7] flex items-center justify-center shrink-0">
+  1423→                    <CheckCircle className="w-3.5 h-3.5 text-[#166534]" />
+  1424→                  </div>
+  1425→                  <div className="flex-1 min-w-0">
+  1426→                    <p className="text-sm font-semibold text-[#0F2B28]">Hab. {t.habitacion}</p>
+  1427→                    <p className="text-[10px] text-muted-foreground">
+  1428→                      {hab?.tipo || '—'} · {t.fechaCompletado ? formatFechaHora(t.fechaCompletado) : '—'}
+  1429→                    </p>
+  1430→                  </div>
+  1431→                  {duration > 0 && (
+  1432→                    <Badge variant="outline" className="text-[9px] font-mono">
+  1433→                      <Clock className="w-2.5 h-2.5 mr-0.5" />{formatDuration(duration)}
+  1434→                    </Badge>
+  1435→                  )}
+  1436→                </div>
+  1437→              );
+  1438→            })}
+  1439→          </div>
+  1440→          <DialogFooter>
+  1441→            <DialogClose asChild><Button variant="secondary">Cerrar</Button></DialogClose>
+  1442→          </DialogFooter>
+  1443→        </DialogContent>
+  1444→      </Dialog>
+  1445→
+  1446→      {/* ── NEW: Confirm Complete AlertDialog (room status quick-change) ── */}
+  1447→      <AlertDialog open={!!confirmComplete} onOpenChange={(o) => { if (!o) setConfirmComplete(null); }}>
+  1448→        <AlertDialogContent>
+  1449→          <AlertDialogHeader>
+  1450→            <AlertDialogTitle className="flex items-center gap-2">
+  1451→              <CheckCircle className="w-4 h-4 text-[#059669]" />
+  1452→              Marcar como limpia
+  1453→            </AlertDialogTitle>
+  1454→            <AlertDialogDescription>
+  1455→              ¿Marcar como limpia y disponibilizar la habitación <strong className="text-[#0F2B28]">{confirmComplete?.habitacion}</strong>?
+  1456→              <br />
+  1457→              <span className="text-xs text-muted-foreground">La habitación pasará a estado <strong>Disponible</strong> automáticamente.</span>
+  1458→            </AlertDialogDescription>
+  1459→          </AlertDialogHeader>
+  1460→          <AlertDialogFooter>
+  1461→            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+  1462→            <AlertDialogAction
+  1463→              onClick={handleConfirmComplete}
+  1464→              className="bg-[#059669] hover:bg-[#047857] text-white"
+  1465→              disabled={completingTask !== null}
+  1466→            >
+  1467→              {completingTask !== null ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+  1468→              Sí, marcar limpia
+  1469→            </AlertDialogAction>
+  1470→          </AlertDialogFooter>
+  1471→        </AlertDialogContent>
+  1472→      </AlertDialog>
+  1473→
+  1474→      {/* Modal Resolver (existing) */}
+  1475→      <Dialog open={!!modalResolver} onOpenChange={() => setModalResolver(null)}>
+  1476→        <DialogContent className="sm:max-w-md">
+  1477→          <DialogHeader><DialogTitle>Resolver Mantenimiento - Habitación {modalResolver}</DialogTitle></DialogHeader>
+  1478→          <div className="space-y-4 py-2">
+  1479→            {modalResolver && habitaciones[modalResolver] && (
+  1480→              <div className="bg-[#FEE2E2] rounded-lg p-2.5"><p className="text-sm text-[#991B1B]"><strong>Problema reportado:</strong> {habitaciones[modalResolver].problema || 'Sin descripción'}</p></div>
+  1481→            )}
+  1482→            <div className="space-y-2"><Label>Descripción de la reparación *</Label><Textarea value={reparacion} onChange={e => setReparacion(e.target.value)} rows={3} placeholder="Ej: Se reemplazó la placa controladora..." /></div>
+  1483→            <div className="space-y-2"><Label>Monto de la reparación</Label><Input type="number" min="0" step="0.01" value={monto} onChange={e => setMonto(e.target.value)} placeholder="Dejar en 0 si no tuvo costo" /><p className="text-xs text-muted-foreground">Si no tuvo costo, dejá en $0.</p></div>
+  1484→            {parseFloat(monto) > 0 && (
+  1485→              <div className="space-y-2">
+  1486→                <Label className="text-sm font-medium">¿De dónde sale el pago?</Label>
+  1487→                <div className="grid grid-cols-2 gap-2">
+  1488→                  <button
+  1489→                    type="button"
+  1490→                    onClick={() => setSacarDeCaja(true)}
+  1491→                    className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${sacarDeCaja ? 'border-[#4ADE80] bg-[#DCFCE7]' : 'border-muted hover:border-muted-foreground/30'}`}
+  1492→                  >
+  1493→                    <Wallet className={`w-5 h-5 ${sacarDeCaja ? 'text-[#166534]' : 'text-muted-foreground'}`} />
+  1494→                    <span className={`text-xs font-medium ${sacarDeCaja ? 'text-[#166534]' : 'text-muted-foreground'}`}>De caja</span>
+  1495→                    <span className="text-[10px] text-muted-foreground">Sale de la caja del turno</span>
+  1496→                  </button>
+  1497→                  <button
+  1498→                    type="button"
+  1499→                    onClick={() => setSacarDeCaja(false)}
+  1500→                    className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${!sacarDeCaja ? 'border-[#3B82F6] bg-[#DBEAFE]' : 'border-muted hover:border-muted-foreground/30'}`}
+  1501→                  >
+  1502→                    <Banknote className={`w-5 h-5 ${!sacarDeCaja ? 'text-[#1E40AF]' : 'text-muted-foreground'}`} />
+  1503→                    <span className={`text-xs font-medium ${!sacarDeCaja ? 'text-[#1E40AF]' : 'text-muted-foreground'}`}>Pago aparte</span>
+  1504→                    <span className="text-[10px] text-muted-foreground">Gerente / dinero propio</span>
+  1505→                  </button>
+  1506→                </div>
+  1507→                {sacarDeCaja && (
+  1508→                  <p className="text-xs text-[#92400E] flex items-center gap-1"><AlertTriangle className="w-3 h-3" />Se registrará un egreso en la caja activa</p>
+  1509→                )}
+  1510→              </div>
+  1511→            )}
+  1512→          </div>
+  1513→          <DialogFooter>
+  1514→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+  1515→            <Button onClick={handleResolver} disabled={!reparacion.trim() || resolviendo} className="bg-[#059669] hover:bg-[#047857] text-white">{resolviendo ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}Marcar como Resuelto</Button>
+  1516→          </DialogFooter>
+  1517→        </DialogContent>
+  1518→      </Dialog>
+  1519→    </div>
+  1520→  );
+  1521→}
+  1522→

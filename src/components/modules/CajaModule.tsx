@@ -27,16 +27,36 @@ import {
   Download, Filter, X, Search, FileText, ChevronLeft, ChevronRight, Check, History,
   Banknote, CreditCard, QrCode, ArrowRightLeft, PiggyBank, Wrench, ShoppingCart, Trash,
   Sparkle, Info, CalendarDays, StickyNote, ClipboardCheck, Eye, ExternalLink,
+  Printer, Coins, CircleDot, Timer, Scale,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import { DialogTrigger } from '@/components/ui/dialog';
 import { BILLETES } from '@/lib/types';
+
+/** Extended denominations including coins for the denomination breakdown panel */
+const DENOMINACIONES = [
+  { value: 20000, label: '$20.000', type: 'bill' as const },
+  { value: 10000, label: '$10.000', type: 'bill' as const },
+  { value: 2000, label: '$2.000', type: 'bill' as const },
+  { value: 1000, label: '$1.000', type: 'bill' as const },
+  { value: 500, label: '$500', type: 'bill' as const },
+  { value: 200, label: '$200', type: 'bill' as const },
+  { value: 100, label: '$100', type: 'bill' as const },
+  { value: 50, label: '$50', type: 'coin' as const },
+  { value: 20, label: '$20', type: 'coin' as const },
+  { value: 10, label: '$10', type: 'coin' as const },
+  { value: 5, label: '$5', type: 'coin' as const },
+  { value: 2, label: '$2', type: 'coin' as const },
+  { value: 1, label: '$1', type: 'coin' as const },
+];
 import PaginationBar from '@/components/ui/pagination-bar';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { cn } from '@/lib/utils';
 import { exportToCSV } from '@/lib/csv-export';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 
 // formatFechaHora and formatMoney imported from @/lib/format
 
@@ -165,6 +185,290 @@ function categorizeMovement(
   return 'Otros';
 }
 
+/** Get the appropriate icon for a payment method */
+function getMetodoIcon(metodo: string): ComponentType<{ className?: string }> {
+  const lower = metodo.toLowerCase();
+  if (lower.includes('efectivo')) return Banknote;
+  if (lower.includes('tarjeta') && lower.includes('crédito')) return CreditCard;
+  if (lower.includes('tarjeta') && lower.includes('débito')) return CreditCard;
+  if (lower.includes('tarjeta')) return CreditCard;
+  if (lower.includes('transferencia')) return ArrowRightLeft;
+  if (lower.includes('mercado')) return QrCode;
+  return Wallet;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CASH FLOW TIMELINE — vertical timeline of day's cash movements
+   ═══════════════════════════════════════════════════════════ */
+
+interface TimelineEntry {
+  id: string;
+  fecha: string;
+  tipo: 'ingreso' | 'egreso';
+  monto: number;
+  descripcion: string;
+  metodo: string;
+  runningBalance: number;
+}
+
+function CashFlowTimeline({
+  movimientos, aperturaMonto, now,
+}: {
+  movimientos: Array<{ id: string; fecha: string; tipo: 'ingreso' | 'egreso'; monto: number; descripcion: string; metodo: string }>;
+  aperturaMonto: number;
+  now: number;
+}) {
+  // Build timeline entries with running balance
+  const entries: TimelineEntry[] = useMemo(() => {
+    // Sort chronologically (oldest first)
+    const sorted = [...movimientos].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+    return sorted.reduce<TimelineEntry[]>((acc, m) => {
+      const prevBalance = acc.length > 0 ? acc[acc.length - 1].runningBalance : aperturaMonto;
+      const newBalance = m.tipo === 'ingreso' ? prevBalance + m.monto : prevBalance - m.monto;
+      acc.push({
+        id: m.id,
+        fecha: m.fecha,
+        tipo: m.tipo,
+        monto: m.monto,
+        descripcion: m.descripcion,
+        metodo: m.metodo,
+        runningBalance: newBalance,
+      });
+      return acc;
+    }, []);
+  }, [movimientos, aperturaMonto]);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setMounted(true), 50); return () => clearTimeout(t); }, []);
+
+  if (entries.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <Timer className="w-8 h-8 mx-auto mb-2 opacity-40" />
+        <p className="text-xs">Sin movimientos para mostrar en la línea de tiempo.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative pl-6 space-y-0">
+      {/* Opening balance entry */}
+      <div className="relative pb-4 animate-slide-up" style={{ animationDelay: '0ms' }}>
+        {/* Dot */}
+        <div className="absolute -left-6 top-0 flex flex-col items-center">
+          <div className="w-3 h-3 rounded-full bg-[#0F2B28] ring-2 ring-white shadow-sm z-10" />
+          <div className="w-0.5 flex-1 bg-[#0F2B28]/20 min-h-[16px]" />
+        </div>
+        <div className="bg-[#F0FDF4]/60 border border-[#059669]/20 rounded-md px-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <Wallet className="w-3.5 h-3.5 text-[#0F2B28]" />
+              <span className="text-xs font-semibold text-[#0F2B28]">Apertura</span>
+            </div>
+            <span className="text-xs font-bold tabular-nums text-[#0F2B28]">{formatMoney(aperturaMonto)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Movement entries */}
+      {entries.map((entry, idx) => {
+        const isIngreso = entry.tipo === 'ingreso';
+        const MetIcon = getMetodoIcon(entry.metodo);
+        const delay = (idx + 1) * 80;
+        return (
+          <div
+            key={entry.id}
+            className={cn(
+              'relative pb-4 transition-all duration-300',
+              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            )}
+            style={{ transitionDelay: `${delay}ms` }}
+          >
+            {/* Connecting line + dot */}
+            <div className="absolute -left-6 top-0 flex flex-col items-center h-full">
+              <div className={cn(
+                'w-3 h-3 rounded-full ring-2 ring-white shadow-sm z-10',
+                isIngreso ? 'bg-[#059669]' : 'bg-[#EF4444]'
+              )} />
+              {idx < entries.length - 1 && (
+                <div className="w-0.5 flex-1 bg-muted-foreground/15 min-h-[16px]" />
+              )}
+            </div>
+
+            {/* Entry card */}
+            <div className={cn(
+              'border rounded-md px-3 py-2.5 space-y-1.5 transition-all hover:shadow-sm',
+              isIngreso
+                ? 'border-[#059669]/20 bg-[#F0FDF4]/30 hover:border-[#059669]/40'
+                : 'border-[#EF4444]/20 bg-[#FEF2F2]/20 hover:border-[#EF4444]/40'
+            )}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className={cn(
+                    'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
+                    isIngreso ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-[#FEE2E2] text-[#991B1B]'
+                  )}>
+                    {isIngreso ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  </span>
+                  <div className="min-w-0">
+                    <span className={cn('text-[11px] font-semibold', isIngreso ? 'text-[#166534]' : 'text-[#991B1B]')}>
+                      {isIngreso ? 'Ingreso' : 'Egreso'}
+                    </span>
+                    <p className="text-[10px] text-muted-foreground truncate leading-tight">{entry.descripcion}</p>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className={cn('text-xs font-bold tabular-nums', isIngreso ? 'text-[#166534]' : 'text-[#991B1B]')}>
+                    {isIngreso ? '+' : '-'}{formatMoney(entry.monto)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <MetIcon className="w-2.5 h-2.5" />
+                  <span className="truncate max-w-[80px]">{entry.metodo}</span>
+                  <span className="text-muted-foreground/40">·</span>
+                  <Clock className="w-2.5 h-2.5" />
+                  <span>{formatRelative(entry.fecha, now)}</span>
+                </div>
+                <div className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-muted/50">
+                  <Scale className="w-2.5 h-2.5 text-muted-foreground" />
+                  <span className="font-semibold tabular-nums">{formatMoney(entry.runningBalance)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Current balance entry */}
+      {entries.length > 0 && (
+        <div className="relative animate-slide-up" style={{ animationDelay: `${(entries.length + 1) * 80}ms` }}>
+          <div className="absolute -left-6 top-0 flex flex-col items-center">
+            <div className="w-3 h-3 rounded-full bg-[#0F2B28] ring-2 ring-white shadow-sm z-10" />
+          </div>
+          <div className="bg-gradient-to-r from-[#0F2B28]/10 to-[#059669]/10 border border-[#0F2B28]/20 rounded-md px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <CircleDot className="w-3.5 h-3.5 text-[#0F2B28]" />
+                <span className="text-xs font-semibold text-[#0F2B28]">Saldo actual</span>
+              </div>
+              <span className="text-sm font-bold tabular-nums text-[#0F2B28]">{formatMoney(entries[entries.length - 1].runningBalance)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DENOMINATION BREAKDOWN PANEL — extended with coins
+   ═══════════════════════════════════════════════════════════ */
+
+function DenominationBreakdownPanel({
+  denominaciones, quantities, setQuantities, systemTotal, label,
+}: {
+  denominaciones: typeof DENOMINACIONES;
+  quantities: Record<number, number>;
+  setQuantities: (q: Record<number, number>) => void;
+  systemTotal: number;
+  label?: string;
+}) {
+  const totalContado = DENOMINACIONES.reduce((s, d) => s + d.value * (quantities[d.value] || 0), 0);
+  const diferencia = totalContado - systemTotal;
+
+  const bills = denominaciones.filter(d => d.type === 'bill');
+  const coins = denominaciones.filter(d => d.type === 'coin');
+
+  return (
+    <div className="space-y-3">
+      {label && <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>}
+
+      {/* Bills section */}
+      <div>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <Banknote className="w-3.5 h-3.5 text-[#0F2B28]" />
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Billetes</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {bills.map(d => (
+            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-gradient-to-r from-[#F0FDF4]/30 to-transparent hover:from-[#F0FDF4]/60 transition-colors">
+              <Banknote className="w-3.5 h-3.5 text-[#059669] shrink-0" />
+              <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
+              <Input
+                type="number"
+                min="0"
+                className="w-14 h-7 text-xs text-center"
+                value={quantities[d.value] || 0}
+                onChange={e => setQuantities({ ...quantities, [d.value]: parseInt(e.target.value) || 0 })}
+              />
+              <span className="text-xs text-muted-foreground flex-1 text-right tabular-nums">{formatMoney(d.value * (quantities[d.value] || 0))}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Coins section */}
+      <div>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <Coins className="w-3.5 h-3.5 text-[#92400E]" />
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Monedas</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {coins.map(d => (
+            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-gradient-to-r from-[#FFFBEB]/30 to-transparent hover:from-[#FFFBEB]/50 transition-colors">
+              <Coins className="w-3.5 h-3.5 text-[#92400E] shrink-0" />
+              <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
+              <Input
+                type="number"
+                min="0"
+                className="w-14 h-7 text-xs text-center"
+                value={quantities[d.value] || 0}
+                onChange={e => setQuantities({ ...quantities, [d.value]: parseInt(e.target.value) || 0 })}
+              />
+              <span className="text-xs text-muted-foreground flex-1 text-right tabular-nums">{formatMoney(d.value * (quantities[d.value] || 0))}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Totals */}
+      <div className="space-y-1.5 pt-2 border-t">
+        <div className="flex justify-between items-center p-2 rounded-md bg-muted/30">
+          <span className="text-xs font-medium">Total contado</span>
+          <span className="text-sm font-bold tabular-nums text-[#0F2B28]">{formatMoney(totalContado)}</span>
+        </div>
+        <div className="flex justify-between items-center p-2 rounded-md bg-muted/30">
+          <span className="text-xs font-medium">Total esperado (sistema)</span>
+          <span className="text-sm font-bold tabular-nums">{formatMoney(systemTotal)}</span>
+        </div>
+        <div className={cn(
+          'flex justify-between items-center p-2 rounded-md border',
+          diferencia === 0
+            ? 'bg-[#DCFCE7] border-[#059669]/30'
+            : diferencia > 0
+            ? 'bg-[#FEF3C7] border-[#F59E0B]/30'
+            : 'bg-[#FEE2E2] border-[#EF4444]/30'
+        )}>
+          <span className="text-xs font-medium flex items-center gap-1.5">
+            {diferencia === 0
+              ? <Check className="w-3.5 h-3.5 text-[#166534]" />
+              : <AlertTriangle className="w-3.5 h-3.5" />}
+            Diferencia
+          </span>
+          <span className={cn(
+            'text-sm font-bold tabular-nums',
+            diferencia === 0 ? 'text-[#166534]' : diferencia > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
+          )}>
+            {diferencia === 0 ? '✓ Cuadra' : `${diferencia > 0 ? '+' : ''}${formatMoney(diferencia)}`}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CajaModule() {
   const caja = useHotelStore(s => s.caja);
   const abrirCaja = useHotelStore(s => s.abrirCaja);
@@ -199,6 +503,8 @@ export default function CajaModule() {
   // Close dialog — enhanced wizard
   const [showCierre, setShowCierre] = useState(false);
   const [billetes, setBilletes] = useState<Record<number, number>>(() => Object.fromEntries(BILLETES.map(b => [b, 0])));
+  // Extended denomination quantities for the DenominationBreakdownPanel (bills + coins)
+  const [denomQuantities, setDenomQuantities] = useState<Record<number, number>>(() => Object.fromEntries(DENOMINACIONES.map(d => [d.value, 0])));
   const [closingStep, setClosingStep] = useState<1 | 2 | 3 | 4>(1);
   // Other methods counted (editable, initialized from system totals)
   const [otrosContados, setOtrosContados] = useState<Record<string, number>>({});
@@ -349,6 +655,7 @@ export default function CajaModule() {
     setCierreNotes('');
     setDiscrepancyExplain('');
     setBilletes(Object.fromEntries(BILLETES.map(b => [b, 0])));
+    setDenomQuantities(Object.fromEntries(DENOMINACIONES.map(d => [d.value, 0])));
     setCierreOpenCount(c => c + 1);
   }, [resumenOtros]);
 
@@ -558,6 +865,8 @@ export default function CajaModule() {
         diferenciaTotal={diferenciaTotal}
         billetes={billetes}
         setBilletes={setBilletes}
+        denomQuantities={denomQuantities}
+        setDenomQuantities={setDenomQuantities}
         cierreNotes={cierreNotes}
         setCierreNotes={setCierreNotes}
         discrepancyExplain={discrepancyExplain}
@@ -567,6 +876,13 @@ export default function CajaModule() {
         loadingCerrar={loadingCerrar}
         onCerrar={handleCerrar}
         onCancel={() => setShowCierre(false)}
+        daySummary={caja.apertura ? {
+          totalIngresos,
+          totalEgresos,
+          movCount: movimientos.length,
+          aperturaMonto: caja.apertura.montoInicial,
+          empleado: caja.apertura.empleado,
+        } : null}
       />
     </DialogContent>
   );
@@ -649,7 +965,7 @@ export default function CajaModule() {
             totalIngresos={totalIngresos}
             totalEgresos={totalEgresos}
             saldo={saldo}
-            movCount={movimientos.length}
+            saldoInicial={aperturaMonto}
           />
 
           {/* ── Mobile: compact status bar ── */}
@@ -762,6 +1078,35 @@ export default function CajaModule() {
                   )}
                 </Button>
               </div>
+              {/* Quick filter tabs + search */}
+              <div className="flex items-center gap-2 mt-2">
+                <div className="inline-flex rounded-md border border-input overflow-hidden shrink-0">
+                  {([['todos', 'Todos'], ['ingreso', 'Ingresos'], ['egreso', 'Egresos']] as const).map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      className={cn(
+                        'px-2.5 py-1 text-[11px] font-medium transition-colors',
+                        filterTipo === val
+                          ? 'bg-[#0F2B28] text-white'
+                          : 'bg-background text-muted-foreground hover:bg-muted/50'
+                      )}
+                      onClick={() => setFilterTipo(val)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative flex-1 min-w-0">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+                  <Input
+                    placeholder="Buscar..."
+                    value={filterSearch}
+                    onChange={e => setFilterSearch(e.target.value)}
+                    className="h-7 pl-6 text-xs"
+                  />
+                </div>
+              </div>
               {showFilters && (
                 <MovementFilters
                   filterTipo={filterTipo} setFilterTipo={setFilterTipo}
@@ -815,6 +1160,23 @@ export default function CajaModule() {
               )}
             </CardContent>
             <PaginationBar page={safePage} totalPages={movTotalPages} onPageChange={setPage} totalItems={filteredMovimientos.length} pageSize={PAGE_SIZE} />
+          </Card>
+
+          {/* ── Mobile: Cash Flow Timeline ── */}
+          <Card className="lg:hidden overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Timer className="w-4 h-4 text-[#0F2B28]" />
+                Línea de tiempo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="max-h-80 overflow-y-auto">
+              <CashFlowTimeline
+                movimientos={movimientos}
+                aperturaMonto={aperturaMonto}
+                now={now}
+              />
+            </CardContent>
           </Card>
 
           {/* ═══════ DESKTOP ═══════ */}
@@ -914,6 +1276,35 @@ export default function CajaModule() {
                       )}
                     </Button>
                   </div>
+                  {/* Quick filter tabs + search for desktop */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="inline-flex rounded-md border border-input overflow-hidden shrink-0">
+                      {([['todos', 'Todos'], ['ingreso', 'Ingresos'], ['egreso', 'Egresos']] as const).map(([val, label]) => (
+                        <button
+                          key={val}
+                          type="button"
+                          className={cn(
+                            'px-3 py-1 text-xs font-medium transition-colors',
+                            filterTipo === val
+                              ? 'bg-[#0F2B28] text-white'
+                              : 'bg-background text-muted-foreground hover:bg-muted/50'
+                          )}
+                          onClick={() => setFilterTipo(val)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="relative flex-1 min-w-0 max-w-xs">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                      <Input
+                        placeholder="Buscar por descripción o método..."
+                        value={filterSearch}
+                        onChange={e => setFilterSearch(e.target.value)}
+                        className="h-7 pl-7 text-xs"
+                      />
+                    </div>
+                  </div>
                   {showFilters && (
                     <MovementFilters
                       filterTipo={filterTipo} setFilterTipo={setFilterTipo}
@@ -1011,7 +1402,10 @@ export default function CajaModule() {
                                   {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
                                 </TableCell>
                                 <TableCell>
-                                  <Badge variant="secondary" className="shadow-sm">{m.metodo}</Badge>
+                                  <div className="flex items-center gap-1.5">
+                                    {(() => { const MetIcon = getMetodoIcon(m.metodo); return <MetIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />; })()}
+                                    <Badge variant="secondary" className="shadow-sm">{m.metodo}</Badge>
+                                  </div>
                                 </TableCell>
                                 <TableCell>
                                   <Badge className={cn('shadow-sm text-[10px] gap-1', CATEGORY_CONFIG[cat].badgeBg, CATEGORY_CONFIG[cat].badgeText)}>
@@ -1116,6 +1510,23 @@ export default function CajaModule() {
               {categoriaBreakdown.length > 0 && (
                 <MovementCategoryPie data={categoriaBreakdown} />
               )}
+
+              {/* Cash Flow Timeline */}
+              <Card className="overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Timer className="w-4 h-4 text-[#0F2B28]" />
+                    Línea de tiempo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="max-h-96 overflow-y-auto">
+                  <CashFlowTimeline
+                    movimientos={movimientos}
+                    aperturaMonto={aperturaMonto}
+                    now={now}
+                  />
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
@@ -1183,6 +1594,8 @@ interface ClosingWizardProps {
   diferenciaTotal: number;
   billetes: Record<number, number>;
   setBilletes: (b: Record<number, number>) => void;
+  denomQuantities: Record<number, number>;
+  setDenomQuantities: (q: Record<number, number>) => void;
   cierreNotes: string;
   setCierreNotes: (v: string) => void;
   discrepancyExplain: string;
@@ -1192,15 +1605,23 @@ interface ClosingWizardProps {
   loadingCerrar: boolean;
   onCerrar: () => void;
   onCancel: () => void;
+  // Day summary for the closing dialog
+  daySummary: {
+    totalIngresos: number;
+    totalEgresos: number;
+    movCount: number;
+    aperturaMonto: number;
+    empleado: string;
+  } | null;
 }
 
 function ClosingWizard(props: ClosingWizardProps) {
   const fmt = (n: number) => formatMoney(n);
   const steps = [
-    { n: 1, label: 'Billetes', icon: Banknote },
+    { n: 1, label: 'Denominaciones', icon: Banknote },
     { n: 2, label: 'Otros métodos', icon: CreditCard },
     { n: 3, label: 'Comparación', icon: ClipboardCheck },
-    { n: 4, label: 'Notas y cierre', icon: StickyNote },
+    { n: 4, label: 'Resumen y cierre', icon: StickyNote },
   ] as const;
 
   return (
@@ -1245,35 +1666,22 @@ function ClosingWizard(props: ClosingWizardProps) {
         })}
       </div>
 
-      {/* Step 1: Billetes */}
+      {/* Step 1: Denominations (bills + coins) */}
       {props.step === 1 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="font-semibold text-sm flex items-center gap-2"><Banknote className="w-4 h-4 text-[#0F2B28]" />Conteo de billetes</h4>
-              <p className="text-xs text-muted-foreground mt-0.5">Ingresá la cantidad de cada denominación.</p>
+              <h4 className="font-semibold text-sm flex items-center gap-2"><Banknote className="w-4 h-4 text-[#0F2B28]" />Conteo de denominaciones</h4>
+              <p className="text-xs text-muted-foreground mt-0.5">Ingresá la cantidad de cada billete y moneda.</p>
             </div>
             <Badge className="bg-[#DCFCE7] text-[#166534] shadow-sm">Esperado: {fmt(props.saldoEsperadoEfectivo)}</Badge>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {BILLETES.map(b => (
-              <div key={b} className="flex items-center gap-2 p-2 rounded-md border bg-gradient-to-r from-[#F0FDF4]/40 to-transparent hover:from-[#F0FDF4]/70 transition-colors">
-                <Banknote className="w-4 h-4 text-[#059669] shrink-0" />
-                <span className="w-16 text-sm font-semibold tabular-nums">{fmt(b)}</span>
-                <Input
-                  type="number"
-                  min="0"
-                  className="w-16 h-8 text-sm text-center"
-                  value={props.billetes[b] || 0}
-                  onChange={e => props.setBilletes({ ...props.billetes, [b]: parseInt(e.target.value) || 0 })}
-                />
-                <span className="text-sm text-muted-foreground w-20 text-right tabular-nums">{fmt(b * (props.billetes[b] || 0))}</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between font-bold pt-2 border-t bg-[#F0FDF4]/40 rounded-md p-2 px-3">
-            <span>Total efectivo</span><span className="text-[#0F2B28] tabular-nums">{fmt(props.totalEfectivo)}</span>
-          </div>
+          <DenominationBreakdownPanel
+            denominaciones={DENOMINACIONES}
+            quantities={props.denomQuantities}
+            setQuantities={props.setDenomQuantities}
+            systemTotal={props.saldoEsperadoEfectivo}
+          />
         </div>
       )}
 
@@ -1417,13 +1825,49 @@ function ClosingWizard(props: ClosingWizardProps) {
         </div>
       )}
 
-      {/* Step 4: Notes & close */}
+      {/* Step 4: Summary, Notes & close */}
       {props.step === 4 && (
         <div className="space-y-3">
           <div>
-            <h4 className="font-semibold text-sm flex items-center gap-2"><StickyNote className="w-4 h-4 text-[#0F2B28]" />Notas y cierre</h4>
-            <p className="text-xs text-muted-foreground mt-0.5">Agregá notas internas sobre el turno antes de cerrar.</p>
+            <h4 className="font-semibold text-sm flex items-center gap-2"><StickyNote className="w-4 h-4 text-[#0F2B28]" />Resumen y cierre</h4>
+            <p className="text-xs text-muted-foreground mt-0.5">Revisá el resumen del turno antes de cerrar.</p>
           </div>
+
+          {/* Day activity summary */}
+          {props.daySummary && (
+            <div className="border rounded-lg overflow-hidden">
+              <div className="bg-gradient-to-r from-[#0F2B28] to-[#059669] px-3 py-2">
+                <p className="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5" />
+                  Resumen de la jornada
+                </p>
+              </div>
+              <div className="p-3 space-y-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                  <div className="p-1.5 rounded-md bg-[#F0FDF4]/60 border border-[#059669]/20">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Apertura</p>
+                    <p className="text-xs font-bold tabular-nums text-[#0F2B28]">{fmt(props.daySummary.aperturaMonto)}</p>
+                  </div>
+                  <div className="p-1.5 rounded-md bg-[#DCFCE7]/60 border border-[#059669]/20">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Ingresos</p>
+                    <p className="text-xs font-bold tabular-nums text-[#166534]">{fmt(props.daySummary.totalIngresos)}</p>
+                  </div>
+                  <div className="p-1.5 rounded-md bg-[#FEE2E2]/60 border border-[#EF4444]/20">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Egresos</p>
+                    <p className="text-xs font-bold tabular-nums text-[#991B1B]">{fmt(props.daySummary.totalEgresos)}</p>
+                  </div>
+                  <div className="p-1.5 rounded-md bg-muted/40 border">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Movimientos</p>
+                    <p className="text-xs font-bold tabular-nums">{props.daySummary.movCount}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-dashed">
+                  <span>Cajero: {props.daySummary.empleado}</span>
+                  <span>Neto: <span className={cn('font-bold', props.daySummary.totalIngresos - props.daySummary.totalEgresos >= 0 ? 'text-[#166534]' : 'text-[#991B1B]')}>{fmt(props.daySummary.totalIngresos - props.daySummary.totalEgresos)}</span></span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Final summary */}
           <div className="grid grid-cols-2 gap-2 text-center">
@@ -1444,6 +1888,21 @@ function ClosingWizard(props: ClosingWizardProps) {
               </p>
             </div>
           </div>
+
+          {/* Difference alert */}
+          {props.diferenciaTotal !== 0 && (
+            <div className={cn(
+              'flex items-center gap-2 p-2.5 rounded-md text-xs border',
+              props.diferenciaTotal > 0 ? 'bg-[#FEF3C7] border-[#F59E0B]/30 text-[#92400E]' : 'bg-[#FEE2E2] border-[#EF4444]/30 text-[#991B1B]'
+            )}>
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>
+                {props.diferenciaTotal > 0
+                  ? `Sobrante de ${fmt(Math.abs(props.diferenciaTotal))}. Verificá si hay movimientos sin registrar.`
+                  : `Faltante de ${fmt(Math.abs(props.diferenciaTotal))}. Puede ser un error de conteo o un egreso no registrado.`}
+              </span>
+            </div>
+          )}
 
           {/* Discrepancy explanation — required if diff > $100 */}
           {props.diffExceedsThreshold && (
@@ -1481,12 +1940,47 @@ function ClosingWizard(props: ClosingWizardProps) {
         </div>
       )}
 
-      {/* Footer with navigation + final close */}
+      {/* Footer with navigation + final close + print receipt */}
       <div className="flex items-center justify-between gap-2 pt-3 border-t mt-2">
         <div className="flex gap-2">
           <DialogClose asChild>
             <Button variant="secondary" size="sm" onClick={props.onCancel}>Cancelar</Button>
           </DialogClose>
+          {props.step === 4 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-[#0F2B28]"
+              onClick={() => {
+                // Generate a simple receipt printout
+                const w = window.open('', '_blank', 'width=400,height=600');
+                if (!w) return;
+                const ds = props.daySummary;
+                w.document.write(`<!DOCTYPE html><html><head><title>Comprobante de Cierre</title><style>body{font-family:monospace;font-size:12px;padding:20px;max-width:300px;margin:0 auto}h2{text-align:center;border-bottom:1px dashed #000;padding-bottom:8px}.row{display:flex;justify-content:space-between;padding:2px 0}.sep{border-top:1px dashed #000;margin:8px 0;text-align:center}</style></head><body>`);
+                w.document.write(`<h2>CIERRE DE CAJA</h2>`);
+                w.document.write(`<p style="text-align:center;font-size:10px">${new Date().toLocaleString('es-AR')}</p>`);
+                if (ds) {
+                  w.document.write(`<div class="sep"></div>`);
+                  w.document.write(`<div class="row"><span>Apertura:</span><span>${formatMoney(ds.aperturaMonto)}</span></div>`);
+                  w.document.write(`<div class="row"><span>Ingresos:</span><span>${formatMoney(ds.totalIngresos)}</span></div>`);
+                  w.document.write(`<div class="row"><span>Egresos:</span><span>${formatMoney(ds.totalEgresos)}</span></div>`);
+                  w.document.write(`<div class="row"><span>Movimientos:</span><span>${ds.movCount}</span></div>`);
+                  w.document.write(`<div class="row"><span>Cajero:</span><span>${ds.empleado}</span></div>`);
+                }
+                w.document.write(`<div class="sep"></div>`);
+                w.document.write(`<div class="row"><span>Contado:</span><strong>${formatMoney(props.totalContado)}</strong></div>`);
+                w.document.write(`<div class="row"><span>Esperado:</span><strong>${formatMoney(props.expectedTotal)}</strong></div>`);
+                w.document.write(`<div class="row"><span>Diferencia:</span><strong style="color:${props.diferenciaTotal !== 0 ? 'red' : 'green'}">${formatMoney(props.diferenciaTotal)}</strong></div>`);
+                w.document.write(`<div class="sep"></div>`);
+                w.document.write(`<p style="text-align:center;font-size:10px">Hospeda — Sistema de Gestión Hotelera</p>`);
+                w.document.write(`</body></html>`);
+                w.document.close();
+                w.print();
+              }}
+            >
+              <Printer className="w-3.5 h-3.5 mr-1" />Imprimir
+            </Button>
+          )}
         </div>
         <div className="flex gap-2">
           {props.step > 1 && (
@@ -2077,13 +2571,23 @@ interface QuickStatConfig {
   iconBg: string;
   cardBg: string;
   accentBorder: string;
+  prominent?: boolean;
 }
 
 const QUICK_STATS: QuickStatConfig[] = [
   {
+    key: 'saldoInicial',
+    label: 'Saldo Inicial',
+    icon: Wallet,
+    iconColor: 'text-[#0F2B28]',
+    iconBg: 'bg-[#A7F3D0]',
+    cardBg: 'from-[#F0FDF4]/50 to-white',
+    accentBorder: 'border-l-[#0F2B28]',
+  },
+  {
     key: 'ingresos',
-    label: 'Ingresos',
-    icon: ArrowUpRight,
+    label: 'Ingresos Hoy',
+    icon: TrendingUp,
     iconColor: 'text-[#166534]',
     iconBg: 'bg-[#DCFCE7]',
     cardBg: 'from-[#F0FDF4]/60 to-white',
@@ -2091,8 +2595,8 @@ const QUICK_STATS: QuickStatConfig[] = [
   },
   {
     key: 'egresos',
-    label: 'Egresos',
-    icon: ArrowDownRight,
+    label: 'Egresos Hoy',
+    icon: TrendingDown,
     iconColor: 'text-[#991B1B]',
     iconBg: 'bg-[#FEE2E2]',
     cardBg: 'from-[#FEF2F2]/60 to-white',
@@ -2100,65 +2604,64 @@ const QUICK_STATS: QuickStatConfig[] = [
   },
   {
     key: 'saldo',
-    label: 'Balance actual',
+    label: 'Saldo Actual',
     icon: Wallet,
     iconColor: 'text-[#0F2B28]',
-    iconBg: 'bg-[#A7F3D0]',
-    cardBg: 'from-[#F0FDF4]/70 to-white',
+    iconBg: 'bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0]',
+    cardBg: 'from-[#F0FDF4]/80 to-white',
     accentBorder: 'border-l-[#0F2B28]',
-  },
-  {
-    key: 'movimientos',
-    label: 'Movimientos',
-    icon: Activity,
-    iconColor: 'text-[#92400E]',
-    iconBg: 'bg-[#FEF3C7]',
-    cardBg: 'from-[#FFFBEB]/60 to-white',
-    accentBorder: 'border-l-[#F59E0B]',
+    prominent: true,
   },
 ];
 
 function QuickStatsRow({
-  totalIngresos, totalEgresos, saldo, movCount,
+  totalIngresos, totalEgresos, saldo, saldoInicial,
 }: {
-  totalIngresos: number; totalEgresos: number; saldo: number; movCount: number;
+  totalIngresos: number; totalEgresos: number; saldo: number; saldoInicial: number;
 }) {
   const values: Record<string, number> = {
+    saldoInicial,
     ingresos: totalIngresos,
     egresos: totalEgresos,
     saldo,
-    movimientos: movCount,
   };
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {QUICK_STATS.map((stat, i) => {
         const Icon = stat.icon;
-        const isMovCount = stat.key === 'movimientos';
         const value = values[stat.key];
+        const isProminent = stat.prominent;
         return (
           <Card
             key={stat.key}
             className={cn(
               'relative overflow-hidden border-l-[3px] bg-gradient-to-br card-hover animate-slide-up',
               stat.cardBg,
-              stat.accentBorder
+              stat.accentBorder,
+              isProminent && 'border-2 border-l-[4px] shadow-md'
             )}
             style={{ animationDelay: `${i * 60}ms` }}
           >
-            <CardContent className="p-3 sm:p-4 flex items-center gap-3">
-              <div className={cn('w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center shadow-sm shrink-0', stat.iconBg)}>
-                <Icon className={cn('w-4 h-4 sm:w-5 sm:h-5', stat.iconColor)} />
+            <CardContent className={cn('flex items-center gap-3', isProminent ? 'p-4 sm:p-5' : 'p-3 sm:p-4')}>
+              <div className={cn(
+                'rounded-full flex items-center justify-center shadow-sm shrink-0',
+                isProminent ? 'w-12 h-12 sm:w-14 sm:h-14' : 'w-9 h-9 sm:w-11 sm:h-11',
+                stat.iconBg
+              )}>
+                <Icon className={cn(isProminent ? 'w-6 h-6 sm:w-7 sm:h-7' : 'w-4 h-4 sm:w-5 sm:h-5', stat.iconColor)} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium truncate">{stat.label}</p>
-                {isMovCount ? (
-                  <p className="text-lg sm:text-2xl font-bold text-[#0F2B28] tabular-nums leading-tight">{value}</p>
-                ) : (
-                  <AnimatedNumber
-                    value={value}
-                    className="text-lg sm:text-2xl font-bold text-[#0F2B28] tabular-nums block leading-tight"
-                  />
-                )}
+                <p className={cn(
+                  'uppercase tracking-wider text-muted-foreground font-medium truncate',
+                  isProminent ? 'text-xs sm:text-sm' : 'text-[10px] sm:text-xs'
+                )}>{stat.label}</p>
+                <AnimatedNumber
+                  value={value}
+                  className={cn(
+                    'font-bold text-[#0F2B28] tabular-nums block leading-tight',
+                    isProminent ? 'text-xl sm:text-3xl' : 'text-lg sm:text-2xl'
+                  )}
+                />
               </div>
             </CardContent>
           </Card>

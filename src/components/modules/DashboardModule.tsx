@@ -101,7 +101,7 @@ function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, trend, 
 
   return (
     <Card
-      className={`overflow-hidden group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 !py-0 !gap-0 border-0 relative ${bgGradient || 'bg-gradient-to-br from-slate-50 to-slate-100'}`}
+      className={`overflow-hidden group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 !py-0 !gap-0 border-0 relative card-interactive ${bgGradient || 'bg-gradient-to-br from-slate-50 to-slate-100'}`}
     >
       {/* Subtle gradient overlay at bottom */}
       <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/[0.03] to-transparent pointer-events-none" />
@@ -1104,7 +1104,7 @@ export default function DashboardModule() {
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
         <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-[#166534]" bgGradient="bg-gradient-to-br from-[#DCFCE7] via-[#ECFDF5] to-white" numericValue={tasaOcupacion} suffix="%" sparkData={sparkOccupancy} sparkColor="#059669" accentColor="#059669" />
         <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-[#059669]" bgGradient="bg-gradient-to-br from-[#DCFCE7] via-[#ECFDF5] to-white" numericValue={checkinsHoy.length} sparkData={sparkCheckins} sparkColor="#059669" accentColor="#059669" />
         <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-[#EA580C]" bgGradient="bg-gradient-to-br from-[#FFEDD5] via-[#FFF7ED] to-white" numericValue={checkoutsHoy.length} sparkData={sparkCheckouts} sparkColor="#F59E0B" accentColor="#F59E0B" />
@@ -1134,7 +1134,7 @@ export default function DashboardModule() {
       </div>
 
       {/* Revenue Breakdown + Guest Timeline + Room Type Distribution */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 card-grid-stagger">
         <RevenueBreakdownChart />
         <GuestTimeline />
         <RoomTypeDistribution />
@@ -1150,7 +1150,7 @@ export default function DashboardModule() {
       <RoomHeatmap habitaciones={habitaciones} reservas={reservas} />
 
       {/* Estado General + Alertas con acciones rápidas */}
-      <div className="grid md:grid-cols-4 gap-4">
+      <div className="grid md:grid-cols-4 gap-4 card-grid-stagger">
         <Card className="md:col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-1.5">

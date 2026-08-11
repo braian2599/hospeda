@@ -1336,8 +1336,8 @@ export default function ReservasModule() {
  </Card>
 
  {/* ==================== TODAY'S ACTIVITY SUMMARY ==================== */}
- <div className="grid grid-cols-3 gap-3">
-   <div className="p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-[#DCFCE7]/30 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300">
+ <div className="grid grid-cols-3 gap-3 card-grid-stagger">
+   <div className="p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-[#DCFCE7]/30 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 card-interactive">
      <div className="flex items-start gap-2.5">
        <div className="size-9 rounded-full bg-[#10B981]/10 flex items-center justify-center shrink-0">
          <TrendingUp className="w-4 h-4 text-[#10B981]" />
@@ -1348,7 +1348,7 @@ export default function ReservasModule() {
        </div>
      </div>
    </div>
-   <div className="p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-[#FFEDD5]/30 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300">
+   <div className="p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-[#FFEDD5]/30 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 card-interactive">
      <div className="flex items-start gap-2.5">
        <div className="size-9 rounded-full bg-[#EA580C]/10 flex items-center justify-center shrink-0">
          <TrendingDown className="w-4 h-4 text-[#EA580C]" />
@@ -1359,7 +1359,7 @@ export default function ReservasModule() {
        </div>
      </div>
    </div>
-   <div className="p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-[#F0FDF4]/30 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300">
+   <div className="p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-[#F0FDF4]/30 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 card-interactive">
      <div className="flex items-start gap-2.5">
        <div className="size-9 rounded-full bg-[#0F2B28]/10 flex items-center justify-center shrink-0">
          <Bed className="w-4 h-4 text-[#0F2B28]" />
@@ -1953,7 +1953,7 @@ export default function ReservasModule() {
 
  {/* ==================== TAB: DISPONIBILIDAD ==================== */}
  <TabsContent value="disponibilidad" className="space-y-4 mt-4">
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+ <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
  <div className="grid gap-1.5 sm:col-span-2 lg:col-span-2">
  <DateRangePickerInline
  checkin={form.checkin}

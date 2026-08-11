@@ -26,12 +26,14 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AreaChart, Area, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis } from 'recharts';
 import {
   SprayCan, Wrench, Check, Search, AlertTriangle, X, Sparkles, Loader2, Wallet, Banknote,
   AlertCircle, Users, BedDouble, Clock, CheckCircle, DoorOpen, ChevronRight,
   UserPlus, Play, Square, ChevronUp, ChevronDown, History, TrendingUp, TrendingDown,
-  Gauge, RefreshCw, Timer, ClipboardList, ArrowRight,
+  Gauge, RefreshCw, Timer, ClipboardList, ArrowRight, Plus, LayoutGrid, List,
+  Eye, Handshake, Zap, Shield, Brush, Pencil, GripVertical,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
@@ -41,6 +43,75 @@ import { AnimatedNumber } from '@/components/ui/animated-number';
 import type { ModuloId, Reserva, TipoHabitacion } from '@/lib/types';
 
 const PAGE_SIZE = 15;
+
+// ── Priority types ──
+type Prioridad = 'urgente' | 'normal' | 'baja';
+const PRIORIDADES: Prioridad[] = ['urgente', 'normal', 'baja'];
+
+const PRIORIDAD_CONFIG: Record<Prioridad, {
+  label: string;
+  border: string;
+  text: string;
+  bg: string;
+  badge: string;
+  dot: string;
+  icon: ComponentType<{ className?: string }> | null;
+  leftBorder: string;
+}> = {
+  urgente: {
+    label: 'Urgente',
+    border: 'border-l-[#EF4444]',
+    text: 'text-[#991B1B]',
+    bg: 'bg-[#FEE2E2]',
+    badge: 'bg-[#FEE2E2] text-[#991B1B]',
+    dot: 'bg-[#EF4444]',
+    icon: Zap,
+    leftBorder: 'border-l-[3px] border-l-[#EF4444]',
+  },
+  normal: {
+    label: 'Normal',
+    border: 'border-l-[#F59E0B]',
+    text: 'text-[#92400E]',
+    bg: 'bg-[#FEF3C7]',
+    badge: 'bg-[#FEF3C7] text-[#92400E]',
+    dot: 'bg-[#F59E0B]',
+    icon: Clock,
+    leftBorder: 'border-l-[3px] border-l-[#F59E0B]',
+  },
+  baja: {
+    label: 'Baja',
+    border: 'border-l-[#0EA5E9]',
+    text: 'text-[#0369A1]',
+    bg: 'bg-[#E0F2FE]',
+    badge: 'bg-[#E0F2FE] text-[#0369A1]',
+    dot: 'bg-[#0EA5E9]',
+    icon: null,
+    leftBorder: 'border-l-[3px] border-l-[#0EA5E9]',
+  },
+};
+
+// ── Task types ──
+type TipoTarea = 'limpieza' | 'mantenimiento' | 'preparacion' | 'inspeccion';
+const TIPO_CONFIG: Record<TipoTarea, { label: string; icon: ComponentType<{ className?: string }>; color: string }> = {
+  limpieza: { label: 'Limpieza', icon: SprayCan, color: 'text-[#059669]' },
+  mantenimiento: { label: 'Mantenimiento', icon: Wrench, color: 'text-[#991B1B]' },
+  preparacion: { label: 'Preparación', icon: Pencil, color: 'text-[#7C3AED]' },
+  inspeccion: { label: 'Inspección', icon: Shield, color: 'text-[#0369A1]' },
+};
+
+// ── Kanban column types ──
+type KanbanColumn = 'pendiente' | 'en_progreso' | 'completada';
+const KANBAN_COLUMNS: { key: KanbanColumn; label: string; icon: ComponentType<{ className?: string }>; headerBg: string; headerText: string; emptyMsg: string }[] = [
+  { key: 'pendiente', label: 'Pendiente', icon: Clock, headerBg: 'bg-[#FEF9C3]/60', headerText: 'text-[#92400E]', emptyMsg: 'No hay tareas pendientes' },
+  { key: 'en_progreso', label: 'En Progreso', icon: Timer, headerBg: 'bg-[#E0F2FE]/60', headerText: 'text-[#0369A1]', emptyMsg: 'No hay tareas en curso' },
+  { key: 'completada', label: 'Completada', icon: CheckCircle, headerBg: 'bg-[#DCFCE7]/60', headerText: 'text-[#166534]', emptyMsg: 'No hay tareas completadas hoy' },
+];
+
+// ── Staff color palette ──
+const STAFF_COLORS = [
+  '#059669', '#0EA5E9', '#8B5CF6', '#F59E0B', '#EF4444',
+  '#EC4899', '#14B8A6', '#6366F1', '#F97316', '#84CC16',
+];
 
 function DatePickerInline({
   value,
@@ -111,8 +182,8 @@ function estimatedCleaningMinutes(tipo: string | undefined): number {
   }
 }
 
-/** Priority of a cleaning task based on how long ago the room was checked out. */
-type Priority = 'high' | 'medium' | 'low';
+/** Legacy Priority (computed from checkout time) */
+type LegacyPriority = 'high' | 'medium' | 'low';
 
 function getLastCheckoutMs(habitacion: string, reservas: Reserva[]): number {
   const checkouts = reservas
@@ -130,7 +201,7 @@ function getLastCheckoutMs(habitacion: string, reservas: Reserva[]): number {
   return checkouts[0] || 0;
 }
 
-function computePriority(habitacion: string, reservas: Reserva[], now: number): Priority {
+function computeLegacyPriority(habitacion: string, reservas: Reserva[], now: number): LegacyPriority {
   const lastCheckout = getLastCheckoutMs(habitacion, reservas);
   if (lastCheckout === 0) return 'low';
   const diffHours = (now - lastCheckout) / 3_600_000;
@@ -138,44 +209,6 @@ function computePriority(habitacion: string, reservas: Reserva[], now: number): 
   if (diffHours >= 1) return 'medium';
   return 'low';
 }
-
-const PRIORITY_CONFIG: Record<Priority, {
-  label: string;
-  border: string;
-  text: string;
-  bg: string;
-  badge: string;
-  dot: string;
-  icon: ComponentType<{ className?: string }> | null;
-}> = {
-  high: {
-    label: 'Alta',
-    border: 'border-l-[#EF4444]',
-    text: 'text-[#991B1B]',
-    bg: 'bg-[#FEE2E2]',
-    badge: 'bg-[#FEE2E2] text-[#991B1B]',
-    dot: 'bg-[#EF4444]',
-    icon: AlertCircle,
-  },
-  medium: {
-    label: 'Media',
-    border: 'border-l-[#F59E0B]',
-    text: 'text-[#92400E]',
-    bg: 'bg-[#FEF3C7]',
-    badge: 'bg-[#FEF3C7] text-[#92400E]',
-    dot: 'bg-[#F59E0B]',
-    icon: Clock,
-  },
-  low: {
-    label: 'Baja',
-    border: 'border-l-[#0EA5E9]',
-    text: 'text-[#0369A1]',
-    bg: 'bg-[#E0F2FE]',
-    badge: 'bg-[#E0F2FE] text-[#0369A1]',
-    dot: 'bg-[#0EA5E9]',
-    icon: null,
-  },
-};
 
 /** Format a duration in ms as "12m 30s" / "1h 05m" / "45s". */
 function formatDuration(ms: number): string {
@@ -187,6 +220,15 @@ function formatDuration(ms: number): string {
   if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
   if (m > 0) return `${m}m ${String(s).padStart(2, '0')}s`;
   return `${s}s`;
+}
+
+/** Format time since a timestamp as "hace 30 min", "hace 2h", etc. */
+function formatTimeSince(ms: number): string {
+  const diff = Date.now() - ms;
+  if (diff < 60000) return 'hace un momento';
+  if (diff < 3600000) return `hace ${Math.floor(diff / 60000)} min`;
+  if (diff < 86400000) return `hace ${Math.floor(diff / 3600000)}h`;
+  return `hace ${Math.floor(diff / 86400000)}d`;
 }
 
 /** Get initials from a full name (max 2 chars). */
@@ -202,6 +244,20 @@ const STAFF_STATE_CONFIG: Record<StaffState, { label: string; bar: string; text:
   available: { label: 'Disponible', bar: 'bg-[#059669]', text: 'text-[#166534]', bg: 'bg-[#DCFCE7]', ring: 'ring-[#059669]/30' },
   busy: { label: 'Ocupado', bar: 'bg-[#F59E0B]', text: 'text-[#92400E]', bg: 'bg-[#FEF3C7]', ring: 'ring-[#F59E0B]/30' },
   overloaded: { label: 'Saturado', bar: 'bg-[#EF4444]', text: 'text-[#991B1B]', bg: 'bg-[#FEE2E2]', ring: 'ring-[#EF4444]/30' },
+};
+
+/** Get floor number from room number (first digit). */
+function getFloorFromRoom(roomNum: string): number {
+  const firstDigit = roomNum.match(/\d/);
+  return firstDigit ? parseInt(firstDigit[0]) : 1;
+}
+
+const FLOOR_COLORS: Record<number, string> = {
+  1: 'bg-[#DBEAFE]',
+  2: 'bg-[#FEF3C7]',
+  3: 'bg-[#DCFCE7]',
+  4: 'bg-[#F3E8FF]',
+  5: 'bg-[#FEE2E2]',
 };
 
 export default function LimpiezaModule() {
@@ -220,7 +276,7 @@ export default function LimpiezaModule() {
   const [monto, setMonto] = useState('0');
   const [sacarDeCaja, setSacarDeCaja] = useState(true);
 
-  // Ticking clock — 60s for priority thresholds, 1s for active task timers.
+  // Ticking clock
   const [now, setNow] = useState(() => Date.now());
   const [nowSec, setNowSec] = useState(() => Date.now());
   useEffect(() => {
@@ -247,31 +303,51 @@ export default function LimpiezaModule() {
   const [repDesc, setRepDesc] = useState('');
   const [repConfirm, setRepConfirm] = useState(false);
 
-  // ── NEW: Cleaning tasks (API) + staff list ──
+  // ── Cleaning tasks (API) + staff list ──
   const [tareasLimpieza, setTareasLimpieza] = useState<DbTareaLimpieza[]>([]);
   const [staff, setStaff] = useState<DbTenantUser[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
-  // In-memory start timestamps for in-progress tasks (1s timer source)
   const [startedAtMap, setStartedAtMap] = useState<Record<string, number>>({});
 
-  // ── NEW: Assignment modal state ──
+  // ── View mode: list vs kanban ──
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
+
+  // ── Priority filter ──
+  const [priorityFilter, setPriorityFilter] = useState<Prioridad | 'all'>('all');
+
+  // ── Expanded task (for detail view) ──
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+
+  // ── Assignment modal state ──
   const [assignCtx, setAssignCtx] = useState<{ taskId: string; habitacion: string; reassignFromStaffId?: string } | null>(null);
   const [assignStaffId, setAssignStaffId] = useState('');
   const [assignNote, setAssignNote] = useState('');
   const [assigning, setAssigning] = useState(false);
 
-  // ── NEW: Staff history modal ──
+  // ── Staff history modal ──
   const [historyStaff, setHistoryStaff] = useState<DbTenantUser | null>(null);
 
-  // ── NEW: Reassign-from-staff modal (lists active tasks for an overloaded staff member) ──
+  // ── Reassign-from-staff modal ──
   const [reassignFromStaff, setReassignFromStaff] = useState<DbTenantUser | null>(null);
 
-  // ── NEW: Confirm-complete alert ──
+  // ── Confirm-complete alert ──
   const [confirmComplete, setConfirmComplete] = useState<{ taskId: string; habitacion: string } | null>(null);
   const [completingTask, setCompletingTask] = useState<string | null>(null);
 
-  // ── NEW: Manual reorder (room numbers in custom order) ──
+  // ── Manual reorder ──
   const [manualOrder, setManualOrder] = useState<string[]>([]);
+
+  // ── New task dialog ──
+  const [showNewTask, setShowNewTask] = useState(false);
+  const [newTaskHab, setNewTaskHab] = useState('');
+  const [newTaskNota, setNewTaskNota] = useState('');
+  const [newTaskPrioridad, setNewTaskPrioridad] = useState<Prioridad>('normal');
+  const [newTaskTipo, setNewTaskTipo] = useState<TipoTarea>('limpieza');
+  const [creatingTask, setCreatingTask] = useState(false);
+
+  // ── Drag state for Kanban ──
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<KanbanColumn | null>(null);
 
   // ── Derived room state ──
   const porLimpiar = Object.entries(habitaciones).filter(([, h]) => h.estado === 'Limpieza');
@@ -302,7 +378,7 @@ export default function LimpiezaModule() {
 
   useEffect(() => { refreshTasks(); }, [refreshTasks]);
 
-  // ── Staff workload (last 7 days from maintenance history) — kept for backwards compat ──
+  // ── Staff workload ──
   const staffWorkload = useMemo(() => {
     const cutoff = daysAgo(7);
     const counts: Record<string, number> = {};
@@ -315,7 +391,7 @@ export default function LimpiezaModule() {
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }, [historialMantenimiento]);
 
-  // ── NEW: Build a unified cleaning queue (rooms in Limpieza state + matching API task) ──
+  // ── Build a unified cleaning queue ──
   const cleaningQueue = useMemo(() => {
     const taskByHab: Record<string, DbTareaLimpieza> = {};
     tareasLimpieza.forEach(t => {
@@ -328,15 +404,15 @@ export default function LimpiezaModule() {
       num,
       hab: h,
       task: taskByHab[num] || null,
-      priority: computePriority(num, reservas, now),
+      priority: computeLegacyPriority(num, reservas, now),
       lastCheckoutMs: getLastCheckoutMs(num, reservas),
       estMin: estimatedCleaningMinutes(h.tipo as string | undefined),
     }));
   }, [porLimpiar, tareasLimpieza, reservas, now]);
 
-  // ── NEW: Sort queue — manual order first (if user reordered), then priority, then oldest checkout ──
+  // ── Sort queue ──
   const cleaningQueueSorted = useMemo(() => {
-    const order: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
+    const order: Record<LegacyPriority, number> = { high: 0, medium: 1, low: 2 };
     return [...cleaningQueue].sort((a, b) => {
       const ia = manualOrder.indexOf(a.num);
       const ib = manualOrder.indexOf(b.num);
@@ -345,7 +421,6 @@ export default function LimpiezaModule() {
       if (ib !== -1) return 1;
       const pdiff = order[a.priority] - order[b.priority];
       if (pdiff !== 0) return pdiff;
-      // Within same priority, oldest checkout first (ascending timestamp)
       return a.lastCheckoutMs - b.lastCheckoutMs;
     });
   }, [cleaningQueue, manualOrder]);
@@ -360,7 +435,7 @@ export default function LimpiezaModule() {
     setManualOrder(newOrder);
   };
 
-  // ── NEW: Staff stats (active tasks, completed today, efficiency) ──
+  // ── Staff stats ──
   const staffStats = useMemo(() => {
     return staff.map(s => {
       const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || 'Sin nombre';
@@ -378,7 +453,18 @@ export default function LimpiezaModule() {
     });
   }, [staff, tareasLimpieza, todayStr]);
 
-  // ── NEW: Daily cleaning summary (today vs yesterday + 7-day mini chart) ──
+  // ── Staff color map ──
+  const staffColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    staff.forEach((s, i) => {
+      const name = s.nombreCompleto || s.nombreUsuario || s.user?.name || '';
+      map[s.id] = STAFF_COLORS[i % STAFF_COLORS.length];
+      map[name] = STAFF_COLORS[i % STAFF_COLORS.length];
+    });
+    return map;
+  }, [staff]);
+
+  // ── Daily summary ──
   const dailySummary = useMemo(() => {
     const today = todayStr;
     const yesterday = daysAgo(1);
@@ -416,7 +502,70 @@ export default function LimpiezaModule() {
     return { pending, inProgress, completed, avgMin, yCompleted, variation, avgVariation, last7, yAvgMin };
   }, [tareasLimpieza, todayStr]);
 
-  // Check if reporting maintenance would affect active reservations
+  // ── Kanban data: all tasks grouped by status ──
+  const kanbanData = useMemo(() => {
+    const allTasks = [...tareasLimpieza];
+
+    // Filter by priority
+    const filtered = priorityFilter === 'all'
+      ? allTasks
+      : allTasks.filter(t => (t.prioridad || 'normal') === priorityFilter);
+
+    const groups: Record<KanbanColumn, DbTareaLimpieza[]> = {
+      pendiente: [],
+      en_progreso: [],
+      completada: [],
+    };
+
+    filtered.forEach(t => {
+      const estado = (t.estado || 'pendiente') as KanbanColumn;
+      if (groups[estado]) {
+        groups[estado].push(t);
+      }
+    });
+
+    // Sort each group: urgent first, then by creation date
+    const prioOrder: Record<string, number> = { urgente: 0, normal: 1, baja: 2 };
+    Object.keys(groups).forEach(key => {
+      groups[key as KanbanColumn].sort((a, b) => {
+        const pa = prioOrder[a.prioridad || 'normal'] ?? 1;
+        const pb = prioOrder[b.prioridad || 'normal'] ?? 1;
+        if (pa !== pb) return pa - pb;
+        return new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime();
+      });
+    });
+
+    return groups;
+  }, [tareasLimpieza, priorityFilter]);
+
+  // ── Scheduling timeline data (today's tasks) ──
+  const scheduleData = useMemo(() => {
+    const todayTasks = tareasLimpieza.filter(t =>
+      t.estado !== 'completada' &&
+      t.fechaCreacion.split('T')[0] === todayStr
+    ).sort((a, b) => new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime());
+
+    let currentOffset = 8 * 60; // Start at 8:00 AM
+    return todayTasks.map(t => {
+      const estMin = estimatedCleaningMinutes(habitaciones[t.habitacion]?.tipo);
+      const start = currentOffset;
+      const end = currentOffset + estMin;
+      currentOffset = end + 5; // 5 min gap between tasks
+      const floor = getFloorFromRoom(t.habitacion);
+      return {
+        id: t.id,
+        habitacion: t.habitacion,
+        start,
+        end,
+        estMin,
+        floor,
+        prioridad: (t.prioridad || 'normal') as Prioridad,
+        tipo: (t.tipo || 'limpieza') as TipoTarea,
+        empleado: t.empleado || '',
+      };
+    });
+  }, [tareasLimpieza, todayStr, habitaciones]);
+
   const reservasAfectadas = useMemo(() => {
     if (!repHab) return 0;
     return reservas.filter(
@@ -424,7 +573,6 @@ export default function LimpiezaModule() {
     ).length;
   }, [repHab, reservas]);
 
-  // Filtered maintenance history
   const listaFiltrada = useMemo(() => {
     let lista = [...historialMantenimiento].reverse();
     if (fDesde) lista = lista.filter(i => i.fecha.split('T')[0] >= fDesde);
@@ -461,7 +609,7 @@ export default function LimpiezaModule() {
     }
   };
 
-  // ── NEW: Open assignment modal ──
+  // ── Open assignment modal ──
   const openAssignModal = (task: DbTareaLimpieza | null, habitacion: string, reassignFromStaffId?: string) => {
     setAssignCtx({ taskId: task?.id || '', habitacion, reassignFromStaffId });
     setAssignStaffId(reassignFromStaffId ? '' : (task?.empleadoId || ''));
@@ -481,7 +629,6 @@ export default function LimpiezaModule() {
           ...(assignNote.trim() ? { nota: assignNote.trim() } : {}),
         });
       } else {
-        // No existing task — create one with the assignment + note
         const created = await api.limpieza.create({
           habitacion: assignCtx.habitacion,
           nota: assignNote.trim() || undefined,
@@ -503,7 +650,7 @@ export default function LimpiezaModule() {
     }
   };
 
-  // ── NEW: Start a task (pendiente → en_progreso) ──
+  // ── Start a task ──
   const handleStartTask = async (task: DbTareaLimpieza | null, habitacion: string) => {
     try {
       if (task?.id) {
@@ -521,7 +668,33 @@ export default function LimpiezaModule() {
     }
   };
 
-  // ── NEW: Confirm complete (opens AlertDialog) ──
+  // ── Move task between Kanban columns ──
+  const handleMoveTaskToColumn = async (task: DbTareaLimpieza, targetColumn: KanbanColumn) => {
+    if (task.estado === targetColumn) return;
+    try {
+      if (targetColumn === 'en_progreso') {
+        await api.limpieza.update(task.id, { estado: 'en_progreso' });
+        setStartedAtMap(m => ({ ...m, [task.id]: Date.now() }));
+      } else if (targetColumn === 'completada') {
+        await api.limpieza.update(task.id, { estado: 'completada' });
+        // Also mark room as available
+        if (habitaciones[task.habitacion]?.estado === 'Limpieza') {
+          await marcarComoLimpia(task.habitacion);
+          if (habitaciones[task.habitacion]?.estado === 'Limpieza') {
+            await cambiarEstadoHabitacion(task.habitacion, 'Disponible');
+          }
+        }
+      } else {
+        await api.limpieza.update(task.id, { estado: 'pendiente' });
+      }
+      toast.success(`Tarea movida a ${targetColumn === 'pendiente' ? 'Pendiente' : targetColumn === 'en_progreso' ? 'En Progreso' : 'Completada'}`);
+      await refreshTasks();
+    } catch (err: any) {
+      toast.error(err.message || 'Error al mover tarea');
+    }
+  };
+
+  // ── Confirm complete ──
   const openCompleteConfirm = (task: DbTareaLimpieza | null, habitacion: string) => {
     setConfirmComplete({ taskId: task?.id || '', habitacion });
   };
@@ -531,18 +704,13 @@ export default function LimpiezaModule() {
     const { taskId, habitacion } = confirmComplete;
     setCompletingTask(taskId || habitacion);
     try {
-      // 1. Mark the API task as completada (also sets room to Disponible in DB)
       if (taskId) {
         await api.limpieza.update(taskId, { estado: 'completada' });
       } else {
         const created = await api.limpieza.create({ habitacion });
         await api.limpieza.update(created.id, { estado: 'completada' });
       }
-      // 2. Use store action — marcarComoLimpia handles room state + audit + notification.
-      //    It also tries to complete the API task (idempotent if already done).
       await marcarComoLimpia(habitacion);
-      // 3. Fallback: ensure room is Disponible (in case marcarComoLimpia short-circuited because
-      //    the room state had already changed).
       if (habitaciones[habitacion]?.estado === 'Limpieza') {
         await cambiarEstadoHabitacion(habitacion, 'Disponible');
       }
@@ -554,6 +722,42 @@ export default function LimpiezaModule() {
     } finally {
       setCompletingTask(null);
       setConfirmComplete(null);
+    }
+  };
+
+  // ── Create new task ──
+  const handleCreateTask = async () => {
+    if (!newTaskHab.trim()) return;
+    setCreatingTask(true);
+    try {
+      await api.limpieza.create({
+        habitacion: newTaskHab.trim(),
+        nota: newTaskNota.trim() || undefined,
+        prioridad: newTaskPrioridad,
+        tipo: newTaskTipo,
+      });
+      toast.success('Tarea creada', { description: `Hab. ${newTaskHab}` });
+      setShowNewTask(false);
+      setNewTaskHab('');
+      setNewTaskNota('');
+      setNewTaskPrioridad('normal');
+      setNewTaskTipo('limpieza');
+      await refreshTasks();
+    } catch (err: any) {
+      toast.error(err.message || 'Error al crear tarea');
+    } finally {
+      setCreatingTask(false);
+    }
+  };
+
+  // ── Update task priority ──
+  const handleUpdatePriority = async (taskId: string, prioridad: Prioridad) => {
+    try {
+      await api.limpieza.update(taskId, { prioridad });
+      toast.success('Prioridad actualizada');
+      await refreshTasks();
+    } catch (err: any) {
+      toast.error(err.message || 'Error al actualizar prioridad');
     }
   };
 
@@ -580,7 +784,6 @@ export default function LimpiezaModule() {
 
   const hasFiltros = fDesde || fHasta || fHab || fDesc || fMonto;
 
-  // ── NEW: Active tasks assigned to a given staff member ──
   const getActiveTasksForStaff = (s: DbTenantUser) => {
     const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || '';
     return tareasLimpieza.filter(t =>
@@ -588,7 +791,6 @@ export default function LimpiezaModule() {
     );
   };
 
-  // ── NEW: Completed tasks (history) for a given staff member ──
   const getCompletedTasksForStaff = (s: DbTenantUser) => {
     const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || '';
     return tareasLimpieza
@@ -596,9 +798,246 @@ export default function LimpiezaModule() {
       .sort((a, b) => (b.fechaCompletado || '').localeCompare(a.fechaCompletado || ''));
   };
 
+  // ── Render a Kanban task card ──
+  const renderKanbanCard = (task: DbTareaLimpieza, index: number) => {
+    const prioridad = (task.prioridad || 'normal') as Prioridad;
+    const prioCfg = PRIORIDAD_CONFIG[prioridad] || PRIORIDAD_CONFIG.normal;
+    const tipo = (task.tipo || 'limpieza') as TipoTarea;
+    const tipoCfg = TIPO_CONFIG[tipo] || TIPO_CONFIG.limpieza;
+    const TipoIcon = tipoCfg.icon;
+    const PrioIcon = prioCfg.icon;
+    const assignedName = task.empleado || '';
+    const staffColor = staffColorMap[task.empleadoId || ''] || staffColorMap[assignedName] || '#94A3B8';
+    const isExpanded = expandedTaskId === task.id;
+    const isUrgent = prioridad === 'urgente';
+    const isDragged = draggedTaskId === task.id;
+
+    const habitacion = habitaciones[task.habitacion];
+    const estMin = estimatedCleaningMinutes(habitacion?.tipo);
+
+    const taskState = task.estado as KanbanColumn;
+    const isInProgress = taskState === 'en_progreso';
+    const startedAt = task.id ? startedAtMap[task.id] : undefined;
+    const elapsedMs = isInProgress && startedAt ? nowSec - startedAt : 0;
+    const estimatedMs = estMin * 60_000;
+    const overBudgetMs = isInProgress && startedAt ? Math.max(0, elapsedMs - estimatedMs - 30 * 60_000) : 0;
+    const isOverBudget = overBudgetMs > 0;
+
+    const sinceCreationMs = nowSec - new Date(task.fechaCreacion).getTime();
+    const floor = getFloorFromRoom(task.habitacion);
+
+    return (
+      <div
+        key={task.id}
+        draggable
+        onDragStart={() => setDraggedTaskId(task.id)}
+        onDragEnd={() => { setDraggedTaskId(null); setDragOverColumn(null); }}
+        className={cn(
+          'group rounded-lg bg-white border shadow-sm transition-all duration-200 cursor-grab active:cursor-grabbing',
+          prioCfg.leftBorder,
+          isDragged && 'opacity-50 scale-95 rotate-1',
+          isUrgent && 'ring-1 ring-[#EF4444]/30',
+          'hover:shadow-md hover:-translate-y-0.5',
+          isExpanded && 'shadow-md',
+        )}
+        style={{ animationDelay: `${index * 30}ms` }}
+      >
+        {/* Card header */}
+        <div
+          className="px-3 py-2.5"
+          onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              {/* Room number - prominent */}
+              <div className={cn('w-8 h-8 rounded-md flex items-center justify-center shrink-0 font-bold text-xs', FLOOR_COLORS[floor] || 'bg-muted')}>
+                {task.habitacion}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm font-bold text-[#0F2B28]">Hab. {task.habitacion}</span>
+                  {/* Priority dot */}
+                  <span className={cn('w-2 h-2 rounded-full shrink-0', prioCfg.dot, isUrgent && 'animate-pulse')} />
+                  {/* Task type icon */}
+                  <TipoIcon className={cn('w-3 h-3', tipoCfg.color)} />
+                </div>
+                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+                  <span>{tipoCfg.label}</span>
+                  <span>·</span>
+                  <span>{formatTimeSince(new Date(task.fechaCreacion).getTime())}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Assigned staff avatar */}
+            {assignedName ? (
+              <Avatar className="w-7 h-7 shrink-0" style={{ backgroundColor: staffColor + '20', borderColor: staffColor }}>
+                <AvatarFallback className="text-[9px] font-bold" style={{ color: staffColor }}>
+                  {getInitials(assignedName)}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+                <Users className="w-3 h-3 text-muted-foreground/50" />
+              </div>
+            )}
+          </div>
+
+          {/* Priority + status badges */}
+          <div className="flex items-center gap-1 mt-2 flex-wrap">
+            <Badge className={cn('text-[9px] shadow-sm font-semibold', prioCfg.badge)}>
+              {PrioIcon && <PrioIcon className="w-2 h-2 mr-0.5" />}
+              {prioCfg.label}
+            </Badge>
+            {isInProgress && (
+              <Badge className="text-[9px] bg-[#E0F2FE] text-[#0369A1] shadow-sm">
+                <Timer className="w-2 h-2 mr-0.5" />En curso
+              </Badge>
+            )}
+            {isOverBudget && (
+              <Badge className="text-[9px] bg-[#FEE2E2] text-[#991B1B] shadow-sm animate-pulse">
+                <AlertCircle className="w-2 h-2 mr-0.5" />Excedido
+              </Badge>
+            )}
+          </div>
+
+          {/* Progress bar for in-progress */}
+          {isInProgress && startedAt && (
+            <div className="mt-2 flex items-center gap-2">
+              <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={cn('h-full rounded-full transition-all', isOverBudget ? 'bg-[#EF4444]' : 'bg-[#0EA5E9]')}
+                  style={{ width: `${Math.min(100, (elapsedMs / (estimatedMs + 30 * 60_000)) * 100)}%` }}
+                />
+              </div>
+              <span className={cn('text-[9px] font-mono font-semibold tabular-nums', isOverBudget ? 'text-[#991B1B]' : 'text-[#0369A1]')}>
+                {formatDuration(elapsedMs)}
+              </span>
+            </div>
+          )}
+
+          {/* Urgent pulsing indicator */}
+          {isUrgent && (
+            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[#991B1B] font-semibold">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#EF4444]" />
+              </span>
+              Requiere atención inmediata
+            </div>
+          )}
+        </div>
+
+        {/* Quick action buttons (always visible on hover, or when expanded) */}
+        <div className={cn(
+          'px-3 pb-2.5 flex items-center gap-1 transition-all',
+          isExpanded ? 'opacity-100 max-h-12' : 'opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-12 overflow-hidden',
+        )}>
+          {task.estado === 'pendiente' && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[10px] px-2 border-[#0EA5E9]/30 text-[#0369A1] hover:bg-[#E0F2FE]"
+              onClick={(e) => { e.stopPropagation(); handleStartTask(task, task.habitacion); }}
+            >
+              <Play className="w-2.5 h-2.5 mr-0.5" />Iniciar
+            </Button>
+          )}
+          {task.estado === 'en_progreso' && (
+            <Button
+              size="sm"
+              className="h-6 text-[10px] px-2 bg-[#059669] hover:bg-[#047857] text-white"
+              onClick={(e) => { e.stopPropagation(); openCompleteConfirm(task, task.habitacion); }}
+              disabled={completingTask === task.id}
+            >
+              {completingTask === task.id ? <Loader2 className="w-2.5 h-2.5 mr-0.5 animate-spin" /> : <Check className="w-2.5 h-2.5 mr-0.5" />}
+              Completar
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 text-[10px] px-2"
+            onClick={(e) => { e.stopPropagation(); openAssignModal(task, task.habitacion); }}
+          >
+            <UserPlus className="w-2.5 h-2.5 mr-0.5" />
+            {assignedName ? 'Reasignar' : 'Asignar'}
+          </Button>
+          {task.estado === 'pendiente' && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-[10px] px-2 text-[#166534] hover:bg-[#DCFCE7]"
+              onClick={(e) => { e.stopPropagation(); openCompleteConfirm(task, task.habitacion); }}
+            >
+              <Check className="w-2.5 h-2.5 mr-0.5" />Limpia
+            </Button>
+          )}
+        </div>
+
+        {/* Expanded detail section */}
+        {isExpanded && (
+          <div className="px-3 pb-3 pt-0 border-t border-muted/50 space-y-2">
+            {habitacion && (
+              <p className="text-[10px] text-muted-foreground">
+                {habitacion.tipo} · {habitacion.capacidad} persona{habitacion.capacidad !== 1 ? 's' : ''} · Piso {getFloorFromRoom(task.habitacion)}
+              </p>
+            )}
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+              <Clock className="w-2.5 h-2.5" />Estimado: ~{estMin} min
+            </div>
+            {assignedName && (
+              <div className="flex items-center gap-1.5 text-[10px]">
+                <Avatar className="w-5 h-5">
+                  <AvatarFallback className="text-[8px] font-bold" style={{ color: staffColor, backgroundColor: staffColor + '20' }}>
+                    {getInitials(assignedName)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="font-medium text-[#0F2B28]">{assignedName}</span>
+              </div>
+            )}
+            {task.nota && (
+              <p className="text-[10px] text-muted-foreground italic line-clamp-2">&ldquo;{task.nota}&rdquo;</p>
+            )}
+            {/* Priority quick change */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] text-muted-foreground">Prioridad:</span>
+              {PRIORIDADES.map(p => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleUpdatePriority(task.id, p); }}
+                  className={cn(
+                    'w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center',
+                    prioridad === p ? 'border-foreground scale-110' : 'border-transparent hover:border-muted-foreground/30',
+                    PRIORIDAD_CONFIG[p].dot,
+                  )}
+                  title={PRIORIDAD_CONFIG[p].label}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      <ModuleHeader icon={SprayCan} title="Limpieza y Mantenimiento" subtitle="Gestioná el estado de habitaciones y tareas" />
+      <ModuleHeader icon={SprayCan} title="Limpieza y Mantenimiento" subtitle="Gestioná el estado de habitaciones y tareas">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={refreshTasks} disabled={loadingTasks} className="h-8">
+            <RefreshCw className={cn('w-3.5 h-3.5', loadingTasks && 'animate-spin')} />
+          </Button>
+          <Button
+            size="sm"
+            className="h-8 bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white"
+            onClick={() => setShowNewTask(true)}
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" />Nueva Tarea
+          </Button>
+        </div>
+      </ModuleHeader>
 
       {/* ── Maintenance alert banner ── */}
       {enMantenimiento.length > 0 && (
@@ -631,74 +1070,509 @@ export default function LimpiezaModule() {
         </Card>
       )}
 
-      {/* ── NEW: Daily Cleaning Summary Card ── */}
-      <Card className="border-[#BBF7D0]/60 bg-gradient-to-br from-[#F0FDF4]/40 to-white">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-[#0F2B28]" />
-              Resumen diario de limpieza
-              <span className="text-xs font-normal text-muted-foreground ml-1">{format(parseISO(todayStr), "EEEE d 'de' MMM", { locale: es })}</span>
-            </CardTitle>
-            <Button variant="ghost" size="sm" onClick={refreshTasks} disabled={loadingTasks} className="h-7 text-xs">
-              <RefreshCw className={cn('w-3 h-3 mr-1', loadingTasks && 'animate-spin')} />
-              Actualizar
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid lg:grid-cols-3 gap-4">
-            {/* Stats grid */}
-            <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="rounded-lg border border-[#FDE68A] bg-[#FEF9C3]/40 p-3">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#92400E] font-semibold">
-                  <SprayCan className="w-3 h-3" />Pendientes
-                </div>
-                <AnimatedNumber value={dailySummary.pending} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight text-[#92400E]" />
+      {/* ── Summary Stats ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="border-[#FDE68A] bg-gradient-to-br from-[#FEF9C3]/50 to-white">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-[#FEF9C3]"><SprayCan className="w-5 h-5 text-[#92400E]" /></div>
+            <div>
+              <AnimatedNumber value={dailySummary.pending} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
+              <p className="text-xs text-muted-foreground">Tareas Pendientes</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#BAE6FD] bg-gradient-to-br from-[#E0F2FE]/50 to-white">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-[#E0F2FE]"><Timer className="w-5 h-5 text-[#0369A1]" /></div>
+            <div>
+              <AnimatedNumber value={dailySummary.inProgress} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
+              <p className="text-xs text-muted-foreground">En Progreso</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#BBF7D0] bg-gradient-to-br from-[#DCFCE7]/50 to-white">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-[#DCFCE7]"><CheckCircle className="w-5 h-5 text-[#166534]" /></div>
+            <div className="flex items-baseline gap-1.5">
+              <AnimatedNumber value={dailySummary.completed} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
+              {dailySummary.variation !== 0 && (
+                <span className={cn('inline-flex items-center text-[10px] font-semibold', dailySummary.variation >= 0 ? 'text-[#166534]' : 'text-[#991B1B]')}>
+                  {dailySummary.variation >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {Math.abs(dailySummary.variation)}%
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">Completadas Hoy</p>
+          </CardContent>
+        </Card>
+        <Card className="border-[#DDD6FE] bg-gradient-to-br from-[#F5F3FF]/50 to-white">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-[#F5F3FF]"><Clock className="w-5 h-5 text-[#6D28D9]" /></div>
+            <div>
+              <span className="text-2xl font-bold block leading-tight text-[#6D28D9]">
+                {dailySummary.avgMin > 0 ? `${dailySummary.avgMin}'` : '—'}
+              </span>
+              <p className="text-xs text-muted-foreground">Tiempo Promedio</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Scheduling Timeline ── */}
+      {scheduleData.length > 0 && (
+        <Card className="border-[#E2E8F0]">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-[#0F2B28]" />
+                Cronograma de hoy
+                <span className="text-xs font-normal text-muted-foreground ml-1">{format(parseISO(todayStr), "EEE d 'de' MMM", { locale: es })}</span>
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="relative overflow-x-auto">
+              {/* Time axis */}
+              <div className="flex items-center mb-2 text-[9px] text-muted-foreground">
+                {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(h => (
+                  <div key={h} className="flex-1 text-center">{h}:00</div>
+                ))}
               </div>
-              <div className="rounded-lg border border-[#BAE6FD] bg-[#E0F2FE]/40 p-3">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#0369A1] font-semibold">
-                  <Timer className="w-3 h-3" />En progreso
-                </div>
-                <AnimatedNumber value={dailySummary.inProgress} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight text-[#0369A1]" />
+              {/* Timeline bar container */}
+              <div className="relative h-20 bg-muted/20 rounded-lg">
+                {/* Hour grid lines */}
+                {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(h => (
+                  <div
+                    key={h}
+                    className="absolute top-0 bottom-0 border-l border-muted/30"
+                    style={{ left: `${((h - 8) / 10) * 100}%` }}
+                  />
+                ))}
+                {/* Current time indicator */}
+                {(() => {
+                  const nowDate = new Date();
+                  const nowMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+                  const nowPct = ((nowMinutes - 480) / 600) * 100; // 8:00 = 480 min, 18:00 = 1080 min
+                  if (nowPct >= 0 && nowPct <= 100) {
+                    return (
+                      <div
+                        className="absolute top-0 bottom-0 w-0.5 bg-[#EF4444] z-10"
+                        style={{ left: `${nowPct}%` }}
+                      >
+                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-[#EF4444]" />
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                {/* Task blocks */}
+                {scheduleData.map((block, i) => {
+                  const startPct = ((block.start - 480) / 600) * 100;
+                  const widthPct = ((block.end - block.start) / 600) * 100;
+                  const floorColor = FLOOR_COLORS[block.floor] || 'bg-muted';
+                  const prioCfg = PRIORIDAD_CONFIG[block.prioridad] || PRIORIDAD_CONFIG.normal;
+                  const tipoCfg = TIPO_CONFIG[block.tipo] || TIPO_CONFIG.limpieza;
+                  const TipoIcon = tipoCfg.icon;
+                  return (
+                    <div
+                      key={block.id}
+                      className={cn(
+                        'absolute top-2 bottom-2 rounded-md border border-white/80 shadow-sm flex items-center gap-1 px-1.5 overflow-hidden cursor-default',
+                        floorColor,
+                      )}
+                      style={{ left: `${Math.max(0, startPct)}%`, width: `${Math.max(1, widthPct)}%` }}
+                      title={`Hab. ${block.habitacion} - ${tipoCfg.label} (${block.estMin} min)`}
+                    >
+                      <span className="text-[9px] font-bold text-[#0F2B28] shrink-0">{block.habitacion}</span>
+                      <TipoIcon className="w-2.5 h-2.5 shrink-0 text-[#0F2B28]/60" />
+                      {widthPct > 8 && (
+                        <span className="text-[8px] text-[#0F2B28]/60 truncate">{block.estMin}m</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <div className="rounded-lg border border-[#BBF7D0] bg-[#DCFCE7]/40 p-3">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#166534] font-semibold">
-                  <CheckCircle className="w-3 h-3" />Completadas
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <AnimatedNumber value={dailySummary.completed} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight text-[#166534]" />
-                  {dailySummary.yCompleted > 0 && (
-                    <span className={cn('inline-flex items-center text-[10px] font-semibold', dailySummary.variation >= 0 ? 'text-[#166534]' : 'text-[#991B1B]')}>
-                      {dailySummary.variation >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {Math.abs(dailySummary.variation)}%
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="rounded-lg border border-[#DDD6FE] bg-[#F5F3FF]/40 p-3">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#6D28D9] font-semibold">
-                  <Clock className="w-3 h-3" />Tiempo prom.
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-bold block leading-tight text-[#6D28D9]">
-                    {dailySummary.avgMin > 0 ? `${dailySummary.avgMin}'` : '—'}
-                  </span>
-                  {dailySummary.yAvgMin > 0 && dailySummary.avgMin > 0 && (
-                    <span className={cn('inline-flex items-center text-[10px] font-semibold', dailySummary.avgVariation <= 0 ? 'text-[#166534]' : 'text-[#991B1B]')}>
-                      {dailySummary.avgVariation <= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {Math.abs(dailySummary.avgVariation)}%
-                    </span>
-                  )}
-                </div>
-                <p className="text-[9px] text-muted-foreground mt-0.5">vs ayer {dailySummary.yAvgMin > 0 ? `${dailySummary.yAvgMin}'` : '—'}</p>
+              {/* Legend */}
+              <div className="flex items-center gap-3 mt-2 text-[9px] text-muted-foreground flex-wrap">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#DBEAFE]" />Piso 1</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#FEF3C7]" />Piso 2</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#DCFCE7]" />Piso 3</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#F3E8FF]" />Piso 4</span>
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />Ahora</span>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
 
-            {/* 7-day mini AreaChart */}
-            <div className="rounded-lg border bg-white p-3 flex flex-col">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Completadas · últimos 7 días</p>
-              <div className="flex-1 min-h-[80px]">
+      {/* ── View mode toggle + Priority filter ── */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'list' | 'kanban')}>
+            <TabsList className="h-8">
+              <TabsTrigger value="kanban" className="text-xs px-3 h-6">
+                <LayoutGrid className="w-3.5 h-3.5 mr-1" />Kanban
+              </TabsTrigger>
+              <TabsTrigger value="list" className="text-xs px-3 h-6">
+                <List className="w-3.5 h-3.5 mr-1" />Lista
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Prioridad:</span>
+          <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as Prioridad | 'all')}>
+            <SelectTrigger className="w-32 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="urgente">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#EF4444]" />Urgente
+                </span>
+              </SelectItem>
+              <SelectItem value="normal">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />Normal
+                </span>
+              </SelectItem>
+              <SelectItem value="baja">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#0EA5E9]" />Baja
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════════ */}
+      {/* KANBAN VIEW                                                       */}
+      {/* ════════════════════════════════════════════════════════════════ */}
+      {viewMode === 'kanban' && (
+        <div className="grid md:grid-cols-3 gap-4">
+          {KANBAN_COLUMNS.map(col => {
+            const tasks = kanbanData[col.key];
+            const ColIcon = col.icon;
+            const isDragOver = dragOverColumn === col.key;
+
+            return (
+              <div
+                key={col.key}
+                className={cn(
+                  'flex flex-col rounded-xl border bg-muted/10 transition-all',
+                  isDragOver && 'ring-2 ring-[#0EA5E9]/40 bg-[#E0F2FE]/10',
+                )}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOverColumn(col.key);
+                }}
+                onDragLeave={() => setDragOverColumn(null)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOverColumn(null);
+                  if (draggedTaskId) {
+                    const task = tareasLimpieza.find(t => t.id === draggedTaskId);
+                    if (task && task.estado !== col.key) {
+                      if (col.key === 'completada') {
+                        openCompleteConfirm(task, task.habitacion);
+                      } else {
+                        handleMoveTaskToColumn(task, col.key);
+                      }
+                    }
+                    setDraggedTaskId(null);
+                  }
+                }}
+              >
+                {/* Column header */}
+                <div className={cn('px-3 py-2.5 rounded-t-xl border-b', col.headerBg)}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <ColIcon className={cn('w-4 h-4', col.headerText)} />
+                      <span className={cn('text-sm font-semibold', col.headerText)}>{col.label}</span>
+                    </div>
+                    <Badge variant="secondary" className={cn('text-[10px] font-semibold shadow-sm', col.headerBg, col.headerText)}>
+                      {tasks.length}
+                    </Badge>
+                  </div>
+                  {/* Nueva Tarea button in Pendiente column */}
+                  {col.key === 'pendiente' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full h-7 mt-2 text-xs border border-dashed border-muted-foreground/30 hover:border-[#0F2B28]/40 hover:bg-white/60"
+                      onClick={() => setShowNewTask(true)}
+                    >
+                      <Plus className="w-3 h-3 mr-1" />Nueva Tarea
+                    </Button>
+                  )}
+                </div>
+
+                {/* Column body (scrollable) */}
+                <div className="flex-1 p-2 space-y-2 max-h-[36rem] overflow-y-auto custom-scroll">
+                  {tasks.length === 0 ? (
+                    <div className="text-center py-8">
+                      <ColIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+                      <p className="text-xs text-muted-foreground">{col.emptyMsg}</p>
+                    </div>
+                  ) : tasks.map((task, index) => renderKanbanCard(task, index))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════ */}
+      {/* LIST VIEW (existing cleaning queue)                               */}
+      {/* ════════════════════════════════════════════════════════════════ */}
+      {viewMode === 'list' && (
+        <>
+          {/* Cleaning progress tracker */}
+          <Card className="bg-gradient-to-br from-[#F0FDF4]/40 to-white border-[#059669]/20">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-[#DCFCE7] flex items-center justify-center shadow-sm">
+                    <Sparkles className="w-4 h-4 text-[#166534]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#0F2B28]">Progreso de limpieza</p>
+                    <p className="text-xs text-muted-foreground">{completadasLimpieza} de {totalOperativas} habitaciones operativas listas</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Completado</p>
+                    <AnimatedNumber
+                      value={pctProgreso}
+                      duration={500}
+                      format={(n) => `${Math.round(n)}%`}
+                      className={cn(
+                        'text-2xl font-bold tabular-nums',
+                        pctProgreso > 80 ? 'text-[#166534]' : pctProgreso >= 50 ? 'text-[#92400E]' : 'text-[#991B1B]'
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Pendientes: <strong className="text-[#92400E]">{pendientesLimpieza}</strong></span>
+                  <span className="text-muted-foreground">Listas: <strong className="text-[#166534]">{completadasLimpieza}</strong></span>
+                </div>
+                <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={cn(
+                      'h-full rounded-full transition-all duration-700 ease-out',
+                      pctProgreso > 80
+                        ? 'bg-gradient-to-r from-[#059669] to-[#4ADE80]'
+                        : pctProgreso >= 50
+                          ? 'bg-gradient-to-r from-[#F59E0B] to-[#FBBF24]'
+                          : 'bg-gradient-to-r from-[#EF4444] to-[#F87171]'
+                    )}
+                    style={{ width: `${pctProgreso}%` }}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Cleaning Queue */}
+            <Card className="border-[#FDE68A]">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <SprayCan className="w-4 h-4 text-[#92400E]" />
+                    Cola de limpieza
+                    {porLimpiar.length > 0 && (
+                      <span className="relative flex h-2 w-2 ml-1">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#F59E0B] opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#F59E0B]" />
+                      </span>
+                    )}
+                  </CardTitle>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant="outline" className="text-[10px] border-[#FDE68A] text-[#92400E]">Prioridad ↓</Badge>
+                    <Badge variant="secondary" className="bg-[#FEF9C3] text-[#92400E] shadow-sm font-semibold">{porLimpiar.length}</Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto custom-scroll">
+                {porLimpiar.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#DCFCE7] flex items-center justify-center shadow-sm">
+                      <CheckCircle className="w-7 h-7 text-[#166534]" />
+                    </div>
+                    <p className="text-sm font-medium text-[#166534]">¡Todo limpio!</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">No hay habitaciones pendientes.</p>
+                  </div>
+                ) : cleaningQueueSorted.map((item, index) => {
+                  const priority = item.priority;
+                  const legacyConfig = PRIORIDAD_CONFIG[priority === 'high' ? 'urgente' : priority === 'medium' ? 'normal' : 'baja'];
+                  const estMin = item.estMin;
+                  const task = item.task;
+                  const taskState = task?.estado || 'pendiente';
+                  const isInProgress = taskState === 'en_progreso';
+                  const isCompleted = taskState === 'completada';
+                  const assignedName = task?.empleado || '';
+                  const isHighPulsing = priority === 'high' && item.lastCheckoutMs > 0 && ((nowSec - item.lastCheckoutMs) / 3_600_000) >= 2;
+
+                  const startedAt = task?.id ? startedAtMap[task.id] : undefined;
+                  const elapsedMs = isInProgress && startedAt ? nowSec - startedAt : 0;
+                  const estimatedMs = estMin * 60_000;
+                  const overBudgetMs = isInProgress && startedAt ? Math.max(0, elapsedMs - estimatedMs - 30 * 60_000) : 0;
+                  const isOverBudget = overBudgetMs > 0;
+                  const sinceCheckoutMs = item.lastCheckoutMs > 0 ? nowSec - item.lastCheckoutMs : 0;
+
+                  return (
+                    <div
+                      key={item.num}
+                      className={cn(
+                        'group relative pl-3 pr-2.5 py-2.5 rounded-lg border-l-[3px] border bg-white hover:shadow-md transition-all duration-300 animate-slide-up',
+                        legacyConfig.border,
+                        'hover:-translate-y-0.5',
+                        isOverBudget && 'ring-2 ring-[#EF4444]/40'
+                      )}
+                      style={{ animationDelay: `${index * 40}ms` }}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                          <div className="flex flex-col gap-0.5 self-center shrink-0">
+                            <button type="button" aria-label="Mover arriba" className="text-muted-foreground/50 hover:text-[#0F2B28] disabled:opacity-20 disabled:cursor-not-allowed transition-colors" onClick={() => moveTask(item.num, 'up')} disabled={index === 0}>
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button type="button" aria-label="Mover abajo" className="text-muted-foreground/50 hover:text-[#0F2B28] disabled:opacity-20 disabled:cursor-not-allowed transition-colors" onClick={() => moveTask(item.num, 'down')} disabled={index === cleaningQueueSorted.length - 1}>
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <div className={cn('w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm relative', legacyConfig.bg)}>
+                            <BedDouble className={cn('w-4 h-4', legacyConfig.text)} />
+                            {isHighPulsing && (
+                              <span className="absolute -top-0.5 -right-0.5 relative flex h-2.5 w-2.5">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
+                                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#EF4444] border border-white" />
+                              </span>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-sm font-bold text-[#0F2B28]">Hab. {item.num}</p>
+                              <Badge className={cn('text-[10px] shadow-sm font-semibold', legacyConfig.badge)}>{legacyConfig.label}</Badge>
+                              {isInProgress && <Badge className="text-[10px] bg-[#E0F2FE] text-[#0369A1] shadow-sm"><Timer className="w-2.5 h-2.5 mr-0.5" />En curso</Badge>}
+                              {isOverBudget && <Badge className="text-[10px] bg-[#FEE2E2] text-[#991B1B] shadow-sm animate-pulse"><AlertCircle className="w-2.5 h-2.5 mr-0.5" />Excedido</Badge>}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">{item.hab.tipo} · {item.hab.capacidad} persona{item.hab.capacidad !== 1 ? 's' : ''}</p>
+                            <div className="flex items-center gap-2 flex-wrap mt-1 text-[10px] text-muted-foreground">
+                              <span className="inline-flex items-center gap-1"><Clock className="w-2.5 h-2.5" />Estimado: ~{estMin} min</span>
+                              {item.lastCheckoutMs > 0 && sinceCheckoutMs > 0 && !isInProgress && !isCompleted && (
+                                <span className={cn('inline-flex items-center gap-1', priority === 'high' ? 'text-[#991B1B] font-semibold' : '')}>
+                                  <AlertCircle className="w-2.5 h-2.5" />Checkout: hace {formatDuration(sinceCheckoutMs)}
+                                </span>
+                              )}
+                            </div>
+                            {assignedName && <p className="text-[10px] mt-1 inline-flex items-center gap-1 text-[#0F2B28]"><Users className="w-2.5 h-2.5" /><span className="font-medium truncate max-w-[120px]">{assignedName}</span></p>}
+                            {task?.nota && <p className="text-[10px] mt-0.5 text-muted-foreground italic line-clamp-1">&ldquo;{task.nota}&rdquo;</p>}
+                            {isInProgress && startedAt && (
+                              <div className="mt-1.5 flex items-center gap-2">
+                                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                                  <div className={cn('h-full rounded-full transition-all', isOverBudget ? 'bg-[#EF4444]' : 'bg-[#0EA5E9]')} style={{ width: `${Math.min(100, (elapsedMs / (estimatedMs + 30 * 60_000)) * 100)}%` }} />
+                                </div>
+                                <span className={cn('text-[10px] font-mono font-semibold tabular-nums', isOverBudget ? 'text-[#991B1B]' : 'text-[#0369A1]')}>{formatDuration(elapsedMs)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1 shrink-0">
+                          {!isInProgress && !isCompleted && (
+                            <>
+                              <Button size="sm" variant="outline" className="h-7 text-xs border-[#0F2B28]/20 text-[#0F2B28] hover:bg-[#0F2B28]/5" onClick={() => openAssignModal(task, item.num)}>
+                                <UserPlus className="w-3 h-3 mr-1" />{assignedName ? 'Reasignar' : 'Asignar'}
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-7 text-xs border-[#0EA5E9]/30 text-[#0369A1] hover:bg-[#E0F2FE]" onClick={() => handleStartTask(task, item.num)}>
+                                <Play className="w-3 h-3 mr-1" />Iniciar
+                              </Button>
+                            </>
+                          )}
+                          {isInProgress && (
+                            <Button size="sm" className="h-7 text-xs bg-[#059669] hover:bg-[#047857] text-white shadow-sm" disabled={completingTask === (task?.id || item.num)} onClick={() => openCompleteConfirm(task, item.num)}>
+                              {completingTask === (task?.id || item.num) ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}Completar
+                            </Button>
+                          )}
+                          {!isInProgress && !isCompleted && !task?.id && (
+                            <Button size="sm" variant="ghost" className="h-7 text-xs text-[#166534] hover:bg-[#DCFCE7]" disabled={completingTask === item.num} onClick={() => openCompleteConfirm(task, item.num)}>
+                              {completingTask === item.num ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}Limpia
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+
+            {/* En mantenimiento */}
+            <Card className="border-[#FECACA]">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-[#991B1B]" />
+                    En mantenimiento
+                    {enMantenimiento.length > 0 && (
+                      <span className="relative flex h-2 w-2 ml-1">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#EF4444]" />
+                      </span>
+                    )}
+                  </CardTitle>
+                  <Badge variant="secondary" className="bg-[#FECACA] text-[#991B1B] shadow-sm font-semibold">{enMantenimiento.length}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto custom-scroll">
+                {enMantenimiento.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#F1F5F9] flex items-center justify-center shadow-sm">
+                      <CheckCircle className="w-7 h-7 text-[#94A3B8]" />
+                    </div>
+                    <p className="text-sm font-medium">Sin problemas activos</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Todo funciona correctamente.</p>
+                  </div>
+                ) : enMantenimiento.map(([num, h], index) => (
+                  <div key={num} className={cn('group pl-3 pr-2.5 py-2.5 rounded-lg border-l-[3px] border-l-[#EF4444] border bg-white hover:shadow-md transition-all duration-300 animate-slide-up hover:-translate-y-0.5')} style={{ animationDelay: `${index * 40}ms` }}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <div className="w-9 h-9 rounded-full bg-[#FEE2E2] flex items-center justify-center shrink-0 shadow-sm">
+                          <Wrench className="w-4 h-4 text-[#991B1B]" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-[#0F2B28]">Hab. {num}</p>
+                          <p className="text-xs text-[#991B1B] font-medium truncate">{h.problema || 'Sin descripción'}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{h.tipo}</p>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" className="h-7 text-xs border-[#059669]/30 text-[#166534] hover:bg-[#DCFCE7] shrink-0" onClick={() => setModalResolver(num)}>
+                        <Check className="w-3 h-3 mr-1" />Resolver
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 7-day mini chart */}
+          <Card className="border-[#E2E8F0]">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-[#0F2B28]" />
+                Completadas · últimos 7 días
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[80px]">
                 <ResponsiveContainer width="100%" height={80}>
                   <AreaChart data={dailySummary.last7} margin={{ top: 5, right: 5, bottom: 0, left: 5 }}>
                     <defs>
@@ -707,394 +1581,26 @@ export default function LimpiezaModule() {
                         <stop offset="95%" stopColor="#0F2B28" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <XAxis
-                      dataKey="day"
-                      tick={{ fontSize: 9, fill: '#94A3B8' }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <RechartsTooltip
-                      contentStyle={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #E2E8F0' }}
-                      labelStyle={{ color: '#475569' }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="count"
-                      stroke="#0F2B28"
-                      strokeWidth={1.5}
-                      fill="url(#cleanGrad)"
-                      dot={{ r: 2, fill: '#0F2B28' }}
-                    />
+                    <XAxis dataKey="day" tick={{ fontSize: 9, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                    <RechartsTooltip contentStyle={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #E2E8F0' }} labelStyle={{ color: '#475569' }} />
+                    <Area type="monotone" dataKey="count" stroke="#0F2B28" strokeWidth={1.5} fill="url(#cleanGrad)" dot={{ r: 2, fill: '#0F2B28' }} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
-      {/* ── Cleaning progress tracker ── */}
-      <Card className="bg-gradient-to-br from-[#F0FDF4]/40 to-white border-[#059669]/20">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#DCFCE7] flex items-center justify-center shadow-sm">
-                <Sparkles className="w-4 h-4 text-[#166534]" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-[#0F2B28]">Progreso de limpieza</p>
-                <p className="text-xs text-muted-foreground">{completadasLimpieza} de {totalOperativas} habitaciones operativas listas</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Completado</p>
-                <AnimatedNumber
-                  value={pctProgreso}
-                  duration={500}
-                  format={(n) => `${Math.round(n)}%`}
-                  className={cn(
-                    'text-2xl font-bold tabular-nums',
-                    pctProgreso > 80 ? 'text-[#166534]' : pctProgreso >= 50 ? 'text-[#92400E]' : 'text-[#991B1B]'
-                  )}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Pendientes: <strong className="text-[#92400E]">{pendientesLimpieza}</strong></span>
-              <span className="text-muted-foreground">Listas: <strong className="text-[#166534]">{completadasLimpieza}</strong></span>
-            </div>
-            <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
-              <div
-                className={cn(
-                  'h-full rounded-full transition-all duration-700 ease-out',
-                  pctProgreso > 80
-                    ? 'bg-gradient-to-r from-[#059669] to-[#4ADE80]'
-                    : pctProgreso >= 50
-                      ? 'bg-gradient-to-r from-[#F59E0B] to-[#FBBF24]'
-                      : 'bg-gradient-to-r from-[#EF4444] to-[#F87171]'
-                )}
-                style={{ width: `${pctProgreso}%` }}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── KPIs ── */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card className="border-[#FDE68A] bg-gradient-to-br from-[#FEF9C3]/50 to-white card-hover">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#FEF9C3]"><SprayCan className="w-5 h-5 text-[#92400E]" /></div>
-            <div>
-              <AnimatedNumber value={porLimpiar.length} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
-              <p className="text-xs text-muted-foreground">Para limpiar</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-[#FECACA] bg-gradient-to-br from-[#FEE2E2]/50 to-white card-hover">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#FEE2E2]"><Wrench className="w-5 h-5 text-[#991B1B]" /></div>
-            <div>
-              <AnimatedNumber value={enMantenimiento.length} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
-              <p className="text-xs text-muted-foreground">En mantenimiento</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-[#BBF7D0] bg-gradient-to-br from-[#DCFCE7]/50 to-white card-hover">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#DCFCE7]"><Sparkles className="w-5 h-5 text-[#166534]" /></div>
-            <div>
-              <AnimatedNumber value={historialMantenimiento.length} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
-              <p className="text-xs text-muted-foreground">Reparaciones totales</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* ── NEW: Cleaning Queue with Priority Sorting + Progress Tracker ── */}
-        <Card className="border-[#FDE68A]">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <SprayCan className="w-4 h-4 text-[#92400E]" />
-                Cola de limpieza
-                {porLimpiar.length > 0 && (
-                  <span className="relative flex h-2 w-2 ml-1">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#F59E0B] opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#F59E0B]" />
-                  </span>
-                )}
-              </CardTitle>
-              <div className="flex items-center gap-1.5">
-                <Badge variant="outline" className="text-[10px] border-[#FDE68A] text-[#92400E]">Prioridad ↓</Badge>
-                <Badge variant="secondary" className="bg-[#FEF9C3] text-[#92400E] shadow-sm font-semibold">{porLimpiar.length}</Badge>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto custom-scroll">
-            {porLimpiar.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#DCFCE7] flex items-center justify-center shadow-sm">
-                  <CheckCircle className="w-7 h-7 text-[#166534]" />
-                </div>
-                <p className="text-sm font-medium text-[#166534]">¡Todo limpio!</p>
-                <p className="text-xs text-muted-foreground mt-0.5">No hay habitaciones pendientes.</p>
-              </div>
-            ) : cleaningQueueSorted.map((item, index) => {
-              const priority = item.priority;
-              const cfg = PRIORITY_CONFIG[priority];
-              const PriorityIcon = cfg.icon;
-              const estMin = item.estMin;
-              const task = item.task;
-              const taskState = task?.estado || 'pendiente';
-              const isInProgress = taskState === 'en_progreso';
-              const isCompleted = taskState === 'completada';
-              const assignedName = task?.empleado || '';
-              const isHighPulsing = priority === 'high' && item.lastCheckoutMs > 0 && ((nowSec - item.lastCheckoutMs) / 3_600_000) >= 2;
-
-              // Elapsed time for in-progress tasks
-              const startedAt = task?.id ? startedAtMap[task.id] : undefined;
-              const elapsedMs = isInProgress && startedAt ? nowSec - startedAt : 0;
-              const estimatedMs = estMin * 60_000;
-              const overBudgetMs = isInProgress && startedAt ? Math.max(0, elapsedMs - estimatedMs - 30 * 60_000) : 0;
-              const isOverBudget = overBudgetMs > 0;
-
-              // Time remaining for pending tasks (since checkout, until estimated start needed)
-              const sinceCheckoutMs = item.lastCheckoutMs > 0 ? nowSec - item.lastCheckoutMs : 0;
-
-              return (
-                <div
-                  key={item.num}
-                  className={cn(
-                    'group relative pl-3 pr-2.5 py-2.5 rounded-lg border-l-[3px] border bg-white hover:shadow-md transition-all duration-300 animate-slide-up',
-                    cfg.border,
-                    'hover:-translate-y-0.5',
-                    isOverBudget && 'ring-2 ring-[#EF4444]/40'
-                  )}
-                  style={{ animationDelay: `${index * 40}ms` }}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                      {/* Reorder arrows */}
-                      <div className="flex flex-col gap-0.5 self-center shrink-0">
-                        <button
-                          type="button"
-                          aria-label="Mover arriba"
-                          className="text-muted-foreground/50 hover:text-[#0F2B28] disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
-                          onClick={() => moveTask(item.num, 'up')}
-                          disabled={index === 0}
-                        >
-                          <ChevronUp className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Mover abajo"
-                          className="text-muted-foreground/50 hover:text-[#0F2B28] disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
-                          onClick={() => moveTask(item.num, 'down')}
-                          disabled={index === cleaningQueueSorted.length - 1}
-                        >
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      <div className={cn('w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm relative', cfg.bg)}>
-                        <BedDouble className={cn('w-4 h-4', cfg.text)} />
-                        {isHighPulsing && (
-                          <span className="absolute -top-0.5 -right-0.5 relative flex h-2.5 w-2.5">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
-                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#EF4444] border border-white" />
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-sm font-bold text-[#0F2B28]">Hab. {item.num}</p>
-                          <Badge className={cn('text-[10px] shadow-sm font-semibold', cfg.badge)}>
-                            {PriorityIcon && <PriorityIcon className="w-2.5 h-2.5 mr-0.5" />}
-                            {cfg.label}
-                          </Badge>
-                          {isInProgress && (
-                            <Badge className="text-[10px] bg-[#E0F2FE] text-[#0369A1] shadow-sm">
-                              <Timer className="w-2.5 h-2.5 mr-0.5" />En curso
-                            </Badge>
-                          )}
-                          {isOverBudget && (
-                            <Badge className="text-[10px] bg-[#FEE2E2] text-[#991B1B] shadow-sm animate-pulse">
-                              <AlertCircle className="w-2.5 h-2.5 mr-0.5" />Excedido
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {item.hab.tipo} · {item.hab.capacidad} persona{item.hab.capacidad !== 1 ? 's' : ''}
-                        </p>
-                        <div className="flex items-center gap-2 flex-wrap mt-1 text-[10px] text-muted-foreground">
-                          <span className="inline-flex items-center gap-1">
-                            <Clock className="w-2.5 h-2.5" />Estimado: ~{estMin} min
-                          </span>
-                          {item.lastCheckoutMs > 0 && sinceCheckoutMs > 0 && !isInProgress && !isCompleted && (
-                            <span className={cn('inline-flex items-center gap-1', priority === 'high' ? 'text-[#991B1B] font-semibold' : '')}>
-                              <AlertCircle className="w-2.5 h-2.5" />Checkout: hace {formatDuration(sinceCheckoutMs)}
-                            </span>
-                          )}
-                        </div>
-                        {assignedName && (
-                          <p className="text-[10px] mt-1 inline-flex items-center gap-1 text-[#0F2B28]">
-                            <Users className="w-2.5 h-2.5" />
-                            <span className="font-medium truncate max-w-[120px]">{assignedName}</span>
-                          </p>
-                        )}
-                        {task?.nota && (
-                          <p className="text-[10px] mt-0.5 text-muted-foreground italic line-clamp-1">“{task.nota}”</p>
-                        )}
-                        {isInProgress && startedAt && (
-                          <div className="mt-1.5 flex items-center gap-2">
-                            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                              <div
-                                className={cn(
-                                  'h-full rounded-full transition-all',
-                                  isOverBudget ? 'bg-[#EF4444]' : 'bg-[#0EA5E9]'
-                                )}
-                                style={{ width: `${Math.min(100, (elapsedMs / (estimatedMs + 30 * 60_000)) * 100)}%` }}
-                              />
-                            </div>
-                            <span className={cn('text-[10px] font-mono font-semibold tabular-nums', isOverBudget ? 'text-[#991B1B]' : 'text-[#0369A1]')}>
-                              {formatDuration(elapsedMs)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1 shrink-0">
-                      {!isInProgress && !isCompleted && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs border-[#0F2B28]/20 text-[#0F2B28] hover:bg-[#0F2B28]/5"
-                            onClick={() => openAssignModal(task, item.num)}
-                          >
-                            <UserPlus className="w-3 h-3 mr-1" />
-                            {assignedName ? 'Reasignar' : 'Asignar'}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs border-[#0EA5E9]/30 text-[#0369A1] hover:bg-[#E0F2FE]"
-                            onClick={() => handleStartTask(task, item.num)}
-                          >
-                            <Play className="w-3 h-3 mr-1" />Iniciar
-                          </Button>
-                        </>
-                      )}
-                      {isInProgress && (
-                        <Button
-                          size="sm"
-                          className="h-7 text-xs bg-[#059669] hover:bg-[#047857] text-white shadow-sm"
-                          disabled={completingTask === (task?.id || item.num)}
-                          onClick={() => openCompleteConfirm(task, item.num)}
-                        >
-                          {completingTask === (task?.id || item.num)
-                            ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            : <Check className="w-3 h-3 mr-1" />}
-                          Completar
-                        </Button>
-                      )}
-                      {!isInProgress && !isCompleted && !task?.id && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-xs text-[#166534] hover:bg-[#DCFCE7]"
-                          disabled={completingTask === item.num}
-                          onClick={() => openCompleteConfirm(task, item.num)}
-                        >
-                          {completingTask === item.num
-                            ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            : <Check className="w-3 h-3 mr-1" />}
-                          Limpia
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        {/* En mantenimiento */}
-        <Card className="border-[#FECACA]">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-[#991B1B]" />
-                En mantenimiento
-                {enMantenimiento.length > 0 && (
-                  <span className="relative flex h-2 w-2 ml-1">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#EF4444]" />
-                  </span>
-                )}
-              </CardTitle>
-              <Badge variant="secondary" className="bg-[#FECACA] text-[#991B1B] shadow-sm font-semibold">{enMantenimiento.length}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto custom-scroll">
-            {enMantenimiento.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#F1F5F9] flex items-center justify-center shadow-sm">
-                  <CheckCircle className="w-7 h-7 text-[#94A3B8]" />
-                </div>
-                <p className="text-sm font-medium">Sin problemas activos</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Todo funciona correctamente.</p>
-              </div>
-            ) : enMantenimiento.map(([num, h], index) => (
-              <div
-                key={num}
-                className="group border-l-[3px] border-l-[#EF4444] rounded-lg p-2.5 space-y-1.5 hover:bg-[#FEE2E2]/20 hover:shadow-md transition-all duration-300 animate-slide-up hover:-translate-y-0.5"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-9 h-9 rounded-full bg-[#FEE2E2] flex items-center justify-center shadow-sm shrink-0">
-                      <BedDouble className="w-4 h-4 text-[#991B1B]" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-[#0F2B28]">Hab. {num}</p>
-                      <p className="text-xs text-muted-foreground">{h.tipo} · {h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</p>
-                    </div>
-                  </div>
-                  <Button size="sm" className="bg-[#059669] hover:bg-[#047857] text-white shadow-sm shrink-0" onClick={() => setModalResolver(num)}>
-                    <Check className="w-3.5 h-3.5 mr-1" />Resuelto
-                  </Button>
-                </div>
-                <div className="bg-[#FEE2E2] rounded p-2 flex items-start gap-1.5">
-                  <AlertTriangle className="w-3 h-3 text-[#991B1B] shrink-0 mt-0.5" />
-                  <span className="text-xs text-[#991B1B]">{h.problema || 'Sin descripción'}</span>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── NEW: Staff Workload Dashboard ── */}
-      <Card className="border-[#BBF7D0]/60 bg-gradient-to-br from-[#F0FDF4]/30 to-white">
+      {/* ── Staff Panel ── */}
+      <Card className="border-[#E2E8F0]">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Users className="w-4 h-4 text-[#0F2B28]" />
               Personal de limpieza
-              <span className="text-xs font-normal text-muted-foreground ml-1">{staff.length} miembro{staff.length !== 1 ? 's' : ''}</span>
+              <Badge variant="secondary" className="text-[10px] font-semibold">{staff.length}</Badge>
             </CardTitle>
-            <div className="flex items-center gap-3 text-[10px]">
-              <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#059669]" /> ≤2</span>
-              <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#F59E0B]" /> 3-5</span>
-              <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#EF4444]" /> 6+</span>
-            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -1104,7 +1610,7 @@ export default function LimpiezaModule() {
                 <Users className="w-7 h-7 text-muted-foreground/50" />
               </div>
               <p className="text-sm font-medium">Sin personal de limpieza registrado</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Agregá usuarios con rol “limpieza” desde el módulo Usuarios.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Agregá usuarios con rol &ldquo;limpieza&rdquo; desde el módulo Usuarios.</p>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1112,6 +1618,7 @@ export default function LimpiezaModule() {
                 const stateCfg = STAFF_STATE_CONFIG[state];
                 const capacityPct = Math.min(100, (active / 8) * 100);
                 const initials = getInitials(displayName);
+                const staffColor = staffColorMap[s.id] || '#94A3B8';
                 return (
                   <div
                     key={s.id}
@@ -1122,8 +1629,8 @@ export default function LimpiezaModule() {
                     style={{ animationDelay: `${index * 40}ms` }}
                   >
                     <div className="flex items-start gap-2.5 mb-2.5">
-                      <Avatar className="w-10 h-10 ring-2 ring-offset-2 ring-offset-white" style={{ ['--tw-ring-color' as any]: state === 'available' ? '#059669' : state === 'busy' ? '#F59E0B' : '#EF4444' }}>
-                        <AvatarFallback className={cn('text-xs font-bold', stateCfg.bg, stateCfg.text)}>
+                      <Avatar className="w-10 h-10 ring-2 ring-offset-2 ring-offset-white" style={{ ['--tw-ring-color' as any]: staffColor }}>
+                        <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: staffColor + '20', color: staffColor }}>
                           {initials}
                         </AvatarFallback>
                       </Avatar>
@@ -1133,7 +1640,6 @@ export default function LimpiezaModule() {
                         <Badge className={cn('mt-1 text-[9px] font-semibold', stateCfg.bg, stateCfg.text)}>{stateCfg.label}</Badge>
                       </div>
                     </div>
-
                     <div className="grid grid-cols-3 gap-1.5 mb-2">
                       <div className="text-center rounded bg-muted/40 py-1">
                         <p className="text-sm font-bold text-[#0F2B28] leading-tight">{active}</p>
@@ -1150,36 +1656,20 @@ export default function LimpiezaModule() {
                         <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Efic.</p>
                       </div>
                     </div>
-
                     <div className="space-y-1 mb-2">
                       <div className="flex items-center justify-between text-[10px]">
                         <span className="text-muted-foreground">Capacidad</span>
                         <span className={cn('font-semibold', stateCfg.text)}>{active}/8</span>
                       </div>
                       <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                        <div
-                          className={cn('h-full rounded-full transition-all duration-500', stateCfg.bar)}
-                          style={{ width: `${capacityPct}%` }}
-                        />
+                        <div className={cn('h-full rounded-full transition-all duration-500', stateCfg.bar)} style={{ width: `${capacityPct}%` }} />
                       </div>
                     </div>
-
                     <div className="flex gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 h-7 text-xs"
-                        disabled={active === 0}
-                        onClick={() => setReassignFromStaff(s)}
-                      >
+                      <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" disabled={active === 0} onClick={() => setReassignFromStaff(s)}>
                         <ArrowRight className="w-3 h-3 mr-1" />Reasignar
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="flex-1 h-7 text-xs hover:bg-muted"
-                        onClick={() => setHistoryStaff(s)}
-                      >
+                      <Button size="sm" variant="ghost" className="flex-1 h-7 text-xs hover:bg-muted" onClick={() => setHistoryStaff(s)}>
                         <History className="w-3 h-3 mr-1" />Historial
                       </Button>
                     </div>
@@ -1246,7 +1736,78 @@ export default function LimpiezaModule() {
         </CardContent>
       </Card>
 
-      {/* ── NEW: Task Assignment Modal ── */}
+      {/* ── New Task Dialog ── */}
+      <Dialog open={showNewTask} onOpenChange={(o) => { if (!o) setShowNewTask(false); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-4 h-4 text-[#0F2B28]" />
+              Nueva tarea de limpieza
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Habitación *</Label>
+              <Select value={newTaskHab} onValueChange={setNewTaskHab}>
+                <SelectTrigger><SelectValue placeholder="-- Elegir habitación --" /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(habitaciones).map(([num, h]) => (
+                    <SelectItem key={num} value={num}>{num} - {h.tipo} ({h.estado})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Prioridad</Label>
+              <Select value={newTaskPrioridad} onValueChange={(v) => setNewTaskPrioridad(v as Prioridad)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="urgente"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#EF4444]" />Urgente</span></SelectItem>
+                  <SelectItem value="normal"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#F59E0B]" />Normal</span></SelectItem>
+                  <SelectItem value="baja"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#0EA5E9]" />Baja</span></SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Tipo de tarea</Label>
+              <Select value={newTaskTipo} onValueChange={(v) => setNewTaskTipo(v as TipoTarea)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(TIPO_CONFIG).map(([key, cfg]) => (
+                    <SelectItem key={key} value={key}>
+                      <span className="inline-flex items-center gap-1.5">
+                        <cfg.icon className={cn('w-3 h-3', cfg.color)} />{cfg.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Notas</Label>
+              <Textarea
+                placeholder="Ej: Llevar toallas extra, cambio de colchón..."
+                value={newTaskNota}
+                onChange={e => setNewTaskNota(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+            <Button
+              onClick={handleCreateTask}
+              disabled={!newTaskHab.trim() || creatingTask}
+              className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white"
+            >
+              {creatingTask ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+              Crear tarea
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Task Assignment Modal ── */}
       <Dialog open={!!assignCtx} onOpenChange={(o) => { if (!o) { setAssignCtx(null); setAssignStaffId(''); setAssignNote(''); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1257,24 +1818,13 @@ export default function LimpiezaModule() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
-            {/* Task summary */}
             {assignCtx && habitaciones[assignCtx.habitacion] && (
               <div className="rounded-lg border bg-muted/30 p-2.5 text-xs space-y-1">
                 <div className="flex justify-between"><span className="text-muted-foreground">Habitación:</span><strong>{assignCtx.habitacion}</strong></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Tipo:</span><strong>{habitaciones[assignCtx.habitacion].tipo}</strong></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Estimado:</span><strong>~{estimatedCleaningMinutes(habitaciones[assignCtx.habitacion].tipo as string | undefined)} min</strong></div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Prioridad:</span>
-                  {(() => {
-                    const p = computePriority(assignCtx.habitacion, reservas, now);
-                    const cfg = PRIORITY_CONFIG[p];
-                    const PI = cfg.icon;
-                    return <Badge className={cn('text-[10px]', cfg.badge)}>{PI && <PI className="w-2.5 h-2.5 mr-0.5" />}{cfg.label}</Badge>;
-                  })()}
-                </div>
               </div>
             )}
-
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Asignar a *</Label>
               <Select value={assignStaffId} onValueChange={setAssignStaffId}>
@@ -1304,8 +1854,6 @@ export default function LimpiezaModule() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Selected staff preview */}
             {assignStaffId && staff.find(s => s.id === assignStaffId) && (() => {
               const s = staff.find(s => s.id === assignStaffId)!;
               const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || 'Sin nombre';
@@ -1328,11 +1876,10 @@ export default function LimpiezaModule() {
                 </div>
               );
             })()}
-
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Notas</Label>
               <Textarea
-                placeholder="Ej: Llevar toallas extra,_change colchón, etc."
+                placeholder="Ej: Llevar toallas extra, change colchón, etc."
                 value={assignNote}
                 onChange={e => setAssignNote(e.target.value)}
                 rows={2}
@@ -1354,7 +1901,7 @@ export default function LimpiezaModule() {
         </DialogContent>
       </Dialog>
 
-      {/* ── NEW: Reassign-from-staff modal (pick which task to reassign) ── */}
+      {/* ── Reassign-from-staff modal ── */}
       <Dialog open={!!reassignFromStaff} onOpenChange={(o) => { if (!o) setReassignFromStaff(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1368,8 +1915,8 @@ export default function LimpiezaModule() {
               <p className="text-sm text-muted-foreground text-center py-6">Sin tareas activas para reasignar.</p>
             ) : reassignFromStaff && getActiveTasksForStaff(reassignFromStaff).map(t => {
               const hab = habitaciones[t.habitacion];
-              const p = computePriority(t.habitacion, reservas, now);
-              const cfg = PRIORITY_CONFIG[p];
+              const p = (t.prioridad || 'normal') as Prioridad;
+              const cfg = PRIORIDAD_CONFIG[p] || PRIORIDAD_CONFIG.normal;
               return (
                 <button
                   key={t.id}
@@ -1400,7 +1947,7 @@ export default function LimpiezaModule() {
         </DialogContent>
       </Dialog>
 
-      {/* ── NEW: Staff History Modal ── */}
+      {/* ── Staff History Modal ── */}
       <Dialog open={!!historyStaff} onOpenChange={(o) => { if (!o) setHistoryStaff(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1443,7 +1990,7 @@ export default function LimpiezaModule() {
         </DialogContent>
       </Dialog>
 
-      {/* ── NEW: Confirm Complete AlertDialog (room status quick-change) ── */}
+      {/* ── Confirm Complete AlertDialog ── */}
       <AlertDialog open={!!confirmComplete} onOpenChange={(o) => { if (!o) setConfirmComplete(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
