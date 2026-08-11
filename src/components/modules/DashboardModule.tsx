@@ -10,7 +10,7 @@ import {
   CalendarCheck, BarChart3,
   Bell, CheckCircle, LockOpen, ChevronLeft, ChevronRight,
   CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
-  History, TrendingUp,
+  History,
   CalendarPlus, Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -18,15 +18,11 @@ import ModuleHeader from '@/components/layout/ModuleHeader';
 import { useMemo, useState, useCallback, useRef, useEffect, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatedNumber } from '@/components/ui/animated-number';
-import ActivityTimeline from './dashboard/ActivityTimeline';
-import OccupancyForecast from './dashboard/OccupancyForecast';
-import RevenueBreakdownChart from './dashboard/RevenueBreakdownChart';
+
 import GuestTimeline from './dashboard/GuestTimeline';
 import RoomTypeDistribution from './dashboard/RoomTypeDistribution';
 import {
-  AreaChart, Area, XAxis, YAxis,
-  Tooltip as RechartsTooltip, ResponsiveContainer,
-  type TooltipProps,
+  AreaChart, Area, ResponsiveContainer,
 } from 'recharts';
 import { daysAgo } from '@/lib/format';
 
