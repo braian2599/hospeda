@@ -186,9 +186,12 @@ export default function Sidebar() {
               <Search className="w-3.5 h-3.5" />
             </button>
             <NotificationCenter />
-            <ThemeToggle compact />
           </div>
         )}
+        {/* ThemeToggle always mounted so its dropdown stays open even if sidebar collapses */}
+        <div className={`shrink-0 ${isExpanded ? '' : 'ml-auto'}`}>
+          <ThemeToggle compact />
+        </div>
       </div>
 
       <div className="border-t border-sidebar-border" />
