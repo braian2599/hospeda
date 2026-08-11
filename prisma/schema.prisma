@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -53,8 +53,8 @@ model Tenant {
 // PLANES & SUSCRIPCIONES
 // ═══════════════════════════════════════════════════════════
 
-// enum PlanType removed (SQLite doesn't support enums)
-// Values were: basico, profesional, premium, trial
+// enum PlanType — using String for flexibility across DB providers
+// Values: basico, profesional, premium, trial
 
 model Plan {
   id              String   @id @default(cuid())
@@ -153,8 +153,8 @@ model User {
   tenants   TenantUser[]
 }
 
-// enum RolTenant removed (SQLite doesn't support enums)
-// Values were: owner, admin, recepcion, limpieza
+// enum RolTenant — using String for flexibility across DB providers
+// Values: owner, admin, recepcion, limpieza
 
 model TenantUser {
   id              String    @id @default(cuid())
@@ -176,7 +176,7 @@ model TenantUser {
 // HABITACIONES
 // ═══════════════════════════════════════════════════════════
 
-// enum EstadoHabitacion removed (SQLite doesn't support enums)
+// enum EstadoHabitacion — using String for flexibility
 // Values were: Disponible, Ocupada, Limpieza, Mantenimiento, Reservada, FueraDeServicio
 
 model Habitacion {
@@ -240,10 +240,10 @@ model Estadia {
 // RESERVAS
 // ═══════════════════════════════════════════════════════════
 
-// enum EstadoReserva removed (SQLite doesn't support enums)
+// enum EstadoReserva — using String for flexibility
 // Values were: Confirmada, Cancelada, CheckIn_realizado, Checkout_realizado
 
-// enum EstadoPago removed (SQLite doesn't support enums)
+// enum EstadoPago — using String for flexibility
 // Values were: Pendiente, Parcial, Pagado
 
 model Reserva {
@@ -358,7 +358,7 @@ model Tarifa {
 // MÉTODOS DE PAGO
 // ═══════════════════════════════════════════════════════════
 
-// enum TipoMetodoPago removed (SQLite doesn't support enums)
+// enum TipoMetodoPago — using String for flexibility
 // Values were: efectivo, tarjeta, transferencia, otro
 
 model MetodoPago {
@@ -381,7 +381,7 @@ model MetodoPago {
 // CAJA
 // ═══════════════════════════════════════════════════════════
 
-// enum TipoMovimientoCaja removed (SQLite doesn't support enums)
+// enum TipoMovimientoCaja — using String for flexibility
 // Values were: ingreso, egreso
 
 model TurnoCaja {
@@ -485,7 +485,7 @@ model Mantenimiento {
 // LIMPIEZA
 // ═══════════════════════════════════════════════════════════
 
-// enum EstadoTareaLimpieza removed (SQLite doesn't support enums)
+// enum EstadoTareaLimpieza — using String for flexibility
 // Values were: pendiente, en_progreso, completada
 
 model TareaLimpieza {
