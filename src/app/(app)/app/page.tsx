@@ -28,7 +28,7 @@ import ModuleLockedDialog from '@/components/subscription/ModuleLockedDialog';
 import PaymentResultBanner from '@/components/payments/PaymentResultBanner';
 import type { ModuloId } from '@/lib/types';
 
-const modules: Record<ModuloId, React.ComponentType> = {
+const modules: Partial<Record<ModuloId, React.ComponentType>> = {
   dashboard: DashboardModule,
   habitaciones: HabitacionesModule,
   reservas: ReservasModule,
@@ -40,15 +40,16 @@ const modules: Record<ModuloId, React.ComponentType> = {
   reportes: ReportesModule,
   usuarios: UsuariosModule,
   tarifas: TarifasModule,
+  configuracion: ConfiguracionModule,
 };
 
 export default function AppPage() {
-  const { usuarioActual, moduloActivo, perfilOpen, setPerfilOpen, planActual, fechaVencimientoTrial } = useHotelStore();
+  const { usuarioActual, moduloActivo, perfilOpen, setPerfilOpen, planActual, fechaVencimientoTrial, planes } = useHotelStore();
 
   if (!usuarioActual) return null;
 
   // Configuracion is owner-only — skip plan checks
-  if ((moduloActivo as string) === 'configuracion') {
+  if (moduloActivo === 'configuracion') {
     return (
       <AppShell>
         <ModuleErrorBoundary moduleName="Configuración">
@@ -60,7 +61,7 @@ export default function AppPage() {
   }
 
   // Compute effective modules: intersection of user permissions and plan modules
-  const efectivos = modulosEfectivos(usuarioActual.permisos, planActual);
+  const efectivos = modulosEfectivos(usuarioActual.permisos, planActual, planes);
 
   // Permission check: user permiso AND plan module (owner/admin always have access)
   const tienePermiso = usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin' || efectivos.includes(moduloActivo);

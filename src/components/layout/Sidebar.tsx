@@ -34,6 +34,7 @@ const NavItem = forwardRef<HTMLButtonElement, { m: (typeof MODULOS_SISTEMA)[numb
       <button
         ref={ref}
         onClick={() => setModulo(m.id)}
+        aria-current={isActive && !locked ? 'page' : undefined}
         className={`
           w-full flex items-center rounded-lg transition-colors duration-200 relative sidebar-nav-item
           ${expanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
@@ -41,7 +42,7 @@ const NavItem = forwardRef<HTMLButtonElement, { m: (typeof MODULOS_SISTEMA)[numb
             ? 'opacity-50 hover:opacity-70'
             : isActive
               ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary sidebar-active-glow'
-              : 'text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground'
+              : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
           }
         `}
         title={!expanded ? (locked ? `${m.label} (no disponible)` : m.label) : undefined}
@@ -165,8 +166,8 @@ export default function Sidebar() {
   /* ── Desktop sidebar ── */
   const desktopSidebar = (
     <aside
-      className="hidden lg:flex flex-col h-full shrink-0 bg-sidebar overflow-hidden transition-all duration-300 ease-in-out w-16 hover:w-60 border-r border-sidebar-border"
-      style={{ width: isExpanded ? 240 : undefined }}
+      className="hidden lg:flex flex-col h-full shrink-0 bg-sidebar overflow-hidden transition-all duration-300 ease-in-out border-r border-sidebar-border"
+      style={{ width: isExpanded ? 240 : 64 }}
       onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
     >
       <div className="flex items-center gap-3 px-3 py-4 min-h-[56px]">
@@ -179,7 +180,7 @@ export default function Sidebar() {
           <div className="flex items-center gap-0.5 shrink-0">
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('hospeda:open-command-palette'))}
-              className="p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-[#162826] transition-colors"
+              className="p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
               aria-label="Búsqueda rápida (Cmd+K)"
               title="Búsqueda rápida (Cmd+K)"
             >
@@ -203,12 +204,12 @@ export default function Sidebar() {
       {usuarioActual.rol === 'owner' && (
         <div className="px-2 py-1.5">
           <button
-            onClick={() => setModulo('configuracion' as ModuloId)}
+            onClick={() => setModulo('configuracion')}
             className={`w-full flex items-center rounded-lg transition-colors duration-200 relative
               ${isExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
               ${isActive('configuracion')
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary'
-                : 'text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground'
+                : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
               }`}
             title={!isExpanded ? 'Configuración' : undefined}
           >
@@ -228,7 +229,7 @@ export default function Sidebar() {
             onClick={() => useHotelStore.getState().setPerfilOpen(true)}
             className={`w-full flex items-center rounded-lg transition-colors duration-200
               ${isExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
-              text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground`}
+              text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground`}
             title={!isExpanded ? userName : undefined}
           >
             <span className="w-7 h-7 rounded-full bg-sidebar-accent/60 flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">
@@ -250,10 +251,10 @@ export default function Sidebar() {
 
   /* ── Mobile sidebar ── */
   const mobileSidebar = sidebarOpen && (
-    <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
-      <div className="fixed inset-0 bg-[#0F2B28]/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+    <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menú de navegación">
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
       <aside className="fixed inset-y-0 left-0 w-72 z-50 bg-sidebar border-r border-sidebar-border shadow-xl flex flex-col">
-        <button onClick={() => setSidebarOpen(false)} className="absolute top-3 right-3 z-10 p-1.5 rounded-md hover:bg-white/10 text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors" aria-label="Cerrar menú">
+        <button onClick={() => setSidebarOpen(false)} className="absolute top-3 right-3 z-10 p-1.5 rounded-md hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors" aria-label="Cerrar menú">
           <X className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-3 px-4 py-4">
@@ -264,7 +265,7 @@ export default function Sidebar() {
           </div>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('hospeda:open-command-palette'))}
-            className="p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-[#162826] transition-colors"
+            className="p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
             aria-label="Búsqueda rápida (Cmd+K)"
             title="Búsqueda rápida (Cmd+K)"
           >
@@ -293,7 +294,7 @@ export default function Sidebar() {
                 <button
                   onClick={() => setModulo(m.id)}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-200 text-left relative sidebar-nav-item
-                    ${locked ? 'opacity-50 hover:opacity-70' : active ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary sidebar-active-glow' : 'text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground'}`}
+                    ${locked ? 'opacity-50 hover:opacity-70' : active ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary sidebar-active-glow' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}
                 >
                   <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-md relative ${active && !locked ? 'text-sidebar-primary' : locked ? 'text-sidebar-foreground/40' : 'text-sidebar-foreground/50'}`}>
                     <Icon className="w-4 h-4" />
@@ -309,7 +310,7 @@ export default function Sidebar() {
         <div className="border-t border-sidebar-border" />
         {usuarioActual.rol === 'owner' && (
           <div className="px-2 py-1.5">
-            <button onClick={() => { setModulo('configuracion' as ModuloId); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-200 text-left relative ${isActive('configuracion') ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground'}`}>
+            <button onClick={() => { setModulo('configuracion'); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-200 text-left relative ${isActive('configuracion') ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}>
               <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-md ${isActive('configuracion') ? 'text-sidebar-primary' : 'text-sidebar-foreground/50'}`}><Settings className="w-4 h-4" /></span>
               <span className={`flex-1 ${isActive('configuracion') ? 'text-sidebar-accent-foreground' : ''}`}>Configuración</span>
             </button>
@@ -317,7 +318,7 @@ export default function Sidebar() {
         )}
         <div className="border-t border-sidebar-border" />
         <div className="p-3 space-y-1">
-          <button onClick={() => { useHotelStore.getState().setPerfilOpen(true); }} className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-[#162826] hover:text-sidebar-foreground transition-colors">
+          <button onClick={() => { useHotelStore.getState().setPerfilOpen(true); }} className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors">
             <div className="w-7 h-7 rounded-full bg-sidebar-accent/60 flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">{userName?.charAt(0)?.toUpperCase() || 'A'}</div>
             <span className="text-[13px] font-medium truncate text-sidebar-foreground">{userName}</span>
           </button>
@@ -338,10 +339,10 @@ export default function Sidebar() {
       {mobileSidebar}
       {/* Collapsed sidebar quick actions: search + notifications + theme */}
       {!isExpanded && (
-        <div className="hidden lg:flex flex-col items-center gap-1 py-2 fixed left-3 bottom-20 z-30">
+        <div className="hidden lg:flex flex-col items-center gap-1 py-2 fixed left-5 bottom-20 z-30">
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('hospeda:open-command-palette'))}
-            className="p-2 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-[#162826] transition-colors"
+            className="p-2 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
             aria-label="Búsqueda rápida (Cmd+K)"
             title="Búsqueda rápida (Cmd+K)"
           >

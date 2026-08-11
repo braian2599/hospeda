@@ -785,8 +785,8 @@
   z-index: 20;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.85) 100%
+    color-mix(in oklch, var(--background) 95%, transparent) 0%,
+    color-mix(in oklch, var(--background) 85%, transparent) 100%
   );
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -796,8 +796,8 @@
 .dark .quick-stats-bar {
   background: linear-gradient(
     180deg,
-    rgba(15, 23, 42, 0.95) 0%,
-    rgba(15, 23, 42, 0.85) 100%
+    color-mix(in oklch, var(--background) 95%, transparent) 0%,
+    color-mix(in oklch, var(--background) 85%, transparent) 100%
   );
 }
 

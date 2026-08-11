@@ -8,21 +8,14 @@ import { useHotelStore } from '@/lib/store';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 import { modulosEfectivos } from '@/lib/plan-config';
 import { useGlobalSearch } from '@/hooks/use-global-search';
-import { Search, CornerDownLeft, ArrowUp, ArrowDown, Lock } from 'lucide-react';
+import { Search, CornerDownLeft, ArrowUp, ArrowDown, Lock, LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, Users, BarChart3, UserCog, Tags, Settings } from 'lucide-react';
 
-// Lazy icon map (matches Sidebar icon names)
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {};
+// Static icon map (matches Sidebar icon names)
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, Users, BarChart3, UserCog, Tags, Settings,
+};
 function getIcon(name: string): React.ComponentType<{ className?: string }> | undefined {
-  if (iconMap[name]) return iconMap[name];
-  // Lazy import via require to avoid static import of all icons
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require('lucide-react');
-    iconMap[name] = mod[name] || mod.LayoutDashboard;
-  } catch {
-    iconMap[name] = ({ className }: { className?: string }) => <span className={className}>·</span>;
-  }
-  return iconMap[name];
+  return iconMap[name] || LayoutDashboard;
 }
 
 interface CommandItem {
@@ -125,7 +118,7 @@ export default function CommandPalette() {
       onSelect: () => {
         addRecent(m.id, m.label, m.icon, 'Módulos');
         recentVersionRef.current++;
-        setModulo(m.id as ModuloId);
+        setModulo(m.id);
         setOpen(false);
         setSidebarOpen(false);
       },
@@ -141,7 +134,7 @@ export default function CommandPalette() {
         group: 'Acciones',
         keywords: ['nueva', 'reserva', 'crear', 'agregar'],
         onSelect: () => {
-          setModulo('reservas' as ModuloId);
+          setModulo('reservas');
           setOpen(false);
           setSidebarOpen(false);
           setTimeout(() => window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { action: 'nueva-reserva' } })), 100);
@@ -155,7 +148,7 @@ export default function CommandPalette() {
         group: 'Acciones',
         keywords: ['nuevo', 'cliente', 'crear', 'agregar', 'registrar'],
         onSelect: () => {
-          setModulo('clientes' as ModuloId);
+          setModulo('clientes');
           setOpen(false);
           setSidebarOpen(false);
           setTimeout(() => window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { action: 'nuevo-cliente' } })), 100);
@@ -169,7 +162,7 @@ export default function CommandPalette() {
         group: 'Acciones',
         keywords: ['nueva', 'habitacion', 'crear', 'agregar', 'cuarto'],
         onSelect: () => {
-          setModulo('habitaciones' as ModuloId);
+          setModulo('habitaciones');
           setOpen(false);
           setSidebarOpen(false);
           setTimeout(() => window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { action: 'nueva-habitacion' } })), 100);
@@ -198,7 +191,7 @@ export default function CommandPalette() {
         group: 'Acciones',
         keywords: ['configuracion', 'hotel', 'ajustes'],
         onSelect: () => {
-          setModulo('configuracion' as ModuloId);
+          setModulo('configuracion');
           setOpen(false);
         },
       });
@@ -220,7 +213,7 @@ export default function CommandPalette() {
         onSelect: () => {
           addRecent(`hab-${num}`, `Hab. ${num}`, 'BedDouble', 'Habitaciones');
           recentVersionRef.current++;
-          setModulo('habitaciones' as ModuloId);
+          setModulo('habitaciones');
           setOpen(false);
           setSidebarOpen(false);
           setTimeout(() => window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { action: 'ver-habitacion', habitacion: num } })), 100);
@@ -240,7 +233,7 @@ export default function CommandPalette() {
         onSelect: () => {
           addRecent(`cli-${c.id}`, c.nombre, 'User', 'Clientes');
           recentVersionRef.current++;
-          setModulo('clientes' as ModuloId);
+          setModulo('clientes');
           setOpen(false);
           setSidebarOpen(false);
           setTimeout(() => window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { action: 'ver-cliente', clienteId: c.id } })), 100);
@@ -458,7 +451,7 @@ export default function CommandPalette() {
                   Enter
                 </kbd>{' '}
                 para ver todos los resultados en{' '}
-                <strong className="font-semibold text-[#0F2B28]">
+                <strong className="font-semibold text-primary">
                   {MODULO_LABEL[hintModulo]}
                 </strong>
               </span>

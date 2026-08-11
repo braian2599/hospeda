@@ -395,7 +395,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-10 h-10 border-[3px] border-primary border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground">Cargando...</p>
         </div>
       </div>
@@ -420,7 +420,7 @@ function ProtectedApp({ children }: { children: React.ReactNode }) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-10 h-10 border-[3px] border-primary border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground">Cargando...</p>
         </div>
       </div>
@@ -431,7 +431,7 @@ function ProtectedApp({ children }: { children: React.ReactNode }) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-10 h-10 border-[3px] border-primary border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground">Cargando...</p>
         </div>
       </div>

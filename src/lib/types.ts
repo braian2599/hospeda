@@ -13,7 +13,7 @@ export const CAPACIDAD_POR_TIPO: Record<TipoHabitacion, number | null> = {
 
 export interface Habitacion {
   numero: string;
-  tipo: TipoHabitacion | string;
+  tipo: TipoHabitacion;
   capacidad: number;
   camasMatrimoniales: number;
   camasSimples: number;
@@ -275,7 +275,7 @@ export interface HabitacionDisponible extends Omit<Habitacion, 'estado' | 'probl
   camasLibres?: number;
 }
 
-export type ModuloId = 'dashboard' | 'habitaciones' | 'reservas' | 'checkin' | 'facturacion' | 'limpieza' | 'caja' | 'clientes' | 'reportes' | 'usuarios' | 'tarifas';
+export type ModuloId = 'dashboard' | 'habitaciones' | 'reservas' | 'checkin' | 'facturacion' | 'limpieza' | 'caja' | 'clientes' | 'reportes' | 'usuarios' | 'tarifas' | 'configuracion';
 
 export const MODULOS_SISTEMA: { id: ModuloId; label: string; icon: string; grupo?: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },

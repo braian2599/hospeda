@@ -64,8 +64,8 @@ function mapDbReservaToStore(r: any, totalOverride?: number): Reserva {
     cuotas: r.cuotas || undefined, recargoPorcentaje: r.recargoPorcentaje || undefined,
     total: totalOverride !== undefined ? totalOverride : (r.total != null ? r.total / 100 : undefined),
     ninos: r.ninos || undefined,
-    agencia: (r.agenciaNombre ? { nombre: r.agenciaNombre, convenio: r.agenciaConvenio, vendedor: undefined } : undefined) as any,
-    contactoEmergencia: (r.contactoEmergenciaNombre ? { nombre: r.contactoEmergenciaNombre, telefono: r.contactoEmergenciaTel || '' } : undefined) as any,
+    agencia: r.agenciaNombre ? { nombre: r.agenciaNombre, convenio: r.agenciaConvenio, vendedor: undefined } : undefined,
+    contactoEmergencia: r.contactoEmergenciaNombre ? { nombre: r.contactoEmergenciaNombre, telefono: r.contactoEmergenciaTel || '' } : undefined,
     observacionesHuesped: r.observacionesHuesped || undefined,
     llaveEntregada: (r as any).llaveEntregada || undefined,
     documentoVerificado: (r as any).documentoVerificado || undefined,
@@ -347,6 +347,7 @@ interface HotelStore {
   sidebarOpen: boolean;
   perfilOpen: boolean;
   sidebarFixed: boolean;
+  _syncing: boolean;
   startModule: string;
   setModulo: (modulo: ModuloId) => void;
   setSidebarOpen: (open: boolean) => void;
@@ -468,6 +469,7 @@ export const useHotelStore = create<HotelStore>()(
       sidebarOpen: false,
       perfilOpen: false,
       sidebarFixed: false,
+      _syncing: false,
       startModule: 'dashboard',
 
       // Plan / Suscripción
@@ -487,14 +489,14 @@ export const useHotelStore = create<HotelStore>()(
         // Owner y admin tienen acceso a todo
         const isFullAccess = usuarioActual?.rol === 'owner' || usuarioActual?.rol === 'admin';
         // Configuracion es owner/admin-only, no depende del plan
-        if ((modulo as string) !== 'configuracion' && usuarioActual && !isFullAccess) {
+        if (modulo !== 'configuracion' && usuarioActual && !isFullAccess) {
           const efectivos = calcModulosEfectivos(usuarioActual.permisos, planActual, planes);
           if (!efectivos.includes(modulo)) {
             set({ moduloBloqueado: modulo, sidebarOpen: false });
             return;
           }
         }
-        set({ moduloActivo: modulo as any, moduloBloqueado: null, sidebarOpen: false });
+        set({ moduloActivo: modulo, moduloBloqueado: null, sidebarOpen: false });
       },
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setPerfilOpen: (open) => set({ perfilOpen: open }),
@@ -516,8 +518,8 @@ export const useHotelStore = create<HotelStore>()(
         // Apply start module preference (from store, in memory only)
         const isFullAccess = sesion.rol === 'owner' || sesion.rol === 'admin';
         const storedStart = get().startModule || 'dashboard';
-        const startModule = (storedStart !== 'dashboard' && (isFullAccess || sesion.permisos.includes(storedStart)))
-          ? storedStart
+        const startModule: ModuloId = (storedStart !== 'dashboard' && (isFullAccess || sesion.permisos.includes(storedStart)))
+          ? (storedStart as ModuloId)
           : 'dashboard';
         // Siempre sincronizar con el valor fresco del servidor
         // para evitar desincronización (ej: super-admin extendió el trial)
@@ -530,7 +532,7 @@ export const useHotelStore = create<HotelStore>()(
         if (sessionData.planActual) {
           set({ planActual: sessionData.planActual });
         }
-        set({ usuarioActual: sesion, moduloActivo: startModule as any, moduloBloqueado: null });
+        set({ usuarioActual: sesion, moduloActivo: startModule, moduloBloqueado: null });
         get()._registrarAuditoria('Login', `Inicio de sesión: ${sesion.nombreCompleto || sesion.nombre}`);
         // NOTA: syncFromServer debe llamarse DESPUÉS de actualizar el JWT,
         // no aquí, para evitar race condition con las API routes.
@@ -1816,6 +1818,9 @@ export const useHotelStore = create<HotelStore>()(
 
       // ===== SYNC FROM SERVER =====
       syncFromServer: async () => {
+        // Concurrency guard: prevent parallel syncs from racing
+        if (get()._syncing) return;
+        set({ _syncing: true } as any);
         try {
           // Validar que el tenantId del store coincida (si existe usuarioActual)
           // Esto previene mezcla de datos entre hoteles
@@ -2038,6 +2043,8 @@ export const useHotelStore = create<HotelStore>()(
           }
         } catch (err) {
           console.error('[syncFromServer] Error sincronizando datos:', err);
+        } finally {
+          set({ _syncing: false } as any);
         }
       },
 

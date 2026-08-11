@@ -7,26 +7,14 @@ import { requireTenantId, AuthError } from '@/lib/auth/utils';
 // Uses requireTenantId() (no module permission) so that
 // every authenticated user can load the full store state.
 // Write operations remain protected by requirePermission().
+// Uses Promise.allSettled for resilience: partial failures
+// still return available data instead of failing entirely.
 // ─────────────────────────────────────────────────────────
 export async function GET() {
   try {
     const tenantId = await requireTenantId();
 
-    const [
-      habitaciones,
-      clientes,
-      reservas,
-      pagos,
-      gastos,
-      tarifas,
-      metodosPago,
-      categoriasGasto,
-      turnoCaja,
-      limpiezaTasks,
-      mantenimientoReports,
-      auditoria,
-      tenantConfig,
-    ] = await Promise.all([
+    const results = await Promise.allSettled([
       db.habitacion.findMany({
         where: { tenantId },
         orderBy: { orden: 'asc' },
@@ -87,13 +75,45 @@ export async function GET() {
       }),
     ]);
 
-    // Also fetch last 10 closed turns for historial
-    const historialTurnos = await db.turnoCaja.findMany({
-      where: { tenantId, estado: 'cerrada' },
-      include: { movimientos: { orderBy: { fecha: 'desc' } } },
-      orderBy: { fechaCierre: 'desc' },
-      take: 10,
+    // Extract values, defaulting to empty/null on rejection
+    const getValue = <T>(idx: number, fallback: T): T => {
+      const r = results[idx];
+      return r.status === 'fulfilled' ? (r.value as T) : fallback;
+    };
+
+    // Log any partial failures
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        console.error(`[sync] Query ${i} failed:`, r.reason);
+      }
     });
+
+    const habitaciones = getValue(0, []);
+    const clientes = getValue(1, []);
+    const reservas = getValue(2, []);
+    const pagos = getValue(3, []);
+    const gastos = getValue(4, []);
+    const tarifas = getValue(5, []);
+    const metodosPago = getValue(6, []);
+    const categoriasGasto = getValue(7, []);
+    const turnoCaja = getValue<null>(8, null);
+    const limpiezaTasks = getValue(9, []);
+    const mantenimientoReports = getValue(10, []);
+    const auditoria = getValue(11, []);
+    const tenantConfig = getValue<null>(12, null);
+
+    // Also fetch last 10 closed turns for historial
+    let historialTurnos: unknown[] = [];
+    try {
+      historialTurnos = await db.turnoCaja.findMany({
+        where: { tenantId, estado: 'cerrada' },
+        include: { movimientos: { orderBy: { fecha: 'desc' } } },
+        orderBy: { fechaCierre: 'desc' },
+        take: 10,
+      });
+    } catch (err) {
+      console.error('[sync] historialTurnos failed:', err);
+    }
 
     return NextResponse.json({
       tenantId,
@@ -110,7 +130,7 @@ export async function GET() {
       limpiezaTasks,
       mantenimientoReports,
       auditoria,
-      precioPorCamaGlobal: tenantConfig?.precioPorCamaGlobal ?? null,
+      precioPorCamaGlobal: (tenantConfig as Record<string, unknown> | null)?.precioPorCamaGlobal ?? null,
     });
   } catch (error) {
     if (error instanceof AuthError) {

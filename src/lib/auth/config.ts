@@ -89,17 +89,17 @@ export const authOptions: NextAuthOptions = {
         // Guardar IDs de perfiles que coincidieron con la contraseña
         token.matchedProfileIds = (user as unknown as Record<string, unknown>).matchedProfileIds as string[] | undefined;
         // Limpiar datos del tenant del usuario anterior para evitar sesión cruzada
-        token.tenantId = undefined;
-        token.tenantRole = undefined;
-        token.tenantUserId = undefined;
+        delete token.tenantId;
+        delete token.tenantRole;
+        delete token.tenantUserId;
       }
 
       if (trigger === 'update' && session) {
         // Si se pide limpiar el tenant (logout de perfil), borrar datos sin cerrar sesión
         if ((session as Record<string, unknown>).clearTenant) {
-          token.tenantId = undefined;
-          token.tenantRole = undefined;
-          token.tenantUserId = undefined;
+          delete token.tenantId;
+          delete token.tenantRole;
+          delete token.tenantUserId;
           // No retornar acá — dejar que isSuperAdmin se calcule abajo
         }
         const proposedTenantId = (session as Record<string, unknown>).tenantId as string | undefined;

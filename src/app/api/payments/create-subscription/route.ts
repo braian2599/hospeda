@@ -73,11 +73,16 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const tenthOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10);
 
+    const effectivePlanId = planRecord?.id || existingSub?.planId;
+    if (!effectivePlanId) {
+      return NextResponse.json({ error: 'No se pudo determinar el plan. Intentá de nuevo.' }, { status: 400 });
+    }
+
     await db.subscription.upsert({
       where: { tenantId: authTenantId },
       create: {
         tenantId: authTenantId,
-        planId: planRecord?.id || existingSub?.planId || '',
+        planId: effectivePlanId,
         estado: 'pendiente_pago',
         fechaInicio: now,
         fechaVencimiento: tenthOfNextMonth,

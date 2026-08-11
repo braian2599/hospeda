@@ -31,6 +31,22 @@ export default function PlanCard({ planTipo, destacado, onSelect, compact }: Pla
   const desc = PLAN_DESC[planTipo];
   const limits = LIMITS_LABEL[planTipo];
 
+  // Graceful loading state while plans load from DB
+  if (!plan) {
+    return (
+      <div className={`relative h-full flex flex-col rounded-2xl border border-border bg-card animate-pulse ${compact ? 'p-4 lg:p-5' : 'p-6 lg:p-8'}`}>
+        <div className="h-6 w-24 rounded bg-muted mb-3" />
+        <div className="h-8 w-32 rounded bg-muted mb-2" />
+        <div className="h-4 w-full rounded bg-muted mb-6" />
+        <div className="flex-1 space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-4 w-3/4 rounded bg-muted" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`

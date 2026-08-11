@@ -166,7 +166,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-11"
                   autoFocus
-                  onKeyDown={(e) => { if (e.key === 'Enter' && email.includes('@')) handleCheckout(); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) handleCheckout(); }}
                 />
                 <p className="text-xs text-muted-foreground">
                   Te redirigiremos a Mercado Pago para configurar el débito automático con tarjeta.
@@ -210,7 +210,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
               <Button
                 className="w-full h-11 text-base"
                 onClick={handleCheckout}
-                disabled={!email.includes('@') || loading}
+                disabled={!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || loading}
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />

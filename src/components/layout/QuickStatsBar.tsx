@@ -37,9 +37,9 @@ function todayLocal(): string {
 interface StatCardConfig {
   id: string;
   label: string;
-  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-  /** Color used for the icon. */
-  color: string;
+  icon: React.ComponentType<{ className?: string }>;
+  /** Tailwind color class used for the icon. */
+  colorClass: string;
   /** Final numeric value to render. */
   value: number;
   /** Formatter for the animated display. */
@@ -81,7 +81,7 @@ export function QuickStatsBar() {
         id: 'ocupacion',
         label: 'Ocupación hoy',
         icon: BedDouble,
-        color: '#0F2B28',
+        colorClass: 'text-emerald-700 dark:text-emerald-400',
         value: ocupacionPct,
         format: formatPercent,
       },
@@ -89,7 +89,7 @@ export function QuickStatsBar() {
         id: 'reservas-hoy',
         label: 'Reservas hoy',
         icon: CalendarCheck,
-        color: '#059669',
+        colorClass: 'text-emerald-600 dark:text-emerald-300',
         value: reservasHoy,
         format: n => Math.round(n).toString(),
       },
@@ -97,7 +97,7 @@ export function QuickStatsBar() {
         id: 'checkins-pend',
         label: 'Check-ins pend',
         icon: LogIn,
-        color: '#F59E0B',
+        colorClass: 'text-amber-500 dark:text-amber-400',
         value: checkinsPend,
         format: n => Math.round(n).toString(),
       },
@@ -105,7 +105,7 @@ export function QuickStatsBar() {
         id: 'ingresos-hoy',
         label: 'Ingresos hoy',
         icon: Wallet,
-        color: '#EF4444',
+        colorClass: 'text-red-500 dark:text-red-400',
         value: ingresosHoy,
         format: formatMoney,
       },
@@ -131,7 +131,7 @@ export function QuickStatsBar() {
               className="flex-shrink-0 w-[120px] flex flex-col gap-0.5 rounded-md bg-background/60 border border-border/60 px-2.5 py-1.5"
             >
               <div className="flex items-center gap-1">
-                <Icon className="w-3.5 h-3.5" style={{ color: s.color }} />
+                <Icon className={`w-3.5 h-3.5 ${s.colorClass}`} />
                 <span className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">
                   {s.label}
                 </span>

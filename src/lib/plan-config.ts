@@ -157,6 +157,7 @@ export const NOMBRES_MODULOS: Record<ModuloId, string> = {
   reportes: 'Reportes',
   usuarios: 'Usuarios',
   tarifas: 'Tarifas',
+  configuracion: 'Configuración',
 };
 
 /** Check si se puede agregar más habitaciones según el plan */
