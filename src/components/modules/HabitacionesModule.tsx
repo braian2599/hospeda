@@ -135,6 +135,55 @@ function getRoomFloor(hab: Habitacion): number {
 }
 
 // ═══════════════════════════════════════════════════════════
+// RoomStatusLegend — Reusable status legend bar
+// ═══════════════════════════════════════════════════════════
+
+function RoomStatusLegend() {
+  const habitaciones = useHotelStore(s => s.habitaciones);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 50);
+    return () => clearTimeout(t);
+  }, []);
+
+  const allRooms = Object.values(habitaciones);
+  const counts = allRooms.reduce<Record<EstadoHabitacion, number>>(
+    (acc, h) => { acc[h.estado] = (acc[h.estado] || 0) + 1; return acc; },
+    { Disponible: 0, Ocupada: 0, Limpieza: 0, Mantenimiento: 0, Reservada: 0, 'Fuera de servicio': 0 }
+  );
+
+  if (allRooms.length === 0) return null;
+
+  return (
+    <div
+      className={`
+        flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 px-4 py-2
+        rounded-xl border bg-card
+        transition-all duration-500 ease-out
+        ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+      `}
+    >
+      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mr-1">
+        Estados
+      </span>
+      {ALL_ESTADOS.map(estado => {
+        const vis = STATUS_VISUAL[estado];
+        const Icon = vis.icon;
+        const count = counts[estado];
+        return (
+          <div key={estado} className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: vis.color }} />
+            <Icon className="w-3 h-3" style={{ color: vis.color }} />
+            <span className="text-[11px] font-medium text-foreground">{estado}</span>
+            <span className="text-[11px] text-muted-foreground">({count})</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
 // RoomStatsBanner
 // ═══════════════════════════════════════════════════════════
 
@@ -437,12 +486,12 @@ function EnhancedRoomCard({
       relative card-hover card-interactive transition-all duration-200 group
       ${vis.borderClass}
       ${vis.bgTint}
-      hover:-translate-y-1 hover:shadow-lg
+      hover:-translate-y-0.5 hover:shadow-md
     `}>
-      <CardContent className="p-3 flex flex-col gap-1.5">
+      <CardContent className="p-2 flex flex-col gap-0.5">
         {/* Row 1: Room number + status badge */}
-        <div className="flex items-start justify-between gap-1">
-          <span className="text-2xl font-bold leading-tight text-foreground">{hab.numero}</span>
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-lg font-bold leading-tight text-foreground">{hab.numero}</span>
           <StatusChangePopover
             numero={hab.numero}
             currentEstado={hab.estado}
@@ -453,78 +502,56 @@ function EnhancedRoomCard({
               className="shrink-0"
               aria-label={`Cambiar estado de habitación ${hab.numero}`}
             >
-              <Badge className={`text-[10px] px-1.5 py-0 font-semibold shadow-sm cursor-pointer hover:opacity-80 transition-opacity ${estados[hab.estado] || ''}`}>
+              <Badge className={`text-[9px] px-1 py-0 font-semibold shadow-sm cursor-pointer hover:opacity-80 transition-opacity ${estados[hab.estado] || ''}`}>
                 {hab.estado}
               </Badge>
             </button>
           </StatusChangePopover>
         </div>
 
-        {/* Row 2: Room type badge + capacity */}
-        <div className="flex items-center gap-1.5">
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5 border-muted-foreground/25">
-            <TipoIcon className="w-2.5 h-2.5" />
+        {/* Row 2: Type badge + camas inline */}
+        <div className="flex items-center gap-1">
+          <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5 border-muted-foreground/25">
+            <TipoIcon className="w-2 h-2" />
             {hab.tipo}
           </Badge>
-          {/* Capacity indicator (filled/unfilled person icons) */}
-          <div className="flex items-center gap-px" title={`Capacidad: ${hab.capacidad}`}>
-            {Array.from({ length: Math.min(hab.capacidad, 5) }).map((_, i) => (
-              <User
-                key={i}
-                className={`w-2.5 h-2.5 ${i < (huesped ? Math.min(hab.capacidad, 5) : 0) ? 'text-amber-500' : 'text-muted-foreground/30'}`}
-              />
-            ))}
-            {hab.capacidad > 5 && (
-              <span className="text-[9px] text-muted-foreground ml-0.5">+{hab.capacidad - 5}</span>
-            )}
+          <span className="text-[9px] text-muted-foreground leading-tight truncate">{camasText}</span>
+        </div>
+
+        {/* Row 3: Guest / problem / attention dot */}
+        {vis.needsAttention && (
+          <span
+            className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full animate-pulse"
+            style={{ backgroundColor: vis.color }}
+          />
+        )}
+        {huesped ? (
+          <div className="flex items-center gap-1 min-w-0">
+            <UserCheck className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+            <span className="text-[10px] font-semibold text-foreground truncate" title={huesped.huesped}>
+              {huesped.huesped}
+            </span>
+            <span className="text-[9px] text-muted-foreground shrink-0">{huesped.checkin}→{huesped.checkout}</span>
           </div>
-        </div>
+        ) : hab.problema ? (
+          <div className="flex items-center gap-1 min-w-0">
+            <Wrench className="w-2.5 h-2.5 text-red-500 shrink-0" />
+            <span className="text-[9px] text-red-600 truncate" title={hab.problema}>{hab.problema}</span>
+          </div>
+        ) : null}
 
-        {/* Row 3: Bed description */}
-        <span className="text-[10px] text-muted-foreground leading-tight">{camasText}</span>
-
-        {/* Row 4: Pulsing dot for attention + guest info */}
-        <div className="relative">
-          {vis.needsAttention && (
-            <span
-              className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full animate-pulse"
-              style={{ backgroundColor: vis.color }}
-            />
-          )}
-          {huesped ? (
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-1">
-                <UserCheck className="w-3 h-3 text-amber-600 shrink-0" />
-                <span className="text-xs font-semibold text-foreground truncate" title={huesped.huesped}>
-                  {huesped.huesped}
-                </span>
-              </div>
-              <div className="text-[10px] text-muted-foreground leading-tight">
-                <span>{huesped.checkin}</span>
-                <span className="mx-0.5">→</span>
-                <span>{huesped.checkout}</span>
-              </div>
-            </div>
-          ) : hab.problema ? (
-            <div className="flex items-center gap-1">
-              <Wrench className="w-3 h-3 text-red-500 shrink-0" />
-              <span className="text-[10px] text-red-600 truncate" title={hab.problema}>{hab.problema}</span>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Row 5: Quick actions (shown on hover) */}
-        <div className="flex items-center gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {/* Row 4: Quick actions (hover) */}
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-6 w-6"
+                className="h-5 w-5"
                 onClick={() => onEdit(hab.numero)}
                 aria-label={`Editar habitación ${hab.numero}`}
               >
-                <Pencil className="w-3 h-3" />
+                <Pencil className="w-2.5 h-2.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">Editar</TooltipContent>
@@ -534,11 +561,11 @@ function EnhancedRoomCard({
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-6 w-6"
+                className="h-5 w-5"
                 onClick={() => onStatusChange(hab.numero, hab.estado === 'Limpieza' ? 'Disponible' : 'Limpieza')}
                 aria-label={hab.estado === 'Limpieza' ? 'Marcar como limpia' : 'Enviar a limpieza'}
               >
-                <Sparkles className="w-3 h-3" />
+                <Sparkles className="w-2.5 h-2.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">
@@ -550,11 +577,11 @@ function EnhancedRoomCard({
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-6 w-6 text-destructive hover:text-destructive"
+                className="h-5 w-5 text-destructive hover:text-destructive"
                 onClick={() => onDelete(hab.numero)}
                 aria-label={`Eliminar habitación ${hab.numero}`}
               >
-                <Trash2 className="w-3 h-3" />
+                <Trash2 className="w-2.5 h-2.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">Eliminar</TooltipContent>
@@ -901,12 +928,15 @@ export default function HabitacionesModule() {
       </ModuleHeader>
 
       {/* ── Stats banner + Room type analytics ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <RoomStatsBanner />
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3">
           <RoomTypeAnalytics />
         </div>
       </div>
+
+      {/* ── Status legend (both views) ── */}
+      <RoomStatusLegend />
 
       {/* ── Map view ── */}
       {viewMode === 'mapa' && (
