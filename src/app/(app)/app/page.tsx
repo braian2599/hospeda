@@ -22,7 +22,6 @@ import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import ProfileSettings from '@/components/layout/ProfileSettings';
 import CommandPalette from '@/components/layout/CommandPalette';
-import KeyboardShortcuts from '@/components/layout/KeyboardShortcuts';
 import QuickActionsFab from '@/components/layout/QuickActionsFab';
 import ModuleLockedDialog from '@/components/subscription/ModuleLockedDialog';
 import PaymentResultBanner from '@/components/payments/PaymentResultBanner';
@@ -141,8 +140,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </main>
-      {/* Global keyboard shortcuts overlay (? to toggle) */}
-      <KeyboardShortcuts />
+
     </div>
   );
 }

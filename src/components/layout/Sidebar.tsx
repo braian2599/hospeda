@@ -180,8 +180,8 @@ export default function Sidebar() {
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('hospeda:open-command-palette'))}
               className="p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-              aria-label="Búsqueda rápida (Cmd+K)"
-              title="Búsqueda rápida (Cmd+K)"
+              aria-label="Búsqueda rápida"
+              title="Búsqueda rápida"
             >
               <Search className="w-3.5 h-3.5" />
             </button>
@@ -267,8 +267,8 @@ export default function Sidebar() {
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('hospeda:open-command-palette'))}
             className="p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-            aria-label="Búsqueda rápida (Cmd+K)"
-            title="Búsqueda rápida (Cmd+K)"
+            aria-label="Búsqueda rápida"
+            title="Búsqueda rápida"
           >
             <Search className="w-4 h-4" />
           </button>

@@ -95,7 +95,7 @@ export default function ThemeToggle({ compact = false }: { compact?: boolean }) 
             ${compact ? 'h-8 w-8' : 'h-9 w-9'}
           `}
           aria-label="Cambiar tema"
-          title="Cambiar tema (Ctrl+Shift+D)"
+          title="Cambiar tema"
         >
           <span className="relative w-4 h-4">
             {/* Animated icon swap using CSS transitions */}
@@ -154,16 +154,7 @@ export default function ThemeToggle({ compact = false }: { compact?: boolean }) 
             </DropdownMenuItem>
           );
         })}
-        <DropdownMenuSeparator />
-        {/* Keyboard shortcut hint */}
-        <div className="px-2 py-1.5 text-xs text-muted-foreground flex items-center gap-1.5">
-          <kbd className="kbd-key text-[10px]">Ctrl</kbd>
-          <span>+</span>
-          <kbd className="kbd-key text-[10px]">⇧</kbd>
-          <span>+</span>
-          <kbd className="kbd-key text-[10px]">D</kbd>
-          <span className="ml-1">Alternar</span>
-        </div>
+
       </DropdownMenuContent>
     </DropdownMenu>
   );
