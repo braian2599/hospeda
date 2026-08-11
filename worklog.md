@@ -1,6 +1,22 @@
 # Hospeda - Worklog de Desarrollo
 
-## Estado del Proyecto: FASE 11 - Dark Mode, Notifications, Kanban & Micro-Interactions Completado
+## Estado del Proyecto: FIX CRÍTICO - Prisma Provider Corregido (PostgreSQL/Neon)
+
+### ⚠️ FIX CRÍTICO Aplicado
+- ✅ Cambiado `provider = "sqlite"` → `provider = "postgresql"` en prisma/schema.prisma
+- ✅ Esto corrige el error `URL must start with the protocol file:` en deploy con Neon
+- ✅ Prisma Client regenerado para PostgreSQL
+- ✅ Build verificado exitoso
+- ✅ Push a GitHub: commit `c90e000`
+
+### Causa del Bug
+El schema de Prisma tenía `provider = "sqlite"` pero el DATABASE_URL en producción apunta a Neon PostgreSQL. Prisma valida que el protocolo del URL coincida con el provider, causando el error en deploy.
+
+### IMPORTANTE: DATABASE_URL
+El `.env` debe tener un URL de PostgreSQL, no SQLite:
+```
+DATABASE_URL=postgresql://user:pass@ep-xxx.neon.tech/dbname?sslmode=require
+```
 
 ### Resumen Fase 11
 - ✅ Dark Mode completo con toggle 3 estados (Claro/Sistema/Oscuro) + Ctrl+Shift+D
