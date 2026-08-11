@@ -81,9 +81,8 @@ export default function QuickActionsFab() {
     [setModulo],
   );
 
-  // Hide the FAB on the dashboard module — Dashboard is already the home base
-  // and a "go to Dashboard" button there would be redundant noise.
-  const hidden = moduloActivo === 'dashboard';
+  // Hide the FAB on dashboard and habitaciones modules — redundant there.
+  const hidden = moduloActivo === 'dashboard' || moduloActivo === 'habitaciones';
 
   return (
     <div

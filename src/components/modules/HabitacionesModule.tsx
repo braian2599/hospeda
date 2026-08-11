@@ -20,7 +20,7 @@ import {
   Tooltip, TooltipTrigger, TooltipContent,
 } from '@/components/ui/tooltip';
 import {
-  Pencil, Trash2, Bed, User, Users,
+  Plus, Pencil, Trash2, Bed, User, Users,
   CheckCircle, UserCheck, CalendarCheck, SprayCan, Wrench, Ban,
   Download, LayoutGrid, List,
   ChevronDown, ChevronRight,
@@ -889,6 +889,7 @@ export default function HabitacionesModule() {
           }}>
             <Download className="w-3.5 h-3.5" />Exportar CSV
           </Button>
+          <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Nueva Habitación</Button>
         </div>
       </ModuleHeader>
 
