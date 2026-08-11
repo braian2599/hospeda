@@ -176,6 +176,17 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Scrollbar-none utility — hides scrollbar completely
+   Used by sidebar nav, mobile sidebar, etc.
+   ───────────────────────────────────────────────────────────── */
+.scrollbar-none {
+  scrollbar-width: none !important;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
    Animation keyframes
    ───────────────────────────────────────────────────────────── */
 @keyframes fadeIn {

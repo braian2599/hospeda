@@ -337,22 +337,6 @@ export default function Sidebar() {
     <>
       {desktopSidebar}
       {mobileSidebar}
-      {/* Collapsed sidebar quick actions: search + notifications + theme */}
-      {!isExpanded && (
-        <div className="hidden lg:flex flex-col items-center gap-1 py-2 fixed left-5 bottom-20 z-30">
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('hospeda:open-command-palette'))}
-            className="p-2 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-            aria-label="Búsqueda rápida (Cmd+K)"
-            title="Búsqueda rápida (Cmd+K)"
-          >
-            <Search className="w-4 h-4" />
-          </button>
-          <NotificationCenter />
-          <ThemeToggle compact />
-          <HelpDialog compact />
-        </div>
-      )}
     </>
   );
 }
