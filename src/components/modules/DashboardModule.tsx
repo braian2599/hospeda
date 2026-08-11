@@ -350,229 +350,6 @@ function Tooltip({ children, text }: { children: React.ReactNode; text: string }
   );
 }
 
-// ==================== GRAFICO INGRESOS VS EGRESOS (con tooltips y animación) ====================
-
-function GraficoIngresosEgresos({ pagos, gastos }: { pagos: { fecha: string; monto: number }[]; gastos: { fecha: string; monto: number }[] }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setMounted(true), 50); return () => clearTimeout(t); }, []);
-
-  const datos = useMemo(() => {
-    const hoy = new Date();
-    const dias: string[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(hoy);
-      d.setDate(d.getDate() - i);
-      dias.push(toLocalDateStr(d));
-    }
-    return dias.map(dia => {
-      const ing = pagos.filter(p => p.fecha === dia).reduce((s, p) => s + p.monto, 0);
-      const egr = gastos.filter(g => g.fecha === dia).reduce((s, g) => s + g.monto, 0);
-      const d = new Date(dia + 'T12:00:00');
-      return { dia: d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' }).replace(/^\w/, c => c.toUpperCase()), ing, egr, fullDate: formatearFecha(dia) };
-    });
-  }, [pagos, gastos]);
-
-  const maxVal = Math.max(...datos.map(d => Math.max(d.ing, d.egr)), 1);
-
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-[#3B82F6]" />
-          Ingresos vs Egresos (7 días)
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-end gap-2" style={{ height: 160 }}>
-          {datos.map((d, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center h-full">
-              <Tooltip text={`Ingresos: ${formatMoney(d.ing)}`}>
-                <div
-                  className="w-5 rounded-t-md transition-all duration-700 ease-out hover:opacity-80 cursor-default"
-                  style={{
-                    height: mounted ? `${(d.ing / maxVal) * 100}%` : '0%',
-                    background: 'linear-gradient(to top, #059669, #34d399)',
-                    boxShadow: '0 2px 8px rgba(5,150,105,0.3)',
-                    transitionDelay: `${i * 80}ms`,
-                  }}
-                />
-              </Tooltip>
-              <Tooltip text={`Egresos: ${formatMoney(d.egr)}`}>
-                <div
-                  className="w-5 rounded-t-md transition-all duration-700 ease-out hover:opacity-80 cursor-default mt-0.5"
-                  style={{
-                    height: mounted ? `${(d.egr / maxVal) * 100}%` : '0%',
-                    background: 'linear-gradient(to top, #dc2626, #fca5a5)',
-                    boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
-                    transitionDelay: `${i * 80 + 40}ms`,
-                  }}
-                />
-              </Tooltip>
-              <span className="text-[9px] text-muted-foreground mt-1.5 font-medium">{d.dia.slice(0, 3)}</span>
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-end gap-4 mt-3">
-          <span className="text-xs text-[#166534] flex items-center gap-1.5 font-medium">
-            <span className="inline-block w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(to top, #059669, #34d399)' }} />
-            Ingresos
-          </span>
-          <span className="text-xs text-[#991B1B] flex items-center gap-1.5 font-medium">
-            <span className="inline-block w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(to top, #dc2626, #fca5a5)' }} />
-            Egresos
-          </span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ==================== TENDENCIA DE OCUPACIÓN (14 días) ====================
-
-interface OccupancyDayData {
-  fecha: string;
-  ocupadas: number;
-  porcentaje: number;
-  label: string;
-}
-
-function OccupancyTrendChart() {
-  // Granular Zustand selectors (no destructuring) — only re-renders when these slices change
-  const habitaciones = useHotelStore(s => s.habitaciones);
-  const reservas = useHotelStore(s => s.reservas);
-
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 60);
-    return () => clearTimeout(t);
-  }, []);
-
-  const totalHabitaciones = Object.keys(habitaciones).length;
-
-  const datos = useMemo<OccupancyDayData[]>(() => {
-    const hoy = new Date();
-    const out: OccupancyDayData[] = [];
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(hoy);
-      d.setDate(d.getDate() - i);
-      const diaStr = toLocalDateStr(d);
-      // Count unique rooms occupied on this day (checkin <= day < checkout, excluding cancelled)
-      const ocupadasSet = new Set<string>();
-      reservas.forEach(r => {
-        if (r.estado === 'Cancelada') return;
-        if (r.checkin <= diaStr && r.checkout > diaStr) {
-          ocupadasSet.add(r.habitacion);
-        }
-      });
-      const ocupadas = ocupadasSet.size;
-      const porcentaje = totalHabitaciones > 0 ? Math.round((ocupadas / totalHabitaciones) * 100) : 0;
-      const weekday = NOMBRES_DIAS[d.getDay()];
-      out.push({
-        fecha: diaStr,
-        ocupadas,
-        porcentaje,
-        label: `${weekday} ${d.getDate()}`,
-      });
-    }
-    return out;
-  }, [reservas, totalHabitaciones]);
-
-  const hoyData = datos[datos.length - 1];
-  const ayerData = datos[datos.length - 2];
-  const ultimos7 = datos.slice(-7);
-  const promedio7d = ultimos7.length > 0 ? ultimos7.reduce((s, d) => s + d.porcentaje, 0) / ultimos7.length : 0;
-
-  const diffVsAyer = hoyData && ayerData ? hoyData.porcentaje - ayerData.porcentaje : 0;
-  const trendUp = diffVsAyer > 0;
-  const trendDown = diffVsAyer < 0;
-  const trendIcon = trendUp ? '\u2191' : trendDown ? '\u2193' : '\u2192';
-  const trendColor = trendUp ? 'text-[#166534]' : trendDown ? 'text-[#991B1B]' : 'text-muted-foreground';
-
-  const renderTooltip = ({ active, payload }: TooltipProps<number, string>) => {
-    if (!active || !payload || !payload.length) return null;
-    const d = payload[0]?.payload as OccupancyDayData | undefined;
-    if (!d) return null;
-    return (
-      <div className="bg-[#0F2B28] text-white px-3 py-2 rounded-lg shadow-xl text-xs border border-[#059669]/30">
-        <p className="font-semibold text-[#34d399]">{formatearFecha(d.fecha)}</p>
-        <p className="mt-0.5">Ocupación: <span className="font-bold">{d.porcentaje}%</span></p>
-        <p className="text-white/70">{d.ocupadas} de {totalHabitaciones} hab.</p>
-      </div>
-    );
-  };
-
-  return (
-    <Card className={cn('transition-opacity duration-500', mounted ? 'opacity-100' : 'opacity-0')}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <CardTitle className="text-base flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[#059669]" />
-              Tendencia de Ocupación (14 días)
-            </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Hoy: <span className="font-semibold text-[#0F2B28]">{hoyData?.porcentaje ?? 0}%</span>
-              <span className="mx-1.5 text-muted-foreground/50">·</span>
-              Promedio 7d: <span className="font-semibold text-[#0F2B28]">{Math.round(promedio7d)}%</span>
-            </p>
-          </div>
-          {ayerData && (
-            <div className={cn('flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md bg-muted/50 whitespace-nowrap', trendColor)}>
-              <span>{trendIcon}</span>
-              <span>{Math.abs(diffVsAyer)}%</span>
-              <span className="text-muted-foreground font-normal text-[10px]">vs ayer</span>
-            </div>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div style={{ height: 220, minHeight: 200 }} className="w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={datos} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
-              <defs>
-                <linearGradient id="ocupGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#34d399" stopOpacity={0.85} />
-                  <stop offset="100%" stopColor="#059669" stopOpacity={0.15} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 10, fill: '#94A3B8' }}
-                tickLine={false}
-                axisLine={{ stroke: '#E2E8F0' }}
-                interval={0}
-              />
-              <YAxis
-                domain={[0, 100]}
-                tick={{ fontSize: 10, fill: '#94A3B8' }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(v) => `${v}%`}
-                width={36}
-              />
-              <RechartsTooltip
-                content={renderTooltip}
-                cursor={{ stroke: '#059669', strokeOpacity: 0.3, strokeWidth: 1 }}
-              />
-              <Area
-                type="monotone"
-                dataKey="porcentaje"
-                stroke="#059669"
-                strokeWidth={2.5}
-                fill="url(#ocupGradient)"
-                dot={{ r: 2.5, fill: '#059669', strokeWidth: 0 }}
-                activeDot={{ r: 5, fill: '#0F2B28', stroke: '#34d399', strokeWidth: 2 }}
-                isAnimationActive={mounted}
-                animationDuration={800}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 // ==================== CALENDARIO GANTT (con navegación y popover mejorado) ====================
 
 interface GanttReserva {
@@ -988,7 +765,6 @@ export default function DashboardModule() {
   const habitaciones = useHotelStore(s => s.habitaciones);
   const reservas = useHotelStore(s => s.reservas);
   const pagos = useHotelStore(s => s.pagos);
-  const gastos = useHotelStore(s => s.gastos);
   const caja = useHotelStore(s => s.caja);
   const setModulo = useHotelStore(s => s.setModulo);
   const realizarCheckOut = useHotelStore(s => s.realizarCheckOut);
@@ -1129,18 +905,11 @@ export default function DashboardModule() {
         ))}
       </div>
 
-      {/* Revenue Breakdown + Guest Timeline + Room Type Distribution */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 card-grid-stagger">
-        <RevenueBreakdownChart />
+      {/* Guest Timeline + Room Type Distribution */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4 card-grid-stagger">
         <GuestTimeline />
         <RoomTypeDistribution />
       </div>
-
-      {/* Pronóstico de ocupación — próximos 7 días */}
-      <OccupancyForecast />
-
-      {/* Tendencia de Ocupación (14 días) */}
-      <OccupancyTrendChart />
 
       {/* Room Heatmap */}
       <RoomHeatmap habitaciones={habitaciones} reservas={reservas} />
@@ -1336,14 +1105,8 @@ export default function DashboardModule() {
         </Card>
       </div>
 
-      {/* Gráfico Ingresos vs Egresos */}
-      <GraficoIngresosEgresos pagos={pagos} gastos={gastos} />
-
       {/* Calendario Gantt de Ocupación */}
       <CalendarioGantt habitaciones={habitaciones} reservas={reservas} fechaInicioBase={hoy} />
-
-      {/* Línea de Actividad — timeline mejorado con filtros y detalles expandibles */}
-      <ActivityTimeline />
     </div>
   );
 }
