@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 
-type TipoMetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'qr' | 'cuenta_corriente' | 'mercadopago' | 'otro';
+import { TipoMetodoPago as PrismaTipoMetodoPago } from '@prisma/client';
 
-const TIPOS_METODO_PAGO: TipoMetodoPago[] = ['efectivo', 'tarjeta', 'transferencia', 'qr', 'cuenta_corriente', 'mercadopago', 'otro'];
+// Extended list for UI validation (maps extras to 'otro' for DB)
+type TipoMetodoPagoUI = 'efectivo' | 'tarjeta' | 'transferencia' | 'qr' | 'cuenta_corriente' | 'mercadopago' | 'otro';
+const TIPOS_METODO_PAGO: TipoMetodoPagoUI[] = ['efectivo', 'tarjeta', 'transferencia', 'qr', 'cuenta_corriente', 'mercadopago', 'otro'];
+
+// Map UI types to DB enum (extras → 'otro')
+const TIPO_TO_DB: Record<TipoMetodoPagoUI, PrismaTipoMetodoPago> = {
+  efectivo: 'efectivo', tarjeta: 'tarjeta', transferencia: 'transferencia',
+  qr: 'otro', cuenta_corriente: 'otro', mercadopago: 'otro', otro: 'otro',
+};
 
 // GET /api/metodos-pago — Listar métodos de pago activos del tenant
 export async function GET() {
@@ -39,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     const tiposValidos = TIPOS_METODO_PAGO;
-    if (!tipo || !tiposValidos.includes(tipo as TipoMetodoPago)) {
+    if (!tipo || !tiposValidos.includes(tipo as TipoMetodoPagoUI)) {
       return NextResponse.json(
         { error: `tipo debe ser uno de: ${tiposValidos.join(', ')}` },
         { status: 400 }
@@ -58,7 +66,7 @@ export async function POST(req: NextRequest) {
       data: {
         tenantId,
         nombre: nombre.trim(),
-        tipo: tipo as TipoMetodoPago,
+        tipo: TIPO_TO_DB[tipo as TipoMetodoPagoUI],
         recargo: Boolean(recargo),
         cuotas: cuotas ?? undefined,
         activo: true,

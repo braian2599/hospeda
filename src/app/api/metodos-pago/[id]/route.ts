@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 
-type TipoMetodoPago = 'efectivo' | 'tarjeta' | 'transferencia' | 'qr' | 'cuenta_corriente' | 'mercadopago' | 'otro';
+import { TipoMetodoPago as PrismaTipoMetodoPago } from '@prisma/client';
 
-const TIPOS_METODO_PAGO: TipoMetodoPago[] = ['efectivo', 'tarjeta', 'transferencia', 'qr', 'cuenta_corriente', 'mercadopago', 'otro'];
+type TipoMetodoPagoUI = 'efectivo' | 'tarjeta' | 'transferencia' | 'qr' | 'cuenta_corriente' | 'mercadopago' | 'otro';
+const TIPOS_METODO_PAGO: TipoMetodoPagoUI[] = ['efectivo', 'tarjeta', 'transferencia', 'qr', 'cuenta_corriente', 'mercadopago', 'otro'];
+const TIPO_TO_DB: Record<TipoMetodoPagoUI, PrismaTipoMetodoPago> = {
+  efectivo: 'efectivo', tarjeta: 'tarjeta', transferencia: 'transferencia',
+  qr: 'otro', cuenta_corriente: 'otro', mercadopago: 'otro', otro: 'otro',
+};
 
 // PUT /api/metodos-pago/[id] — Actualizar método de pago
 export async function PUT(
@@ -39,7 +44,7 @@ export async function PUT(
     // Si se envía tipo, validar que sea un valor válido del enum
     if (tipo !== undefined) {
       const tiposValidos = TIPOS_METODO_PAGO;
-      if (!tiposValidos.includes(tipo as TipoMetodoPago)) {
+      if (!tiposValidos.includes(tipo as TipoMetodoPagoUI)) {
         return NextResponse.json(
           { error: `tipo debe ser uno de: ${tiposValidos.join(', ')}` },
           { status: 400 }
@@ -51,7 +56,7 @@ export async function PUT(
       where: { id },
       data: {
         ...(nuevoNombre !== metodo.nombre && { nombre: nuevoNombre }),
-        ...(tipo !== undefined && { tipo: tipo as TipoMetodoPago }),
+        ...(tipo !== undefined && { tipo: TIPO_TO_DB[tipo as TipoMetodoPagoUI] }),
         ...(recargo !== undefined && { recargo: Boolean(recargo) }),
         ...(cuotas !== undefined && { cuotas: cuotas ?? null }),
         ...(activo !== undefined && { activo: Boolean(activo) }),

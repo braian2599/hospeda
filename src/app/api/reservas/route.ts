@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const where: Prisma.ReservaWhereInput = { tenantId };
 
     if (estado) {
-      where.estado = estado as string;
+      where.estado = estado as Prisma.EnumEstadoReservaFilter;
     }
 
     if (habitacion) {
