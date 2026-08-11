@@ -199,46 +199,6 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
         })}
       </div>
 
-      {/* ── Status summary segmented bar ── */}
-      <div
-        className={`
-          transition-all duration-700 ease-out
-          ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
-        `}
-        style={{ transitionDelay: '100ms' }}
-      >
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
-            Distribución de estados
-          </span>
-          <span className="text-xs font-semibold text-foreground">
-            {counts.Ocupada} de {total} ocupadas · {total > 0 ? Math.round((counts.Ocupada / total) * 100) : 0}%
-          </span>
-        </div>
-        <div
-          className="h-3 rounded-full bg-muted overflow-hidden flex"
-          role="img"
-          aria-label={`Distribución de estados: ${Object.entries(counts)
-            .filter(([, c]) => c > 0)
-            .map(([e, c]) => `${e}: ${c}`)
-            .join(', ')}`}
-        >
-          {STATUS_MAP_CONFIG.map(c => {
-            const count = counts[c.key];
-            if (count === 0) return null;
-            const pct = (count / total) * 100;
-            return (
-              <div
-                key={c.key}
-                className="transition-all duration-300"
-                style={{ width: `${pct}%`, backgroundColor: c.color }}
-                title={`${c.label}: ${count} (${Math.round(pct)}%)`}
-              />
-            );
-          })}
-        </div>
-      </div>
-
       {/* ── Room grid grouped by floor ── */}
       {floors.map(([floorNum, rooms], floorIdx) => (
         <div
