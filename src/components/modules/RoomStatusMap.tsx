@@ -190,9 +190,9 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
 
           {/* Room cells grid */}
           <div
-            className="grid gap-2.5"
+            className="grid gap-3.5"
             style={{
-              gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))',
             }}
           >
             {rooms.map((hab, roomIdx) => {
@@ -210,11 +210,12 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
                       onClick={() => openDetail(hab.numero)}
                       className={`
                         group relative flex flex-col items-center text-center
-                        rounded-lg border-l-[4px] ${config.bgColor}
+                        rounded-xl border-l-[5px] ${config.bgColor}
                         bg-card hover:bg-accent/30
-                        p-3 pt-2.5
+                        p-4 py-3.5
+                        shadow-sm
                         transition-all duration-200 ease-out
-                        hover:-translate-y-0.5 hover:shadow-md
+                        hover:-translate-y-1 hover:shadow-lg
                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
                         ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
                       `}
@@ -227,31 +228,46 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
                       {/* Pulsing dot for rooms needing attention */}
                       {config.needsAttention && (
                         <span
-                          className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full animate-pulse"
+                          className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full animate-pulse"
                           style={{ backgroundColor: config.color }}
                         />
                       )}
 
+                      {/* Status icon - top area */}
+                      <div className="flex items-center justify-center w-8 h-8 rounded-lg mb-1" style={{ backgroundColor: `${config.color}15` }}>
+                        <Icon
+                          className="w-4.5 h-4.5"
+                          style={{ color: config.color }}
+                        />
+                      </div>
+
                       {/* Room number */}
-                      <span className="text-lg font-bold leading-tight text-foreground">
+                      <span className="text-2xl font-bold leading-tight text-foreground">
                         {hab.numero}
                       </span>
 
                       {/* Room type */}
-                      <span className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                      <span className="text-xs text-muted-foreground leading-tight mt-0.5 font-medium">
                         {hab.tipo}
                       </span>
 
-                      {/* Status icon */}
-                      <Icon
-                        className="w-4 h-4 mt-1.5"
-                        style={{ color: config.color }}
-                      />
+                      {/* Capacity */}
+                      <span className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">
+                        Cap. {hab.capacidad}
+                      </span>
+
+                      {/* Status label */}
+                      <span
+                        className="text-[10px] font-semibold mt-2 px-2 py-0.5 rounded-full"
+                        style={{ color: config.color, backgroundColor: `${config.color}12` }}
+                      >
+                        {config.label}
+                      </span>
 
                       {/* Guest name if occupied */}
                       {huesped && (
                         <span
-                          className="text-[10px] font-medium text-foreground truncate w-full mt-1 leading-tight"
+                          className="text-[11px] font-medium text-foreground truncate w-full mt-1.5 leading-tight"
                           title={huesped.huesped}
                         >
                           {huesped.huesped}

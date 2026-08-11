@@ -153,3 +153,33 @@ Archivos modificados:
 - src/app/api/payments/create-subscription/route.ts — planId validation
 - src/lib/auth/config.ts — delete token props
 - src/app/globals.css — color-mix() for quick-stats-bar
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Expand room cards in map view mode for better readability
+
+Work Log:
+- Analyzed current card layout: 100px min-width grid, p-3 padding, text-lg room number, text-[10px] type, w-4 icons
+- Expanded grid from minmax(100px) to minmax(155px) for wider cards
+- Increased gap from gap-2.5 to gap-3.5 for better spacing
+- Increased card padding from p-3 pt-2.5 to p-4 py-3.5
+- Added shadow-sm for subtle elevation
+- Changed border-radius from rounded-lg to rounded-xl for softer corners
+- Increased left border from 4px to 5px for stronger visual status indicator
+- Enhanced hover: hover:-translate-y-1 hover:shadow-lg (was -translate-y-0.5 hover:shadow-md)
+- Moved status icon to top with a colored background circle (w-8 h-8 rounded-lg)
+- Increased room number from text-lg to text-2xl for more prominence
+- Increased room type from text-[10px] to text-xs with font-medium
+- Added new "Cap. X" capacity line below room type
+- Added new status label pill with colored background (rounded-full)
+- Increased guest name from text-[10px] to text-[11px] with more spacing
+- Increased pulsing attention dot from w-2 h-2 to w-2.5 h-2.5
+- Lint passes cleanly with no errors
+
+Stage Summary:
+- Room cards in map view are now significantly larger and more readable
+- Each card now shows: status icon (in colored circle), room number (large), type, capacity, status label pill, and guest name
+- Cards have better visual hierarchy and more breathing room
+- The layout still uses auto-fill grid so it adapts to different screen widths
+- All changes are purely visual/CSS — no logic or data changes
