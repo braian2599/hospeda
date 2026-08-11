@@ -130,6 +130,10 @@ function extractFloor(roomNumber: string): number {
   return match ? parseInt(match[1]) : 0;
 }
 
+function getRoomFloor(hab: Habitacion): number {
+  return hab.piso ?? extractFloor(hab.numero);
+}
+
 // ═══════════════════════════════════════════════════════════
 // RoomStatsBanner
 // ═══════════════════════════════════════════════════════════
@@ -691,6 +695,7 @@ export default function HabitacionesModule() {
     capacidad: '2',
     camasMatrimoniales: '0',
     camasSimples: '0',
+    piso: '',
   });
 
   const esCompartida = form.tipo === 'Compartida';
@@ -715,7 +720,7 @@ export default function HabitacionesModule() {
   const isFloorPattern = useMemo(() => {
     if (sorted.length === 0) return false;
     const floorSet = new Set<number>();
-    sorted.forEach(([num]) => floorSet.add(extractFloor(num)));
+    sorted.forEach(([, hab]) => floorSet.add(getRoomFloor(hab)));
     return floorSet.size > 1; // Multiple floors detected → use floor pattern
   }, [sorted]);
 
@@ -725,7 +730,7 @@ export default function HabitacionesModule() {
       // Group by floor
       const map = new Map<number, Habitacion[]>();
       sorted.forEach(([, hab]) => {
-        const floor = extractFloor(hab.numero);
+        const floor = getRoomFloor(hab);
         if (!map.has(floor)) map.set(floor, []);
         map.get(floor)!.push(hab);
       });
@@ -776,7 +781,7 @@ export default function HabitacionesModule() {
 
   // ── Abrir modales ──
   const openNew = () => {
-    setForm({ numero: '', tipo: 'Doble', capacidad: '2', camasMatrimoniales: '0', camasSimples: '0' });
+    setForm({ numero: '', tipo: 'Doble', capacidad: '2', camasMatrimoniales: '0', camasSimples: '0', piso: '' });
     setModal('nueva');
   };
 
@@ -791,6 +796,7 @@ export default function HabitacionesModule() {
       capacidad: CAPACIDAD_POR_TIPO[tipo] !== null ? String(CAPACIDAD_POR_TIPO[tipo]) : String(h.capacidad),
       camasMatrimoniales: String(h.camasMatrimoniales),
       camasSimples: String(h.camasSimples),
+      piso: h.piso ? String(h.piso) : '',
     });
     setModal('editar');
   };
@@ -812,11 +818,12 @@ export default function HabitacionesModule() {
     const capacidad = getCapacidadFinal();
     const camasM = parseInt(form.camasMatrimoniales) || 0;
     const camasS = parseInt(form.camasSimples) || 0;
+    const pisoVal = form.piso ? parseInt(form.piso) : undefined;
     let ok: boolean;
     if (modal === 'nueva') {
-      ok = await agregarHabitacion(form.numero.trim(), form.tipo, capacidad, camasM, camasS);
+      ok = await agregarHabitacion(form.numero.trim(), form.tipo, capacidad, camasM, camasS, pisoVal);
     } else if (modal === 'editar') {
-      ok = await editarHabitacion(sel, form.numero.trim(), form.tipo, capacidad, camasM, camasS);
+      ok = await editarHabitacion(sel, form.numero.trim(), form.tipo, capacidad, camasM, camasS, pisoVal);
     } else return;
     if (ok) {
       toast.success('Habitación guardada');
@@ -881,7 +888,7 @@ export default function HabitacionesModule() {
               h.numero || '',
               h.tipo || '',
               h.estado || '',
-              (h.numero || '').replace(/\D/g, '').charAt(0) || '',
+              h.piso ?? (h.numero || '').replace(/\D/g, '').charAt(0) ?? '',
               h.precioPorCama ?? '',
             ]);
             exportToCSV('habitaciones.csv', headers, rows);
@@ -893,11 +900,13 @@ export default function HabitacionesModule() {
         </div>
       </ModuleHeader>
 
-      {/* ── Stats banner ── */}
-      <RoomStatsBanner />
-
-      {/* ── Room type analytics ── */}
-      <RoomTypeAnalytics />
+      {/* ── Stats banner + Room type analytics ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <RoomStatsBanner />
+        <div className="lg:col-span-2">
+          <RoomTypeAnalytics />
+        </div>
+      </div>
 
       {/* ── Map view ── */}
       {viewMode === 'mapa' && (
@@ -946,6 +955,18 @@ export default function HabitacionesModule() {
                 value={form.numero}
                 onChange={e => setForm({ ...form, numero: e.target.value })}
                 placeholder="Ej: 101, 201A"
+              />
+            </div>
+
+            {/* Piso */}
+            <div className="grid gap-2">
+              <Label>Piso</Label>
+              <Input
+                type="number"
+                min="0"
+                value={form.piso}
+                onChange={e => setForm({ ...form, piso: e.target.value })}
+                placeholder="Ej: 1, 2, 3 (se infiere del número si se deja vacío)"
               />
             </div>
 

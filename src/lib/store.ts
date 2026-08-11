@@ -374,8 +374,8 @@ interface HotelStore {
   _registrarAuditoria: (tipo: string, detalle: string) => void;
 
   // Habitaciones
-  agregarHabitacion: (numero: string, tipo: string, capacidad: number, camasMatrimoniales: number, camasSimples: number) => Promise<boolean>;
-  editarHabitacion: (numeroOriginal: string, numeroNuevo: string, tipo: string, capacidad: number, camasMatrimoniales: number, camasSimples: number) => Promise<boolean>;
+  agregarHabitacion: (numero: string, tipo: string, capacidad: number, camasMatrimoniales: number, camasSimples: number, piso?: number) => Promise<boolean>;
+  editarHabitacion: (numeroOriginal: string, numeroNuevo: string, tipo: string, capacidad: number, camasMatrimoniales: number, camasSimples: number, piso?: number) => Promise<boolean>;
   eliminarHabitacion: (numero: string) => Promise<boolean>;
   cambiarEstadoHabitacion: (numero: string, nuevoEstado: EstadoHabitacion) => Promise<boolean>;
 
@@ -572,19 +572,21 @@ export const useHotelStore = create<HotelStore>()(
         }
       },
       // ===== HABITACIONES =====
-      agregarHabitacion: async (numero, tipo, capacidad, camasMatrimoniales, camasSimples) => {
+      agregarHabitacion: async (numero, tipo, capacidad, camasMatrimoniales, camasSimples, piso) => {
         const { habitaciones } = get();
         if (habitaciones[numero]) return false;
         const prevHabitaciones = habitaciones;
+        const newHab: Habitacion = { numero, tipo, capacidad: parseInt(String(capacidad)), camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0, estado: 'Disponible' };
+        if (piso !== undefined) newHab.piso = piso;
         set({
           habitaciones: {
             ...habitaciones,
-            [numero]: { numero, tipo, capacidad: parseInt(String(capacidad)), camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0, estado: 'Disponible' },
+            [numero]: newHab,
           },
         });
         get()._registrarAuditoria('Habitación', `Creación: habitación ${numero} (${tipo})`);
         try {
-          await api.habitaciones.create({ numero, tipo, capacidad: parseInt(String(capacidad)), camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0 });
+          await api.habitaciones.create({ numero, tipo, capacidad: parseInt(String(capacidad)), camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0, piso });
         } catch (err) {
           console.error('[agregarHabitacion] API error, rolling back:', err);
           set({ habitaciones: prevHabitaciones });
@@ -593,7 +595,7 @@ export const useHotelStore = create<HotelStore>()(
         return true;
       },
 
-      editarHabitacion: async (numeroOriginal, numeroNuevo, tipo, capacidad, camasMatrimoniales, camasSimples) => {
+      editarHabitacion: async (numeroOriginal, numeroNuevo, tipo, capacidad, camasMatrimoniales, camasSimples, piso) => {
         const { habitaciones, reservas, historialMantenimiento, mantenimientoPendientes } = get();
         const hab = habitaciones[numeroOriginal];
         if (!hab) return false;
@@ -604,7 +606,7 @@ export const useHotelStore = create<HotelStore>()(
         );
         if (reservasAfectadas.length > 0) return false;
 
-        const datosNuevos: Habitacion = { ...hab, tipo, capacidad: nuevaCapacidad, camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0 };
+        const datosNuevos: Habitacion = { ...hab, tipo, capacidad: nuevaCapacidad, camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0, ...(piso !== undefined ? { piso } : {}) };
 
         // Save state for rollback
         const prevState = { habitaciones, reservas, historialMantenimiento, mantenimientoPendientes };
@@ -628,7 +630,7 @@ export const useHotelStore = create<HotelStore>()(
         }
         get()._registrarAuditoria('Habitación', `Edición: ${numeroOriginal}${numeroOriginal !== numeroNuevo ? ` → ${numeroNuevo}` : ''}`);
         try {
-          await api.habitaciones.update(numeroOriginal, { numero: numeroNuevo, tipo, capacidad: nuevaCapacidad, camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0 });
+          await api.habitaciones.update(numeroOriginal, { numero: numeroNuevo, tipo, capacidad: nuevaCapacidad, camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0, piso });
         } catch (err) {
           console.error('[editarHabitacion] API error, rolling back:', err);
           set(prevState);
@@ -1840,6 +1842,7 @@ export const useHotelStore = create<HotelStore>()(
               estado: h.estado as EstadoHabitacion,
               problema: h.problema || undefined,
               precioPorCama: h.precioPorCama || undefined,
+              piso: h.piso ?? undefined,
             };
           }
 

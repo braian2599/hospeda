@@ -1,6 +1,43 @@
 # Hospedá — Worklog
 
 ---
+Task ID: 1-piso
+Agent: Piso Module Agent
+Task: Connect piso (floor) field throughout the full stack — types, store, UI components
+
+Work Log:
+- Added `piso?: number` to Habitacion interface in src/lib/types.ts
+- Updated store.ts type signatures: agregarHabitacion and editarHabitacion now accept optional piso parameter
+- Updated agregarHabitacion implementation: accepts piso, includes in optimistic update and API call
+- Updated editarHabitacion implementation: accepts piso, spreads into datosNuevos, includes in API call
+- Updated syncFromServer mapping: added `piso: h.piso ?? undefined`
+- Added getRoomFloor() helper to HabitacionesModule.tsx (uses hab.piso with extractFloor fallback)
+- Added piso field to form state, openNew, openEdit
+- Updated handleSave to parse pisoVal and pass as 7th argument
+- Updated isFloorPattern and groupedRooms to use getRoomFloor instead of extractFloor
+- Added Piso input field in create/edit dialog (after Número, before Tipo)
+- Fixed CSV export to use h.piso with fallback
+- Added getRoomFloor() helper to RoomStatusMap.tsx
+- Updated RoomStatusMap floor grouping to use getRoomFloor
+- Replaced "Precio/cama" detail card with "Piso" in RoomStatusMap detail dialog
+- Updated visual layout: RoomStatsBanner + RoomTypeAnalytics in side-by-side grid (1/3 + 2/3 on desktop)
+- Lint passes cleanly
+
+Stage Summary:
+- piso field is now fully connected from the API through the store to the UI
+- Floor grouping uses hab.piso with automatic fallback to room number inference
+- Piso is editable in create/edit dialogs
+- CSV export and detail dialogs show piso correctly
+- Compact layout with stats banner and type analytics side-by-side
+- No Prisma schema or API route changes needed (piso already existed)
+
+Archivos modificados:
+- src/lib/types.ts — Added piso?: number to Habitacion
+- src/lib/store.ts — Updated agregarHabitacion, editarHabitacion signatures and implementations; syncFromServer mapping
+- src/components/modules/HabitacionesModule.tsx — getRoomFloor, form state, openNew/openEdit, handleSave, floor grouping, piso input, CSV export, layout
+- src/components/modules/RoomStatusMap.tsx — getRoomFloor, floor grouping, Piso detail card
+
+---
 Task ID: 1
 Agent: Main Agent
 Task: Diagnóstico profundo del sistema Hospeda y reparación completa

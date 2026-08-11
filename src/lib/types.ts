@@ -20,6 +20,7 @@ export interface Habitacion {
   estado: EstadoHabitacion;
   problema?: string;
   precioPorCama?: number;
+  piso?: number;
 }
 
 export type EstadoHabitacion = 'Disponible' | 'Ocupada' | 'Limpieza' | 'Mantenimiento' | 'Reservada' | 'Fuera de servicio';

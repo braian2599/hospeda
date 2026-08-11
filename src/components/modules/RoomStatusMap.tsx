@@ -90,6 +90,10 @@ function extractFloor(roomNumber: string): number {
   return match ? parseInt(match[1]) : 0;
 }
 
+function getRoomFloor(hab: { piso?: number; numero: string }): number {
+  return hab.piso ?? extractFloor(hab.numero);
+}
+
 // ── Props ──
 interface RoomStatusMapProps {
   onEditRoom: (num: string) => void;
@@ -132,7 +136,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
   const floors = useMemo(() => {
     const map = new Map<number, Habitacion[]>();
     sortedRooms.forEach(h => {
-      const floor = extractFloor(h.numero);
+      const floor = getRoomFloor(h);
       if (!map.has(floor)) map.set(floor, []);
       map.get(floor)!.push(h);
     });
@@ -364,9 +368,9 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
                     <div className="text-sm font-semibold">{camasText}</div>
                   </div>
                   <div className="rounded-lg border p-3 bg-muted/20">
-                    <div className="text-xs text-muted-foreground">Precio/cama</div>
+                    <div className="text-xs text-muted-foreground">Piso</div>
                     <div className="text-sm font-semibold">
-                      {detailHab.precioPorCama ? `$${detailHab.precioPorCama}` : '—'}
+                      {detailHab.piso ? `Piso ${detailHab.piso}` : '—'}
                     </div>
                   </div>
                 </div>
