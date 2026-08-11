@@ -8,7 +8,7 @@ import { useHotelStore } from '@/lib/store';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 import { modulosEfectivos } from '@/lib/plan-config';
 import { useGlobalSearch } from '@/hooks/use-global-search';
-import { Search, CornerDownLeft, ArrowUp, ArrowDown, Lock, LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, Users, BarChart3, UserCog, Tags, Settings } from 'lucide-react';
+import { Search, CornerDownLeft, Lock, LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, Users, BarChart3, UserCog, Tags, Settings } from 'lucide-react';
 
 // Static icon map (matches Sidebar icon names)
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -371,9 +371,7 @@ export default function CommandPalette() {
             placeholder="Buscar módulos, acciones, habitaciones, clientes…"
             className="border-0 focus-visible:ring-0 h-11 shadow-none"
           />
-          <kbd className="hidden sm:inline-flex items-center gap-1 rounded border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium shrink-0">
-            ESC
-          </kbd>
+
         </div>
 
         <ScrollArea className="max-h-80">
@@ -464,18 +462,7 @@ export default function CommandPalette() {
           </div>
         )}
 
-        <div className="border-t px-3 py-2 flex items-center justify-between text-[10px] text-muted-foreground">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <ArrowUp className="w-3 h-3" />
-              <ArrowDown className="w-3 h-3" />
-              navegar
-            </span>
-            <span className="flex items-center gap-1">
-              <CornerDownLeft className="w-3 h-3" />
-              seleccionar
-            </span>
-          </div>
+        <div className="border-t px-3 py-2 flex items-center justify-end text-[10px] text-muted-foreground">
           <span className="text-muted-foreground/70">{filtered.length} resultados</span>
         </div>
       </DialogContent>

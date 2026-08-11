@@ -9,7 +9,6 @@ import { modulosEfectivos } from '@/lib/plan-config';
 import { Button } from '@/components/ui/button';
 import { NotificationCenter } from '@/components/ui/notification-center';
 import ThemeToggle from '@/components/layout/ThemeToggle';
-import HelpDialog from '@/components/layout/HelpDialog';
 import { LogOut, X, Lock, Settings, Users, LayoutDashboard, Search, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, BarChart3, UserCog, Tags } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -188,7 +187,6 @@ export default function Sidebar() {
             </button>
             <NotificationCenter />
             <ThemeToggle compact />
-            <HelpDialog compact />
           </div>
         )}
       </div>
@@ -273,7 +271,6 @@ export default function Sidebar() {
           </button>
           <NotificationCenter />
           <ThemeToggle compact />
-          <HelpDialog compact />
         </div>
         <div className="border-t border-sidebar-border" />
         <nav className="flex-1 overflow-y-auto scrollbar-none px-2 py-1.5 sidebar-stagger">
