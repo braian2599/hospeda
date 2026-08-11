@@ -905,6 +905,9 @@ export default function DashboardModule() {
         ))}
       </div>
 
+      {/* Calendario Gantt de Ocupación */}
+      <CalendarioGantt habitaciones={habitaciones} reservas={reservas} fechaInicioBase={hoy} />
+
       {/* Guest Timeline + Room Type Distribution */}
       <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4 card-grid-stagger">
         <GuestTimeline />
@@ -1105,8 +1108,6 @@ export default function DashboardModule() {
         </Card>
       </div>
 
-      {/* Calendario Gantt de Ocupación */}
-      <CalendarioGantt habitaciones={habitaciones} reservas={reservas} fechaInicioBase={hoy} />
     </div>
   );
 }
