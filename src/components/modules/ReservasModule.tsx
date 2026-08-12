@@ -1250,7 +1250,7 @@ export default function ReservasModule() {
  </ModuleHeader>
 
  {/* ==================== STATUS WORKFLOW VISUALIZATION ==================== */}
- <Card className="bg-gradient-to-r from-[#F8FAFC] to-white border-[#E2E8F0]/80 overflow-hidden">
+ <Card className="bg-muted/20 border-[#E2E8F0]/80 overflow-hidden">
    <CardContent className="p-4">
      <div className="flex items-center gap-2 mb-3">
        <div className="size-2 rounded-full bg-[#0F2B28] animate-pulse" />
@@ -1337,7 +1337,7 @@ export default function ReservasModule() {
 
  {/* ==================== TODAY'S ACTIVITY SUMMARY ==================== */}
  <div className="grid grid-cols-3 gap-3 card-grid-stagger">
-   <div className="p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-[#DCFCE7]/30 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 card-interactive">
+   <div className="p-3 sm:p-4 rounded-xl border bg-emerald-50/40 dark:bg-emerald-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 card-interactive">
      <div className="flex items-start gap-2.5">
        <div className="size-9 rounded-full bg-[#10B981]/10 flex items-center justify-center shrink-0">
          <TrendingUp className="w-4 h-4 text-[#10B981]" />
@@ -1348,7 +1348,7 @@ export default function ReservasModule() {
        </div>
      </div>
    </div>
-   <div className="p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-[#FFEDD5]/30 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 card-interactive">
+   <div className="p-3 sm:p-4 rounded-xl border bg-amber-50/40 dark:bg-amber-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 card-interactive">
      <div className="flex items-start gap-2.5">
        <div className="size-9 rounded-full bg-[#EA580C]/10 flex items-center justify-center shrink-0">
          <TrendingDown className="w-4 h-4 text-[#EA580C]" />
@@ -1359,7 +1359,7 @@ export default function ReservasModule() {
        </div>
      </div>
    </div>
-   <div className="p-3 sm:p-4 rounded-xl border bg-gradient-to-br from-[#F0FDF4]/30 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 card-interactive">
+   <div className="p-3 sm:p-4 rounded-xl border bg-green-50/40 dark:bg-green-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 card-interactive">
      <div className="flex items-start gap-2.5">
        <div className="size-9 rounded-full bg-[#0F2B28]/10 flex items-center justify-center shrink-0">
          <Bed className="w-4 h-4 text-[#0F2B28]" />
@@ -1373,7 +1373,7 @@ export default function ReservasModule() {
  </div>
 
  {/* ==================== FILTER BAR ==================== */}
- <Card className="bg-gradient-to-r from-[#F8FAFC] to-white border-[#E2E8F0]/80">
+ <Card className="bg-muted/20 border-[#E2E8F0]/80">
  <CardContent className="p-4">
  <div className="flex flex-wrap gap-3 items-end justify-center">
  <div className="grid gap-1.5">

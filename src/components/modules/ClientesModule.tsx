@@ -236,7 +236,7 @@ export default function ClientesModule() {
       {/* ═══════════ CLIENT STATS SUMMARY ═══════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
         {/* Total Clientes */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-[#0F2B28] bg-gradient-to-br from-[#0F2B28]/5 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-[#0F2B28] bg-teal-50/30 dark:bg-teal-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -251,7 +251,7 @@ export default function ClientesModule() {
         </Card>
 
         {/* Clientes Recurrentes */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-amber-400 bg-gradient-to-br from-amber-50/60 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-amber-400 bg-amber-50/40 dark:bg-amber-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -266,7 +266,7 @@ export default function ClientesModule() {
         </Card>
 
         {/* Nuevos este Mes */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-emerald-400 bg-gradient-to-br from-emerald-50/60 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -281,7 +281,7 @@ export default function ClientesModule() {
         </Card>
 
         {/* Ocupación Promedio */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-sky-400 bg-gradient-to-br from-sky-50/60 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-sky-400 bg-sky-50/40 dark:bg-sky-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -529,28 +529,28 @@ export default function ClientesModule() {
 
                   {/* Customer Stats Summary (enhanced) */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <Card className="p-3 bg-gradient-to-br from-[#F0FDF4]/50 to-white border-[#BBF7D0]/40 border-l-[3px] border-l-[#0F2B28]">
+                    <Card className="p-3 bg-green-50/40 dark:bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-[#0F2B28]">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-[#166534]" />
                         <span className="text-xs text-muted-foreground">Total estadías</span>
                       </div>
                       <AnimatedNumber value={totalEstadias} format={n => String(Math.round(n))} className="font-bold text-lg text-[#0F2B28] mt-1" />
                     </Card>
-                    <Card className="p-3 bg-gradient-to-br from-[#F0FDF4]/50 to-white border-[#BBF7D0]/40 border-l-[3px] border-l-emerald-400">
+                    <Card className="p-3 bg-green-50/40 dark:bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-emerald-400">
                       <div className="flex items-center gap-2">
                         <DollarSign className="w-4 h-4 text-emerald-600" />
                         <span className="text-xs text-muted-foreground">Total gastado</span>
                       </div>
                       <AnimatedNumber value={totalGastado} className="font-bold text-lg text-[#0F2B28] mt-1" />
                     </Card>
-                    <Card className="p-3 bg-gradient-to-br from-[#F0FDF4]/50 to-white border-[#BBF7D0]/40 border-l-[3px] border-l-amber-400">
+                    <Card className="p-3 bg-green-50/40 dark:bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-amber-400">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-amber-600" />
                         <span className="text-xs text-muted-foreground">Promedio/estadía</span>
                       </div>
                       <AnimatedNumber value={promedioPorEstadia} className="font-bold text-lg text-[#0F2B28] mt-1" />
                     </Card>
-                    <Card className="p-3 bg-gradient-to-br from-[#F0FDF4]/50 to-white border-[#BBF7D0]/40 border-l-[3px] border-l-sky-400">
+                    <Card className="p-3 bg-green-50/40 dark:bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-sky-400">
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-sky-600" />
                         <span className="text-xs text-muted-foreground">Duración prom.</span>

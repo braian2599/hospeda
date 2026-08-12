@@ -22,7 +22,6 @@ import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import ProfileSettings from '@/components/layout/ProfileSettings';
 import CommandPalette from '@/components/layout/CommandPalette';
-import QuickActionsFab from '@/components/layout/QuickActionsFab';
 import ModuleLockedDialog from '@/components/subscription/ModuleLockedDialog';
 import PaymentResultBanner from '@/components/payments/PaymentResultBanner';
 import type { ModuloId } from '@/lib/types';
@@ -106,7 +105,6 @@ export default function AppPage() {
       )}
       <ProfileSettings open={perfilOpen} onOpenChange={setPerfilOpen} />
       <CommandPalette />
-      <QuickActionsFab />
       <ModuleLockedDialog />
     </AppShell>
   );

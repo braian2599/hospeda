@@ -1041,7 +1041,7 @@ export default function LimpiezaModule() {
 
       {/* ── Maintenance alert banner ── */}
       {enMantenimiento.length > 0 && (
-        <Card className="border-[#FECACA] bg-gradient-to-r from-[#FEF2F2]/80 via-[#FEE2E2]/40 to-white overflow-hidden">
+        <Card className="border-[#FECACA] bg-red-50/40 dark:bg-red-950/20 overflow-hidden">
           <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="relative w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center shrink-0">
@@ -1072,7 +1072,7 @@ export default function LimpiezaModule() {
 
       {/* ── Summary Stats ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="border-[#FDE68A] bg-gradient-to-br from-[#FEF9C3]/50 to-white">
+        <Card className="border-[#FDE68A] bg-yellow-50/40 dark:bg-yellow-950/20">
           <CardContent className="p-3 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[#FEF9C3]"><SprayCan className="w-5 h-5 text-[#92400E]" /></div>
             <div>
@@ -1081,7 +1081,7 @@ export default function LimpiezaModule() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-[#BAE6FD] bg-gradient-to-br from-[#E0F2FE]/50 to-white">
+        <Card className="border-[#BAE6FD] bg-sky-50/40 dark:bg-sky-950/20">
           <CardContent className="p-3 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[#E0F2FE]"><Timer className="w-5 h-5 text-[#0369A1]" /></div>
             <div>
@@ -1090,7 +1090,7 @@ export default function LimpiezaModule() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-[#BBF7D0] bg-gradient-to-br from-[#DCFCE7]/50 to-white">
+        <Card className="border-[#BBF7D0] bg-emerald-50/40 dark:bg-emerald-950/20">
           <CardContent className="p-3 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[#DCFCE7]"><CheckCircle className="w-5 h-5 text-[#166534]" /></div>
             <div className="flex items-baseline gap-1.5">
@@ -1105,7 +1105,7 @@ export default function LimpiezaModule() {
             <p className="text-xs text-muted-foreground">Completadas Hoy</p>
           </CardContent>
         </Card>
-        <Card className="border-[#DDD6FE] bg-gradient-to-br from-[#F5F3FF]/50 to-white">
+        <Card className="border-[#DDD6FE] bg-violet-50/40 dark:bg-violet-950/20">
           <CardContent className="p-3 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[#F5F3FF]"><Clock className="w-5 h-5 text-[#6D28D9]" /></div>
             <div>
@@ -1330,7 +1330,7 @@ export default function LimpiezaModule() {
       {viewMode === 'list' && (
         <>
           {/* Cleaning progress tracker */}
-          <Card className="bg-gradient-to-br from-[#F0FDF4]/40 to-white border-[#059669]/20">
+          <Card className="bg-green-50/40 dark:bg-green-950/20 border-[#059669]/20">
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">

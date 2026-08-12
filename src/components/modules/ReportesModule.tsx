@@ -163,7 +163,7 @@ function ProgressKpi({ label, value, max, color = 'bg-primary', suffix = '%', de
  */
 function ReportTabHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-[#0F2B28]/10 bg-gradient-to-r from-[#0F2B28]/5 to-transparent px-4 py-3 flex items-center gap-3">
+    <div className="relative overflow-hidden rounded-xl border border-[#0F2B28]/10 bg-teal-50/20 dark:bg-teal-950/10 px-4 py-3 flex items-center gap-3">
       <div className="w-9 h-9 rounded-lg bg-[#0F2B28]/10 flex items-center justify-center text-[#0F2B28] shrink-0">
         {icon}
       </div>
@@ -954,7 +954,7 @@ export default function ReportesModule() {
       <ModuleHeader icon={BarChart3} title="Reportes" subtitle="Métricas y análisis de tu hotel" />
 
       {/* Date Range Filter */}
-      <Card className="bg-gradient-to-r from-[#F8FAFC] to-white border-[#E2E8F0]/80">
+      <Card className="bg-muted/20 border-[#E2E8F0]/80">
         <CardContent className="p-3 sm:p-4">
           <div className="flex flex-wrap items-end justify-center gap-2 sm:gap-3">
             <div className="grid gap-1.5 flex-1 min-w-[130px] sm:flex-none">
@@ -1931,7 +1931,7 @@ export default function ReportesModule() {
 
           {/* Top customer highlight */}
           {topCliente && (
-            <Card className="relative overflow-hidden border-2 border-[#0F2B28]/20 bg-gradient-to-r from-[#0F2B28]/5 to-transparent">
+            <Card className="relative overflow-hidden border-2 border-[#0F2B28]/20 bg-teal-50/20 dark:bg-teal-950/10">
               <CardContent className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#059669] flex items-center justify-center text-white shadow-md shrink-0">

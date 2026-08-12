@@ -303,7 +303,7 @@ export default function CheckInModule() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Pendientes Check-In */}
-          <Card className="border-[#BBF7D0]/60 bg-gradient-to-br from-[#ECFDF5]/30 to-white wave-border-hover">
+          <Card className="border-[#BBF7D0]/60 bg-emerald-50/40 dark:bg-emerald-950/20 wave-border-hover">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <LogIn className="w-5 h-5 text-[#059669]" />
@@ -353,7 +353,7 @@ export default function CheckInModule() {
           </Card>
 
           {/* Pendientes Check-Out */}
-          <Card className="border-[#FED7AA]/60 bg-gradient-to-br from-[#FFF7ED]/30 to-white wave-border-hover-amber">
+          <Card className="border-[#FED7AA]/60 bg-amber-50/40 dark:bg-amber-950/20 wave-border-hover-amber">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <LogOut className="w-5 h-5 text-[#EA580C]" />
@@ -825,7 +825,7 @@ function TodayActivitySummary() {
       value: checkinsHoy,
       icon: LogIn,
       color: '#059669',
-      gradient: 'from-[#059669]/20',
+      gradient: 'bg-emerald-50/40 dark:bg-emerald-950/20',
       trend: checkinsHoy === 0 && checkinsAyer === 0 ? undefined : checkinsHoy - checkinsAyer,
     },
     {
@@ -834,7 +834,7 @@ function TodayActivitySummary() {
       value: checkoutsHoy,
       icon: LogOut,
       color: '#EA580C',
-      gradient: 'from-[#EA580C]/20',
+      gradient: 'bg-amber-50/40 dark:bg-amber-950/20',
       trend: checkoutsHoy === 0 && checkoutsAyer === 0 ? undefined : checkoutsHoy - checkoutsAyer,
     },
     {
@@ -843,7 +843,7 @@ function TodayActivitySummary() {
       value: estadiasActivas,
       icon: Bed,
       color: '#0F2B28',
-      gradient: 'from-[#0F2B28]/20',
+      gradient: 'bg-teal-50/40 dark:bg-teal-950/20',
       trend: estadiasActivas === 0 && estadiasPrevias === 0 ? undefined : estadiasActivas - estadiasPrevias,
       sublabel: ocupacionPct !== null ? `${ocupacionPct}% ocup.` : undefined,
     },
@@ -904,7 +904,7 @@ function StatCard({
   return (
     <div
       className={cn(
-        'p-4 rounded-xl border bg-gradient-to-br to-white',
+        'p-4 rounded-xl border bg-card',
         'transition-all duration-300 ease-out',
         'hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5',
         'animate-slide-up',
@@ -1025,7 +1025,7 @@ function CelebratoryEmptyState() {
  */
 function StatCardSkeleton() {
   return (
-    <div className="p-4 rounded-xl border bg-gradient-to-br from-muted/30 to-white">
+    <div className="p-4 rounded-xl border bg-muted/30">
       <div className="flex items-start justify-between">
         <Skeleton className="size-10 rounded-full" />
         <Skeleton className="h-5 w-12 rounded-full" />

@@ -347,7 +347,7 @@ function CashFlowTimeline({
           <div className="absolute -left-6 top-0 flex flex-col items-center">
             <div className="w-3 h-3 rounded-full bg-[#0F2B28] ring-2 ring-white shadow-sm z-10" />
           </div>
-          <div className="bg-gradient-to-r from-[#0F2B28]/10 to-[#059669]/10 border border-[#0F2B28]/20 rounded-md px-3 py-2">
+          <div className="bg-emerald-50/30 dark:bg-emerald-950/20 border border-[#0F2B28]/20 rounded-md px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <CircleDot className="w-3.5 h-3.5 text-[#0F2B28]" />
@@ -393,7 +393,7 @@ function DenominationBreakdownPanel({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {bills.map(d => (
-            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-gradient-to-r from-[#F0FDF4]/30 to-transparent hover:from-[#F0FDF4]/60 transition-colors">
+            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-green-50/30 dark:bg-green-950/15 transition-colors">
               <Banknote className="w-3.5 h-3.5 text-[#059669] shrink-0" />
               <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
               <Input
@@ -417,7 +417,7 @@ function DenominationBreakdownPanel({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {coins.map(d => (
-            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-gradient-to-r from-[#FFFBEB]/30 to-transparent hover:from-[#FFFBEB]/50 transition-colors">
+            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-amber-50/30 dark:bg-amber-950/15 transition-colors">
               <Coins className="w-3.5 h-3.5 text-[#92400E] shrink-0" />
               <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
               <Input
@@ -912,7 +912,7 @@ export default function CajaModule() {
         <div className="space-y-4">
           <Card className="relative overflow-hidden border-2 border-dashed border-[#0F2B28]/20 celebrate-bg">
             {/* Subtle radial accent in the background */}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#F0FDF4]/40 via-transparent to-[#FFFBEB]/30" />
+            <div className="pointer-events-none absolute inset-0 bg-emerald-50/30 dark:bg-emerald-950/15" />
             <CardContent className="relative text-center py-14 px-6 space-y-5 max-w-md mx-auto">
               <div className="relative inline-flex">
                 {/* Pulsing halo around the icon */}
@@ -995,7 +995,7 @@ export default function CajaModule() {
                 </Dialog>
               </div>
               {/* Balance display — animated + trend */}
-              <div className="rounded-lg border-2 border-[#059669]/30 bg-gradient-to-br from-[#F0FDF4]/60 to-white p-3">
+              <div className="rounded-lg border-2 border-[#059669]/30 bg-green-50/40 dark:bg-green-950/20 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo actual</p>
@@ -1164,7 +1164,7 @@ export default function CajaModule() {
 
           {/* ── Mobile: Cash Flow Timeline ── */}
           <Card className="lg:hidden overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-3">
+            <CardHeader className="bg-teal-50/20 dark:bg-teal-950/10 pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Timer className="w-4 h-4 text-[#0F2B28]" />
                 Línea de tiempo
@@ -1218,7 +1218,7 @@ export default function CajaModule() {
               </Card>
 
               {/* Balance display — large animated number + trend indicator */}
-              <Card className="bg-gradient-to-br from-[#F0FDF4]/60 to-white border-2 border-[#059669]/30 card-hover">
+              <Card className="bg-green-50/40 dark:bg-green-950/20 border-2 border-[#059669]/30 card-hover">
                 <CardContent className="py-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0] flex items-center justify-center shadow-sm">
@@ -1460,7 +1460,7 @@ export default function CajaModule() {
             {/* Info Panel */}
             <div className="space-y-4">
               <Card className="overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#0F2B28]" />Información del turno</CardTitle></CardHeader>
+                <CardHeader className="bg-teal-50/20 dark:bg-teal-950/10 pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#0F2B28]" />Información del turno</CardTitle></CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   {caja.apertura && (
                     <>
@@ -1513,7 +1513,7 @@ export default function CajaModule() {
 
               {/* Cash Flow Timeline */}
               <Card className="overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-3">
+                <CardHeader className="bg-teal-50/20 dark:bg-teal-950/10 pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Timer className="w-4 h-4 text-[#0F2B28]" />
                     Línea de tiempo
@@ -2192,7 +2192,7 @@ function MovementCategoryPie({ data, compact }: { data: PieDatum[]; compact?: bo
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-2">
+      <CardHeader className="bg-teal-50/20 dark:bg-teal-950/10 pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Sparkle className="w-4 h-4 text-[#0F2B28]" />
           Movimientos por categoría
@@ -2581,7 +2581,7 @@ const QUICK_STATS: QuickStatConfig[] = [
     icon: Wallet,
     iconColor: 'text-[#0F2B28]',
     iconBg: 'bg-[#A7F3D0]',
-    cardBg: 'from-[#F0FDF4]/50 to-white',
+    cardBg: 'bg-green-50/30 dark:bg-green-950/15',
     accentBorder: 'border-l-[#0F2B28]',
   },
   {
@@ -2590,7 +2590,7 @@ const QUICK_STATS: QuickStatConfig[] = [
     icon: TrendingUp,
     iconColor: 'text-[#166534]',
     iconBg: 'bg-[#DCFCE7]',
-    cardBg: 'from-[#F0FDF4]/60 to-white',
+    cardBg: 'bg-green-50/40 dark:bg-green-950/20',
     accentBorder: 'border-l-[#059669]',
   },
   {
@@ -2599,7 +2599,7 @@ const QUICK_STATS: QuickStatConfig[] = [
     icon: TrendingDown,
     iconColor: 'text-[#991B1B]',
     iconBg: 'bg-[#FEE2E2]',
-    cardBg: 'from-[#FEF2F2]/60 to-white',
+    cardBg: 'bg-red-50/40 dark:bg-red-950/20',
     accentBorder: 'border-l-[#EF4444]',
   },
   {
@@ -2608,7 +2608,7 @@ const QUICK_STATS: QuickStatConfig[] = [
     icon: Wallet,
     iconColor: 'text-[#0F2B28]',
     iconBg: 'bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0]',
-    cardBg: 'from-[#F0FDF4]/80 to-white',
+    cardBg: 'bg-green-50/50 dark:bg-green-950/25',
     accentBorder: 'border-l-[#0F2B28]',
     prominent: true,
   },
@@ -2635,7 +2635,7 @@ function QuickStatsRow({
           <Card
             key={stat.key}
             className={cn(
-              'relative overflow-hidden border-l-[3px] bg-gradient-to-br card-hover animate-slide-up',
+              'relative overflow-hidden border-l-[3px] card-hover animate-slide-up',
               stat.cardBg,
               stat.accentBorder,
               isProminent && 'border-2 border-l-[4px] shadow-md'

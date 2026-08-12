@@ -70,7 +70,7 @@ export default function TodaySummary() {
       icon: LogIn,
       iconColor: 'text-[#059669]',
       iconBg: 'bg-[#059669]/10',
-      gradient: 'from-[#DCFCE7]/30',
+      gradient: 'bg-emerald-50/40 dark:bg-emerald-950/20',
     },
     {
       key: 'checkouts',
@@ -79,7 +79,7 @@ export default function TodaySummary() {
       icon: LogOut,
       iconColor: 'text-[#EA580C]',
       iconBg: 'bg-[#EA580C]/10',
-      gradient: 'from-[#FFEDD5]/30',
+      gradient: 'bg-amber-50/40 dark:bg-amber-950/20',
     },
     {
       key: 'estadias',
@@ -88,7 +88,7 @@ export default function TodaySummary() {
       icon: Bed,
       iconColor: 'text-[#0F2B28]',
       iconBg: 'bg-[#0F2B28]/10',
-      gradient: 'from-[#F0FDF4]/30',
+      gradient: 'bg-green-50/40 dark:bg-green-950/20',
     },
     {
       key: 'ocupacion',
@@ -97,7 +97,7 @@ export default function TodaySummary() {
       icon: BarChart3,
       iconColor: 'text-[#7C3AED]',
       iconBg: 'bg-[#7C3AED]/10',
-      gradient: 'from-[#F5F3FF]/30',
+      gradient: 'bg-violet-50/40 dark:bg-violet-950/20',
     },
   ];
 
@@ -109,7 +109,7 @@ export default function TodaySummary() {
           <div
             key={s.key}
             className={cn(
-              'p-4 rounded-xl border bg-gradient-to-br to-white',
+              'p-4 rounded-xl border bg-card',
               s.gradient,
               'transition-all duration-500 ease-out',
               'hover:-translate-y-0.5 hover:shadow-md',

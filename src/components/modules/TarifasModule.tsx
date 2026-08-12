@@ -168,10 +168,10 @@ function modoBadgeColor(m: ModoCobro): string {
 // Subtle gradient tint per modo for rate cards (decorative, soft tints)
 function modoGradient(m: ModoCobro): string {
   switch (m) {
-    case 'porPersona': return 'from-[#FFFBEB] to-white';
-    case 'porHabitacion': return 'from-[#FEF2F2] to-white';
-    case 'porCama': return 'from-[#F5F3FF] to-white';
-    default: return 'from-[#F0FDF4] to-white';
+    case 'porPersona': return 'bg-amber-50/40 dark:bg-amber-950/20';
+    case 'porHabitacion': return 'bg-red-50/40 dark:bg-red-950/20';
+    case 'porCama': return 'bg-violet-50/40 dark:bg-violet-950/20';
+    default: return 'bg-green-50/40 dark:bg-green-950/20';
   }
 }
 
@@ -331,7 +331,7 @@ function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount
   const promoCount = countPromos(promociones);
 
   return (
-    <Card className={`border-2 border-[#E2E8F0] bg-gradient-to-br ${modoGradient(modo)} overflow-hidden`}>
+    <Card className={`border-2 border-[#E2E8F0] ${modoGradient(modo)} overflow-hidden`}>
       <CardContent className="p-4">
         <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
           <Sparkles className="w-3 h-3" />Vista previa
@@ -1064,7 +1064,7 @@ export default function TarifasModule() {
               return (
                 <Card
                   key={tipo}
-                  className={`card-hover cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border-2 group relative overflow-hidden bg-gradient-to-br ${modoGradient(modo)} ${
+                  className={`card-hover cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border-2 group relative overflow-hidden ${modoGradient(modo)} ${
                     isSelected ? 'border-[#0F2B28] ring-2 ring-[#0F2B28]/20' : 'border-[#E2E8F0] hover:border-[#0F2B28]/30'
                   }`}
                   onClick={() => openModalTarifa(tipo)}
@@ -1250,7 +1250,7 @@ export default function TarifasModule() {
             })}
             {tiposTarifa.length === 0 && (
               <div className="col-span-full">
-                <Card className="border-dashed border-2 bg-gradient-to-br from-[#F8FAFC] to-white">
+                <Card className="border-dashed border-2 bg-muted/20">
                   <CardContent className="p-2">
                     <EmptyState
                       variant="generic"
