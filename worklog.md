@@ -183,3 +183,32 @@ Stage Summary:
 - Cards have better visual hierarchy and more breathing room
 - The layout still uses auto-fill grid so it adapts to different screen widths
 - All changes are purely visual/CSS — no logic or data changes
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Eliminar botón FAB flotante + reemplazar gradientes KPI por fondos sólidos theme-aware
+
+Work Log:
+- Eliminado QuickActionsFab.tsx (170 líneas) por completo
+- Eliminado import y render de QuickActionsFab en page.tsx
+- Eliminado .fab-container, .fab-button, .dark .fab-button, .dark .fab-button:hover, print .fab-container de globals.css
+- DashboardModule.tsx: KPIAnimated fallback de from-slate-50 to-slate-100 → bg-card; 4 KPIs gradientes → sólidos (emerald, amber, teal con dark variants)
+- TodaySummary.tsx: bg-gradient-to-br to-white → bg-card; 4 gradientes → sólidos con dark variants
+- CheckInModule.tsx: 7 gradientes reemplazados (2 Card, 3 StatCard gradient config, 1 base StatCard, 1 muted)
+- FacturacionModule.tsx: 4 gradientes with dark: variants → sólidos simplificados
+- ReservasModule.tsx: 5 gradientes reemplazados (2 workflow cards, 3 stat cards)
+- ClientesModule.tsx: 7 gradientes reemplazados (4 stat cards, 3 detail cards); avatares preservados
+- LimpiezaModule.tsx: 6 gradientes reemplazados; status bars preservadas
+- CajaModule.tsx: 11 gradientes reemplazados; icon circles y brand bars preservados
+- TarifasModule.tsx: 4 ediciones (modoGradient function + 2 cards + empty state); hover overlay y bar fill preservados
+- ReportesModule.tsx: 3 gradientes reemplazados; icon circle preservado
+- Lint pasa limpio
+- Commit bc7de55 pushed to origin/main
+
+Stage Summary:
+- Botón "+" flotante eliminado sin rastro del sistema
+- Todas las tarjetas KPI/stat ahora usan fondos sólidos bg-{color}-50/40 dark:bg-{color}-950/20
+- Fondos se adaptan correctamente a tema claro (tinte pastel) y oscuro (tinte oscuro sutil)
+- No se tocaron: avatares, botones, barras de progreso, iconos decorativos, brand gradients
+- 13 archivos modificados, 1 eliminado
