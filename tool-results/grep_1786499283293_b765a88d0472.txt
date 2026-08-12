@@ -1,0 +1,252 @@
+/home/z/my-project/src/components/modules/DashboardModule.tsx:7:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/DashboardModule.tsx:955:              {tieneAlertas && <Badge variant="destructive" className="ml-auto text-[10px] px-1.5">!</Badge>}
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1041:              {checkinsHoy.length > 0 && <Badge className="bg-[#3B82F6] ml-auto">{checkinsHoy.length}</Badge>}
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1054:                        {(r.ninos || 0) > 0 && <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-[#F5F3FF] text-[#6D28D9] border-[#DDD6FE]">{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}</Badge>}
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1077:              {checkoutsHoy.length > 0 && <Badge className="bg-[#F97316] ml-auto">{checkoutsHoy.length}</Badge>}
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:11:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:36:const estadoPagoBadge: Record<string, string> = {
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:327:                <Badge variant="secondary" className="ml-2">{pendientes.length}</Badge>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:358:                              <Badge variant="outline" className="font-mono text-[10px]">{r.habitacion}</Badge>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:360:                                <Badge variant="secondary" className="text-[10px]">
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:362:                                </Badge>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:377:                              <Badge className={`text-[10px] px-1.5 py-0 ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:470:                                <Badge variant="outline" className="font-mono">{r.habitacion}</Badge>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:490:                                  <Badge className={`text-[10px] px-1 py-0 ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:495:                              <Badge className={`font-semibold ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:590:                            <Badge variant="outline" className="shrink-0">{reserva?.habitacion || '—'}</Badge>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:594:                            <MetodoIconBadge type={metodoType} name={metodoNombre} />
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:665:                              <Badge variant="outline">{reserva?.habitacion || '—'}</Badge>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:668:                              <MetodoIconBadge type={metodoType} name={metodoNombre} />
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:807:/* =================== MÉTODO ICON BADGE COMPONENT =================== */
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:809:function MetodoIconBadge({ type, name }: { type: 'credit' | 'bank' | 'wallet' | 'cash'; name: string }) {
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:823:    <Badge variant="secondary" className={`gap-1 ${colorMap[type]}`}>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:826:    </Badge>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:963:                        <MetodoIconBadge type={metodoType} name={metodoNombre} />
+/home/z/my-project/src/components/modules/ReservasModule.tsx:14:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:232:const estadoReservaBadge: Record<string, string> = {
+/home/z/my-project/src/components/modules/ReservasModule.tsx:239:const estadoPagoBadge: Record<string, string> = {
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1507: {/* Row 1: Guest + Room Badge */}
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1530: {/* Row 3: Guest count + Badges */}
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1532:   <Badge className={estadoReservaBadge[r.estado] || ''}>{r.estado}</Badge>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1533:   <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1678:           <Badge variant="outline" className="font-mono font-semibold">{r.habitacion}</Badge>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1694:         <Badge className={`font-semibold shadow-sm ${estadoReservaBadge[r.estado] || ''}`}>{r.estado}</Badge>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1697:         <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1907: <Badge className={estadoPagoBadge[detalleReserva.estadoPago] || ''}>{detalleReserva.estadoPago}</Badge>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1908: <Badge className={estadoReservaBadge[detalleReserva.estado] || ''}>{detalleReserva.estado}</Badge>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2074: <Badge variant="outline">{hab.tipo}</Badge>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2190: <Badge variant="outline">{hab.tipo}</Badge>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2221: <Badge className={isComboSelected ? 'bg-[#4ADE80] text-white' : 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]'}>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2226: </Badge>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2250: <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-[#BBF7D0] text-[#166534]">{computed.desglose.acompananteEtiqueta}</Badge>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:11:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/ClientesModule.tsx:52:  color: string;       // badge bg class
+/home/z/my-project/src/components/modules/ClientesModule.tsx:53:  textColor: string;   // badge text class
+/home/z/my-project/src/components/modules/ClientesModule.tsx:319:        {/* Result count badge */}
+/home/z/my-project/src/components/modules/ClientesModule.tsx:320:        <Badge variant="secondary" className="font-mono tabular-nums text-xs">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:322:        </Badge>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:365:                          {/* Loyalty badge */}
+/home/z/my-project/src/components/modules/ClientesModule.tsx:366:                          <Badge className={`${loyalty.color} ${loyalty.textColor} border-0 text-[10px] px-1.5 py-0 h-auto gap-0.5 font-semibold`}>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:368:                          </Badge>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:496:                        <Badge className={`${selectedLoyalty.color} ${selectedLoyalty.textColor} border-0 text-xs px-2 gap-0.5 font-semibold`}>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:498:                        </Badge>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:500:                      <Badge variant="outline" className="bg-[#F0FDF4] border-[#BBF7D0] text-[#166534] mt-1 text-xs">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:502:                      </Badge>
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:12:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:330:                                    <Badge className={`${bar.colors.bg} ${bar.colors.text} ${bar.colors.border} text-[10px] px-1.5 py-0`}>
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:332:                                    </Badge>
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:5:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:316:                {/* Status badge */}
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:325:                    <Badge
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:330:                    </Badge>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:11:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/ReportesModule.tsx:220:// ==================== OCCUPANCY BADGE ====================
+/home/z/my-project/src/components/modules/ReportesModule.tsx:223: * Color-coded occupancy badge:
+/home/z/my-project/src/components/modules/ReportesModule.tsx:228:function OccupancyBadge({ pct }: { pct: number }) {
+/home/z/my-project/src/components/modules/ReportesModule.tsx:235:    <Badge variant="outline" className={`text-xs font-semibold shadow-sm ${cls}`}>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:237:    </Badge>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:576:  // by the total days in the period. Used for the color-coded occupancy badge
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1223:                          <Badge variant="secondary" className="w-12 justify-center">{pct}%</Badge>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1244:            <Badge variant="secondary" className="text-xs sm:text-sm">{pagosFiltrados.length} pagos</Badge>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1268:                          <TableCell className="text-center"><Badge variant="outline" className="text-xs">{p.metodo}</Badge></TableCell>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1411:                          <Badge variant="secondary" className="w-12 justify-center">{pct}%</Badge>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1485:                        <TableCell className="text-center"><Badge variant="secondary" className="text-xs">{g.tipo}</Badge></TableCell>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1601:                        <TableCell className="text-center"><Badge variant="outline" className="text-xs">{a.tipo}</Badge></TableCell>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1714:                        <TableCell className="text-center"><Badge variant="secondary" className="text-xs">{turno.movimientos.length}</Badge></TableCell>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1886:                          <Badge variant={h.estado === 'Disponible' ? 'default' : h.estado === 'Ocupada' ? 'destructive' : h.estado === 'Reservada' ? 'secondary' : 'outline'} className="text-xs">
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1888:                          </Badge>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1891:                          <OccupancyBadge pct={pct} />
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1999:            <Badge variant="secondary">{clientesFrecuentes.length} clientes</Badge>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:2027:                        <TableCell className="text-center"><Badge variant="secondary" className="text-xs">{c.cantidadEstadias}</Badge></TableCell>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:2107:                        <TableCell className="text-center"><Badge variant="secondary" className="text-xs">{emp.auditorias}</Badge></TableCell>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:2208:                                <Badge variant={m.tipo === 'ingreso' ? 'default' : 'destructive'}>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:2210:                                </Badge>
+/home/z/my-project/src/components/modules/HabitacionesModuleAPI.tsx:9:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/HabitacionesModuleAPI.tsx:161:                  <Badge className={`absolute top-2 left-2 text-xs px-2 ${estados[hab.estado] || ''}`}>{hab.estado}</Badge>
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:11:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:94:  badgeClass: string;
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:107:    badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:118:    badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:129:    badgeClass: 'bg-sky-100 text-sky-800 border-sky-300',
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:140:    badgeClass: 'bg-violet-100 text-violet-800 border-violet-300',
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:726:                      {/* Role badge + perms count */}
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:728:                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-1 ${roleInfo.badgeClass}`}>
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:731:                        </Badge>
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:787:                      {formatRelativeTime(a.fecha)} · <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5">{a.tipo}</Badge>
+/home/z/my-project/src/components/modules/dashboard/GuestTimeline.tsx:27:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/dashboard/GuestTimeline.tsx:115:            <Badge className="bg-[#059669] text-white text-[10px] px-1.5 ml-1">
+/home/z/my-project/src/components/modules/dashboard/GuestTimeline.tsx:117:            </Badge>
+/home/z/my-project/src/components/modules/dashboard/GuestTimeline.tsx:120:            <Badge className="bg-[#F59E0B] text-white text-[10px] px-1.5 ml-0.5">
+/home/z/my-project/src/components/modules/dashboard/GuestTimeline.tsx:122:            </Badge>
+/home/z/my-project/src/components/modules/dashboard/GuestTimeline.tsx:149:                {/* Time badge */}
+/home/z/my-project/src/components/modules/dashboard/RecentActivity.tsx:7:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/dashboard/RecentActivity.tsx:200:            <Badge className="ml-auto bg-[#0F2B28] hover:bg-[#0F2B28]">{events.length}</Badge>
+/home/z/my-project/src/components/modules/CheckInModule.tsx:10:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/CheckInModule.tsx:32:const estadoPagoBadge: Record<string, string> = {
+/home/z/my-project/src/components/modules/CheckInModule.tsx:312:                <Badge
+/home/z/my-project/src/components/modules/CheckInModule.tsx:318:                </Badge>
+/home/z/my-project/src/components/modules/CheckInModule.tsx:331:                          <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+/home/z/my-project/src/components/modules/CheckInModule.tsx:333:                            <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
+/home/z/my-project/src/components/modules/CheckInModule.tsx:335:                            </Badge>
+/home/z/my-project/src/components/modules/CheckInModule.tsx:362:                <Badge
+/home/z/my-project/src/components/modules/CheckInModule.tsx:368:                </Badge>
+/home/z/my-project/src/components/modules/CheckInModule.tsx:381:                          <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+/home/z/my-project/src/components/modules/CheckInModule.tsx:383:                            <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
+/home/z/my-project/src/components/modules/CheckInModule.tsx:385:                            </Badge>
+/home/z/my-project/src/components/modules/CheckInModule.tsx:876: *   │  ◯ icon            [↑ 2]   │   ← colored circle (size-10) + trend pill
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:11:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:56:  badge: string;
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:66:    badge: 'bg-[#FEE2E2] text-[#991B1B]',
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:76:    badge: 'bg-[#FEF3C7] text-[#92400E]',
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:86:    badge: 'bg-[#E0F2FE] text-[#0369A1]',
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:886:          {/* Priority + status badges */}
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:888:            <Badge className={cn('text-[9px] shadow-sm font-semibold', prioCfg.badge)}>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:891:            </Badge>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:893:              <Badge className="text-[9px] bg-[#E0F2FE] text-[#0369A1] shadow-sm">
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:895:              </Badge>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:898:              <Badge className="text-[9px] bg-[#FEE2E2] text-[#991B1B] shadow-sm animate-pulse">
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:900:              </Badge>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1295:                    <Badge variant="secondary" className={cn('text-[10px] font-semibold shadow-sm', col.headerBg, col.headerText)}>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1297:                    </Badge>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1398:                    <Badge variant="outline" className="text-[10px] border-[#FDE68A] text-[#92400E]">Prioridad ↓</Badge>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1399:                    <Badge variant="secondary" className="bg-[#FEF9C3] text-[#92400E] shadow-sm font-semibold">{porLimpiar.length}</Badge>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1463:                              <Badge className={cn('text-[10px] shadow-sm font-semibold', legacyConfig.badge)}>{legacyConfig.label}</Badge>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1464:                              {isInProgress && <Badge className="text-[10px] bg-[#E0F2FE] text-[#0369A1] shadow-sm"><Timer className="w-2.5 h-2.5 mr-0.5" />En curso</Badge>}
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1465:                              {isOverBudget && <Badge className="text-[10px] bg-[#FEE2E2] text-[#991B1B] shadow-sm animate-pulse"><AlertCircle className="w-2.5 h-2.5 mr-0.5" />Excedido</Badge>}
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1531:                  <Badge variant="secondary" className="bg-[#FECACA] text-[#991B1B] shadow-sm font-semibold">{enMantenimiento.length}</Badge>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1602:              <Badge variant="secondary" className="text-[10px] font-semibold">{staff.length}</Badge>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1640:                        <Badge className={cn('mt-1 text-[9px] font-semibold', stateCfg.bg, stateCfg.text)}>{stateCfg.label}</Badge>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1938:                  <Badge className={cn('text-[9px]', cfg.badge)}>{cfg.label}</Badge>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1979:                    <Badge variant="outline" className="text-[9px] font-mono">
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1981:                    </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:9:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/TarifasModule.tsx:159:function modoBadgeColor(m: ModoCobro): string {
+/home/z/my-project/src/components/modules/TarifasModule.tsx:374:        {/* Promo badges */}
+/home/z/my-project/src/components/modules/TarifasModule.tsx:378:              <Badge className="bg-[#DCFCE7] text-[#166534] border-0 text-[10px] py-0 h-5">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:380:              </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:383:              <Badge className="bg-[#F5F3FF] text-[#6D28D9] border-0 text-[10px] py-0 h-5">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:385:              </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:388:              <Badge className="bg-[#FEF3C7] text-[#92400E] border-0 text-[10px] py-0 h-5">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:390:              </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:472:                    <Badge className={modoBadgeColor(m)}>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:474:                    </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:492:                  <Badge variant="secondary">{c} rango{c !== 1 ? 's' : ''}</Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:523:                      <Badge className="bg-[#DCFCE7] text-[#166534] border-0">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:526:                      </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:541:                      <Badge className="bg-[#F5F3FF] text-[#6D28D9] border-0">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:543:                      </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:558:                      <Badge className="bg-[#FEF3C7] text-[#92400E] border-0">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:560:                      </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:573:                    <Badge variant="outline">{c} campo{c !== 1 ? 's' : ''}</Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1016:                <Badge className="bg-[#0F2B28] text-white border-0">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1018:                </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1159:                    {/* Top row: icon circle + title + modo badge */}
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1170:                      <Badge className={`${modoBadgeColor(modo)} shrink-0`}>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1172:                      </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1208:                    {/* Footer: promo badges + quick stats */}
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1214:                            <Badge className="bg-[#DCFCE7] text-[#166534] border-0 shadow-sm" title={tarifaPromos!.acompananteSinCargo!.etiqueta || 'Acompañante sin cargo'}>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1219:                            </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1222:                            <Badge className="bg-[#F5F3FF] text-[#6D28D9] border-0 shadow-sm">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1224:                            </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1227:                            <Badge className="bg-[#FEF3C7] text-[#92400E] border-0 shadow-sm" title={describeNochesCortesia(tarifaPromos!.nochesCortesia!.modalidad)}>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1229:                            </Badge>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1297:                    <TableCell><Badge variant="outline">{m.tipo}</Badge></TableCell>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1298:                    <TableCell className="hidden sm:table-cell">{m.recargo ? <Badge className="bg-[#FEF3C7] text-[#92400E] border-0">Sí</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:11:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:314:            <Badge variant="secondary" className="self-start sm:self-end capitalize">
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:317:            </Badge>
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:856:              <Badge variant="secondary" className="capitalize">{usuarioActual?.rol}</Badge>
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1109:                        <Badge variant="outline" className="text-[10px] py-0 px-1.5">{exp.formato}</Badge>
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1164:                  <Badge variant="outline" className="text-[10px] shrink-0">{h.formato}</Badge>
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1242:            <Badge variant={isTrial ? 'outline' : 'default'} className="text-sm px-3 py-1">
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1244:            </Badge>
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1308:                    <Badge className="bg-primary text-primary-foreground">Plan Actual</Badge>
+/home/z/my-project/src/components/sms/SmsVerificationSettings.tsx:7:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/sms/SmsVerificationSettings.tsx:76:            <Badge variant="secondary" className="gap-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+/home/z/my-project/src/components/sms/SmsVerificationSettings.tsx:79:            </Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:13:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/CajaModule.tsx:115:  badgeBg: string;     // tailwind bg
+/home/z/my-project/src/components/modules/CajaModule.tsx:116:  badgeText: string;   // tailwind text
+/home/z/my-project/src/components/modules/CajaModule.tsx:121:  'Gastos':           { label: 'Gastos',          color: '#EF4444', badgeBg: 'bg-[#FEE2E2]', badgeText: 'text-[#991B1B]', icon: ShoppingCart },
+/home/z/my-project/src/components/modules/CajaModule.tsx:122:  'Mantenimiento':    { label: 'Mantenimiento',   color: '#F59E0B', badgeBg: 'bg-[#FEF3C7]', badgeText: 'text-[#92400E]', icon: Wrench },
+/home/z/my-project/src/components/modules/CajaModule.tsx:123:  'Ingresos varios':  { label: 'Ingresos varios', color: '#059669', badgeBg: 'bg-[#DCFCE7]', badgeText: 'text-[#166534]', icon: ArrowUpRight },
+/home/z/my-project/src/components/modules/CajaModule.tsx:124:  'Retiros':          { label: 'Retiros',         color: '#8B5CF6', badgeBg: 'bg-[#EDE9FE]', badgeText: 'text-[#5B21B6]', icon: PiggyBank },
+/home/z/my-project/src/components/modules/CajaModule.tsx:125:  'Otros':            { label: 'Otros',           color: '#64748B', badgeBg: 'bg-[#F1F5F9]', badgeText: 'text-[#475569]', icon: Tag },
+/home/z/my-project/src/components/modules/CajaModule.tsx:1077:                    <Badge className="ml-1 bg-white/20 text-white h-4 px-1 text-[10px]">{activeFiltersCount}</Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1196:                        <Badge className="bg-[#DCFCE7] text-[#166534] shadow-sm font-semibold">
+/home/z/my-project/src/components/modules/CajaModule.tsx:1199:                        </Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1261:                        <Badge variant="secondary" className="text-[10px] shadow-sm">
+/home/z/my-project/src/components/modules/CajaModule.tsx:1263:                        </Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1275:                        <Badge className="ml-1 bg-white/20 text-white h-4 px-1 text-[10px]">{activeFiltersCount}</Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1407:                                    <Badge variant="secondary" className="shadow-sm">{m.metodo}</Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1411:                                  <Badge className={cn('shadow-sm text-[10px] gap-1', CATEGORY_CONFIG[cat].badgeBg, CATEGORY_CONFIG[cat].badgeText)}>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1414:                                  </Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1677:            <Badge className="bg-[#DCFCE7] text-[#166534] shadow-sm">Esperado: {fmt(props.saldoEsperadoEfectivo)}</Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1718:                      <Badge variant="outline" className="text-[10px]">Sistema: {fmt(systemTotal)}</Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:2058:          <Badge className="bg-white/20 text-white border-white/20">
+/home/z/my-project/src/components/modules/CajaModule.tsx:2061:          </Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:2240:                  <Badge variant="outline" className="text-[9px] h-4 px-1">{d.percentage}%</Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:2354:        <Badge variant="outline" className="text-[10px] gap-1">
+/home/z/my-project/src/components/modules/CajaModule.tsx:2357:        </Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:2419:          <Badge className={cn('text-[10px] gap-1', CATEGORY_CONFIG[categoria].badgeBg, CATEGORY_CONFIG[categoria].badgeText)}>
+/home/z/my-project/src/components/modules/CajaModule.tsx:2422:          </Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:2678:   Enhanced: category badge, receipt icon, detail popover,
+/home/z/my-project/src/components/modules/CajaModule.tsx:2736:              <Badge variant="secondary" className="text-[10px] shadow-sm">{m.metodo}</Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:2737:              {/* Category badge */}
+/home/z/my-project/src/components/modules/CajaModule.tsx:2738:              <Badge className={cn('text-[10px] shadow-sm gap-1', CATEGORY_CONFIG[categoria].badgeBg, CATEGORY_CONFIG[categoria].badgeText)}>
+/home/z/my-project/src/components/modules/CajaModule.tsx:2741:              </Badge>
+/home/z/my-project/src/components/modules/CajaModule.tsx:2807:              <Badge className={cn('text-[10px] gap-1', CATEGORY_CONFIG[categoria].badgeBg, CATEGORY_CONFIG[categoria].badgeText)}>
+/home/z/my-project/src/components/modules/CajaModule.tsx:2810:              </Badge>
+/home/z/my-project/src/components/payments/PlanIndicator.tsx:6:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/payments/PlanIndicator.tsx:53:              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 shrink-0">
+/home/z/my-project/src/components/payments/PlanIndicator.tsx:55:              </Badge>
+/home/z/my-project/src/components/payments/PaymentStatusBadge.tsx:3:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/payments/PaymentStatusBadge.tsx:20:interface PaymentStatusBadgeProps {
+/home/z/my-project/src/components/payments/PaymentStatusBadge.tsx:26:export default function PaymentStatusBadge({ status, showIcon = true, className }: PaymentStatusBadgeProps) {
+/home/z/my-project/src/components/payments/PaymentStatusBadge.tsx:31:    <Badge variant={config.variant} className={`gap-1 ${className}`}>
+/home/z/my-project/src/components/payments/PaymentStatusBadge.tsx:34:    </Badge>
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:176:              {/* Recurring badge */}
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:197:              {/* MP badge */}
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:9:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:492:        {/* Row 1: Room number + status badge */}
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:505:              <Badge className={`text-[9px] px-1 py-0 font-semibold shadow-sm cursor-pointer hover:opacity-80 transition-opacity ${estados[hab.estado] || ''}`}>
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:507:              </Badge>
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:512:        {/* Row 2: Type badge + camas inline */}
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:514:          <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5 border-muted-foreground/25">
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:517:          </Badge>
+/home/z/my-project/src/components/payments/PlanCard.tsx:7:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/payments/PlanCard.tsx:61:      {/* Popular badge */}
+/home/z/my-project/src/components/payments/PlanCard.tsx:64:          <Badge className="px-3 py-1 gap-1">
+/home/z/my-project/src/components/payments/PlanCard.tsx:67:          </Badge>
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:5:import { Badge } from '@/components/ui/badge';
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:91:function subEstadoBadge(estado: string) {
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:100:    <Badge variant="outline" className={map[estado] || ''}>
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:102:    </Badge>
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:391:                          <Badge variant="outline">{t.suscripcion?.plan || '—'}</Badge>
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:394:                          {t.suscripcion ? subEstadoBadge(t.suscripcion.estado) : (
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:395:                            <Badge variant="outline">Sin plan</Badge>
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:470:                                        <Badge variant="outline" className="text-xs capitalize">
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:472:                                        </Badge>
+/home/z/my-project/src/components/subscription/TrialBanner.tsx:7:import { Badge } from '@/components/ui/badge';
+
+[Showing results with pagination = limit: 250]

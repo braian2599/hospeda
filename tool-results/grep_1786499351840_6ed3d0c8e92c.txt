@@ -1,0 +1,252 @@
+/home/z/my-project/src/lib/pdf-export.ts:37:const FOREST = '#0F2B28';
+/home/z/my-project/src/components/modules/DashboardModule.tsx:561:        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-[#E2E8F0] min-w-0 transition-colors duration-150 ${esFS ? 'bg-[#FEE2E2]/50' : ''} ${isHoy ? 'bg-[#0F2B28]/8' : ''}`}>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:562:          <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-[#F43F5E]' : 'text-[#64748B]'} ${isHoy ? '!text-[#0F2B28]' : ''}`}>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:565:          <span className={`text-[15px] font-bold leading-none mt-0.5 ${esFS ? 'text-[#F43F5E]' : 'text-[#1E293B]'} ${isHoy ? '!text-[#0F2B28] underline decoration-2 underline-offset-2 decoration-[#4ADE80]' : ''}`}>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:608:                className={cn('h-7 text-xs', ganttDays === 14 && 'bg-[#0F2B28] hover:bg-[#1a3d35]')}
+/home/z/my-project/src/components/modules/DashboardModule.tsx:616:                className={cn('h-7 text-xs', ganttDays === 30 && 'bg-[#0F2B28] hover:bg-[#1a3d35]')}
+/home/z/my-project/src/components/modules/DashboardModule.tsx:892:          { icon: BarChart3, label: 'Ver Reportes', modulo: 'reportes' as const, color: '#0F2B28' },
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:313:          <TabsTrigger value="pendientes" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all">
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:316:          <TabsTrigger value="historial" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all">
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:349:                              <div className="w-8 h-8 rounded-full bg-[#0F2B28] text-white flex items-center justify-center text-xs font-bold shrink-0">
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:402:                              className="flex-1 h-8 text-xs bg-[#0F2B28] hover:bg-[#0F2B28]/90"
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:459:                                <div className="w-7 h-7 rounded-full bg-[#0F2B28] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:480:                            <TableCell className="text-right font-bold text-[#0F2B28]">{formatMoney(total)}</TableCell>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:499:                                <Button size="sm" onClick={() => openPagoDialog(r.id)} className="bg-[#0F2B28] hover:bg-[#0F2B28]/90">
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:859:        <div className="mx-auto w-14 h-14 rounded-xl bg-[#0F2B28] flex items-center justify-center">
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:862:        <h3 className="text-xl font-bold tracking-wide text-[#0F2B28]">{hotelName.toUpperCase()}</h3>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1256:       <div className="size-2 rounded-full bg-[#0F2B28] animate-pulse" />
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1257:       <p className="text-xs font-semibold text-[#0F2B28] uppercase tracking-wider">Flujo de Reservas</p>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1267:           <span className="text-2xl font-bold text-[#0F2B28]">{statusCounts.confirmadas}</span>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1280:           <span className="text-2xl font-bold text-[#0F2B28]">{statusCounts.checkIn}</span>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1293:           <span className="text-2xl font-bold text-[#0F2B28]">{statusCounts.checkOut}</span>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1364:       <div className="size-9 rounded-full bg-[#0F2B28]/10 flex items-center justify-center shrink-0">
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1365:         <Bed className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1420: <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1449: ? 'bg-white text-[#0F2B28] font-semibold shadow-sm'
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1461: ? 'bg-white text-[#0F2B28] font-semibold shadow-sm'
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1513:   <div className="flex items-center gap-1 shrink-0 bg-[#0F2B28]/8 rounded-md px-2 py-1">
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1514:     <BedDouble className="w-3.5 h-3.5 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1515:     <span className="text-xs font-bold text-[#0F2B28] font-mono">{r.habitacion}</span>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1663:           className="group-hover:text-[#0F2B28] transition-colors text-left cursor-pointer"
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1677:           <BedDouble className="w-3.5 h-3.5 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2379:     <div className="flex justify-between items-center py-3 px-4 bg-[#0F2B28] rounded-lg my-2">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:218:          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+/home/z/my-project/src/components/modules/ClientesModule.tsx:239:        <Card className="relative overflow-hidden border-l-[3px] border-l-[#0F2B28] bg-gradient-to-br from-[#0F2B28]/5 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 card-interactive">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:244:                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-2xl font-bold text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:246:              <div className="w-10 h-10 rounded-full bg-[#0F2B28]/10 flex items-center justify-center shrink-0">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:247:                <Users className="w-5 h-5 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:307:            className="pl-9 pr-9 transition-all duration-200 focus-visible:ring-[#0F2B28] focus-visible:ring-offset-1"
+/home/z/my-project/src/components/modules/ClientesModule.tsx:357:                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#0F2B28]/70 flex items-center justify-center shrink-0 shadow-sm">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:364:                          <h4 className="font-semibold text-sm truncate group-hover:text-[#0F2B28] transition-colors">{c.nombre}</h4>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:397:                            <span className="text-xs font-mono font-semibold text-[#0F2B28]">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:490:                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#0F2B28]/70 flex items-center justify-center shrink-0 shadow-md">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:532:                    <Card className="p-3 bg-gradient-to-br from-[#F0FDF4]/50 to-white border-[#BBF7D0]/40 border-l-[3px] border-l-[#0F2B28]">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:537:                      <AnimatedNumber value={totalEstadias} format={n => String(Math.round(n))} className="font-bold text-lg text-[#0F2B28] mt-1" />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:544:                      <AnimatedNumber value={totalGastado} className="font-bold text-lg text-[#0F2B28] mt-1" />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:551:                      <AnimatedNumber value={promedioPorEstadia} className="font-bold text-lg text-[#0F2B28] mt-1" />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:558:                      <div className="font-bold text-lg text-[#0F2B28] mt-1">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:579:                                  <div className={`w-3 h-3 rounded-full border-2 ${isLast ? 'bg-[#0F2B28] border-[#0F2B28]' : 'bg-white border-[#0F2B28]/40'} mt-1.5`} />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:580:                                  <div className={`w-0.5 flex-1 ${isLast ? 'bg-transparent' : 'bg-[#0F2B28]/15'}`} />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:586:                                      <span className="text-xs font-semibold text-[#0F2B28]">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:589:                                      <span className="text-xs font-mono font-bold text-[#0F2B28]">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:606:                        <span className="font-semibold text-[#0F2B28]">Total gastado</span>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:607:                        <span className="font-mono font-bold text-[#0F2B28]">{formatMoney(totalGastado)}</span>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:629:                  }} className="bg-[#0F2B28] hover:bg-[#0F2B28]/90">
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:175:          <h3 className="text-lg font-semibold text-[#0F2B28] min-w-[180px] text-center capitalize">
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:230:                          isTodayCol ? 'bg-[#0F2B28]/5' : isWeekend ? 'bg-[#F1F5F9]/50' : ''
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:270:                      <span className="font-semibold text-sm text-[#0F2B28]">{roomNum}</span>
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:321:                                className="bg-[#0F2B28] text-white border-none rounded-lg px-3 py-2 shadow-xl max-w-[260px]"
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:180:            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#0F2B28]/10 text-[#0F2B28]">
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:299:              <Bed className="w-5 h-5 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/TodaySummary.tsx:89:      iconColor: 'text-[#0F2B28]',
+/home/z/my-project/src/components/modules/TodaySummary.tsx:90:      iconBg: 'bg-[#0F2B28]/10',
+/home/z/my-project/src/components/modules/ReportesModule.tsx:59:const PIE_COLORS = ['#0F2B28', '#059669', '#F59E0B', '#EF4444', '#3B82F6', '#7C3AED', '#EC4899', '#14B8A6', '#F97316', '#6B7280'];
+/home/z/my-project/src/components/modules/ReportesModule.tsx:166:    <div className="relative overflow-hidden rounded-xl border border-[#0F2B28]/10 bg-gradient-to-r from-[#0F2B28]/5 to-transparent px-4 py-3 flex items-center gap-3">
+/home/z/my-project/src/components/modules/ReportesModule.tsx:167:      <div className="w-9 h-9 rounded-lg bg-[#0F2B28]/10 flex items-center justify-center text-[#0F2B28] shrink-0">
+/home/z/my-project/src/components/modules/ReportesModule.tsx:171:        <h3 className="text-base font-semibold text-[#0F2B28] truncate">{title}</h3>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:198:            <p className="text-xl font-bold text-[#0F2B28] tabular-nums truncate">{value}</p>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:978:              className="text-xs sm:text-sm gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:987:              className="text-xs sm:text-sm gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:996:              className="text-xs sm:text-sm gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1093:            <TabsTrigger value="financiero" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><DollarSign className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Financiero</span></TabsTrigger>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1094:            <TabsTrigger value="gastos" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><TrendingDown className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Gastos</span></TabsTrigger>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1095:            <TabsTrigger value="auditoria" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><FileText className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Auditoría</span></TabsTrigger>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1096:            <TabsTrigger value="historial-caja" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><Wallet className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Caja</span></TabsTrigger>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1097:            <TabsTrigger value="habitaciones" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><BedDouble className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Habitaciones</span></TabsTrigger>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1098:            <TabsTrigger value="clientes" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><Users className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Clientes</span></TabsTrigger>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1099:            <TabsTrigger value="empleados" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><UserCog className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Empleados</span></TabsTrigger>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1117:              className={`shrink-0 h-9 w-9 transition-all ${showFinChart ? 'bg-[#0F2B28] text-white hover:bg-[#0F2B28]/90' : 'hover:bg-[#0F2B28] hover:text-white'}`}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1138:                          <stop offset="5%" stopColor="#0F2B28" stopOpacity={0.3} />
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1139:                          <stop offset="95%" stopColor="#0F2B28" stopOpacity={0.02} />
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1161:                              <p className="font-medium text-[#0F2B28]">{label}</p>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1170:                        stroke="#0F2B28"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1198:              icon={<Wallet className="w-5 h-5 text-[#0F2B28]" />}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1201:              tint="bg-[#0F2B28]/10"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1296:              className={`shrink-0 h-9 w-9 transition-all ${showGastoChart ? 'bg-[#0F2B28] text-white hover:bg-[#0F2B28]/90' : 'hover:bg-[#0F2B28] hover:text-white'}`}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1335:                              <p className="font-medium text-[#0F2B28]">{data.name}</p>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1364:                    <p className="text-base sm:text-lg font-bold text-[#0F2B28]">{formatMoneda(totalGastos)}</p>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1387:              icon={<Wallet className="w-5 h-5 text-[#0F2B28]" />}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1390:              tint="bg-[#0F2B28]/10"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1743:              className={`shrink-0 h-9 w-9 transition-all ${showHabChart ? 'bg-[#0F2B28] text-white hover:bg-[#0F2B28]/90' : 'hover:bg-[#0F2B28] hover:text-white'}`}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1783:                              <p className="font-medium text-[#0F2B28]">{label}</p>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1813:              icon={<Moon className="w-5 h-5 text-[#0F2B28]" />}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1816:              tint="bg-[#0F2B28]/10"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1913:              icon={<Users className="w-5 h-5 text-[#0F2B28]" />}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1916:              tint="bg-[#0F2B28]/10"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1934:            <Card className="relative overflow-hidden border-2 border-[#0F2B28]/20 bg-gradient-to-r from-[#0F2B28]/5 to-transparent">
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1937:                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#059669] flex items-center justify-center text-white shadow-md shrink-0">
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1942:                    <h4 className="text-lg font-bold text-[#0F2B28] truncate">{topCliente.nombre}</h4>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1951:                  <p className="text-2xl font-extrabold text-[#0F2B28] tabular-nums">{formatMoneda(topCliente.totalGastado)}</p>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:2028:                        <TableCell className="text-center font-bold text-[#0F2B28] hidden sm:table-cell text-xs sm:text-sm tabular-nums">{formatMoneda(c.totalGastado)}</TableCell>
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:117:    colorHex: '#0F2B28',
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:119:    borderClass: 'border-l-[#0F2B28]',
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:120:    avatarGradient: 'from-[#0F2B28] to-[#1a4a44]',
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:565:        <Card className="relative overflow-hidden border-l-[3px] border-l-[#0F2B28] bg-gradient-to-br from-[#0F2B28]/5 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:570:                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-2xl font-bold text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:572:              <div className="w-10 h-10 rounded-full bg-[#0F2B28]/10 flex items-center justify-center shrink-0">
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:573:                <Users className="w-5 h-5 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:604:                  <span className="text-[#0F2B28] flex items-center gap-0.5">
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:759:                <Activity className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:765:                className="h-7 text-xs gap-1 hover:text-[#0F2B28]"
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:775:                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${idx === 0 ? 'bg-[#0F2B28]' : 'bg-[#0F2B28]/40'}`} />
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:777:                      <div className="w-px flex-1 bg-[#0F2B28]/10 mt-1" />
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:939:              <Shield className="w-5 h-5 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:1047:              <Mail className="w-5 h-5 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:1153:              <KeyRound className="w-5 h-5 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/dashboard/RecentActivity.tsx:197:          <Activity className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/dashboard/RecentActivity.tsx:200:            <Badge className="ml-auto bg-[#0F2B28] hover:bg-[#0F2B28]">{events.length}</Badge>
+/home/z/my-project/src/components/layout/QuickActionsFab.tsx:49:    bg: '#0F2B28',
+/home/z/my-project/src/components/layout/ModuleHeader.tsx:15:  const textColor = iconColor || 'text-[#0F2B28]';
+/home/z/my-project/src/components/layout/ModuleHeader.tsx:16:  const bgColor = iconBg || 'bg-[#0F2B28]/10';
+/home/z/my-project/src/components/layout/ModuleHeader.tsx:19:    <div className="flex items-start justify-between gap-4 mb-6 px-4 py-3 -mx-4 -mt-1 rounded-xl bg-gradient-to-r from-[#0F2B28]/[0.03] via-transparent to-transparent">
+/home/z/my-project/src/components/layout/HelpDialog.tsx:154:              <span className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-[#0F2B28] text-white">
+/home/z/my-project/src/components/layout/HelpDialog.tsx:157:              <DialogTitle className="text-base font-semibold text-[#0F2B28]">
+/home/z/my-project/src/components/layout/HelpDialog.tsx:221:              className="w-full mt-1 gap-1.5 text-xs h-8 text-[#0F2B28] hover:bg-[#0F2B28]/5"
+/home/z/my-project/src/components/layout/HelpDialog.tsx:244:                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[#0F2B28]" />
+/home/z/my-project/src/components/layout/HelpDialog.tsx:250:                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[#0F2B28]" />
+/home/z/my-project/src/components/layout/HelpDialog.tsx:256:                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[#0F2B28]" />
+/home/z/my-project/src/components/layout/HelpDialog.tsx:262:                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[#0F2B28]" />
+/home/z/my-project/src/components/layout/HelpDialog.tsx:276:                className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white gap-2 flex-1"
+/home/z/my-project/src/components/layout/ModuleErrorBoundary.tsx:92:                className="bg-[#0F2B28] hover:bg-[#0F2B28]/90"
+/home/z/my-project/src/components/layout/QuickStatsBar.tsx:19: *   - Forest green  #0F2B28
+/home/z/my-project/src/components/modules/CheckInModule.tsx:330:                          <span className="font-semibold text-sm group-hover:text-[#0F2B28] transition-colors">{r.huesped}</span>
+/home/z/my-project/src/components/modules/CheckInModule.tsx:380:                          <span className="font-semibold text-sm group-hover:text-[#0F2B28] transition-colors">{r.huesped}</span>
+/home/z/my-project/src/components/modules/CheckInModule.tsx:845:      color: '#0F2B28',
+/home/z/my-project/src/components/modules/CheckInModule.tsx:846:      gradient: 'from-[#0F2B28]/20',
+/home/z/my-project/src/components/modules/CheckInModule.tsx:954: * Hover: bg transitions to forest green (#0F2B28) tint, arrow slides in.
+/home/z/my-project/src/components/modules/CheckInModule.tsx:973:            'hover:bg-[#0F2B28]/10 hover:text-[#0F2B28]',
+/home/z/my-project/src/components/modules/CheckInModule.tsx:977:          <Icon className="w-4 h-4 mr-2 text-[#0F2B28]" />
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:125:const forest = '#0F2B28';
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:157:                ? 'bg-[#0F2B28] text-white shadow-sm'
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:285:          className="h-32 md:h-40 w-full bg-gradient-to-br from-[#0F2B28] to-[#059669] relative"
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:858:                  <span className="text-sm font-bold text-[#0F2B28]">Hab. {task.habitacion}</span>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:996:                <span className="font-medium text-[#0F2B28]">{assignedName}</span>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1034:            className="h-8 bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white"
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1127:                <ClipboardList className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1186:                      <span className="text-[9px] font-bold text-[#0F2B28] shrink-0">{block.habitacion}</span>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1187:                      <TipoIcon className="w-2.5 h-2.5 shrink-0 text-[#0F2B28]/60" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1189:                        <span className="text-[8px] text-[#0F2B28]/60 truncate">{block.estMin}m</span>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1304:                      className="w-full h-7 mt-2 text-xs border border-dashed border-muted-foreground/30 hover:border-[#0F2B28]/40 hover:bg-white/60"
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1341:                    <p className="text-sm font-semibold text-[#0F2B28]">Progreso de limpieza</p>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1444:                            <button type="button" aria-label="Mover arriba" className="text-muted-foreground/50 hover:text-[#0F2B28] disabled:opacity-20 disabled:cursor-not-allowed transition-colors" onClick={() => moveTask(item.num, 'up')} disabled={index === 0}>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1447:                            <button type="button" aria-label="Mover abajo" className="text-muted-foreground/50 hover:text-[#0F2B28] disabled:opacity-20 disabled:cursor-not-allowed transition-colors" onClick={() => moveTask(item.num, 'down')} disabled={index === cleaningQueueSorted.length - 1}>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1462:                              <p className="text-sm font-bold text-[#0F2B28]">Hab. {item.num}</p>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1476:                            {assignedName && <p className="text-[10px] mt-1 inline-flex items-center gap-1 text-[#0F2B28]"><Users className="w-2.5 h-2.5" /><span className="font-medium truncate max-w-[120px]">{assignedName}</span></p>}
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1491:                              <Button size="sm" variant="outline" className="h-7 text-xs border-[#0F2B28]/20 text-[#0F2B28] hover:bg-[#0F2B28]/5" onClick={() => openAssignModal(task, item.num)}>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1551:                          <p className="text-sm font-bold text-[#0F2B28]">Hab. {num}</p>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1570:                <TrendingUp className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1580:                        <stop offset="5%" stopColor="#0F2B28" stopOpacity={0.35} />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1581:                        <stop offset="95%" stopColor="#0F2B28" stopOpacity={0} />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1586:                    <Area type="monotone" dataKey="count" stroke="#0F2B28" strokeWidth={1.5} fill="url(#cleanGrad)" dot={{ r: 2, fill: '#0F2B28' }} />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1600:              <Users className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1638:                        <p className="text-sm font-semibold truncate text-[#0F2B28]">{displayName}</p>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1645:                        <p className="text-sm font-bold text-[#0F2B28] leading-tight">{active}</p>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1744:              <Plus className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1801:              className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white"
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1815:              <UserPlus className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1873:                    <p className="font-semibold text-[#0F2B28]">{displayName}</p>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1895:              className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white"
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1909:              <ArrowRight className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1935:                    <p className="text-sm font-semibold text-[#0F2B28]">Hab. {t.habitacion}</p>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1955:              <History className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:1973:                    <p className="text-sm font-semibold text-[#0F2B28]">Hab. {t.habitacion}</p>
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:2002:              ¿Marcar como limpia y disponibilizar la habitación <strong className="text-[#0F2B28]">{confirmComplete?.habitacion}</strong>?
+/home/z/my-project/src/components/modules/TarifasModule.tsx:287:                    ? 'bg-[#0F2B28] text-white shadow-sm'
+/home/z/my-project/src/components/modules/TarifasModule.tsx:351:        <div className="mb-2 pb-2 border-b border-[#0F2B28]/10">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:354:            <span className="text-2xl font-extrabold text-[#0F2B28] tabular-nums">{formatMoney(desde)}</span>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:362:            <div key={i} className="flex justify-between text-[11px] px-1.5 py-1 rounded border-l-2 border-[#0F2B28]/30">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:366:              <span className="font-bold text-[#0F2B28] tabular-nums">{formatMoney(r.precio)}</span>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:396:        <div className="flex items-center gap-2 text-[10px] text-muted-foreground pt-2 border-t border-[#0F2B28]/10">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:443:          <GitCompareArrows className="w-5 h-5 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/TarifasModule.tsx:457:                <TableHead key={tipo} className="font-bold text-[#0F2B28] min-w-[160px]">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:483:                  <span className="text-lg font-extrabold text-[#0F2B28] tabular-nums">{formatMoney(p)}</span>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:506:                        <span className="font-bold text-[#0F2B28] tabular-nums">{formatMoney(r.precio)}</span>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1005:          <TabsTrigger value="tarifas" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all"><Tags className="w-4 h-4 mr-1" />Tarifas</TabsTrigger>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1006:          <TabsTrigger value="metodos" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all"><CreditCard className="w-4 h-4 mr-1" />Métodos de Pago</TabsTrigger>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1007:          <TabsTrigger value="categorias" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all"><ListChecks className="w-4 h-4 mr-1" />Categorías de Gastos</TabsTrigger>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1016:                <Badge className="bg-[#0F2B28] text-white border-0">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1027:                  className="border-[#0F2B28]/30 text-[#0F2B28] hover:bg-[#0F2B28] hover:text-white"
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1068:                    isSelected ? 'border-[#0F2B28] ring-2 ring-[#0F2B28]/20' : 'border-[#E2E8F0] hover:border-[#0F2B28]/30'
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1082:                          ? 'bg-[#0F2B28] border-[#0F2B28] text-white'
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1083:                          : 'bg-white/80 border-slate-300 text-transparent hover:border-[#0F2B28]'
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1166:                          <h4 className="font-bold text-base group-hover:text-[#0F2B28] transition-colors truncate">{tipo}</h4>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1176:                    <div className="mb-3 pb-3 border-b border-[#0F2B28]/10">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1179:                        <span className="text-3xl font-extrabold text-[#0F2B28] tabular-nums">{formatMoney(precioDesdeVal)}</span>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1192:                          className={`flex justify-between items-center text-sm px-2 py-1.5 rounded-md border-l-2 border-[#0F2B28]/30 transition-colors ${
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1199:                          <span className="font-bold text-[#0F2B28] tabular-nums">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1209:                    <div className="mt-3 pt-3 border-t border-[#0F2B28]/10 space-y-2">
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1237:                          <Tags className="w-3 h-3 text-[#0F2B28]/60" />{rangos.length} rango{rangos.length !== 1 ? 's' : ''}
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1243:                          <Info className="w-3 h-3 text-[#0F2B28]/60" />{campos} campo{campos !== 1 ? 's' : ''}
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1412:                                ? 'border-[#0F2B28] bg-[#DCFCE7] text-[#0F2B28] shadow-sm'
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1453:                                <span className="text-[10px] font-bold text-[#0F2B28] tabular-nums">{formatMoney(r.precio)}</span>
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1455:                                  className="w-full rounded-t bg-gradient-to-t from-[#0F2B28] to-[#10B981] transition-all duration-300"
+/home/z/my-project/src/components/modules/TarifasModule.tsx:1737:                        <Info className="w-3.5 h-3.5 text-[#0F2B28]/60" />Campos adicionales
+/home/z/my-project/src/components/modules/CajaModule.tsx:259:          <div className="w-3 h-3 rounded-full bg-[#0F2B28] ring-2 ring-white shadow-sm z-10" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:260:          <div className="w-0.5 flex-1 bg-[#0F2B28]/20 min-h-[16px]" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:265:              <Wallet className="w-3.5 h-3.5 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:266:              <span className="text-xs font-semibold text-[#0F2B28]">Apertura</span>
+/home/z/my-project/src/components/modules/CajaModule.tsx:268:            <span className="text-xs font-bold tabular-nums text-[#0F2B28]">{formatMoney(aperturaMonto)}</span>
+/home/z/my-project/src/components/modules/CajaModule.tsx:348:            <div className="w-3 h-3 rounded-full bg-[#0F2B28] ring-2 ring-white shadow-sm z-10" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:350:          <div className="bg-gradient-to-r from-[#0F2B28]/10 to-[#059669]/10 border border-[#0F2B28]/20 rounded-md px-3 py-2">
+/home/z/my-project/src/components/modules/CajaModule.tsx:353:                <CircleDot className="w-3.5 h-3.5 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:354:                <span className="text-xs font-semibold text-[#0F2B28]">Saldo actual</span>
+/home/z/my-project/src/components/modules/CajaModule.tsx:356:              <span className="text-sm font-bold tabular-nums text-[#0F2B28]">{formatMoney(entries[entries.length - 1].runningBalance)}</span>
+/home/z/my-project/src/components/modules/CajaModule.tsx:391:          <Banknote className="w-3.5 h-3.5 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:440:          <span className="text-sm font-bold tabular-nums text-[#0F2B28]">{formatMoney(totalContado)}</span>
+/home/z/my-project/src/components/modules/CajaModule.tsx:894:        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+/home/z/my-project/src/components/modules/CajaModule.tsx:913:          <Card className="relative overflow-hidden border-2 border-dashed border-[#0F2B28]/20 celebrate-bg">
+/home/z/my-project/src/components/modules/CajaModule.tsx:921:                  <Unlock className="w-9 h-9 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:925:                <h3 className="text-2xl font-bold text-[#0F2B28]">Caja cerrada</h3>
+/home/z/my-project/src/components/modules/CajaModule.tsx:929:                <Button size="lg" onClick={() => setShowApertura(true)} className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
+/home/z/my-project/src/components/modules/CajaModule.tsx:933:                <div className="max-w-xs mx-auto space-y-2 rounded-lg border border-[#0F2B28]/15 bg-white/80 backdrop-blur p-4 shadow-sm">
+/home/z/my-project/src/components/modules/CajaModule.tsx:981:                    <h3 className="font-semibold text-sm text-[#0F2B28] truncate">Caja abierta</h3>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1004:                      className="text-xl font-bold text-[#0F2B28] block"
+/home/z/my-project/src/components/modules/CajaModule.tsx:1091:                          ? 'bg-[#0F2B28] text-white'
+/home/z/my-project/src/components/modules/CajaModule.tsx:1167:            <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-3">
+/home/z/my-project/src/components/modules/CajaModule.tsx:1169:                <Timer className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:1194:                      <h3 className="font-semibold text-[#0F2B28] flex items-center gap-2">
+/home/z/my-project/src/components/modules/CajaModule.tsx:1225:                      <Wallet className="w-6 h-6 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:1231:                        className="text-3xl font-bold text-[#0F2B28] tabular-nums block leading-tight"
+/home/z/my-project/src/components/modules/CajaModule.tsx:1258:                      <Activity className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:1289:                              ? 'bg-[#0F2B28] text-white'
+/home/z/my-project/src/components/modules/CajaModule.tsx:1463:                <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#0F2B28]" />Información del turno</CardTitle></CardHeader>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1476:                      className="font-bold text-lg text-[#0F2B28] tabular-nums"
+/home/z/my-project/src/components/modules/CajaModule.tsx:1516:                <CardHeader className="bg-gradient-to-r from-[#0F2B28]/5 to-transparent pb-3">
+/home/z/my-project/src/components/modules/CajaModule.tsx:1518:                    <Timer className="w-4 h-4 text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:1646:                  isActive && 'bg-[#0F2B28] text-white shadow-sm',
+/home/z/my-project/src/components/modules/CajaModule.tsx:1653:                  isActive && 'bg-white text-[#0F2B28] border-white',
+/home/z/my-project/src/components/modules/CajaModule.tsx:1674:              <h4 className="font-semibold text-sm flex items-center gap-2"><Banknote className="w-4 h-4 text-[#0F2B28]" />Conteo de denominaciones</h4>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1692:            <h4 className="font-semibold text-sm flex items-center gap-2"><CreditCard className="w-4 h-4 text-[#0F2B28]" />Otros métodos de pago</h4>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1716:                      <MetodoIcon className="w-4 h-4 text-[#0F2B28] shrink-0" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:1740:                <span>Total otros métodos</span><span className="text-[#0F2B28] tabular-nums">{fmt(props.otrosContadosTotal)}</span>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1751:            <h4 className="font-semibold text-sm flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-[#0F2B28]" />Comparación vs sistema</h4>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1832:            <h4 className="font-semibold text-sm flex items-center gap-2"><StickyNote className="w-4 h-4 text-[#0F2B28]" />Resumen y cierre</h4>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1839:              <div className="bg-gradient-to-r from-[#0F2B28] to-[#059669] px-3 py-2">
+/home/z/my-project/src/components/modules/CajaModule.tsx:1849:                    <p className="text-xs font-bold tabular-nums text-[#0F2B28]">{fmt(props.daySummary.aperturaMonto)}</p>
+/home/z/my-project/src/components/modules/CajaModule.tsx:1953:              className="text-[#0F2B28]"
+/home/z/my-project/src/components/modules/CajaModule.tsx:1992:            <Button size="sm" className="bg-[#0F2B28] hover:bg-[#0F2B28]/90" onClick={() => props.setStep((props.step + 1) as 1 | 2 | 3 | 4)}>
+/home/z/my-project/src/components/modules/CajaModule.tsx:2051:    <Card className="overflow-hidden border-2 border-[#0F2B28]/15">
+/home/z/my-project/src/components/modules/CajaModule.tsx:2052:      <CardHeader className="bg-gradient-to-r from-[#0F2B28] to-[#059669] text-white pb-3">
+/home/z/my-project/src/components/modules/CajaModule.tsx:2072:            color="text-[#0F2B28]"
+
+[Showing results with pagination = limit: 250]

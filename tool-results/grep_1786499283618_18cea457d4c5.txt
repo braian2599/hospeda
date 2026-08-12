@@ -1,0 +1,252 @@
+/home/z/my-project/src/lib/api-client.ts:265:  createdAt: string; _count?: { reservas: number; estadias: number };
+/home/z/my-project/src/lib/api-client.ts:268:  estadias: { id: string; fechaCheckin: string; fechaCheckout: string; habitacion: string; gastoTotal: number }[];
+/home/z/my-project/src/lib/api-client.ts:404:  habitaciones: { total: number; disponibles: number; ocupadas: number; limpieza: number; mantenimiento: number; reservadas: number; fueraDeServicio: number };
+/home/z/my-project/src/lib/api-client.ts:413:  ocupacion?: { mes: string; tasa: number }[];
+/home/z/my-project/src/lib/types.ts:26:export type EstadoHabitacion = 'Disponible' | 'Ocupada' | 'Limpieza' | 'Mantenimiento' | 'Reservada' | 'Fuera de servicio';
+/home/z/my-project/src/lib/types.ts:37:  historialEstadias: Estadia[];
+/home/z/my-project/src/lib/types.ts:41:export interface Estadia {
+/home/z/my-project/src/lib/types.ts:82:export type EstadoReserva = 'Confirmada' | 'Cancelada' | 'Check-In realizado' | 'Check-Out realizado';
+/home/z/my-project/src/lib/types.ts:284:  { id: 'checkin', label: 'Check-In/Out', icon: 'LogIn', grupo: 'operativo' },
+/home/z/my-project/src/lib/plan-config.ts:152:  checkin: 'Check-In/Out',
+/home/z/my-project/src/lib/notify.ts:119:/** Notify about check-in */
+/home/z/my-project/src/lib/store.ts:6:  HabitacionDisponible, MovimientoCaja, CierreCaja, Estadia,
+/home/z/my-project/src/lib/store.ts:48:  if (r.estado === 'CheckIn_realizado') estado = 'Check-In realizado';
+/home/z/my-project/src/lib/store.ts:49:  else if (r.estado === 'Checkout_realizado') estado = 'Check-Out realizado';
+/home/z/my-project/src/lib/store.ts:398:  // Check-in/Check-out
+/home/z/my-project/src/lib/store.ts:605:          r => r.habitacion === numeroOriginal && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado') && r.personas > nuevaCapacidad
+/home/z/my-project/src/lib/store.ts:645:        if (!hab || hab.estado === 'Ocupada') return false;
+/home/z/my-project/src/lib/store.ts:646:        const reservasActivas = reservas.filter(r => r.habitacion === numero && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'));
+/home/z/my-project/src/lib/store.ts:653:        const updatedReservas = reservas.map(r => r.habitacion === numero && !['Cancelada', 'Check-Out realizado', 'Check-In realizado', 'Confirmada'].includes(r.estado) ? { ...r, estado: 'Cancelada' as const } : r);
+/home/z/my-project/src/lib/store.ts:694:        const nuevo: Cliente = { id: generarId(), ...datos, telefono: datos.telefono || '', email: datos.email || '', preferencias: datos.preferencias || '', historialEstadias: [], fechaCreacion: todayLocal() };
+/home/z/my-project/src/lib/store.ts:733:        const reservasActivas = reservas.filter(r => r.idCliente === id && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'));
+/home/z/my-project/src/lib/store.ts:765:            const personasOcupadas = reservas
+/home/z/my-project/src/lib/store.ts:766:              .filter(r => r.habitacion === num && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado')
+/home/z/my-project/src/lib/store.ts:769:            const camasLibres = hab.capacidad - personasOcupadas;
+/home/z/my-project/src/lib/store.ts:775:            if (r.habitacion !== num || r.estado === 'Cancelada' || r.estado === 'Check-Out realizado') return false;
+/home/z/my-project/src/lib/store.ts:796:        const totalOcupantes = datos.personas + (datos.ninos || 0);
+/home/z/my-project/src/lib/store.ts:799:          if (totalOcupantes > (habElegida.camasLibres || 0)) return null;
+/home/z/my-project/src/lib/store.ts:801:          if (totalOcupantes > habElegida.capacidad) return null;
+/home/z/my-project/src/lib/store.ts:820:              set({ clientes: [...currentClientes, { id: dbCliente.id, nombre: dbCliente.nombre, dni: dbCliente.dni, telefono: dbCliente.telefono, email: dbCliente.email || '', preferencias: dbCliente.preferencias, historialEstadias: [], fechaCreacion: dbCliente.createdAt?.split('T')[0] || '' }] });
+/home/z/my-project/src/lib/store.ts:1017:      // ===== CHECK-IN / CHECK-OUT =====
+/home/z/my-project/src/lib/store.ts:1031:            estado: 'Check-In realizado' as const,
+/home/z/my-project/src/lib/store.ts:1037:          newHabs[reserva.habitacion] = { ...newHabs[reserva.habitacion], estado: 'Ocupada' };
+/home/z/my-project/src/lib/store.ts:1041:        state._registrarAuditoria('Check-In', `Check-In: ${reserva.huesped} - Hab ${reserva.habitacion}`);
+/home/z/my-project/src/lib/store.ts:1071:        pushNotif('success', 'Check-In realizado', `${reserva.huesped} — Hab. ${reserva.habitacion}`, 'checkin', 'info', 'checkin', 'Ver reserva');
+/home/z/my-project/src/lib/store.ts:1078:        if (!reserva || reserva.estado !== 'Check-In realizado') return null;
+/home/z/my-project/src/lib/store.ts:1088:          return { ...r, horaCheckout, checkout: fechaSalidaReal, estado: 'Check-Out realizado' as const };
+/home/z/my-project/src/lib/store.ts:1099:          const estadia: Estadia = { fechaCheckin: reserva.checkin, fechaCheckout: fechaSalidaReal, habitacion: reserva.habitacion, gastoTotal: total };
+/home/z/my-project/src/lib/store.ts:1100:          return { ...c, historialEstadias: [...c.historialEstadias, estadia] };
+/home/z/my-project/src/lib/store.ts:1107:        state._registrarAuditoria('Check-Out', `Check-Out: ${reserva.huesped} - Hab ${reserva.habitacion} (Total: ${total})`);
+/home/z/my-project/src/lib/store.ts:1108:        pushNotif('info', `Hab. ${reserva.habitacion} requiere limpieza`, `Check-out de ${reserva.huesped}`, 'limpieza', 'info', 'habitaciones', 'Ver habitación');
+/home/z/my-project/src/lib/store.ts:1118:            reservas: current.reservas.map(r => r.id === idReserva ? { ...r, estado: 'Check-In realizado' as const, horaCheckout: undefined, checkout: reserva.checkout } : r),
+/home/z/my-project/src/lib/store.ts:1124:        pushNotif('info', 'Check-Out realizado', `${reserva.huesped} — Hab. ${reserva.habitacion}`, 'checkin', 'info', 'reservas', 'Ver reserva');
+/home/z/my-project/src/lib/store.ts:1682:        const reservasActivas = reservas.filter(r => r.tipoTarifa === tipo && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'));
+/home/z/my-project/src/lib/store.ts:1744:        if (reservas.some(r => r.metodoPagoId === id && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'))) return false;
+/home/z/my-project/src/lib/store.ts:1853:            historialEstadias: [], fechaCreacion: c.createdAt?.split('T')[0] || '',
+/home/z/my-project/src/lib/store.ts:1925:          //   1. CheckIn_realizado → Ocupada (siempre gana, incluso en compartidas)
+/home/z/my-project/src/lib/store.ts:1926:          //   2. Si la habitación está Ocupada en BD pero NO hay CheckIn → corregir
+/home/z/my-project/src/lib/store.ts:1928:          //   4. Mantenimiento pendiente → Mantenimiento (a menos que esté Ocupada)
+/home/z/my-project/src/lib/store.ts:1947:              // Prioridad máxima: hay alguien check-in → siempre Ocupada
+/home/z/my-project/src/lib/store.ts:1948:              hab.estado = 'Ocupada';
+/home/z/my-project/src/lib/store.ts:1949:            } else if (hab.estado === 'Ocupada') {
+/home/z/my-project/src/lib/store.ts:1950:              // Estado stale: BD dice Ocupada pero no hay CheckIn activo.
+/home/z/my-project/src/lib/store.ts:1960:          // Override: mantenimiento pendiente (no si la habitación está Ocupada por check-in)
+/home/z/my-project/src/lib/store.ts:1967:              if (hab && hab.estado !== 'Ocupada') {
+/home/z/my-project/src/lib/notification-store.ts:204:  checkin: 'Check-in',
+/home/z/my-project/src/components/modules/DashboardModule.tsx:245:    Ocupada: <Bed className="w-3.5 h-3.5 text-[#EF4444]" />,
+/home/z/my-project/src/components/modules/DashboardModule.tsx:253:    Ocupada: 'bg-[#DCFCE7] text-[#166534]',
+/home/z/my-project/src/components/modules/DashboardModule.tsx:436:        const esCheckout = r.estado === 'Checkout_realizado' || r.estado === 'Check-Out realizado';
+/home/z/my-project/src/components/modules/DashboardModule.tsx:437:        const esCheckin = r.estado === 'CheckIn_realizado' || r.estado === 'Check-In realizado';
+/home/z/my-project/src/components/modules/DashboardModule.tsx:449:          estado = 'Ocupada';
+/home/z/my-project/src/components/modules/DashboardModule.tsx:576:    { label: 'Ocupada', color: 'bg-[#4ADE80]' },
+/home/z/my-project/src/components/modules/DashboardModule.tsx:591:              Calendario de Ocupación
+/home/z/my-project/src/components/modules/DashboardModule.tsx:660:    Ocupada: 'bg-[#4ADE80] shadow-[0_2px_6px_rgba(74,222,128,0.35)]',
+/home/z/my-project/src/components/modules/DashboardModule.tsx:706:      if ((r.estado === 'Check-In realizado' || r.estado === 'Confirmada') && r.checkin <= hoyStr && r.checkout >= hoyStr) {
+/home/z/my-project/src/components/modules/DashboardModule.tsx:707:        map[r.habitacion] = { huesped: r.huesped, estado: r.estado === 'Check-In realizado' ? 'Ocupada' : 'Reservada' };
+/home/z/my-project/src/components/modules/DashboardModule.tsx:715:    Ocupada: 'bg-[#FEE2E2] text-[#991B1B]',
+/home/z/my-project/src/components/modules/DashboardModule.tsx:721:    Disponible: 'bg-[#4ADE80]', Ocupada: 'bg-[#EF4444]', Limpieza: 'bg-[#F59E0B]', Mantenimiento: 'bg-[#64748B]', Reservada: 'bg-[#3B82F6]',
+/home/z/my-project/src/components/modules/DashboardModule.tsx:741:                  <div className={`w-2 h-2 rounded-full ${dots[hab.estado] || dots.Disponible} ${hab.estado === 'Ocupada' || hab.estado === 'Limpieza' ? 'heat-pulse' : ''} mx-auto mb-1`} />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:750:          {Object.entries({ Disponible: 'bg-[#4ADE80]', Ocupada: 'bg-[#EF4444]', Reservada: 'bg-[#3B82F6]', Limpieza: 'bg-[#F59E0B]', Mantenimiento: 'bg-[#64748B]' }).map(([label, dot]) => (
+/home/z/my-project/src/components/modules/DashboardModule.tsx:754:            {Object.values(habitaciones).filter(h => h.estado === 'Disponible').length} disp. · {Object.values(habitaciones).filter(h => h.estado === 'Ocupada').length} ocup. · {Object.values(habitaciones).filter(h => h.estado === 'Reservada').length} res. · {Object.values(habitaciones).filter(h => h.estado === 'Limpieza').length} lim. · {Object.values(habitaciones).filter(h => h.estado === 'Mantenimiento').length} mant.
+/home/z/my-project/src/components/modules/DashboardModule.tsx:777:  const ocupadas = Object.values(habitaciones).filter(h => h.estado === 'Ocupada').length;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:781:  const tasaOcupacion = totalHabitaciones > 0 ? Math.round((ocupadas / totalHabitaciones) * 100) : 0;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:784:  const checkoutsHoy = useMemo(() => reservas.filter(r => r.estado === 'Check-In realizado' && r.checkout === hoyStr), [reservas, hoyStr]);
+/home/z/my-project/src/components/modules/DashboardModule.tsx:791:        (r.estado === 'Check-In realizado' || r.estado === 'Confirmada') &&
+/home/z/my-project/src/components/modules/DashboardModule.tsx:808:      return reservas.filter(r => r.estado === 'Check-In realizado' && r.checkout === day).length;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:852:    if (result) setActionLog(prev => [`Check-out realizado: ${huesped}`, ...prev].slice(0, 3));
+/home/z/my-project/src/components/modules/DashboardModule.tsx:880:        <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-[#166534]" bgGradient="bg-gradient-to-br from-[#DCFCE7] via-[#ECFDF5] to-white" numericValue={tasaOcupacion} suffix="%" sparkData={sparkOccupancy} sparkColor="#059669" accentColor="#059669" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:881:        <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-[#059669]" bgGradient="bg-gradient-to-br from-[#DCFCE7] via-[#ECFDF5] to-white" numericValue={checkinsHoy.length} sparkData={sparkCheckins} sparkColor="#059669" accentColor="#059669" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:882:        <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-[#EA580C]" bgGradient="bg-gradient-to-br from-[#FFEDD5] via-[#FFF7ED] to-white" numericValue={checkoutsHoy.length} sparkData={sparkCheckouts} sparkColor="#F59E0B" accentColor="#F59E0B" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:890:          { icon: LogIn, label: 'Check-in', modulo: 'checkin' as const, color: '#059669' },
+/home/z/my-project/src/components/modules/DashboardModule.tsx:908:      {/* Calendario Gantt de Ocupación */}
+/home/z/my-project/src/components/modules/DashboardModule.tsx:985:                  {checkinsHoy.length} check-in(s) pendiente(s) hoy
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1000:                  {checkoutsHoy.length} check-out(s) pendiente(s) hoy
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1034:      {/* Próximos Check-ins / Check-outs con acciones inline */}
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1040:              Check-ins de hoy
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1046:              <p className="text-sm text-muted-foreground py-2">Sin check-ins pendientes hoy.</p>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1063:                      <LogIn className="w-3 h-3 mr-1" />Check-In
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1076:              Check-outs de hoy
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1082:              <p className="text-sm text-muted-foreground py-2">Sin check-outs pendientes hoy.</p>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1100:                        <LogOut className="w-3 h-3 mr-1" />Check-Out
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:108:    if (r.estado === 'Cancelada' || r.estado === 'Check-Out realizado') return false;
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:430:                      <TableHead className="hidden md:table-cell">Check-in</TableHead>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:431:                      <TableHead className="hidden md:table-cell">Check-out</TableHead>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:796:              {reciboReserva?.estado === 'Check-Out realizado' ? 'Recibo' : 'Cotización'}
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:846:  const isReceipt = reserva.estado === 'Check-Out realizado';
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:920:            <span className="text-muted-foreground">Check-in: </span>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:924:            <span className="text-muted-foreground">Check-out: </span>
+/home/z/my-project/src/components/modules/FacturacionModule.tsx:928:            <span className="text-muted-foreground">Ocupación: </span>
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:41:  basico: ['Dashboard', 'Habitaciones', 'Reservas', 'Check-In/Out', 'Limpieza', 'Clientes', 'Tarifas'],
+/home/z/my-project/src/components/modules/ReservasModule.tsx:235: 'Check-In realizado': 'bg-[#DBEAFE] text-[#1E40AF] border-[#BFDBFE]',
+/home/z/my-project/src/components/modules/ReservasModule.tsx:236: 'Check-Out realizado': 'bg-[#F1F5F9] text-[#64748B] border-[#CBD5E1]',
+/home/z/my-project/src/components/modules/ReservasModule.tsx:245:const estadosReserva = ['Confirmada', 'Cancelada', 'Check-In realizado', 'Check-Out realizado'];
+/home/z/my-project/src/components/modules/ReservasModule.tsx:661: const checkIn = reservas.filter(r => r.estado === 'Check-In realizado').length;
+/home/z/my-project/src/components/modules/ReservasModule.tsx:662: const checkOut = reservas.filter(r => r.estado === 'Check-Out realizado').length;
+/home/z/my-project/src/components/modules/ReservasModule.tsx:671: const checkoutsHoy = reservas.filter(r => r.estado === 'Check-In realizado' && r.checkout === hoyStr).length;
+/home/z/my-project/src/components/modules/ReservasModule.tsx:672: const inHouse = reservas.filter(r => r.estado === 'Check-In realizado').length;
+/home/z/my-project/src/components/modules/ReservasModule.tsx:684:     notifySuccess('Check-in realizado', `${r.huesped} - Hab. ${r.habitacion}`);
+/home/z/my-project/src/components/modules/ReservasModule.tsx:686:     toast.error('No se pudo realizar el check-in');
+/home/z/my-project/src/components/modules/ReservasModule.tsx:689:   toast.error('Error al realizar check-in');
+/home/z/my-project/src/components/modules/ReservasModule.tsx:700:     notifySuccess('Check-out realizado', `${r.huesped} - Hab. ${r.habitacion}`);
+/home/z/my-project/src/components/modules/ReservasModule.tsx:702:     toast.error('No se pudo realizar el check-out');
+/home/z/my-project/src/components/modules/ReservasModule.tsx:705:   toast.error('Error al realizar check-out');
+/home/z/my-project/src/components/modules/ReservasModule.tsx:715:   case 'Check-In realizado': return 'border-l-[#3B82F6]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:716:   case 'Check-Out realizado': return 'border-l-[#F59E0B]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:725:   case 'Check-In realizado': return 'bg-[#3B82F6]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:726:   case 'Check-Out realizado': return 'bg-[#F59E0B]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:926: const totalOcupantes = p1 + n1;
+/home/z/my-project/src/components/modules/ReservasModule.tsx:927: if (totalOcupantes > habitaciones[form.habitacion].capacidad) {
+/home/z/my-project/src/components/modules/ReservasModule.tsx:928: errs.push(`La habitación ${form.habitacion} tiene capacidad máxima de ${habitaciones[form.habitacion].capacidad} personas (ingresó ${p1} adulto${p1 > 1 ? 's' : ''}${n1 > 0 ? ` + ${n1} niño${n1 > 1 ? 's' : ''} = ${totalOcupantes}` : ''})`);
+/home/z/my-project/src/components/modules/ReservasModule.tsx:936: const totalOcupantes2 = p2 + n2;
+/home/z/my-project/src/components/modules/ReservasModule.tsx:937: if (totalOcupantes2 > habitaciones[form.habitacion2].capacidad) {
+/home/z/my-project/src/components/modules/ReservasModule.tsx:938: errs.push(`La habitación ${form.habitacion2} tiene capacidad máxima de ${habitaciones[form.habitacion2].capacidad} personas (ingresó ${p2} adulto${p2 > 1 ? 's' : ''}${n2 > 0 ? ` + ${n2} niño${n2 > 1 ? 's' : ''} = ${totalOcupantes2}` : ''})`);
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1273:       {/* Check-In segment */}
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1278:             <span className="text-[11px] font-semibold text-[#3B82F6] uppercase tracking-wide">Check-In</span>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1286:       {/* Check-Out segment */}
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1291:             <span className="text-[11px] font-semibold text-[#F59E0B] uppercase tracking-wide">Check-Out</span>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1347:         <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide mt-0.5 truncate">Check-ins hoy</div>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1358:         <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide mt-0.5 truncate">Check-outs hoy</div>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1421:   const headers = ['Huésped', 'DNI', 'Habitación', 'Check-in', 'Check-out', 'Estado', 'Total'];
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1575:         <LogIn className="w-3 h-3 mr-1" />Check-in
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1595:   {r.estado === 'Check-In realizado' && (
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1604:         <LogOut className="w-3 h-3 mr-1" />Check-out
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1634:   <TableHead>Check-in</TableHead>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1635:   <TableHead>Check-out</TableHead>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1738:                 <LogIn className="w-3 h-3 mr-1" />Check-in
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1758:           {r.estado === 'Check-In realizado' && (
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1766:               <LogOut className="w-3 h-3 mr-1" />Check-out
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1769:           {saldo > 0 && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && (
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1836: <span className="text-muted-foreground">Check-in:</span>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1840: <span className="text-muted-foreground">Check-out:</span>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:131:  // STATS (for summary cards at top)
+/home/z/my-project/src/components/modules/ClientesModule.tsx:133:  const stats = useMemo(() => {
+/home/z/my-project/src/components/modules/ClientesModule.tsx:135:    const recurrentes = clientes.filter(c => c.historialEstadias.length >= 2).length;
+/home/z/my-project/src/components/modules/ClientesModule.tsx:141:    const totalStays = clientes.reduce((sum, c) => sum + c.historialEstadias.length, 0);
+/home/z/my-project/src/components/modules/ClientesModule.tsx:193:  // Computed stats for the detail dialog
+/home/z/my-project/src/components/modules/ClientesModule.tsx:194:  const totalEstadias = selected?.historialEstadias.length ?? 0;
+/home/z/my-project/src/components/modules/ClientesModule.tsx:195:  const totalGastado = selected?.historialEstadias.reduce((sum, h) => sum + (h.gastoTotal || 0), 0) ?? 0;
+/home/z/my-project/src/components/modules/ClientesModule.tsx:196:  const promedioPorEstadia = totalEstadias > 0 ? totalGastado / totalEstadias : 0;
+/home/z/my-project/src/components/modules/ClientesModule.tsx:197:  const ultimaVisita = selected && selected.historialEstadias.length > 0
+/home/z/my-project/src/components/modules/ClientesModule.tsx:198:    ? formatFecha([...selected.historialEstadias].map(h => h.fechaCheckout).sort().pop()!)
+/home/z/my-project/src/components/modules/ClientesModule.tsx:203:    if (!selected || selected.historialEstadias.length === 0) return 0;
+/home/z/my-project/src/components/modules/ClientesModule.tsx:204:    const totalDays = selected.historialEstadias.reduce((sum, h) => sum + calcDias(h.fechaCheckin, h.fechaCheckout), 0);
+/home/z/my-project/src/components/modules/ClientesModule.tsx:205:    return totalDays / selected.historialEstadias.length;
+/home/z/my-project/src/components/modules/ClientesModule.tsx:210:    if (c.historialEstadias.length === 0) return null;
+/home/z/my-project/src/components/modules/ClientesModule.tsx:211:    return [...c.historialEstadias].map(h => h.fechaCheckout).sort().pop()!;
+/home/z/my-project/src/components/modules/ClientesModule.tsx:236:      {/* ═══════════ CLIENT STATS SUMMARY ═══════════ */}
+/home/z/my-project/src/components/modules/ClientesModule.tsx:244:                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-2xl font-bold text-[#0F2B28]" />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:259:                <AnimatedNumber value={stats.recurrentes} format={n => String(Math.round(n))} className="text-2xl font-bold text-amber-700" />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:274:                <AnimatedNumber value={stats.thisMonth} format={n => String(Math.round(n))} className="text-2xl font-bold text-emerald-700" />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:283:        {/* Ocupación Promedio */}
+/home/z/my-project/src/components/modules/ClientesModule.tsx:288:                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Estadías/Cliente</p>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:289:                <AnimatedNumber value={stats.avgStays} format={n => n.toFixed(1)} className="text-2xl font-bold text-sky-700" />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:343:              const stayCount = c.historialEstadias.length;
+/home/z/my-project/src/components/modules/ClientesModule.tsx:398:                              {stayCount} {stayCount === 1 ? 'estadía' : 'estadías'}
+/home/z/my-project/src/components/modules/ClientesModule.tsx:479:            const selectedLoyalty = getLoyaltyInfo(selected.historialEstadias.length);
+/home/z/my-project/src/components/modules/ClientesModule.tsx:530:                  {/* Customer Stats Summary (enhanced) */}
+/home/z/my-project/src/components/modules/ClientesModule.tsx:535:                        <span className="text-xs text-muted-foreground">Total estadías</span>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:537:                      <AnimatedNumber value={totalEstadias} format={n => String(Math.round(n))} className="font-bold text-lg text-[#0F2B28] mt-1" />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:551:                      <AnimatedNumber value={promedioPorEstadia} className="font-bold text-lg text-[#0F2B28] mt-1" />
+/home/z/my-project/src/components/modules/ClientesModule.tsx:565:                  {selected.historialEstadias.length > 0 ? (
+/home/z/my-project/src/components/modules/ClientesModule.tsx:567:                      <h4 className="font-semibold mb-3 text-sm">Historial de estadías</h4>
+/home/z/my-project/src/components/modules/ClientesModule.tsx:570:                        {[...selected.historialEstadias]
+/home/z/my-project/src/components/modules/ClientesModule.tsx:613:                      <p className="text-sm text-muted-foreground">Sin estadías registradas</p>
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:30:  'Check-In realizado': {
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:37:  'Check-Out realizado': {
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:199:            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#D97706]" />Check-In</span>
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:200:            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#94A3B8]" />Check-Out</span>
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:363:        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#D97706]" />Check-In</span>
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:364:        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#94A3B8]" />Check-Out</span>
+/home/z/my-project/src/components/modules/ReservationCalendarView.tsx:368:      {/* ── Summary stats ── */}
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:41:    key: 'Ocupada',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:42:    label: 'Ocupada',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:143:      (r.estado === 'Check-In realizado' || r.estado === 'Confirmada') &&
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:201:              const huesped = (hab.estado === 'Ocupada' || hab.estado === 'Reservada')
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:362:                      Check-in: {detailHuesped.checkin} → Check-out: {detailHuesped.checkout}
+/home/z/my-project/src/components/modules/TodaySummary.tsx:22: * Quick stats banner for today's reservations:
+/home/z/my-project/src/components/modules/TodaySummary.tsx:23: *  - Check-ins hoy
+/home/z/my-project/src/components/modules/TodaySummary.tsx:24: *  - Check-outs hoy
+/home/z/my-project/src/components/modules/TodaySummary.tsx:25: *  - Estadías activas
+/home/z/my-project/src/components/modules/TodaySummary.tsx:26: *  - Ocupación (%)
+/home/z/my-project/src/components/modules/TodaySummary.tsx:43:  // ── Compute stats for TODAY ──
+/home/z/my-project/src/components/modules/TodaySummary.tsx:49:    r => r.estado === 'Check-In realizado' && r.checkout === hoyStr
+/home/z/my-project/src/components/modules/TodaySummary.tsx:52:  const estadiasActivas = reservas.filter(
+/home/z/my-project/src/components/modules/TodaySummary.tsx:53:    r => r.estado === 'Check-In realizado'
+/home/z/my-project/src/components/modules/TodaySummary.tsx:57:  const ocupadas = Object.values(habitaciones).filter(
+/home/z/my-project/src/components/modules/TodaySummary.tsx:58:    h => h.estado === 'Ocupada'
+/home/z/my-project/src/components/modules/TodaySummary.tsx:60:  const ocupacionPct =
+/home/z/my-project/src/components/modules/TodaySummary.tsx:63:      : Math.round((ocupadas / totalHabitaciones) * 100);
+/home/z/my-project/src/components/modules/TodaySummary.tsx:65:  const stats: StatConfig[] = [
+/home/z/my-project/src/components/modules/TodaySummary.tsx:68:      label: 'Check-ins hoy',
+/home/z/my-project/src/components/modules/TodaySummary.tsx:77:      label: 'Check-outs hoy',
+/home/z/my-project/src/components/modules/TodaySummary.tsx:85:      key: 'estadias',
+/home/z/my-project/src/components/modules/TodaySummary.tsx:86:      label: 'Estadías activas',
+/home/z/my-project/src/components/modules/TodaySummary.tsx:87:      value: String(estadiasActivas),
+/home/z/my-project/src/components/modules/TodaySummary.tsx:94:      key: 'ocupacion',
+/home/z/my-project/src/components/modules/TodaySummary.tsx:95:      label: 'Ocupación',
+/home/z/my-project/src/components/modules/TodaySummary.tsx:96:      value: ocupacionPct === null ? '—' : `${ocupacionPct}%`,
+/home/z/my-project/src/components/modules/TodaySummary.tsx:106:      {stats.map((s, i) => {
+/home/z/my-project/src/components/modules/ReportesModule.tsx:317:  const [clienteMinEstadias, setClienteMinEstadias] = useState('0');
+/home/z/my-project/src/components/modules/ReportesModule.tsx:396:  // Reservas que se superponen con el periodo (para noches vendidas y ocupación)
+/home/z/my-project/src/components/modules/ReportesModule.tsx:407:  // Check-ins y check-outs del periodo
+/home/z/my-project/src/components/modules/ReportesModule.tsx:409:    return auditoriaEnPeriodo.filter(a => a.tipo === 'Check-In').length;
+/home/z/my-project/src/components/modules/ReportesModule.tsx:413:    return auditoriaEnPeriodo.filter(a => a.tipo === 'Check-Out').length;
+/home/z/my-project/src/components/modules/ReportesModule.tsx:457:  const tasaOcupacion = nochesDisponibles > 0 ? Math.round((nochesVendidas / nochesDisponibles) * 100) : 0;
+/home/z/my-project/src/components/modules/ReportesModule.tsx:523:    const minEst = Number(clienteMinEstadias) || 0;
+/home/z/my-project/src/components/modules/ReportesModule.tsx:527:        totalGastado: c.historialEstadias.reduce((s, e) => s + e.gastoTotal, 0),
+/home/z/my-project/src/components/modules/ReportesModule.tsx:528:        cantidadEstadias: c.historialEstadias.length,
+/home/z/my-project/src/components/modules/ReportesModule.tsx:529:        ultimaVisita: c.historialEstadias.length > 0
+/home/z/my-project/src/components/modules/ReportesModule.tsx:530:          ? c.historialEstadias.reduce((latest, e) => e.fechaCheckout > latest ? e.fechaCheckout : latest, c.historialEstadias[0].fechaCheckout)
+/home/z/my-project/src/components/modules/ReportesModule.tsx:533:      .filter(c => c.cantidadEstadias >= minEst)
+/home/z/my-project/src/components/modules/ReportesModule.tsx:535:  }, [clientes, clienteMinEstadias]);
+/home/z/my-project/src/components/modules/ReportesModule.tsx:547:      if (a.tipo === 'Check-In') resumen[a.empleado].checkins++;
+/home/z/my-project/src/components/modules/ReportesModule.tsx:548:      if (a.tipo === 'Check-Out') resumen[a.empleado].checkouts++;
+/home/z/my-project/src/components/modules/ReportesModule.tsx:564:      ocupadas: porEstado['Ocupada'] || 0,
+/home/z/my-project/src/components/modules/ReportesModule.tsx:578:  const ocupacionPorHabitacion = useMemo(() => {
+/home/z/my-project/src/components/modules/ReportesModule.tsx:651:  // Clientes: nuevos este mes + recurrentes (>=2 estadías)
+/home/z/my-project/src/components/modules/ReportesModule.tsx:663:      if (c.historialEstadias.length >= 2) recurrentes++;
+/home/z/my-project/src/components/modules/ReportesModule.tsx:716:        const headers = ['Nombre', 'DNI', 'Teléfono', 'Email', 'Estadías', 'Gasto Total'];
+/home/z/my-project/src/components/modules/ReportesModule.tsx:717:        const rows = clientesFrecuentes.map(c => [c.nombre, c.dni, c.telefono, c.email, c.cantidadEstadias, c.totalGastado]);
+/home/z/my-project/src/components/modules/ReportesModule.tsx:810:            { label: 'Check-Ins', value: String(auditoriaEnPeriodo.filter(a => a.tipo === 'Check-In').length) },
+/home/z/my-project/src/components/modules/ReportesModule.tsx:811:            { label: 'Check-Outs', value: String(auditoriaEnPeriodo.filter(a => a.tipo === 'Check-Out').length) },
+/home/z/my-project/src/components/modules/ReportesModule.tsx:830:            { label: 'Ocupadas', value: String(habResumen.ocupadas) },
+/home/z/my-project/src/components/modules/ReportesModule.tsx:832:            { label: 'Ocupación', value: `${tasaOcupacion}%` },
+/home/z/my-project/src/components/modules/ReportesModule.tsx:840:            ...(Object.keys(ocupacionPorHabitacion).length > 0 ? [{
+/home/z/my-project/src/components/modules/ReportesModule.tsx:841:              title: 'Ocupación por Habitación',
+/home/z/my-project/src/components/modules/ReportesModule.tsx:842:              headers: ['Habitación', 'Ocupación'],
+/home/z/my-project/src/components/modules/ReportesModule.tsx:843:              rows: Object.entries(ocupacionPorHabitacion).map(([hab, pct]) => [hab, `${pct}%`]),
+/home/z/my-project/src/components/modules/ReportesModule.tsx:864:            headers: ['Nombre', 'DNI', 'Teléfono', 'Email', 'Estadías', 'Gasto Total'],
+/home/z/my-project/src/components/modules/ReportesModule.tsx:865:            rows: clientesFrecuentes.map(c => [c.nombre, c.dni, c.telefono, c.email, String(c.cantidadEstadias), formatMoneda(c.totalGastado)]),
+/home/z/my-project/src/components/modules/ReportesModule.tsx:881:            headers: ['Nombre', 'Check-Ins', 'Check-Outs', 'Pagos', 'Gastos', 'Reservas', 'Total Auditorías'],
+/home/z/my-project/src/components/modules/ReportesModule.tsx:919:  }, [activeTab, desde, hasta, usuarioActual, pagosFiltrados, gastosFiltrados, habResumen, clientesFrecuentes, auditFiltrada, reservaMap, totalIngresos, totalGastos, gananciaNeta, reservasEnPeriodo, ingresosPorMetodo, gastosPorCategoria, gastosTotalFiltrado, ticketPromedio, empleadosResumen, tasaOcupacion, adr, revpar, nochesVendidas, nochesDisponibles, ocupacionPorHabitacion, clientesResumen, topCliente, cajaTurnosAMostrar, cajaDesde, cajaHasta]);
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1042:          tooltip={`${checkinsPeriodo} check-ins · ${checkoutsPeriodo} check-outs · ${cancelacionesPeriodo} cancelaciones`}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1051:          label="Ocupación"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1052:          value={`${tasaOcupacion}%`}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1516:              label="Check-Ins"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1517:              value={auditoriaEnPeriodo.filter(a => a.tipo === 'Check-In').length}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1523:              label="Check-Outs"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1524:              value={auditoriaEnPeriodo.filter(a => a.tipo === 'Check-Out').length}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1736:                subtitle={`Estado y ocupación del ${formatFecha(desde)} al ${formatFecha(hasta)}`}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1755:                  <BarChart3 className="w-4 h-4" />Ocupación Diaria
+
+[Showing results with pagination = limit: 250]
