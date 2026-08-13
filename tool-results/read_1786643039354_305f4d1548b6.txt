@@ -1,0 +1,2002 @@
+     1→'use client';
+     2→
+     3→import { useState, useMemo, useEffect, useCallback, type ComponentType } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import { api, type DbTareaLimpieza, type DbTenantUser } from '@/lib/api-client';
+     6→import { formatFechaHora, formatMoney, todayLocal, daysAgo } from '@/lib/format';
+     7→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     8→import { Button } from '@/components/ui/button';
+     9→import { Input } from '@/components/ui/input';
+    10→import { Label } from '@/components/ui/label';
+    11→import { Badge } from '@/components/ui/badge';
+    12→import { Textarea } from '@/components/ui/textarea';
+    13→import {
+    14→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    15→} from '@/components/ui/dialog';
+    16→import {
+    17→  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    18→  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+    19→} from '@/components/ui/alert-dialog';
+    20→import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+    21→import { Calendar } from '@/components/ui/calendar';
+    22→import { format, parseISO } from 'date-fns';
+    23→import { es } from 'date-fns/locale';
+    24→import {
+    25→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    26→} from '@/components/ui/select';
+    27→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    28→import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+    29→import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    30→import { AreaChart, Area, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis } from 'recharts';
+    31→import {
+    32→  SprayCan, Wrench, Check, Search, AlertTriangle, X, Sparkles, Loader2, Wallet, Banknote,
+    33→  AlertCircle, Users, BedDouble, Clock, CheckCircle, DoorOpen, ChevronRight,
+    34→  UserPlus, Play, Square, ChevronUp, ChevronDown, History, TrendingUp, TrendingDown,
+    35→  Gauge, RefreshCw, Timer, ClipboardList, ArrowRight, Plus, LayoutGrid, List,
+    36→  Eye, Handshake, Zap, Shield, Brush, Pencil, GripVertical,
+    37→} from 'lucide-react';
+    38→import ModuleHeader from '@/components/layout/ModuleHeader';
+    39→import { toast } from 'sonner';
+    40→import { cn } from '@/lib/utils';
+    41→import PaginationBar from '@/components/ui/pagination-bar';
+    42→import { AnimatedNumber } from '@/components/ui/animated-number';
+    43→import type { ModuloId, Reserva, TipoHabitacion } from '@/lib/types';
+    44→
+    45→const PAGE_SIZE = 15;
+    46→
+    47→// ── Priority types ──
+    48→type Prioridad = 'urgente' | 'normal' | 'baja';
+    49→const PRIORIDADES: Prioridad[] = ['urgente', 'normal', 'baja'];
+    50→
+    51→const PRIORIDAD_CONFIG: Record<Prioridad, {
+    52→  label: string;
+    53→  border: string;
+    54→  text: string;
+    55→  bg: string;
+    56→  badge: string;
+    57→  dot: string;
+    58→  icon: ComponentType<{ className?: string }> | null;
+    59→  leftBorder: string;
+    60→}> = {
+    61→  urgente: {
+    62→    label: 'Urgente',
+    63→    border: 'border-l-[#EF4444]',
+    64→    text: 'text-[#991B1B]',
+    65→    bg: 'bg-[#FEE2E2]',
+    66→    badge: 'bg-[#FEE2E2] text-[#991B1B]',
+    67→    dot: 'bg-[#EF4444]',
+    68→    icon: Zap,
+    69→    leftBorder: 'border-l-[3px] border-l-[#EF4444]',
+    70→  },
+    71→  normal: {
+    72→    label: 'Normal',
+    73→    border: 'border-l-[#F59E0B]',
+    74→    text: 'text-[#92400E]',
+    75→    bg: 'bg-[#FEF3C7]',
+    76→    badge: 'bg-[#FEF3C7] text-[#92400E]',
+    77→    dot: 'bg-[#F59E0B]',
+    78→    icon: Clock,
+    79→    leftBorder: 'border-l-[3px] border-l-[#F59E0B]',
+    80→  },
+    81→  baja: {
+    82→    label: 'Baja',
+    83→    border: 'border-l-[#0EA5E9]',
+    84→    text: 'text-[#0369A1]',
+    85→    bg: 'bg-[#E0F2FE]',
+    86→    badge: 'bg-[#E0F2FE] text-[#0369A1]',
+    87→    dot: 'bg-[#0EA5E9]',
+    88→    icon: null,
+    89→    leftBorder: 'border-l-[3px] border-l-[#0EA5E9]',
+    90→  },
+    91→};
+    92→
+    93→// ── Task types ──
+    94→type TipoTarea = 'limpieza' | 'mantenimiento' | 'preparacion' | 'inspeccion';
+    95→const TIPO_CONFIG: Record<TipoTarea, { label: string; icon: ComponentType<{ className?: string }>; color: string }> = {
+    96→  limpieza: { label: 'Limpieza', icon: SprayCan, color: 'text-[#059669]' },
+    97→  mantenimiento: { label: 'Mantenimiento', icon: Wrench, color: 'text-[#991B1B]' },
+    98→  preparacion: { label: 'Preparación', icon: Pencil, color: 'text-[#7C3AED]' },
+    99→  inspeccion: { label: 'Inspección', icon: Shield, color: 'text-[#0369A1]' },
+   100→};
+   101→
+   102→// ── Kanban column types ──
+   103→type KanbanColumn = 'pendiente' | 'en_progreso' | 'completada';
+   104→const KANBAN_COLUMNS: { key: KanbanColumn; label: string; icon: ComponentType<{ className?: string }>; headerBg: string; headerText: string; emptyMsg: string }[] = [
+   105→  { key: 'pendiente', label: 'Pendiente', icon: Clock, headerBg: 'bg-[#FEF9C3]/60', headerText: 'text-[#92400E]', emptyMsg: 'No hay tareas pendientes' },
+   106→  { key: 'en_progreso', label: 'En Progreso', icon: Timer, headerBg: 'bg-[#E0F2FE]/60', headerText: 'text-[#0369A1]', emptyMsg: 'No hay tareas en curso' },
+   107→  { key: 'completada', label: 'Completada', icon: CheckCircle, headerBg: 'bg-[#DCFCE7]/60', headerText: 'text-[#166534]', emptyMsg: 'No hay tareas completadas hoy' },
+   108→];
+   109→
+   110→// ── Staff color palette ──
+   111→const STAFF_COLORS = [
+   112→  '#059669', '#0EA5E9', '#8B5CF6', '#F59E0B', '#EF4444',
+   113→  '#EC4899', '#14B8A6', '#6366F1', '#F97316', '#84CC16',
+   114→];
+   115→
+   116→function DatePickerInline({
+   117→  value,
+   118→  onChange,
+   119→  placeholder,
+   120→  label,
+   121→  disabled,
+   122→}: {
+   123→  value: string;
+   124→  onChange: (val: string) => void;
+   125→  placeholder: string;
+   126→  label?: string;
+   127→  disabled?: boolean;
+   128→}) {
+   129→  const [open, setOpen] = useState(false);
+   130→  const selectedDate = value ? parseISO(value) : undefined;
+   131→
+   132→  const handleSelect = (date: Date | undefined) => {
+   133→    if (date) {
+   134→      const yyyy = date.getFullYear();
+   135→      const mm = String(date.getMonth() + 1).padStart(2, '0');
+   136→      const dd = String(date.getDate()).padStart(2, '0');
+   137→      onChange(`${yyyy}-${mm}-${dd}`);
+   138→    }
+   139→    setOpen(false);
+   140→  };
+   141→
+   142→  return (
+   143→    <div className="grid gap-1.5">
+   144→      {label && <Label>{label}</Label>}
+   145→      <Popover open={open} onOpenChange={setOpen}>
+   146→        <PopoverTrigger asChild>
+   147→          <Button
+   148→            variant="outline"
+   149→            className={cn(
+   150→              'w-full justify-start text-left font-normal h-9',
+   151→              !value && 'text-muted-foreground'
+   152→            )}
+   153→            disabled={disabled}
+   154→          >
+   155→            {selectedDate
+   156→              ? format(selectedDate, 'dd/MM/yyyy')
+   157→              : placeholder}
+   158→          </Button>
+   159→        </PopoverTrigger>
+   160→        <PopoverContent className="w-auto p-0" align="start">
+   161→          <Calendar
+   162→            mode="single"
+   163→            selected={selectedDate}
+   164→            onSelect={handleSelect}
+   165→            autoFocus
+   166→          />
+   167→        </PopoverContent>
+   168→      </Popover>
+   169→    </div>
+   170→  );
+   171→}
+   172→
+   173→/** Estimated cleaning time (in minutes) based on room type. */
+   174→function estimatedCleaningMinutes(tipo: string | undefined): number {
+   175→  switch (tipo as TipoHabitacion) {
+   176→    case 'Compartida': return 45;
+   177→    case 'Cuádruple': return 40;
+   178→    case 'Triple': return 30;
+   179→    case 'Doble': return 20;
+   180→    case 'Simple': return 15;
+   181→    default: return 25;
+   182→  }
+   183→}
+   184→
+   185→/** Legacy Priority (computed from checkout time) */
+   186→type LegacyPriority = 'high' | 'medium' | 'low';
+   187→
+   188→function getLastCheckoutMs(habitacion: string, reservas: Reserva[]): number {
+   189→  const checkouts = reservas
+   190→    .filter(r => r.habitacion === habitacion && (r.estado === 'Check-Out realizado' || r.estado === 'Check-In realizado'))
+   191→    .map(r => {
+   192→      const base = r.checkout ? new Date(r.checkout + 'T12:00:00') : null;
+   193→      if (base && r.horaCheckout) {
+   194→        const [hh, mm] = r.horaCheckout.split(':').map(n => parseInt(n, 10));
+   195→        if (!isNaN(hh)) base.setHours(hh, isNaN(mm) ? 0 : mm, 0, 0);
+   196→      }
+   197→      return base ? base.getTime() : 0;
+   198→    })
+   199→    .filter(t => t > 0)
+   200→    .sort((a, b) => b - a);
+   201→  return checkouts[0] || 0;
+   202→}
+   203→
+   204→function computeLegacyPriority(habitacion: string, reservas: Reserva[], now: number): LegacyPriority {
+   205→  const lastCheckout = getLastCheckoutMs(habitacion, reservas);
+   206→  if (lastCheckout === 0) return 'low';
+   207→  const diffHours = (now - lastCheckout) / 3_600_000;
+   208→  if (diffHours >= 2) return 'high';
+   209→  if (diffHours >= 1) return 'medium';
+   210→  return 'low';
+   211→}
+   212→
+   213→/** Format a duration in ms as "12m 30s" / "1h 05m" / "45s". */
+   214→function formatDuration(ms: number): string {
+   215→  if (ms < 0) ms = 0;
+   216→  const totalSec = Math.floor(ms / 1000);
+   217→  const h = Math.floor(totalSec / 3600);
+   218→  const m = Math.floor((totalSec % 3600) / 60);
+   219→  const s = totalSec % 60;
+   220→  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
+   221→  if (m > 0) return `${m}m ${String(s).padStart(2, '0')}s`;
+   222→  return `${s}s`;
+   223→}
+   224→
+   225→/** Format time since a timestamp as "hace 30 min", "hace 2h", etc. */
+   226→function formatTimeSince(ms: number): string {
+   227→  const diff = Date.now() - ms;
+   228→  if (diff < 60000) return 'hace un momento';
+   229→  if (diff < 3600000) return `hace ${Math.floor(diff / 60000)} min`;
+   230→  if (diff < 86400000) return `hace ${Math.floor(diff / 3600000)}h`;
+   231→  return `hace ${Math.floor(diff / 86400000)}d`;
+   232→}
+   233→
+   234→/** Get initials from a full name (max 2 chars). */
+   235→function getInitials(name: string): string {
+   236→  const parts = name.trim().split(/\s+/).filter(Boolean);
+   237→  if (parts.length === 0) return '?';
+   238→  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+   239→  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+   240→}
+   241→
+   242→type StaffState = 'available' | 'busy' | 'overloaded';
+   243→const STAFF_STATE_CONFIG: Record<StaffState, { label: string; bar: string; text: string; bg: string; ring: string }> = {
+   244→  available: { label: 'Disponible', bar: 'bg-[#059669]', text: 'text-[#166534]', bg: 'bg-[#DCFCE7]', ring: 'ring-[#059669]/30' },
+   245→  busy: { label: 'Ocupado', bar: 'bg-[#F59E0B]', text: 'text-[#92400E]', bg: 'bg-[#FEF3C7]', ring: 'ring-[#F59E0B]/30' },
+   246→  overloaded: { label: 'Saturado', bar: 'bg-[#EF4444]', text: 'text-[#991B1B]', bg: 'bg-[#FEE2E2]', ring: 'ring-[#EF4444]/30' },
+   247→};
+   248→
+   249→/** Get floor number from room number (first digit). */
+   250→function getFloorFromRoom(roomNum: string): number {
+   251→  const firstDigit = roomNum.match(/\d/);
+   252→  return firstDigit ? parseInt(firstDigit[0]) : 1;
+   253→}
+   254→
+   255→const FLOOR_COLORS: Record<number, string> = {
+   256→  1: 'bg-[#DBEAFE]',
+   257→  2: 'bg-[#FEF3C7]',
+   258→  3: 'bg-[#DCFCE7]',
+   259→  4: 'bg-[#F3E8FF]',
+   260→  5: 'bg-[#FEE2E2]',
+   261→};
+   262→
+   263→export default function LimpiezaModule() {
+   264→  const habitaciones = useHotelStore(s => s.habitaciones);
+   265→  const marcarComoLimpia = useHotelStore(s => s.marcarComoLimpia);
+   266→  const cambiarEstadoHabitacion = useHotelStore(s => s.cambiarEstadoHabitacion);
+   267→  const reportarMantenimiento = useHotelStore(s => s.reportarMantenimiento);
+   268→  const resolverMantenimiento = useHotelStore(s => s.resolverMantenimiento);
+   269→  const historialMantenimiento = useHotelStore(s => s.historialMantenimiento);
+   270→  const reservas = useHotelStore(s => s.reservas);
+   271→  const setModulo = useHotelStore(s => s.setModulo);
+   272→
+   273→  // ── Existing modal/form state ──
+   274→  const [modalResolver, setModalResolver] = useState<string | null>(null);
+   275→  const [reparacion, setReparacion] = useState('');
+   276→  const [monto, setMonto] = useState('0');
+   277→  const [sacarDeCaja, setSacarDeCaja] = useState(true);
+   278→
+   279→  // Ticking clock
+   280→  const [now, setNow] = useState(() => Date.now());
+   281→  const [nowSec, setNowSec] = useState(() => Date.now());
+   282→  useEffect(() => {
+   283→    const id = setInterval(() => setNow(Date.now()), 60_000);
+   284→    return () => clearInterval(id);
+   285→  }, []);
+   286→  useEffect(() => {
+   287→    const id = setInterval(() => setNowSec(Date.now()), 1000);
+   288→    return () => clearInterval(id);
+   289→  }, []);
+   290→
+   291→  // Maintenance history filters
+   292→  const todayStr = todayLocal();
+   293→  const [fDesde, setFDesde] = useState(todayStr);
+   294→  const [fHasta, setFHasta] = useState(todayStr);
+   295→  const [fHab, setFHab] = useState('');
+   296→  const [fDesc, setFDesc] = useState('');
+   297→  const [fMonto, setFMonto] = useState('');
+   298→  const [pagina, setPagina] = useState(1);
+   299→
+   300→  // Reportar mantenimiento form
+   301→  const [showReportForm, setShowReportForm] = useState(false);
+   302→  const [repHab, setRepHab] = useState('');
+   303→  const [repDesc, setRepDesc] = useState('');
+   304→  const [repConfirm, setRepConfirm] = useState(false);
+   305→
+   306→  // ── Cleaning tasks (API) + staff list ──
+   307→  const [tareasLimpieza, setTareasLimpieza] = useState<DbTareaLimpieza[]>([]);
+   308→  const [staff, setStaff] = useState<DbTenantUser[]>([]);
+   309→  const [loadingTasks, setLoadingTasks] = useState(false);
+   310→  const [startedAtMap, setStartedAtMap] = useState<Record<string, number>>({});
+   311→
+   312→  // ── View mode: list vs kanban ──
+   313→  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
+   314→
+   315→  // ── Priority filter ──
+   316→  const [priorityFilter, setPriorityFilter] = useState<Prioridad | 'all'>('all');
+   317→
+   318→  // ── Expanded task (for detail view) ──
+   319→  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+   320→
+   321→  // ── Assignment modal state ──
+   322→  const [assignCtx, setAssignCtx] = useState<{ taskId: string; habitacion: string; reassignFromStaffId?: string } | null>(null);
+   323→  const [assignStaffId, setAssignStaffId] = useState('');
+   324→  const [assignNote, setAssignNote] = useState('');
+   325→  const [assigning, setAssigning] = useState(false);
+   326→
+   327→  // ── Staff history modal ──
+   328→  const [historyStaff, setHistoryStaff] = useState<DbTenantUser | null>(null);
+   329→
+   330→  // ── Reassign-from-staff modal ──
+   331→  const [reassignFromStaff, setReassignFromStaff] = useState<DbTenantUser | null>(null);
+   332→
+   333→  // ── Confirm-complete alert ──
+   334→  const [confirmComplete, setConfirmComplete] = useState<{ taskId: string; habitacion: string } | null>(null);
+   335→  const [completingTask, setCompletingTask] = useState<string | null>(null);
+   336→
+   337→  // ── Manual reorder ──
+   338→  const [manualOrder, setManualOrder] = useState<string[]>([]);
+   339→
+   340→  // ── New task dialog ──
+   341→  const [showNewTask, setShowNewTask] = useState(false);
+   342→  const [newTaskHab, setNewTaskHab] = useState('');
+   343→  const [newTaskNota, setNewTaskNota] = useState('');
+   344→  const [newTaskPrioridad, setNewTaskPrioridad] = useState<Prioridad>('normal');
+   345→  const [newTaskTipo, setNewTaskTipo] = useState<TipoTarea>('limpieza');
+   346→  const [creatingTask, setCreatingTask] = useState(false);
+   347→
+   348→  // ── Drag state for Kanban ──
+   349→  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+   350→  const [dragOverColumn, setDragOverColumn] = useState<KanbanColumn | null>(null);
+   351→
+   352→  // ── Derived room state ──
+   353→  const porLimpiar = Object.entries(habitaciones).filter(([, h]) => h.estado === 'Limpieza');
+   354→  const enMantenimiento = Object.entries(habitaciones).filter(([, h]) => h.estado === 'Mantenimiento');
+   355→  const habDisponibles = Object.entries(habitaciones).filter(([, h]) => h.estado !== 'Mantenimiento' && h.estado !== 'Fuera de servicio');
+   356→
+   357→  const totalOperativas = Object.values(habitaciones).filter(h => h.estado !== 'Mantenimiento' && h.estado !== 'Fuera de servicio').length;
+   358→  const pendientesLimpieza = porLimpiar.length;
+   359→  const completadasLimpieza = Math.max(0, totalOperativas - pendientesLimpieza);
+   360→  const pctProgreso = totalOperativas > 0 ? Math.round((completadasLimpieza / totalOperativas) * 100) : 100;
+   361→
+   362→  // ── Fetch cleaning tasks + staff on mount + after mutations ──
+   363→  const refreshTasks = useCallback(async () => {
+   364→    setLoadingTasks(true);
+   365→    try {
+   366→      const [allTasks, staffList] = await Promise.all([
+   367→        api.limpieza.list(),
+   368→        api.usuarios.list('limpieza').catch(() => [] as DbTenantUser[]),
+   369→      ]);
+   370→      setTareasLimpieza(allTasks);
+   371→      setStaff(staffList);
+   372→    } catch (err) {
+   373→      console.error('Error loading cleaning tasks:', err);
+   374→    } finally {
+   375→      setLoadingTasks(false);
+   376→    }
+   377→  }, []);
+   378→
+   379→  useEffect(() => { refreshTasks(); }, [refreshTasks]);
+   380→
+   381→  // ── Staff workload ──
+   382→  const staffWorkload = useMemo(() => {
+   383→    const cutoff = daysAgo(7);
+   384→    const counts: Record<string, number> = {};
+   385→    historialMantenimiento.forEach(item => {
+   386→      if (item.fecha.split('T')[0] >= cutoff) {
+   387→        const emp = item.empleado || 'Sin asignar';
+   388→        counts[emp] = (counts[emp] || 0) + 1;
+   389→      }
+   390→    });
+   391→    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+   392→  }, [historialMantenimiento]);
+   393→
+   394→  // ── Build a unified cleaning queue ──
+   395→  const cleaningQueue = useMemo(() => {
+   396→    const taskByHab: Record<string, DbTareaLimpieza> = {};
+   397→    tareasLimpieza.forEach(t => {
+   398→      const existing = taskByHab[t.habitacion];
+   399→      if (!existing || (t.estado !== 'completada' && existing.estado === 'completada')) {
+   400→        taskByHab[t.habitacion] = t;
+   401→      }
+   402→    });
+   403→    return porLimpiar.map(([num, h]) => ({
+   404→      num,
+   405→      hab: h,
+   406→      task: taskByHab[num] || null,
+   407→      priority: computeLegacyPriority(num, reservas, now),
+   408→      lastCheckoutMs: getLastCheckoutMs(num, reservas),
+   409→      estMin: estimatedCleaningMinutes(h.tipo as string | undefined),
+   410→    }));
+   411→  }, [porLimpiar, tareasLimpieza, reservas, now]);
+   412→
+   413→  // ── Sort queue ──
+   414→  const cleaningQueueSorted = useMemo(() => {
+   415→    const order: Record<LegacyPriority, number> = { high: 0, medium: 1, low: 2 };
+   416→    return [...cleaningQueue].sort((a, b) => {
+   417→      const ia = manualOrder.indexOf(a.num);
+   418→      const ib = manualOrder.indexOf(b.num);
+   419→      if (ia !== -1 && ib !== -1) return ia - ib;
+   420→      if (ia !== -1) return -1;
+   421→      if (ib !== -1) return 1;
+   422→      const pdiff = order[a.priority] - order[b.priority];
+   423→      if (pdiff !== 0) return pdiff;
+   424→      return a.lastCheckoutMs - b.lastCheckoutMs;
+   425→    });
+   426→  }, [cleaningQueue, manualOrder]);
+   427→
+   428→  const moveTask = (num: string, dir: 'up' | 'down') => {
+   429→    const idx = cleaningQueueSorted.findIndex(t => t.num === num);
+   430→    if (idx < 0) return;
+   431→    const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+   432→    if (targetIdx < 0 || targetIdx >= cleaningQueueSorted.length) return;
+   433→    const newOrder = cleaningQueueSorted.map(t => t.num);
+   434→    [newOrder[idx], newOrder[targetIdx]] = [newOrder[targetIdx], newOrder[idx]];
+   435→    setManualOrder(newOrder);
+   436→  };
+   437→
+   438→  // ── Staff stats ──
+   439→  const staffStats = useMemo(() => {
+   440→    return staff.map(s => {
+   441→      const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || 'Sin nombre';
+   442→      const userTasks = tareasLimpieza.filter(t =>
+   443→        (s.id && t.empleadoId === s.id) || t.empleado === displayName
+   444→      );
+   445→      const active = userTasks.filter(t => t.estado !== 'completada').length;
+   446→      const completedToday = userTasks.filter(t =>
+   447→        t.estado === 'completada' && t.fechaCompletado && t.fechaCompletado.split('T')[0] === todayStr
+   448→      ).length;
+   449→      const totalCompleted = userTasks.filter(t => t.estado === 'completada').length;
+   450→      const efficiency = userTasks.length === 0 ? 100 : Math.round((totalCompleted / userTasks.length) * 100);
+   451→      const state: StaffState = active <= 2 ? 'available' : active <= 5 ? 'busy' : 'overloaded';
+   452→      return { staff: s, displayName, active, completedToday, totalCompleted, efficiency, state };
+   453→    });
+   454→  }, [staff, tareasLimpieza, todayStr]);
+   455→
+   456→  // ── Staff color map ──
+   457→  const staffColorMap = useMemo(() => {
+   458→    const map: Record<string, string> = {};
+   459→    staff.forEach((s, i) => {
+   460→      const name = s.nombreCompleto || s.nombreUsuario || s.user?.name || '';
+   461→      map[s.id] = STAFF_COLORS[i % STAFF_COLORS.length];
+   462→      map[name] = STAFF_COLORS[i % STAFF_COLORS.length];
+   463→    });
+   464→    return map;
+   465→  }, [staff]);
+   466→
+   467→  // ── Daily summary ──
+   468→  const dailySummary = useMemo(() => {
+   469→    const today = todayStr;
+   470→    const yesterday = daysAgo(1);
+   471→    const todayTasks = tareasLimpieza.filter(t => t.fechaCreacion.split('T')[0] === today);
+   472→    const yesterdayTasks = tareasLimpieza.filter(t => t.fechaCreacion.split('T')[0] === yesterday);
+   473→
+   474→    const pending = todayTasks.filter(t => t.estado === 'pendiente').length;
+   475→    const inProgress = todayTasks.filter(t => t.estado === 'en_progreso').length;
+   476→    const completed = todayTasks.filter(t => t.estado === 'completada').length;
+   477→    const yCompleted = yesterdayTasks.filter(t => t.estado === 'completada').length;
+   478→
+   479→    const completedTimes = todayTasks
+   480→      .filter(t => t.estado === 'completada' && t.fechaCompletado)
+   481→      .map(t => new Date(t.fechaCompletado!).getTime() - new Date(t.fechaCreacion).getTime());
+   482→    const avgMs = completedTimes.length > 0 ? completedTimes.reduce((a, b) => a + b, 0) / completedTimes.length : 0;
+   483→    const avgMin = Math.round(avgMs / 60000);
+   484→
+   485→    const yCompletedTimes = yesterdayTasks
+   486→      .filter(t => t.estado === 'completada' && t.fechaCompletado)
+   487→      .map(t => new Date(t.fechaCompletado!).getTime() - new Date(t.fechaCreacion).getTime());
+   488→    const yAvgMs = yCompletedTimes.length > 0 ? yCompletedTimes.reduce((a, b) => a + b, 0) / yCompletedTimes.length : 0;
+   489→    const yAvgMin = Math.round(yAvgMs / 60000);
+   490→
+   491→    const last7 = Array.from({ length: 7 }, (_, i) => {
+   492→      const day = daysAgo(6 - i);
+   493→      const count = tareasLimpieza.filter(t =>
+   494→        t.estado === 'completada' && t.fechaCompletado && t.fechaCompletado.split('T')[0] === day
+   495→      ).length;
+   496→      return { day: format(parseISO(day), 'EEE', { locale: es }), count };
+   497→    });
+   498→
+   499→    const variation = yCompleted === 0 ? (completed > 0 ? 100 : 0) : Math.round(((completed - yCompleted) / yCompleted) * 100);
+   500→    const avgVariation = yAvgMin === 0 ? 0 : Math.round(((avgMin - yAvgMin) / yAvgMin) * 100);
+   501→
+   502→    return { pending, inProgress, completed, avgMin, yCompleted, variation, avgVariation, last7, yAvgMin };
+   503→  }, [tareasLimpieza, todayStr]);
+   504→
+   505→  // ── Kanban data: all tasks grouped by status ──
+   506→  const kanbanData = useMemo(() => {
+   507→    const allTasks = [...tareasLimpieza];
+   508→
+   509→    // Filter by priority
+   510→    const filtered = priorityFilter === 'all'
+   511→      ? allTasks
+   512→      : allTasks.filter(t => (t.prioridad || 'normal') === priorityFilter);
+   513→
+   514→    const groups: Record<KanbanColumn, DbTareaLimpieza[]> = {
+   515→      pendiente: [],
+   516→      en_progreso: [],
+   517→      completada: [],
+   518→    };
+   519→
+   520→    filtered.forEach(t => {
+   521→      const estado = (t.estado || 'pendiente') as KanbanColumn;
+   522→      if (groups[estado]) {
+   523→        groups[estado].push(t);
+   524→      }
+   525→    });
+   526→
+   527→    // Sort each group: urgent first, then by creation date
+   528→    const prioOrder: Record<string, number> = { urgente: 0, normal: 1, baja: 2 };
+   529→    Object.keys(groups).forEach(key => {
+   530→      groups[key as KanbanColumn].sort((a, b) => {
+   531→        const pa = prioOrder[a.prioridad || 'normal'] ?? 1;
+   532→        const pb = prioOrder[b.prioridad || 'normal'] ?? 1;
+   533→        if (pa !== pb) return pa - pb;
+   534→        return new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime();
+   535→      });
+   536→    });
+   537→
+   538→    return groups;
+   539→  }, [tareasLimpieza, priorityFilter]);
+   540→
+   541→  // ── Scheduling timeline data (today's tasks) ──
+   542→  const scheduleData = useMemo(() => {
+   543→    const todayTasks = tareasLimpieza.filter(t =>
+   544→      t.estado !== 'completada' &&
+   545→      t.fechaCreacion.split('T')[0] === todayStr
+   546→    ).sort((a, b) => new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime());
+   547→
+   548→    let currentOffset = 8 * 60; // Start at 8:00 AM
+   549→    return todayTasks.map(t => {
+   550→      const estMin = estimatedCleaningMinutes(habitaciones[t.habitacion]?.tipo);
+   551→      const start = currentOffset;
+   552→      const end = currentOffset + estMin;
+   553→      currentOffset = end + 5; // 5 min gap between tasks
+   554→      const floor = getFloorFromRoom(t.habitacion);
+   555→      return {
+   556→        id: t.id,
+   557→        habitacion: t.habitacion,
+   558→        start,
+   559→        end,
+   560→        estMin,
+   561→        floor,
+   562→        prioridad: (t.prioridad || 'normal') as Prioridad,
+   563→        tipo: (t.tipo || 'limpieza') as TipoTarea,
+   564→        empleado: t.empleado || '',
+   565→      };
+   566→    });
+   567→  }, [tareasLimpieza, todayStr, habitaciones]);
+   568→
+   569→  const reservasAfectadas = useMemo(() => {
+   570→    if (!repHab) return 0;
+   571→    return reservas.filter(
+   572→      r => r.habitacion === repHab && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && r.estado !== 'Check-In realizado'
+   573→    ).length;
+   574→  }, [repHab, reservas]);
+   575→
+   576→  const listaFiltrada = useMemo(() => {
+   577→    let lista = [...historialMantenimiento].reverse();
+   578→    if (fDesde) lista = lista.filter(i => i.fecha.split('T')[0] >= fDesde);
+   579→    if (fHasta) lista = lista.filter(i => i.fecha.split('T')[0] <= fHasta);
+   580→    if (fHab) lista = lista.filter(i => i.habitacion.toLowerCase().includes(fHab.toLowerCase()));
+   581→    if (fDesc) lista = lista.filter(i => i.problema.toLowerCase().includes(fDesc.toLowerCase()) || i.reparacion.toLowerCase().includes(fDesc.toLowerCase()));
+   582→    if (fMonto) { const minMonto = parseFloat(fMonto); if (!isNaN(minMonto)) lista = lista.filter(i => i.monto >= minMonto); }
+   583→    return lista;
+   584→  }, [historialMantenimiento, fDesde, fHasta, fHab, fDesc, fMonto]);
+   585→
+   586→  const totalPaginas = Math.ceil(listaFiltrada.length / PAGE_SIZE) || 1;
+   587→  const paginaActual = Math.min(pagina, totalPaginas);
+   588→  const inicio = (paginaActual - 1) * PAGE_SIZE;
+   589→  const listaPaginada = listaFiltrada.slice(inicio, inicio + PAGE_SIZE);
+   590→
+   591→  const limpiarFiltros = () => { const today = todayLocal(); setFDesde(today); setFHasta(today); setFHab(''); setFDesc(''); setFMonto(''); setPagina(1); };
+   592→  const [resolviendo, setResolviendo] = useState(false);
+   593→  const [reportando, setReportando] = useState(false);
+   594→
+   595→  const handleResolver = async () => {
+   596→    if (!modalResolver || !reparacion.trim()) return;
+   597→    setResolviendo(true);
+   598→    try {
+   599→      await resolverMantenimiento(modalResolver, reparacion.trim(), parseFloat(monto) || 0, sacarDeCaja);
+   600→      toast.success('Mantenimiento resuelto', { description: `Habitación ${modalResolver}${parseFloat(monto) > 0 ? (sacarDeCaja ? ' - Egreso registrado en caja' : ' - Gasto registrado (pago aparte)') : ''}` });
+   601→      setModalResolver(null);
+   602→      setReparacion('');
+   603→      setMonto('0');
+   604→      setSacarDeCaja(true);
+   605→    } catch (err: any) {
+   606→      toast.error(err.message || 'Error al resolver mantenimiento');
+   607→    } finally {
+   608→      setResolviendo(false);
+   609→    }
+   610→  };
+   611→
+   612→  // ── Open assignment modal ──
+   613→  const openAssignModal = (task: DbTareaLimpieza | null, habitacion: string, reassignFromStaffId?: string) => {
+   614→    setAssignCtx({ taskId: task?.id || '', habitacion, reassignFromStaffId });
+   615→    setAssignStaffId(reassignFromStaffId ? '' : (task?.empleadoId || ''));
+   616→    setAssignNote(task?.nota || '');
+   617→  };
+   618→
+   619→  const handleAssign = async () => {
+   620→    if (!assignCtx || !assignStaffId) return;
+   621→    setAssigning(true);
+   622→    try {
+   623→      const staffMember = staff.find(s => s.id === assignStaffId);
+   624→      const empleadoName = staffMember?.nombreCompleto || staffMember?.nombreUsuario || staffMember?.user?.name || '';
+   625→      if (assignCtx.taskId) {
+   626→        await api.limpieza.update(assignCtx.taskId, {
+   627→          empleadoId: assignStaffId,
+   628→          empleado: empleadoName,
+   629→          ...(assignNote.trim() ? { nota: assignNote.trim() } : {}),
+   630→        });
+   631→      } else {
+   632→        const created = await api.limpieza.create({
+   633→          habitacion: assignCtx.habitacion,
+   634→          nota: assignNote.trim() || undefined,
+   635→        });
+   636→        await api.limpieza.update(created.id, {
+   637→          empleadoId: assignStaffId,
+   638→          empleado: empleadoName,
+   639→        });
+   640→      }
+   641→      toast.success('Tarea asignada', { description: `${empleadoName} → Hab. ${assignCtx.habitacion}` });
+   642→      setAssignCtx(null);
+   643→      setAssignStaffId('');
+   644→      setAssignNote('');
+   645→      await refreshTasks();
+   646→    } catch (err: any) {
+   647→      toast.error(err.message || 'Error al asignar tarea');
+   648→    } finally {
+   649→      setAssigning(false);
+   650→    }
+   651→  };
+   652→
+   653→  // ── Start a task ──
+   654→  const handleStartTask = async (task: DbTareaLimpieza | null, habitacion: string) => {
+   655→    try {
+   656→      if (task?.id) {
+   657→        await api.limpieza.update(task.id, { estado: 'en_progreso' });
+   658→        setStartedAtMap(m => ({ ...m, [task.id]: Date.now() }));
+   659→      } else {
+   660→        const created = await api.limpieza.create({ habitacion });
+   661→        await api.limpieza.update(created.id, { estado: 'en_progreso' });
+   662→        setStartedAtMap(m => ({ ...m, [created.id]: Date.now() }));
+   663→      }
+   664→      toast.success('Tarea iniciada', { description: `Hab. ${habitacion}` });
+   665→      await refreshTasks();
+   666→    } catch (err: any) {
+   667→      toast.error(err.message || 'Error al iniciar tarea');
+   668→    }
+   669→  };
+   670→
+   671→  // ── Move task between Kanban columns ──
+   672→  const handleMoveTaskToColumn = async (task: DbTareaLimpieza, targetColumn: KanbanColumn) => {
+   673→    if (task.estado === targetColumn) return;
+   674→    try {
+   675→      if (targetColumn === 'en_progreso') {
+   676→        await api.limpieza.update(task.id, { estado: 'en_progreso' });
+   677→        setStartedAtMap(m => ({ ...m, [task.id]: Date.now() }));
+   678→      } else if (targetColumn === 'completada') {
+   679→        await api.limpieza.update(task.id, { estado: 'completada' });
+   680→        // Also mark room as available
+   681→        if (habitaciones[task.habitacion]?.estado === 'Limpieza') {
+   682→          await marcarComoLimpia(task.habitacion);
+   683→          if (habitaciones[task.habitacion]?.estado === 'Limpieza') {
+   684→            await cambiarEstadoHabitacion(task.habitacion, 'Disponible');
+   685→          }
+   686→        }
+   687→      } else {
+   688→        await api.limpieza.update(task.id, { estado: 'pendiente' });
+   689→      }
+   690→      toast.success(`Tarea movida a ${targetColumn === 'pendiente' ? 'Pendiente' : targetColumn === 'en_progreso' ? 'En Progreso' : 'Completada'}`);
+   691→      await refreshTasks();
+   692→    } catch (err: any) {
+   693→      toast.error(err.message || 'Error al mover tarea');
+   694→    }
+   695→  };
+   696→
+   697→  // ── Confirm complete ──
+   698→  const openCompleteConfirm = (task: DbTareaLimpieza | null, habitacion: string) => {
+   699→    setConfirmComplete({ taskId: task?.id || '', habitacion });
+   700→  };
+   701→
+   702→  const handleConfirmComplete = async () => {
+   703→    if (!confirmComplete) return;
+   704→    const { taskId, habitacion } = confirmComplete;
+   705→    setCompletingTask(taskId || habitacion);
+   706→    try {
+   707→      if (taskId) {
+   708→        await api.limpieza.update(taskId, { estado: 'completada' });
+   709→      } else {
+   710→        const created = await api.limpieza.create({ habitacion });
+   711→        await api.limpieza.update(created.id, { estado: 'completada' });
+   712→      }
+   713→      await marcarComoLimpia(habitacion);
+   714→      if (habitaciones[habitacion]?.estado === 'Limpieza') {
+   715→        await cambiarEstadoHabitacion(habitacion, 'Disponible');
+   716→      }
+   717→      toast.success('Habitación marcada como limpia', { description: `Hab. ${habitacion} disponible` });
+   718→      setStartedAtMap(m => { const c = { ...m }; delete c[taskId]; return c; });
+   719→      await refreshTasks();
+   720→    } catch (err: any) {
+   721→      toast.error(err.message || 'Error al completar tarea');
+   722→    } finally {
+   723→      setCompletingTask(null);
+   724→      setConfirmComplete(null);
+   725→    }
+   726→  };
+   727→
+   728→  // ── Create new task ──
+   729→  const handleCreateTask = async () => {
+   730→    if (!newTaskHab.trim()) return;
+   731→    setCreatingTask(true);
+   732→    try {
+   733→      await api.limpieza.create({
+   734→        habitacion: newTaskHab.trim(),
+   735→        nota: newTaskNota.trim() || undefined,
+   736→        prioridad: newTaskPrioridad,
+   737→        tipo: newTaskTipo,
+   738→      });
+   739→      toast.success('Tarea creada', { description: `Hab. ${newTaskHab}` });
+   740→      setShowNewTask(false);
+   741→      setNewTaskHab('');
+   742→      setNewTaskNota('');
+   743→      setNewTaskPrioridad('normal');
+   744→      setNewTaskTipo('limpieza');
+   745→      await refreshTasks();
+   746→    } catch (err: any) {
+   747→      toast.error(err.message || 'Error al crear tarea');
+   748→    } finally {
+   749→      setCreatingTask(false);
+   750→    }
+   751→  };
+   752→
+   753→  // ── Update task priority ──
+   754→  const handleUpdatePriority = async (taskId: string, prioridad: Prioridad) => {
+   755→    try {
+   756→      await api.limpieza.update(taskId, { prioridad });
+   757→      toast.success('Prioridad actualizada');
+   758→      await refreshTasks();
+   759→    } catch (err: any) {
+   760→      toast.error(err.message || 'Error al actualizar prioridad');
+   761→    }
+   762→  };
+   763→
+   764→  const handleReportar = async () => {
+   765→    if (!repHab || !repDesc.trim()) return;
+   766→    if (reservasAfectadas > 0 && !repConfirm) {
+   767→      setRepConfirm(true);
+   768→      return;
+   769→    }
+   770→    setReportando(true);
+   771→    try {
+   772→      await reportarMantenimiento(repHab, repDesc.trim());
+   773→      toast.success('Mantenimiento reportado', { description: `Habitación ${repHab}` });
+   774→      setRepHab('');
+   775→      setRepDesc('');
+   776→      setShowReportForm(false);
+   777→      setRepConfirm(false);
+   778→    } catch (err: any) {
+   779→      toast.error(err.message || 'Error al reportar mantenimiento');
+   780→    } finally {
+   781→      setReportando(false);
+   782→    }
+   783→  };
+   784→
+   785→  const hasFiltros = fDesde || fHasta || fHab || fDesc || fMonto;
+   786→
+   787→  const getActiveTasksForStaff = (s: DbTenantUser) => {
+   788→    const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || '';
+   789→    return tareasLimpieza.filter(t =>
+   790→      t.estado !== 'completada' && ((s.id && t.empleadoId === s.id) || t.empleado === displayName)
+   791→    );
+   792→  };
+   793→
+   794→  const getCompletedTasksForStaff = (s: DbTenantUser) => {
+   795→    const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || '';
+   796→    return tareasLimpieza
+   797→      .filter(t => t.estado === 'completada' && ((s.id && t.empleadoId === s.id) || t.empleado === displayName))
+   798→      .sort((a, b) => (b.fechaCompletado || '').localeCompare(a.fechaCompletado || ''));
+   799→  };
+   800→
+   801→  // ── Render a Kanban task card ──
+   802→  const renderKanbanCard = (task: DbTareaLimpieza, index: number) => {
+   803→    const prioridad = (task.prioridad || 'normal') as Prioridad;
+   804→    const prioCfg = PRIORIDAD_CONFIG[prioridad] || PRIORIDAD_CONFIG.normal;
+   805→    const tipo = (task.tipo || 'limpieza') as TipoTarea;
+   806→    const tipoCfg = TIPO_CONFIG[tipo] || TIPO_CONFIG.limpieza;
+   807→    const TipoIcon = tipoCfg.icon;
+   808→    const PrioIcon = prioCfg.icon;
+   809→    const assignedName = task.empleado || '';
+   810→    const staffColor = staffColorMap[task.empleadoId || ''] || staffColorMap[assignedName] || '#94A3B8';
+   811→    const isExpanded = expandedTaskId === task.id;
+   812→    const isUrgent = prioridad === 'urgente';
+   813→    const isDragged = draggedTaskId === task.id;
+   814→
+   815→    const habitacion = habitaciones[task.habitacion];
+   816→    const estMin = estimatedCleaningMinutes(habitacion?.tipo);
+   817→
+   818→    const taskState = task.estado as KanbanColumn;
+   819→    const isInProgress = taskState === 'en_progreso';
+   820→    const startedAt = task.id ? startedAtMap[task.id] : undefined;
+   821→    const elapsedMs = isInProgress && startedAt ? nowSec - startedAt : 0;
+   822→    const estimatedMs = estMin * 60_000;
+   823→    const overBudgetMs = isInProgress && startedAt ? Math.max(0, elapsedMs - estimatedMs - 30 * 60_000) : 0;
+   824→    const isOverBudget = overBudgetMs > 0;
+   825→
+   826→    const sinceCreationMs = nowSec - new Date(task.fechaCreacion).getTime();
+   827→    const floor = getFloorFromRoom(task.habitacion);
+   828→
+   829→    return (
+   830→      <div
+   831→        key={task.id}
+   832→        draggable
+   833→        onDragStart={() => setDraggedTaskId(task.id)}
+   834→        onDragEnd={() => { setDraggedTaskId(null); setDragOverColumn(null); }}
+   835→        className={cn(
+   836→          'group rounded-lg bg-white border shadow-sm transition-all duration-200 cursor-grab active:cursor-grabbing',
+   837→          prioCfg.leftBorder,
+   838→          isDragged && 'opacity-50 scale-95 rotate-1',
+   839→          isUrgent && 'ring-1 ring-[#EF4444]/30',
+   840→          'hover:shadow-md hover:-translate-y-0.5',
+   841→          isExpanded && 'shadow-md',
+   842→        )}
+   843→        style={{ animationDelay: `${index * 30}ms` }}
+   844→      >
+   845→        {/* Card header */}
+   846→        <div
+   847→          className="px-3 py-2.5"
+   848→          onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+   849→        >
+   850→          <div className="flex items-start justify-between gap-2">
+   851→            <div className="flex items-center gap-2 min-w-0 flex-1">
+   852→              {/* Room number - prominent */}
+   853→              <div className={cn('w-8 h-8 rounded-md flex items-center justify-center shrink-0 font-bold text-xs', FLOOR_COLORS[floor] || 'bg-muted')}>
+   854→                {task.habitacion}
+   855→              </div>
+   856→              <div className="min-w-0 flex-1">
+   857→                <div className="flex items-center gap-1.5 flex-wrap">
+   858→                  <span className="text-sm font-bold text-[#0F2B28]">Hab. {task.habitacion}</span>
+   859→                  {/* Priority dot */}
+   860→                  <span className={cn('w-2 h-2 rounded-full shrink-0', prioCfg.dot, isUrgent && 'animate-pulse')} />
+   861→                  {/* Task type icon */}
+   862→                  <TipoIcon className={cn('w-3 h-3', tipoCfg.color)} />
+   863→                </div>
+   864→                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+   865→                  <span>{tipoCfg.label}</span>
+   866→                  <span>·</span>
+   867→                  <span>{formatTimeSince(new Date(task.fechaCreacion).getTime())}</span>
+   868→                </div>
+   869→              </div>
+   870→            </div>
+   871→
+   872→            {/* Assigned staff avatar */}
+   873→            {assignedName ? (
+   874→              <Avatar className="w-7 h-7 shrink-0" style={{ backgroundColor: staffColor + '20', borderColor: staffColor }}>
+   875→                <AvatarFallback className="text-[9px] font-bold" style={{ color: staffColor }}>
+   876→                  {getInitials(assignedName)}
+   877→                </AvatarFallback>
+   878→              </Avatar>
+   879→            ) : (
+   880→              <div className="w-7 h-7 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+   881→                <Users className="w-3 h-3 text-muted-foreground/50" />
+   882→              </div>
+   883→            )}
+   884→          </div>
+   885→
+   886→          {/* Priority + status badges */}
+   887→          <div className="flex items-center gap-1 mt-2 flex-wrap">
+   888→            <Badge className={cn('text-[9px] shadow-sm font-semibold', prioCfg.badge)}>
+   889→              {PrioIcon && <PrioIcon className="w-2 h-2 mr-0.5" />}
+   890→              {prioCfg.label}
+   891→            </Badge>
+   892→            {isInProgress && (
+   893→              <Badge className="text-[9px] bg-[#E0F2FE] text-[#0369A1] shadow-sm">
+   894→                <Timer className="w-2 h-2 mr-0.5" />En curso
+   895→              </Badge>
+   896→            )}
+   897→            {isOverBudget && (
+   898→              <Badge className="text-[9px] bg-[#FEE2E2] text-[#991B1B] shadow-sm animate-pulse">
+   899→                <AlertCircle className="w-2 h-2 mr-0.5" />Excedido
+   900→              </Badge>
+   901→            )}
+   902→          </div>
+   903→
+   904→          {/* Progress bar for in-progress */}
+   905→          {isInProgress && startedAt && (
+   906→            <div className="mt-2 flex items-center gap-2">
+   907→              <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+   908→                <div
+   909→                  className={cn('h-full rounded-full transition-all', isOverBudget ? 'bg-[#EF4444]' : 'bg-[#0EA5E9]')}
+   910→                  style={{ width: `${Math.min(100, (elapsedMs / (estimatedMs + 30 * 60_000)) * 100)}%` }}
+   911→                />
+   912→              </div>
+   913→              <span className={cn('text-[9px] font-mono font-semibold tabular-nums', isOverBudget ? 'text-[#991B1B]' : 'text-[#0369A1]')}>
+   914→                {formatDuration(elapsedMs)}
+   915→              </span>
+   916→            </div>
+   917→          )}
+   918→
+   919→          {/* Urgent pulsing indicator */}
+   920→          {isUrgent && (
+   921→            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[#991B1B] font-semibold">
+   922→              <span className="relative flex h-2 w-2">
+   923→                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
+   924→                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#EF4444]" />
+   925→              </span>
+   926→              Requiere atención inmediata
+   927→            </div>
+   928→          )}
+   929→        </div>
+   930→
+   931→        {/* Quick action buttons (always visible on hover, or when expanded) */}
+   932→        <div className={cn(
+   933→          'px-3 pb-2.5 flex items-center gap-1 transition-all',
+   934→          isExpanded ? 'opacity-100 max-h-12' : 'opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-12 overflow-hidden',
+   935→        )}>
+   936→          {task.estado === 'pendiente' && (
+   937→            <Button
+   938→              size="sm"
+   939→              variant="outline"
+   940→              className="h-6 text-[10px] px-2 border-[#0EA5E9]/30 text-[#0369A1] hover:bg-[#E0F2FE]"
+   941→              onClick={(e) => { e.stopPropagation(); handleStartTask(task, task.habitacion); }}
+   942→            >
+   943→              <Play className="w-2.5 h-2.5 mr-0.5" />Iniciar
+   944→            </Button>
+   945→          )}
+   946→          {task.estado === 'en_progreso' && (
+   947→            <Button
+   948→              size="sm"
+   949→              className="h-6 text-[10px] px-2 bg-[#059669] hover:bg-[#047857] text-white"
+   950→              onClick={(e) => { e.stopPropagation(); openCompleteConfirm(task, task.habitacion); }}
+   951→              disabled={completingTask === task.id}
+   952→            >
+   953→              {completingTask === task.id ? <Loader2 className="w-2.5 h-2.5 mr-0.5 animate-spin" /> : <Check className="w-2.5 h-2.5 mr-0.5" />}
+   954→              Completar
+   955→            </Button>
+   956→          )}
+   957→          <Button
+   958→            size="sm"
+   959→            variant="outline"
+   960→            className="h-6 text-[10px] px-2"
+   961→            onClick={(e) => { e.stopPropagation(); openAssignModal(task, task.habitacion); }}
+   962→          >
+   963→            <UserPlus className="w-2.5 h-2.5 mr-0.5" />
+   964→            {assignedName ? 'Reasignar' : 'Asignar'}
+   965→          </Button>
+   966→          {task.estado === 'pendiente' && (
+   967→            <Button
+   968→              size="sm"
+   969→              variant="ghost"
+   970→              className="h-6 text-[10px] px-2 text-[#166534] hover:bg-[#DCFCE7]"
+   971→              onClick={(e) => { e.stopPropagation(); openCompleteConfirm(task, task.habitacion); }}
+   972→            >
+   973→              <Check className="w-2.5 h-2.5 mr-0.5" />Limpia
+   974→            </Button>
+   975→          )}
+   976→        </div>
+   977→
+   978→        {/* Expanded detail section */}
+   979→        {isExpanded && (
+   980→          <div className="px-3 pb-3 pt-0 border-t border-muted/50 space-y-2">
+   981→            {habitacion && (
+   982→              <p className="text-[10px] text-muted-foreground">
+   983→                {habitacion.tipo} · {habitacion.capacidad} persona{habitacion.capacidad !== 1 ? 's' : ''} · Piso {getFloorFromRoom(task.habitacion)}
+   984→              </p>
+   985→            )}
+   986→            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+   987→              <Clock className="w-2.5 h-2.5" />Estimado: ~{estMin} min
+   988→            </div>
+   989→            {assignedName && (
+   990→              <div className="flex items-center gap-1.5 text-[10px]">
+   991→                <Avatar className="w-5 h-5">
+   992→                  <AvatarFallback className="text-[8px] font-bold" style={{ color: staffColor, backgroundColor: staffColor + '20' }}>
+   993→                    {getInitials(assignedName)}
+   994→                  </AvatarFallback>
+   995→                </Avatar>
+   996→                <span className="font-medium text-[#0F2B28]">{assignedName}</span>
+   997→              </div>
+   998→            )}
+   999→            {task.nota && (
+  1000→              <p className="text-[10px] text-muted-foreground italic line-clamp-2">&ldquo;{task.nota}&rdquo;</p>
+  1001→            )}
+  1002→            {/* Priority quick change */}
+  1003→            <div className="flex items-center gap-1.5">
+  1004→              <span className="text-[9px] text-muted-foreground">Prioridad:</span>
+  1005→              {PRIORIDADES.map(p => (
+  1006→                <button
+  1007→                  key={p}
+  1008→                  type="button"
+  1009→                  onClick={(e) => { e.stopPropagation(); handleUpdatePriority(task.id, p); }}
+  1010→                  className={cn(
+  1011→                    'w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center',
+  1012→                    prioridad === p ? 'border-foreground scale-110' : 'border-transparent hover:border-muted-foreground/30',
+  1013→                    PRIORIDAD_CONFIG[p].dot,
+  1014→                  )}
+  1015→                  title={PRIORIDAD_CONFIG[p].label}
+  1016→                />
+  1017→              ))}
+  1018→            </div>
+  1019→          </div>
+  1020→        )}
+  1021→      </div>
+  1022→    );
+  1023→  };
+  1024→
+  1025→  return (
+  1026→    <div className="space-y-6">
+  1027→      <ModuleHeader icon={SprayCan} title="Limpieza y Mantenimiento" subtitle="Gestioná el estado de habitaciones y tareas">
+  1028→        <div className="flex items-center gap-2">
+  1029→          <Button variant="ghost" size="sm" onClick={refreshTasks} disabled={loadingTasks} className="h-8">
+  1030→            <RefreshCw className={cn('w-3.5 h-3.5', loadingTasks && 'animate-spin')} />
+  1031→          </Button>
+  1032→          <Button
+  1033→            size="sm"
+  1034→            className="h-8 bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white"
+  1035→            onClick={() => setShowNewTask(true)}
+  1036→          >
+  1037→            <Plus className="w-3.5 h-3.5 mr-1" />Nueva Tarea
+  1038→          </Button>
+  1039→        </div>
+  1040→      </ModuleHeader>
+  1041→
+  1042→      {/* ── Maintenance alert banner ── */}
+  1043→      {enMantenimiento.length > 0 && (
+  1044→        <Card className="border-[#FECACA] bg-red-950/20 overflow-hidden">
+  1045→          <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+  1046→            <div className="flex items-center gap-3 flex-1 min-w-0">
+  1047→              <div className="relative w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center shrink-0">
+  1048→                <span className="absolute inset-0 rounded-full bg-[#EF4444]/20 animate-ping" />
+  1049→                <AlertTriangle className="relative w-5 h-5 text-[#991B1B] animate-pulse-subtle" />
+  1050→              </div>
+  1051→              <div className="min-w-0">
+  1052→                <p className="text-sm font-semibold text-[#991B1B]">
+  1053→                  {enMantenimiento.length} habitación{enMantenimiento.length !== 1 ? 'es' : ''} en mantenimiento
+  1054→                </p>
+  1055→                <p className="text-xs text-muted-foreground truncate">
+  1056→                  Habitaciones afectadas: {enMantenimiento.map(([n]) => n).join(', ')}
+  1057→                </p>
+  1058→              </div>
+  1059→            </div>
+  1060→            <Button
+  1061→              size="sm"
+  1062→              variant="outline"
+  1063→              className="border-[#991B1B]/30 text-[#991B1B] hover:bg-[#FEE2E2] hover:text-[#991B1B] shrink-0"
+  1064→              onClick={() => setModulo('habitaciones' as ModuloId)}
+  1065→            >
+  1066→              <DoorOpen className="w-3.5 h-3.5 mr-1.5" />Ir a Habitaciones
+  1067→              <ChevronRight className="w-3.5 h-3.5 ml-1" />
+  1068→            </Button>
+  1069→          </CardContent>
+  1070→        </Card>
+  1071→      )}
+  1072→
+  1073→      {/* ── Summary Stats ── */}
+  1074→      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+  1075→        <Card className="rounded-xl border-l-[3px] border-l-yellow-500 bg-yellow-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+  1076→          <CardContent className="p-0">
+  1077→            <div className="flex items-start justify-between">
+  1078→              <div className="space-y-1">
+  1079→                <p className="text-xs font-medium text-yellow-400">Tareas Pendientes</p>
+  1080→                <AnimatedNumber value={dailySummary.pending} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-yellow-200" />
+  1081→              </div>
+  1082→              <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+  1083→                <SprayCan className="w-5 h-5 text-yellow-400" />
+  1084→              </div>
+  1085→            </div>
+  1086→          </CardContent>
+  1087→        </Card>
+  1088→        <Card className="rounded-xl border-l-[3px] border-l-sky-500 bg-sky-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+  1089→          <CardContent className="p-0">
+  1090→            <div className="flex items-start justify-between">
+  1091→              <div className="space-y-1">
+  1092→                <p className="text-xs font-medium text-sky-400">En Progreso</p>
+  1093→                <AnimatedNumber value={dailySummary.inProgress} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-sky-200" />
+  1094→              </div>
+  1095→              <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center">
+  1096→                <Timer className="w-5 h-5 text-sky-400" />
+  1097→              </div>
+  1098→            </div>
+  1099→          </CardContent>
+  1100→        </Card>
+  1101→        <Card className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+  1102→          <CardContent className="p-0">
+  1103→            <div className="flex items-start justify-between">
+  1104→              <div className="space-y-1">
+  1105→                <p className="text-xs font-medium text-emerald-400">Completadas Hoy</p>
+  1106→                <div className="flex items-baseline gap-1.5">
+  1107→                  <AnimatedNumber value={dailySummary.completed} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-emerald-200" />
+  1108→                  {dailySummary.variation !== 0 && (
+  1109→                    <span className={cn('inline-flex items-center text-[10px] font-semibold', dailySummary.variation >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+  1110→                      {dailySummary.variation >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+  1111→                      {Math.abs(dailySummary.variation)}%
+  1112→                    </span>
+  1113→                  )}
+  1114→                </div>
+  1115→              </div>
+  1116→              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+  1117→                <CheckCircle className="w-5 h-5 text-emerald-400" />
+  1118→              </div>
+  1119→            </div>
+  1120→          </CardContent>
+  1121→        </Card>
+  1122→        <Card className="rounded-xl border-l-[3px] border-l-violet-500 bg-violet-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+  1123→          <CardContent className="p-0">
+  1124→            <div className="flex items-start justify-between">
+  1125→              <div className="space-y-1">
+  1126→                <p className="text-xs font-medium text-violet-400">Tiempo Promedio</p>
+  1127→                <span className="text-xl font-bold text-violet-200">
+  1128→                  {dailySummary.avgMin > 0 ? `${dailySummary.avgMin}'` : '—'}
+  1129→                </span>
+  1130→              </div>
+  1131→              <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
+  1132→                <Clock className="w-5 h-5 text-violet-400" />
+  1133→              </div>
+  1134→            </div>
+  1135→          </CardContent>
+  1136→        </Card>
+  1137→      </div>
+  1138→
+  1139→      {/* ── Scheduling Timeline ── */}
+  1140→      {scheduleData.length > 0 && (
+  1141→        <Card className="border-[#E2E8F0]">
+  1142→          <CardHeader className="pb-3">
+  1143→            <div className="flex items-center justify-between gap-2">
+  1144→              <CardTitle className="text-base flex items-center gap-2">
+  1145→                <ClipboardList className="w-4 h-4 text-[#0F2B28]" />
+  1146→                Cronograma de hoy
+  1147→                <span className="text-xs font-normal text-muted-foreground ml-1">{format(parseISO(todayStr), "EEE d 'de' MMM", { locale: es })}</span>
+  1148→              </CardTitle>
+  1149→            </div>
+  1150→          </CardHeader>
+  1151→          <CardContent>
+  1152→            <div className="relative overflow-x-auto">
+  1153→              {/* Time axis */}
+  1154→              <div className="flex items-center mb-2 text-[9px] text-muted-foreground">
+  1155→                {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(h => (
+  1156→                  <div key={h} className="flex-1 text-center">{h}:00</div>
+  1157→                ))}
+  1158→              </div>
+  1159→              {/* Timeline bar container */}
+  1160→              <div className="relative h-20 bg-muted/20 rounded-lg">
+  1161→                {/* Hour grid lines */}
+  1162→                {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(h => (
+  1163→                  <div
+  1164→                    key={h}
+  1165→                    className="absolute top-0 bottom-0 border-l border-muted/30"
+  1166→                    style={{ left: `${((h - 8) / 10) * 100}%` }}
+  1167→                  />
+  1168→                ))}
+  1169→                {/* Current time indicator */}
+  1170→                {(() => {
+  1171→                  const nowDate = new Date();
+  1172→                  const nowMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+  1173→                  const nowPct = ((nowMinutes - 480) / 600) * 100; // 8:00 = 480 min, 18:00 = 1080 min
+  1174→                  if (nowPct >= 0 && nowPct <= 100) {
+  1175→                    return (
+  1176→                      <div
+  1177→                        className="absolute top-0 bottom-0 w-0.5 bg-[#EF4444] z-10"
+  1178→                        style={{ left: `${nowPct}%` }}
+  1179→                      >
+  1180→                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-[#EF4444]" />
+  1181→                      </div>
+  1182→                    );
+  1183→                  }
+  1184→                  return null;
+  1185→                })()}
+  1186→                {/* Task blocks */}
+  1187→                {scheduleData.map((block, i) => {
+  1188→                  const startPct = ((block.start - 480) / 600) * 100;
+  1189→                  const widthPct = ((block.end - block.start) / 600) * 100;
+  1190→                  const floorColor = FLOOR_COLORS[block.floor] || 'bg-muted';
+  1191→                  const prioCfg = PRIORIDAD_CONFIG[block.prioridad] || PRIORIDAD_CONFIG.normal;
+  1192→                  const tipoCfg = TIPO_CONFIG[block.tipo] || TIPO_CONFIG.limpieza;
+  1193→                  const TipoIcon = tipoCfg.icon;
+  1194→                  return (
+  1195→                    <div
+  1196→                      key={block.id}
+  1197→                      className={cn(
+  1198→                        'absolute top-2 bottom-2 rounded-md border border-white/80 shadow-sm flex items-center gap-1 px-1.5 overflow-hidden cursor-default',
+  1199→                        floorColor,
+  1200→                      )}
+  1201→                      style={{ left: `${Math.max(0, startPct)}%`, width: `${Math.max(1, widthPct)}%` }}
+  1202→                      title={`Hab. ${block.habitacion} - ${tipoCfg.label} (${block.estMin} min)`}
+  1203→                    >
+  1204→                      <span className="text-[9px] font-bold text-[#0F2B28] shrink-0">{block.habitacion}</span>
+  1205→                      <TipoIcon className="w-2.5 h-2.5 shrink-0 text-[#0F2B28]/60" />
+  1206→                      {widthPct > 8 && (
+  1207→                        <span className="text-[8px] text-[#0F2B28]/60 truncate">{block.estMin}m</span>
+  1208→                      )}
+  1209→                    </div>
+  1210→                  );
+  1211→                })}
+  1212→              </div>
+  1213→              {/* Legend */}
+  1214→              <div className="flex items-center gap-3 mt-2 text-[9px] text-muted-foreground flex-wrap">
+  1215→                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#DBEAFE]" />Piso 1</span>
+  1216→                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#FEF3C7]" />Piso 2</span>
+  1217→                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#DCFCE7]" />Piso 3</span>
+  1218→                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#F3E8FF]" />Piso 4</span>
+  1219→                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />Ahora</span>
+  1220→              </div>
+  1221→            </div>
+  1222→          </CardContent>
+  1223→        </Card>
+  1224→      )}
+  1225→
+  1226→      {/* ── View mode toggle + Priority filter ── */}
+  1227→      <div className="flex items-center justify-between gap-3 flex-wrap">
+  1228→        <div className="flex items-center gap-2">
+  1229→          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'list' | 'kanban')}>
+  1230→            <TabsList className="h-8">
+  1231→              <TabsTrigger value="kanban" className="text-xs px-3 h-6">
+  1232→                <LayoutGrid className="w-3.5 h-3.5 mr-1" />Kanban
+  1233→              </TabsTrigger>
+  1234→              <TabsTrigger value="list" className="text-xs px-3 h-6">
+  1235→                <List className="w-3.5 h-3.5 mr-1" />Lista
+  1236→              </TabsTrigger>
+  1237→            </TabsList>
+  1238→          </Tabs>
+  1239→        </div>
+  1240→        <div className="flex items-center gap-2">
+  1241→          <span className="text-xs text-muted-foreground">Prioridad:</span>
+  1242→          <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as Prioridad | 'all')}>
+  1243→            <SelectTrigger className="w-32 h-8 text-xs">
+  1244→              <SelectValue />
+  1245→            </SelectTrigger>
+  1246→            <SelectContent>
+  1247→              <SelectItem value="all">Todas</SelectItem>
+  1248→              <SelectItem value="urgente">
+  1249→                <span className="inline-flex items-center gap-1.5">
+  1250→                  <span className="w-2 h-2 rounded-full bg-[#EF4444]" />Urgente
+  1251→                </span>
+  1252→              </SelectItem>
+  1253→              <SelectItem value="normal">
+  1254→                <span className="inline-flex items-center gap-1.5">
+  1255→                  <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />Normal
+  1256→                </span>
+  1257→              </SelectItem>
+  1258→              <SelectItem value="baja">
+  1259→                <span className="inline-flex items-center gap-1.5">
+  1260→                  <span className="w-2 h-2 rounded-full bg-[#0EA5E9]" />Baja
+  1261→                </span>
+  1262→              </SelectItem>
+  1263→            </SelectContent>
+  1264→          </Select>
+  1265→        </div>
+  1266→      </div>
+  1267→
+  1268→      {/* ════════════════════════════════════════════════════════════════ */}
+  1269→      {/* KANBAN VIEW                                                       */}
+  1270→      {/* ════════════════════════════════════════════════════════════════ */}
+  1271→      {viewMode === 'kanban' && (
+  1272→        <div className="grid md:grid-cols-3 gap-4">
+  1273→          {KANBAN_COLUMNS.map(col => {
+  1274→            const tasks = kanbanData[col.key];
+  1275→            const ColIcon = col.icon;
+  1276→            const isDragOver = dragOverColumn === col.key;
+  1277→
+  1278→            return (
+  1279→              <div
+  1280→                key={col.key}
+  1281→                className={cn(
+  1282→                  'flex flex-col rounded-xl border bg-muted/10 transition-all',
+  1283→                  isDragOver && 'ring-2 ring-[#0EA5E9]/40 bg-[#E0F2FE]/10',
+  1284→                )}
+  1285→                onDragOver={(e) => {
+  1286→                  e.preventDefault();
+  1287→                  setDragOverColumn(col.key);
+  1288→                }}
+  1289→                onDragLeave={() => setDragOverColumn(null)}
+  1290→                onDrop={(e) => {
+  1291→                  e.preventDefault();
+  1292→                  setDragOverColumn(null);
+  1293→                  if (draggedTaskId) {
+  1294→                    const task = tareasLimpieza.find(t => t.id === draggedTaskId);
+  1295→                    if (task && task.estado !== col.key) {
+  1296→                      if (col.key === 'completada') {
+  1297→                        openCompleteConfirm(task, task.habitacion);
+  1298→                      } else {
+  1299→                        handleMoveTaskToColumn(task, col.key);
+  1300→                      }
+  1301→                    }
+  1302→                    setDraggedTaskId(null);
+  1303→                  }
+  1304→                }}
+  1305→              >
+  1306→                {/* Column header */}
+  1307→                <div className={cn('px-3 py-2.5 rounded-t-xl border-b', col.headerBg)}>
+  1308→                  <div className="flex items-center justify-between gap-2">
+  1309→                    <div className="flex items-center gap-2">
+  1310→                      <ColIcon className={cn('w-4 h-4', col.headerText)} />
+  1311→                      <span className={cn('text-sm font-semibold', col.headerText)}>{col.label}</span>
+  1312→                    </div>
+  1313→                    <Badge variant="secondary" className={cn('text-[10px] font-semibold shadow-sm', col.headerBg, col.headerText)}>
+  1314→                      {tasks.length}
+  1315→                    </Badge>
+  1316→                  </div>
+  1317→                  {/* Nueva Tarea button in Pendiente column */}
+  1318→                  {col.key === 'pendiente' && (
+  1319→                    <Button
+  1320→                      variant="ghost"
+  1321→                      size="sm"
+  1322→                      className="w-full h-7 mt-2 text-xs border border-dashed border-muted-foreground/30 hover:border-[#0F2B28]/40 hover:bg-white/60"
+  1323→                      onClick={() => setShowNewTask(true)}
+  1324→                    >
+  1325→                      <Plus className="w-3 h-3 mr-1" />Nueva Tarea
+  1326→                    </Button>
+  1327→                  )}
+  1328→                </div>
+  1329→
+  1330→                {/* Column body (scrollable) */}
+  1331→                <div className="flex-1 p-2 space-y-2 max-h-[36rem] overflow-y-auto custom-scroll">
+  1332→                  {tasks.length === 0 ? (
+  1333→                    <div className="text-center py-8">
+  1334→                      <ColIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+  1335→                      <p className="text-xs text-muted-foreground">{col.emptyMsg}</p>
+  1336→                    </div>
+  1337→                  ) : tasks.map((task, index) => renderKanbanCard(task, index))}
+  1338→                </div>
+  1339→              </div>
+  1340→            );
+  1341→          })}
+  1342→        </div>
+  1343→      )}
+  1344→
+  1345→      {/* ════════════════════════════════════════════════════════════════ */}
+  1346→      {/* LIST VIEW (existing cleaning queue)                               */}
+  1347→      {/* ════════════════════════════════════════════════════════════════ */}
+  1348→      {viewMode === 'list' && (
+  1349→        <>
+  1350→          {/* Cleaning progress tracker */}
+  1351→          <Card className="bg-green-950/20 border-[#059669]/20">
+  1352→            <CardContent className="p-4 space-y-3">
+  1353→              <div className="flex items-center justify-between gap-2 flex-wrap">
+  1354→                <div className="flex items-center gap-2">
+  1355→                  <div className="w-8 h-8 rounded-full bg-[#DCFCE7] flex items-center justify-center shadow-sm">
+  1356→                    <Sparkles className="w-4 h-4 text-[#166534]" />
+  1357→                  </div>
+  1358→                  <div>
+  1359→                    <p className="text-sm font-semibold text-[#0F2B28]">Progreso de limpieza</p>
+  1360→                    <p className="text-xs text-muted-foreground">{completadasLimpieza} de {totalOperativas} habitaciones operativas listas</p>
+  1361→                  </div>
+  1362→                </div>
+  1363→                <div className="flex items-center gap-3">
+  1364→                  <div className="text-right">
+  1365→                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Completado</p>
+  1366→                    <AnimatedNumber
+  1367→                      value={pctProgreso}
+  1368→                      duration={500}
+  1369→                      format={(n) => `${Math.round(n)}%`}
+  1370→                      className={cn(
+  1371→                        'text-2xl font-bold tabular-nums',
+  1372→                        pctProgreso > 80 ? 'text-[#166534]' : pctProgreso >= 50 ? 'text-[#92400E]' : 'text-[#991B1B]'
+  1373→                      )}
+  1374→                    />
+  1375→                  </div>
+  1376→                </div>
+  1377→              </div>
+  1378→              <div className="space-y-1.5">
+  1379→                <div className="flex items-center justify-between text-xs">
+  1380→                  <span className="text-muted-foreground">Pendientes: <strong className="text-[#92400E]">{pendientesLimpieza}</strong></span>
+  1381→                  <span className="text-muted-foreground">Listas: <strong className="text-[#166534]">{completadasLimpieza}</strong></span>
+  1382→                </div>
+  1383→                <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
+  1384→                  <div
+  1385→                    className={cn(
+  1386→                      'h-full rounded-full transition-all duration-700 ease-out',
+  1387→                      pctProgreso > 80
+  1388→                        ? 'bg-gradient-to-r from-[#059669] to-[#4ADE80]'
+  1389→                        : pctProgreso >= 50
+  1390→                          ? 'bg-gradient-to-r from-[#F59E0B] to-[#FBBF24]'
+  1391→                          : 'bg-gradient-to-r from-[#EF4444] to-[#F87171]'
+  1392→                    )}
+  1393→                    style={{ width: `${pctProgreso}%` }}
+  1394→                  />
+  1395→                </div>
+  1396→              </div>
+  1397→            </CardContent>
+  1398→          </Card>
+  1399→
+  1400→          <div className="grid md:grid-cols-2 gap-4">
+  1401→            {/* Cleaning Queue */}
+  1402→            <Card className="border-[#FDE68A]">
+  1403→              <CardHeader className="pb-3">
+  1404→                <div className="flex items-center justify-between gap-2">
+  1405→                  <CardTitle className="text-base flex items-center gap-2">
+  1406→                    <SprayCan className="w-4 h-4 text-[#92400E]" />
+  1407→                    Cola de limpieza
+  1408→                    {porLimpiar.length > 0 && (
+  1409→                      <span className="relative flex h-2 w-2 ml-1">
+  1410→                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#F59E0B] opacity-75" />
+  1411→                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#F59E0B]" />
+  1412→                      </span>
+  1413→                    )}
+  1414→                  </CardTitle>
+  1415→                  <div className="flex items-center gap-1.5">
+  1416→                    <Badge variant="outline" className="text-[10px] border-[#FDE68A] text-[#92400E]">Prioridad ↓</Badge>
+  1417→                    <Badge variant="secondary" className="bg-[#FEF9C3] text-[#92400E] shadow-sm font-semibold">{porLimpiar.length}</Badge>
+  1418→                  </div>
+  1419→                </div>
+  1420→              </CardHeader>
+  1421→              <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto custom-scroll">
+  1422→                {porLimpiar.length === 0 ? (
+  1423→                  <div className="text-center py-8">
+  1424→                    <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#DCFCE7] flex items-center justify-center shadow-sm">
+  1425→                      <CheckCircle className="w-7 h-7 text-[#166534]" />
+  1426→                    </div>
+  1427→                    <p className="text-sm font-medium text-[#166534]">¡Todo limpio!</p>
+  1428→                    <p className="text-xs text-muted-foreground mt-0.5">No hay habitaciones pendientes.</p>
+  1429→                  </div>
+  1430→                ) : cleaningQueueSorted.map((item, index) => {
+  1431→                  const priority = item.priority;
+  1432→                  const legacyConfig = PRIORIDAD_CONFIG[priority === 'high' ? 'urgente' : priority === 'medium' ? 'normal' : 'baja'];
+  1433→                  const estMin = item.estMin;
+  1434→                  const task = item.task;
+  1435→                  const taskState = task?.estado || 'pendiente';
+  1436→                  const isInProgress = taskState === 'en_progreso';
+  1437→                  const isCompleted = taskState === 'completada';
+  1438→                  const assignedName = task?.empleado || '';
+  1439→                  const isHighPulsing = priority === 'high' && item.lastCheckoutMs > 0 && ((nowSec - item.lastCheckoutMs) / 3_600_000) >= 2;
+  1440→
+  1441→                  const startedAt = task?.id ? startedAtMap[task.id] : undefined;
+  1442→                  const elapsedMs = isInProgress && startedAt ? nowSec - startedAt : 0;
+  1443→                  const estimatedMs = estMin * 60_000;
+  1444→                  const overBudgetMs = isInProgress && startedAt ? Math.max(0, elapsedMs - estimatedMs - 30 * 60_000) : 0;
+  1445→                  const isOverBudget = overBudgetMs > 0;
+  1446→                  const sinceCheckoutMs = item.lastCheckoutMs > 0 ? nowSec - item.lastCheckoutMs : 0;
+  1447→
+  1448→                  return (
+  1449→                    <div
+  1450→                      key={item.num}
+  1451→                      className={cn(
+  1452→                        'group relative pl-3 pr-2.5 py-2.5 rounded-lg border-l-[3px] border bg-white hover:shadow-md transition-all duration-300 animate-slide-up',
+  1453→                        legacyConfig.border,
+  1454→                        'hover:-translate-y-0.5',
+  1455→                        isOverBudget && 'ring-2 ring-[#EF4444]/40'
+  1456→                      )}
+  1457→                      style={{ animationDelay: `${index * 40}ms` }}
+  1458→                    >
+  1459→                      <div className="flex items-start justify-between gap-2">
+  1460→                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
+  1461→                          <div className="flex flex-col gap-0.5 self-center shrink-0">
+  1462→                            <button type="button" aria-label="Mover arriba" className="text-muted-foreground/50 hover:text-[#0F2B28] disabled:opacity-20 disabled:cursor-not-allowed transition-colors" onClick={() => moveTask(item.num, 'up')} disabled={index === 0}>
+  1463→                              <ChevronUp className="w-3.5 h-3.5" />
+  1464→                            </button>
+  1465→                            <button type="button" aria-label="Mover abajo" className="text-muted-foreground/50 hover:text-[#0F2B28] disabled:opacity-20 disabled:cursor-not-allowed transition-colors" onClick={() => moveTask(item.num, 'down')} disabled={index === cleaningQueueSorted.length - 1}>
+  1466→                              <ChevronDown className="w-3.5 h-3.5" />
+  1467→                            </button>
+  1468→                          </div>
+  1469→                          <div className={cn('w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm relative', legacyConfig.bg)}>
+  1470→                            <BedDouble className={cn('w-4 h-4', legacyConfig.text)} />
+  1471→                            {isHighPulsing && (
+  1472→                              <span className="absolute -top-0.5 -right-0.5 relative flex h-2.5 w-2.5">
+  1473→                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
+  1474→                                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#EF4444] border border-white" />
+  1475→                              </span>
+  1476→                            )}
+  1477→                          </div>
+  1478→                          <div className="min-w-0 flex-1">
+  1479→                            <div className="flex items-center gap-1.5 flex-wrap">
+  1480→                              <p className="text-sm font-bold text-[#0F2B28]">Hab. {item.num}</p>
+  1481→                              <Badge className={cn('text-[10px] shadow-sm font-semibold', legacyConfig.badge)}>{legacyConfig.label}</Badge>
+  1482→                              {isInProgress && <Badge className="text-[10px] bg-[#E0F2FE] text-[#0369A1] shadow-sm"><Timer className="w-2.5 h-2.5 mr-0.5" />En curso</Badge>}
+  1483→                              {isOverBudget && <Badge className="text-[10px] bg-[#FEE2E2] text-[#991B1B] shadow-sm animate-pulse"><AlertCircle className="w-2.5 h-2.5 mr-0.5" />Excedido</Badge>}
+  1484→                            </div>
+  1485→                            <p className="text-xs text-muted-foreground mt-0.5">{item.hab.tipo} · {item.hab.capacidad} persona{item.hab.capacidad !== 1 ? 's' : ''}</p>
+  1486→                            <div className="flex items-center gap-2 flex-wrap mt-1 text-[10px] text-muted-foreground">
+  1487→                              <span className="inline-flex items-center gap-1"><Clock className="w-2.5 h-2.5" />Estimado: ~{estMin} min</span>
+  1488→                              {item.lastCheckoutMs > 0 && sinceCheckoutMs > 0 && !isInProgress && !isCompleted && (
+  1489→                                <span className={cn('inline-flex items-center gap-1', priority === 'high' ? 'text-[#991B1B] font-semibold' : '')}>
+  1490→                                  <AlertCircle className="w-2.5 h-2.5" />Checkout: hace {formatDuration(sinceCheckoutMs)}
+  1491→                                </span>
+  1492→                              )}
+  1493→                            </div>
+  1494→                            {assignedName && <p className="text-[10px] mt-1 inline-flex items-center gap-1 text-[#0F2B28]"><Users className="w-2.5 h-2.5" /><span className="font-medium truncate max-w-[120px]">{assignedName}</span></p>}
+  1495→                            {task?.nota && <p className="text-[10px] mt-0.5 text-muted-foreground italic line-clamp-1">&ldquo;{task.nota}&rdquo;</p>}
+  1496→                            {isInProgress && startedAt && (
+  1497→                              <div className="mt-1.5 flex items-center gap-2">
+  1498→                                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+  1499→                                  <div className={cn('h-full rounded-full transition-all', isOverBudget ? 'bg-[#EF4444]' : 'bg-[#0EA5E9]')} style={{ width: `${Math.min(100, (elapsedMs / (estimatedMs + 30 * 60_000)) * 100)}%` }} />
+  1500→                                </div>
+  1501→                                <span className={cn('text-[10px] font-mono font-semibold tabular-nums', isOverBudget ? 'text-[#991B1B]' : 'text-[#0369A1]')}>{formatDuration(elapsedMs)}</span>
+  1502→                              </div>
+  1503→                            )}
+  1504→                          </div>
+  1505→                        </div>
+  1506→                        <div className="flex flex-col gap-1 shrink-0">
+  1507→                          {!isInProgress && !isCompleted && (
+  1508→                            <>
+  1509→                              <Button size="sm" variant="outline" className="h-7 text-xs border-[#0F2B28]/20 text-[#0F2B28] hover:bg-[#0F2B28]/5" onClick={() => openAssignModal(task, item.num)}>
+  1510→                                <UserPlus className="w-3 h-3 mr-1" />{assignedName ? 'Reasignar' : 'Asignar'}
+  1511→                              </Button>
+  1512→                              <Button size="sm" variant="outline" className="h-7 text-xs border-[#0EA5E9]/30 text-[#0369A1] hover:bg-[#E0F2FE]" onClick={() => handleStartTask(task, item.num)}>
+  1513→                                <Play className="w-3 h-3 mr-1" />Iniciar
+  1514→                              </Button>
+  1515→                            </>
+  1516→                          )}
+  1517→                          {isInProgress && (
+  1518→                            <Button size="sm" className="h-7 text-xs bg-[#059669] hover:bg-[#047857] text-white shadow-sm" disabled={completingTask === (task?.id || item.num)} onClick={() => openCompleteConfirm(task, item.num)}>
+  1519→                              {completingTask === (task?.id || item.num) ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}Completar
+  1520→                            </Button>
+  1521→                          )}
+  1522→                          {!isInProgress && !isCompleted && !task?.id && (
+  1523→                            <Button size="sm" variant="ghost" className="h-7 text-xs text-[#166534] hover:bg-[#DCFCE7]" disabled={completingTask === item.num} onClick={() => openCompleteConfirm(task, item.num)}>
+  1524→                              {completingTask === item.num ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}Limpia
+  1525→                            </Button>
+  1526→                          )}
+  1527→                        </div>
+  1528→                      </div>
+  1529→                    </div>
+  1530→                  );
+  1531→                })}
+  1532→              </CardContent>
+  1533→            </Card>
+  1534→
+  1535→            {/* En mantenimiento */}
+  1536→            <Card className="border-[#FECACA]">
+  1537→              <CardHeader className="pb-3">
+  1538→                <div className="flex items-center justify-between">
+  1539→                  <CardTitle className="text-base flex items-center gap-2">
+  1540→                    <Wrench className="w-4 h-4 text-[#991B1B]" />
+  1541→                    En mantenimiento
+  1542→                    {enMantenimiento.length > 0 && (
+  1543→                      <span className="relative flex h-2 w-2 ml-1">
+  1544→                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
+  1545→                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#EF4444]" />
+  1546→                      </span>
+  1547→                    )}
+  1548→                  </CardTitle>
+  1549→                  <Badge variant="secondary" className="bg-[#FECACA] text-[#991B1B] shadow-sm font-semibold">{enMantenimiento.length}</Badge>
+  1550→                </div>
+  1551→              </CardHeader>
+  1552→              <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto custom-scroll">
+  1553→                {enMantenimiento.length === 0 ? (
+  1554→                  <div className="text-center py-8">
+  1555→                    <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#F1F5F9] flex items-center justify-center shadow-sm">
+  1556→                      <CheckCircle className="w-7 h-7 text-[#94A3B8]" />
+  1557→                    </div>
+  1558→                    <p className="text-sm font-medium">Sin problemas activos</p>
+  1559→                    <p className="text-xs text-muted-foreground mt-0.5">Todo funciona correctamente.</p>
+  1560→                  </div>
+  1561→                ) : enMantenimiento.map(([num, h], index) => (
+  1562→                  <div key={num} className={cn('group pl-3 pr-2.5 py-2.5 rounded-lg border-l-[3px] border-l-[#EF4444] border bg-white hover:shadow-md transition-all duration-300 animate-slide-up hover:-translate-y-0.5')} style={{ animationDelay: `${index * 40}ms` }}>
+  1563→                    <div className="flex items-start justify-between gap-2">
+  1564→                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+  1565→                        <div className="w-9 h-9 rounded-full bg-[#FEE2E2] flex items-center justify-center shrink-0 shadow-sm">
+  1566→                          <Wrench className="w-4 h-4 text-[#991B1B]" />
+  1567→                        </div>
+  1568→                        <div className="min-w-0 flex-1">
+  1569→                          <p className="text-sm font-bold text-[#0F2B28]">Hab. {num}</p>
+  1570→                          <p className="text-xs text-[#991B1B] font-medium truncate">{h.problema || 'Sin descripción'}</p>
+  1571→                          <p className="text-xs text-muted-foreground mt-0.5">{h.tipo}</p>
+  1572→                        </div>
+  1573→                      </div>
+  1574→                      <Button size="sm" variant="outline" className="h-7 text-xs border-[#059669]/30 text-[#166534] hover:bg-[#DCFCE7] shrink-0" onClick={() => setModalResolver(num)}>
+  1575→                        <Check className="w-3 h-3 mr-1" />Resolver
+  1576→                      </Button>
+  1577→                    </div>
+  1578→                  </div>
+  1579→                ))}
+  1580→              </CardContent>
+  1581→            </Card>
+  1582→          </div>
+  1583→
+  1584→          {/* 7-day mini chart */}
+  1585→          <Card className="border-[#E2E8F0]">
+  1586→            <CardHeader className="pb-3">
+  1587→              <CardTitle className="text-base flex items-center gap-2">
+  1588→                <TrendingUp className="w-4 h-4 text-[#0F2B28]" />
+  1589→                Completadas · últimos 7 días
+  1590→              </CardTitle>
+  1591→            </CardHeader>
+  1592→            <CardContent>
+  1593→              <div className="h-[80px]">
+  1594→                <ResponsiveContainer width="100%" height={80}>
+  1595→                  <AreaChart data={dailySummary.last7} margin={{ top: 5, right: 5, bottom: 0, left: 5 }}>
+  1596→                    <defs>
+  1597→                      <linearGradient id="cleanGrad" x1="0" y1="0" x2="0" y2="1">
+  1598→                        <stop offset="5%" stopColor="#0F2B28" stopOpacity={0.35} />
+  1599→                        <stop offset="95%" stopColor="#0F2B28" stopOpacity={0} />
+  1600→                      </linearGradient>
+  1601→                    </defs>
+  1602→                    <XAxis dataKey="day" tick={{ fontSize: 9, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+  1603→                    <RechartsTooltip contentStyle={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #E2E8F0' }} labelStyle={{ color: '#475569' }} />
+  1604→                    <Area type="monotone" dataKey="count" stroke="#0F2B28" strokeWidth={1.5} fill="url(#cleanGrad)" dot={{ r: 2, fill: '#0F2B28' }} />
+  1605→                  </AreaChart>
+  1606→                </ResponsiveContainer>
+  1607→              </div>
+  1608→            </CardContent>
+  1609→          </Card>
+  1610→        </>
+  1611→      )}
+  1612→
+  1613→      {/* ── Staff Panel ── */}
+  1614→      <Card className="border-[#E2E8F0]">
+  1615→        <CardHeader className="pb-3">
+  1616→          <div className="flex items-center justify-between gap-2">
+  1617→            <CardTitle className="text-base flex items-center gap-2">
+  1618→              <Users className="w-4 h-4 text-[#0F2B28]" />
+  1619→              Personal de limpieza
+  1620→              <Badge variant="secondary" className="text-[10px] font-semibold">{staff.length}</Badge>
+  1621→            </CardTitle>
+  1622→          </div>
+  1623→        </CardHeader>
+  1624→        <CardContent>
+  1625→          {staff.length === 0 ? (
+  1626→            <div className="text-center py-8">
+  1627→              <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-muted flex items-center justify-center shadow-sm">
+  1628→                <Users className="w-7 h-7 text-muted-foreground/50" />
+  1629→              </div>
+  1630→              <p className="text-sm font-medium">Sin personal de limpieza registrado</p>
+  1631→              <p className="text-xs text-muted-foreground mt-0.5">Agregá usuarios con rol &ldquo;limpieza&rdquo; desde el módulo Usuarios.</p>
+  1632→            </div>
+  1633→          ) : (
+  1634→            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+  1635→              {staffStats.map(({ staff: s, displayName, active, completedToday, efficiency, state }, index) => {
+  1636→                const stateCfg = STAFF_STATE_CONFIG[state];
+  1637→                const capacityPct = Math.min(100, (active / 8) * 100);
+  1638→                const initials = getInitials(displayName);
+  1639→                const staffColor = staffColorMap[s.id] || '#94A3B8';
+  1640→                return (
+  1641→                  <div
+  1642→                    key={s.id}
+  1643→                    className={cn(
+  1644→                      'p-3 rounded-lg border bg-white hover:shadow-md transition-all duration-300 animate-slide-up hover:-translate-y-0.5 ring-1',
+  1645→                      stateCfg.ring
+  1646→                    )}
+  1647→                    style={{ animationDelay: `${index * 40}ms` }}
+  1648→                  >
+  1649→                    <div className="flex items-start gap-2.5 mb-2.5">
+  1650→                      <Avatar className="w-10 h-10 ring-2 ring-offset-2 ring-offset-white" style={{ ['--tw-ring-color' as any]: staffColor }}>
+  1651→                        <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: staffColor + '20', color: staffColor }}>
+  1652→                          {initials}
+  1653→                        </AvatarFallback>
+  1654→                      </Avatar>
+  1655→                      <div className="min-w-0 flex-1">
+  1656→                        <p className="text-sm font-semibold truncate text-[#0F2B28]">{displayName}</p>
+  1657→                        <p className="text-[10px] text-muted-foreground truncate">{s.user?.email || s.nombreUsuario || 'Sin email'}</p>
+  1658→                        <Badge className={cn('mt-1 text-[9px] font-semibold', stateCfg.bg, stateCfg.text)}>{stateCfg.label}</Badge>
+  1659→                      </div>
+  1660→                    </div>
+  1661→                    <div className="grid grid-cols-3 gap-1.5 mb-2">
+  1662→                      <div className="text-center rounded bg-muted/40 py-1">
+  1663→                        <p className="text-sm font-bold text-[#0F2B28] leading-tight">{active}</p>
+  1664→                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Activas</p>
+  1665→                      </div>
+  1666→                      <div className="text-center rounded bg-muted/40 py-1">
+  1667→                        <p className="text-sm font-bold text-[#166534] leading-tight">{completedToday}</p>
+  1668→                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Hoy</p>
+  1669→                      </div>
+  1670→                      <div className="text-center rounded bg-muted/40 py-1">
+  1671→                        <p className={cn('text-sm font-bold leading-tight inline-flex items-center gap-0.5', efficiency >= 80 ? 'text-[#166534]' : efficiency >= 50 ? 'text-[#92400E]' : 'text-[#991B1B]')}>
+  1672→                          <Gauge className="w-2.5 h-2.5" />{efficiency}%
+  1673→                        </p>
+  1674→                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Efic.</p>
+  1675→                      </div>
+  1676→                    </div>
+  1677→                    <div className="space-y-1 mb-2">
+  1678→                      <div className="flex items-center justify-between text-[10px]">
+  1679→                        <span className="text-muted-foreground">Capacidad</span>
+  1680→                        <span className={cn('font-semibold', stateCfg.text)}>{active}/8</span>
+  1681→                      </div>
+  1682→                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+  1683→                        <div className={cn('h-full rounded-full transition-all duration-500', stateCfg.bar)} style={{ width: `${capacityPct}%` }} />
+  1684→                      </div>
+  1685→                    </div>
+  1686→                    <div className="flex gap-1.5">
+  1687→                      <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" disabled={active === 0} onClick={() => setReassignFromStaff(s)}>
+  1688→                        <ArrowRight className="w-3 h-3 mr-1" />Reasignar
+  1689→                      </Button>
+  1690→                      <Button size="sm" variant="ghost" className="flex-1 h-7 text-xs hover:bg-muted" onClick={() => setHistoryStaff(s)}>
+  1691→                        <History className="w-3 h-3 mr-1" />Historial
+  1692→                      </Button>
+  1693→                    </div>
+  1694→                  </div>
+  1695→                );
+  1696→              })}
+  1697→            </div>
+  1698→          )}
+  1699→        </CardContent>
+  1700→      </Card>
+  1701→
+  1702→      {/* ── Reportar mantenimiento ── */}
+  1703→      <Card className={showReportForm ? 'border-[#FDE68A]' : ''}>
+  1704→        <CardHeader className="pb-3 cursor-pointer" onClick={() => setShowReportForm(!showReportForm)}>
+  1705→          <div className="flex items-center justify-between">
+  1706→            <CardTitle className="text-base flex items-center gap-2"><Wrench className="w-4 h-4 text-[#92400E]" /> Reportar mantenimiento</CardTitle>
+  1707→            <Button variant="ghost" size="sm">{showReportForm ? 'Cancelar' : 'Abrir formulario'}</Button>
+  1708→          </div>
+  1709→        </CardHeader>
+  1710→        {showReportForm && (
+  1711→          <CardContent className="space-y-3">
+  1712→            {repConfirm && reservasAfectadas > 0 && (
+  1713→              <div className="flex items-center gap-2 p-2.5 bg-[#FEF3C7] rounded-lg text-[#92400E] text-sm">
+  1714→                <AlertTriangle className="w-4 h-4 shrink-0" />
+  1715→                <span>Esta habitación tiene <strong>{reservasAfectadas}</strong> reserva{reservasAfectadas !== 1 ? 's' : ''} activa{reservasAfectadas !== 1 ? 's' : ''} que serán canceladas.</span>
+  1716→                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 ml-auto" onClick={() => setRepConfirm(false)}><X className="w-3.5 h-3.5" /></Button>
+  1717→              </div>
+  1718→            )}
+  1719→            <Select value={repHab} onValueChange={v => { setRepHab(v); setRepConfirm(false); }}>
+  1720→              <SelectTrigger><SelectValue placeholder="-- Elegir habitación --" /></SelectTrigger>
+  1721→              <SelectContent>{habDisponibles.map(([num, h]) => <SelectItem key={num} value={num}>{num} - {h.tipo}</SelectItem>)}</SelectContent>
+  1722→            </Select>
+  1723→            <Textarea placeholder="Describí el problema detectado..." value={repDesc} onChange={e => setRepDesc(e.target.value)} rows={2} />
+  1724→            <Button onClick={handleReportar} variant="destructive" disabled={!repHab || !repDesc.trim() || reportando}>{reportando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wrench className="w-4 h-4 mr-1" />}{repConfirm ? 'Confirmar y reportar' : 'Reportar mantenimiento'}</Button>
+  1725→          </CardContent>
+  1726→        )}
+  1727→      </Card>
+  1728→
+  1729→      {/* Historial */}
+  1730→      <Card>
+  1731→        <CardHeader className="bg-muted/50"><CardTitle className="text-base flex items-center gap-2"><Search className="w-4 h-4" /> Historial de Mantenimiento</CardTitle></CardHeader>
+  1732→        <CardContent className="space-y-3">
+  1733→          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 items-end">
+  1734→            <DatePickerInline value={fDesde} onChange={v => { setFDesde(v); setPagina(1); }} placeholder="Desde" label="Desde" />
+  1735→            <DatePickerInline value={fHasta} onChange={v => { setFHasta(v); setPagina(1); }} placeholder="Hasta" label="Hasta" />
+  1736→            <div className="space-y-1"><Label className="text-xs">Habitación</Label><Input placeholder="Ej: 101" value={fHab} onChange={e => { setFHab(e.target.value); setPagina(1); }} /></div>
+  1737→            <div className="space-y-1"><Label className="text-xs">Descripción</Label><Input placeholder="Buscar..." value={fDesc} onChange={e => { setFDesc(e.target.value); setPagina(1); }} /></div>
+  1738→            <div className="flex gap-2 items-end"><div className="space-y-1 flex-1"><Label className="text-xs">Monto mín.</Label><Input type="number" placeholder="$0" value={fMonto} onChange={e => { setFMonto(e.target.value); setPagina(1); }} /></div><Button variant="outline" size="icon" className="h-9 w-9" onClick={limpiarFiltros} title="Limpiar filtros">{hasFiltros ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}</Button></div>
+  1739→          </div>
+  1740→          {listaPaginada.length === 0 ? (
+  1741→            <div className="text-center py-8">
+  1742→              <Wrench className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
+  1743→              <p className="text-sm text-muted-foreground">No hay reparaciones registradas.</p>
+  1744→            </div>
+  1745→          ) : (
+  1746→            <div className="overflow-x-auto -mx-6 px-6">
+  1747→              <Table><TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Hab.</TableHead><TableHead>Problema</TableHead><TableHead className="hidden md:table-cell">Reparación</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="hidden sm:table-cell">Empleado</TableHead></TableRow></TableHeader>
+  1748→                <TableBody>{listaPaginada.map(item => (
+  1749→                  <TableRow key={item.id}><TableCell className="text-xs whitespace-nowrap">{formatFechaHora(item.fecha)}</TableCell><TableCell className="font-medium">{item.habitacion}</TableCell><TableCell className="max-w-[200px] truncate">{item.problema}</TableCell><TableCell className="hidden md:table-cell max-w-[200px] truncate">{item.reparacion}</TableCell><TableCell className={`text-right font-medium ${item.monto > 0 ? 'text-[#991B1B]' : 'text-muted-foreground'}`}>{formatMoney(item.monto)}</TableCell><TableCell className="hidden sm:table-cell text-xs text-muted-foreground">{item.empleado}</TableCell></TableRow>
+  1750→                ))}</TableBody></Table>
+  1751→            </div>
+  1752→          )}
+  1753→          <PaginationBar page={paginaActual} totalPages={totalPaginas} onPageChange={setPagina} totalItems={listaFiltrada.length} pageSize={PAGE_SIZE} />
+  1754→        </CardContent>
+  1755→      </Card>
+  1756→
+  1757→      {/* ── New Task Dialog ── */}
+  1758→      <Dialog open={showNewTask} onOpenChange={(o) => { if (!o) setShowNewTask(false); }}>
+  1759→        <DialogContent className="sm:max-w-md">
+  1760→          <DialogHeader>
+  1761→            <DialogTitle className="flex items-center gap-2">
+  1762→              <Plus className="w-4 h-4 text-[#0F2B28]" />
+  1763→              Nueva tarea de limpieza
+  1764→            </DialogTitle>
+  1765→          </DialogHeader>
+  1766→          <div className="space-y-3 py-1">
+  1767→            <div className="space-y-1.5">
+  1768→              <Label className="text-xs font-semibold">Habitación *</Label>
+  1769→              <Select value={newTaskHab} onValueChange={setNewTaskHab}>
+  1770→                <SelectTrigger><SelectValue placeholder="-- Elegir habitación --" /></SelectTrigger>
+  1771→                <SelectContent>
+  1772→                  {Object.entries(habitaciones).map(([num, h]) => (
+  1773→                    <SelectItem key={num} value={num}>{num} - {h.tipo} ({h.estado})</SelectItem>
+  1774→                  ))}
+  1775→                </SelectContent>
+  1776→              </Select>
+  1777→            </div>
+  1778→            <div className="space-y-1.5">
+  1779→              <Label className="text-xs font-semibold">Prioridad</Label>
+  1780→              <Select value={newTaskPrioridad} onValueChange={(v) => setNewTaskPrioridad(v as Prioridad)}>
+  1781→                <SelectTrigger><SelectValue /></SelectTrigger>
+  1782→                <SelectContent>
+  1783→                  <SelectItem value="urgente"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#EF4444]" />Urgente</span></SelectItem>
+  1784→                  <SelectItem value="normal"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#F59E0B]" />Normal</span></SelectItem>
+  1785→                  <SelectItem value="baja"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#0EA5E9]" />Baja</span></SelectItem>
+  1786→                </SelectContent>
+  1787→              </Select>
+  1788→            </div>
+  1789→            <div className="space-y-1.5">
+  1790→              <Label className="text-xs font-semibold">Tipo de tarea</Label>
+  1791→              <Select value={newTaskTipo} onValueChange={(v) => setNewTaskTipo(v as TipoTarea)}>
+  1792→                <SelectTrigger><SelectValue /></SelectTrigger>
+  1793→                <SelectContent>
+  1794→                  {Object.entries(TIPO_CONFIG).map(([key, cfg]) => (
+  1795→                    <SelectItem key={key} value={key}>
+  1796→                      <span className="inline-flex items-center gap-1.5">
+  1797→                        <cfg.icon className={cn('w-3 h-3', cfg.color)} />{cfg.label}
+  1798→                      </span>
+  1799→                    </SelectItem>
+  1800→                  ))}
+  1801→                </SelectContent>
+  1802→              </Select>
+  1803→            </div>
+  1804→            <div className="space-y-1.5">
+  1805→              <Label className="text-xs font-semibold">Notas</Label>
+  1806→              <Textarea
+  1807→                placeholder="Ej: Llevar toallas extra, cambio de colchón..."
+  1808→                value={newTaskNota}
+  1809→                onChange={e => setNewTaskNota(e.target.value)}
+  1810→                rows={2}
+  1811→              />
+  1812→            </div>
+  1813→          </div>
+  1814→          <DialogFooter>
+  1815→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+  1816→            <Button
+  1817→              onClick={handleCreateTask}
+  1818→              disabled={!newTaskHab.trim() || creatingTask}
+  1819→              className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white"
+  1820→            >
+  1821→              {creatingTask ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+  1822→              Crear tarea
+  1823→            </Button>
+  1824→          </DialogFooter>
+  1825→        </DialogContent>
+  1826→      </Dialog>
+  1827→
+  1828→      {/* ── Task Assignment Modal ── */}
+  1829→      <Dialog open={!!assignCtx} onOpenChange={(o) => { if (!o) { setAssignCtx(null); setAssignStaffId(''); setAssignNote(''); } }}>
+  1830→        <DialogContent className="sm:max-w-md">
+  1831→          <DialogHeader>
+  1832→            <DialogTitle className="flex items-center gap-2">
+  1833→              <UserPlus className="w-4 h-4 text-[#0F2B28]" />
+  1834→              {assignCtx?.reassignFromStaffId ? 'Reasignar tarea' : 'Asignar tarea'}
+  1835→              {assignCtx && <span className="text-muted-foreground font-normal">· Hab. {assignCtx.habitacion}</span>}
+  1836→            </DialogTitle>
+  1837→          </DialogHeader>
+  1838→          <div className="space-y-3 py-1">
+  1839→            {assignCtx && habitaciones[assignCtx.habitacion] && (
+  1840→              <div className="rounded-lg border bg-muted/30 p-2.5 text-xs space-y-1">
+  1841→                <div className="flex justify-between"><span className="text-muted-foreground">Habitación:</span><strong>{assignCtx.habitacion}</strong></div>
+  1842→                <div className="flex justify-between"><span className="text-muted-foreground">Tipo:</span><strong>{habitaciones[assignCtx.habitacion].tipo}</strong></div>
+  1843→                <div className="flex justify-between"><span className="text-muted-foreground">Estimado:</span><strong>~{estimatedCleaningMinutes(habitaciones[assignCtx.habitacion].tipo as string | undefined)} min</strong></div>
+  1844→              </div>
+  1845→            )}
+  1846→            <div className="space-y-1.5">
+  1847→              <Label className="text-xs font-semibold">Asignar a *</Label>
+  1848→              <Select value={assignStaffId} onValueChange={setAssignStaffId}>
+  1849→                <SelectTrigger><SelectValue placeholder="-- Elegir personal --" /></SelectTrigger>
+  1850→                <SelectContent>
+  1851→                  {staff.length === 0 ? (
+  1852→                    <SelectItem value="_no_staff" disabled>Sin personal de limpieza</SelectItem>
+  1853→                  ) : staff.map(s => {
+  1854→                    const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || 'Sin nombre';
+  1855→                    const active = tareasLimpieza.filter(t =>
+  1856→                      t.estado !== 'completada' && ((s.id && t.empleadoId === s.id) || t.empleado === displayName)
+  1857→                    ).length;
+  1858→                    const st: StaffState = active <= 2 ? 'available' : active <= 5 ? 'busy' : 'overloaded';
+  1859→                    const stCfg = STAFF_STATE_CONFIG[st];
+  1860→                    const excluded = assignCtx?.reassignFromStaffId === s.id;
+  1861→                    if (excluded) return null;
+  1862→                    return (
+  1863→                      <SelectItem key={s.id} value={s.id} disabled={st === 'overloaded'}>
+  1864→                        <span className="inline-flex items-center gap-2">
+  1865→                          <span className={cn('w-1.5 h-1.5 rounded-full', stCfg.bar)} />
+  1866→                          {displayName}
+  1867→                          <span className="text-muted-foreground text-[10px]">({active} activa{active !== 1 ? 's' : ''}{st === 'overloaded' ? ' · saturado' : ''})</span>
+  1868→                        </span>
+  1869→                      </SelectItem>
+  1870→                    );
+  1871→                  })}
+  1872→                </SelectContent>
+  1873→              </Select>
+  1874→            </div>
+  1875→            {assignStaffId && staff.find(s => s.id === assignStaffId) && (() => {
+  1876→              const s = staff.find(s => s.id === assignStaffId)!;
+  1877→              const displayName = s.nombreCompleto || s.nombreUsuario || s.user?.name || 'Sin nombre';
+  1878→              const active = tareasLimpieza.filter(t =>
+  1879→                t.estado !== 'completada' && ((s.id && t.empleadoId === s.id) || t.empleado === displayName)
+  1880→              ).length;
+  1881→              const st: StaffState = active <= 2 ? 'available' : active <= 5 ? 'busy' : 'overloaded';
+  1882→              const stCfg = STAFF_STATE_CONFIG[st];
+  1883→              return (
+  1884→                <div className={cn('rounded-lg border p-2.5 text-xs flex items-center gap-2', stCfg.bg)}>
+  1885→                  <Avatar className="w-8 h-8">
+  1886→                    <AvatarFallback className={cn('text-[10px] font-bold bg-white', stCfg.text)}>
+  1887→                      {getInitials(displayName)}
+  1888→                    </AvatarFallback>
+  1889→                  </Avatar>
+  1890→                  <div className="flex-1">
+  1891→                    <p className="font-semibold text-[#0F2B28]">{displayName}</p>
+  1892→                    <p className={cn('text-[10px]', stCfg.text)}>{stCfg.label} · {active} tarea{active !== 1 ? 's' : ''} activa{active !== 1 ? 's' : ''}</p>
+  1893→                  </div>
+  1894→                </div>
+  1895→              );
+  1896→            })()}
+  1897→            <div className="space-y-1.5">
+  1898→              <Label className="text-xs font-semibold">Notas</Label>
+  1899→              <Textarea
+  1900→                placeholder="Ej: Llevar toallas extra, change colchón, etc."
+  1901→                value={assignNote}
+  1902→                onChange={e => setAssignNote(e.target.value)}
+  1903→                rows={2}
+  1904→              />
+  1905→              <p className="text-[10px] text-muted-foreground">Opcional. Visible para el personal asignado.</p>
+  1906→            </div>
+  1907→          </div>
+  1908→          <DialogFooter>
+  1909→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+  1910→            <Button
+  1911→              onClick={handleAssign}
+  1912→              disabled={!assignStaffId || assigning || assignStaffId === '_no_staff'}
+  1913→              className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white"
+  1914→            >
+  1915→              {assigning ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <UserPlus className="w-4 h-4 mr-1" />}
+  1916→              Asignar tarea
+  1917→            </Button>
+  1918→          </DialogFooter>
+  1919→        </DialogContent>
+  1920→      </Dialog>
+  1921→
+  1922→      {/* ── Reassign-from-staff modal ── */}
+  1923→      <Dialog open={!!reassignFromStaff} onOpenChange={(o) => { if (!o) setReassignFromStaff(null); }}>
+  1924→        <DialogContent className="sm:max-w-md">
+  1925→          <DialogHeader>
+  1926→            <DialogTitle className="flex items-center gap-2">
+  1927→              <ArrowRight className="w-4 h-4 text-[#0F2B28]" />
+  1928→              Reasignar tareas de {reassignFromStaff?.nombreCompleto || reassignFromStaff?.nombreUsuario || ''}
+  1929→            </DialogTitle>
+  1930→          </DialogHeader>
+  1931→          <div className="space-y-2 py-1 max-h-80 overflow-y-auto custom-scroll">
+  1932→            {reassignFromStaff && getActiveTasksForStaff(reassignFromStaff).length === 0 ? (
+  1933→              <p className="text-sm text-muted-foreground text-center py-6">Sin tareas activas para reasignar.</p>
+  1934→            ) : reassignFromStaff && getActiveTasksForStaff(reassignFromStaff).map(t => {
+  1935→              const hab = habitaciones[t.habitacion];
+  1936→              const p = (t.prioridad || 'normal') as Prioridad;
+  1937→              const cfg = PRIORIDAD_CONFIG[p] || PRIORIDAD_CONFIG.normal;
+  1938→              return (
+  1939→                <button
+  1940→                  key={t.id}
+  1941→                  type="button"
+  1942→                  onClick={() => {
+  1943→                    const s = reassignFromStaff;
+  1944→                    setReassignFromStaff(null);
+  1945→                    openAssignModal(t, t.habitacion, s.id);
+  1946→                  }}
+  1947→                  className="w-full text-left p-2.5 rounded-lg border bg-white hover:bg-muted/30 hover:shadow-sm transition-all flex items-center gap-2.5"
+  1948→                >
+  1949→                  <div className={cn('w-8 h-8 rounded-full flex items-center justify-center shrink-0', cfg.bg)}>
+  1950→                    <BedDouble className={cn('w-3.5 h-3.5', cfg.text)} />
+  1951→                  </div>
+  1952→                  <div className="flex-1 min-w-0">
+  1953→                    <p className="text-sm font-semibold text-[#0F2B28]">Hab. {t.habitacion}</p>
+  1954→                    <p className="text-[10px] text-muted-foreground">{hab?.tipo || '—'} · {t.estado === 'en_progreso' ? 'En curso' : 'Pendiente'}</p>
+  1955→                  </div>
+  1956→                  <Badge className={cn('text-[9px]', cfg.badge)}>{cfg.label}</Badge>
+  1957→                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
+  1958→                </button>
+  1959→              );
+  1960→            })}
+  1961→          </div>
+  1962→          <DialogFooter>
+  1963→            <DialogClose asChild><Button variant="secondary">Cerrar</Button></DialogClose>
+  1964→          </DialogFooter>
+  1965→        </DialogContent>
+  1966→      </Dialog>
+  1967→
+  1968→      {/* ── Staff History Modal ── */}
+  1969→      <Dialog open={!!historyStaff} onOpenChange={(o) => { if (!o) setHistoryStaff(null); }}>
+  1970→        <DialogContent className="sm:max-w-md">
+  1971→          <DialogHeader>
+  1972→            <DialogTitle className="flex items-center gap-2">
+  1973→              <History className="w-4 h-4 text-[#0F2B28]" />
+  1974→              Historial de {historyStaff?.nombreCompleto || historyStaff?.nombreUsuario || ''}
+  1975→            </DialogTitle>
+  1976→          </DialogHeader>
+  1977→          <div className="space-y-2 py-1 max-h-96 overflow-y-auto custom-scroll">
+  1978→            {historyStaff && getCompletedTasksForStaff(historyStaff).length === 0 ? (
+  1979→              <p className="text-sm text-muted-foreground text-center py-6">Sin tareas completadas registradas.</p>
+  1980→            ) : historyStaff && getCompletedTasksForStaff(historyStaff).slice(0, 30).map(t => {
+  1981→              const hab = habitaciones[t.habitacion];
+  1982→              const duration = t.fechaCompletado
+  1983→                ? new Date(t.fechaCompletado).getTime() - new Date(t.fechaCreacion).getTime()
+  1984→                : 0;
+  1985→              return (
+  1986→                <div key={t.id} className="p-2.5 rounded-lg border bg-white flex items-center gap-2.5">
+  1987→                  <div className="w-8 h-8 rounded-full bg-[#DCFCE7] flex items-center justify-center shrink-0">
+  1988→                    <CheckCircle className="w-3.5 h-3.5 text-[#166534]" />
+  1989→                  </div>
+  1990→                  <div className="flex-1 min-w-0">
+  1991→                    <p className="text-sm font-semibold text-[#0F2B28]">Hab. {t.habitacion}</p>
+  1992→                    <p className="text-[10px] text-muted-foreground">
+  1993→                      {hab?.tipo || '—'} · {t.fechaCompletado ? formatFechaHora(t.fechaCompletado) : '—'}
+  1994→                    </p>
+  1995→                  </div>
+  1996→                  {duration > 0 && (
+  1997→                    <Badge variant="outline" className="text-[9px] font-mono">
+  1998→                      <Clock className="w-2.5 h-2.5 mr-0.5" />{formatDuration(duration)}
+  1999→                    </Badge>
+  2000→                  )}
+
+[showing lines 1-2000 of 2087; use offset=2001 with limit to continue reading]
