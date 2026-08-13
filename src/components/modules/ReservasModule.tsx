@@ -1337,36 +1337,36 @@ export default function ReservasModule() {
 
  {/* ==================== TODAY'S ACTIVITY SUMMARY ==================== */}
  <div className="grid grid-cols-3 gap-3 card-grid-stagger">
-   <div className="p-3 sm:p-4 rounded-xl border bg-emerald-50/40 dark:bg-emerald-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 card-interactive">
-     <div className="flex items-start gap-2.5">
-       <div className="size-9 rounded-full bg-[#10B981]/10 flex items-center justify-center shrink-0">
-         <TrendingUp className="w-4 h-4 text-[#10B981]" />
+   <div className="relative rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+     <div className="flex items-start justify-between">
+       <div className="space-y-1">
+         <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Check-ins hoy</p>
+         <p className="text-xl font-bold text-emerald-900 dark:text-emerald-200">{todayActivity.checkinsHoy}</p>
        </div>
-       <div className="min-w-0">
-         <div className="text-xl sm:text-2xl font-bold leading-tight text-foreground">{todayActivity.checkinsHoy}</div>
-         <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide mt-0.5 truncate">Check-ins hoy</div>
-       </div>
-     </div>
-   </div>
-   <div className="p-3 sm:p-4 rounded-xl border bg-amber-50/40 dark:bg-amber-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 card-interactive">
-     <div className="flex items-start gap-2.5">
-       <div className="size-9 rounded-full bg-[#EA580C]/10 flex items-center justify-center shrink-0">
-         <TrendingDown className="w-4 h-4 text-[#EA580C]" />
-       </div>
-       <div className="min-w-0">
-         <div className="text-xl sm:text-2xl font-bold leading-tight text-foreground">{todayActivity.checkoutsHoy}</div>
-         <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide mt-0.5 truncate">Check-outs hoy</div>
+       <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+         <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
        </div>
      </div>
    </div>
-   <div className="p-3 sm:p-4 rounded-xl border bg-green-50/40 dark:bg-green-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 card-interactive">
-     <div className="flex items-start gap-2.5">
-       <div className="size-9 rounded-full bg-[#0F2B28]/10 flex items-center justify-center shrink-0">
-         <Bed className="w-4 h-4 text-[#0F2B28]" />
+   <div className="relative rounded-xl border-l-[3px] border-l-amber-500 bg-amber-50/40 dark:bg-amber-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+     <div className="flex items-start justify-between">
+       <div className="space-y-1">
+         <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Check-outs hoy</p>
+         <p className="text-xl font-bold text-amber-900 dark:text-amber-200">{todayActivity.checkoutsHoy}</p>
        </div>
-       <div className="min-w-0">
-         <div className="text-xl sm:text-2xl font-bold leading-tight text-foreground">{todayActivity.inHouse}</div>
-         <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide mt-0.5 truncate">En alojamiento</div>
+       <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+         <TrendingDown className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+       </div>
+     </div>
+   </div>
+   <div className="relative rounded-xl border-l-[3px] border-l-green-500 bg-green-50/40 dark:bg-green-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+     <div className="flex items-start justify-between">
+       <div className="space-y-1">
+         <p className="text-xs font-medium text-green-700 dark:text-green-400">En alojamiento</p>
+         <p className="text-xl font-bold text-green-900 dark:text-green-200">{todayActivity.inHouse}</p>
+       </div>
+       <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+         <Bed className="w-5 h-5 text-green-600 dark:text-green-400" />
        </div>
      </div>
    </div>

@@ -62,55 +62,65 @@ const PIE_COLORS = ['#0F2B28', '#059669', '#F59E0B', '#EF4444', '#3B82F6', '#7C3
 
 // ==================== KPI CARD ====================
 
+const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; label: string; value: string; sub: string; iconBg: string; iconColor: string }> = {
+  emerald: { borderL: 'border-l-emerald-500', bg: 'bg-emerald-50/40', darkBg: 'dark:bg-emerald-950/20', label: 'text-emerald-700 dark:text-emerald-400', value: 'text-emerald-900 dark:text-emerald-200', sub: 'text-emerald-600/70 dark:text-emerald-400/50', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-600 dark:text-emerald-400' },
+  green: { borderL: 'border-l-green-500', bg: 'bg-green-50/40', darkBg: 'dark:bg-green-950/20', label: 'text-green-700 dark:text-green-400', value: 'text-green-900 dark:text-green-200', sub: 'text-green-600/70 dark:text-green-400/50', iconBg: 'bg-green-500/20', iconColor: 'text-green-600 dark:text-green-400' },
+  red: { borderL: 'border-l-red-500', bg: 'bg-red-50/40', darkBg: 'dark:bg-red-950/20', label: 'text-red-700 dark:text-red-400', value: 'text-red-900 dark:text-red-200', sub: 'text-red-600/70 dark:text-red-400/50', iconBg: 'bg-red-500/20', iconColor: 'text-red-600 dark:text-red-400' },
+  amber: { borderL: 'border-l-amber-500', bg: 'bg-amber-50/40', darkBg: 'dark:bg-amber-950/20', label: 'text-amber-700 dark:text-amber-400', value: 'text-amber-900 dark:text-amber-200', sub: 'text-amber-600/70 dark:text-amber-400/50', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-600 dark:text-amber-400' },
+  violet: { borderL: 'border-l-violet-500', bg: 'bg-violet-50/40', darkBg: 'dark:bg-violet-950/20', label: 'text-violet-700 dark:text-violet-400', value: 'text-violet-900 dark:text-violet-200', sub: 'text-violet-600/70 dark:text-violet-400/50', iconBg: 'bg-violet-500/20', iconColor: 'text-violet-600 dark:text-violet-400' },
+  teal: { borderL: 'border-l-teal-500', bg: 'bg-teal-50/40', darkBg: 'dark:bg-teal-950/20', label: 'text-teal-700 dark:text-teal-400', value: 'text-teal-900 dark:text-teal-200', sub: 'text-teal-600/70 dark:text-teal-400/50', iconBg: 'bg-teal-500/20', iconColor: 'text-teal-600 dark:text-teal-400' },
+  blue: { borderL: 'border-l-blue-500', bg: 'bg-blue-50/40', darkBg: 'dark:bg-blue-950/20', label: 'text-blue-700 dark:text-blue-400', value: 'text-blue-900 dark:text-blue-200', sub: 'text-blue-600/70 dark:text-blue-400/50', iconBg: 'bg-blue-500/20', iconColor: 'text-blue-600 dark:text-blue-400' },
+  sky: { borderL: 'border-l-sky-500', bg: 'bg-sky-50/40', darkBg: 'dark:bg-sky-950/20', label: 'text-sky-700 dark:text-sky-400', value: 'text-sky-900 dark:text-sky-200', sub: 'text-sky-600/70 dark:text-sky-400/50', iconBg: 'bg-sky-500/20', iconColor: 'text-sky-600 dark:text-sky-400' },
+  pink: { borderL: 'border-l-pink-500', bg: 'bg-pink-50/40', darkBg: 'dark:bg-pink-950/20', label: 'text-pink-700 dark:text-pink-400', value: 'text-pink-900 dark:text-pink-200', sub: 'text-pink-600/70 dark:text-pink-400/50', iconBg: 'bg-pink-500/20', iconColor: 'text-pink-600 dark:text-pink-400' },
+};
+
 interface KpiProps {
   label: string;
   value: string | number;
   icon: React.ReactNode;
-  color: string;
-  bgColor: string;
+  colorFamily: string;
   tooltip?: string;
   subtext?: string;
   trend?: { value: number; label: string };
   onClick?: () => void;
 }
 
-function KpiCard({ label, value, icon, color, bgColor, tooltip, subtext, trend, onClick }: KpiProps) {
+function KpiCard({ label, value, icon, colorFamily, tooltip, subtext, trend, onClick }: KpiProps) {
+  const c = KPI_COLORS[colorFamily] || KPI_COLORS.emerald;
   const card = (
-    <Card
-      className={`relative overflow-hidden transition-all duration-200 hover:shadow-md ${onClick ? 'cursor-pointer group' : ''}`}
+    <div
+      className={`relative overflow-hidden rounded-xl border-l-[3px] ${c.borderL} ${c.bg} ${c.darkBg} p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive ${onClick ? 'cursor-pointer group' : ''}`}
       onClick={onClick}
     >
-      <CardContent className="p-3 sm:p-4">
-        <div className="flex items-start justify-between gap-2 sm:gap-3">
-          <div className="flex-1 min-w-0 text-center">
-            <p className="text-[10px] sm:text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1 sm:mb-1.5">{label}</p>
-            <p className={`text-lg sm:text-2xl font-bold tracking-tight ${color} truncate`}>{value}</p>
-            {trend && (
-              <div className="flex items-center justify-center gap-1 mt-1 sm:mt-1.5">
-                {trend.value > 0 ? (
-                  <ArrowUpRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#059669]" />
-                ) : trend.value < 0 ? (
-                  <ArrowDownRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#EF4444]" />
-                ) : (
-                  <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground" />
-                )}
-                <span className={`text-[11px] sm:text-xs font-medium ${trend.value > 0 ? 'text-[#059669]' : trend.value < 0 ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
-                  {Math.abs(trend.value)}%
-                </span>
-                <span className="text-[11px] sm:text-xs text-muted-foreground hidden sm:inline">{trend.label}</span>
-              </div>
-            )}
-            {subtext && !trend && <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 truncate hidden sm:block">{subtext}</p>}
-          </div>
-          <div className={`shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${bgColor}`}>
-            <div className="sm:scale-100 scale-90">{icon}</div>
-          </div>
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className={`text-xs font-medium ${c.label}`}>{label}</p>
+          <p className={`text-xl font-bold ${c.value} truncate`}>{value}</p>
+          {trend && (
+            <div className="flex items-center gap-1 mt-1">
+              {trend.value > 0 ? (
+                <ArrowUpRight className="w-3 h-3 text-[#059669]" />
+              ) : trend.value < 0 ? (
+                <ArrowDownRight className="w-3 h-3 text-[#EF4444]" />
+              ) : (
+                <Minus className="w-3 h-3 text-muted-foreground" />
+              )}
+              <span className={`text-[11px] font-medium ${trend.value > 0 ? 'text-[#059669]' : trend.value < 0 ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
+                {Math.abs(trend.value)}%
+              </span>
+              <span className="text-[11px] text-muted-foreground hidden sm:inline">{trend.label}</span>
+            </div>
+          )}
+          {subtext && !trend && <p className={`text-[10px] ${c.sub} mt-1 truncate`}>{subtext}</p>}
         </div>
-      </CardContent>
+        <div className={`w-10 h-10 rounded-full ${c.iconBg} ${c.iconColor} flex items-center justify-center shrink-0`}>
+          {icon}
+        </div>
+      </div>
       {onClick && (
         <div className="absolute inset-x-0 bottom-0 h-0.5 bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
       )}
-    </Card>
+    </div>
   );
 
   if (tooltip) {
@@ -177,43 +187,42 @@ function ReportTabHeader({ icon, title, subtitle }: { icon: React.ReactNode; tit
 
 /**
  * Compact summary KPI card for tab-level metric highlights.
- * Shows an icon + label + value, with an optional trend indicator (↑/↓).
+ * Facturacion KPI style: colorFamily-driven with left border, tinted bg, icon circle.
  */
-function SummaryCard({ icon, label, value, tint, trend }: {
+function SummaryCard({ icon, label, value, colorFamily, trend }: {
   icon: React.ReactNode;
   label: string;
   value: string | number;
-  tint: string;
+  colorFamily: string;
   trend?: { dir: 'up' | 'down' | 'flat'; pct: number };
 }) {
+  const c = KPI_COLORS[colorFamily] || KPI_COLORS.emerald;
   return (
-    <Card className="overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
-      <CardContent className="p-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${tint}`}>
-            {icon}
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground truncate">{label}</p>
-            <p className="text-xl font-bold text-[#0F2B28] tabular-nums truncate">{value}</p>
-          </div>
+    <div className={`rounded-xl border-l-[3px] ${c.borderL} ${c.bg} ${c.darkBg} p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive`}>
+      <div className="flex items-start justify-between">
+        <div className="space-y-1 min-w-0">
+          <p className={`text-xs font-medium ${c.label} truncate`}>{label}</p>
+          <p className={`text-xl font-bold ${c.value} tabular-nums truncate`}>{value}</p>
         </div>
-        {trend && (
-          <div className="flex items-center gap-1 shrink-0">
-            {trend.dir === 'up' ? (
-              <ArrowUpRight className="w-4 h-4 text-[#059669]" />
-            ) : trend.dir === 'down' ? (
-              <ArrowDownRight className="w-4 h-4 text-[#EF4444]" />
-            ) : (
-              <Minus className="w-4 h-4 text-muted-foreground" />
-            )}
-            <span className={`text-xs font-semibold ${trend.dir === 'up' ? 'text-[#059669]' : trend.dir === 'down' ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
-              {trend.pct}%
-            </span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        <div className={`w-10 h-10 rounded-full ${c.iconBg} ${c.iconColor} flex items-center justify-center shrink-0`}>
+          {icon}
+        </div>
+      </div>
+      {trend && (
+        <div className="flex items-center gap-1 mt-2 shrink-0">
+          {trend.dir === 'up' ? (
+            <ArrowUpRight className="w-3.5 h-3.5 text-[#059669]" />
+          ) : trend.dir === 'down' ? (
+            <ArrowDownRight className="w-3.5 h-3.5 text-[#EF4444]" />
+          ) : (
+            <Minus className="w-3.5 h-3.5 text-muted-foreground" />
+          )}
+          <span className={`text-xs font-semibold ${trend.dir === 'up' ? 'text-[#059669]' : trend.dir === 'down' ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
+            {trend.pct}%
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1007,9 +1016,8 @@ export default function ReportesModule() {
         <KpiCard
           label="Ingresos"
           value={formatMoneda(totalIngresos)}
-          icon={<DollarSign className="w-5 h-5 text-[#166534]" />}
-          color="text-[#166534]"
-          bgColor="bg-[#DCFCE7]"
+          icon={<DollarSign className="w-5 h-5" />}
+          colorFamily="green"
           tooltip="Total de pagos recibidos en el periodo seleccionado"
           trend={{ value: trendPct(totalIngresos, prevIngresos), label: 'vs periodo anterior' }}
           onClick={() => setActiveTab('financiero')}
@@ -1017,9 +1025,8 @@ export default function ReportesModule() {
         <KpiCard
           label="Gastos"
           value={formatMoneda(totalGastos)}
-          icon={<TrendingDown className="w-5 h-5 text-[#EF4444]" />}
-          color="text-[#EF4444]"
-          bgColor="bg-[#FEE2E2]"
+          icon={<TrendingDown className="w-5 h-5" />}
+          colorFamily="red"
           tooltip="Total de gastos registrados en el periodo"
           trend={{ value: trendPct(totalGastos, prevGastos), label: 'vs periodo anterior' }}
           onClick={() => setActiveTab('gastos')}
@@ -1027,18 +1034,16 @@ export default function ReportesModule() {
         <KpiCard
           label="Ganancia Neta"
           value={formatMoneda(gananciaNeta)}
-          icon={<TrendingUp className="w-5 h-5 text-[#3B82F6]" />}
-          color={gananciaNeta >= 0 ? 'text-[#166534]' : 'text-[#EF4444]'}
-          bgColor={gananciaNeta >= 0 ? 'bg-[#DBEAFE]' : 'bg-[#FEE2E2]'}
+          icon={<TrendingUp className="w-5 h-5" />}
+          colorFamily={gananciaNeta >= 0 ? 'emerald' : 'red'}
           tooltip="Ingresos menos gastos. Margen de rentabilidad."
           trend={{ value: trendPct(gananciaNeta, prevGanancia), label: 'vs periodo anterior' }}
         />
         <KpiCard
           label="Reservas"
           value={reservasEnPeriodo.length}
-          icon={<CalendarDays className="w-5 h-5 text-[#F59E0B]" />}
-          color="text-[#92400E]"
-          bgColor="bg-[#FEF3C7]"
+          icon={<CalendarDays className="w-5 h-5" />}
+          colorFamily="amber"
           tooltip={`${checkinsPeriodo} check-ins · ${checkoutsPeriodo} check-outs · ${cancelacionesPeriodo} cancelaciones`}
           subtext={`${checkinsPeriodo} CI · ${checkoutsPeriodo} CO · ${cancelacionesPeriodo} cancel.`}
           onClick={() => setActiveTab('financiero')}
@@ -1050,9 +1055,8 @@ export default function ReportesModule() {
         <KpiCard
           label="Ocupación"
           value={`${tasaOcupacion}%`}
-          icon={<Percent className="w-5 h-5 text-[#7C3AED]" />}
-          color="text-[#5B21B6]"
-          bgColor="bg-[#F5F3FF]"
+          icon={<Percent className="w-5 h-5" />}
+          colorFamily="violet"
           tooltip={`${nochesVendidas} noches vendidas de ${nochesDisponibles} disponibles (${diasPeriodo} días × ${totalHabs} hab.)`}
           subtext={`${nochesVendidas} de ${nochesDisponibles} noches`}
           onClick={() => setActiveTab('habitaciones')}
@@ -1060,27 +1064,24 @@ export default function ReportesModule() {
         <KpiCard
           label="ADR"
           value={formatMoneda(adr)}
-          icon={<BedDouble className="w-5 h-5 text-[#3B82F6]" />}
-          color="text-[#0EA5E9]"
-          bgColor="bg-[#E0F2FE]"
+          icon={<BedDouble className="w-5 h-5" />}
+          colorFamily="sky"
           tooltip="Average Daily Rate — ingreso promedio por noche vendida"
           subtext={nochesVendidas > 0 ? `${formatMoneda(totalIngresos)} ÷ ${nochesVendidas} noches` : 'Sin datos'}
         />
         <KpiCard
           label="RevPAR"
           value={formatMoneda(revpar)}
-          icon={<Hotel className="w-5 h-5 text-pink-500" />}
-          color="text-pink-600"
-          bgColor="bg-pink-100"
+          icon={<Hotel className="w-5 h-5" />}
+          colorFamily="pink"
           tooltip="Revenue Per Available Room — ingreso por habitación disponible"
           subtext={nochesDisponibles > 0 ? `${formatMoneda(totalIngresos)} ÷ ${nochesDisponibles} noches disp.` : 'Sin datos'}
         />
         <KpiCard
           label="Ticket Promedio"
           value={formatMoneda(ticketPromedio)}
-          icon={<Receipt className="w-5 h-5 text-teal-500" />}
-          color="text-teal-600"
-          bgColor="bg-teal-100"
+          icon={<Receipt className="w-5 h-5" />}
+          colorFamily="teal"
           tooltip="Monto promedio por pago recibido"
           subtext={`${pagosEnPeriodo.length} pagos en el periodo`}
         />
@@ -1181,24 +1182,24 @@ export default function ReportesModule() {
           {/* Summary KPI cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <SummaryCard
-              icon={<TrendingUp className="w-5 h-5 text-[#166534]" />}
+              icon={<TrendingUp className="w-5 h-5" />}
               label="Total Ingresos"
               value={formatMoneda(totalIngresos)}
-              tint="bg-[#DCFCE7]"
+              colorFamily="green"
               trend={prevIngresos > 0 ? { dir: trendPct(totalIngresos, prevIngresos) > 0 ? 'up' : trendPct(totalIngresos, prevIngresos) < 0 ? 'down' : 'flat', pct: Math.abs(trendPct(totalIngresos, prevIngresos)) } : undefined}
             />
             <SummaryCard
-              icon={<TrendingDown className="w-5 h-5 text-[#991B1B]" />}
+              icon={<TrendingDown className="w-5 h-5" />}
               label="Total Egresos"
               value={formatMoneda(totalGastos)}
-              tint="bg-[#FEE2E2]"
+              colorFamily="red"
               trend={prevGastos > 0 ? { dir: trendPct(totalGastos, prevGastos) > 0 ? 'up' : trendPct(totalGastos, prevGastos) < 0 ? 'down' : 'flat', pct: Math.abs(trendPct(totalGastos, prevGastos)) } : undefined}
             />
             <SummaryCard
-              icon={<Wallet className="w-5 h-5 text-[#0F2B28]" />}
+              icon={<Wallet className="w-5 h-5" />}
               label="Balance Neto"
               value={formatMoneda(gananciaNeta)}
-              tint="bg-[#0F2B28]/10"
+              colorFamily="emerald"
               trend={prevGanancia !== 0 ? { dir: trendPct(gananciaNeta, prevGanancia) > 0 ? 'up' : trendPct(gananciaNeta, prevGanancia) < 0 ? 'down' : 'flat', pct: Math.abs(trendPct(gananciaNeta, prevGanancia)) } : undefined}
             />
           </div>
@@ -1371,23 +1372,23 @@ export default function ReportesModule() {
           {/* Summary KPI cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <SummaryCard
-              icon={<TrendingDown className="w-5 h-5 text-[#991B1B]" />}
+              icon={<TrendingDown className="w-5 h-5" />}
               label="Total Egresos"
               value={formatMoneda(totalGastos)}
-              tint="bg-[#FEE2E2]"
+              colorFamily="red"
               trend={prevGastos > 0 ? { dir: trendPct(totalGastos, prevGastos) > 0 ? 'up' : trendPct(totalGastos, prevGastos) < 0 ? 'down' : 'flat', pct: Math.abs(trendPct(totalGastos, prevGastos)) } : undefined}
             />
             <SummaryCard
-              icon={<Receipt className="w-5 h-5 text-[#92400E]" />}
+              icon={<Receipt className="w-5 h-5" />}
               label="Categoría Top"
               value={gastosPorCategoria[0] ? gastosPorCategoria[0][0] : '—'}
-              tint="bg-[#FEF3C7]"
+              colorFamily="amber"
             />
             <SummaryCard
-              icon={<Wallet className="w-5 h-5 text-[#0F2B28]" />}
+              icon={<Wallet className="w-5 h-5" />}
               label="Promedio por Gasto"
               value={formatMoneda(gastosEnPeriodo.length > 0 ? Math.round(totalGastos / gastosEnPeriodo.length) : 0)}
-              tint="bg-[#0F2B28]/10"
+              colorFamily="emerald"
             />
           </div>
 
@@ -1508,30 +1509,26 @@ export default function ReportesModule() {
             <KpiCard
               label="Total Acciones"
               value={auditFiltrada.length}
-              icon={<FileText className="w-5 h-5 text-[#3B82F6]" />}
-              color="text-[#1E40AF]"
-              bgColor="bg-[#DBEAFE]"
+              icon={<FileText className="w-5 h-5" />}
+              colorFamily="blue"
             />
             <KpiCard
               label="Check-Ins"
               value={auditoriaEnPeriodo.filter(a => a.tipo === 'Check-In').length}
-              icon={<ArrowUpRight className="w-5 h-5 text-[#059669]" />}
-              color="text-[#166534]"
-              bgColor="bg-[#DCFCE7]"
+              icon={<ArrowUpRight className="w-5 h-5" />}
+              colorFamily="green"
             />
             <KpiCard
               label="Check-Outs"
               value={auditoriaEnPeriodo.filter(a => a.tipo === 'Check-Out').length}
-              icon={<ArrowDownRight className="w-5 h-5 text-[#F59E0B]" />}
-              color="text-[#92400E]"
-              bgColor="bg-[#FEF3C7]"
+              icon={<ArrowDownRight className="w-5 h-5" />}
+              colorFamily="amber"
             />
             <KpiCard
               label="Pagos Registrados"
               value={auditoriaEnPeriodo.filter(a => a.tipo === 'Pago').length}
-              icon={<DollarSign className="w-5 h-5 text-[#7C3AED]" />}
-              color="text-[#5B21B6]"
-              bgColor="bg-[#F5F3FF]"
+              icon={<DollarSign className="w-5 h-5" />}
+              colorFamily="violet"
             />
           </KpiRow>
 
@@ -1655,32 +1652,28 @@ export default function ReportesModule() {
             <KpiCard
               label="Turnos Registrados"
               value={cajaTurnosAMostrar.length}
-              icon={<Wallet className="w-5 h-5 text-[#059669]" />}
-              color="text-[#166534]"
-              bgColor="bg-[#DCFCE7]"
+              icon={<Wallet className="w-5 h-5" />}
+              colorFamily="green"
             />
             <KpiCard
               label="Turnos Cuadrados"
               value={cajaTurnosAMostrar.filter(t => t.cierre.diferencia === 0).length}
-              icon={<TrendingUp className="w-5 h-5 text-[#3B82F6]" />}
-              color="text-[#0EA5E9]"
-              bgColor="bg-[#E0F2FE]"
+              icon={<TrendingUp className="w-5 h-5" />}
+              colorFamily="sky"
               subtext={cajaTurnosAMostrar.length > 0 ? `${Math.round((cajaTurnosAMostrar.filter(t => t.cierre.diferencia === 0).length / cajaTurnosAMostrar.length) * 100)}% del total` : ''}
             />
             <KpiCard
               label="Diferencia Total"
               value={formatMoneda(cajaTurnosAMostrar.reduce((s, t) => s + Math.abs(t.cierre.diferencia), 0))}
-              icon={<TrendingDown className="w-5 h-5 text-[#EF4444]" />}
-              color="text-[#EF4444]"
-              bgColor="bg-[#FEE2E2]"
+              icon={<TrendingDown className="w-5 h-5" />}
+              colorFamily="red"
               tooltip="Suma de diferencias absolutas de todos los turnos"
             />
             <KpiCard
               label="Total Movimientos"
               value={cajaTurnosAMostrar.reduce((s, t) => s + t.movimientos.length, 0)}
-              icon={<BarChart3 className="w-5 h-5 text-[#7C3AED]" />}
-              color="text-[#5B21B6]"
-              bgColor="bg-[#F5F3FF]"
+              icon={<BarChart3 className="w-5 h-5" />}
+              colorFamily="violet"
             />
           </KpiRow>
 
@@ -1804,44 +1797,51 @@ export default function ReportesModule() {
           {/* Summary KPI cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <SummaryCard
-              icon={<Percent className="w-5 h-5 text-[#166534]" />}
+              icon={<Percent className="w-5 h-5" />}
               label="Ocupación Promedio"
               value={`${tasaOcupacion}%`}
-              tint="bg-[#DCFCE7]"
+              colorFamily="green"
             />
             <SummaryCard
-              icon={<Moon className="w-5 h-5 text-[#0F2B28]" />}
+              icon={<Moon className="w-5 h-5" />}
               label="Total Noches Vendidas"
               value={nochesVendidas}
-              tint="bg-[#0F2B28]/10"
+              colorFamily="emerald"
             />
             <SummaryCard
-              icon={<DollarSign className="w-5 h-5 text-[#92400E]" />}
+              icon={<DollarSign className="w-5 h-5" />}
               label="ADR (Daily Rate)"
               value={formatMoneda(adr)}
-              tint="bg-[#FEF3C7]"
+              colorFamily="amber"
             />
           </div>
 
-          {/* Estado actual */}
+          {/* Estado actual — Facturacion KPI style */}
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3">
             {[
-              { label: 'Total', value: habResumen.total, color: '', icon: <BedDouble className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />, bg: 'bg-muted' },
-              { label: 'Disponible', value: habResumen.disponibles, color: 'text-[#166534]', icon: <BedDouble className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#059669]" />, bg: 'bg-[#DCFCE7]' },
-              { label: 'Ocupada', value: habResumen.ocupadas, color: 'text-[#EF4444]', icon: <BedDouble className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#EF4444]" />, bg: 'bg-[#FEE2E2]' },
-              { label: 'Reservada', value: habResumen.reservadas, color: 'text-[#92400E]', icon: <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F59E0B]" />, bg: 'bg-[#FEF3C7]' },
-              { label: 'Limpieza', value: habResumen.limpieza, color: 'text-[#0EA5E9]', icon: <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#3B82F6]" />, bg: 'bg-[#E0F2FE]' },
-              { label: 'Mantenim.', value: habResumen.mantenimiento, color: 'text-[#EA580C]', icon: <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F97316]" />, bg: 'bg-[#FFEDD5]' },
-              { label: 'Fuera serv.', value: habResumen.fueraServicio, color: 'text-gray-500', icon: <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />, bg: 'bg-[#F1F5F9]' },
-            ].map(item => (
-              <Card key={item.label}>
-                <CardContent className="p-2 sm:p-3 text-center">
-                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${item.bg} flex items-center justify-center mx-auto mb-1 sm:mb-2`}>{item.icon}</div>
-                  <p className={`text-xl sm:text-2xl font-bold ${item.color}`}>{item.value}</p>
-                  <p className="text-[9px] sm:text-[11px] text-muted-foreground mt-0.5 leading-tight">{item.label}</p>
-                </CardContent>
-              </Card>
-            ))}
+              { label: 'Total', value: habResumen.total, colorFamily: 'emerald', icon: <BedDouble className="w-4 h-4" /> },
+              { label: 'Disponible', value: habResumen.disponibles, colorFamily: 'green', icon: <BedDouble className="w-4 h-4" /> },
+              { label: 'Ocupada', value: habResumen.ocupadas, colorFamily: 'red', icon: <BedDouble className="w-4 h-4" /> },
+              { label: 'Reservada', value: habResumen.reservadas, colorFamily: 'amber', icon: <CalendarDays className="w-4 h-4" /> },
+              { label: 'Limpieza', value: habResumen.limpieza, colorFamily: 'sky', icon: <Sun className="w-4 h-4" /> },
+              { label: 'Mantenim.', value: habResumen.mantenimiento, colorFamily: 'amber', icon: <TrendingDown className="w-4 h-4" /> },
+              { label: 'Fuera serv.', value: habResumen.fueraServicio, colorFamily: 'blue', icon: <TrendingDown className="w-4 h-4" /> },
+            ].map(item => {
+              const c = KPI_COLORS[item.colorFamily] || KPI_COLORS.emerald;
+              return (
+                <div key={item.label} className={`rounded-xl border-l-[3px] ${c.borderL} ${c.bg} ${c.darkBg} p-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive`}>
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-0.5">
+                      <p className={`text-[10px] font-medium ${c.label}`}>{item.label}</p>
+                      <p className={`text-xl font-bold ${c.value}`}>{item.value}</p>
+                    </div>
+                    <div className={`w-8 h-8 rounded-full ${c.iconBg} ${c.iconColor} flex items-center justify-center shrink-0`}>
+                      {item.icon}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Ocupación */}
@@ -1910,22 +1910,22 @@ export default function ReportesModule() {
           {/* Summary KPI cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <SummaryCard
-              icon={<Users className="w-5 h-5 text-[#0F2B28]" />}
+              icon={<Users className="w-5 h-5" />}
               label="Total Clientes"
               value={clientes.length}
-              tint="bg-[#0F2B28]/10"
+              colorFamily="emerald"
             />
             <SummaryCard
-              icon={<TrendingUp className="w-5 h-5 text-[#166534]" />}
+              icon={<TrendingUp className="w-5 h-5" />}
               label="Nuevos este mes"
               value={clientesResumen.nuevos}
-              tint="bg-[#DCFCE7]"
+              colorFamily="green"
             />
             <SummaryCard
-              icon={<Star className="w-5 h-5 text-[#92400E]" />}
+              icon={<Star className="w-5 h-5" />}
               label="Recurrentes (2+ estadías)"
               value={clientesResumen.recurrentes}
-              tint="bg-[#FEF3C7]"
+              colorFamily="amber"
             />
           </div>
 
@@ -1959,23 +1959,20 @@ export default function ReportesModule() {
             <KpiCard
               label="Total Clientes"
               value={clientes.length}
-              icon={<Users className="w-5 h-5 text-[#3B82F6]" />}
-              color="text-[#1E40AF]"
-              bgColor="bg-[#DBEAFE]"
+              icon={<Users className="w-5 h-5" />}
+              colorFamily="blue"
             />
             <KpiCard
               label="Clientes con Estadías"
               value={clientes.filter(c => c.historialEstadias.length > 0).length}
-              icon={<TrendingUp className="w-5 h-5 text-[#059669]" />}
-              color="text-[#166534]"
-              bgColor="bg-[#DCFCE7]"
+              icon={<TrendingUp className="w-5 h-5" />}
+              colorFamily="green"
             />
             <KpiCard
               label="Ingreso Total Clientes"
               value={formatMoneda(clientes.reduce((s, c) => s + c.historialEstadias.reduce((ss, e) => ss + e.gastoTotal, 0), 0))}
-              icon={<DollarSign className="w-5 h-5 text-[#F59E0B]" />}
-              color="text-[#92400E]"
-              bgColor="bg-[#FEF3C7]"
+              icon={<DollarSign className="w-5 h-5" />}
+              colorFamily="amber"
             />
             <KpiCard
               label="Gasto Promedio"
@@ -1984,9 +1981,8 @@ export default function ReportesModule() {
                   ? Math.round(clientes.reduce((s, c) => s + c.historialEstadias.reduce((ss, e) => ss + e.gastoTotal, 0), 0) / clientes.filter(c => c.historialEstadias.length > 0).length)
                   : 0
               )}
-              icon={<Receipt className="w-5 h-5 text-[#7C3AED]" />}
-              color="text-[#5B21B6]"
-              bgColor="bg-[#F5F3FF]"
+              icon={<Receipt className="w-5 h-5" />}
+              colorFamily="violet"
               tooltip="Gasto promedio por cliente que ya se hospedó"
             />
           </KpiRow>
@@ -2049,31 +2045,27 @@ export default function ReportesModule() {
             <KpiCard
               label="Empleados Activos"
               value={usuarios.length}
-              icon={<UserCog className="w-5 h-5 text-[#3B82F6]" />}
-              color="text-[#1E40AF]"
-              bgColor="bg-[#DBEAFE]"
+              icon={<UserCog className="w-5 h-5" />}
+              colorFamily="blue"
             />
             <KpiCard
               label="Acciones del Periodo"
               value={auditoriaEnPeriodo.length}
-              icon={<BarChart3 className="w-5 h-5 text-[#059669]" />}
-              color="text-[#166534]"
-              bgColor="bg-[#DCFCE7]"
+              icon={<BarChart3 className="w-5 h-5" />}
+              colorFamily="green"
             />
             <KpiCard
               label="Más Activo"
               value={empleadosResumen[0]?.nombre || '—'}
-              icon={<TrendingUp className="w-5 h-5 text-[#F59E0B]" />}
-              color="text-[#92400E]"
-              bgColor="bg-[#FEF3C7]"
+              icon={<TrendingUp className="w-5 h-5" />}
+              colorFamily="amber"
               subtext={empleadosResumen[0] ? `${empleadosResumen[0].auditorias} acciones` : ''}
             />
             <KpiCard
               label="Gastos Registrados"
               value={gastosEnPeriodo.length}
-              icon={<TrendingDown className="w-5 h-5 text-[#EF4444]" />}
-              color="text-[#EF4444]"
-              bgColor="bg-[#FEE2E2]"
+              icon={<TrendingDown className="w-5 h-5" />}
+              colorFamily="red"
               subtext={`Total: ${formatMoneda(totalGastos)}`}
             />
           </KpiRow>

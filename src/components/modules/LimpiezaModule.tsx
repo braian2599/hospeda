@@ -1072,47 +1072,65 @@ export default function LimpiezaModule() {
 
       {/* ── Summary Stats ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="border-[#FDE68A] bg-yellow-50/40 dark:bg-yellow-950/20">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#FEF9C3]"><SprayCan className="w-5 h-5 text-[#92400E]" /></div>
-            <div>
-              <AnimatedNumber value={dailySummary.pending} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
-              <p className="text-xs text-muted-foreground">Tareas Pendientes</p>
+        <Card className="rounded-xl border-l-[3px] border-l-yellow-500 bg-yellow-50/40 dark:bg-yellow-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+          <CardContent className="p-0">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-yellow-700 dark:text-yellow-400">Tareas Pendientes</p>
+                <AnimatedNumber value={dailySummary.pending} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-yellow-900 dark:text-yellow-200" />
+              </div>
+              <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <SprayCan className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-[#BAE6FD] bg-sky-50/40 dark:bg-sky-950/20">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#E0F2FE]"><Timer className="w-5 h-5 text-[#0369A1]" /></div>
-            <div>
-              <AnimatedNumber value={dailySummary.inProgress} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
-              <p className="text-xs text-muted-foreground">En Progreso</p>
+        <Card className="rounded-xl border-l-[3px] border-l-sky-500 bg-sky-50/40 dark:bg-sky-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+          <CardContent className="p-0">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-sky-700 dark:text-sky-400">En Progreso</p>
+                <AnimatedNumber value={dailySummary.inProgress} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-sky-900 dark:text-sky-200" />
+              </div>
+              <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center">
+                <Timer className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-[#BBF7D0] bg-emerald-50/40 dark:bg-emerald-950/20">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#DCFCE7]"><CheckCircle className="w-5 h-5 text-[#166534]" /></div>
-            <div className="flex items-baseline gap-1.5">
-              <AnimatedNumber value={dailySummary.completed} duration={400} format={(n) => String(Math.round(n))} className="text-2xl font-bold block leading-tight" />
-              {dailySummary.variation !== 0 && (
-                <span className={cn('inline-flex items-center text-[10px] font-semibold', dailySummary.variation >= 0 ? 'text-[#166534]' : 'text-[#991B1B]')}>
-                  {dailySummary.variation >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {Math.abs(dailySummary.variation)}%
+        <Card className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+          <CardContent className="p-0">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Completadas Hoy</p>
+                <div className="flex items-baseline gap-1.5">
+                  <AnimatedNumber value={dailySummary.completed} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-emerald-900 dark:text-emerald-200" />
+                  {dailySummary.variation !== 0 && (
+                    <span className={cn('inline-flex items-center text-[10px] font-semibold', dailySummary.variation >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                      {dailySummary.variation >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {Math.abs(dailySummary.variation)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl border-l-[3px] border-l-violet-500 bg-violet-50/40 dark:bg-violet-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+          <CardContent className="p-0">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-violet-700 dark:text-violet-400">Tiempo Promedio</p>
+                <span className="text-xl font-bold text-violet-900 dark:text-violet-200">
+                  {dailySummary.avgMin > 0 ? `${dailySummary.avgMin}'` : '—'}
                 </span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">Completadas Hoy</p>
-          </CardContent>
-        </Card>
-        <Card className="border-[#DDD6FE] bg-violet-50/40 dark:bg-violet-950/20">
-          <CardContent className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#F5F3FF]"><Clock className="w-5 h-5 text-[#6D28D9]" /></div>
-            <div>
-              <span className="text-2xl font-bold block leading-tight text-[#6D28D9]">
-                {dailySummary.avgMin > 0 ? `${dailySummary.avgMin}'` : '—'}
-              </span>
-              <p className="text-xs text-muted-foreground">Tiempo Promedio</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
+                <Clock className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -1,0 +1,1098 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useMemo } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import type { Reserva, Acompanante, Menor, ModuloId } from '@/lib/types';
+     6→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     7→import { Button } from '@/components/ui/button';
+     8→import { Input } from '@/components/ui/input';
+     9→import { Label } from '@/components/ui/label';
+    10→import { Badge } from '@/components/ui/badge';
+    11→import { Checkbox } from '@/components/ui/checkbox';
+    12→import { Textarea } from '@/components/ui/textarea';
+    13→import { Separator } from '@/components/ui/separator';
+    14→import { Skeleton } from '@/components/ui/skeleton';
+    15→import {
+    16→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    17→} from '@/components/ui/dialog';
+    18→import {
+    19→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    20→} from '@/components/ui/select';
+    21→import {
+    22→  LogIn, LogOut, KeyRound, UserPlus, Trash2, Users, AlertCircle, CreditCard, BedDouble, Baby,
+    23→  Bed, CheckCircle, CalendarCheck, DoorOpen, Wallet, ArrowRight,
+    24→  type LucideIcon,
+    25→} from 'lucide-react';
+    26→import ModuleHeader from '@/components/layout/ModuleHeader';
+    27→import { toast } from 'sonner';
+    28→import { notifySuccess } from '@/lib/notify';
+    29→import { formatMoney, formatFecha, todayLocal, daysAgo } from '@/lib/format';
+    30→import { cn } from '@/lib/utils';
+    31→
+    32→const estadoPagoBadge: Record<string, string> = {
+    33→  Pendiente: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]',
+    34→  Parcial: 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA]',
+    35→  Pagado: 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]',
+    36→};
+    37→
+    38→const PARENTESCO_OPTIONS = [
+    39→  'Hijo/a', 'Hijo/astra', 'Nieto/a', 'Sobrino/a', 'Primo/a', 'Otro',
+    40→];
+    41→
+    42→interface MenorForm {
+    43→  nombre: string;
+    44→  documento: string;
+    45→  edad: string;
+    46→  parentesco: string;
+    47→}
+    48→
+    49→function emptyMenorForm(): MenorForm {
+    50→  return { nombre: '', documento: '', edad: '', parentesco: 'Hijo/a' };
+    51→}
+    52→
+    53→export default function CheckInModule() {
+    54→  // ── Granular Zustand selectors (no destructuring) ──
+    55→  const reservas = useHotelStore(s => s.reservas);
+    56→  const habitaciones = useHotelStore(s => s.habitaciones);
+    57→  const realizarCheckIn = useHotelStore(s => s.realizarCheckIn);
+    58→  const realizarCheckOut = useHotelStore(s => s.realizarCheckOut);
+    59→  const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
+    60→  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
+    61→  const nochesEntre = useHotelStore(s => s.nochesEntre);
+    62→  const setModulo = useHotelStore(s => s.setModulo);
+    63→
+    64→  const pendientesCheckIn = useMemo(
+    65→    () => reservas.filter(r => r.estado === 'Confirmada'),
+    66→    [reservas]
+    67→  );
+    68→  const pendientesCheckOut = useMemo(
+    69→    () => reservas.filter(r => r.estado === 'Check-In realizado'),
+    70→    [reservas]
+    71→  );
+    72→
+    73→  // ── Local loading state (brief, for skeleton display) ──
+    74→  // The store has no `loading` flag; we simulate a brief fetch on mount so
+    75→  // skeleton placeholders are visible to the user.
+    76→  const [loading, setLoading] = useState(true);
+    77→  useEffect(() => {
+    78→    const t = setTimeout(() => setLoading(false), 400);
+    79→    return () => clearTimeout(t);
+    80→  }, []);
+    81→
+    82→  // Modal state
+    83→  const [modalTipo, setModalTipo] = useState<'checkin' | 'checkout' | null>(null);
+    84→  const [selReserva, setSelReserva] = useState<Reserva | null>(null);
+    85→  const [dialogKey, setDialogKey] = useState(0);
+    86→
+    87→  // Check-in form
+    88→  const [docVerificado, setDocVerificado] = useState(false);
+    89→  const [firmaConformidad, setFirmaConformidad] = useState(false);
+    90→  const [llave, setLlave] = useState('');
+    91→  const [emergenciaNombre, setEmergenciaNombre] = useState('');
+    92→  const [emergenciaTelefono, setEmergenciaTelefono] = useState('');
+    93→  const [observaciones, setObservaciones] = useState('');
+    94→  const [acompanantes, setAcompanantes] = useState<Acompanante[]>([
+    95→    { nombre: '', dni: '', celular: '' },
+    96→  ]);
+    97→
+    98→  // Menores form state
+    99→  const [menoresForms, setMenoresForms] = useState<MenorForm[]>([]);
+   100→  const [menoresErrors, setMenoresErrors] = useState<string[]>([]);
+   101→
+   102→  const openCheckIn = (r: Reserva) => {
+   103→    setSelReserva(r);
+   104→    setDocVerificado(false);
+   105→    setFirmaConformidad(false);
+   106→    setLlave('');
+   107→    setEmergenciaNombre(r.contactoEmergencia?.nombre || '');
+   108→    setEmergenciaTelefono(r.contactoEmergencia?.telefono || '');
+   109→    setObservaciones(r.observacionesHuesped || '');
+   110→    setAcompanantes(r.acompanantes?.length ? [...r.acompanantes] : [{ nombre: '', dni: '', celular: '' }]);
+   111→
+   112→    // Si ya tiene menores registrados (check-in previo), precargar
+   113→    if (r.menores && r.menores.length > 0) {
+   114→      setMenoresForms(r.menores.map(m => ({
+   115→        nombre: m.nombre,
+   116→        documento: m.documento,
+   117→        edad: String(m.edad),
+   118→        parentesco: m.parentesco,
+   119→      })));
+   120→    } else if ((r.ninos || 0) > 0) {
+   121→      // Generar formularios vacíos según la cantidad de menores declarados
+   122→      const forms: MenorForm[] = [];
+   123→      for (let i = 0; i < r.ninos!; i++) {
+   124→        forms.push(emptyMenorForm());
+   125→      }
+   126→      setMenoresForms(forms);
+   127→    } else {
+   128→      setMenoresForms([]);
+   129→    }
+   130→    setMenoresErrors([]);
+   131→
+   132→    setModalTipo('checkin');
+   133→  };
+   134→
+   135→  const openCheckOut = (r: Reserva) => {
+   136→    setSelReserva(r);
+   137→    setModalTipo('checkout');
+   138→  };
+   139→
+   140→  const closeModal = () => {
+   141→    setModalTipo(null);
+   142→    setSelReserva(null);
+   143→    setDialogKey(prev => prev + 1);
+   144→  };
+   145→
+   146→  const validateMenores = (): boolean => {
+   147→    const errs: string[] = [];
+   148→    for (let i = 0; i < menoresForms.length; i++) {
+   149→      const m = menoresForms[i];
+   150→      if (!m.nombre.trim()) errs.push(`Menor ${i + 1}: nombre obligatorio`);
+   151→      if (!m.documento.trim()) errs.push(`Menor ${i + 1}: documento obligatorio`);
+   152→      const edad = parseInt(m.edad);
+   153→      if (isNaN(edad) || edad < 0 || edad > 17) errs.push(`Menor ${i + 1}: edad debe ser entre 0 y 17`);
+   154→      if (!m.parentesco.trim()) errs.push(`Menor ${i + 1}: parentesco obligatorio`);
+   155→    }
+   156→    setMenoresErrors(errs);
+   157→    return errs.length === 0;
+   158→  };
+   159→
+   160→  const [checkLoading, setCheckLoading] = useState(false);
+   161→
+   162→  const handleConfirmCheckIn = async () => {
+   163→    if (!selReserva || !llave.trim()) return;
+   164→
+   165→    // Validar menores si la reserva tiene ninos > 0
+   166→    const cantNinos = selReserva.ninos || 0;
+   167→    if (cantNinos > 0) {
+   168→      if (menoresForms.length !== cantNinos) {
+   169→        toast.error(`Se requieren datos de ${cantNinos} menor${cantNinos > 1 ? 'es' : ''}`);
+   170→        return;
+   171→      }
+   172→      if (!validateMenores()) {
+   173→        toast.error('Completá todos los datos obligatorios de los menores');
+   174→        return;
+   175→      }
+   176→    }
+   177→
+   178→    const datos: Parameters<typeof realizarCheckIn>[1] = {};
+   179→    if (docVerificado) datos.documentoVerificado = true;
+   180→    if (firmaConformidad) datos.firmaConformidad = true;
+   181→    datos.llaveEntregada = llave.trim();
+   182→    if (emergenciaNombre.trim() || emergenciaTelefono.trim()) {
+   183→      datos.contactoEmergencia = { nombre: emergenciaNombre.trim(), telefono: emergenciaTelefono.trim() };
+   184→    }
+   185→    if (observaciones.trim()) datos.observacionesHuesped = observaciones.trim();
+   186→    const validAcomp = acompanantes.filter(a => a.nombre.trim());
+   187→    if (validAcomp.length > 0) datos.acompanantes = validAcomp;
+   188→
+   189→    // Pasar menores al store
+   190→    if (cantNinos > 0 && menoresForms.length > 0) {
+   191→      datos.menores = menoresForms.map(m => ({
+   192→        nombre: m.nombre.trim(),
+   193→        documento: m.documento.trim(),
+   194→        edad: parseInt(m.edad) || 0,
+   195→        parentesco: m.parentesco.trim(),
+   196→      }));
+   197→    }
+   198→
+   199→    try {
+   200→      setCheckLoading(true);
+   201→      const resultado = await realizarCheckIn(selReserva.id, datos);
+   202→      if (resultado) {
+   203→        closeModal();
+   204→        const desc = `${selReserva.huesped} - Hab. ${selReserva.habitacion}${cantNinos > 0 ? ` (${cantNinos} menor${cantNinos > 1 ? 'es' : ''} registrados)` : ''}`;
+   205→        notifySuccess('Check-in realizado', desc);
+   206→      } else {
+   207→        toast.error('No se pudo realizar el check-in', { description: 'La reserva ya no está en estado Confirmada, faltan datos de menores, o hubo un error de conexión.' });
+   208→      }
+   209→    } catch (err) {
+   210→      console.error('Error en check-in:', err);
+   211→      toast.error('Error al realizar check-in');
+   212→    } finally {
+   213→      setCheckLoading(false);
+   214→    }
+   215→  };
+   216→
+   217→  const handleConfirmCheckOut = async () => {
+   218→    if (!selReserva) return;
+   219→    try {
+   220→      setCheckLoading(true);
+   221→      const resultado = await realizarCheckOut(selReserva.id);
+   222→      if (resultado) {
+   223→        closeModal();
+   224→        notifySuccess('Check-out realizado', `${selReserva.huesped} - Hab. ${selReserva.habitacion}`);
+   225→      } else {
+   226→        toast.error('No se pudo realizar el check-out', { description: 'La reserva ya no está en estado Check-In realizado o hubo un error de conexión.' });
+   227→      }
+   228→    } catch (err) {
+   229→      console.error('Error en check-out:', err);
+   230→      toast.error('Error al realizar check-out');
+   231→    } finally {
+   232→      setCheckLoading(false);
+   233→    }
+   234→  };
+   235→
+   236→  const addAcompanante = () => {
+   237→    setAcompanantes(prev => [...prev, { nombre: '', dni: '', celular: '' }]);
+   238→  };
+   239→
+   240→  const removeAcompanante = (idx: number) => {
+   241→    setAcompanantes(prev => prev.filter((_, i) => i !== idx));
+   242→  };
+   243→
+   244→  const updateAcompanante = (idx: number, field: keyof Acompanante, value: string) => {
+   245→    setAcompanantes(prev => prev.map((a, i) => (i === idx ? { ...a, [field]: value } : a)));
+   246→  };
+   247→
+   248→  const updateMenor = (idx: number, field: keyof MenorForm, value: string) => {
+   249→    setMenoresForms(prev => prev.map((m, i) => (i === idx ? { ...m, [field]: value } : m)));
+   250→  };
+   251→
+   252→  // Determinar si la reserva seleccionada requiere datos de menores
+   253→  const requiereMenores = selReserva && (selReserva.ninos || 0) > 0;
+   254→  const menoresCompletos = requiereMenores && menoresForms.length === (selReserva?.ninos || 0)
+   255→    && menoresForms.every(m => m.nombre.trim() && m.documento.trim() && m.edad.trim() && m.parentesco.trim());
+   256→
+   257→  const puedeConfirmarCheckIn = llave.trim() && (!requiereMenores || menoresCompletos);
+   258→
+   259→  // ── Quick action: navigate to another module ──
+   260→  const goTo = (m: ModuloId) => setModulo(m);
+   261→
+   262→  return (
+   263→    <div className="space-y-6">
+   264→      <ModuleHeader icon={LogIn} title="Check-In / Check-Out" subtitle="Gestioná ingresos y egresos de huéspedes" />
+   265→
+   266→      {/* ═══════════ TODAY'S ACTIVITY SUMMARY ═══════════ */}
+   267→      {loading ? (
+   268→        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   269→          <StatCardSkeleton />
+   270→          <StatCardSkeleton />
+   271→          <StatCardSkeleton />
+   272→        </div>
+   273→      ) : (
+   274→        <TodayActivitySummary />
+   275→      )}
+   276→
+   277→      {/* ═══════════ QUICK ACTIONS ═══════════ */}
+   278→      <QuickActions onNavigate={goTo} />
+   279→
+   280→      {/* ═══════════ CHECK-IN / CHECK-OUT CARDS ═══════════ */}
+   281→      {loading ? (
+   282→        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   283→          <Card>
+   284→            <CardHeader className="pb-3">
+   285→              <Skeleton className="h-6 w-48" />
+   286→            </CardHeader>
+   287→            <CardContent className="space-y-3">
+   288→              <ListItemSkeleton />
+   289→              <ListItemSkeleton />
+   290→              <ListItemSkeleton />
+   291→            </CardContent>
+   292→          </Card>
+   293→          <Card>
+   294→            <CardHeader className="pb-3">
+   295→              <Skeleton className="h-6 w-48" />
+   296→            </CardHeader>
+   297→            <CardContent className="space-y-3">
+   298→              <ListItemSkeleton />
+   299→              <ListItemSkeleton />
+   300→            </CardContent>
+   301→          </Card>
+   302→        </div>
+   303→      ) : (
+   304→        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   305→          {/* Pendientes Check-In */}
+   306→          <Card className="border-[#BBF7D0]/60 bg-emerald-50/40 dark:bg-emerald-950/20 wave-border-hover">
+   307→            <CardHeader className="pb-3">
+   308→              <CardTitle className="text-lg flex items-center gap-2">
+   309→                <LogIn className="w-5 h-5 text-[#059669]" />
+   310→                Check-Ins Pendientes
+   311→                {pendientesCheckIn.length > 0 && <PulsingDot color="bg-emerald-500" />}
+   312→                <Badge
+   313→                  key={`cin-${pendientesCheckIn.length}`}
+   314→                  variant="secondary"
+   315→                  className="ml-auto count-pop bg-[#059669]/15 text-[#047857] border-[#BBF7D0] hover:bg-[#059669]/20"
+   316→                >
+   317→                  {pendientesCheckIn.length}
+   318→                </Badge>
+   319→              </CardTitle>
+   320→            </CardHeader>
+   321→            <CardContent>
+   322→              {pendientesCheckIn.length === 0 ? (
+   323→                <CelebratoryEmptyState />
+   324→              ) : (
+   325→                <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
+   326→                  {pendientesCheckIn.map(r => (
+   327→                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-[#ECFDF5]/40 transition-colors duration-200 group">
+   328→                      <div className="min-w-0 flex-1">
+   329→                        <div className="flex items-center gap-2 flex-wrap">
+   330→                          <span className="font-semibold text-sm group-hover:text-[#0F2B28] transition-colors">{r.huesped}</span>
+   331→                          <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+   332→                          {(r.ninos || 0) > 0 && (
+   333→                            <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
+   334→                              <Baby className="w-3 h-3 mr-1" />{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}
+   335→                            </Badge>
+   336→                          )}
+   337→                        </div>
+   338→                        <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+   339→                          <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" /> Hab. {r.habitacion}</span>
+   340→                          <span>{formatFecha(r.checkin)} → {formatFecha(r.checkout)}</span>
+   341→                          <span>{nochesEntre(r.checkin, r.checkout)} noche{s(nochesEntre(r.checkin, r.checkout))}</span>
+   342→                          <span>{r.personas} adulto{s(r.personas)}{(r.ninos || 0) > 0 ? ` + ${r.ninos} niño${(r.ninos || 0) > 1 ? 's' : ''}` : ''}</span>
+   343→                        </div>
+   344→                      </div>
+   345→                      <Button size="sm" className="bg-[#059669] hover:bg-[#047857] text-white shadow-sm" onClick={() => openCheckIn(r)}>
+   346→                        <KeyRound className="w-3.5 h-3.5 mr-1" />Check-In
+   347→                      </Button>
+   348→                    </div>
+   349→                  ))}
+   350→                </div>
+   351→              )}
+   352→            </CardContent>
+   353→          </Card>
+   354→
+   355→          {/* Pendientes Check-Out */}
+   356→          <Card className="border-[#FED7AA]/60 bg-amber-50/40 dark:bg-amber-950/20 wave-border-hover-amber">
+   357→            <CardHeader className="pb-3">
+   358→              <CardTitle className="text-lg flex items-center gap-2">
+   359→                <LogOut className="w-5 h-5 text-[#EA580C]" />
+   360→                Check-Outs Pendientes
+   361→                {pendientesCheckOut.length > 0 && <PulsingDot color="bg-orange-500" />}
+   362→                <Badge
+   363→                  key={`cout-${pendientesCheckOut.length}`}
+   364→                  variant="secondary"
+   365→                  className="ml-auto count-pop bg-[#EA580C]/15 text-[#9A3412] border-[#FED7AA] hover:bg-[#EA580C]/20"
+   366→                >
+   367→                  {pendientesCheckOut.length}
+   368→                </Badge>
+   369→              </CardTitle>
+   370→            </CardHeader>
+   371→            <CardContent>
+   372→              {pendientesCheckOut.length === 0 ? (
+   373→                <CelebratoryEmptyState />
+   374→              ) : (
+   375→                <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
+   376→                  {pendientesCheckOut.map(r => (
+   377→                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-[#FFF7ED]/40 transition-colors duration-200 group">
+   378→                      <div className="min-w-0 flex-1">
+   379→                        <div className="flex items-center gap-2 flex-wrap">
+   380→                          <span className="font-semibold text-sm group-hover:text-[#0F2B28] transition-colors">{r.huesped}</span>
+   381→                          <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+   382→                          {r.menores && r.menores.length > 0 && (
+   383→                            <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
+   384→                              <Baby className="w-3 h-3 mr-1" />{r.menores.length} menor{r.menores.length > 1 ? 'es' : ''}
+   385→                            </Badge>
+   386→                          )}
+   387→                        </div>
+   388→                        <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+   389→                          <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" /> Hab. {r.habitacion}</span>
+   390→                          <span>{formatFecha(r.checkin)} → {formatFecha(r.checkout)}</span>
+   391→                          <span>{nochesEntre(r.checkin, r.checkout)} noche{s(nochesEntre(r.checkin, r.checkout))}</span>
+   392→                        </div>
+   393→                      </div>
+   394→                      <Button size="sm" variant="outline" onClick={() => openCheckOut(r)}>
+   395→                        <LogOut className="w-3.5 h-3.5 mr-1" />Check-Out
+   396→                      </Button>
+   397→                    </div>
+   398→                  ))}
+   399→                </div>
+   400→              )}
+   401→            </CardContent>
+   402→          </Card>
+   403→        </div>
+   404→      )}
+   405→
+   406→      {/* =================== MODAL CHECK-IN =================== */}
+   407→      <Dialog key={`checkin-${dialogKey}`} open={modalTipo === 'checkin'} onOpenChange={closeModal}>
+   408→        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+   409→          {selReserva && (
+   410→            <>
+   411→              <DialogHeader>
+   412→                <DialogTitle className="flex items-center gap-2">
+   413→                  <KeyRound className="w-5 h-5" />
+   414→                  Check-In — {selReserva.huesped}
+   415→                </DialogTitle>
+   416→              </DialogHeader>
+   417→
+   418→              {/* Estado de cuenta */}
+   419→              <CheckInAccountStatus reserva={selReserva} />
+   420→
+   421→              <Separator />
+   422→
+   423→              {/* ═══════════ DATOS DE MENORES (OBLIGATORIO si ninos > 0) ═══════════ */}
+   424→              {requiereMenores && (
+   425→                <div className="space-y-4">
+   426→                  <div className="flex items-center gap-2">
+   427→                    <Baby className="w-5 h-5 text-[#5B21B6]" />
+   428→                    <h4 className="font-semibold text-sm">
+   429→                      Datos de menores ({selReserva.ninos}) — <span className="text-[#EF4444]">Obligatorio</span>
+   430→                    </h4>
+   431→                  </div>
+   432→                  <p className="text-xs text-muted-foreground">
+   433→                    La reserva registra {selReserva.ninos} menor{selReserva.ninos! > 1 ? 'es' : ''}.
+   434→                    Debes completar los datos de cada uno para poder realizar el check-in.
+   435→                  </p>
+   436→
+   437→                  {menoresErrors.length > 0 && (
+   438→                    <div className="rounded-lg border border-[#FECACA] bg-[#FEE2E2] p-3 space-y-1">
+   439→                      {menoresErrors.map((err, i) => (
+   440→                        <p key={i} className="text-xs text-[#991B1B]">{err}</p>
+   441→                      ))}
+   442→                    </div>
+   443→                  )}
+   444→
+   445→                  <div className="space-y-4">
+   446→                    {menoresForms.map((menor, idx) => (
+   447→                      <div key={idx} className="rounded-lg border p-4 space-y-3 bg-muted/30">
+   448→                        <div className="flex items-center justify-between">
+   449→                          <span className="text-sm font-semibold flex items-center gap-1.5">
+   450→                            <Baby className="w-4 h-4 text-[#7C3AED]" />
+   451→                            Menor {idx + 1}
+   452→                          </span>
+   453→                        </div>
+   454→                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   455→                          <div className="grid gap-2">
+   456→                            <Label htmlFor={`menor-nombre-${idx}`}>Nombre completo *</Label>
+   457→                            <Input
+   458→                              id={`menor-nombre-${idx}`}
+   459→                              value={menor.nombre}
+   460→                              onChange={e => updateMenor(idx, 'nombre', e.target.value)}
+   461→                              placeholder="Nombre del menor"
+   462→                            />
+   463→                          </div>
+   464→                          <div className="grid gap-2">
+   465→                            <Label htmlFor={`menor-doc-${idx}`}>Documento / DNI *</Label>
+   466→                            <Input
+   467→                              id={`menor-doc-${idx}`}
+   468→                              value={menor.documento}
+   469→                              onChange={e => updateMenor(idx, 'documento', e.target.value)}
+   470→                              placeholder="Documento del menor"
+   471→                            />
+   472→                          </div>
+   473→                          <div className="grid gap-2">
+   474→                            <Label htmlFor={`menor-edad-${idx}`}>Edad (años) *</Label>
+   475→                            <Input
+   476→                              id={`menor-edad-${idx}`}
+   477→                              type="number"
+   478→                              min="0"
+   479→                              max="17"
+   480→                              value={menor.edad}
+   481→                              onChange={e => updateMenor(idx, 'edad', e.target.value)}
+   482→                              placeholder="Ej: 8"
+   483→                            />
+   484→                          </div>
+   485→                          <div className="grid gap-2">
+   486→                            <Label htmlFor={`menor-parentesco-${idx}`}>Parentesco *</Label>
+   487→                            <Select
+   488→                              value={menor.parentesco}
+   489→                              onValueChange={v => updateMenor(idx, 'parentesco', v)}
+   490→                            >
+   491→                              <SelectTrigger id={`menor-parentesco-${idx}`}>
+   492→                                <SelectValue placeholder="Seleccionar" />
+   493→                              </SelectTrigger>
+   494→                              <SelectContent>
+   495→                                {PARENTESCO_OPTIONS.map(p => (
+   496→                                  <SelectItem key={p} value={p}>{p}</SelectItem>
+   497→                                ))}
+   498→                              </SelectContent>
+   499→                            </Select>
+   500→                          </div>
+   501→                        </div>
+   502→                      </div>
+   503→                    ))}
+   504→                  </div>
+   505→
+   506→                  <Separator />
+   507→                </div>
+   508→              )}
+   509→
+   510→              {/* Requerimientos */}
+   511→              <div className="space-y-4">
+   512→                <h4 className="font-semibold text-sm flex items-center gap-2">
+   513→                  <AlertCircle className="w-4 h-4 text-[#F59E0B]" />
+   514→                  Requisitos
+   515→                </h4>
+   516→                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   517→                  <div className="flex items-start gap-3">
+   518→                    <Checkbox
+   519→                      id="docVerificado"
+   520→                      checked={docVerificado}
+   521→                      onCheckedChange={(v) => setDocVerificado(v === true)}
+   522→                      className="mt-0.5"
+   523→                    />
+   524→                    <Label htmlFor="docVerificado" className="text-sm cursor-pointer">
+   525→                      Documento verificado
+   526→                    </Label>
+   527→                  </div>
+   528→                  <div className="flex items-start gap-3">
+   529→                    <Checkbox
+   530→                      id="firmaConformidad"
+   531→                      checked={firmaConformidad}
+   532→                      onCheckedChange={(v) => setFirmaConformidad(v === true)}
+   533→                      className="mt-0.5"
+   534→                    />
+   535→                    <Label htmlFor="firmaConformidad" className="text-sm cursor-pointer">
+   536→                      Conformidad del huésped
+   537→                    </Label>
+   538→                  </div>
+   539→                </div>
+   540→
+   541→                {/* Llave */}
+   542→                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   543→                  <div className="grid gap-2">
+   544→                    <Label htmlFor="llave">Nº de Llave *</Label>
+   545→                    <Input
+   546→                      id="llave"
+   547→                      value={llave}
+   548→                      onChange={e => setLlave(e.target.value)}
+   549→                      placeholder="Ej: L-01"
+   550→                    />
+   551→                  </div>
+   552→                </div>
+   553→
+   554→                {/* Contacto de emergencia */}
+   555→                <div>
+   556→                  <h4 className="font-semibold text-sm mb-2">Contacto de emergencia</h4>
+   557→                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   558→                    <div className="grid gap-2">
+   559→                      <Label>Nombre</Label>
+   560→                      <Input
+   561→                        value={emergenciaNombre}
+   562→                        onChange={e => setEmergenciaNombre(e.target.value)}
+   563→                        placeholder="Nombre del contacto"
+   564→                      />
+   565→                    </div>
+   566→                    <div className="grid gap-2">
+   567→                      <Label>Teléfono</Label>
+   568→                      <Input
+   569→                        value={emergenciaTelefono}
+   570→                        onChange={e => setEmergenciaTelefono(e.target.value)}
+   571→                        placeholder="Teléfono del contacto"
+   572→                      />
+   573→                    </div>
+   574→                  </div>
+   575→                </div>
+   576→
+   577→                {/* Observaciones */}
+   578→                <div className="grid gap-2">
+   579→                  <Label>Observaciones del huésped</Label>
+   580→                  <Textarea
+   581→                    value={observaciones}
+   582→                    onChange={e => setObservaciones(e.target.value)}
+   583→                    placeholder="Notas u observaciones..."
+   584→                    rows={2}
+   585→                  />
+   586→                </div>
+   587→
+   588→                {/* Acompañantes */}
+   589→                <div>
+   590→                  <div className="flex items-center justify-between mb-2">
+   591→                    <h4 className="font-semibold text-sm flex items-center gap-2">
+   592→                      <Users className="w-4 h-4" />
+   593→                      Acompañantes
+   594→                    </h4>
+   595→                    <Button type="button" size="sm" variant="outline" onClick={addAcompanante}>
+   596→                      <UserPlus className="w-3.5 h-3.5 mr-1" />Agregar
+   597→                    </Button>
+   598→                  </div>
+   599→                  <div className="space-y-3 max-h-48 overflow-y-auto">
+   600→                    {acompanantes.map((ac, idx) => (
+   601→                      <div key={idx} className="flex gap-2 items-start">
+   602→                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+   603→                          <Input
+   604→                            placeholder="Nombre"
+   605→                            value={ac.nombre}
+   606→                            onChange={e => updateAcompanante(idx, 'nombre', e.target.value)}
+   607→                          />
+   608→                          <Input
+   609→                            placeholder="DNI"
+   610→                            value={ac.dni}
+   611→                            onChange={e => updateAcompanante(idx, 'dni', e.target.value)}
+   612→                          />
+   613→                          <Input
+   614→                            placeholder="Celular"
+   615→                            value={ac.celular}
+   616→                            onChange={e => updateAcompanante(idx, 'celular', e.target.value)}
+   617→                          />
+   618→                        </div>
+   619→                        {acompanantes.length > 1 && (
+   620→                          <Button
+   621→                            type="button"
+   622→                            size="icon"
+   623→                            variant="ghost"
+   624→                            className="h-9 w-9 text-destructive hover:text-destructive shrink-0"
+   625→                            onClick={() => removeAcompanante(idx)}
+   626→                          >
+   627→                            <Trash2 className="w-3.5 h-3.5" />
+   628→                          </Button>
+   629→                        )}
+   630→                      </div>
+   631→                    ))}
+   632→                  </div>
+   633→                </div>
+   634→              </div>
+   635→
+   636→              <DialogFooter className="mt-4">
+   637→                <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   638→                <Button
+   639→                  onClick={handleConfirmCheckIn}
+   640→                  disabled={!puedeConfirmarCheckIn || checkLoading}
+   641→                >
+   642→                  <KeyRound className="w-4 h-4 mr-1" />Confirmar Check-In
+   643→                </Button>
+   644→              </DialogFooter>
+   645→            </>
+   646→          )}
+   647→        </DialogContent>
+   648→      </Dialog>
+   649→
+   650→      {/* =================== MODAL CHECK-OUT =================== */}
+   651→      <Dialog key={`checkout-${dialogKey}`} open={modalTipo === 'checkout'} onOpenChange={closeModal}>
+   652→        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+   653→          {selReserva && (() => {
+   654→            const total = calcularTotalReserva(selReserva.id);
+   655→            const pagado = calcularTotalPagado(selReserva.id);
+   656→            const saldo = total - pagado;
+   657→            const noches = nochesEntre(selReserva.checkin, selReserva.checkout);
+   658→            const hab = habitaciones[selReserva.habitacion];
+   659→
+   660→            return (
+   661→              <>
+   662→                <DialogHeader>
+   663→                  <DialogTitle className="flex items-center gap-2">
+   664→                    <LogOut className="w-5 h-5" />
+   665→                    Check-Out — {selReserva.huesped}
+   666→                  </DialogTitle>
+   667→                </DialogHeader>
+   668→
+   669→                <div className="space-y-4 py-2">
+   670→                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+   671→                    <div>
+   672→                      <span className="text-muted-foreground">Habitación</span>
+   673→                      <p className="font-medium">{selReserva.habitacion} — {hab?.tipo || '—'}</p>
+   674→                    </div>
+   675→                    <div>
+   676→                      <span className="text-muted-foreground">Tarifa</span>
+   677→                      <p className="font-medium">{selReserva.tipoTarifa || 'Normal'}</p>
+   678→                    </div>
+   679→                    <div>
+   680→                      <span className="text-muted-foreground">Check-in</span>
+   681→                      <p className="font-medium">{formatFecha(selReserva.checkin)}</p>
+   682→                    </div>
+   683→                    <div>
+   684→                      <span className="text-muted-foreground">Check-out</span>
+   685→                      <p className="font-medium">{formatFecha(selReserva.checkout)}</p>
+   686→                    </div>
+   687→                    <div>
+   688→                      <span className="text-muted-foreground">Noches</span>
+   689→                      <p className="font-medium">{noches} noche{s(noches)}</p>
+   690→                    </div>
+   691→                    <div>
+   692→                      <span className="text-muted-foreground">Ocupación</span>
+   693→                      <p className="font-medium">
+   694→                        {selReserva.personas} adulto{s(selReserva.personas)}
+   695→                        {selReserva.ninos ? ` + ${selReserva.ninos} niño${selReserva.ninos > 1 ? 's' : ''}` : ''}
+   696→                      </p>
+   697→                    </div>
+   698→                    {/* Mostrar datos de menores si los hay */}
+   699→                    {selReserva.menores && selReserva.menores.length > 0 && (
+   700→                      <div className="sm:col-span-2">
+   701→                        <span className="text-muted-foreground">Menores registrados</span>
+   702→                        <div className="mt-1 space-y-1">
+   703→                          {selReserva.menores.map((m, i) => (
+   704→                            <p key={m.id || i} className="text-sm font-medium">
+   705→                              {m.nombre} — DNI: {m.documento} — {m.edad} años ({m.parentesco})
+   706→                            </p>
+   707→                          ))}
+   708→                        </div>
+   709→                      </div>
+   710→                    )}
+   711→                  </div>
+   712→
+   713→                  <Separator />
+   714→
+   715→                  {/* Resumen financiero */}
+   716→                  <div className="rounded-lg border p-4 space-y-2">
+   717→                    <div className="flex justify-between text-sm">
+   718→                      <span className="text-muted-foreground">Total</span>
+   719→                      <span className="font-semibold">{formatMoney(total)}</span>
+   720→                    </div>
+   721→                    <div className="flex justify-between text-sm">
+   722→                      <span className="text-muted-foreground">Pagado</span>
+   723→                      <span className="font-semibold text-[#166534]">{formatMoney(pagado)}</span>
+   724→                    </div>
+   725→                    <Separator />
+   726→                    <div className="flex justify-between text-sm font-bold">
+   727→                      <span>Saldo</span>
+   728→                      <span className={saldo > 0 ? 'text-[#991B1B]' : 'text-[#166534]'}>
+   729→                        {formatMoney(saldo)}
+   730→                      </span>
+   731→                    </div>
+   732→                  </div>
+   733→
+   734→                  {saldo > 0 && (
+   735→                    <div className="flex items-center gap-2 text-[#92400E] text-sm">
+   736→                      <CreditCard className="w-4 h-4" />
+   737→                      <span>El huésped tiene un saldo pendiente de {formatMoney(saldo)}.</span>
+   738→                    </div>
+   739→                  )}
+   740→                </div>
+   741→
+   742→                <DialogFooter>
+   743→                  <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   744→                  <Button variant="destructive" onClick={handleConfirmCheckOut} disabled={checkLoading}>
+   745→                    <LogOut className="w-4 h-4 mr-1" />Confirmar Check-Out
+   746→                  </Button>
+   747→                </DialogFooter>
+   748→              </>
+   749→            );
+   750→          })()}
+   751→        </DialogContent>
+   752→      </Dialog>
+   753→    </div>
+   754→  );
+   755→}
+   756→
+   757→/* =================== SUB-COMPONENTS =================== */
+   758→
+   759→/**
+   760→ * TodayActivitySummary
+   761→ *
+   762→ * Banner con 3 stat cards mostrando la actividad de hoy:
+   763→ *  - Check-ins completados hoy
+   764→ *  - Check-outs completados hoy
+   765→ *  - Estadías activas
+   766→ *
+   767→ * Usa selectores Zustand granulares (sin destructuring) y `todayLocal` / `daysAgo`
+   768→ * de `@/lib/format` para evitar drift UTC.
+   769→ */
+   770→function TodayActivitySummary() {
+   771→  // Granular selectors (no destructuring) — each subscribes to its own slice.
+   772→  const reservas = useHotelStore(s => s.reservas);
+   773→  const habitaciones = useHotelStore(s => s.habitaciones);
+   774→
+   775→  const hoyStr = todayLocal();
+   776→  const ayerStr = daysAgo(1);
+   777→
+   778→  // ── Check-ins completados hoy (estado === 'Check-In realizado' AND checkin === hoy) ──
+   779→  const checkinsHoy = reservas.filter(
+   780→    r => r.estado === 'Check-In realizado' && r.checkin === hoyStr
+   781→  ).length;
+   782→  const checkinsAyer = reservas.filter(
+   783→    r => r.estado === 'Check-In realizado' && r.checkin === ayerStr
+   784→  ).length;
+   785→
+   786→  // ── Check-outs completados hoy (estado === 'Check-Out realizado' AND checkout === hoy) ──
+   787→  const checkoutsHoy = reservas.filter(
+   788→    r => r.estado === 'Check-Out realizado' && r.checkout === hoyStr
+   789→  ).length;
+   790→  const checkoutsAyer = reservas.filter(
+   791→    r => r.estado === 'Check-Out realizado' && r.checkout === ayerStr
+   792→  ).length;
+   793→
+   794→  // ── Estadías activas (snapshot: estado === 'Check-In realizado') ──
+   795→  const estadiasActivas = reservas.filter(
+   796→    r => r.estado === 'Check-In realizado'
+   797→  ).length;
+   798→  // Snapshot aproximado de "estadías activas antes de los check-outs de hoy"
+   799→  // = activas actuales + las que hicieron check-out hoy.
+   800→  const estadiasPrevias = reservas.filter(
+   801→    r => r.estado === 'Check-In realizado'
+   802→      || (r.estado === 'Check-Out realizado' && r.checkout === hoyStr)
+   803→  ).length;
+   804→
+   805→  // Ocupación (% de habitaciones ocupadas) — usa `habitaciones` selector.
+   806→  const totalHabitaciones = Object.keys(habitaciones).length;
+   807→  const ocupadas = Object.values(habitaciones).filter(h => h.estado === 'Ocupada').length;
+   808→  const ocupacionPct = totalHabitaciones === 0
+   809→    ? null
+   810→    : Math.round((ocupadas / totalHabitaciones) * 100);
+   811→
+   812→  const stats: Array<{
+   813→    key: string;
+   814→    label: string;
+   815→    value: number;
+   816→    icon: LucideIcon;
+   817→    color: string;
+   818→    gradient: string;
+   819→    trend?: number;
+   820→    sublabel?: string;
+   821→  }> = [
+   822→    {
+   823→      key: 'checkins',
+   824→      label: 'Check-ins completados hoy',
+   825→      value: checkinsHoy,
+   826→      icon: LogIn,
+   827→      color: '#059669',
+   828→      gradient: 'bg-emerald-50/40 dark:bg-emerald-950/20',
+   829→      trend: checkinsHoy === 0 && checkinsAyer === 0 ? undefined : checkinsHoy - checkinsAyer,
+   830→    },
+   831→    {
+   832→      key: 'checkouts',
+   833→      label: 'Check-outs completados hoy',
+   834→      value: checkoutsHoy,
+   835→      icon: LogOut,
+   836→      color: '#EA580C',
+   837→      gradient: 'bg-amber-50/40 dark:bg-amber-950/20',
+   838→      trend: checkoutsHoy === 0 && checkoutsAyer === 0 ? undefined : checkoutsHoy - checkoutsAyer,
+   839→    },
+   840→    {
+   841→      key: 'estadias',
+   842→      label: 'Estadías activas',
+   843→      value: estadiasActivas,
+   844→      icon: Bed,
+   845→      color: '#0F2B28',
+   846→      gradient: 'bg-teal-50/40 dark:bg-teal-950/20',
+   847→      trend: estadiasActivas === 0 && estadiasPrevias === 0 ? undefined : estadiasActivas - estadiasPrevias,
+   848→      sublabel: ocupacionPct !== null ? `${ocupacionPct}% ocup.` : undefined,
+   849→    },
+   850→  ];
+   851→
+   852→  return (
+   853→    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   854→      {stats.map((s, i) => (
+   855→        <StatCard
+   856→          key={s.key}
+   857→          label={s.label}
+   858→          value={s.value}
+   859→          icon={s.icon}
+   860→          color={s.color}
+   861→          gradient={s.gradient}
+   862→          trend={s.trend}
+   863→          sublabel={s.sublabel}
+   864→          delay={i * 80}
+   865→        />
+   866→      ))}
+   867→    </div>
+   868→  );
+   869→}
+   870→
+   871→/**
+   872→ * StatCard — single tile for the Today's Activity banner.
+   873→ *
+   874→ * Layout:
+   875→ *   ┌──────────────────────────────┐
+   876→ *   │  ◯ icon            [↑ 2]   │   ← colored circle (size-10) + trend pill
+   877→ *   │                              │
+   878→ *   │  12                          │   ← big number (text-3xl font-bold)
+   879→ *   │  CHECK-INS COMPLETADOS HOY │   ← label (text-xs uppercase tracking-wider)
+   880→ *   └──────────────────────────────┘
+   881→ *
+   882→ * Hover: lift (-translate-y-1) + shadow-lg.
+   883→ * Entrance: animate-slide-up with staggered delay.
+   884→ */
+   885→function StatCard({
+   886→  label,
+   887→  value,
+   888→  icon: Icon,
+   889→  color,
+   890→  gradient,
+   891→  trend,
+   892→  sublabel,
+   893→  delay = 0,
+   894→}: {
+   895→  label: string;
+   896→  value: number;
+   897→  icon: LucideIcon;
+   898→  color: string;
+   899→  gradient: string;
+   900→  trend?: number;
+   901→  sublabel?: string;
+   902→  delay?: number;
+   903→}) {
+   904→  return (
+   905→    <div
+   906→      className={cn(
+   907→        'p-4 rounded-xl border bg-card',
+   908→        'transition-all duration-300 ease-out',
+   909→        'hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5',
+   910→        'animate-slide-up',
+   911→        gradient
+   912→      )}
+   913→      style={{ animationDelay: `${delay}ms` }}
+   914→    >
+   915→      <div className="flex items-start justify-between">
+   916→        <div
+   917→          className="size-10 rounded-full flex items-center justify-center shrink-0"
+   918→          style={{ backgroundColor: `${color}1A`, color }}
+   919→          aria-hidden="true"
+   920→        >
+   921→          <Icon className="w-5 h-5" />
+   922→        </div>
+   923→        {trend !== undefined && (
+   924→          <div
+   925→            className={cn(
+   926→              'text-xs font-medium flex items-center gap-1 px-2 py-0.5 rounded-full',
+   927→              trend > 0
+   928→                ? 'bg-emerald-100 text-emerald-700'
+   929→                : trend < 0
+   930→                  ? 'bg-red-100 text-red-700'
+   931→                  : 'bg-muted text-muted-foreground'
+   932→            )}
+   933→            title={`Ayer: ${value - trend}`}
+   934→          >
+   935→            <span aria-hidden="true">{trend > 0 ? '↑' : trend < 0 ? '↓' : '—'}</span>
+   936→            {trend !== 0 && <span>{Math.abs(trend)}</span>}
+   937→          </div>
+   938→        )}
+   939→        {trend === undefined && sublabel && (
+   940→          <div className="text-xs font-medium text-muted-foreground px-2 py-0.5 rounded-full bg-muted/60">
+   941→            {sublabel}
+   942→          </div>
+   943→        )}
+   944→      </div>
+   945→      <div className="text-3xl font-bold mt-3 leading-none text-foreground">{value}</div>
+   946→      <div className="text-xs uppercase tracking-wider text-muted-foreground mt-1.5">{label}</div>
+   947→    </div>
+   948→  );
+   949→}
+   950→
+   951→/**
+   952→ * QuickActions — row of ghost navigation buttons.
+   953→ *
+   954→ * Hover: bg transitions to forest green (#0F2B28) tint, arrow slides in.
+   955→ */
+   956→function QuickActions({ onNavigate }: { onNavigate: (m: ModuloId) => void }) {
+   957→  const items: Array<{ label: string; icon: LucideIcon; target: ModuloId }> = [
+   958→    { label: 'Ver todas las reservas', icon: CalendarCheck, target: 'reservas' },
+   959→    { label: 'Gestionar habitaciones', icon: DoorOpen, target: 'habitaciones' },
+   960→    { label: 'Ver caja', icon: Wallet, target: 'caja' },
+   961→  ];
+   962→
+   963→  return (
+   964→    <div className="flex flex-wrap gap-2">
+   965→      {items.map(({ label, icon: Icon, target }) => (
+   966→        <Button
+   967→          key={target}
+   968→          variant="ghost"
+   969→          size="sm"
+   970→          onClick={() => onNavigate(target)}
+   971→          className={cn(
+   972→            'group h-9 px-3 text-foreground/80',
+   973→            'hover:bg-[#0F2B28]/10 hover:text-[#0F2B28]',
+   974→            'transition-colors duration-200'
+   975→          )}
+   976→        >
+   977→          <Icon className="w-4 h-4 mr-2 text-[#0F2B28]" />
+   978→          <span className="text-sm">{label}</span>
+   979→          <ArrowRight
+   980→            className={cn(
+   981→              'w-3.5 h-3.5 ml-1.5',
+   982→              'opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0',
+   983→              'transition-all duration-200'
+   984→            )}
+   985→          />
+   986→        </Button>
+   987→      ))}
+   988→    </div>
+   989→  );
+   990→}
+   991→
+   992→/**
+   993→ * PulsingDot — small animated indicator for "pending work" signal.
+   994→ * Renders a layered ping + dot using Tailwind's animate-ping.
+   995→ */
+   996→function PulsingDot({ color = 'bg-emerald-500' }: { color?: string }) {
+   997→  return (
+   998→    <span className="relative flex size-2.5 ml-0.5" aria-hidden="true">
+   999→      <span className={cn('absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping', color)} />
+  1000→      <span className={cn('relative inline-flex size-2.5 rounded-full', color)} />
+  1001→    </span>
+  1002→  );
+  1003→}
+  1004→
+  1005→/**
+  1006→ * CelebratoryEmptyState — shown when there are no pending check-ins/outs.
+  1007→ *
+  1008→ * Uses the `celebrate-bg` class (animated gradient shimmer) and a
+  1009→ * CheckCircle icon with a subtle pulse animation.
+  1010→ */
+  1011→function CelebratoryEmptyState() {
+  1012→  return (
+  1013→    <div className="celebrate-bg rounded-lg p-6 flex flex-col items-center justify-center text-center animate-fade-in border border-emerald-100/60">
+  1014→      <div className="size-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3 animate-pulse-subtle">
+  1015→        <CheckCircle className="w-7 h-7 text-emerald-600" />
+  1016→      </div>
+  1017→      <p className="text-sm font-semibold text-foreground">¡Todo al día!</p>
+  1018→      <p className="text-xs text-muted-foreground mt-0.5">No hay check-ins/check-outs pendientes.</p>
+  1019→    </div>
+  1020→  );
+  1021→}
+  1022→
+  1023→/**
+  1024→ * StatCardSkeleton — placeholder shown during loading state.
+  1025→ */
+  1026→function StatCardSkeleton() {
+  1027→  return (
+  1028→    <div className="p-4 rounded-xl border bg-muted/30">
+  1029→      <div className="flex items-start justify-between">
+  1030→        <Skeleton className="size-10 rounded-full" />
+  1031→        <Skeleton className="h-5 w-12 rounded-full" />
+  1032→      </div>
+  1033→      <Skeleton className="h-8 w-16 mt-3" />
+  1034→      <Skeleton className="h-3 w-28 mt-2" />
+  1035→    </div>
+  1036→  );
+  1037→}
+  1038→
+  1039→/**
+  1040→ * ListItemSkeleton — placeholder for a single pending reserva row.
+  1041→ */
+  1042→function ListItemSkeleton() {
+  1043→  return (
+  1044→    <div className="border rounded-lg p-3 flex items-center justify-between gap-3">
+  1045→      <div className="flex-1 space-y-2">
+  1046→        <Skeleton className="h-4 w-1/3" />
+  1047→        <Skeleton className="h-3 w-2/3" />
+  1048→      </div>
+  1049→      <Skeleton className="h-8 w-20 rounded-md" />
+  1050→    </div>
+  1051→  );
+  1052→}
+  1053→
+  1054→function CheckInAccountStatus({ reserva }: { reserva: Reserva }) {
+  1055→  const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
+  1056→  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
+  1057→  const nochesEntre = useHotelStore(s => s.nochesEntre);
+  1058→  const total = calcularTotalReserva(reserva.id);
+  1059→  const pagado = calcularTotalPagado(reserva.id);
+  1060→  const saldo = total - pagado;
+  1061→  const noches = nochesEntre(reserva.checkin, reserva.checkout);
+  1062→  const cantNinos = reserva.ninos || 0;
+  1063→
+  1064→  return (
+  1065→    <div className="rounded-lg border p-4 space-y-2">
+  1066→      <h4 className="font-semibold text-sm flex items-center gap-2">
+  1067→        <CreditCard className="w-4 h-4" />
+  1068→        Estado de cuenta
+  1069→      </h4>
+  1070→      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+  1071→        <div>
+  1072→          <span className="text-muted-foreground text-xs block">Total</span>
+  1073→          <span className="font-bold text-base">{formatMoney(total)}</span>
+  1074→        </div>
+  1075→        <div>
+  1076→          <span className="text-muted-foreground text-xs block">Pagado</span>
+  1077→          <span className="font-bold text-base text-[#166534]">{formatMoney(pagado)}</span>
+  1078→        </div>
+  1079→        <div>
+  1080→          <span className="text-muted-foreground text-xs block">Saldo</span>
+  1081→          <span className={`font-bold text-base ${saldo > 0 ? 'text-[#991B1B]' : 'text-[#166534]'}`}>
+  1082→            {formatMoney(saldo)}
+  1083→          </span>
+  1084→        </div>
+  1085→      </div>
+  1086→      <div className="text-xs text-muted-foreground">
+  1087→        {reserva.personas} adulto{s(reserva.personas)}
+  1088→        {cantNinos > 0 ? <span className="text-[#5B21B6] font-medium"> + {cantNinos} niño{s(cantNinos)}</span> : null}
+  1089→        {' · '}{noches} noche{s(noches)} · {reserva.tipoTarifa || 'Normal'}
+  1090→      </div>
+  1091→    </div>
+  1092→  );
+  1093→}
+  1094→
+  1095→function s(n: number) {
+  1096→  return n !== 1 ? 's' : '';
+  1097→}
+  1098→

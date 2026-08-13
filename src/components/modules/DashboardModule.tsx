@@ -75,76 +75,62 @@ function Sparkline({ data, color, height = 24 }: { data: number[]; color: string
 
 // ==================== ANIMATED KPI ====================
 
-function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, trend, numericValue, suffix, sparkData, sparkColor, accentColor }: {
+function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, borderColor, iconBg, labelColor, valueColor, subColor, trend, numericValue, suffix, sparkData, sparkColor }: {
   icon: ComponentType<{ className?: string }>;
   label: string;
   value: string;
   sub?: string;
   color: string;
   bgGradient?: string;
+  borderColor?: string;
+  iconBg?: string;
+  labelColor?: string;
+  valueColor?: string;
+  subColor?: string;
   trend?: { value: number; label: string };
   numericValue?: number;
   suffix?: string;
   sparkData?: number[];
   sparkColor?: string;
-  accentColor?: string;
 }) {
   const trendUp = trend && trend.value > 0;
   const trendDown = trend && trend.value < 0;
   const trendIcon = trendUp ? '\u2191' : trendDown ? '\u2193' : '';
-  const trendColor = trendUp ? 'text-[#4ADE80]' : trendDown ? 'text-[#EF4444]' : 'text-muted-foreground';
-  const glowColor = accentColor || '#059669';
+  const trendColor = trendUp ? 'text-emerald-500' : trendDown ? 'text-red-500' : 'text-muted-foreground';
 
   return (
-    <Card
-      className={`overflow-hidden group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 !py-0 !gap-0 border-0 relative card-interactive ${bgGradient || 'bg-card'}`}
+    <div
+      className={`relative rounded-xl border-l-[3px] ${borderColor || 'border-l-emerald-500'} ${bgGradient || 'bg-emerald-50/40 dark:bg-emerald-950/20'} p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive`}
     >
-      {/* Subtle gradient overlay at bottom */}
-      <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/[0.02] to-transparent pointer-events-none" />
-      {/* Border glow on hover */}
-      <div
-        className="absolute inset-0 rounded-[inherit] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-        style={{ boxShadow: `inset 0 0 0 1.5px ${glowColor}40, 0 0 12px -2px ${glowColor}30` }}
-      />
-      <CardContent className="p-4 relative z-10">
-        <div className="flex items-start justify-between">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
-            <p className="text-2xl font-extrabold mt-1 text-[#0F172A]">
-              {numericValue !== undefined ? (
-                <><AnimatedNumber value={numericValue} duration={600} format={suffix === '%' ? (n: number) => `${Math.round(n)}%` : (n: number) => String(Math.round(n))} className="text-2xl font-extrabold text-[#0F172A]" /></>
-              ) : value}
-            </p>
-            {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
-          </div>
-          <div className="relative p-2.5 rounded-xl bg-white/80 shadow-sm group-hover:shadow-md transition-all duration-200">
-            {/* Decorative dots pattern */}
-            <div className="absolute inset-0 rounded-xl opacity-[0.06] pointer-events-none"
-              style={{
-                backgroundImage: 'radial-gradient(circle, currentColor 0.8px, transparent 0.8px)',
-                backgroundSize: '5px 5px',
-                color: glowColor,
-              }}
-            />
-            <Icon className={`w-5 h-5 ${color} group-hover:animate-[kpiBounce_0.4s_ease]`} />
-          </div>
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className={`text-xs font-medium ${labelColor || 'text-emerald-700 dark:text-emerald-400'}`}>{label}</p>
+          <p className={`text-xl font-bold ${valueColor || 'text-emerald-900 dark:text-emerald-200'}`}>
+            {numericValue !== undefined ? (
+              <><AnimatedNumber value={numericValue} duration={600} format={suffix === '%' ? (n: number) => `${Math.round(n)}%` : (n: number) => String(Math.round(n))} className={`text-xl font-bold ${valueColor || 'text-emerald-900 dark:text-emerald-200'}`} /></>
+            ) : value}
+          </p>
+          {sub && <p className={`text-[10px] ${subColor || 'text-emerald-600/70 dark:text-emerald-400/50'} mt-1`}>{sub}</p>}
         </div>
-        {/* Sparkline row */}
-        {sparkData && sparkData.length >= 2 && sparkColor && (
-          <div className="mt-2 flex items-end justify-between">
-            <Sparkline data={sparkData} color={sparkColor} height={24} />
-            <span className="text-[9px] text-muted-foreground/60 ml-1">7d</span>
-          </div>
-        )}
-        {trend && (
-          <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${trendColor}`}>
-            <span>{trendIcon}</span>
-            <span>{Math.abs(trend.value)}%</span>
-            <span className="text-muted-foreground font-normal">{trend.label}</span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        <div className={`w-10 h-10 rounded-full ${iconBg || 'bg-emerald-500/20'} flex items-center justify-center`}>
+          <Icon className={`w-5 h-5 ${color}`} />
+        </div>
+      </div>
+      {/* Sparkline row */}
+      {sparkData && sparkData.length >= 2 && sparkColor && (
+        <div className="mt-2 flex items-end justify-between">
+          <Sparkline data={sparkData} color={sparkColor} height={24} />
+          <span className="text-[9px] text-muted-foreground/60 ml-1">7d</span>
+        </div>
+      )}
+      {trend && (
+        <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${trendColor}`}>
+          <span>{trendIcon}</span>
+          <span>{Math.abs(trend.value)}%</span>
+          <span className="text-muted-foreground font-normal">{trend.label}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -877,10 +863,10 @@ export default function DashboardModule() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
-        <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-[#166534]" bgGradient="bg-emerald-50/40 dark:bg-emerald-950/20" numericValue={tasaOcupacion} suffix="%" sparkData={sparkOccupancy} sparkColor="#059669" accentColor="#059669" />
-        <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-[#059669]" bgGradient="bg-emerald-50/40 dark:bg-emerald-950/20" numericValue={checkinsHoy.length} sparkData={sparkCheckins} sparkColor="#059669" accentColor="#059669" />
-        <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-[#EA580C]" bgGradient="bg-amber-50/40 dark:bg-amber-950/20" numericValue={checkoutsHoy.length} sparkData={sparkCheckouts} sparkColor="#F59E0B" accentColor="#F59E0B" />
-        <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-[#059669]" bgGradient="bg-teal-50/40 dark:bg-teal-950/20" numericValue={reservadas} sparkData={sparkRevenue} sparkColor="#059669" accentColor="#059669" />
+        <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-emerald-600 dark:text-emerald-400" borderColor="border-l-emerald-500" bgGradient="bg-emerald-50/40 dark:bg-emerald-950/20" iconBg="bg-emerald-500/20" labelColor="text-emerald-700 dark:text-emerald-400" valueColor="text-emerald-900 dark:text-emerald-200" subColor="text-emerald-600/70 dark:text-emerald-400/50" numericValue={tasaOcupacion} suffix="%" sparkData={sparkOccupancy} sparkColor="#059669" />
+        <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-emerald-600 dark:text-emerald-400" borderColor="border-l-emerald-500" bgGradient="bg-emerald-50/40 dark:bg-emerald-950/20" iconBg="bg-emerald-500/20" labelColor="text-emerald-700 dark:text-emerald-400" valueColor="text-emerald-900 dark:text-emerald-200" subColor="text-emerald-600/70 dark:text-emerald-400/50" numericValue={checkinsHoy.length} sparkData={sparkCheckins} sparkColor="#059669" />
+        <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-amber-600 dark:text-amber-400" borderColor="border-l-amber-500" bgGradient="bg-amber-50/40 dark:bg-amber-950/20" iconBg="bg-amber-500/20" labelColor="text-amber-700 dark:text-amber-400" valueColor="text-amber-900 dark:text-amber-200" subColor="text-amber-600/70 dark:text-amber-400/50" numericValue={checkoutsHoy.length} sparkData={sparkCheckouts} sparkColor="#F59E0B" />
+        <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-teal-600 dark:text-teal-400" borderColor="border-l-teal-500" bgGradient="bg-teal-50/40 dark:bg-teal-950/20" iconBg="bg-teal-500/20" labelColor="text-teal-700 dark:text-teal-400" valueColor="text-teal-900 dark:text-teal-200" subColor="text-teal-600/70 dark:text-teal-400/50" numericValue={reservadas} sparkData={sparkRevenue} sparkColor="#059669" />
       </div>
 
       {/* Quick Actions */}

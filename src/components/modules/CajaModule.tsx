@@ -2069,29 +2069,25 @@ function DailySummaryCard({ summary, onViewHistorial }: {
             label="Apertura"
             value={summary.apertura}
             icon={Unlock}
-            color="text-[#0F2B28]"
-            bg="bg-[#F0FDF4]/60"
+            colorFamily="emerald"
           />
           <SummaryStat
             label="Ingresos"
             value={summary.ingresos}
             icon={ArrowUpRight}
-            color="text-[#166534]"
-            bg="bg-[#DCFCE7]"
+            colorFamily="green"
           />
           <SummaryStat
             label="Egresos"
             value={summary.egresos}
             icon={ArrowDownRight}
-            color="text-[#991B1B]"
-            bg="bg-[#FEE2E2]"
+            colorFamily="red"
           />
           <SummaryStat
             label="Cierre"
             value={summary.cierre}
             icon={Lock}
-            color="text-[#0F2B28]"
-            bg="bg-[#A7F3D0]/40"
+            colorFamily="emerald"
           />
         </div>
 
@@ -2124,23 +2120,44 @@ function DailySummaryCard({ summary, onViewHistorial }: {
           </div>
         </div>
 
-        {/* Quick stats row */}
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-md border p-2 bg-muted/30">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Movimientos</p>
-            <p className="text-lg font-bold text-[#0F2B28]">{summary.movCount}</p>
+        {/* Quick stats row — Facturacion KPI style */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Movimientos</p>
+                <p className="text-xl font-bold text-emerald-900 dark:text-emerald-200">{summary.movCount}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <Receipt className="w-5 h-5" />
+              </div>
+            </div>
           </div>
-          <div className="rounded-md border p-2 bg-muted/30">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Balance neto</p>
-            <p className={cn('text-lg font-bold tabular-nums', summary.ingresos - summary.egresos >= 0 ? 'text-[#166534]' : 'text-[#991B1B]')}>
-              {formatMoney(summary.ingresos - summary.egresos)}
-            </p>
+          <div className={cn('rounded-xl border-l-[3px] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive', summary.ingresos - summary.egresos >= 0 ? 'border-l-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20' : 'border-l-red-500 bg-red-50/40 dark:bg-red-950/20')}>
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <p className={cn('text-xs font-medium', summary.ingresos - summary.egresos >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400')}>Balance neto</p>
+                <p className={cn('text-xl font-bold tabular-nums', summary.ingresos - summary.egresos >= 0 ? 'text-emerald-900 dark:text-emerald-200' : 'text-red-900 dark:text-red-200')}>
+                  {formatMoney(summary.ingresos - summary.egresos)}
+                </p>
+              </div>
+              <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', summary.ingresos - summary.egresos >= 0 ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/20 text-red-600 dark:text-red-400')}>
+                <Wallet className="w-5 h-5" />
+              </div>
+            </div>
           </div>
-          <div className="rounded-md border p-2 bg-muted/30">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">% Egresos</p>
-            <p className="text-lg font-bold text-[#92400E] tabular-nums">
-              {summary.ingresos > 0 ? Math.round((summary.egresos / summary.ingresos) * 100) : 0}%
-            </p>
+          <div className="rounded-xl border-l-[3px] border-l-amber-500 bg-amber-50/40 dark:bg-amber-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">% Egresos</p>
+                <p className="text-xl font-bold text-amber-900 dark:text-amber-200 tabular-nums">
+                  {summary.ingresos > 0 ? Math.round((summary.egresos / summary.ingresos) * 100) : 0}%
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2152,21 +2169,31 @@ function DailySummaryCard({ summary, onViewHistorial }: {
   );
 }
 
-function SummaryStat({ label, value, icon: Icon, color, bg }: {
-  label: string; value: number; icon: ComponentType<{ className?: string }>; color: string; bg: string;
+const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; label: string; value: string; sub: string; iconBg: string; iconColor: string }> = {
+  emerald: { borderL: 'border-l-emerald-500', bg: 'bg-emerald-50/40', darkBg: 'dark:bg-emerald-950/20', label: 'text-emerald-700 dark:text-emerald-400', value: 'text-emerald-900 dark:text-emerald-200', sub: 'text-emerald-600/70 dark:text-emerald-400/50', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-600 dark:text-emerald-400' },
+  green: { borderL: 'border-l-green-500', bg: 'bg-green-50/40', darkBg: 'dark:bg-green-950/20', label: 'text-green-700 dark:text-green-400', value: 'text-green-900 dark:text-green-200', sub: 'text-green-600/70 dark:text-green-400/50', iconBg: 'bg-green-500/20', iconColor: 'text-green-600 dark:text-green-400' },
+  red: { borderL: 'border-l-red-500', bg: 'bg-red-50/40', darkBg: 'dark:bg-red-950/20', label: 'text-red-700 dark:text-red-400', value: 'text-red-900 dark:text-red-200', sub: 'text-red-600/70 dark:text-red-400/50', iconBg: 'bg-red-500/20', iconColor: 'text-red-600 dark:text-red-400' },
+  amber: { borderL: 'border-l-amber-500', bg: 'bg-amber-50/40', darkBg: 'dark:bg-amber-950/20', label: 'text-amber-700 dark:text-amber-400', value: 'text-amber-900 dark:text-amber-200', sub: 'text-amber-600/70 dark:text-amber-400/50', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-600 dark:text-amber-400' },
+};
+
+function SummaryStat({ label, value, icon: Icon, colorFamily }: {
+  label: string; value: number; icon: ComponentType<{ className?: string }>; colorFamily: string;
 }) {
+  const c = KPI_COLORS[colorFamily] || KPI_COLORS.emerald;
   return (
-    <div className={cn('rounded-md border border-l-[3px] p-2.5', bg)}>
-      <div className="flex items-center gap-2 mb-1">
-        <span className={cn('w-6 h-6 rounded-full flex items-center justify-center bg-white/70', color)}>
-          <Icon className="w-3.5 h-3.5" />
-        </span>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+    <div className={cn('rounded-xl border-l-[3px] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive', c.borderL, c.bg, c.darkBg)}>
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className={cn('text-xs font-medium', c.label)}>{label}</p>
+          <AnimatedNumber
+            value={value}
+            className={cn('text-xl font-bold tabular-nums block', c.value)}
+          />
+        </div>
+        <div className={cn('w-10 h-10 rounded-full flex items-center justify-center shrink-0', c.iconBg, c.iconColor)}>
+          <Icon className="w-5 h-5" />
+        </div>
       </div>
-      <AnimatedNumber
-        value={value}
-        className={cn('text-base font-bold tabular-nums block', color)}
-      />
     </div>
   );
 }
@@ -2567,11 +2594,9 @@ interface QuickStatConfig {
   key: string;
   label: string;
   icon: ComponentType<{ className?: string }>;
-  iconColor: string;
-  iconBg: string;
-  cardBg: string;
-  accentBorder: string;
+  colorFamily: string;
   prominent?: boolean;
+  iconBgOverride?: string;
 }
 
 const QUICK_STATS: QuickStatConfig[] = [
@@ -2579,38 +2604,27 @@ const QUICK_STATS: QuickStatConfig[] = [
     key: 'saldoInicial',
     label: 'Saldo Inicial',
     icon: Wallet,
-    iconColor: 'text-[#0F2B28]',
-    iconBg: 'bg-[#A7F3D0]',
-    cardBg: 'bg-green-50/30 dark:bg-green-950/15',
-    accentBorder: 'border-l-[#0F2B28]',
+    colorFamily: 'emerald',
   },
   {
     key: 'ingresos',
     label: 'Ingresos Hoy',
     icon: TrendingUp,
-    iconColor: 'text-[#166534]',
-    iconBg: 'bg-[#DCFCE7]',
-    cardBg: 'bg-green-50/40 dark:bg-green-950/20',
-    accentBorder: 'border-l-[#059669]',
+    colorFamily: 'green',
   },
   {
     key: 'egresos',
     label: 'Egresos Hoy',
     icon: TrendingDown,
-    iconColor: 'text-[#991B1B]',
-    iconBg: 'bg-[#FEE2E2]',
-    cardBg: 'bg-red-50/40 dark:bg-red-950/20',
-    accentBorder: 'border-l-[#EF4444]',
+    colorFamily: 'red',
   },
   {
     key: 'saldo',
     label: 'Saldo Actual',
     icon: Wallet,
-    iconColor: 'text-[#0F2B28]',
-    iconBg: 'bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0]',
-    cardBg: 'bg-green-50/50 dark:bg-green-950/25',
-    accentBorder: 'border-l-[#0F2B28]',
+    colorFamily: 'emerald',
     prominent: true,
+    iconBgOverride: 'bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0]',
   },
 ];
 
@@ -2631,40 +2645,39 @@ function QuickStatsRow({
         const Icon = stat.icon;
         const value = values[stat.key];
         const isProminent = stat.prominent;
+        const c = KPI_COLORS[stat.colorFamily] || KPI_COLORS.emerald;
         return (
-          <Card
+          <div
             key={stat.key}
             className={cn(
-              'relative overflow-hidden border-l-[3px] card-hover animate-slide-up',
-              stat.cardBg,
-              stat.accentBorder,
+              'rounded-xl border-l-[3px] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive animate-slide-up',
+              c.borderL, c.bg, c.darkBg,
               isProminent && 'border-2 border-l-[4px] shadow-md'
             )}
             style={{ animationDelay: `${i * 60}ms` }}
           >
-            <CardContent className={cn('flex items-center gap-3', isProminent ? 'p-4 sm:p-5' : 'p-3 sm:p-4')}>
-              <div className={cn(
-                'rounded-full flex items-center justify-center shadow-sm shrink-0',
-                isProminent ? 'w-12 h-12 sm:w-14 sm:h-14' : 'w-9 h-9 sm:w-11 sm:h-11',
-                stat.iconBg
-              )}>
-                <Icon className={cn(isProminent ? 'w-6 h-6 sm:w-7 sm:h-7' : 'w-4 h-4 sm:w-5 sm:h-5', stat.iconColor)} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className={cn(
-                  'uppercase tracking-wider text-muted-foreground font-medium truncate',
-                  isProminent ? 'text-xs sm:text-sm' : 'text-[10px] sm:text-xs'
-                )}>{stat.label}</p>
+            <div className="flex items-start justify-between">
+              <div className="space-y-1 min-w-0">
+                <p className={cn('text-xs font-medium truncate', c.label)}>{stat.label}</p>
                 <AnimatedNumber
                   value={value}
                   className={cn(
-                    'font-bold text-[#0F2B28] tabular-nums block leading-tight',
-                    isProminent ? 'text-xl sm:text-3xl' : 'text-lg sm:text-2xl'
+                    'font-bold tabular-nums block leading-tight',
+                    isProminent ? 'text-2xl sm:text-3xl' : 'text-xl',
+                    c.value
                   )}
                 />
               </div>
-            </CardContent>
-          </Card>
+              <div className={cn(
+                'rounded-full flex items-center justify-center shrink-0',
+                isProminent ? 'w-12 h-12 sm:w-14 sm:h-14' : 'w-10 h-10',
+                stat.iconBgOverride || c.iconBg,
+                !stat.iconBgOverride && c.iconColor
+              )}>
+                <Icon className={cn(isProminent ? 'w-6 h-6 sm:w-7 sm:h-7' : 'w-5 h-5', stat.iconBgOverride ? c.iconColor : '')} />
+              </div>
+            </div>
+          </div>
         );
       })}
     </div>

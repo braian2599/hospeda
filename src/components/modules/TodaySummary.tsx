@@ -13,7 +13,11 @@ type StatConfig = {
   icon: LucideIcon;
   iconColor: string;
   iconBg: string;
-  gradient: string;
+  borderColor: string;
+  bgClass: string;
+  labelColor: string;
+  valueColor: string;
+  subColor: string;
 };
 
 /**
@@ -68,36 +72,52 @@ export default function TodaySummary() {
       label: 'Check-ins hoy',
       value: String(checkinsHoy),
       icon: LogIn,
-      iconColor: 'text-[#059669]',
-      iconBg: 'bg-[#059669]/10',
-      gradient: 'bg-emerald-50/40 dark:bg-emerald-950/20',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
+      iconBg: 'bg-emerald-500/20',
+      borderColor: 'border-l-emerald-500',
+      bgClass: 'bg-emerald-50/40 dark:bg-emerald-950/20',
+      labelColor: 'text-emerald-700 dark:text-emerald-400',
+      valueColor: 'text-emerald-900 dark:text-emerald-200',
+      subColor: 'text-emerald-600/70 dark:text-emerald-400/50',
     },
     {
       key: 'checkouts',
       label: 'Check-outs hoy',
       value: String(checkoutsHoy),
       icon: LogOut,
-      iconColor: 'text-[#EA580C]',
-      iconBg: 'bg-[#EA580C]/10',
-      gradient: 'bg-amber-50/40 dark:bg-amber-950/20',
+      iconColor: 'text-amber-600 dark:text-amber-400',
+      iconBg: 'bg-amber-500/20',
+      borderColor: 'border-l-amber-500',
+      bgClass: 'bg-amber-50/40 dark:bg-amber-950/20',
+      labelColor: 'text-amber-700 dark:text-amber-400',
+      valueColor: 'text-amber-900 dark:text-amber-200',
+      subColor: 'text-amber-600/70 dark:text-amber-400/50',
     },
     {
       key: 'estadias',
       label: 'Estadías activas',
       value: String(estadiasActivas),
       icon: Bed,
-      iconColor: 'text-[#0F2B28]',
-      iconBg: 'bg-[#0F2B28]/10',
-      gradient: 'bg-green-50/40 dark:bg-green-950/20',
+      iconColor: 'text-green-600 dark:text-green-400',
+      iconBg: 'bg-green-500/20',
+      borderColor: 'border-l-green-500',
+      bgClass: 'bg-green-50/40 dark:bg-green-950/20',
+      labelColor: 'text-green-700 dark:text-green-400',
+      valueColor: 'text-green-900 dark:text-green-200',
+      subColor: 'text-green-600/70 dark:text-green-400/50',
     },
     {
       key: 'ocupacion',
       label: 'Ocupación',
       value: ocupacionPct === null ? '—' : `${ocupacionPct}%`,
       icon: BarChart3,
-      iconColor: 'text-[#7C3AED]',
-      iconBg: 'bg-[#7C3AED]/10',
-      gradient: 'bg-violet-50/40 dark:bg-violet-950/20',
+      iconColor: 'text-violet-600 dark:text-violet-400',
+      iconBg: 'bg-violet-500/20',
+      borderColor: 'border-l-violet-500',
+      bgClass: 'bg-violet-50/40 dark:bg-violet-950/20',
+      labelColor: 'text-violet-700 dark:text-violet-400',
+      valueColor: 'text-violet-900 dark:text-violet-200',
+      subColor: 'text-violet-600/70 dark:text-violet-400/50',
     },
   ];
 
@@ -109,32 +129,22 @@ export default function TodaySummary() {
           <div
             key={s.key}
             className={cn(
-              'p-4 rounded-xl border bg-card',
-              s.gradient,
-              'transition-all duration-500 ease-out',
-              'hover:-translate-y-0.5 hover:shadow-md',
+              'relative rounded-xl border-l-[3px] p-4 shadow-sm',
+              s.borderColor, s.bgClass,
+              'hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive',
               mounted
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-2'
             )}
             style={{ transitionDelay: `${i * 80}ms` }}
           >
-            <div className="flex items-start gap-3">
-              <div
-                className={cn(
-                  'size-10 rounded-full flex items-center justify-center shrink-0',
-                  s.iconBg
-                )}
-              >
-                <Icon className={cn('w-5 h-5', s.iconColor)} />
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <p className={`text-xs font-medium ${s.labelColor}`}>{s.label}</p>
+                <p className={`text-xl font-bold ${s.valueColor}`}>{s.value}</p>
               </div>
-              <div className="min-w-0">
-                <div className="text-2xl font-bold leading-tight text-foreground">
-                  {s.value}
-                </div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wide mt-0.5 truncate">
-                  {s.label}
-                </div>
+              <div className={`w-10 h-10 rounded-full ${s.iconBg} flex items-center justify-center`}>
+                <Icon className={cn('w-5 h-5', s.iconColor)} />
               </div>
             </div>
           </div>

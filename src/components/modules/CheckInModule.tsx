@@ -814,8 +814,7 @@ function TodayActivitySummary() {
     label: string;
     value: number;
     icon: LucideIcon;
-    color: string;
-    gradient: string;
+    colorName: string;
     trend?: number;
     sublabel?: string;
   }> = [
@@ -824,8 +823,7 @@ function TodayActivitySummary() {
       label: 'Check-ins completados hoy',
       value: checkinsHoy,
       icon: LogIn,
-      color: '#059669',
-      gradient: 'bg-emerald-50/40 dark:bg-emerald-950/20',
+      colorName: 'emerald',
       trend: checkinsHoy === 0 && checkinsAyer === 0 ? undefined : checkinsHoy - checkinsAyer,
     },
     {
@@ -833,8 +831,7 @@ function TodayActivitySummary() {
       label: 'Check-outs completados hoy',
       value: checkoutsHoy,
       icon: LogOut,
-      color: '#EA580C',
-      gradient: 'bg-amber-50/40 dark:bg-amber-950/20',
+      colorName: 'amber',
       trend: checkoutsHoy === 0 && checkoutsAyer === 0 ? undefined : checkoutsHoy - checkoutsAyer,
     },
     {
@@ -842,8 +839,7 @@ function TodayActivitySummary() {
       label: 'Estadías activas',
       value: estadiasActivas,
       icon: Bed,
-      color: '#0F2B28',
-      gradient: 'bg-teal-50/40 dark:bg-teal-950/20',
+      colorName: 'teal',
       trend: estadiasActivas === 0 && estadiasPrevias === 0 ? undefined : estadiasActivas - estadiasPrevias,
       sublabel: ocupacionPct !== null ? `${ocupacionPct}% ocup.` : undefined,
     },
@@ -857,8 +853,7 @@ function TodayActivitySummary() {
           label={s.label}
           value={s.value}
           icon={s.icon}
-          color={s.color}
-          gradient={s.gradient}
+          colorName={s.colorName}
           trend={s.trend}
           sublabel={s.sublabel}
           delay={i * 80}
@@ -869,25 +864,64 @@ function TodayActivitySummary() {
 }
 
 /**
+ * Color class maps for Facturacion-style KPI cards.
+ * All classes must be explicit strings so Tailwind can detect them.
+ */
+const KPI_COLORS: Record<string, {
+  border: string;
+  bg: string;
+  label: string;
+  value: string;
+  sub: string;
+  iconBg: string;
+  icon: string;
+}> = {
+  emerald: {
+    border: 'border-l-emerald-500',
+    bg: 'bg-emerald-50/40 dark:bg-emerald-950/20',
+    label: 'text-emerald-700 dark:text-emerald-400',
+    value: 'text-emerald-900 dark:text-emerald-200',
+    sub: 'text-emerald-600/70 dark:text-emerald-400/50',
+    iconBg: 'bg-emerald-500/20',
+    icon: 'text-emerald-600 dark:text-emerald-400',
+  },
+  amber: {
+    border: 'border-l-amber-500',
+    bg: 'bg-amber-50/40 dark:bg-amber-950/20',
+    label: 'text-amber-700 dark:text-amber-400',
+    value: 'text-amber-900 dark:text-amber-200',
+    sub: 'text-amber-600/70 dark:text-amber-400/50',
+    iconBg: 'bg-amber-500/20',
+    icon: 'text-amber-600 dark:text-amber-400',
+  },
+  teal: {
+    border: 'border-l-teal-500',
+    bg: 'bg-teal-50/40 dark:bg-teal-950/20',
+    label: 'text-teal-700 dark:text-teal-400',
+    value: 'text-teal-900 dark:text-teal-200',
+    sub: 'text-teal-600/70 dark:text-teal-400/50',
+    iconBg: 'bg-teal-500/20',
+    icon: 'text-teal-600 dark:text-teal-400',
+  },
+};
+
+/**
  * StatCard — single tile for the Today's Activity banner.
  *
- * Layout:
+ * Facturacion KPI style:
  *   ┌──────────────────────────────┐
- *   │  ◯ icon            [↑ 2]   │   ← colored circle (size-10) + trend pill
- *   │                              │
- *   │  12                          │   ← big number (text-3xl font-bold)
- *   │  CHECK-INS COMPLETADOS HOY │   ← label (text-xs uppercase tracking-wider)
+ *   │  Label              ◯ icon   │   ← left: label + value + sub; right: icon circle
+ *   │  Value (big number)          │
+ *   │  Sublabel / trend            │
  *   └──────────────────────────────┘
  *
- * Hover: lift (-translate-y-1) + shadow-lg.
- * Entrance: animate-slide-up with staggered delay.
+ * Left border accent, colored bg, hover lift + shadow.
  */
 function StatCard({
   label,
   value,
   icon: Icon,
-  color,
-  gradient,
+  colorName,
   trend,
   sublabel,
   delay = 0,
@@ -895,55 +929,42 @@ function StatCard({
   label: string;
   value: number;
   icon: LucideIcon;
-  color: string;
-  gradient: string;
+  colorName: string;
   trend?: number;
   sublabel?: string;
   delay?: number;
 }) {
+  const c = KPI_COLORS[colorName] ?? KPI_COLORS.emerald;
+
+  const trendText = trend !== undefined && trend !== 0
+    ? `${trend > 0 ? '+' : ''}${trend} vs ayer`
+    : undefined;
+
   return (
     <div
       className={cn(
-        'p-4 rounded-xl border bg-card',
-        'transition-all duration-300 ease-out',
-        'hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5',
+        'relative rounded-xl border-l-[3px] p-4',
+        'shadow-sm hover:shadow-md hover:-translate-y-0.5',
+        'transition-all duration-200 card-interactive',
         'animate-slide-up',
-        gradient
+        c.border, c.bg
       )}
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-start justify-between">
-        <div
-          className="size-10 rounded-full flex items-center justify-center shrink-0"
-          style={{ backgroundColor: `${color}1A`, color }}
-          aria-hidden="true"
-        >
-          <Icon className="w-5 h-5" />
+        <div className="space-y-1">
+          <p className={cn('text-xs font-medium', c.label)}>{label}</p>
+          <p className={cn('text-xl font-bold', c.value)}>{value}</p>
         </div>
-        {trend !== undefined && (
-          <div
-            className={cn(
-              'text-xs font-medium flex items-center gap-1 px-2 py-0.5 rounded-full',
-              trend > 0
-                ? 'bg-emerald-100 text-emerald-700'
-                : trend < 0
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-muted text-muted-foreground'
-            )}
-            title={`Ayer: ${value - trend}`}
-          >
-            <span aria-hidden="true">{trend > 0 ? '↑' : trend < 0 ? '↓' : '—'}</span>
-            {trend !== 0 && <span>{Math.abs(trend)}</span>}
-          </div>
-        )}
-        {trend === undefined && sublabel && (
-          <div className="text-xs font-medium text-muted-foreground px-2 py-0.5 rounded-full bg-muted/60">
-            {sublabel}
-          </div>
-        )}
+        <div className={cn('w-10 h-10 rounded-full flex items-center justify-center shrink-0', c.iconBg)} aria-hidden="true">
+          <Icon className={cn('w-5 h-5', c.icon)} />
+        </div>
       </div>
-      <div className="text-3xl font-bold mt-3 leading-none text-foreground">{value}</div>
-      <div className="text-xs uppercase tracking-wider text-muted-foreground mt-1.5">{label}</div>
+      {(trendText || sublabel) && (
+        <p className={cn('text-[10px] mt-1', c.sub)}>
+          {trendText ?? sublabel}
+        </p>
+      )}
     </div>
   );
 }
@@ -1025,13 +1046,14 @@ function CelebratoryEmptyState() {
  */
 function StatCardSkeleton() {
   return (
-    <div className="p-4 rounded-xl border bg-muted/30">
+    <div className="p-4 rounded-xl border-l-[3px] border-l-muted bg-muted/30">
       <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-6 w-12" />
+        </div>
         <Skeleton className="size-10 rounded-full" />
-        <Skeleton className="h-5 w-12 rounded-full" />
       </div>
-      <Skeleton className="h-8 w-16 mt-3" />
-      <Skeleton className="h-3 w-28 mt-2" />
     </div>
   );
 }
