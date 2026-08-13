@@ -1,6 +1,31 @@
 # Hospedá — Worklog
 
 ---
+Task ID: 5
+Agent: Main Agent
+Task: Simplify LimpiezaModule + Remove PRECIO GLOBAL POR CAMA + Verify Roles system
+
+Work Log:
+- Deep studied LimpiezaModule.tsx (2087 lines), ConfiguracionModule.tsx, UsuariosModule.tsx, CheckInModule.tsx
+- Verified checkout → cleaning flow: store sets room estado='Limpieza' on checkout, API route also sets Limpieza
+- Verified Roles system: roles are just titles (owner/admin/recepcion/limpieza), permissions are defined by checkboxes (permisos: ModuloId[]) in user creation/edit form. PERMISOS_POR_ROL only provides defaults. No changes needed.
+- Simplified LimpiezaModule from 2087 to 654 lines (69% reduction):
+  - Removed: Kanban view, drag & drop, 4 KPI stat cards, Cronograma timeline, 7-day AreaChart, Staff Panel, Nueva Tarea button/dialog, Task Assignment Modal, Reassign-from-staff modal, Staff History Modal, Priority filter, Progress tracker, API cleaning tasks, all staff/kanban/scheduling/priority/assignment code
+  - Kept: Cleaning queue with direct "Limpia" button, Maintenance list + Resolver, Report maintenance form, Maintenance history search with filters/pagination, Maintenance alert banner
+- Removed "Precio global por cama" card from ConfiguracionModule HabitacionesSection:
+  - Removed precio/precioInput/loading/saving state, useEffect fetch, handleSave function, and the Card component
+  - Kept: Room summary card (Resumen de habitaciones)
+- Lint passes cleanly
+- Committed and pushed to origin/main
+
+Stage Summary:
+- LimpiezaModule: 2087 → 654 lines (69% reduction), all unnecessary features removed
+- ConfiguracionModule: "Precio global por cama" removed from Habitaciones section
+- Roles system verified correct and untouched
+- All 3 user-requested corrections applied successfully
+- Commit ea85022 pushed to origin/main
+
+---
 Task ID: 2
 Agent: full-stack-developer
 Task: Simplify LimpiezaModule - remove Kanban, KPIs, charts, staff panel, timeline, drag&drop

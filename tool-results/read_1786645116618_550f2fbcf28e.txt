@@ -1,0 +1,502 @@
+     1→   900→   900→              </Badge>
+     2→   901→   901→            )}
+     3→   902→   902→          </div>
+     4→   903→   903→
+     5→   904→   904→          {/* Progress bar for in-progress */}
+     6→   905→   905→          {isInProgress && startedAt && (
+     7→   906→   906→            <div className="mt-2 flex items-center gap-2">
+     8→   907→   907→              <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+     9→   908→   908→                <div
+    10→   909→   909→                  className={cn('h-full rounded-full transition-all', isOverBudget ? 'bg-[#EF4444]' : 'bg-[#0EA5E9]')}
+    11→   910→   910→                  style={{ width: `${Math.min(100, (elapsedMs / (estimatedMs + 30 * 60_000)) * 100)}%` }}
+    12→   911→   911→                />
+    13→   912→   912→              </div>
+    14→   913→   913→              <span className={cn('text-[9px] font-mono font-semibold tabular-nums', isOverBudget ? 'text-[#991B1B]' : 'text-[#0369A1]')}>
+    15→   914→   914→                {formatDuration(elapsedMs)}
+    16→   915→   915→              </span>
+    17→   916→   916→            </div>
+    18→   917→   917→          )}
+    19→   918→   918→
+    20→   919→   919→          {/* Urgent pulsing indicator */}
+    21→   920→   920→          {isUrgent && (
+    22→   921→   921→            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[#991B1B] font-semibold">
+    23→   922→   922→              <span className="relative flex h-2 w-2">
+    24→   923→   923→                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
+    25→   924→   924→                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#EF4444]" />
+    26→   925→   925→              </span>
+    27→   926→   926→              Requiere atención inmediata
+    28→   927→   927→            </div>
+    29→   928→   928→          )}
+    30→   929→   929→        </div>
+    31→   930→   930→
+    32→   931→   931→        {/* Quick action buttons (always visible on hover, or when expanded) */}
+    33→   932→   932→        <div className={cn(
+    34→   933→   933→          'px-3 pb-2.5 flex items-center gap-1 transition-all',
+    35→   934→   934→          isExpanded ? 'opacity-100 max-h-12' : 'opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-12 overflow-hidden',
+    36→   935→   935→        )}>
+    37→   936→   936→          {task.estado === 'pendiente' && (
+    38→   937→   937→            <Button
+    39→   938→   938→              size="sm"
+    40→   939→   939→              variant="outline"
+    41→   940→   940→              className="h-6 text-[10px] px-2 border-[#0EA5E9]/30 text-[#0369A1] hover:bg-[#E0F2FE]"
+    42→   941→   941→              onClick={(e) => { e.stopPropagation(); handleStartTask(task, task.habitacion); }}
+    43→   942→   942→            >
+    44→   943→   943→              <Play className="w-2.5 h-2.5 mr-0.5" />Iniciar
+    45→   944→   944→            </Button>
+    46→   945→   945→          )}
+    47→   946→   946→          {task.estado === 'en_progreso' && (
+    48→   947→   947→            <Button
+    49→   948→   948→              size="sm"
+    50→   949→   949→              className="h-6 text-[10px] px-2 bg-[#059669] hover:bg-[#047857] text-white"
+    51→   950→   950→              onClick={(e) => { e.stopPropagation(); openCompleteConfirm(task, task.habitacion); }}
+    52→   951→   951→              disabled={completingTask === task.id}
+    53→   952→   952→            >
+    54→   953→   953→              {completingTask === task.id ? <Loader2 className="w-2.5 h-2.5 mr-0.5 animate-spin" /> : <Check className="w-2.5 h-2.5 mr-0.5" />}
+    55→   954→   954→              Completar
+    56→   955→   955→            </Button>
+    57→   956→   956→          )}
+    58→   957→   957→          <Button
+    59→   958→   958→            size="sm"
+    60→   959→   959→            variant="outline"
+    61→   960→   960→            className="h-6 text-[10px] px-2"
+    62→   961→   961→            onClick={(e) => { e.stopPropagation(); openAssignModal(task, task.habitacion); }}
+    63→   962→   962→          >
+    64→   963→   963→            <UserPlus className="w-2.5 h-2.5 mr-0.5" />
+    65→   964→   964→            {assignedName ? 'Reasignar' : 'Asignar'}
+    66→   965→   965→          </Button>
+    67→   966→   966→          {task.estado === 'pendiente' && (
+    68→   967→   967→            <Button
+    69→   968→   968→              size="sm"
+    70→   969→   969→              variant="ghost"
+    71→   970→   970→              className="h-6 text-[10px] px-2 text-[#166534] hover:bg-[#DCFCE7]"
+    72→   971→   971→              onClick={(e) => { e.stopPropagation(); openCompleteConfirm(task, task.habitacion); }}
+    73→   972→   972→            >
+    74→   973→   973→              <Check className="w-2.5 h-2.5 mr-0.5" />Limpia
+    75→   974→   974→            </Button>
+    76→   975→   975→          )}
+    77→   976→   976→        </div>
+    78→   977→   977→
+    79→   978→   978→        {/* Expanded detail section */}
+    80→   979→   979→        {isExpanded && (
+    81→   980→   980→          <div className="px-3 pb-3 pt-0 border-t border-muted/50 space-y-2">
+    82→   981→   981→            {habitacion && (
+    83→   982→   982→              <p className="text-[10px] text-muted-foreground">
+    84→   983→   983→                {habitacion.tipo} · {habitacion.capacidad} persona{habitacion.capacidad !== 1 ? 's' : ''} · Piso {getFloorFromRoom(task.habitacion)}
+    85→   984→   984→              </p>
+    86→   985→   985→            )}
+    87→   986→   986→            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+    88→   987→   987→              <Clock className="w-2.5 h-2.5" />Estimado: ~{estMin} min
+    89→   988→   988→            </div>
+    90→   989→   989→            {assignedName && (
+    91→   990→   990→              <div className="flex items-center gap-1.5 text-[10px]">
+    92→   991→   991→                <Avatar className="w-5 h-5">
+    93→   992→   992→                  <AvatarFallback className="text-[8px] font-bold" style={{ color: staffColor, backgroundColor: staffColor + '20' }}>
+    94→   993→   993→                    {getInitials(assignedName)}
+    95→   994→   994→                  </AvatarFallback>
+    96→   995→   995→                </Avatar>
+    97→   996→   996→                <span className="font-medium text-[#0F2B28]">{assignedName}</span>
+    98→   997→   997→              </div>
+    99→   998→   998→            )}
+   100→   999→   999→            {task.nota && (
+   101→  1000→  1000→              <p className="text-[10px] text-muted-foreground italic line-clamp-2">&ldquo;{task.nota}&rdquo;</p>
+   102→  1001→  1001→            )}
+   103→  1002→  1002→            {/* Priority quick change */}
+   104→  1003→  1003→            <div className="flex items-center gap-1.5">
+   105→  1004→  1004→              <span className="text-[9px] text-muted-foreground">Prioridad:</span>
+   106→  1005→  1005→              {PRIORIDADES.map(p => (
+   107→  1006→  1006→                <button
+   108→  1007→  1007→                  key={p}
+   109→  1008→  1008→                  type="button"
+   110→  1009→  1009→                  onClick={(e) => { e.stopPropagation(); handleUpdatePriority(task.id, p); }}
+   111→  1010→  1010→                  className={cn(
+   112→  1011→  1011→                    'w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center',
+   113→  1012→  1012→                    prioridad === p ? 'border-foreground scale-110' : 'border-transparent hover:border-muted-foreground/30',
+   114→  1013→  1013→                    PRIORIDAD_CONFIG[p].dot,
+   115→  1014→  1014→                  )}
+   116→  1015→  1015→                  title={PRIORIDAD_CONFIG[p].label}
+   117→  1016→  1016→                />
+   118→  1017→  1017→              ))}
+   119→  1018→  1018→            </div>
+   120→  1019→  1019→          </div>
+   121→  1020→  1020→        )}
+   122→  1021→  1021→      </div>
+   123→  1022→  1022→    );
+   124→  1023→  1023→  };
+   125→  1024→  1024→
+   126→  1025→  1025→  return (
+   127→  1026→  1026→    <div className="space-y-6">
+   128→  1027→  1027→      <ModuleHeader icon={SprayCan} title="Limpieza y Mantenimiento" subtitle="Gestioná el estado de habitaciones y tareas">
+   129→  1028→  1028→        <div className="flex items-center gap-2">
+   130→  1029→  1029→          <Button variant="ghost" size="sm" onClick={refreshTasks} disabled={loadingTasks} className="h-8">
+   131→  1030→  1030→            <RefreshCw className={cn('w-3.5 h-3.5', loadingTasks && 'animate-spin')} />
+   132→  1031→  1031→          </Button>
+   133→  1032→  1032→          <Button
+   134→  1033→  1033→            size="sm"
+   135→  1034→  1034→            className="h-8 bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white"
+   136→  1035→  1035→            onClick={() => setShowNewTask(true)}
+   137→  1036→  1036→          >
+   138→  1037→  1037→            <Plus className="w-3.5 h-3.5 mr-1" />Nueva Tarea
+   139→  1038→  1038→          </Button>
+   140→  1039→  1039→        </div>
+   141→  1040→  1040→      </ModuleHeader>
+   142→  1041→  1041→
+   143→  1042→  1042→      {/* ── Maintenance alert banner ── */}
+   144→  1043→  1043→      {enMantenimiento.length > 0 && (
+   145→  1044→  1044→        <Card className="border-[#FECACA] bg-red-950/20 overflow-hidden">
+   146→  1045→  1045→          <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+   147→  1046→  1046→            <div className="flex items-center gap-3 flex-1 min-w-0">
+   148→  1047→  1047→              <div className="relative w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center shrink-0">
+   149→  1048→  1048→                <span className="absolute inset-0 rounded-full bg-[#EF4444]/20 animate-ping" />
+   150→  1049→  1049→                <AlertTriangle className="relative w-5 h-5 text-[#991B1B] animate-pulse-subtle" />
+   151→  1050→  1050→              </div>
+   152→  1051→  1051→              <div className="min-w-0">
+   153→  1052→  1052→                <p className="text-sm font-semibold text-[#991B1B]">
+   154→  1053→  1053→                  {enMantenimiento.length} habitación{enMantenimiento.length !== 1 ? 'es' : ''} en mantenimiento
+   155→  1054→  1054→                </p>
+   156→  1055→  1055→                <p className="text-xs text-muted-foreground truncate">
+   157→  1056→  1056→                  Habitaciones afectadas: {enMantenimiento.map(([n]) => n).join(', ')}
+   158→  1057→  1057→                </p>
+   159→  1058→  1058→              </div>
+   160→  1059→  1059→            </div>
+   161→  1060→  1060→            <Button
+   162→  1061→  1061→              size="sm"
+   163→  1062→  1062→              variant="outline"
+   164→  1063→  1063→              className="border-[#991B1B]/30 text-[#991B1B] hover:bg-[#FEE2E2] hover:text-[#991B1B] shrink-0"
+   165→  1064→  1064→              onClick={() => setModulo('habitaciones' as ModuloId)}
+   166→  1065→  1065→            >
+   167→  1066→  1066→              <DoorOpen className="w-3.5 h-3.5 mr-1.5" />Ir a Habitaciones
+   168→  1067→  1067→              <ChevronRight className="w-3.5 h-3.5 ml-1" />
+   169→  1068→  1068→            </Button>
+   170→  1069→  1069→          </CardContent>
+   171→  1070→  1070→        </Card>
+   172→  1071→  1071→      )}
+   173→  1072→  1072→
+   174→  1073→  1073→      {/* ── Summary Stats ── */}
+   175→  1074→  1074→      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+   176→  1075→  1075→        <Card className="rounded-xl border-l-[3px] border-l-yellow-500 bg-yellow-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   177→  1076→  1076→          <CardContent className="p-0">
+   178→  1077→  1077→            <div className="flex items-start justify-between">
+   179→  1078→  1078→              <div className="space-y-1">
+   180→  1079→  1079→                <p className="text-xs font-medium text-yellow-400">Tareas Pendientes</p>
+   181→  1080→  1080→                <AnimatedNumber value={dailySummary.pending} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-yellow-200" />
+   182→  1081→  1081→              </div>
+   183→  1082→  1082→              <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+   184→  1083→  1083→                <SprayCan className="w-5 h-5 text-yellow-400" />
+   185→  1084→  1084→              </div>
+   186→  1085→  1085→            </div>
+   187→  1086→  1086→          </CardContent>
+   188→  1087→  1087→        </Card>
+   189→  1088→  1088→        <Card className="rounded-xl border-l-[3px] border-l-sky-500 bg-sky-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   190→  1089→  1089→          <CardContent className="p-0">
+   191→  1090→  1090→            <div className="flex items-start justify-between">
+   192→  1091→  1091→              <div className="space-y-1">
+   193→  1092→  1092→                <p className="text-xs font-medium text-sky-400">En Progreso</p>
+   194→  1093→  1093→                <AnimatedNumber value={dailySummary.inProgress} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-sky-200" />
+   195→  1094→  1094→              </div>
+   196→  1095→  1095→              <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center">
+   197→  1096→  1096→                <Timer className="w-5 h-5 text-sky-400" />
+   198→  1097→  1097→              </div>
+   199→  1098→  1098→            </div>
+   200→  1099→  1099→          </CardContent>
+   201→  1100→  1100→        </Card>
+   202→  1101→  1101→        <Card className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   203→  1102→  1102→          <CardContent className="p-0">
+   204→  1103→  1103→            <div className="flex items-start justify-between">
+   205→  1104→  1104→              <div className="space-y-1">
+   206→  1105→  1105→                <p className="text-xs font-medium text-emerald-400">Completadas Hoy</p>
+   207→  1106→  1106→                <div className="flex items-baseline gap-1.5">
+   208→  1107→  1107→                  <AnimatedNumber value={dailySummary.completed} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-emerald-200" />
+   209→  1108→  1108→                  {dailySummary.variation !== 0 && (
+   210→  1109→  1109→                    <span className={cn('inline-flex items-center text-[10px] font-semibold', dailySummary.variation >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+   211→  1110→  1110→                      {dailySummary.variation >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+   212→  1111→  1111→                      {Math.abs(dailySummary.variation)}%
+   213→  1112→  1112→                    </span>
+   214→  1113→  1113→                  )}
+   215→  1114→  1114→                </div>
+   216→  1115→  1115→              </div>
+   217→  1116→  1116→              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+   218→  1117→  1117→                <CheckCircle className="w-5 h-5 text-emerald-400" />
+   219→  1118→  1118→              </div>
+   220→  1119→  1119→            </div>
+   221→  1120→  1120→          </CardContent>
+   222→  1121→  1121→        </Card>
+   223→  1122→  1122→        <Card className="rounded-xl border-l-[3px] border-l-violet-500 bg-violet-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   224→  1123→  1123→          <CardContent className="p-0">
+   225→  1124→  1124→            <div className="flex items-start justify-between">
+   226→  1125→  1125→              <div className="space-y-1">
+   227→  1126→  1126→                <p className="text-xs font-medium text-violet-400">Tiempo Promedio</p>
+   228→  1127→  1127→                <span className="text-xl font-bold text-violet-200">
+   229→  1128→  1128→                  {dailySummary.avgMin > 0 ? `${dailySummary.avgMin}'` : '—'}
+   230→  1129→  1129→                </span>
+   231→  1130→  1130→              </div>
+   232→  1131→  1131→              <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
+   233→  1132→  1132→                <Clock className="w-5 h-5 text-violet-400" />
+   234→  1133→  1133→              </div>
+   235→  1134→  1134→            </div>
+   236→  1135→  1135→          </CardContent>
+   237→  1136→  1136→        </Card>
+   238→  1137→  1137→      </div>
+   239→  1138→  1138→
+   240→  1139→  1139→      {/* ── Scheduling Timeline ── */}
+   241→  1140→  1140→      {scheduleData.length > 0 && (
+   242→  1141→  1141→        <Card className="border-[#E2E8F0]">
+   243→  1142→  1142→          <CardHeader className="pb-3">
+   244→  1143→  1143→            <div className="flex items-center justify-between gap-2">
+   245→  1144→  1144→              <CardTitle className="text-base flex items-center gap-2">
+   246→  1145→  1145→                <ClipboardList className="w-4 h-4 text-[#0F2B28]" />
+   247→  1146→  1146→                Cronograma de hoy
+   248→  1147→  1147→                <span className="text-xs font-normal text-muted-foreground ml-1">{format(parseISO(todayStr), "EEE d 'de' MMM", { locale: es })}</span>
+   249→  1148→  1148→              </CardTitle>
+   250→  1149→  1149→            </div>
+   251→  1150→  1150→          </CardHeader>
+   252→  1151→  1151→          <CardContent>
+   253→  1152→  1152→            <div className="relative overflow-x-auto">
+   254→  1153→  1153→              {/* Time axis */}
+   255→  1154→  1154→              <div className="flex items-center mb-2 text-[9px] text-muted-foreground">
+   256→  1155→  1155→                {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(h => (
+   257→  1156→  1156→                  <div key={h} className="flex-1 text-center">{h}:00</div>
+   258→  1157→  1157→                ))}
+   259→  1158→  1158→              </div>
+   260→  1159→  1159→              {/* Timeline bar container */}
+   261→  1160→  1160→              <div className="relative h-20 bg-muted/20 rounded-lg">
+   262→  1161→  1161→                {/* Hour grid lines */}
+   263→  1162→  1162→                {[8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map(h => (
+   264→  1163→  1163→                  <div
+   265→  1164→  1164→                    key={h}
+   266→  1165→  1165→                    className="absolute top-0 bottom-0 border-l border-muted/30"
+   267→  1166→  1166→                    style={{ left: `${((h - 8) / 10) * 100}%` }}
+   268→  1167→  1167→                  />
+   269→  1168→  1168→                ))}
+   270→  1169→  1169→                {/* Current time indicator */}
+   271→  1170→  1170→                {(() => {
+   272→  1171→  1171→                  const nowDate = new Date();
+   273→  1172→  1172→                  const nowMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+   274→  1173→  1173→                  const nowPct = ((nowMinutes - 480) / 600) * 100; // 8:00 = 480 min, 18:00 = 1080 min
+   275→  1174→  1174→                  if (nowPct >= 0 && nowPct <= 100) {
+   276→  1175→  1175→                    return (
+   277→  1176→  1176→                      <div
+   278→  1177→  1177→                        className="absolute top-0 bottom-0 w-0.5 bg-[#EF4444] z-10"
+   279→  1178→  1178→                        style={{ left: `${nowPct}%` }}
+   280→  1179→  1179→                      >
+   281→  1180→  1180→                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-[#EF4444]" />
+   282→  1181→  1181→                      </div>
+   283→  1182→  1182→                    );
+   284→  1183→  1183→                  }
+   285→  1184→  1184→                  return null;
+   286→  1185→  1185→                })()}
+   287→  1186→  1186→                {/* Task blocks */}
+   288→  1187→  1187→                {scheduleData.map((block, i) => {
+   289→  1188→  1188→                  const startPct = ((block.start - 480) / 600) * 100;
+   290→  1189→  1189→                  const widthPct = ((block.end - block.start) / 600) * 100;
+   291→  1190→  1190→                  const floorColor = FLOOR_COLORS[block.floor] || 'bg-muted';
+   292→  1191→  1191→                  const prioCfg = PRIORIDAD_CONFIG[block.prioridad] || PRIORIDAD_CONFIG.normal;
+   293→  1192→  1192→                  const tipoCfg = TIPO_CONFIG[block.tipo] || TIPO_CONFIG.limpieza;
+   294→  1193→  1193→                  const TipoIcon = tipoCfg.icon;
+   295→  1194→  1194→                  return (
+   296→  1195→  1195→                    <div
+   297→  1196→  1196→                      key={block.id}
+   298→  1197→  1197→                      className={cn(
+   299→  1198→  1198→                        'absolute top-2 bottom-2 rounded-md border border-white/80 shadow-sm flex items-center gap-1 px-1.5 overflow-hidden cursor-default',
+   300→  1199→  1199→                        floorColor,
+   301→  1200→  1200→                      )}
+   302→  1201→  1201→                      style={{ left: `${Math.max(0, startPct)}%`, width: `${Math.max(1, widthPct)}%` }}
+   303→  1202→  1202→                      title={`Hab. ${block.habitacion} - ${tipoCfg.label} (${block.estMin} min)`}
+   304→  1203→  1203→                    >
+   305→  1204→  1204→                      <span className="text-[9px] font-bold text-[#0F2B28] shrink-0">{block.habitacion}</span>
+   306→  1205→  1205→                      <TipoIcon className="w-2.5 h-2.5 shrink-0 text-[#0F2B28]/60" />
+   307→  1206→  1206→                      {widthPct > 8 && (
+   308→  1207→  1207→                        <span className="text-[8px] text-[#0F2B28]/60 truncate">{block.estMin}m</span>
+   309→  1208→  1208→                      )}
+   310→  1209→  1209→                    </div>
+   311→  1210→  1210→                  );
+   312→  1211→  1211→                })}
+   313→  1212→  1212→              </div>
+   314→  1213→  1213→              {/* Legend */}
+   315→  1214→  1214→              <div className="flex items-center gap-3 mt-2 text-[9px] text-muted-foreground flex-wrap">
+   316→  1215→  1215→                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#DBEAFE]" />Piso 1</span>
+   317→  1216→  1216→                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#FEF3C7]" />Piso 2</span>
+   318→  1217→  1217→                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#DCFCE7]" />Piso 3</span>
+   319→  1218→  1218→                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#F3E8FF]" />Piso 4</span>
+   320→  1219→  1219→                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />Ahora</span>
+   321→  1220→  1220→              </div>
+   322→  1221→  1221→            </div>
+   323→  1222→  1222→          </CardContent>
+   324→  1223→  1223→        </Card>
+   325→  1224→  1224→      )}
+   326→  1225→  1225→
+   327→  1226→  1226→      {/* ── View mode toggle + Priority filter ── */}
+   328→  1227→  1227→      <div className="flex items-center justify-between gap-3 flex-wrap">
+   329→  1228→  1228→        <div className="flex items-center gap-2">
+   330→  1229→  1229→          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'list' | 'kanban')}>
+   331→  1230→  1230→            <TabsList className="h-8">
+   332→  1231→  1231→              <TabsTrigger value="kanban" className="text-xs px-3 h-6">
+   333→  1232→  1232→                <LayoutGrid className="w-3.5 h-3.5 mr-1" />Kanban
+   334→  1233→  1233→              </TabsTrigger>
+   335→  1234→  1234→              <TabsTrigger value="list" className="text-xs px-3 h-6">
+   336→  1235→  1235→                <List className="w-3.5 h-3.5 mr-1" />Lista
+   337→  1236→  1236→              </TabsTrigger>
+   338→  1237→  1237→            </TabsList>
+   339→  1238→  1238→          </Tabs>
+   340→  1239→  1239→        </div>
+   341→  1240→  1240→        <div className="flex items-center gap-2">
+   342→  1241→  1241→          <span className="text-xs text-muted-foreground">Prioridad:</span>
+   343→  1242→  1242→          <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as Prioridad | 'all')}>
+   344→  1243→  1243→            <SelectTrigger className="w-32 h-8 text-xs">
+   345→  1244→  1244→              <SelectValue />
+   346→  1245→  1245→            </SelectTrigger>
+   347→  1246→  1246→            <SelectContent>
+   348→  1247→  1247→              <SelectItem value="all">Todas</SelectItem>
+   349→  1248→  1248→              <SelectItem value="urgente">
+   350→  1249→  1249→                <span className="inline-flex items-center gap-1.5">
+   351→  1250→  1250→                  <span className="w-2 h-2 rounded-full bg-[#EF4444]" />Urgente
+   352→  1251→  1251→                </span>
+   353→  1252→  1252→              </SelectItem>
+   354→  1253→  1253→              <SelectItem value="normal">
+   355→  1254→  1254→                <span className="inline-flex items-center gap-1.5">
+   356→  1255→  1255→                  <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />Normal
+   357→  1256→  1256→                </span>
+   358→  1257→  1257→              </SelectItem>
+   359→  1258→  1258→              <SelectItem value="baja">
+   360→  1259→  1259→                <span className="inline-flex items-center gap-1.5">
+   361→  1260→  1260→                  <span className="w-2 h-2 rounded-full bg-[#0EA5E9]" />Baja
+   362→  1261→  1261→                </span>
+   363→  1262→  1262→              </SelectItem>
+   364→  1263→  1263→            </SelectContent>
+   365→  1264→  1264→          </Select>
+   366→  1265→  1265→        </div>
+   367→  1266→  1266→      </div>
+   368→  1267→  1267→
+   369→  1268→  1268→      {/* ════════════════════════════════════════════════════════════════ */}
+   370→  1269→  1269→      {/* KANBAN VIEW                                                       */}
+   371→  1270→  1270→      {/* ════════════════════════════════════════════════════════════════ */}
+   372→  1271→  1271→      {viewMode === 'kanban' && (
+   373→  1272→  1272→        <div className="grid md:grid-cols-3 gap-4">
+   374→  1273→  1273→          {KANBAN_COLUMNS.map(col => {
+   375→  1274→  1274→            const tasks = kanbanData[col.key];
+   376→  1275→  1275→            const ColIcon = col.icon;
+   377→  1276→  1276→            const isDragOver = dragOverColumn === col.key;
+   378→  1277→  1277→
+   379→  1278→  1278→            return (
+   380→  1279→  1279→              <div
+   381→  1280→  1280→                key={col.key}
+   382→  1281→  1281→                className={cn(
+   383→  1282→  1282→                  'flex flex-col rounded-xl border bg-muted/10 transition-all',
+   384→  1283→  1283→                  isDragOver && 'ring-2 ring-[#0EA5E9]/40 bg-[#E0F2FE]/10',
+   385→  1284→  1284→                )}
+   386→  1285→  1285→                onDragOver={(e) => {
+   387→  1286→  1286→                  e.preventDefault();
+   388→  1287→  1287→                  setDragOverColumn(col.key);
+   389→  1288→  1288→                }}
+   390→  1289→  1289→                onDragLeave={() => setDragOverColumn(null)}
+   391→  1290→  1290→                onDrop={(e) => {
+   392→  1291→  1291→                  e.preventDefault();
+   393→  1292→  1292→                  setDragOverColumn(null);
+   394→  1293→  1293→                  if (draggedTaskId) {
+   395→  1294→  1294→                    const task = tareasLimpieza.find(t => t.id === draggedTaskId);
+   396→  1295→  1295→                    if (task && task.estado !== col.key) {
+   397→  1296→  1296→                      if (col.key === 'completada') {
+   398→  1297→  1297→                        openCompleteConfirm(task, task.habitacion);
+   399→  1298→  1298→                      } else {
+   400→  1299→  1299→                        handleMoveTaskToColumn(task, col.key);
+   401→  1300→  1300→                      }
+   402→  1301→  1301→                    }
+   403→  1302→  1302→                    setDraggedTaskId(null);
+   404→  1303→  1303→                  }
+   405→  1304→  1304→                }}
+   406→  1305→  1305→              >
+   407→  1306→  1306→                {/* Column header */}
+   408→  1307→  1307→                <div className={cn('px-3 py-2.5 rounded-t-xl border-b', col.headerBg)}>
+   409→  1308→  1308→                  <div className="flex items-center justify-between gap-2">
+   410→  1309→  1309→                    <div className="flex items-center gap-2">
+   411→  1310→  1310→                      <ColIcon className={cn('w-4 h-4', col.headerText)} />
+   412→  1311→  1311→                      <span className={cn('text-sm font-semibold', col.headerText)}>{col.label}</span>
+   413→  1312→  1312→                    </div>
+   414→  1313→  1313→                    <Badge variant="secondary" className={cn('text-[10px] font-semibold shadow-sm', col.headerBg, col.headerText)}>
+   415→  1314→  1314→                      {tasks.length}
+   416→  1315→  1315→                    </Badge>
+   417→  1316→  1316→                  </div>
+   418→  1317→  1317→                  {/* Nueva Tarea button in Pendiente column */}
+   419→  1318→  1318→                  {col.key === 'pendiente' && (
+   420→  1319→  1319→                    <Button
+   421→  1320→  1320→                      variant="ghost"
+   422→  1321→  1321→                      size="sm"
+   423→  1322→  1322→                      className="w-full h-7 mt-2 text-xs border border-dashed border-muted-foreground/30 hover:border-[#0F2B28]/40 hover:bg-white/60"
+   424→  1323→  1323→                      onClick={() => setShowNewTask(true)}
+   425→  1324→  1324→                    >
+   426→  1325→  1325→                      <Plus className="w-3 h-3 mr-1" />Nueva Tarea
+   427→  1326→  1326→                    </Button>
+   428→  1327→  1327→                  )}
+   429→  1328→  1328→                </div>
+   430→  1329→  1329→
+   431→  1330→  1330→                {/* Column body (scrollable) */}
+   432→  1331→  1331→                <div className="flex-1 p-2 space-y-2 max-h-[36rem] overflow-y-auto custom-scroll">
+   433→  1332→  1332→                  {tasks.length === 0 ? (
+   434→  1333→  1333→                    <div className="text-center py-8">
+   435→  1334→  1334→                      <ColIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+   436→  1335→  1335→                      <p className="text-xs text-muted-foreground">{col.emptyMsg}</p>
+   437→  1336→  1336→                    </div>
+   438→  1337→  1337→                  ) : tasks.map((task, index) => renderKanbanCard(task, index))}
+   439→  1338→  1338→                </div>
+   440→  1339→  1339→              </div>
+   441→  1340→  1340→            );
+   442→  1341→  1341→          })}
+   443→  1342→  1342→        </div>
+   444→  1343→  1343→      )}
+   445→  1344→  1344→
+   446→  1345→  1345→      {/* ════════════════════════════════════════════════════════════════ */}
+   447→  1346→  1346→      {/* LIST VIEW (existing cleaning queue)                               */}
+   448→  1347→  1347→      {/* ════════════════════════════════════════════════════════════════ */}
+   449→  1348→  1348→      {viewMode === 'list' && (
+   450→  1349→  1349→        <>
+   451→  1350→  1350→          {/* Cleaning progress tracker */}
+   452→  1351→  1351→          <Card className="bg-green-950/20 border-[#059669]/20">
+   453→  1352→  1352→            <CardContent className="p-4 space-y-3">
+   454→  1353→  1353→              <div className="flex items-center justify-between gap-2 flex-wrap">
+   455→  1354→  1354→                <div className="flex items-center gap-2">
+   456→  1355→  1355→                  <div className="w-8 h-8 rounded-full bg-[#DCFCE7] flex items-center justify-center shadow-sm">
+   457→  1356→  1356→                    <Sparkles className="w-4 h-4 text-[#166534]" />
+   458→  1357→  1357→                  </div>
+   459→  1358→  1358→                  <div>
+   460→  1359→  1359→                    <p className="text-sm font-semibold text-[#0F2B28]">Progreso de limpieza</p>
+   461→  1360→  1360→                    <p className="text-xs text-muted-foreground">{completadasLimpieza} de {totalOperativas} habitaciones operativas listas</p>
+   462→  1361→  1361→                  </div>
+   463→  1362→  1362→                </div>
+   464→  1363→  1363→                <div className="flex items-center gap-3">
+   465→  1364→  1364→                  <div className="text-right">
+   466→  1365→  1365→                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Completado</p>
+   467→  1366→  1366→                    <AnimatedNumber
+   468→  1367→  1367→                      value={pctProgreso}
+   469→  1368→  1368→                      duration={500}
+   470→  1369→  1369→                      format={(n) => `${Math.round(n)}%`}
+   471→  1370→  1370→                      className={cn(
+   472→  1371→  1371→                        'text-2xl font-bold tabular-nums',
+   473→  1372→  1372→                        pctProgreso > 80 ? 'text-[#166534]' : pctProgreso >= 50 ? 'text-[#92400E]' : 'text-[#991B1B]'
+   474→  1373→  1373→                      )}
+   475→  1374→  1374→                    />
+   476→  1375→  1375→                  </div>
+   477→  1376→  1376→                </div>
+   478→  1377→  1377→              </div>
+   479→  1378→  1378→              <div className="space-y-1.5">
+   480→  1379→  1379→                <div className="flex items-center justify-between text-xs">
+   481→  1380→  1380→                  <span className="text-muted-foreground">Pendientes: <strong className="text-[#92400E]">{pendientesLimpieza}</strong></span>
+   482→  1381→  1381→                  <span className="text-muted-foreground">Listas: <strong className="text-[#166534]">{completadasLimpieza}</strong></span>
+   483→  1382→  1382→                </div>
+   484→  1383→  1383→                <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
+   485→  1384→  1384→                  <div
+   486→  1385→  1385→                    className={cn(
+   487→  1386→  1386→                      'h-full rounded-full transition-all duration-700 ease-out',
+   488→  1387→  1387→                      pctProgreso > 80
+   489→  1388→  1388→                        ? 'bg-gradient-to-r from-[#059669] to-[#4ADE80]'
+   490→  1389→  1389→                        : pctProgreso >= 50
+   491→  1390→  1390→                          ? 'bg-gradient-to-r from-[#F59E0B] to-[#FBBF24]'
+   492→  1391→  1391→                          : 'bg-gradient-to-r from-[#EF4444] to-[#F87171]'
+   493→  1392→  1392→                    )}
+   494→  1393→  1393→                    style={{ width: `${pctProgreso}%` }}
+   495→  1394→  1394→                  />
+   496→  1395→  1395→                </div>
+   497→  1396→  1396→              </div>
+   498→  1397→  1397→            </CardContent>
+   499→  1398→  1398→          </Card>
+   500→  1399→  1399→
+
+[showing lines 1-500 of 502; use offset=501 with limit to continue reading]
