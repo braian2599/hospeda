@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useHotelStore } from '@/lib/store';
-import type { Reserva, Acompanante, Menor, ModuloId } from '@/lib/types';
+import type { Reserva, Acompanante, Menor } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import {
   LogIn, LogOut, KeyRound, UserPlus, Trash2, Users, AlertCircle, CreditCard, BedDouble, Baby,
-  Bed, CheckCircle, CalendarCheck, DoorOpen, Wallet, ArrowRight,
+  Bed, CheckCircle,
   type LucideIcon,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
@@ -59,7 +59,6 @@ export default function CheckInModule() {
   const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
   const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
   const nochesEntre = useHotelStore(s => s.nochesEntre);
-  const setModulo = useHotelStore(s => s.setModulo);
 
   const pendientesCheckIn = useMemo(
     () => reservas.filter(r => r.estado === 'Confirmada'),
@@ -256,9 +255,6 @@ export default function CheckInModule() {
 
   const puedeConfirmarCheckIn = llave.trim() && (!requiereMenores || menoresCompletos);
 
-  // ── Quick action: navigate to another module ──
-  const goTo = (m: ModuloId) => setModulo(m);
-
   return (
     <div className="space-y-6">
       <ModuleHeader icon={LogIn} title="Check-In / Check-Out" subtitle="Gestioná ingresos y egresos de huéspedes" />
@@ -273,9 +269,6 @@ export default function CheckInModule() {
       ) : (
         <TodayActivitySummary />
       )}
-
-      {/* ═══════════ QUICK ACTIONS ═══════════ */}
-      <QuickActions onNavigate={goTo} />
 
       {/* ═══════════ CHECK-IN / CHECK-OUT CARDS ═══════════ */}
       {loading ? (
@@ -303,7 +296,7 @@ export default function CheckInModule() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Pendientes Check-In */}
-          <Card className="border-[#BBF7D0]/60 bg-emerald-950/20 wave-border-hover">
+          <Card className="border-[#BBF7D0]/60 bg-emerald-950/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <LogIn className="w-5 h-5 text-[#059669]" />
@@ -353,7 +346,7 @@ export default function CheckInModule() {
           </Card>
 
           {/* Pendientes Check-Out */}
-          <Card className="border-[#FED7AA]/60 bg-amber-950/20 wave-border-hover-amber">
+          <Card className="border-[#FED7AA]/60 bg-amber-950/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <LogOut className="w-5 h-5 text-[#EA580C]" />
@@ -970,47 +963,6 @@ function StatCard({
 }
 
 /**
- * QuickActions — row of ghost navigation buttons.
- *
- * Hover: bg transitions to forest green (#0F2B28) tint, arrow slides in.
- */
-function QuickActions({ onNavigate }: { onNavigate: (m: ModuloId) => void }) {
-  const items: Array<{ label: string; icon: LucideIcon; target: ModuloId }> = [
-    { label: 'Ver todas las reservas', icon: CalendarCheck, target: 'reservas' },
-    { label: 'Gestionar habitaciones', icon: DoorOpen, target: 'habitaciones' },
-    { label: 'Ver caja', icon: Wallet, target: 'caja' },
-  ];
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {items.map(({ label, icon: Icon, target }) => (
-        <Button
-          key={target}
-          variant="ghost"
-          size="sm"
-          onClick={() => onNavigate(target)}
-          className={cn(
-            'group h-9 px-3 text-foreground/80',
-            'hover:bg-[#0F2B28]/10 hover:text-[#0F2B28]',
-            'transition-colors duration-200'
-          )}
-        >
-          <Icon className="w-4 h-4 mr-2 text-[#0F2B28]" />
-          <span className="text-sm">{label}</span>
-          <ArrowRight
-            className={cn(
-              'w-3.5 h-3.5 ml-1.5',
-              'opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0',
-              'transition-all duration-200'
-            )}
-          />
-        </Button>
-      ))}
-    </div>
-  );
-}
-
-/**
  * PulsingDot — small animated indicator for "pending work" signal.
  * Renders a layered ping + dot using Tailwind's animate-ping.
  */
@@ -1026,14 +978,13 @@ function PulsingDot({ color = 'bg-emerald-500' }: { color?: string }) {
 /**
  * CelebratoryEmptyState — shown when there are no pending check-ins/outs.
  *
- * Uses the `celebrate-bg` class (animated gradient shimmer) and a
- * CheckCircle icon with a subtle pulse animation.
+ * Static solid background with CheckCircle icon.
  */
 function CelebratoryEmptyState() {
   return (
-    <div className="celebrate-bg rounded-lg p-6 flex flex-col items-center justify-center text-center animate-fade-in border border-emerald-100/60">
-      <div className="size-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3 animate-pulse-subtle">
-        <CheckCircle className="w-7 h-7 text-emerald-600" />
+    <div className="rounded-lg p-6 flex flex-col items-center justify-center text-center border border-emerald-800/30 bg-emerald-950/20">
+      <div className="size-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
+        <CheckCircle className="w-7 h-7 text-emerald-400" />
       </div>
       <p className="text-sm font-semibold text-foreground">¡Todo al día!</p>
       <p className="text-xs text-muted-foreground mt-0.5">No hay check-ins/check-outs pendientes.</p>
