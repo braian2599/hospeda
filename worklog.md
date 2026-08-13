@@ -1,6 +1,39 @@
 # Hospedá — Worklog
 
 ---
+Task ID: 7
+Agent: Main Agent
+Task: ClientesModule - sincronizar campos domicilio, fechaNacimiento, nacionalidad en toda la pila
+
+Work Log:
+- Diagnóstico profundo: identificación de 5 problemas en la pila completa de datos del cliente
+- types.ts: añadido `domicilio?: string` a interfaz Cliente (ya tenía fechaNacimiento y nacionalidad pero no se usaban)
+- api-client.ts: añadido `domicilio?: string | null` a DbCliente y `domicilio?: string` a CreateCliente
+- API POST /api/clientes: destructurar `domicilio` del body y guardarlo en BD con spread condicional
+- API PUT /api/clientes/[id]: destructurar `domicilio` del body y actualizarlo en BD con spread condicional (null si vacío)
+- Store agregarCliente: signature expandida con fechaNacimiento, nacionalidad, domicilio; API call envía los 3 campos; synced object mapea campos del DB response
+- Store syncFromServer: mapea fechaNacimiento (con split T para fecha), nacionalidad, domicilio del API response
+- Store crearReserva auto-crear cliente: API call envía fechaNacimiento, nacionalidad, domicilio; registro en store mapea todos los campos
+- ClientesModule formulario: añadidos 3 campos al form state (fechaNacimiento, nacionalidad, domicilio), openNew y openEdit los incluyen
+- ClientesModule diálogo crear/editar: añadidos inputs para Nacionalidad, Fecha de nacimiento (type date), Domicilio
+- ClientesModule detalle: añadidas filas para F. nacimiento (icon Cake), Domicilio (icon MapPin, col-span-2); Nacionalidad ahora usa icon Globe2
+- ReservasModule selectCliente(): pobla domicilio, nacionalidad, fechaNacimiento desde el cliente seleccionado
+- ReservasModule pestaña CLIENTE: añadidos campos Nacionalidad y Fecha de nacimiento al form y UI
+- ReservasModule baseDatos: pasa nacionalidad y fechaNacimiento al crear reserva
+- Limpiado import Award (no usado) de ClientesModule, añadidos MapPin, Globe2, Cake
+- Lint pasa limpio
+- Commit e69fa31 pushed to origin/main
+
+Stage Summary:
+- 3 campos (domicilio, fechaNacimiento, nacionalidad) ahora fluyen completamente: BD → API → Store → UI
+- Formulario "Nuevo Cliente" ahora coincide con pestaña CLIENTE de ReservasModule
+- Vista previa/detalle del cliente muestra todos los campos editables
+- selectCliente() autocompleta domicilio, nacionalidad y fechaNacimiento
+- Auto-crear cliente desde reserva ahora preserva todos los campos
+- 7 archivos modificados, 56 insertions, 13 deletions
+- Commit: e69fa31 pushed to origin/main
+
+---
 Task ID: 6
 Agent: Main Agent
 Task: ReservasModule - remove Flujo de Reservas + Calendar view mode
