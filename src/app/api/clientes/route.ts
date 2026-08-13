@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
       email,
       fechaNacimiento,
       nacionalidad,
+      domicilio,
       preferencias,
     } = body;
 
@@ -90,6 +91,7 @@ export async function POST(req: NextRequest) {
         ...(email?.trim() && { email: email.trim() }),
         ...(fechaNacimiento && { fechaNacimiento: new Date(fechaNacimiento) }),
         ...(nacionalidad?.trim() && { nacionalidad: nacionalidad.trim() }),
+        ...(domicilio?.trim() && { domicilio: domicilio.trim() }),
         ...(preferencias !== undefined && { preferencias: String(preferencias) }),
       },
     });

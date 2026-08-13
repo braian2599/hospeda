@@ -33,6 +33,7 @@ export interface Cliente {
   email: string;
   fechaNacimiento?: string;
   nacionalidad?: string;
+  domicilio?: string;
   preferencias: string;
   historialEstadias: Estadia[];
   fechaCreacion: string;

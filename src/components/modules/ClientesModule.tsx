@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import {
   Plus, Trash2, Users, Search, Eye, Calendar, DollarSign, TrendingUp, Clock,
   CalendarOff, Download, UserPlus, Star, BarChart3, Mail, Phone, CreditCard,
-  X, Award, ChevronRight, FileText, ArrowRight,
+  X, ChevronRight, FileText, ArrowRight, MapPin, Globe2, Cake,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
@@ -116,7 +116,7 @@ export default function ClientesModule() {
   const [busqueda, setBusqueda] = useFilterState<string>('clientes_busqueda', '');
   const [modal, setModal] = useState<'crear' | 'editar' | 'detalle' | 'eliminar' | null>(null);
   const [selId, setSelId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nombre: '', dni: '', telefono: '', email: '', preferencias: '' });
+  const [form, setForm] = useState({ nombre: '', dni: '', telefono: '', email: '', fechaNacimiento: '', nacionalidad: '', domicilio: '', preferencias: '' });
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
@@ -146,12 +146,12 @@ export default function ClientesModule() {
   // ═══════════════════════════════════════════════════════════
   // ACTIONS
   // ═══════════════════════════════════════════════════════════
-  const openNew = () => { setForm({ nombre: '', dni: '', telefono: '', email: '', preferencias: '' }); setSelId(null); setModal('crear'); };
+  const openNew = () => { setForm({ nombre: '', dni: '', telefono: '', email: '', fechaNacimiento: '', nacionalidad: '', domicilio: '', preferencias: '' }); setSelId(null); setModal('crear'); };
   const openEdit = (id: string) => {
     const c = clientes.find(x => x.id === id);
     if (!c) return;
     setSelId(id);
-    setForm({ nombre: c.nombre, dni: c.dni, telefono: c.telefono || '', email: c.email || '', preferencias: c.preferencias || '' });
+    setForm({ nombre: c.nombre, dni: c.dni, telefono: c.telefono || '', email: c.email || '', fechaNacimiento: c.fechaNacimiento || '', nacionalidad: c.nacionalidad || '', domicilio: c.domicilio || '', preferencias: c.preferencias || '' });
     setModal('editar');
   };
   const openDetail = (id: string) => { setSelId(id); setModal('detalle'); };
@@ -463,6 +463,11 @@ export default function ClientesModule() {
               <div className="grid gap-2"><Label>Teléfono</Label><Input value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} /></div>
               <div className="grid gap-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-2"><Label>Nacionalidad</Label><Input value={form.nacionalidad} onChange={e => setForm({ ...form, nacionalidad: e.target.value })} placeholder="Ej: Argentina" /></div>
+              <div className="grid gap-2"><Label>Fecha de nacimiento</Label><Input type="date" value={form.fechaNacimiento} onChange={e => setForm({ ...form, fechaNacimiento: e.target.value })} /></div>
+            </div>
+            <div className="grid gap-2"><Label>Domicilio</Label><Input value={form.domicilio} onChange={e => setForm({ ...form, domicilio: e.target.value })} placeholder="Dirección del huésped" /></div>
             <div className="grid gap-2"><Label>Preferencias</Label><Input value={form.preferencias} onChange={e => setForm({ ...form, preferencias: e.target.value })} /></div>
           </div>
           <DialogFooter>
@@ -521,9 +526,19 @@ export default function ClientesModule() {
                       <span className="truncate">{selected.email || '—'}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Award className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <Globe2 className="w-4 h-4 text-muted-foreground shrink-0" />
                       <span className="text-muted-foreground">Nacionalidad:</span>
                       <span>{selected.nacionalidad || '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Cake className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="text-muted-foreground">F. nacimiento:</span>
+                      <span>{selected.fechaNacimiento ? formatFecha(selected.fechaNacimiento) : '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 sm:col-span-2">
+                      <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="text-muted-foreground">Domicilio:</span>
+                      <span className="truncate">{selected.domicilio || '—'}</span>
                     </div>
                   </div>
 

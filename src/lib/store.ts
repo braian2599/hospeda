@@ -380,7 +380,7 @@ interface HotelStore {
   cambiarEstadoHabitacion: (numero: string, nuevoEstado: EstadoHabitacion) => Promise<boolean>;
 
   // Clientes
-  agregarCliente: (datos: { nombre: string; dni: string; telefono?: string; email?: string; preferencias?: string }) => Promise<Cliente | null>;
+  agregarCliente: (datos: { nombre: string; dni: string; telefono?: string; email?: string; fechaNacimiento?: string; nacionalidad?: string; domicilio?: string; preferencias?: string }) => Promise<Cliente | null>;
   actualizarCliente: (id: string, datos: Partial<Cliente>) => Promise<boolean>;
   eliminarCliente: (id: string) => Promise<boolean>;
   buscarCliente: (termino: string) => Cliente[];
@@ -695,9 +695,10 @@ export const useHotelStore = create<HotelStore>()(
         set({ clientes: [...clientes, nuevo] });
         get()._registrarAuditoria('Cliente', `Creación: ${datos.nombre} (DNI: ${datos.dni})`);
         try {
-          const dbCliente = await api.clientes.create({ nombre: datos.nombre, dni: datos.dni, telefono: datos.telefono || '', email: datos.email, preferencias: datos.preferencias });
-          // Replace temp ID with real DB ID
-          set({ clientes: get().clientes.map(c => c.id === nuevo.id ? { ...c, id: dbCliente.id } : c) });
+          const dbCliente = await api.clientes.create({ nombre: datos.nombre, dni: datos.dni, telefono: datos.telefono || '', email: datos.email, fechaNacimiento: datos.fechaNacimiento, nacionalidad: datos.nacionalidad, domicilio: datos.domicilio, preferencias: datos.preferencias });
+          // Replace temp ID with real DB ID and update with DB-returned fields
+          const synced: Cliente = { ...nuevo, id: dbCliente.id, fechaNacimiento: (dbCliente as any).fechaNacimiento || datos.fechaNacimiento, nacionalidad: (dbCliente as any).nacionalidad || datos.nacionalidad, domicilio: (dbCliente as any).domicilio || datos.domicilio };
+          set({ clientes: get().clientes.map(c => c.id === nuevo.id ? synced : c) });
           nuevo.id = dbCliente.id;
         } catch (err) {
           console.error('[agregarCliente] API error, rolling back:', err);
@@ -813,11 +814,11 @@ export const useHotelStore = create<HotelStore>()(
         let clienteRealId: string | undefined;
         try {
           try {
-            const dbCliente = await api.clientes.create({ nombre: datos.huesped, dni: datos.dni, telefono: datos.telefono || '', email: datos.email });
+            const dbCliente = await api.clientes.create({ nombre: datos.huesped, dni: datos.dni, telefono: datos.telefono || '', email: datos.email, fechaNacimiento: (datos as any).fechaNacimiento, nacionalidad: (datos as any).nacionalidad, domicilio: datos.domicilio, preferencias: '' });
             clienteRealId = dbCliente.id;
             const currentClientes = get().clientes;
             if (!currentClientes.find(c => c.id === dbCliente.id)) {
-              set({ clientes: [...currentClientes, { id: dbCliente.id, nombre: dbCliente.nombre, dni: dbCliente.dni, telefono: dbCliente.telefono, email: dbCliente.email || '', preferencias: dbCliente.preferencias, historialEstadias: [], fechaCreacion: dbCliente.createdAt?.split('T')[0] || '' }] });
+              set({ clientes: [...currentClientes, { id: dbCliente.id, nombre: dbCliente.nombre, dni: dbCliente.dni, telefono: dbCliente.telefono, email: dbCliente.email || '', fechaNacimiento: (dbCliente as any).fechaNacimiento ? String((dbCliente as any).fechaNacimiento).split('T')[0] : undefined, nacionalidad: (dbCliente as any).nacionalidad || undefined, domicilio: (dbCliente as any).domicilio || datos.domicilio || undefined, preferencias: dbCliente.preferencias, historialEstadias: [], fechaCreacion: dbCliente.createdAt?.split('T')[0] || '' }] });
             }
           } catch (createErr: any) {
             if (createErr?.status === 409) {
@@ -1850,6 +1851,9 @@ export const useHotelStore = create<HotelStore>()(
           const clientes: Cliente[] = data.clientes.map((c: any) => ({
             id: c.id, nombre: c.nombre, dni: c.dni, telefono: c.telefono,
             email: c.email || '', preferencias: c.preferencias || '',
+            fechaNacimiento: c.fechaNacimiento ? String(c.fechaNacimiento).split('T')[0] : undefined,
+            nacionalidad: c.nacionalidad || undefined,
+            domicilio: c.domicilio || undefined,
             historialEstadias: [], fechaCreacion: c.createdAt?.split('T')[0] || '',
           }));
 

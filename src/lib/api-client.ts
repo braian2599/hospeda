@@ -261,7 +261,7 @@ export interface UpdateHabitacion {
 export interface DbCliente {
   id: string; nombre: string; dni: string; telefono: string;
   email?: string | null; fechaNacimiento?: string | null;
-  nacionalidad?: string | null; preferencias: string;
+  nacionalidad?: string | null; domicilio?: string | null; preferencias: string;
   createdAt: string; _count?: { reservas: number; estadias: number };
 }
 export interface DbClienteDetail extends DbCliente {
@@ -271,7 +271,7 @@ export interface DbClienteDetail extends DbCliente {
 export interface CreateCliente {
   nombre: string; dni: string; telefono: string;
   email?: string; fechaNacimiento?: string;
-  nacionalidad?: string; preferencias?: string;
+  nacionalidad?: string; domicilio?: string; preferencias?: string;
 }
 
 export interface DbAcompanante { id: string; nombre: string; dni: string; celular?: string | null; }

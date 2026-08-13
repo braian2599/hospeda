@@ -362,6 +362,8 @@ interface NuevaReservaForm {
  telefono: string;
  email: string;
  domicilio: string;
+ nacionalidad: string;
+ fechaNacimiento: string;
  // Custom fields
  datosAdicionales: Record<string, string>;
  // Payment
@@ -390,6 +392,8 @@ const emptyForm: NuevaReservaForm = {
  telefono: '',
  email: '',
  domicilio: '',
+ nacionalidad: '',
+ fechaNacimiento: '',
  datosAdicionales: {},
  pagoTipo: 'total',
  pagoMonto: '',
@@ -793,6 +797,9 @@ export default function ReservasModule() {
  dni: c.dni,
  telefono: c.telefono,
  email: c.email,
+ domicilio: c.domicilio || prev.domicilio,
+ nacionalidad: c.nacionalidad || prev.nacionalidad,
+ fechaNacimiento: c.fechaNacimiento || prev.fechaNacimiento,
  }));
  setClientesEncontrados([]);
  setBusquedaCliente('');
@@ -992,6 +999,8 @@ export default function ReservasModule() {
  telefono: form.telefono.trim(),
  email: form.email.trim(),
  domicilio: form.domicilio.trim(),
+ nacionalidad: form.nacionalidad.trim(),
+ fechaNacimiento: form.fechaNacimiento.trim(),
  tipoTarifa: form.tipoTarifa,
  total: totalConRecargo,
  metodoPagoId: (form.pagoTipo === 'parcial' || form.pagoTipo === 'total') ? form.pagoMetodo : undefined,
@@ -2213,6 +2222,14 @@ export default function ReservasModule() {
  <div className="grid gap-1.5 sm:col-span-2">
  <Label>Email</Label>
  <Input type="email" value={form.email} onChange={e => updateForm({ email: e.target.value })} />
+ </div>
+ <div className="grid gap-1.5">
+ <Label>Nacionalidad</Label>
+ <Input value={form.nacionalidad} onChange={e => updateForm({ nacionalidad: e.target.value })} placeholder="Ej: Argentina" />
+ </div>
+ <div className="grid gap-1.5">
+ <Label>Fecha de nacimiento</Label>
+ <Input type="date" value={form.fechaNacimiento} onChange={e => updateForm({ fechaNacimiento: e.target.value })} />
  </div>
  <div className="grid gap-1.5 sm:col-span-2">
  <Label>Domicilio</Label>

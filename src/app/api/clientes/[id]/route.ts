@@ -58,6 +58,7 @@ export async function PUT(
       email,
       fechaNacimiento,
       nacionalidad,
+      domicilio,
       preferencias,
     } = body;
 
@@ -103,6 +104,9 @@ export async function PUT(
         }),
         ...(nacionalidad !== undefined && {
           nacionalidad: nacionalidad?.trim() || null,
+        }),
+        ...(domicilio !== undefined && {
+          domicilio: domicilio?.trim() || null,
         }),
         ...(preferencias !== undefined && { preferencias: String(preferencias) }),
       },
