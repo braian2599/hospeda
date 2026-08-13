@@ -650,45 +650,10 @@ function FiscalSection() {
 }
 
 // ═══════════════════════════════════════════
-// 3. HABITACIONES — cama precio
+// 3. HABITACIONES
 // ═══════════════════════════════════════════
 function HabitacionesSection() {
   const { habitaciones } = useHotelStore();
-  const [precio, setPrecio] = useState<number | null>(null);
-  const [precioInput, setPrecioInput] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/configuracion/precio-cama')
-      .then(r => r.json())
-      .then(data => {
-        if (!data.error && typeof data.precioPorCamaGlobal === 'number') {
-          setPrecio(data.precioPorCamaGlobal);
-          setPrecioInput(String(data.precioPorCamaGlobal));
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  const handleSave = async () => {
-    const val = Number(precioInput);
-    if (Number.isNaN(val) || val < 0) { toast.error('Ingresá un precio válido'); return; }
-    setSaving(true);
-    try {
-      const res = await fetch('/api/configuracion/precio-cama', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ precio: Math.round(val) }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast.error(data.error || 'Error'); return; }
-      setPrecio(Math.round(val));
-      toast.success('Precio por cama guardado');
-    } catch { toast.error('Error de conexión'); }
-    setSaving(false);
-  };
 
   // Compute room type summary from store
   const roomSummary = useMemo(() => {
@@ -706,50 +671,8 @@ function HabitacionesSection() {
 
   const totalHabitaciones = Object.values(habitaciones).length;
 
-  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
-
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <BedDouble className="w-4 h-4" style={{ color: forest }} />
-            Precio global por cama
-          </CardTitle>
-          <CardDescription>Definí un precio base por cama que se usará como referencia en tarifas compartidas</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 max-w-md">
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${forest}15` }}>
-              <DollarSign className="w-5 h-5" style={{ color: forest }} />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Precio actual por cama</p>
-              <p className="text-xl font-bold" style={{ color: forest }}>
-                {precio !== null ? `$ ${precio.toLocaleString('es-AR')}` : 'No definido'}
-              </p>
-            </div>
-          </div>
-
-          <ConfigField label="Nuevo precio por cama" icon={DollarSign} hint="En la misma moneda que tus tarifas">
-            <Input
-              type="number"
-              min={0}
-              value={precioInput}
-              onChange={e => setPrecioInput(e.target.value)}
-              placeholder="Ej: 5000"
-            />
-          </ConfigField>
-
-          <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: forest }}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-              Guardar precio
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Room summary */}
       <Card>
         <CardHeader>

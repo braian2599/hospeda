@@ -1,6 +1,26 @@
 # Hospedá — Worklog
 
 ---
+Task ID: 2
+Agent: full-stack-developer
+Task: Simplify LimpiezaModule - remove Kanban, KPIs, charts, staff panel, timeline, drag&drop
+
+Work Log:
+- Read existing LimpiezaModule.tsx (2087 lines)
+- Identified all features to remove: 4 KPI stat cards, Cronograma Timeline, Kanban/List toggle, Kanban view with drag&drop, 7-day AreaChart, Staff Panel, Nueva Tarea button/dialog, Task Assignment Modal, Reassign-from-staff modal, Staff History Modal, Priority filter, Cleaning progress tracker, Move up/down buttons, Iniciar/Asignar buttons, all staff/kanban/scheduling/priority/assignment/new-task/drag state, Confirm-complete AlertDialog, API cleaning tasks, TipoTarea/TIPO_CONFIG, nowSec ticker, AnimatedNumber, recharts, Tabs, Avatar imports
+- Wrote simplified module (654 lines) — 69% reduction
+- Kept: cleaning queue with direct "Limpia" button, maintenance list with "Resolver" button, resolver dialog (reparacion/monto/sacarDeCaja), report maintenance form (collapsible), maintenance history search with filters/pagination, maintenance alert banner, DatePickerInline helper
+- Replaced confirm-complete AlertDialog with direct marcarComoLimpia call
+- Removed all API calls (api.limpieza, api.usuarios) — module now works purely from store
+- Lint passes cleanly
+
+Stage Summary:
+- LimpiezaModule reduced from 2087 lines to 654 lines (69% reduction)
+- All unnecessary features removed as specified
+- Core functionality preserved: cleaning queue + mark clean + maintenance list + resolver + report form + history search
+- No recharts, Tabs, Avatar, AnimatedNumber, or unnecessary imports remaining
+
+---
 Task ID: 1-piso
 Agent: Piso Module Agent
 Task: Connect piso (floor) field throughout the full stack — types, store, UI components
