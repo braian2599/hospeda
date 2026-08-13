@@ -347,7 +347,7 @@ function CashFlowTimeline({
           <div className="absolute -left-6 top-0 flex flex-col items-center">
             <div className="w-3 h-3 rounded-full bg-[#0F2B28] ring-2 ring-white shadow-sm z-10" />
           </div>
-          <div className="bg-emerald-50/30 dark:bg-emerald-950/20 border border-[#0F2B28]/20 rounded-md px-3 py-2">
+          <div className="bg-emerald-950/20 border border-[#0F2B28]/20 rounded-md px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <CircleDot className="w-3.5 h-3.5 text-[#0F2B28]" />
@@ -393,7 +393,7 @@ function DenominationBreakdownPanel({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {bills.map(d => (
-            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-green-50/30 dark:bg-green-950/15 transition-colors">
+            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-green-950/15 transition-colors">
               <Banknote className="w-3.5 h-3.5 text-[#059669] shrink-0" />
               <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
               <Input
@@ -417,7 +417,7 @@ function DenominationBreakdownPanel({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {coins.map(d => (
-            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-amber-50/30 dark:bg-amber-950/15 transition-colors">
+            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-amber-950/15 transition-colors">
               <Coins className="w-3.5 h-3.5 text-[#92400E] shrink-0" />
               <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
               <Input
@@ -912,7 +912,7 @@ export default function CajaModule() {
         <div className="space-y-4">
           <Card className="relative overflow-hidden border-2 border-dashed border-[#0F2B28]/20 celebrate-bg">
             {/* Subtle radial accent in the background */}
-            <div className="pointer-events-none absolute inset-0 bg-emerald-50/30 dark:bg-emerald-950/15" />
+            <div className="pointer-events-none absolute inset-0 bg-emerald-950/15" />
             <CardContent className="relative text-center py-14 px-6 space-y-5 max-w-md mx-auto">
               <div className="relative inline-flex">
                 {/* Pulsing halo around the icon */}
@@ -995,7 +995,7 @@ export default function CajaModule() {
                 </Dialog>
               </div>
               {/* Balance display — animated + trend */}
-              <div className="rounded-lg border-2 border-[#059669]/30 bg-green-50/40 dark:bg-green-950/20 p-3">
+              <div className="rounded-lg border-2 border-[#059669]/30 bg-green-950/20 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo actual</p>
@@ -1164,7 +1164,7 @@ export default function CajaModule() {
 
           {/* ── Mobile: Cash Flow Timeline ── */}
           <Card className="lg:hidden overflow-hidden">
-            <CardHeader className="bg-teal-50/20 dark:bg-teal-950/10 pb-3">
+            <CardHeader className="bg-teal-950/10 pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Timer className="w-4 h-4 text-[#0F2B28]" />
                 Línea de tiempo
@@ -1218,7 +1218,7 @@ export default function CajaModule() {
               </Card>
 
               {/* Balance display — large animated number + trend indicator */}
-              <Card className="bg-green-50/40 dark:bg-green-950/20 border-2 border-[#059669]/30 card-hover">
+              <Card className="bg-green-950/20 border-2 border-[#059669]/30 card-hover">
                 <CardContent className="py-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0] flex items-center justify-center shadow-sm">
@@ -1460,7 +1460,7 @@ export default function CajaModule() {
             {/* Info Panel */}
             <div className="space-y-4">
               <Card className="overflow-hidden">
-                <CardHeader className="bg-teal-50/20 dark:bg-teal-950/10 pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#0F2B28]" />Información del turno</CardTitle></CardHeader>
+                <CardHeader className="bg-teal-950/10 pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#0F2B28]" />Información del turno</CardTitle></CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   {caja.apertura && (
                     <>
@@ -1513,7 +1513,7 @@ export default function CajaModule() {
 
               {/* Cash Flow Timeline */}
               <Card className="overflow-hidden">
-                <CardHeader className="bg-teal-50/20 dark:bg-teal-950/10 pb-3">
+                <CardHeader className="bg-teal-950/10 pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Timer className="w-4 h-4 text-[#0F2B28]" />
                     Línea de tiempo
@@ -2122,39 +2122,39 @@ function DailySummaryCard({ summary, onViewHistorial }: {
 
         {/* Quick stats row — Facturacion KPI style */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+          <div className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Movimientos</p>
-                <p className="text-xl font-bold text-emerald-900 dark:text-emerald-200">{summary.movCount}</p>
+                <p className="text-xs font-medium text-emerald-400">Movimientos</p>
+                <p className="text-xl font-bold text-emerald-200">{summary.movCount}</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                 <Receipt className="w-5 h-5" />
               </div>
             </div>
           </div>
-          <div className={cn('rounded-xl border-l-[3px] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive', summary.ingresos - summary.egresos >= 0 ? 'border-l-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20' : 'border-l-red-500 bg-red-50/40 dark:bg-red-950/20')}>
+          <div className={cn('rounded-xl border-l-[3px] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive', summary.ingresos - summary.egresos >= 0 ? 'border-l-emerald-500 bg-emerald-950/20' : 'border-l-red-500 bg-red-950/20')}>
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className={cn('text-xs font-medium', summary.ingresos - summary.egresos >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400')}>Balance neto</p>
-                <p className={cn('text-xl font-bold tabular-nums', summary.ingresos - summary.egresos >= 0 ? 'text-emerald-900 dark:text-emerald-200' : 'text-red-900 dark:text-red-200')}>
+                <p className={cn('text-xs font-medium', summary.ingresos - summary.egresos >= 0 ? 'text-emerald-400' : 'text-red-400')}>Balance neto</p>
+                <p className={cn('text-xl font-bold tabular-nums', summary.ingresos - summary.egresos >= 0 ? 'text-emerald-200' : 'text-red-200')}>
                   {formatMoney(summary.ingresos - summary.egresos)}
                 </p>
               </div>
-              <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', summary.ingresos - summary.egresos >= 0 ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/20 text-red-600 dark:text-red-400')}>
+              <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', summary.ingresos - summary.egresos >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400')}>
                 <Wallet className="w-5 h-5" />
               </div>
             </div>
           </div>
-          <div className="rounded-xl border-l-[3px] border-l-amber-500 bg-amber-50/40 dark:bg-amber-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+          <div className="rounded-xl border-l-[3px] border-l-amber-500 bg-amber-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">% Egresos</p>
-                <p className="text-xl font-bold text-amber-900 dark:text-amber-200 tabular-nums">
+                <p className="text-xs font-medium text-amber-400">% Egresos</p>
+                <p className="text-xl font-bold text-amber-200 tabular-nums">
                   {summary.ingresos > 0 ? Math.round((summary.egresos / summary.ingresos) * 100) : 0}%
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400">
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400">
                 <AlertTriangle className="w-5 h-5" />
               </div>
             </div>
@@ -2170,10 +2170,10 @@ function DailySummaryCard({ summary, onViewHistorial }: {
 }
 
 const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; label: string; value: string; sub: string; iconBg: string; iconColor: string }> = {
-  emerald: { borderL: 'border-l-emerald-500', bg: 'bg-emerald-50/40', darkBg: 'dark:bg-emerald-950/20', label: 'text-emerald-700 dark:text-emerald-400', value: 'text-emerald-900 dark:text-emerald-200', sub: 'text-emerald-600/70 dark:text-emerald-400/50', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-600 dark:text-emerald-400' },
-  green: { borderL: 'border-l-green-500', bg: 'bg-green-50/40', darkBg: 'dark:bg-green-950/20', label: 'text-green-700 dark:text-green-400', value: 'text-green-900 dark:text-green-200', sub: 'text-green-600/70 dark:text-green-400/50', iconBg: 'bg-green-500/20', iconColor: 'text-green-600 dark:text-green-400' },
-  red: { borderL: 'border-l-red-500', bg: 'bg-red-50/40', darkBg: 'dark:bg-red-950/20', label: 'text-red-700 dark:text-red-400', value: 'text-red-900 dark:text-red-200', sub: 'text-red-600/70 dark:text-red-400/50', iconBg: 'bg-red-500/20', iconColor: 'text-red-600 dark:text-red-400' },
-  amber: { borderL: 'border-l-amber-500', bg: 'bg-amber-50/40', darkBg: 'dark:bg-amber-950/20', label: 'text-amber-700 dark:text-amber-400', value: 'text-amber-900 dark:text-amber-200', sub: 'text-amber-600/70 dark:text-amber-400/50', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-600 dark:text-amber-400' },
+  emerald: { borderL: 'border-l-emerald-500', bg: 'bg-emerald-50/40', darkBg: 'bg-emerald-950/20', label: 'text-emerald-400', value: 'text-emerald-200', sub: 'text-emerald-400/50', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-400' },
+  green: { borderL: 'border-l-green-500', bg: 'bg-green-50/40', darkBg: 'bg-green-950/20', label: 'text-green-400', value: 'text-green-200', sub: 'text-green-400/50', iconBg: 'bg-green-500/20', iconColor: 'text-green-400' },
+  red: { borderL: 'border-l-red-500', bg: 'bg-red-50/40', darkBg: 'bg-red-950/20', label: 'text-red-400', value: 'text-red-200', sub: 'text-red-400/50', iconBg: 'bg-red-500/20', iconColor: 'text-red-400' },
+  amber: { borderL: 'border-l-amber-500', bg: 'bg-amber-50/40', darkBg: 'bg-amber-950/20', label: 'text-amber-400', value: 'text-amber-200', sub: 'text-amber-400/50', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-400' },
 };
 
 function SummaryStat({ label, value, icon: Icon, colorFamily }: {
@@ -2219,7 +2219,7 @@ function MovementCategoryPie({ data, compact }: { data: PieDatum[]; compact?: bo
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="bg-teal-50/20 dark:bg-teal-950/10 pb-2">
+      <CardHeader className="bg-teal-950/10 pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Sparkle className="w-4 h-4 text-[#0F2B28]" />
           Movimientos por categoría

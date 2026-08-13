@@ -58,7 +58,7 @@ export default function SmsVerificationSettings() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <Smartphone className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <Smartphone className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
               <p className="text-sm font-medium">Verificación SMS</p>
@@ -73,7 +73,7 @@ export default function SmsVerificationSettings() {
           </div>
 
           {currentPhone && phoneVerified && (
-            <Badge variant="secondary" className="gap-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+            <Badge variant="secondary" className="gap-1 bg-emerald-900/30 text-emerald-400">
               <CheckCircle2 className="w-3 h-3" />
               Verificado
             </Badge>

@@ -236,60 +236,60 @@ export default function ClientesModule() {
       {/* ═══════════ CLIENT STATS SUMMARY ═══════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
         {/* Total Clientes */}
-        <Card className="rounded-xl border-l-[3px] border-l-teal-500 bg-teal-50/40 dark:bg-teal-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-teal-500 bg-teal-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-teal-700 dark:text-teal-400">Total Clientes</p>
-                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-xl font-bold text-teal-900 dark:text-teal-200" />
+                <p className="text-xs font-medium text-teal-400">Total Clientes</p>
+                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-xl font-bold text-teal-200" />
               </div>
               <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center">
-                <Users className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                <Users className="w-5 h-5 text-teal-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Clientes Recurrentes */}
-        <Card className="rounded-xl border-l-[3px] border-l-amber-500 bg-amber-50/40 dark:bg-amber-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-amber-500 bg-amber-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Recurrentes</p>
-                <AnimatedNumber value={stats.recurrentes} format={n => String(Math.round(n))} className="text-xl font-bold text-amber-900 dark:text-amber-200" />
+                <p className="text-xs font-medium text-amber-400">Recurrentes</p>
+                <AnimatedNumber value={stats.recurrentes} format={n => String(Math.round(n))} className="text-xl font-bold text-amber-200" />
               </div>
               <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                <Star className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <Star className="w-5 h-5 text-amber-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Nuevos este Mes */}
-        <Card className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Nuevos este Mes</p>
-                <AnimatedNumber value={stats.thisMonth} format={n => String(Math.round(n))} className="text-xl font-bold text-emerald-900 dark:text-emerald-200" />
+                <p className="text-xs font-medium text-emerald-400">Nuevos este Mes</p>
+                <AnimatedNumber value={stats.thisMonth} format={n => String(Math.round(n))} className="text-xl font-bold text-emerald-200" />
               </div>
               <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <UserPlus className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <UserPlus className="w-5 h-5 text-emerald-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Ocupación Promedio */}
-        <Card className="rounded-xl border-l-[3px] border-l-sky-500 bg-sky-50/40 dark:bg-sky-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-sky-500 bg-sky-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-sky-700 dark:text-sky-400">Estadías/Cliente</p>
-                <AnimatedNumber value={stats.avgStays} format={n => n.toFixed(1)} className="text-xl font-bold text-sky-900 dark:text-sky-200" />
+                <p className="text-xs font-medium text-sky-400">Estadías/Cliente</p>
+                <AnimatedNumber value={stats.avgStays} format={n => n.toFixed(1)} className="text-xl font-bold text-sky-200" />
               </div>
               <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+                <BarChart3 className="w-5 h-5 text-sky-400" />
               </div>
             </div>
           </CardContent>
@@ -529,28 +529,28 @@ export default function ClientesModule() {
 
                   {/* Customer Stats Summary (enhanced) */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <Card className="p-3 bg-green-50/40 dark:bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-[#0F2B28]">
+                    <Card className="p-3 bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-[#0F2B28]">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-[#166534]" />
                         <span className="text-xs text-muted-foreground">Total estadías</span>
                       </div>
                       <AnimatedNumber value={totalEstadias} format={n => String(Math.round(n))} className="font-bold text-lg text-[#0F2B28] mt-1" />
                     </Card>
-                    <Card className="p-3 bg-green-50/40 dark:bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-emerald-400">
+                    <Card className="p-3 bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-emerald-400">
                       <div className="flex items-center gap-2">
                         <DollarSign className="w-4 h-4 text-emerald-600" />
                         <span className="text-xs text-muted-foreground">Total gastado</span>
                       </div>
                       <AnimatedNumber value={totalGastado} className="font-bold text-lg text-[#0F2B28] mt-1" />
                     </Card>
-                    <Card className="p-3 bg-green-50/40 dark:bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-amber-400">
+                    <Card className="p-3 bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-amber-400">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-amber-600" />
                         <span className="text-xs text-muted-foreground">Promedio/estadía</span>
                       </div>
                       <AnimatedNumber value={promedioPorEstadia} className="font-bold text-lg text-[#0F2B28] mt-1" />
                     </Card>
-                    <Card className="p-3 bg-green-50/40 dark:bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-sky-400">
+                    <Card className="p-3 bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-sky-400">
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-sky-600" />
                         <span className="text-xs text-muted-foreground">Duración prom.</span>

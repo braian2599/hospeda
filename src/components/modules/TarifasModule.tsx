@@ -168,10 +168,10 @@ function modoBadgeColor(m: ModoCobro): string {
 // Subtle gradient tint per modo for rate cards (decorative, soft tints)
 function modoGradient(m: ModoCobro): string {
   switch (m) {
-    case 'porPersona': return 'bg-amber-50/40 dark:bg-amber-950/20';
-    case 'porHabitacion': return 'bg-red-50/40 dark:bg-red-950/20';
-    case 'porCama': return 'bg-violet-50/40 dark:bg-violet-950/20';
-    default: return 'bg-green-50/40 dark:bg-green-950/20';
+    case 'porPersona': return 'bg-amber-950/20';
+    case 'porHabitacion': return 'bg-red-950/20';
+    case 'porCama': return 'bg-violet-950/20';
+    default: return 'bg-green-950/20';
   }
 }
 
@@ -407,7 +407,7 @@ function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount
 
 function ComparisonRow({ label, differs, children }: { label: string; differs: boolean; children: React.ReactNode }) {
   return (
-    <TableRow className={differs ? 'bg-amber-50/50 dark:bg-amber-950/10' : ''}>
+    <TableRow className={differs ? 'bg-amber-950/10' : ''}>
       <TableCell className="font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">{label}</TableCell>
       {children}
     </TableRow>

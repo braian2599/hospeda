@@ -10,8 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sun, Monitor, Moon, Palette, PanelLeftClose, User, Lock, Save, Rocket, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { PanelLeftClose, User, Lock, Save, Rocket, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 
@@ -27,8 +26,6 @@ export default function ProfileSettings({ open, onOpenChange }: ProfileSettingsP
   const setSidebarFixed = useHotelStore(s => s.setSidebarFixed);
   const setStartModule = useHotelStore(s => s.setStartModule);
   const setUsuarioActual = useHotelStore(s => s.setUsuarioActual);
-
-  const { theme, setTheme } = useTheme();
 
   const [nombre, setNombre] = useState('');
   const [currentPass, setCurrentPass] = useState('');
@@ -135,44 +132,6 @@ export default function ProfileSettings({ open, onOpenChange }: ProfileSettingsP
         </DialogHeader>
 
         <div className="mt-6 space-y-8">
-          {/* ── Apariencia ── */}
-          <section>
-            <h3 className="text-sm font-semibold flex items-center gap-2 mb-4">
-              <Palette className="w-4 h-4 text-muted-foreground" />
-              Apariencia
-            </h3>
-            <div>
-              <Label className="text-sm mb-2 block">Tema visual</Label>
-              <div className="grid grid-cols-3 gap-3">
-                {([
-                  { value: 'light', icon: Sun, label: 'Claro', desc: 'Fondo blanco' },
-                  { value: 'system', icon: Monitor, label: 'Sistema', desc: 'Automático' },
-                  { value: 'dark', icon: Moon, label: 'Oscuro', desc: 'Fondo oscuro' },
-                ] as const).map(t => (
-                  <button
-                    key={t.value}
-                    onClick={() => setTheme(t.value)}
-                    className={`
-                      flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200
-                      ${theme === t.value
-                        ? 'border-primary bg-primary/5 shadow-sm'
-                        : 'border-transparent bg-muted/50 hover:bg-muted hover:border-muted-foreground/20'
-                      }
-                    `}
-                  >
-                    <t.icon className={`w-6 h-6 ${theme === t.value ? 'text-primary' : 'text-muted-foreground'}`} />
-                    <span className={`text-sm font-medium ${theme === t.value ? 'text-primary' : 'text-muted-foreground'}`}>
-                      {t.label}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{t.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <Separator />
-
           {/* ── Barra lateral ── */}
           <section>
             <h3 className="text-sm font-semibold flex items-center gap-2 mb-4">

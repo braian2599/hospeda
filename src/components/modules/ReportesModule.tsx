@@ -63,15 +63,15 @@ const PIE_COLORS = ['#0F2B28', '#059669', '#F59E0B', '#EF4444', '#3B82F6', '#7C3
 // ==================== KPI CARD ====================
 
 const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; label: string; value: string; sub: string; iconBg: string; iconColor: string }> = {
-  emerald: { borderL: 'border-l-emerald-500', bg: 'bg-emerald-50/40', darkBg: 'dark:bg-emerald-950/20', label: 'text-emerald-700 dark:text-emerald-400', value: 'text-emerald-900 dark:text-emerald-200', sub: 'text-emerald-600/70 dark:text-emerald-400/50', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-600 dark:text-emerald-400' },
-  green: { borderL: 'border-l-green-500', bg: 'bg-green-50/40', darkBg: 'dark:bg-green-950/20', label: 'text-green-700 dark:text-green-400', value: 'text-green-900 dark:text-green-200', sub: 'text-green-600/70 dark:text-green-400/50', iconBg: 'bg-green-500/20', iconColor: 'text-green-600 dark:text-green-400' },
-  red: { borderL: 'border-l-red-500', bg: 'bg-red-50/40', darkBg: 'dark:bg-red-950/20', label: 'text-red-700 dark:text-red-400', value: 'text-red-900 dark:text-red-200', sub: 'text-red-600/70 dark:text-red-400/50', iconBg: 'bg-red-500/20', iconColor: 'text-red-600 dark:text-red-400' },
-  amber: { borderL: 'border-l-amber-500', bg: 'bg-amber-50/40', darkBg: 'dark:bg-amber-950/20', label: 'text-amber-700 dark:text-amber-400', value: 'text-amber-900 dark:text-amber-200', sub: 'text-amber-600/70 dark:text-amber-400/50', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-600 dark:text-amber-400' },
-  violet: { borderL: 'border-l-violet-500', bg: 'bg-violet-50/40', darkBg: 'dark:bg-violet-950/20', label: 'text-violet-700 dark:text-violet-400', value: 'text-violet-900 dark:text-violet-200', sub: 'text-violet-600/70 dark:text-violet-400/50', iconBg: 'bg-violet-500/20', iconColor: 'text-violet-600 dark:text-violet-400' },
-  teal: { borderL: 'border-l-teal-500', bg: 'bg-teal-50/40', darkBg: 'dark:bg-teal-950/20', label: 'text-teal-700 dark:text-teal-400', value: 'text-teal-900 dark:text-teal-200', sub: 'text-teal-600/70 dark:text-teal-400/50', iconBg: 'bg-teal-500/20', iconColor: 'text-teal-600 dark:text-teal-400' },
-  blue: { borderL: 'border-l-blue-500', bg: 'bg-blue-50/40', darkBg: 'dark:bg-blue-950/20', label: 'text-blue-700 dark:text-blue-400', value: 'text-blue-900 dark:text-blue-200', sub: 'text-blue-600/70 dark:text-blue-400/50', iconBg: 'bg-blue-500/20', iconColor: 'text-blue-600 dark:text-blue-400' },
-  sky: { borderL: 'border-l-sky-500', bg: 'bg-sky-50/40', darkBg: 'dark:bg-sky-950/20', label: 'text-sky-700 dark:text-sky-400', value: 'text-sky-900 dark:text-sky-200', sub: 'text-sky-600/70 dark:text-sky-400/50', iconBg: 'bg-sky-500/20', iconColor: 'text-sky-600 dark:text-sky-400' },
-  pink: { borderL: 'border-l-pink-500', bg: 'bg-pink-50/40', darkBg: 'dark:bg-pink-950/20', label: 'text-pink-700 dark:text-pink-400', value: 'text-pink-900 dark:text-pink-200', sub: 'text-pink-600/70 dark:text-pink-400/50', iconBg: 'bg-pink-500/20', iconColor: 'text-pink-600 dark:text-pink-400' },
+  emerald: { borderL: 'border-l-emerald-500', bg: 'bg-emerald-50/40', darkBg: 'bg-emerald-950/20', label: 'text-emerald-400', value: 'text-emerald-200', sub: 'text-emerald-400/50', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-400' },
+  green: { borderL: 'border-l-green-500', bg: 'bg-green-50/40', darkBg: 'bg-green-950/20', label: 'text-green-400', value: 'text-green-200', sub: 'text-green-400/50', iconBg: 'bg-green-500/20', iconColor: 'text-green-400' },
+  red: { borderL: 'border-l-red-500', bg: 'bg-red-50/40', darkBg: 'bg-red-950/20', label: 'text-red-400', value: 'text-red-200', sub: 'text-red-400/50', iconBg: 'bg-red-500/20', iconColor: 'text-red-400' },
+  amber: { borderL: 'border-l-amber-500', bg: 'bg-amber-50/40', darkBg: 'bg-amber-950/20', label: 'text-amber-400', value: 'text-amber-200', sub: 'text-amber-400/50', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-400' },
+  violet: { borderL: 'border-l-violet-500', bg: 'bg-violet-50/40', darkBg: 'bg-violet-950/20', label: 'text-violet-400', value: 'text-violet-200', sub: 'text-violet-400/50', iconBg: 'bg-violet-500/20', iconColor: 'text-violet-400' },
+  teal: { borderL: 'border-l-teal-500', bg: 'bg-teal-50/40', darkBg: 'bg-teal-950/20', label: 'text-teal-400', value: 'text-teal-200', sub: 'text-teal-400/50', iconBg: 'bg-teal-500/20', iconColor: 'text-teal-400' },
+  blue: { borderL: 'border-l-blue-500', bg: 'bg-blue-50/40', darkBg: 'bg-blue-950/20', label: 'text-blue-400', value: 'text-blue-200', sub: 'text-blue-400/50', iconBg: 'bg-blue-500/20', iconColor: 'text-blue-400' },
+  sky: { borderL: 'border-l-sky-500', bg: 'bg-sky-50/40', darkBg: 'bg-sky-950/20', label: 'text-sky-400', value: 'text-sky-200', sub: 'text-sky-400/50', iconBg: 'bg-sky-500/20', iconColor: 'text-sky-400' },
+  pink: { borderL: 'border-l-pink-500', bg: 'bg-pink-50/40', darkBg: 'bg-pink-950/20', label: 'text-pink-400', value: 'text-pink-200', sub: 'text-pink-400/50', iconBg: 'bg-pink-500/20', iconColor: 'text-pink-400' },
 };
 
 interface KpiProps {
@@ -173,7 +173,7 @@ function ProgressKpi({ label, value, max, color = 'bg-primary', suffix = '%', de
  */
 function ReportTabHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-[#0F2B28]/10 bg-teal-50/20 dark:bg-teal-950/10 px-4 py-3 flex items-center gap-3">
+    <div className="relative overflow-hidden rounded-xl border border-[#0F2B28]/10 bg-teal-950/10 px-4 py-3 flex items-center gap-3">
       <div className="w-9 h-9 rounded-lg bg-[#0F2B28]/10 flex items-center justify-center text-[#0F2B28] shrink-0">
         {icon}
       </div>
@@ -1931,7 +1931,7 @@ export default function ReportesModule() {
 
           {/* Top customer highlight */}
           {topCliente && (
-            <Card className="relative overflow-hidden border-2 border-[#0F2B28]/20 bg-teal-50/20 dark:bg-teal-950/10">
+            <Card className="relative overflow-hidden border-2 border-[#0F2B28]/20 bg-teal-950/10">
               <CardContent className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#059669] flex items-center justify-center text-white shadow-md shrink-0">

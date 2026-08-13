@@ -303,7 +303,7 @@ export default function CheckInModule() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Pendientes Check-In */}
-          <Card className="border-[#BBF7D0]/60 bg-emerald-50/40 dark:bg-emerald-950/20 wave-border-hover">
+          <Card className="border-[#BBF7D0]/60 bg-emerald-950/20 wave-border-hover">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <LogIn className="w-5 h-5 text-[#059669]" />
@@ -353,7 +353,7 @@ export default function CheckInModule() {
           </Card>
 
           {/* Pendientes Check-Out */}
-          <Card className="border-[#FED7AA]/60 bg-amber-50/40 dark:bg-amber-950/20 wave-border-hover-amber">
+          <Card className="border-[#FED7AA]/60 bg-amber-950/20 wave-border-hover-amber">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <LogOut className="w-5 h-5 text-[#EA580C]" />
@@ -878,30 +878,30 @@ const KPI_COLORS: Record<string, {
 }> = {
   emerald: {
     border: 'border-l-emerald-500',
-    bg: 'bg-emerald-50/40 dark:bg-emerald-950/20',
-    label: 'text-emerald-700 dark:text-emerald-400',
-    value: 'text-emerald-900 dark:text-emerald-200',
-    sub: 'text-emerald-600/70 dark:text-emerald-400/50',
+    bg: 'bg-emerald-950/20',
+    label: 'text-emerald-400',
+    value: 'text-emerald-200',
+    sub: 'text-emerald-400/50',
     iconBg: 'bg-emerald-500/20',
-    icon: 'text-emerald-600 dark:text-emerald-400',
+    icon: 'text-emerald-400',
   },
   amber: {
     border: 'border-l-amber-500',
-    bg: 'bg-amber-50/40 dark:bg-amber-950/20',
-    label: 'text-amber-700 dark:text-amber-400',
-    value: 'text-amber-900 dark:text-amber-200',
-    sub: 'text-amber-600/70 dark:text-amber-400/50',
+    bg: 'bg-amber-950/20',
+    label: 'text-amber-400',
+    value: 'text-amber-200',
+    sub: 'text-amber-400/50',
     iconBg: 'bg-amber-500/20',
-    icon: 'text-amber-600 dark:text-amber-400',
+    icon: 'text-amber-400',
   },
   teal: {
     border: 'border-l-teal-500',
-    bg: 'bg-teal-50/40 dark:bg-teal-950/20',
-    label: 'text-teal-700 dark:text-teal-400',
-    value: 'text-teal-900 dark:text-teal-200',
-    sub: 'text-teal-600/70 dark:text-teal-400/50',
+    bg: 'bg-teal-950/20',
+    label: 'text-teal-400',
+    value: 'text-teal-200',
+    sub: 'text-teal-400/50',
     iconBg: 'bg-teal-500/20',
-    icon: 'text-teal-600 dark:text-teal-400',
+    icon: 'text-teal-400',
   },
 };
 

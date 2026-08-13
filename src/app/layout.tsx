@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "next-themes";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 const geistSans = Geist({
@@ -68,16 +67,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
-          <Toaster richColors position="top-right" />
-        </ThemeProvider>
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

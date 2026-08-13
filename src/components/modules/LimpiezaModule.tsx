@@ -1041,7 +1041,7 @@ export default function LimpiezaModule() {
 
       {/* ── Maintenance alert banner ── */}
       {enMantenimiento.length > 0 && (
-        <Card className="border-[#FECACA] bg-red-50/40 dark:bg-red-950/20 overflow-hidden">
+        <Card className="border-[#FECACA] bg-red-950/20 overflow-hidden">
           <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="relative w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center shrink-0">
@@ -1072,39 +1072,39 @@ export default function LimpiezaModule() {
 
       {/* ── Summary Stats ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="rounded-xl border-l-[3px] border-l-yellow-500 bg-yellow-50/40 dark:bg-yellow-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-yellow-500 bg-yellow-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-yellow-700 dark:text-yellow-400">Tareas Pendientes</p>
-                <AnimatedNumber value={dailySummary.pending} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-yellow-900 dark:text-yellow-200" />
+                <p className="text-xs font-medium text-yellow-400">Tareas Pendientes</p>
+                <AnimatedNumber value={dailySummary.pending} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-yellow-200" />
               </div>
               <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                <SprayCan className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                <SprayCan className="w-5 h-5 text-yellow-400" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-xl border-l-[3px] border-l-sky-500 bg-sky-50/40 dark:bg-sky-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-sky-500 bg-sky-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-sky-700 dark:text-sky-400">En Progreso</p>
-                <AnimatedNumber value={dailySummary.inProgress} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-sky-900 dark:text-sky-200" />
+                <p className="text-xs font-medium text-sky-400">En Progreso</p>
+                <AnimatedNumber value={dailySummary.inProgress} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-sky-200" />
               </div>
               <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center">
-                <Timer className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+                <Timer className="w-5 h-5 text-sky-400" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Completadas Hoy</p>
+                <p className="text-xs font-medium text-emerald-400">Completadas Hoy</p>
                 <div className="flex items-baseline gap-1.5">
-                  <AnimatedNumber value={dailySummary.completed} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-emerald-900 dark:text-emerald-200" />
+                  <AnimatedNumber value={dailySummary.completed} duration={400} format={(n) => String(Math.round(n))} className="text-xl font-bold text-emerald-200" />
                   {dailySummary.variation !== 0 && (
                     <span className={cn('inline-flex items-center text-[10px] font-semibold', dailySummary.variation >= 0 ? 'text-emerald-600' : 'text-red-600')}>
                       {dailySummary.variation >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -1114,22 +1114,22 @@ export default function LimpiezaModule() {
                 </div>
               </div>
               <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <CheckCircle className="w-5 h-5 text-emerald-400" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-xl border-l-[3px] border-l-violet-500 bg-violet-50/40 dark:bg-violet-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-violet-500 bg-violet-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-violet-700 dark:text-violet-400">Tiempo Promedio</p>
-                <span className="text-xl font-bold text-violet-900 dark:text-violet-200">
+                <p className="text-xs font-medium text-violet-400">Tiempo Promedio</p>
+                <span className="text-xl font-bold text-violet-200">
                   {dailySummary.avgMin > 0 ? `${dailySummary.avgMin}'` : '—'}
                 </span>
               </div>
               <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                <Clock className="w-5 h-5 text-violet-400" />
               </div>
             </div>
           </CardContent>
@@ -1348,7 +1348,7 @@ export default function LimpiezaModule() {
       {viewMode === 'list' && (
         <>
           {/* Cleaning progress tracker */}
-          <Card className="bg-green-50/40 dark:bg-green-950/20 border-[#059669]/20">
+          <Card className="bg-green-950/20 border-[#059669]/20">
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">

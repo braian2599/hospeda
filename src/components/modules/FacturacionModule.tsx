@@ -252,59 +252,59 @@ export default function FacturacionModule() {
       {/* ══════════════════ PAYMENT ANALYTICS SUMMARY ══════════════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
         {/* Total Pendiente */}
-        <div className="relative rounded-xl border-l-[3px] border-l-amber-500 bg-amber-50/40 dark:bg-amber-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <div className="relative rounded-xl border-l-[3px] border-l-amber-500 bg-amber-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Total Pendiente</p>
-              <AnimatedNumber value={analytics.totalPendiente} className="text-xl font-bold text-amber-900 dark:text-amber-200" />
+              <p className="text-xs font-medium text-amber-400">Total Pendiente</p>
+              <AnimatedNumber value={analytics.totalPendiente} className="text-xl font-bold text-amber-200" />
             </div>
             <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <AlertTriangle className="w-5 h-5 text-amber-400" />
             </div>
           </div>
-          <p className="text-[10px] text-amber-600/70 dark:text-amber-400/50 mt-2">{pendientes.length} reserva{pendientes.length !== 1 ? 's' : ''} pendiente{pendientes.length !== 1 ? 's' : ''}</p>
+          <p className="text-amber-600/70 text-amber-400/50 mt-2">{pendientes.length} reserva{pendientes.length !== 1 ? 's' : ''} pendiente{pendientes.length !== 1 ? 's' : ''}</p>
         </div>
 
         {/* Total Cobrado Hoy */}
-        <div className="relative rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <div className="relative rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Cobrado Hoy</p>
-              <AnimatedNumber value={analytics.totalCobradoHoy} className="text-xl font-bold text-emerald-900 dark:text-emerald-200" />
+              <p className="text-xs font-medium text-emerald-400">Cobrado Hoy</p>
+              <AnimatedNumber value={analytics.totalCobradoHoy} className="text-xl font-bold text-emerald-200" />
             </div>
             <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
             </div>
           </div>
-          <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/50 mt-2">{pagos.filter(p => p.fecha.startsWith(todayLocal())).length} pago{pagos.filter(p => p.fecha.startsWith(todayLocal())).length !== 1 ? 's' : ''} del día</p>
+          <p className="text-emerald-600/70 text-emerald-400/50 mt-2">{pagos.filter(p => p.fecha.startsWith(todayLocal())).length} pago{pagos.filter(p => p.fecha.startsWith(todayLocal())).length !== 1 ? 's' : ''} del día</p>
         </div>
 
         {/* Cobros este Mes */}
-        <div className="relative rounded-xl border-l-[3px] border-l-sky-500 bg-sky-50/40 dark:bg-sky-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <div className="relative rounded-xl border-l-[3px] border-l-sky-500 bg-sky-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-sky-700 dark:text-sky-400">Cobros este Mes</p>
-              <AnimatedNumber value={analytics.cobrosMes} className="text-xl font-bold text-sky-900 dark:text-sky-200" />
+              <p className="text-xs font-medium text-sky-400">Cobros este Mes</p>
+              <AnimatedNumber value={analytics.cobrosMes} className="text-xl font-bold text-sky-200" />
             </div>
             <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center">
-              <CalendarDays className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+              <CalendarDays className="w-5 h-5 text-sky-400" />
             </div>
           </div>
-          <p className="text-[10px] text-sky-600/70 dark:text-sky-400/50 mt-2">Acumulado mensual</p>
+          <p className="text-sky-600/70 text-sky-400/50 mt-2">Acumulado mensual</p>
         </div>
 
         {/* Promedio por Reserva */}
-        <div className="relative rounded-xl border-l-[3px] border-l-violet-500 bg-violet-50/40 dark:bg-violet-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <div className="relative rounded-xl border-l-[3px] border-l-violet-500 bg-violet-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-violet-700 dark:text-violet-400">Promedio por Reserva</p>
-              <AnimatedNumber value={analytics.promedio} className="text-xl font-bold text-violet-900 dark:text-violet-200" />
+              <p className="text-xs font-medium text-violet-400">Promedio por Reserva</p>
+              <AnimatedNumber value={analytics.promedio} className="text-xl font-bold text-violet-200" />
             </div>
             <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+              <TrendingUp className="w-5 h-5 text-violet-400" />
             </div>
           </div>
-          <p className="text-[10px] text-violet-600/70 dark:text-violet-400/50 mt-2">{pagos.length} pago{pagos.length !== 1 ? 's' : ''} en total</p>
+          <p className="text-violet-600/70 text-violet-400/50 mt-2">{pagos.length} pago{pagos.length !== 1 ? 's' : ''} en total</p>
         </div>
       </div>
 
@@ -814,10 +814,10 @@ function MetodoIconBadge({ type, name }: { type: 'credit' | 'bank' | 'wallet' | 
     cash: <CircleDollarSign className="w-3 h-3" />,
   };
   const colorMap = {
-    credit: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400',
-    bank: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-    wallet: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    cash: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    credit: 'bg-sky-900/30 text-sky-400',
+    bank: 'bg-violet-900/30 text-violet-400',
+    wallet: 'bg-amber-900/30 text-amber-400',
+    cash: 'bg-emerald-900/30 text-emerald-400',
   };
   return (
     <Badge variant="secondary" className={`gap-1 ${colorMap[type]}`}>

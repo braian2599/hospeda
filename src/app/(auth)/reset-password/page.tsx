@@ -29,7 +29,7 @@ function ResetPasswordForm() {
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/hotel-bg.png')" }} />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)', backdropFilter: 'blur(2px)' }} />
         <div className="flex-1 flex items-center justify-center relative z-10 p-4 sm:p-6">
-          <Card className="w-full max-w-sm rounded-2xl shadow-2xl border border-white/20 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl text-center">
+          <Card className="w-full max-w-sm rounded-2xl shadow-2xl border border-white/10 bg-slate-900/90 backdrop-blur-xl text-center">
             <CardContent className="pt-8 pb-6 space-y-4">
               <h2 className="text-xl font-bold text-red-600">Enlace invalido</h2>
               <p className="text-sm text-muted-foreground">
@@ -51,9 +51,9 @@ function ResetPasswordForm() {
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/hotel-bg.png')" }} />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)', backdropFilter: 'blur(2px)' }} />
         <div className="flex-1 flex items-center justify-center relative z-10 p-4 sm:p-6">
-          <Card className="w-full max-w-sm rounded-2xl shadow-2xl border border-white/20 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl text-center" style={{ animation: 'fadeUp 0.5s ease-out both' }}>
+          <Card className="w-full max-w-sm rounded-2xl shadow-2xl border border-white/10 bg-slate-900/90 backdrop-blur-xl text-center" style={{ animation: 'fadeUp 0.5s ease-out both' }}>
             <CardContent className="pt-8 pb-6 space-y-4">
-              <div className="mx-auto w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+              <div className="mx-auto w-16 h-16 rounded-full bg-emerald-900/30 flex items-center justify-center">
                 <CheckCircle2 className="w-8 h-8 text-emerald-600" />
               </div>
               <h2 className="text-xl font-bold">Contraseña actualizada</h2>
@@ -123,7 +123,7 @@ function ResetPasswordForm() {
 
       {/* Right: Card */}
       <div className="flex-1 flex items-center justify-center relative z-10 p-4 sm:p-6">
-        <Card className="w-full max-w-sm rounded-2xl shadow-2xl border border-white/20 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl" style={{ animation: 'fadeUp 0.5s ease-out both' }}>
+        <Card className="w-full max-w-sm rounded-2xl shadow-2xl border border-white/10 bg-slate-900/90 backdrop-blur-xl" style={{ animation: 'fadeUp 0.5s ease-out both' }}>
           <CardHeader className="text-center pb-2">
             <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3 lg:hidden" />
             <CardTitle className="text-xl">Nueva contraseña</CardTitle>

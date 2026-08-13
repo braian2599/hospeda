@@ -557,7 +557,7 @@ function StatsSection() {
                 {/* Decorative gradient ring around icon */}
                 <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-gradient-to-br from-[#059669]/15 to-transparent opacity-50 group-hover:opacity-80 group-hover:scale-110 transition-all duration-500" />
 
-                <div className={`stat-icon-pulse w-14 h-14 rounded-2xl ${s.iconColor} flex items-center justify-center mx-auto mb-4 shadow-sm ring-4 ring-white/60 dark:ring-slate-800/60`}>
+                <div className={`stat-icon-pulse w-14 h-14 rounded-2xl ${s.iconColor} flex items-center justify-center mx-auto mb-4 shadow-sm ring-4 ring-slate-800/60`}>
                   <s.icon className="w-7 h-7" />
                 </div>
                 <div className="text-4xl sm:text-5xl font-extrabold text-[#0F2B28] tabular-nums">

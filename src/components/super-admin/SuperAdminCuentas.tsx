@@ -90,11 +90,11 @@ interface PlanOption {
 // ─── Helpers ───
 function subEstadoBadge(estado: string) {
   const map: Record<string, string> = {
-    trial: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800',
-    activa: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
-    vencida: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800',
-    cancelada: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800',
-    suspensa: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-800',
+    trial: 'bg-amber-900/30 text-amber-400 border-amber-800',
+    activa: 'bg-emerald-900/30 text-emerald-400 border-emerald-800',
+    vencida: 'bg-red-900/30 text-red-400 border-red-800',
+    cancelada: 'bg-gray-900/30 text-gray-400 border-gray-800',
+    suspensa: 'bg-orange-900/30 text-orange-400 border-orange-800',
   };
   return (
     <Badge variant="outline" className={map[estado] || ''}>
@@ -396,7 +396,7 @@ export default function SuperAdminCuentas() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={t.suscripcion && t.suscripcion.diasRestantes <= 7 ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
+                          <span className={t.suscripcion && t.suscripcion.diasRestantes <= 7 ? 'text-red-400 font-medium' : ''}>
                             {t.suscripcion?.diasRestantes ?? '—'}
                           </span>
                         </TableCell>

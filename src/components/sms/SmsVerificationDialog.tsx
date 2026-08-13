@@ -186,7 +186,7 @@ export default function SmsVerificationDialog({
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                <Smartphone className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <Smartphone className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
                 <DialogTitle className="text-xl">
@@ -304,7 +304,7 @@ export default function SmsVerificationDialog({
               {/* Dev code display (solo en desarrollo) */}
               {devCode && (
                 <div className="text-center">
-                  <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-mono">
+                  <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-amber-900/30 text-amber-400 font-mono">
                     DEV: {devCode}
                   </span>
                 </div>
@@ -354,8 +354,8 @@ export default function SmsVerificationDialog({
           {/* ── STEP 3: Verified ── */}
           {step === 'verified' && (
             <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+              <div className="w-16 h-16 rounded-full bg-emerald-900/30 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400" />
               </div>
               <div>
                 <p className="font-semibold text-lg">Verificación exitosa</p>

@@ -175,8 +175,8 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
 
               {/* Recurring badge */}
               <div className="flex items-center gap-2 p-3 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
-                <RefreshCw className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                <RefreshCw className="w-4 h-4 text-emerald-400 shrink-0" />
+                <p className="text-xs text-emerald-400">
                   <strong>Suscripción recurrente:</strong> El cobro se realiza automáticamente el día 10 de cada mes. Podés cancelar cuando quieras.
                 </p>
               </div>

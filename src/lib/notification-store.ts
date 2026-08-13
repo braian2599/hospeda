@@ -217,12 +217,12 @@ export const CATEGORY_COLORS: Record<NotificationCategory, string> = {
 };
 
 export const CATEGORY_BG: Record<NotificationCategory, string> = {
-  reserva: 'bg-blue-50 dark:bg-blue-950/30 border-l-blue-400',
-  pago: 'bg-emerald-50 dark:bg-emerald-950/30 border-l-emerald-400',
-  checkin: 'bg-orange-50 dark:bg-orange-950/30 border-l-orange-400',
-  habitacion: 'bg-purple-50 dark:bg-purple-950/30 border-l-purple-400',
-  sistema: 'bg-gray-50 dark:bg-gray-950/30 border-l-gray-400',
-  limpieza: 'bg-yellow-50 dark:bg-yellow-950/30 border-l-yellow-400',
+  reserva: 'bg-blue-950/30 border-l-blue-400',
+  pago: 'bg-emerald-950/30 border-l-emerald-400',
+  checkin: 'bg-orange-950/30 border-l-orange-400',
+  habitacion: 'bg-purple-950/30 border-l-purple-400',
+  sistema: 'bg-gray-950/30 border-l-gray-400',
+  limpieza: 'bg-yellow-950/30 border-l-yellow-400',
 };
 
 export const PRIORITY_INDICATOR: Record<NotificationPriority, string> = {

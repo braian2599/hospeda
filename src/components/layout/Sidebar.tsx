@@ -8,7 +8,6 @@ import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 import { modulosEfectivos } from '@/lib/plan-config';
 import { Button } from '@/components/ui/button';
 import { NotificationCenter } from '@/components/ui/notification-center';
-import ThemeToggle from '@/components/layout/ThemeToggle';
 import { LogOut, X, Lock, Settings, Users, LayoutDashboard, Search, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, BarChart3, UserCog, Tags } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -188,10 +187,7 @@ export default function Sidebar() {
             <NotificationCenter />
           </div>
         )}
-        {/* ThemeToggle always mounted so its dropdown stays open even if sidebar collapses */}
-        <div className={`shrink-0 ${isExpanded ? '' : 'ml-auto'}`}>
-          <ThemeToggle compact />
-        </div>
+
       </div>
 
       <div className="border-t border-sidebar-border" />
@@ -273,7 +269,6 @@ export default function Sidebar() {
             <Search className="w-4 h-4" />
           </button>
           <NotificationCenter />
-          <ThemeToggle compact />
         </div>
         <div className="border-t border-sidebar-border" />
         <nav className="flex-1 overflow-y-auto scrollbar-none px-2 py-1.5 sidebar-stagger">

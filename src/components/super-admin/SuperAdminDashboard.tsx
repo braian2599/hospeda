@@ -102,10 +102,10 @@ function getShortMonth(mesKey: string) {
 
 function estadoBadge(estado: string) {
   const variants: Record<string, string> = {
-    pendiente: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-    pagado: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-    fallido: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    devuelto: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
+    pendiente: 'bg-amber-900/30 text-amber-400',
+    pagado: 'bg-emerald-900/30 text-emerald-400',
+    fallido: 'bg-red-900/30 text-red-400',
+    devuelto: 'bg-gray-900/30 text-gray-400',
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-gray-100 text-gray-800'}`}>
@@ -116,11 +116,11 @@ function estadoBadge(estado: string) {
 
 function subEstadoBadge(estado: string) {
   const variants: Record<string, string> = {
-    trial: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-    activa: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-    vencida: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    cancelada: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
-    suspensa: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+    trial: 'bg-amber-900/30 text-amber-400',
+    activa: 'bg-emerald-900/30 text-emerald-400',
+    vencida: 'bg-red-900/30 text-red-400',
+    cancelada: 'bg-gray-900/30 text-gray-400',
+    suspensa: 'bg-orange-900/30 text-orange-400',
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-gray-100 text-gray-800'}`}>
@@ -262,7 +262,7 @@ export default function SuperAdminDashboard() {
           value={data?.generales.tenantsActivos?.toLocaleString('es-AR') ?? '—'}
           subtitle={`${data?.generales.tenantsInactivos ?? 0} inactivos`}
           icon={Hotel}
-          iconColor="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+          iconColor="bg-emerald-900/30 text-emerald-400"
           loading={loading}
         />
         <StatCard
@@ -274,7 +274,7 @@ export default function SuperAdminDashboard() {
               : undefined
           }
           icon={DollarSign}
-          iconColor="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+          iconColor="bg-emerald-900/30 text-emerald-400"
           loading={loading}
         />
         <StatCard
@@ -282,7 +282,7 @@ export default function SuperAdminDashboard() {
           value={data?.ingresos.pagosPendientes?.toString() ?? '—'}
           subtitle={`${data?.ingresos.pagosMesActual ?? 0} pagos este mes`}
           icon={AlertTriangle}
-          iconColor="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+          iconColor="bg-amber-900/30 text-amber-400"
           loading={loading}
         />
       </div>
