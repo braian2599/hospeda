@@ -1,0 +1,252 @@
+/home/z/my-project/bun.lock:261:    "@esbuild/sunos-x64": ["@esbuild/sunos-x64@0.28.2", "", { "os": "sunos", "cpu": "x64" }, "sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g=="],
+/home/z/my-project/bun.lock:669:    "@reactuses/core": ["@reactuses/core@6.1.9", "https://registry.npmjs.com/@reactuses/core/-/core-6.1.9.tgz", { "dependencies": { "@microsoft/fetch-event-source": "^2.0.1", "js-cookie": "^3.0.5", "lodash-es": "^4.17.21", "screenfull": "^5.0.0", "use-sync-external-store": "^1.2.0" }, "peerDependencies": { "qrcode": "^1.5", "react": "^16.8.0  || ^17.0.0 || ^18.0.0 || ^19.0.0" }, "optionalPeers": ["qrcode"] }, "sha512-ahXOyJ92RvhYMvgXaKXqrSzIz0H2SUNaFy3zbrcmgfs4H46rOGTsxoy+ObxjXCogp6uZFYaFumSMO0u/xWcQMg=="],
+/home/z/my-project/bun.lock:1111:    "esbuild": ["esbuild@0.28.2", "", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.28.2", "@esbuild/android-arm": "0.28.2", "@esbuild/android-arm64": "0.28.2", "@esbuild/android-x64": "0.28.2", "@esbuild/darwin-arm64": "0.28.2", "@esbuild/darwin-x64": "0.28.2", "@esbuild/freebsd-arm64": "0.28.2", "@esbuild/freebsd-x64": "0.28.2", "@esbuild/linux-arm": "0.28.2", "@esbuild/linux-arm64": "0.28.2", "@esbuild/linux-ia32": "0.28.2", "@esbuild/linux-loong64": "0.28.2", "@esbuild/linux-mips64el": "0.28.2", "@esbuild/linux-ppc64": "0.28.2", "@esbuild/linux-riscv64": "0.28.2", "@esbuild/linux-s390x": "0.28.2", "@esbuild/linux-x64": "0.28.2", "@esbuild/netbsd-arm64": "0.28.2", "@esbuild/netbsd-x64": "0.28.2", "@esbuild/openbsd-arm64": "0.28.2", "@esbuild/openbsd-x64": "0.28.2", "@esbuild/openharmony-arm64": "0.28.2", "@esbuild/sunos-x64": "0.28.2", "@esbuild/win32-arm64": "0.28.2", "@esbuild/win32-ia32": "0.28.2", "@esbuild/win32-x64": "0.28.2" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA=="],
+/home/z/my-project/bun.lock:1705:    "react-promise-suspense": ["react-promise-suspense@0.3.4", "", { "dependencies": { "fast-deep-equal": "^2.0.1" } }, "sha512-I42jl7L3Ze6kZaq+7zXWSunBa3b1on5yfvUW6Eo/3fFOj6dZ5Bqmcd264nJbTK/gn1HjjILAjSwnZbV4RpSaNQ=="],
+/home/z/my-project/bun.lock:2123:    "radix-ui/@radix-ui/react-accordion": ["@radix-ui/react-accordion@1.2.20", "", { "dependencies": { "@radix-ui/primitive": "1.1.7", "@radix-ui/react-collapsible": "1.1.20", "@radix-ui/react-collection": "1.1.15", "@radix-ui/react-compose-refs": "1.1.5", "@radix-ui/react-context": "1.2.2", "@radix-ui/react-direction": "1.1.4", "@radix-ui/react-id": "1.1.4", "@radix-ui/react-primitive": "2.1.10", "@radix-ui/react-use-controllable-state": "1.2.6" }, "peerDependencies": { "@types/react": "*", "@types/react-dom": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc", "react-dom": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-jDhG9FvAEnlhnjrsINbNXcUa4G+L1KqSkJSunkbKEzFRcAb52jvM0PjPxPRvhe1HNc5F5yc0yzzWeeqlH4yBIg=="],
+/home/z/my-project/tool-results/read_1786251265788_18e7d822955f.txt:12:    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786251265788_18e7d822955f.txt:95:    95→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786251265788_18e7d822955f.txt:96:    96→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786247166068_1e092e156645.txt:12:    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786247166068_1e092e156645.txt:89:    89→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786247166068_1e092e156645.txt:90:    90→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:25:    25→  Receipt, Percent, Moon, Sun, Sunset, Loader2,
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:378:   378→  const metodosUnicos = useMemo(() => [...new Set(pagosEnPeriodo.map(p => p.metodo))], [pagosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:381:   381→  const gastosTiposUnicos = categoriasGastos;
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:382:   382→  const gastosEmpleadosUnicos = useMemo(() => [...new Set(gastosEnPeriodo.map(g => g.empleado))], [gastosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:383:   383→  const auditTiposUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.tipo))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:384:   384→  const auditEmpleadosUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.empleado))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:747:   747→                {metodosUnicos.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:826:   826→                  {gastosTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:836:   836→                  {gastosEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:936:   936→                  {auditTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:946:   946→                  {auditEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:956:   956→                  <SelectItem value="mañana"><Sun className="w-3 h-3 inline mr-1" />Mañana</SelectItem>
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:957:   957→                  <SelectItem value="tarde"><Sunset className="w-3 h-3 inline mr-1" />Tarde</SelectItem>
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:958:   958→                  <SelectItem value="noche"><Moon className="w-3 h-3 inline mr-1" />Noche</SelectItem>
+/home/z/my-project/tool-results/read_1786247596100_2d9ba16b0734.txt:1122:  1122→              { label: 'Limpieza', value: habResumen.limpieza, color: 'text-[#0EA5E9]', icon: <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#3B82F6]" />, bg: 'bg-[#E0F2FE]' },
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:25:    25→  Receipt, Percent, Moon, Sun, Sunset, Loader2,
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:353:   353→  const metodosUnicos = useMemo(() => [...new Set(pagosEnPeriodo.map(p => p.metodo))], [pagosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:356:   356→  const gastosTiposUnicos = categoriasGastos;
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:357:   357→  const gastosEmpleadosUnicos = useMemo(() => [...new Set(gastosEnPeriodo.map(g => g.empleado))], [gastosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:358:   358→  const auditTiposUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.tipo))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:359:   359→  const auditEmpleadosUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.empleado))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:677:   677→                {metodosUnicos.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:756:   756→                  {gastosTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:766:   766→                  {gastosEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:866:   866→                  {auditTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:876:   876→                  {auditEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:886:   886→                  <SelectItem value="mañana"><Sun className="w-3 h-3 inline mr-1" />Mañana</SelectItem>
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:887:   887→                  <SelectItem value="tarde"><Sunset className="w-3 h-3 inline mr-1" />Tarde</SelectItem>
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:888:   888→                  <SelectItem value="noche"><Moon className="w-3 h-3 inline mr-1" />Noche</SelectItem>
+/home/z/my-project/tool-results/read_1786238043219_a32a11bd5d4f.txt:1052:  1052→              { label: 'Limpieza', value: habResumen.limpieza, color: 'text-[#0EA5E9]', icon: <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#3B82F6]" />, bg: 'bg-[#E0F2FE]' },
+/home/z/my-project/tool-results/read_1786252457872_6c0a135641b4.txt:230:   230→    rol: 'Gerente, Hotel Sunset',
+/home/z/my-project/tool-results/read_1786414180605_d976df5aa540.txt:13:    13→  - Animated Sun/Moon icon swap using CSS transforms (rotate-90, scale-0/100, opacity transitions) on the trigger button
+/home/z/my-project/tool-results/read_1786414180605_d976df5aa540.txt:14:    14→  - 3-state dropdown (Claro/Sistema/Oscuro) with Lucide icons (Sun/Monitor/Moon) and Check mark for active state
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:25:    25→  Receipt, Percent, Moon, Sun, Sunset, Loader2,
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:462:   462→  const metodosUnicos = useMemo(() => [...new Set(pagosEnPeriodo.map(p => p.metodo))], [pagosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:465:   465→  const gastosTiposUnicos = categoriasGastos;
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:466:   466→  const gastosEmpleadosUnicos = useMemo(() => [...new Set(gastosEnPeriodo.map(g => g.empleado))], [gastosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:467:   467→  const auditTiposUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.tipo))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:468:   468→  const auditEmpleadosUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.empleado))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:922:   922→                {metodosUnicos.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:1030:  1030→                  {gastosTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:1040:  1040→                  {gastosEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:1146:  1146→                  {auditTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:1156:  1156→                  {auditEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:1166:  1166→                  <SelectItem value="mañana"><Sun className="w-3 h-3 inline mr-1" />Mañana</SelectItem>
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:1167:  1167→                  <SelectItem value="tarde"><Sunset className="w-3 h-3 inline mr-1" />Tarde</SelectItem>
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:1168:  1168→                  <SelectItem value="noche"><Moon className="w-3 h-3 inline mr-1" />Noche</SelectItem>
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:1346:  1346→              icon={<Moon className="w-5 h-5 text-[#0F2B28]" />}
+/home/z/my-project/tool-results/read_1786252920374_c947b48b279c.txt:1366:  1366→              { label: 'Limpieza', value: habResumen.limpieza, color: 'text-[#0EA5E9]', icon: <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#3B82F6]" />, bg: 'bg-[#E0F2FE]' },
+/home/z/my-project/tool-results/read_1786252921001_713f9fce27f1.txt:12:    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786252921001_713f9fce27f1.txt:96:    96→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786252921001_713f9fce27f1.txt:97:    97→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786475324437_05a9494a39a6.txt:12:    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786475324437_05a9494a39a6.txt:158:   158→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786475324437_05a9494a39a6.txt:159:   159→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786244950833_322c2f699016.txt:12:    12→    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786244950833_322c2f699016.txt:92:    92→    92→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786244950833_322c2f699016.txt:93:    93→    93→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:25:    25→  Receipt, Percent, Moon, Sun, Sunset, Loader2,
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:463:   463→  const metodosUnicos = useMemo(() => [...new Set(pagosEnPeriodo.map(p => p.metodo))], [pagosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:466:   466→  const gastosTiposUnicos = categoriasGastos;
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:467:   467→  const gastosEmpleadosUnicos = useMemo(() => [...new Set(gastosEnPeriodo.map(g => g.empleado))], [gastosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:468:   468→  const auditTiposUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.tipo))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:469:   469→  const auditEmpleadosUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.empleado))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:1118:  1118→                {metodosUnicos.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:1226:  1226→                  {gastosTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:1236:  1236→                  {gastosEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:1342:  1342→                  {auditTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:1352:  1352→                  {auditEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:1362:  1362→                  <SelectItem value="mañana"><Sun className="w-3 h-3 inline mr-1" />Mañana</SelectItem>
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:1363:  1363→                  <SelectItem value="tarde"><Sunset className="w-3 h-3 inline mr-1" />Tarde</SelectItem>
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:1364:  1364→                  <SelectItem value="noche"><Moon className="w-3 h-3 inline mr-1" />Noche</SelectItem>
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:1542:  1542→              icon={<Moon className="w-5 h-5 text-[#0F2B28]" />}
+/home/z/my-project/tool-results/read_1786254193635_6625ab96925c.txt:1562:  1562→              { label: 'Limpieza', value: habResumen.limpieza, color: 'text-[#0EA5E9]', icon: <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#3B82F6]" />, bg: 'bg-[#E0F2FE]' },
+/home/z/my-project/src/components/modules/ReportesModule.tsx:25:  Receipt, Percent, Moon, Sun, Sunset, Loader2,
+/home/z/my-project/src/components/modules/ReportesModule.tsx:470:  const metodosUnicos = useMemo(() => [...new Set(pagosEnPeriodo.map(p => p.metodo))], [pagosEnPeriodo]);
+/home/z/my-project/src/components/modules/ReportesModule.tsx:473:  const gastosTiposUnicos = categoriasGastos;
+/home/z/my-project/src/components/modules/ReportesModule.tsx:474:  const gastosEmpleadosUnicos = useMemo(() => [...new Set(gastosEnPeriodo.map(g => g.empleado))], [gastosEnPeriodo]);
+/home/z/my-project/src/components/modules/ReportesModule.tsx:475:  const auditTiposUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.tipo))], [auditoriaEnPeriodo]);
+/home/z/my-project/src/components/modules/ReportesModule.tsx:476:  const auditEmpleadosUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.empleado))], [auditoriaEnPeriodo]);
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1242:                {metodosUnicos.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1431:                  {gastosTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1441:                  {gastosEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1543:                  {auditTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1553:                  {auditEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1563:                  <SelectItem value="mañana"><Sun className="w-3 h-3 inline mr-1" />Mañana</SelectItem>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1564:                  <SelectItem value="tarde"><Sunset className="w-3 h-3 inline mr-1" />Tarde</SelectItem>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1565:                  <SelectItem value="noche"><Moon className="w-3 h-3 inline mr-1" />Noche</SelectItem>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1806:              icon={<Moon className="w-5 h-5" />}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1826:              { label: 'Limpieza', value: habResumen.limpieza, colorFamily: 'sky', icon: <Sun className="w-4 h-4" /> },
+/home/z/my-project/tool-results/read_1786244962882_8e43f7790799.txt:12:    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786244962882_8e43f7790799.txt:92:    92→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786244962882_8e43f7790799.txt:93:    93→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786252928207_4537b0eef51f.txt:12:    12→    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786252928207_4537b0eef51f.txt:96:    96→    96→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786252928207_4537b0eef51f.txt:97:    97→    97→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:25:    25→  Receipt, Percent, Moon, Sun, Sunset, Loader2,
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:461:   461→  const metodosUnicos = useMemo(() => [...new Set(pagosEnPeriodo.map(p => p.metodo))], [pagosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:464:   464→  const gastosTiposUnicos = categoriasGastos;
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:465:   465→  const gastosEmpleadosUnicos = useMemo(() => [...new Set(gastosEnPeriodo.map(g => g.empleado))], [gastosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:466:   466→  const auditTiposUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.tipo))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:467:   467→  const auditEmpleadosUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.empleado))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:1241:  1241→                {metodosUnicos.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:1430:  1430→                  {gastosTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:1440:  1440→                  {gastosEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:1546:  1546→                  {auditTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:1556:  1556→                  {auditEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:1566:  1566→                  <SelectItem value="mañana"><Sun className="w-3 h-3 inline mr-1" />Mañana</SelectItem>
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:1567:  1567→                  <SelectItem value="tarde"><Sunset className="w-3 h-3 inline mr-1" />Tarde</SelectItem>
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:1568:  1568→                  <SelectItem value="noche"><Moon className="w-3 h-3 inline mr-1" />Noche</SelectItem>
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:1813:  1813→              icon={<Moon className="w-5 h-5 text-[#0F2B28]" />}
+/home/z/my-project/tool-results/read_1786634695511_c4e612732a4c.txt:1833:  1833→              { label: 'Limpieza', value: habResumen.limpieza, color: 'text-[#0EA5E9]', icon: <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#3B82F6]" />, bg: 'bg-[#E0F2FE]' },
+/home/z/my-project/tool-results/read_1786243983726_21772cf03584.txt:11:    11→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786243983726_21772cf03584.txt:116:   116→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786243983726_21772cf03584.txt:117:   117→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:12:  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/src/components/modules/DashboardModule.tsx:140:  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:141:  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:25:    25→  Receipt, Percent, Moon, Sun, Sunset, Loader2,
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:440:   440→  const metodosUnicos = useMemo(() => [...new Set(pagosEnPeriodo.map(p => p.metodo))], [pagosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:443:   443→  const gastosTiposUnicos = categoriasGastos;
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:444:   444→  const gastosEmpleadosUnicos = useMemo(() => [...new Set(gastosEnPeriodo.map(g => g.empleado))], [gastosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:445:   445→  const auditTiposUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.tipo))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:446:   446→  const auditEmpleadosUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.empleado))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:1095:  1095→                {metodosUnicos.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:1203:  1203→                  {gastosTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:1213:  1213→                  {gastosEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:1319:  1319→                  {auditTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:1329:  1329→                  {auditEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:1339:  1339→                  <SelectItem value="mañana"><Sun className="w-3 h-3 inline mr-1" />Mañana</SelectItem>
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:1340:  1340→                  <SelectItem value="tarde"><Sunset className="w-3 h-3 inline mr-1" />Tarde</SelectItem>
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:1341:  1341→                  <SelectItem value="noche"><Moon className="w-3 h-3 inline mr-1" />Noche</SelectItem>
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:1519:  1519→              icon={<Moon className="w-5 h-5 text-[#0F2B28]" />}
+/home/z/my-project/tool-results/read_1786256952435_72b448009469.txt:1539:  1539→              { label: 'Limpieza', value: habResumen.limpieza, color: 'text-[#0EA5E9]', icon: <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#3B82F6]" />, bg: 'bg-[#E0F2FE]' },
+/home/z/my-project/tool-results/read_1786243997693_21772cf03584.txt:11:    11→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786243997693_21772cf03584.txt:116:   116→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786243997693_21772cf03584.txt:117:   117→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:50:  const isUnlimited = max === 0;
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:59:          {current} / {isUnlimited ? 'Ilimitado' : max}
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:62:      {isUnlimited ? (
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1438:  const [asunto, setAsunto] = useState('');
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1443:    if (!asunto.trim() || !mensaje.trim()) { toast.error('Completá asunto y mensaje'); return; }
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1447:    setAsunto(''); setMensaje('');
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1478:            <Label className="text-sm">Asunto</Label>
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1479:            <Input value={asunto} onChange={e => setAsunto(e.target.value)} placeholder="¿En qué podemos ayudarte?" disabled={sending} />
+/home/z/my-project/tool-results/read_1786469444062_58c3db9efcb3.txt:236:   236→    rol: 'Gerente, Hotel Sunset',
+/home/z/my-project/tool-results/read_1786258482898_38da7310d015.txt:46:    46→  const isUnlimited = max === 0;
+/home/z/my-project/tool-results/read_1786258482898_38da7310d015.txt:55:    55→          {current} / {isUnlimited ? 'Ilimitado' : max}
+/home/z/my-project/tool-results/read_1786258482898_38da7310d015.txt:58:    58→      {isUnlimited ? (
+/home/z/my-project/tool-results/read_1786258482898_38da7310d015.txt:724:   724→  const [asunto, setAsunto] = useState('');
+/home/z/my-project/tool-results/read_1786258482898_38da7310d015.txt:729:   729→    if (!asunto.trim() || !mensaje.trim()) { toast.error('Completá asunto y mensaje'); return; }
+/home/z/my-project/tool-results/read_1786258482898_38da7310d015.txt:734:   734→    setAsunto(''); setMensaje('');
+/home/z/my-project/tool-results/read_1786258482898_38da7310d015.txt:767:   767→            <Label className="text-sm">Asunto</Label>
+/home/z/my-project/tool-results/read_1786258482898_38da7310d015.txt:768:   768→            <Input value={asunto} onChange={e => setAsunto(e.target.value)} placeholder="¿En qué podemos ayudarte?" disabled={sending} />
+/home/z/my-project/tool-results/read_1786254191505_acda32c5166e.txt:12:    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786254191505_acda32c5166e.txt:155:   155→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786254191505_acda32c5166e.txt:156:   156→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786475880666_2ada586d2033.txt:12:    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786475880666_2ada586d2033.txt:154:   154→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786475880666_2ada586d2033.txt:155:   155→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/src/components/layout/ThemeToggle.tsx:5:import { Sun, Moon, Monitor, Check } from 'lucide-react';
+/home/z/my-project/src/components/layout/ThemeToggle.tsx:21:  { value: 'light', label: 'Claro', icon: Sun, description: 'Tema claro' },
+/home/z/my-project/src/components/layout/ThemeToggle.tsx:23:  { value: 'dark', label: 'Oscuro', icon: Moon, description: 'Tema oscuro' },
+/home/z/my-project/src/components/layout/ThemeToggle.tsx:34: * - Resolved theme awareness (shows Sun/Moon based on system pref)
+/home/z/my-project/src/components/layout/ThemeToggle.tsx:77:        <Sun className="w-4 h-4" />
+/home/z/my-project/src/components/layout/ThemeToggle.tsx:83:  const TriggerIcon = resolvedTheme === 'dark' ? Moon : Sun;
+/home/z/my-project/src/components/layout/ThemeToggle.tsx:102:            <Sun
+/home/z/my-project/src/components/layout/ThemeToggle.tsx:111:            <Moon
+/home/z/my-project/src/components/layout/ProfileSettings.tsx:13:import { Sun, Monitor, Moon, Palette, PanelLeftClose, User, Lock, Save, Rocket, Eye, EyeOff, Loader2 } from 'lucide-react';
+/home/z/my-project/src/components/layout/ProfileSettings.tsx:148:                  { value: 'light', icon: Sun, label: 'Claro', desc: 'Fondo blanco' },
+/home/z/my-project/src/components/layout/ProfileSettings.tsx:150:                  { value: 'dark', icon: Moon, label: 'Oscuro', desc: 'Fondo oscuro' },
+/home/z/my-project/tool-results/read_1786256937042_82e23148269d.txt:231:   231→    rol: 'Gerente, Hotel Sunset',
+/home/z/my-project/src/app/page.tsx:236:    rol: 'Gerente, Hotel Sunset',
+/home/z/my-project/tool-results/read_1786238042960_a76fd73709a1.txt:11:    11→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786238042960_a76fd73709a1.txt:116:   116→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786238042960_a76fd73709a1.txt:117:   117→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:25:    25→    25→  Receipt, Percent, Moon, Sun, Sunset, Loader2,
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:353:   353→   353→  const metodosUnicos = useMemo(() => [...new Set(pagosEnPeriodo.map(p => p.metodo))], [pagosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:356:   356→   356→  const gastosTiposUnicos = categoriasGastos;
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:357:   357→   357→  const gastosEmpleadosUnicos = useMemo(() => [...new Set(gastosEnPeriodo.map(g => g.empleado))], [gastosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:358:   358→   358→  const auditTiposUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.tipo))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:359:   359→   359→  const auditEmpleadosUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.empleado))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:677:   677→   677→                {metodosUnicos.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:756:   756→   756→                  {gastosTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:766:   766→   766→                  {gastosEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:866:   866→   866→                  {auditTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:876:   876→   876→                  {auditEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:886:   886→   886→                  <SelectItem value="mañana"><Sun className="w-3 h-3 inline mr-1" />Mañana</SelectItem>
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:887:   887→   887→                  <SelectItem value="tarde"><Sunset className="w-3 h-3 inline mr-1" />Tarde</SelectItem>
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:888:   888→   888→                  <SelectItem value="noche"><Moon className="w-3 h-3 inline mr-1" />Noche</SelectItem>
+/home/z/my-project/tool-results/read_1786244950257_c1a4566ac3e2.txt:1052:  1052→  1052→              { label: 'Limpieza', value: habResumen.limpieza, color: 'text-[#0EA5E9]', icon: <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#3B82F6]" />, bg: 'bg-[#E0F2FE]' },
+/home/z/my-project/tool-results/read_1786258486010_efcad5a87d84.txt:46:    46→    46→  const isUnlimited = max === 0;
+/home/z/my-project/tool-results/read_1786258486010_efcad5a87d84.txt:55:    55→    55→          {current} / {isUnlimited ? 'Ilimitado' : max}
+/home/z/my-project/tool-results/read_1786258486010_efcad5a87d84.txt:58:    58→    58→      {isUnlimited ? (
+/home/z/my-project/tool-results/read_1786258486010_efcad5a87d84.txt:724:   724→   724→  const [asunto, setAsunto] = useState('');
+/home/z/my-project/tool-results/read_1786258486010_efcad5a87d84.txt:729:   729→   729→    if (!asunto.trim() || !mensaje.trim()) { toast.error('Completá asunto y mensaje'); return; }
+/home/z/my-project/tool-results/read_1786258486010_efcad5a87d84.txt:734:   734→   734→    setAsunto(''); setMensaje('');
+/home/z/my-project/tool-results/read_1786258486010_efcad5a87d84.txt:767:   767→   767→            <Label className="text-sm">Asunto</Label>
+/home/z/my-project/tool-results/read_1786258486010_efcad5a87d84.txt:768:   768→   768→            <Input value={asunto} onChange={e => setAsunto(e.target.value)} placeholder="¿En qué podemos ayudarte?" disabled={sending} />
+/home/z/my-project/tool-results/read_1786256177431_b6cf9e775fde.txt:12:    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786256177431_b6cf9e775fde.txt:155:   155→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786256177431_b6cf9e775fde.txt:156:   156→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786252937520_6c0a135641b4.txt:230:   230→    rol: 'Gerente, Hotel Sunset',
+/home/z/my-project/tool-results/read_1786256184938_b881ce723c86.txt:12:    12→    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786256184938_b881ce723c86.txt:155:   155→   155→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786256184938_b881ce723c86.txt:156:   156→   156→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786469771436_05a9494a39a6.txt:12:    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786469771436_05a9494a39a6.txt:158:   158→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786469771436_05a9494a39a6.txt:159:   159→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786247166791_1e092e156645.txt:12:    12→  CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, CloudFog, CloudDrizzle, Thermometer,
+/home/z/my-project/tool-results/read_1786247166791_1e092e156645.txt:89:    89→  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/tool-results/read_1786247166791_1e092e156645.txt:90:    90→  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:25:    25→  Receipt, Percent, Moon, Sun, Sunset, Loader2,
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:353:   353→  const metodosUnicos = useMemo(() => [...new Set(pagosEnPeriodo.map(p => p.metodo))], [pagosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:356:   356→  const gastosTiposUnicos = categoriasGastos;
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:357:   357→  const gastosEmpleadosUnicos = useMemo(() => [...new Set(gastosEnPeriodo.map(g => g.empleado))], [gastosEnPeriodo]);
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:358:   358→  const auditTiposUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.tipo))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:359:   359→  const auditEmpleadosUnicos = useMemo(() => [...new Set(auditoriaEnPeriodo.map(a => a.empleado))], [auditoriaEnPeriodo]);
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:677:   677→                {metodosUnicos.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:756:   756→                  {gastosTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:766:   766→                  {gastosEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:866:   866→                  {auditTiposUnicos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:876:   876→                  {auditEmpleadosUnicos.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:886:   886→                  <SelectItem value="mañana"><Sun className="w-3 h-3 inline mr-1" />Mañana</SelectItem>
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:887:   887→                  <SelectItem value="tarde"><Sunset className="w-3 h-3 inline mr-1" />Tarde</SelectItem>
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:888:   888→                  <SelectItem value="noche"><Moon className="w-3 h-3 inline mr-1" />Noche</SelectItem>
+/home/z/my-project/tool-results/read_1786244940676_a32a11bd5d4f.txt:1052:  1052→              { label: 'Limpieza', value: habResumen.limpieza, color: 'text-[#0EA5E9]', icon: <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#3B82F6]" />, bg: 'bg-[#E0F2FE]' },
+/home/z/my-project/tool-results/read_1786253098446_9fef24ad0e7c.txt:47:  1346→  1346→              icon={<Moon className="w-5 h-5 text-[#0F2B28]" />}
+/home/z/my-project/tool-results/read_1786253098446_9fef24ad0e7c.txt:67:  1366→  1366→              { label: 'Limpieza', value: habResumen.limpieza, color: 'text-[#0EA5E9]', icon: <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#3B82F6]" />, bg: 'bg-[#E0F2FE]' },
+/home/z/my-project/tool-results/read_1786414183905_d976df5aa540.txt:13:    13→  - Animated Sun/Moon icon swap using CSS transforms (rotate-90, scale-0/100, opacity transitions) on the trigger button
+/home/z/my-project/tool-results/read_1786414183905_d976df5aa540.txt:14:    14→  - 3-state dropdown (Claro/Sistema/Oscuro) with Lucide icons (Sun/Monitor/Moon) and Check mark for active state
+/home/z/my-project/tool-results/read_1786469770371_481ae310a64b.txt:50:    50→  const isUnlimited = max === 0;
+/home/z/my-project/tool-results/read_1786469770371_481ae310a64b.txt:59:    59→          {current} / {isUnlimited ? 'Ilimitado' : max}
+/home/z/my-project/tool-results/read_1786469770371_481ae310a64b.txt:62:    62→      {isUnlimited ? (
+/home/z/my-project/tool-results/read_1786469770371_481ae310a64b.txt:1438:  1438→  const [asunto, setAsunto] = useState('');
+/home/z/my-project/tool-results/read_1786469770371_481ae310a64b.txt:1443:  1443→    if (!asunto.trim() || !mensaje.trim()) { toast.error('Completá asunto y mensaje'); return; }
+/home/z/my-project/tool-results/read_1786469770371_481ae310a64b.txt:1447:  1447→    setAsunto(''); setMensaje('');
+/home/z/my-project/tool-results/read_1786469770371_481ae310a64b.txt:1478:  1478→            <Label className="text-sm">Asunto</Label>
+/home/z/my-project/tool-results/read_1786469770371_481ae310a64b.txt:1479:  1479→            <Input value={asunto} onChange={e => setAsunto(e.target.value)} placeholder="¿En qué podemos ayudarte?" disabled={sending} />
+
+[Showing results with pagination = limit: 250]
