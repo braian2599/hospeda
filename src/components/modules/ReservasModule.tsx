@@ -28,7 +28,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import {
  CalendarDays, Plus, Pencil, XCircle, Search, BedDouble, Users, Eye,
- AlertTriangle, ChevronDown, ChevronUp, Lightbulb, LayoutList, LayoutGrid,
+ AlertTriangle, ChevronDown, ChevronUp, Lightbulb,
  Download, LogIn, LogOut, CreditCard, Bed, TrendingUp, TrendingDown,
  ArrowRight, User,
 } from 'lucide-react';
@@ -39,7 +39,7 @@ import { notifySuccess, notifyWarning } from '@/lib/notify';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PaginationBar from '@/components/ui/pagination-bar';
-import ReservationCalendarView from '@/components/modules/ReservationCalendarView';
+
 import { exportToCSV } from '@/lib/csv-export';
 
 // ==================== DATE PICKER HELPER ====================
@@ -465,7 +465,6 @@ export default function ReservasModule() {
  // ==================== VALIDATION ERRORS ====================
  const [errors, setErrors] = useState<string[]>([]);
  const [saving, setSaving] = useState(false);
- const [viewMode, setViewMode] = useState<'lista' | 'calendario'>('lista');
 
  // ==================== COMPUTED: MODO DE COBRO ACTUAL ====================
  const modoCobroActual: string = tarifas[form.tipoTarifa]?.modoCobro || 'porGrupo';
@@ -654,15 +653,6 @@ export default function ReservasModule() {
  const pagado = calcularTotalPagado(r.id);
  return total - pagado;
  }, [calcularTotalReserva, calcularTotalPagado]);
-
- // ==================== COMPUTED: STATUS COUNTS (workflow visualization) ====================
- const statusCounts = useMemo(() => {
- const confirmadas = reservas.filter(r => r.estado === 'Confirmada').length;
- const checkIn = reservas.filter(r => r.estado === 'Check-In realizado').length;
- const checkOut = reservas.filter(r => r.estado === 'Check-Out realizado').length;
- const canceladas = reservas.filter(r => r.estado === 'Cancelada').length;
- return { confirmadas, checkIn, checkOut, canceladas, total: reservas.length };
- }, [reservas]);
 
  // ==================== COMPUTED: TODAY'S ACTIVITY ====================
  const todayActivity = useMemo(() => {
@@ -1249,92 +1239,6 @@ export default function ReservasModule() {
  </Button>
  </ModuleHeader>
 
- {/* ==================== STATUS WORKFLOW VISUALIZATION ==================== */}
- <Card className="bg-muted/20 border-[#E2E8F0]/80 overflow-hidden">
-   <CardContent className="p-4">
-     <div className="flex items-center gap-2 mb-3">
-       <div className="size-2 rounded-full bg-[#0F2B28] animate-pulse" />
-       <p className="text-xs font-semibold text-[#0F2B28] uppercase tracking-wider">Flujo de Reservas</p>
-     </div>
-     <div className="flex items-stretch gap-0">
-       {/* Confirmada segment */}
-       <div className="flex-1 relative">
-         <div className="bg-[#10B981]/10 rounded-l-lg border border-[#10B981]/30 border-r-0 p-3 h-full flex flex-col items-center justify-center gap-1">
-           <div className="flex items-center gap-1.5">
-             <div className="size-2.5 rounded-full bg-[#10B981]" />
-             <span className="text-[11px] font-semibold text-[#10B981] uppercase tracking-wide">Confirmada</span>
-           </div>
-           <span className="text-2xl font-bold text-[#0F2B28]">{statusCounts.confirmadas}</span>
-         </div>
-         <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 size-5 rounded-full bg-white border-2 border-[#E2E8F0] flex items-center justify-center shadow-sm">
-           <ArrowRight className="w-2.5 h-2.5 text-[#64748B]" />
-         </div>
-       </div>
-       {/* Check-In segment */}
-       <div className="flex-1 relative pl-3">
-         <div className="bg-[#3B82F6]/10 border border-[#3B82F6]/30 border-r-0 p-3 h-full flex flex-col items-center justify-center gap-1">
-           <div className="flex items-center gap-1.5">
-             <div className="size-2.5 rounded-full bg-[#3B82F6]" />
-             <span className="text-[11px] font-semibold text-[#3B82F6] uppercase tracking-wide">Check-In</span>
-           </div>
-           <span className="text-2xl font-bold text-[#0F2B28]">{statusCounts.checkIn}</span>
-         </div>
-         <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 size-5 rounded-full bg-white border-2 border-[#E2E8F0] flex items-center justify-center shadow-sm">
-           <ArrowRight className="w-2.5 h-2.5 text-[#64748B]" />
-         </div>
-       </div>
-       {/* Check-Out segment */}
-       <div className="flex-1 pl-3">
-         <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 border-r-0 p-3 h-full flex flex-col items-center justify-center gap-1">
-           <div className="flex items-center gap-1.5">
-             <div className="size-2.5 rounded-full bg-[#F59E0B]" />
-             <span className="text-[11px] font-semibold text-[#F59E0B] uppercase tracking-wide">Check-Out</span>
-           </div>
-           <span className="text-2xl font-bold text-[#0F2B28]">{statusCounts.checkOut}</span>
-         </div>
-       </div>
-       {/* Cancelada segment (smaller, right-aligned) */}
-       {statusCounts.canceladas > 0 && (
-         <div className="w-[80px] sm:w-[100px] pl-3">
-           <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-r-lg p-3 h-full flex flex-col items-center justify-center gap-1">
-             <div className="flex items-center gap-1.5">
-               <div className="size-2 rounded-full bg-[#EF4444]" />
-               <span className="text-[10px] font-semibold text-[#EF4444] uppercase tracking-wide">Cancel.</span>
-             </div>
-             <span className="text-lg font-bold text-[#EF4444]">{statusCounts.canceladas}</span>
-           </div>
-         </div>
-       )}
-     </div>
-     {/* Progress bar showing overall flow */}
-     <div className="mt-3 flex items-center gap-2">
-       <div className="flex-1 h-2 rounded-full bg-[#F1F5F9] overflow-hidden flex">
-         {statusCounts.total > 0 && (
-           <>
-             <div
-               className="bg-[#10B981] transition-all duration-500"
-               style={{ width: `${(statusCounts.confirmadas / statusCounts.total) * 100}%` }}
-             />
-             <div
-               className="bg-[#3B82F6] transition-all duration-500"
-               style={{ width: `${(statusCounts.checkIn / statusCounts.total) * 100}%` }}
-             />
-             <div
-               className="bg-[#F59E0B] transition-all duration-500"
-               style={{ width: `${(statusCounts.checkOut / statusCounts.total) * 100}%` }}
-             />
-             <div
-               className="bg-[#EF4444] transition-all duration-500"
-               style={{ width: `${(statusCounts.canceladas / statusCounts.total) * 100}%` }}
-             />
-           </>
-         )}
-       </div>
-       <span className="text-[11px] text-muted-foreground font-medium whitespace-nowrap">{statusCounts.total} total</span>
-     </div>
-   </CardContent>
- </Card>
-
  {/* ==================== TODAY'S ACTIVITY SUMMARY ==================== */}
  <div className="grid grid-cols-3 gap-3 card-grid-stagger">
    <div className="relative rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
@@ -1437,48 +1341,7 @@ export default function ReservasModule() {
  </CardContent>
  </Card>
 
- {/* ==================== VIEW MODE TOGGLE ==================== */}
- <div className="flex items-center gap-2">
- <div className="flex bg-[#F1F5F9] rounded-lg p-0.5 border border-[#E2E8F0]/80">
- <button
- type="button"
- onClick={() => setViewMode('lista')}
- className={cn(
- 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer',
- viewMode === 'lista'
- ? 'bg-white text-[#0F2B28] font-semibold shadow-sm'
- : 'text-[#64748B] hover:text-[#475569]'
- )}
- >
- <LayoutList className="w-3.5 h-3.5" />Lista
- </button>
- <button
- type="button"
- onClick={() => setViewMode('calendario')}
- className={cn(
- 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer',
- viewMode === 'calendario'
- ? 'bg-white text-[#0F2B28] font-semibold shadow-sm'
- : 'text-[#64748B] hover:text-[#475569]'
- )}
- >
- <LayoutGrid className="w-3.5 h-3.5" />Calendario
- </button>
- </div>
- </div>
-
- {/* ==================== CALENDAR VIEW ==================== */}
- {viewMode === 'calendario' && (
- <ReservationCalendarView
- reservas={filteredReservas}
- habitaciones={habitaciones}
- onReservationClick={openDetalle}
- todayStr={todayStr}
- />
- )}
-
  {/* ==================== CARDS (mobile) / TABLE (desktop) ==================== */}
- {viewMode === 'lista' && (
  <Card>
  <CardContent className="p-0">
  {/* ── Mobile: Enhanced Card list ── */}
@@ -1788,7 +1651,6 @@ export default function ReservasModule() {
  <PaginationBar page={page} totalPages={totalPages} onPageChange={setPage} totalItems={filteredReservas.length} pageSize={PAGE_SIZE} />
  </CardContent>
  </Card>
- )}
 
  {/* ==================== MODAL DETALLE ==================== */}
  <Dialog open={modalDetalleOpen} onOpenChange={setModalDetalleOpen}>
