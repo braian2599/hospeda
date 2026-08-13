@@ -212,3 +212,31 @@ Stage Summary:
 - Fondos se adaptan correctamente a tema claro (tinte pastel) y oscuro (tinte oscuro sutil)
 - No se tocaron: avatares, botones, barras de progreso, iconos decorativos, brand gradients
 - 13 archivos modificados, 1 eliminado
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Unificar todas las KPI cards al estilo Facturación (border-l accent, colores temáticos, layout consistente)
+
+Work Log:
+- DashboardModule.tsx: KPIAnimated refactorizado — Card→div, border-0→border-l-[3px], overlay/dots/glow eliminados, colores hardcoded→themed con dark variants, icon bg-white/80→bg-{color}-500/20 circle, 4 usos actualizados con props borderColor/iconBg/labelColor/valueColor/subColor
+- TodaySummary.tsx: StatConfig expandido con borderColor/bgClass/labelColor/valueColor/subColor; layout invertido (icon izq→der, value izq con label arriba); container border→border-l-[3px]; colores hardcoded→themed
+- CheckInModule.tsx: StatCard con KPI_COLORS map (emerald/amber/teal), layout completo Facturación, trend pill→text; StatCardSkeleton actualizado
+- ReservasModule.tsx: 3 KPI cards inline transformadas (emerald/amber/green) con layout Facturación completo
+- ClientesModule.tsx: 4 stat cards transformadas (teal/amber/emerald/sky) con themed colors y dark variants
+- LimpiezaModule.tsx: 4 stat cards (yellow/sky/emerald/violet) layout invertido a Facturación, icon containers cambiados
+- CajaModule.tsx: SummaryStat + QuickStatsRow con KPI_COLORS map, 4 calls actualizados (emerald/green/red); 3 quick stats en DailySummaryCard transformadas
+- TarifasModule.tsx: Sin cambios (no tiene KPI cards standalone)
+- ReportesModule.tsx: KpiCard + SummaryCard refactorizados con KPI_COLORS (9 families), 28+ KpiCard usos y 9 SummaryCard usos actualizados; 7 estado actual cards transformadas
+- Lint pasa limpio
+- Commit 1414fe1 pushed to origin/main
+
+Stage Summary:
+- TODAS las KPI cards del sistema ahora usan el estilo Facturación:
+  - border-l-[3px] border-l-{color}-500 como acento visual
+  - bg-{color}-50/40 dark:bg-{color}-950/20 fondos sólidos theme-aware
+  - text-xs font-medium label + text-xl font-bold valor con dark variants
+  - w-10 h-10 rounded-full bg-{color}-500/20 icono a la derecha
+  - text-[10px] subtexto temático debajo del valor
+- 9 módulos modificados, estilo 100% consistente
+- Preservados: avatares, brand bars, status bars, progress fills, hover overlays
