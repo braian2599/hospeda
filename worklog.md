@@ -1,6 +1,35 @@
 # Hospedá — Worklog
 
 ---
+Task ID: 6
+Agent: Main Agent
+Task: ReservasModule - remove Flujo de Reservas + Calendar view mode
+
+Work Log:
+- Deep studied ReservasModule.tsx (2569 lines) identifying all sections
+- Removed "Flujo de Reservas" workflow visualization Card (segmented flow Confirmada→Check-In→Check-Out→Cancelada + progress bar) - ~85 lines
+- Removed statusCounts useMemo computation (8 lines) - no longer used anywhere
+- Removed Calendar view mode toggle (Lista/Calendario buttons) - ~20 lines
+- Removed viewMode state variable and setViewMode calls
+- Removed {viewMode === 'calendario' && <ReservationCalendarView>} rendering block
+- Removed {viewMode === 'lista' && ( wrapper and closing )} - list now always renders
+- Deleted orphaned ReservationCalendarView.tsx (376 lines) - no longer imported anywhere
+- Cleaned up unused imports: LayoutList, LayoutGrid, ReservationCalendarView
+- Preserved 3 KPI Today's Activity cards (check-ins hoy, check-outs hoy, en alojamiento) as requested
+- Verified: no cross-module references broken (statusCounts in HabitacionesModule is separate/different)
+- Verified: no API or DB changes needed (all removed items were UI-only)
+- Lint passes cleanly
+- Commit 50d7ec4 pushed to origin/main
+
+Stage Summary:
+- ReservasModule: 2569 → 2430 lines (139 lines removed from main module)
+- ReservationCalendarView.tsx: deleted (376 lines of dead code)
+- Total reduction: 515 lines
+- "Flujo de Reservas" and Calendar view mode completely eliminated
+- 3 KPI Today's Activity cards preserved as requested
+- No API, DB, or cross-module impact - all removed items were purely visual/UI
+
+---
 Task ID: 5
 Agent: Main Agent
 Task: Simplify LimpiezaModule + Remove PRECIO GLOBAL POR CAMA + Verify Roles system
