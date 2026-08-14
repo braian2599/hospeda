@@ -491,3 +491,28 @@ Stage Summary:
   - text-[10px] subtexto temático debajo del valor
 - 9 módulos modificados, estilo 100% consistente
 - Preservados: avatares, brand bars, status bars, progress fills, hover overlays
+---
+Task ID: 1
+Agent: main
+Task: Fix visual contrast issues across all modules - light-theme colors in dark-only theme
+
+Work Log:
+- Analyzed 3 user screenshots with VLM to identify specific visual issues
+- CheckInModule: Fixed hover:bg-[#ECFDF5]/40 → hover:bg-emerald-950/40 (check-in items), hover:bg-[#FFF7ED]/40 → hover:bg-amber-950/40 (check-out items), converted all light-theme badges to dark equivalents
+- ReservasModule: Fixed bg-[#F8FAFC] table header → bg-muted/30 (root cause of invisible table headers), converted all light-theme status badges, hover states, and error containers
+- TarifasModule: Fixed hover:bg-[#F0FDF4]/60 → hover:bg-emerald-900/20, bg-[#F0FDF4] → bg-emerald-950/30, made cards more compact (p-5→p-3, pt-12→pt-10, text-3xl→text-2xl, w-11→w-9, mb-3→mb-2), converted modoBadgeColor/modoIconCircle to dark theme
+- CajaModule: Fixed 40+ instances of light-bg badges, hover states, containers
+- DashboardModule: Fixed 30+ instances of light-bg status colors, timeline indicators, weather section
+- HabitacionesModule, HabitacionesModuleAPI: Fixed status badge color maps (Ocupada, Fuera de servicio, etc.)
+- LimpiezaModule: Fixed 16 light-bg instances (priority badges, error containers, hover states)
+- ReportesModule, FacturacionModule, ClientesModule: Fixed remaining light-theme badges
+- SuscripcionModule, TrialBanner, ModuleLockedDialog, ConfiguracionModule: Fixed remaining light-theme text colors
+- Lint passed clean
+- Committed as f6cbd32, pushed to main
+
+Stage Summary:
+- Fixed 16 files, 354 insertions, 250 deletions
+- Systemic pattern: All light pastel backgrounds (FEF3C7, FEE2E2, F5F3FF, F0FDF4, F8FAFC, etc.) replaced with dark semantically-named equivalents (amber-900/60, red-900/60, violet-900/40, emerald-950/30, muted/30)
+- All dark-on-light text colors (92400E, 991B1B, 6D28D9, 5B21B6) replaced with light-on-dark equivalents (amber-300, red-300, violet-300)
+- Tarifas cards made more compact per user request
+- Table headers in ReservasModule now visible on dark background

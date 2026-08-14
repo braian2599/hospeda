@@ -1,0 +1,676 @@
+     1→'use client';
+     2→
+     3→import { useState, useMemo } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import { useFilterState } from '@/hooks/use-filter-state';
+     6→import { formatFecha, formatMoney, safeDate, todayLocal } from '@/lib/format';
+     7→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     8→import { Button } from '@/components/ui/button';
+     9→import { Input } from '@/components/ui/input';
+    10→import { Label } from '@/components/ui/label';
+    11→import { Badge } from '@/components/ui/badge';
+    12→import {
+    13→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    14→} from '@/components/ui/dialog';
+    15→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    16→import {
+    17→  Plus, Trash2, Users, Search, Eye, Calendar, DollarSign, TrendingUp, Clock,
+    18→  CalendarOff, Download, UserPlus, Star, BarChart3, Mail, Phone, CreditCard,
+    19→  X, ChevronRight, FileText, ArrowRight, MapPin, Globe2, Cake,
+    20→} from 'lucide-react';
+    21→import ModuleHeader from '@/components/layout/ModuleHeader';
+    22→import { toast } from 'sonner';
+    23→import PaginationBar from '@/components/ui/pagination-bar';
+    24→import { exportToCSV } from '@/lib/csv-export';
+    25→import { AnimatedNumber } from '@/components/ui/animated-number';
+    26→
+    27→// ═══════════════════════════════════════════════════════════
+    28→// HELPERS
+    29→// ═══════════════════════════════════════════════════════════
+    30→
+    31→/** Calculate stay duration in days (checkout - checkin). Uses safeDate to avoid UTC drift. */
+    32→const calcDias = (checkin: string, checkout: string): number => {
+    33→  const c = safeDate(checkin);
+    34→  const o = safeDate(checkout);
+    35→  const diff = Math.round((o.getTime() - c.getTime()) / (1000 * 60 * 60 * 24));
+    36→  return diff > 0 ? diff : 0;
+    37→};
+    38→
+    39→/** Get initials from a full name (first letter of first word + first letter of last word) */
+    40→const getInitials = (name: string): string => {
+    41→  const parts = name.trim().split(/\s+/).filter(Boolean);
+    42→  if (parts.length === 0) return '?';
+    43→  if (parts.length === 1) return parts[0][0].toUpperCase();
+    44→  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    45→};
+    46→
+    47→/** Loyalty level based on stay count */
+    48→type LoyaltyLevel = 'Nuevo' | 'Habitual' | 'Frecuente' | 'VIP';
+    49→
+    50→interface LoyaltyInfo {
+    51→  level: LoyaltyLevel;
+    52→  color: string;       // badge bg class
+    53→  textColor: string;   // badge text class
+    54→  borderColor: string; // left border color
+    55→  icon?: React.ReactNode;
+    56→}
+    57→
+    58→const getLoyaltyInfo = (stayCount: number): LoyaltyInfo => {
+    59→  if (stayCount >= 7) return {
+    60→    level: 'VIP',
+    61→    color: 'bg-emerald-100',
+    62→    textColor: 'text-emerald-700',
+    63→    borderColor: 'border-l-emerald-500',
+    64→    icon: <Star className="w-3 h-3 fill-emerald-500 text-emerald-500" />,
+    65→  };
+    66→  if (stayCount >= 4) return {
+    67→    level: 'Frecuente',
+    68→    color: 'bg-amber-100',
+    69→    textColor: 'text-amber-700',
+    70→    borderColor: 'border-l-amber-400',
+    71→  };
+    72→  if (stayCount >= 2) return {
+    73→    level: 'Habitual',
+    74→    color: 'bg-sky-100',
+    75→    textColor: 'text-sky-700',
+    76→    borderColor: 'border-l-sky-400',
+    77→  };
+    78→  return {
+    79→    level: 'Nuevo',
+    80→    color: 'bg-gray-100',
+    81→    textColor: 'text-gray-600',
+    82→    borderColor: 'border-l-gray-300',
+    83→  };
+    84→};
+    85→
+    86→/** Format a date as relative time in Spanish */
+    87→const formatRelativeTime = (dateStr: string): string => {
+    88→  if (!dateStr) return '';
+    89→  const d = safeDate(dateStr);
+    90→  const now = new Date();
+    91→  const diffMs = now.getTime() - d.getTime();
+    92→  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    93→
+    94→  if (diffDays < 0) return 'próximo';
+    95→  if (diffDays === 0) return 'hoy';
+    96→  if (diffDays === 1) return 'ayer';
+    97→  if (diffDays < 7) return `hace ${diffDays} días`;
+    98→  if (diffDays < 14) return 'hace 1 semana';
+    99→  if (diffDays < 30) return `hace ${Math.floor(diffDays / 7)} semanas`;
+   100→  if (diffDays < 60) return 'hace 1 mes';
+   101→  if (diffDays < 365) return `hace ${Math.floor(diffDays / 30)} meses`;
+   102→  if (diffDays < 730) return 'hace 1 año';
+   103→  return `hace ${Math.floor(diffDays / 365)} años`;
+   104→};
+   105→
+   106→// ═══════════════════════════════════════════════════════════
+   107→// COMPONENT
+   108→// ═══════════════════════════════════════════════════════════
+   109→
+   110→export default function ClientesModule() {
+   111→  const clientes = useHotelStore(s => s.clientes);
+   112→  const agregarCliente = useHotelStore(s => s.agregarCliente);
+   113→  const actualizarCliente = useHotelStore(s => s.actualizarCliente);
+   114→  const eliminarCliente = useHotelStore(s => s.eliminarCliente);
+   115→  const buscarCliente = useHotelStore(s => s.buscarCliente);
+   116→  const [busqueda, setBusqueda] = useFilterState<string>('clientes_busqueda', '');
+   117→  const [modal, setModal] = useState<'crear' | 'editar' | 'detalle' | 'eliminar' | null>(null);
+   118→  const [selId, setSelId] = useState<string | null>(null);
+   119→  const [form, setForm] = useState({ nombre: '', dni: '', telefono: '', email: '', fechaNacimiento: '', nacionalidad: '', domicilio: '', preferencias: '' });
+   120→  const [saving, setSaving] = useState(false);
+   121→  const [page, setPage] = useState(1);
+   122→  const PAGE_SIZE = 12;
+   123→
+   124→  const lista = busqueda.length >= 2 ? buscarCliente(busqueda) : clientes;
+   125→
+   126→  // Pagination
+   127→  const totalPages = Math.ceil(lista.length / PAGE_SIZE) || 1;
+   128→  const pagedLista = lista.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+   129→
+   130→  // ═══════════════════════════════════════════════════════════
+   131→  // STATS (for summary cards at top)
+   132→  // ═══════════════════════════════════════════════════════════
+   133→  const stats = useMemo(() => {
+   134→    const total = clientes.length;
+   135→    const recurrentes = clientes.filter(c => c.historialEstadias.length >= 2).length;
+   136→    const thisMonth = (() => {
+   137→      const now = new Date();
+   138→      const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+   139→      return clientes.filter(c => c.fechaCreacion && c.fechaCreacion.startsWith(monthStr)).length;
+   140→    })();
+   141→    const totalStays = clientes.reduce((sum, c) => sum + c.historialEstadias.length, 0);
+   142→    const avgStays = total > 0 ? totalStays / total : 0;
+   143→    return { total, recurrentes, thisMonth, avgStays };
+   144→  }, [clientes]);
+   145→
+   146→  // ═══════════════════════════════════════════════════════════
+   147→  // ACTIONS
+   148→  // ═══════════════════════════════════════════════════════════
+   149→  const openNew = () => { setForm({ nombre: '', dni: '', telefono: '', email: '', fechaNacimiento: '', nacionalidad: '', domicilio: '', preferencias: '' }); setSelId(null); setModal('crear'); };
+   150→  const openEdit = (id: string) => {
+   151→    const c = clientes.find(x => x.id === id);
+   152→    if (!c) return;
+   153→    setSelId(id);
+   154→    setForm({ nombre: c.nombre, dni: c.dni, telefono: c.telefono || '', email: c.email || '', fechaNacimiento: c.fechaNacimiento || '', nacionalidad: c.nacionalidad || '', domicilio: c.domicilio || '', preferencias: c.preferencias || '' });
+   155→    setModal('editar');
+   156→  };
+   157→  const openDetail = (id: string) => { setSelId(id); setModal('detalle'); };
+   158→  const openDelete = (id: string) => { setSelId(id); setModal('eliminar'); };
+   159→
+   160→  const handleSave = async () => {
+   161→    if (!form.nombre.trim() || !form.dni.trim()) return;
+   162→    setSaving(true);
+   163→    let ok: boolean;
+   164→    if (modal === 'crear') {
+   165→      const created = await agregarCliente(form);
+   166→      ok = !!created;
+   167→    } else if (modal === 'editar' && selId) {
+   168→      ok = await actualizarCliente(selId, form);
+   169→    } else { setSaving(false); return; }
+   170→    if (ok) {
+   171→      toast.success('Cliente guardado', { description: form.nombre });
+   172→      setModal(null);
+   173→    } else {
+   174→      toast.error('No se pudo guardar el cliente');
+   175→    }
+   176→    setSaving(false);
+   177→  };
+   178→  const handleDelete = async () => {
+   179→    if (!selId) { setModal(null); return; }
+   180→    setSaving(true);
+   181→    const ok = await eliminarCliente(selId);
+   182→    if (ok) {
+   183→      toast.success('Cliente eliminado', { description: `Cliente #${selId}` });
+   184→      setModal(null);
+   185→    } else {
+   186→      toast.error('No se pudo eliminar el cliente');
+   187→    }
+   188→    setSaving(false);
+   189→  };
+   190→
+   191→  const selected = clientes.find(c => c.id === selId);
+   192→
+   193→  // Computed stats for the detail dialog
+   194→  const totalEstadias = selected?.historialEstadias.length ?? 0;
+   195→  const totalGastado = selected?.historialEstadias.reduce((sum, h) => sum + (h.gastoTotal || 0), 0) ?? 0;
+   196→  const promedioPorEstadia = totalEstadias > 0 ? totalGastado / totalEstadias : 0;
+   197→  const ultimaVisita = selected && selected.historialEstadias.length > 0
+   198→    ? formatFecha([...selected.historialEstadias].map(h => h.fechaCheckout).sort().pop()!)
+   199→    : 'Sin visitas';
+   200→
+   201→  // Avg stay duration for detail
+   202→  const avgStayDuration = useMemo(() => {
+   203→    if (!selected || selected.historialEstadias.length === 0) return 0;
+   204→    const totalDays = selected.historialEstadias.reduce((sum, h) => sum + calcDias(h.fechaCheckin, h.fechaCheckout), 0);
+   205→    return totalDays / selected.historialEstadias.length;
+   206→  }, [selected]);
+   207→
+   208→  // Last checkout date for relative time in cards
+   209→  const getLastCheckout = (c: typeof clientes[0]): string | null => {
+   210→    if (c.historialEstadias.length === 0) return null;
+   211→    return [...c.historialEstadias].map(h => h.fechaCheckout).sort().pop()!;
+   212→  };
+   213→
+   214→  return (
+   215→    <div className="space-y-6">
+   216→      <ModuleHeader icon={Users} title="Clientes" subtitle="Base de huéspedes y datos de contacto">
+   217→        <div className="flex gap-2">
+   218→          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+   219→            const headers = ['Nombre', 'DNI', 'Email', 'Teléfono', 'Dirección'];
+   220→            const rows = lista.map(c => [
+   221→              c.nombre || '',
+   222→              c.dni || '',
+   223→              c.email || '',
+   224→              c.telefono || '',
+   225→              '',
+   226→            ]);
+   227→            exportToCSV('clientes.csv', headers, rows);
+   228→            toast.success('CSV exportado');
+   229→          }}>
+   230→            <Download className="w-3.5 h-3.5" />Exportar CSV
+   231→          </Button>
+   232→          <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Agregar Cliente</Button>
+   233→        </div>
+   234→      </ModuleHeader>
+   235→
+   236→      {/* ═══════════ CLIENT STATS SUMMARY ═══════════ */}
+   237→      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
+   238→        {/* Total Clientes */}
+   239→        <Card className="rounded-xl border-l-[3px] border-l-teal-500 bg-teal-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   240→          <CardContent className="p-0">
+   241→            <div className="flex items-start justify-between">
+   242→              <div className="space-y-1">
+   243→                <p className="text-xs font-medium text-teal-400">Total Clientes</p>
+   244→                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-xl font-bold text-teal-200" />
+   245→              </div>
+   246→              <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center">
+   247→                <Users className="w-5 h-5 text-teal-400" />
+   248→              </div>
+   249→            </div>
+   250→          </CardContent>
+   251→        </Card>
+   252→
+   253→        {/* Clientes Recurrentes */}
+   254→        <Card className="rounded-xl border-l-[3px] border-l-amber-500 bg-amber-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   255→          <CardContent className="p-0">
+   256→            <div className="flex items-start justify-between">
+   257→              <div className="space-y-1">
+   258→                <p className="text-xs font-medium text-amber-400">Recurrentes</p>
+   259→                <AnimatedNumber value={stats.recurrentes} format={n => String(Math.round(n))} className="text-xl font-bold text-amber-200" />
+   260→              </div>
+   261→              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+   262→                <Star className="w-5 h-5 text-amber-400" />
+   263→              </div>
+   264→            </div>
+   265→          </CardContent>
+   266→        </Card>
+   267→
+   268→        {/* Nuevos este Mes */}
+   269→        <Card className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   270→          <CardContent className="p-0">
+   271→            <div className="flex items-start justify-between">
+   272→              <div className="space-y-1">
+   273→                <p className="text-xs font-medium text-emerald-400">Nuevos este Mes</p>
+   274→                <AnimatedNumber value={stats.thisMonth} format={n => String(Math.round(n))} className="text-xl font-bold text-emerald-200" />
+   275→              </div>
+   276→              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+   277→                <UserPlus className="w-5 h-5 text-emerald-400" />
+   278→              </div>
+   279→            </div>
+   280→          </CardContent>
+   281→        </Card>
+   282→
+   283→        {/* Ocupación Promedio */}
+   284→        <Card className="rounded-xl border-l-[3px] border-l-sky-500 bg-sky-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   285→          <CardContent className="p-0">
+   286→            <div className="flex items-start justify-between">
+   287→              <div className="space-y-1">
+   288→                <p className="text-xs font-medium text-sky-400">Estadías/Cliente</p>
+   289→                <AnimatedNumber value={stats.avgStays} format={n => n.toFixed(1)} className="text-xl font-bold text-sky-200" />
+   290→              </div>
+   291→              <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center">
+   292→                <BarChart3 className="w-5 h-5 text-sky-400" />
+   293→              </div>
+   294→            </div>
+   295→          </CardContent>
+   296→        </Card>
+   297→      </div>
+   298→
+   299→      {/* ═══════════ SEARCH BAR (enhanced) ═══════════ */}
+   300→      <div className="flex items-center gap-3 flex-wrap">
+   301→        <div className="relative flex-1 max-w-sm">
+   302→          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+   303→          <Input
+   304→            placeholder="Buscar por nombre, DNI o email..."
+   305→            value={busqueda}
+   306→            onChange={e => { setBusqueda(e.target.value); setPage(1); }}
+   307→            className="pl-9 pr-9 transition-all duration-200 focus-visible:ring-[#0F2B28] focus-visible:ring-offset-1"
+   308→          />
+   309→          {busqueda.length >= 2 && (
+   310→            <button
+   311→              onClick={() => { setBusqueda(''); setPage(1); }}
+   312→              className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+   313→              aria-label="Limpiar búsqueda"
+   314→            >
+   315→              <X className="w-4 h-4" />
+   316→            </button>
+   317→          )}
+   318→        </div>
+   319→        {/* Result count badge */}
+   320→        <Badge variant="secondary" className="font-mono tabular-nums text-xs">
+   321→          {lista.length} {lista.length === 1 ? 'resultado' : 'resultados'}
+   322→        </Badge>
+   323→        {/* Limpiar button when search is active */}
+   324→        {busqueda.length >= 2 && (
+   325→          <Button
+   326→            variant="ghost"
+   327→            size="sm"
+   328→            className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
+   329→            onClick={() => { setBusqueda(''); setPage(1); }}
+   330→          >
+   331→            <X className="w-3 h-3" />Limpiar
+   332→          </Button>
+   333→        )}
+   334→      </div>
+   335→
+   336→      {/* ═══════════ CLIENT CARDS (enhanced) ═══════════ */}
+   337→      {lista.length === 0 ? (
+   338→        <Card><CardContent className="py-8 text-center text-muted-foreground">No se encontraron clientes.</CardContent></Card>
+   339→      ) : (
+   340→        <>
+   341→          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+   342→            {pagedLista.map(c => {
+   343→              const stayCount = c.historialEstadias.length;
+   344→              const loyalty = getLoyaltyInfo(stayCount);
+   345→              const initials = getInitials(c.nombre);
+   346→              const lastCheckout = getLastCheckout(c);
+   347→
+   348→              return (
+   349→                <Card
+   350→                  key={c.id}
+   351→                  className={`border-l-[3px] ${loyalty.borderColor} hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 cursor-pointer group`}
+   352→                  onClick={() => openDetail(c.id)}
+   353→                >
+   354→                  <CardContent className="p-4">
+   355→                    <div className="flex items-start gap-3">
+   356→                      {/* Avatar */}
+   357→                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#0F2B28]/70 flex items-center justify-center shrink-0 shadow-sm">
+   358→                        <span className="text-sm font-bold text-white">{initials}</span>
+   359→                      </div>
+   360→
+   361→                      {/* Info */}
+   362→                      <div className="flex-1 min-w-0">
+   363→                        <div className="flex items-center gap-2 mb-0.5">
+   364→                          <h4 className="font-semibold text-sm truncate group-hover:text-emerald-400 transition-colors">{c.nombre}</h4>
+   365→                          {/* Loyalty badge */}
+   366→                          <Badge className={`${loyalty.color} ${loyalty.textColor} border-0 text-[10px] px-1.5 py-0 h-auto gap-0.5 font-semibold`}>
+   367→                            {loyalty.icon}{loyalty.level}
+   368→                          </Badge>
+   369→                        </div>
+   370→
+   371→                        {/* DNI */}
+   372→                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+   373→                          <CreditCard className="w-3 h-3 shrink-0" />
+   374→                          <span className="font-mono truncate">{c.dni}</span>
+   375→                        </div>
+   376→
+   377→                        {/* Email & Phone row */}
+   378→                        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+   379→                          {c.email && (
+   380→                            <div className="flex items-center gap-1 min-w-0">
+   381→                              <Mail className="w-3 h-3 shrink-0" />
+   382→                              <span className="truncate">{c.email}</span>
+   383→                            </div>
+   384→                          )}
+   385→                          {c.telefono && (
+   386→                            <div className="flex items-center gap-1 shrink-0">
+   387→                              <Phone className="w-3 h-3" />
+   388→                              <span>{c.telefono}</span>
+   389→                            </div>
+   390→                          )}
+   391→                          {!c.email && !c.telefono && <span className="italic">Sin contacto</span>}
+   392→                        </div>
+   393→
+   394→                        {/* Bottom row: stays count + last stay + actions */}
+   395→                        <div className="flex items-center justify-between">
+   396→                          <div className="flex items-center gap-3">
+   397→                            <span className="text-xs font-mono font-semibold text-emerald-400">
+   398→                              {stayCount} {stayCount === 1 ? 'estadía' : 'estadías'}
+   399→                            </span>
+   400→                            {lastCheckout && (
+   401→                              <span className="text-xs text-muted-foreground">
+   402→                                <Clock className="w-3 h-3 inline mr-0.5 -mt-0.5" />
+   403→                                {formatRelativeTime(lastCheckout)}
+   404→                              </span>
+   405→                            )}
+   406→                          </div>
+   407→
+   408→                          {/* Quick action buttons */}
+   409→                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+   410→                            <Button
+   411→                              size="icon"
+   412→                              variant="ghost"
+   413→                              className="h-7 w-7"
+   414→                              onClick={(e) => { e.stopPropagation(); openDetail(c.id); }}
+   415→                              aria-label="Ver detalle"
+   416→                            >
+   417→                              <Eye className="w-3.5 h-3.5" />
+   418→                            </Button>
+   419→                            <Button
+   420→                              size="icon"
+   421→                              variant="ghost"
+   422→                              className="h-7 w-7"
+   423→                              onClick={(e) => {
+   424→                                e.stopPropagation();
+   425→                                window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { type: 'new-reserva', clienteId: c.id } }));
+   426→                              }}
+   427→                              aria-label="Nueva reserva"
+   428→                            >
+   429→                              <Calendar className="w-3.5 h-3.5" />
+   430→                            </Button>
+   431→                            <Button
+   432→                              size="icon"
+   433→                              variant="ghost"
+   434→                              className="h-7 w-7 text-destructive hover:text-destructive"
+   435→                              onClick={(e) => { e.stopPropagation(); openDelete(c.id); }}
+   436→                              aria-label="Eliminar"
+   437→                            >
+   438→                              <Trash2 className="w-3.5 h-3.5" />
+   439→                            </Button>
+   440→                          </div>
+   441→                        </div>
+   442→                      </div>
+   443→                    </div>
+   444→                  </CardContent>
+   445→                </Card>
+   446→              );
+   447→            })}
+   448→          </div>
+   449→          <PaginationBar page={page} totalPages={totalPages} onPageChange={setPage} totalItems={lista.length} pageSize={PAGE_SIZE} />
+   450→        </>
+   451→      )}
+   452→
+   453→      {/* ═══════════ MODAL CREAR/EDITAR ═══════════ */}
+   454→      <Dialog open={modal === 'crear' || modal === 'editar'} onOpenChange={() => setModal(null)}>
+   455→        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+   456→          <DialogHeader><DialogTitle>{modal === 'crear' ? 'Nuevo Cliente' : 'Editar Cliente'}</DialogTitle></DialogHeader>
+   457→          <div className="grid gap-4 py-4">
+   458→            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   459→              <div className="grid gap-2"><Label>Nombre completo *</Label><Input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} /></div>
+   460→              <div className="grid gap-2"><Label>DNI / Pasaporte *</Label><Input value={form.dni} onChange={e => setForm({ ...form, dni: e.target.value })} /></div>
+   461→            </div>
+   462→            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   463→              <div className="grid gap-2"><Label>Teléfono</Label><Input value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} /></div>
+   464→              <div className="grid gap-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+   465→            </div>
+   466→            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   467→              <div className="grid gap-2"><Label>Nacionalidad</Label><Input value={form.nacionalidad} onChange={e => setForm({ ...form, nacionalidad: e.target.value })} placeholder="Ej: Argentina" /></div>
+   468→              <div className="grid gap-2"><Label>Fecha de nacimiento</Label><Input type="date" value={form.fechaNacimiento} onChange={e => setForm({ ...form, fechaNacimiento: e.target.value })} /></div>
+   469→            </div>
+   470→            <div className="grid gap-2"><Label>Domicilio</Label><Input value={form.domicilio} onChange={e => setForm({ ...form, domicilio: e.target.value })} placeholder="Dirección del huésped" /></div>
+   471→            <div className="grid gap-2"><Label>Preferencias</Label><Input value={form.preferencias} onChange={e => setForm({ ...form, preferencias: e.target.value })} /></div>
+   472→          </div>
+   473→          <DialogFooter>
+   474→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   475→            <Button onClick={handleSave} disabled={saving}>Guardar</Button>
+   476→          </DialogFooter>
+   477→        </DialogContent>
+   478→      </Dialog>
+   479→
+   480→      {/* ═══════════ MODAL DETALLE (enhanced) ═══════════ */}
+   481→      <Dialog open={modal === 'detalle'} onOpenChange={() => setModal(null)}>
+   482→        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+   483→          {selected && (() => {
+   484→            const selectedLoyalty = getLoyaltyInfo(selected.historialEstadias.length);
+   485→            const selectedInitials = getInitials(selected.nombre);
+   486→
+   487→            return (
+   488→              <>
+   489→                <DialogHeader>
+   490→                  <DialogTitle>Detalle del cliente</DialogTitle>
+   491→                </DialogHeader>
+   492→                <div className="space-y-5 py-2">
+   493→                  {/* Client header with avatar + loyalty */}
+   494→                  <div className="flex items-center gap-4">
+   495→                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#0F2B28]/70 flex items-center justify-center shrink-0 shadow-md">
+   496→                      <span className="text-lg font-bold text-white">{selectedInitials}</span>
+   497→                    </div>
+   498→                    <div className="flex-1">
+   499→                      <div className="flex items-center gap-2">
+   500→                        <h3 className="text-lg font-bold">{selected.nombre}</h3>
+   501→                        <Badge className={`${selectedLoyalty.color} ${selectedLoyalty.textColor} border-0 text-xs px-2 gap-0.5 font-semibold`}>
+   502→                          {selectedLoyalty.icon}{selectedLoyalty.level}
+   503→                        </Badge>
+   504→                      </div>
+   505→                      <Badge variant="outline" className="bg-[#F0FDF4] border-emerald-700/40 text-emerald-300 mt-1 text-xs">
+   506→                        <Clock className="w-3 h-3 mr-1" /> Cliente desde: {formatFecha(selected.fechaCreacion)}
+   507→                      </Badge>
+   508→                    </div>
+   509→                  </div>
+   510→
+   511→                  {/* Contact info with icons */}
+   512→                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-sm">
+   513→                    <div className="flex items-center gap-2">
+   514→                      <CreditCard className="w-4 h-4 text-muted-foreground shrink-0" />
+   515→                      <span className="text-muted-foreground">DNI:</span>
+   516→                      <span className="font-mono">{selected.dni}</span>
+   517→                    </div>
+   518→                    <div className="flex items-center gap-2">
+   519→                      <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+   520→                      <span className="text-muted-foreground">Teléfono:</span>
+   521→                      <span>{selected.telefono || '—'}</span>
+   522→                    </div>
+   523→                    <div className="flex items-center gap-2">
+   524→                      <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+   525→                      <span className="text-muted-foreground">Email:</span>
+   526→                      <span className="truncate">{selected.email || '—'}</span>
+   527→                    </div>
+   528→                    <div className="flex items-center gap-2">
+   529→                      <Globe2 className="w-4 h-4 text-muted-foreground shrink-0" />
+   530→                      <span className="text-muted-foreground">Nacionalidad:</span>
+   531→                      <span>{selected.nacionalidad || '—'}</span>
+   532→                    </div>
+   533→                    <div className="flex items-center gap-2">
+   534→                      <Cake className="w-4 h-4 text-muted-foreground shrink-0" />
+   535→                      <span className="text-muted-foreground">F. nacimiento:</span>
+   536→                      <span>{selected.fechaNacimiento ? formatFecha(selected.fechaNacimiento) : '—'}</span>
+   537→                    </div>
+   538→                    <div className="flex items-center gap-2 sm:col-span-2">
+   539→                      <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+   540→                      <span className="text-muted-foreground">Domicilio:</span>
+   541→                      <span className="truncate">{selected.domicilio || '—'}</span>
+   542→                    </div>
+   543→                  </div>
+   544→
+   545→                  {/* Customer Stats Summary (enhanced) */}
+   546→                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+   547→                    <Card className="p-3 bg-green-950/20 border-emerald-700/40/40 border-l-[3px] border-l-emerald-700">
+   548→                      <div className="flex items-center gap-2">
+   549→                        <Calendar className="w-4 h-4 text-emerald-300" />
+   550→                        <span className="text-xs text-muted-foreground">Total estadías</span>
+   551→                      </div>
+   552→                      <AnimatedNumber value={totalEstadias} format={n => String(Math.round(n))} className="font-bold text-lg text-emerald-400 mt-1" />
+   553→                    </Card>
+   554→                    <Card className="p-3 bg-green-950/20 border-emerald-700/40/40 border-l-[3px] border-l-emerald-400">
+   555→                      <div className="flex items-center gap-2">
+   556→                        <DollarSign className="w-4 h-4 text-emerald-600" />
+   557→                        <span className="text-xs text-muted-foreground">Total gastado</span>
+   558→                      </div>
+   559→                      <AnimatedNumber value={totalGastado} className="font-bold text-lg text-emerald-400 mt-1" />
+   560→                    </Card>
+   561→                    <Card className="p-3 bg-green-950/20 border-emerald-700/40/40 border-l-[3px] border-l-amber-400">
+   562→                      <div className="flex items-center gap-2">
+   563→                        <TrendingUp className="w-4 h-4 text-amber-600" />
+   564→                        <span className="text-xs text-muted-foreground">Promedio/estadía</span>
+   565→                      </div>
+   566→                      <AnimatedNumber value={promedioPorEstadia} className="font-bold text-lg text-emerald-400 mt-1" />
+   567→                    </Card>
+   568→                    <Card className="p-3 bg-green-950/20 border-emerald-700/40/40 border-l-[3px] border-l-sky-400">
+   569→                      <div className="flex items-center gap-2">
+   570→                        <Clock className="w-4 h-4 text-sky-600" />
+   571→                        <span className="text-xs text-muted-foreground">Duración prom.</span>
+   572→                      </div>
+   573→                      <div className="font-bold text-lg text-emerald-400 mt-1">
+   574→                        {avgStayDuration > 0 ? `${avgStayDuration.toFixed(1)} días` : '—'}
+   575→                      </div>
+   576→                    </Card>
+   577→                  </div>
+   578→
+   579→                  {/* Stay History Mini-Timeline */}
+   580→                  {selected.historialEstadias.length > 0 ? (
+   581→                    <div className="mt-1">
+   582→                      <h4 className="font-semibold mb-3 text-sm">Historial de estadías</h4>
+   583→                      {/* Mini-timeline view */}
+   584→                      <div className="space-y-0 max-h-80 overflow-y-auto pr-1">
+   585→                        {[...selected.historialEstadias]
+   586→                          .sort((a, b) => a.fechaCheckin.localeCompare(b.fechaCheckin))
+   587→                          .map((h, i, arr) => {
+   588→                            const dias = calcDias(h.fechaCheckin, h.fechaCheckout);
+   589→                            const isLast = i === arr.length - 1;
+   590→                            return (
+   591→                              <div key={i} className="flex gap-3">
+   592→                                {/* Timeline line */}
+   593→                                <div className="flex flex-col items-center shrink-0">
+   594→                                  <div className={`w-3 h-3 rounded-full border-2 ${isLast ? 'bg-[#0F2B28] border-[#0F2B28]' : 'bg-white border-[#0F2B28]/40'} mt-1.5`} />
+   595→                                  <div className={`w-0.5 flex-1 ${isLast ? 'bg-transparent' : 'bg-emerald-500/15'}`} />
+   596→                                </div>
+   597→                                {/* Timeline content */}
+   598→                                <div className={`flex-1 pb-3 ${isLast ? 'pb-0' : ''}`}>
+   599→                                  <div className="rounded-lg border bg-card p-3 shadow-sm hover:shadow-md transition-shadow duration-150">
+   600→                                    <div className="flex items-center justify-between mb-1.5">
+   601→                                      <span className="text-xs font-semibold text-emerald-400">
+   602→                                        Hab. {h.habitacion}
+   603→                                      </span>
+   604→                                      <span className="text-xs font-mono font-bold text-emerald-400">
+   605→                                        {formatMoney(h.gastoTotal)}
+   606→                                      </span>
+   607→                                    </div>
+   608→                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+   609→                                      <Calendar className="w-3 h-3" />
+   610→                                      <span>{formatFecha(h.fechaCheckin)} → {formatFecha(h.fechaCheckout)}</span>
+   611→                                      <span className="font-mono font-semibold text-foreground/70">({dias} {dias === 1 ? 'día' : 'días'})</span>
+   612→                                    </div>
+   613→                                  </div>
+   614→                                </div>
+   615→                              </div>
+   616→                            );
+   617→                          })}
+   618→                      </div>
+   619→                      {/* Total row */}
+   620→                      <div className="mt-3 pt-2 border-t border-emerald-700/40/40 flex items-center justify-between text-sm">
+   621→                        <span className="font-semibold text-emerald-400">Total gastado</span>
+   622→                        <span className="font-mono font-bold text-emerald-400">{formatMoney(totalGastado)}</span>
+   623→                      </div>
+   624→                    </div>
+   625→                  ) : (
+   626→                    <div className="p-6 text-center rounded-lg bg-muted/30 border border-dashed">
+   627→                      <CalendarOff className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+   628→                      <p className="text-sm text-muted-foreground">Sin estadías registradas</p>
+   629→                    </div>
+   630→                  )}
+   631→
+   632→                  {/* Preferences */}
+   633→                  {selected.preferencias && (
+   634→                    <div className="text-sm">
+   635→                      <span className="text-muted-foreground">Preferencias: </span>
+   636→                      <span>{selected.preferencias}</span>
+   637→                    </div>
+   638→                  )}
+   639→                </div>
+   640→                <DialogFooter>
+   641→                  <Button onClick={() => {
+   642→                    window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { type: 'new-reserva', clienteId: selected.id } }));
+   643→                    setModal(null);
+   644→                  }} className="bg-[#0F2B28] hover:bg-[#0F2B28]/90">
+   645→                    <Plus className="w-4 h-4 mr-1" /> Crear Reserva
+   646→                  </Button>
+   647→                  <Button variant="outline" onClick={() => { openEdit(selected.id); }}>Editar</Button>
+   648→                  <Button variant="outline" className="text-destructive" onClick={() => { setModal('eliminar'); }}>Eliminar</Button>
+   649→                  <DialogClose asChild><Button variant="secondary">Cerrar</Button></DialogClose>
+   650→                </DialogFooter>
+   651→              </>
+   652→            );
+   653→          })()}
+   654→        </DialogContent>
+   655→      </Dialog>
+   656→
+   657→      {/* ═══════════ MODAL ELIMINAR ═══════════ */}
+   658→      <Dialog open={modal === 'eliminar'} onOpenChange={() => setModal(null)}>
+   659→        <DialogContent className="sm:max-w-md">
+   660→          <DialogHeader><DialogTitle className="text-destructive">Eliminar cliente</DialogTitle></DialogHeader>
+   661→          {selected && (
+   662→            <>
+   663→              <p>¿Está seguro de eliminar a <strong>{selected.nombre}</strong>?</p>
+   664→              <p className="text-sm text-muted-foreground">Esta acción no se puede deshacer.</p>
+   665→            </>
+   666→          )}
+   667→          <DialogFooter>
+   668→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+   669→            <Button variant="destructive" onClick={handleDelete} disabled={saving}>Eliminar</Button>
+   670→          </DialogFooter>
+   671→        </DialogContent>
+   672→      </Dialog>
+   673→    </div>
+   674→  );
+   675→}
+   676→
