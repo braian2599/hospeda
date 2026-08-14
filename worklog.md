@@ -543,3 +543,24 @@ Stage Summary:
 - Cards are significantly more compact with reduced padding, smaller icons, smaller text
 - Form/wizard uses same emerald color throughout — no more clashing violet/amber tones
 - Zero amber/violet references remain in TarifasModule.tsx
+---
+Task ID: 2
+Agent: main
+Task: UsuariosModule — remove "Ver permisos" button and permissions matrix dialog
+
+Work Log:
+- Read full UsuariosModule.tsx (1201 lines) to understand all dependencies
+- Identified "Ver permisos" button (line 546-549) → opens openMatrix() → permissions matrix dialog
+- Mapped all dependencies: 3 state vars, 3 functions, 1 constant (READ_ONLY_PERMISOS), 2 unused icons
+- Verified PERMISOS_POR_ROL is still needed by handleRolChange, handleInvite, and invite dialog — preserved
+- Removed: button, matrix dialog (~107 lines), openMatrix, toggleMatrixPermiso, saveMatrix, permisosDialogOpen/matrixPermisos/matrixSaving states, READ_ONLY_PERMISOS, LayoutGrid/Check imports
+- Lint: clean pass
+- Dev server: 200 response confirmed
+- Git commit: 7fbe512
+- Git push: successful to main
+
+Stage Summary:
+- "Ver permisos" button and entire permissions matrix dialog removed cleanly
+- No data flow altered — permissions are still set per-user via form checkboxes
+- PERMISOS_POR_ROL preserved for default permission assignment on role change
+- Roles remain as categories; permissions are per-user, not per-role
