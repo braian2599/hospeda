@@ -1,0 +1,1201 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useCallback, useMemo } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
+     6→import { api, type DbTenantUser } from '@/lib/api-client';
+     7→import { Card, CardContent } from '@/components/ui/card';
+     8→import { Button } from '@/components/ui/button';
+     9→import { Input } from '@/components/ui/input';
+    10→import { Label } from '@/components/ui/label';
+    11→import { Badge } from '@/components/ui/badge';
+    12→import { Checkbox } from '@/components/ui/checkbox';
+    13→import { Separator } from '@/components/ui/separator';
+    14→import {
+    15→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription,
+    16→} from '@/components/ui/dialog';
+    17→import {
+    18→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    19→} from '@/components/ui/select';
+    20→import {
+    21→  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+    22→} from '@/components/ui/dropdown-menu';
+    23→import {
+    24→  Plus, UserCog, Pencil, Shield, ShieldCheck, Loader2, Eye, EyeOff, KeyRound,
+    25→  Users, UserCheck, Mail, Crown, Ban, RotateCcw, MoreVertical, Check, X, Activity,
+    26→  ArrowRight, Clock, CheckCircle2, LayoutGrid,
+    27→} from 'lucide-react';
+    28→import ModuleHeader from '@/components/layout/ModuleHeader';
+    29→import { AnimatedNumber } from '@/components/ui/animated-number';
+    30→import { toast } from 'sonner';
+    31→
+    32→// ═══════════════════════════════════════════════════════════
+    33→// HELPERS
+    34→// ═══════════════════════════════════════════════════════════
+    35→
+    36→/** Get initials from a full name (first letter of first word + first letter of last word) */
+    37→const getInitials = (name: string): string => {
+    38→  const parts = name.trim().split(/\s+/).filter(Boolean);
+    39→  if (parts.length === 0) return '?';
+    40→  if (parts.length === 1) return parts[0][0].toUpperCase();
+    41→  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    42→};
+    43→
+    44→/** Format a date string as relative time in Spanish (short form) */
+    45→const formatRelativeTime = (dateStr: string): string => {
+    46→  if (!dateStr) return '';
+    47→  const d = new Date(dateStr);
+    48→  const now = new Date();
+    49→  const diffMs = now.getTime() - d.getTime();
+    50→  const diffMins = Math.floor(diffMs / 60000);
+    51→  const diffHrs = Math.floor(diffMs / 3600000);
+    52→  const diffDays = Math.floor(diffMs / 86400000);
+    53→
+    54→  if (diffMins < 1) return 'recién';
+    55→  if (diffMins < 60) return `hace ${diffMins} min`;
+    56→  if (diffHrs < 24) return `hace ${diffHrs} h`;
+    57→  if (diffDays === 1) return 'ayer';
+    58→  if (diffDays < 7) return `hace ${diffDays} días`;
+    59→  if (diffDays < 30) return `hace ${Math.floor(diffDays / 7)} sem`;
+    60→  if (diffDays < 365) return `hace ${Math.floor(diffDays / 30)} meses`;
+    61→  return `hace ${Math.floor(diffDays / 365)} años`;
+    62→};
+    63→
+    64→/** Generate a random password: 10 chars, at least one uppercase + one digit */
+    65→const randomPassword = (): string => {
+    66→  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    67→  const lower = 'abcdefghjkmnpqrstuvwxyz';
+    68→  const digits = '23456789';
+    69→  const all = upper + lower + digits;
+    70→  const pick = (s: string) => s[Math.floor(Math.random() * s.length)];
+    71→  const chars: string[] = [pick(upper), pick(digits)];
+    72→  for (let i = 2; i < 10; i++) chars.push(pick(all));
+    73→  // Fisher-Yates shuffle to avoid predictable positions
+    74→  for (let i = chars.length - 1; i > 0; i--) {
+    75→    const j = Math.floor(Math.random() * (i + 1));
+    76→    [chars[i], chars[j]] = [chars[j], chars[i]];
+    77→  }
+    78→  return chars.join('');
+    79→};
+    80→
+    81→// ═══════════════════════════════════════════════════════════
+    82→// ROLES & PERMISSIONS
+    83→// ═══════════════════════════════════════════════════════════
+    84→
+    85→type RolId = 'owner' | 'admin' | 'recepcion' | 'limpieza';
+    86→
+    87→interface RoleInfo {
+    88→  value: RolId;
+    89→  label: string;
+    90→  shortLabel: string;
+    91→  description: string;
+    92→  icon: typeof Shield;
+    93→  colorHex: string;
+    94→  badgeClass: string;
+    95→  borderClass: string;
+    96→  avatarGradient: string;
+    97→}
+    98→
+    99→const ROLES: RoleInfo[] = [
+   100→  {
+   101→    value: 'owner',
+   102→    label: 'Administrador Principal',
+   103→    shortLabel: 'Owner',
+   104→    description: 'Acceso total al sistema',
+   105→    icon: Crown,
+   106→    colorHex: '#F59E0B',
+   107→    badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
+   108→    borderClass: 'border-l-amber-500',
+   109→    avatarGradient: 'from-amber-400 to-amber-600',
+   110→  },
+   111→  {
+   112→    value: 'admin',
+   113→    label: 'Admin',
+   114→    shortLabel: 'Admin',
+   115→    description: 'Acceso completo a todos los módulos',
+   116→    icon: ShieldCheck,
+   117→    colorHex: '#0F2B28',
+   118→    badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+   119→    borderClass: 'border-l-emerald-700',
+   120→    avatarGradient: 'from-[#0F2B28] to-[#1a4a44]',
+   121→  },
+   122→  {
+   123→    value: 'recepcion',
+   124→    label: 'Recepción',
+   125→    shortLabel: 'Recepción',
+   126→    description: 'Habitaciones, reservas, check-in y clientes',
+   127→    icon: UserCog,
+   128→    colorHex: '#0EA5E9',
+   129→    badgeClass: 'bg-sky-100 text-sky-800 border-sky-300',
+   130→    borderClass: 'border-l-sky-400',
+   131→    avatarGradient: 'from-sky-400 to-sky-600',
+   132→  },
+   133→  {
+   134→    value: 'limpieza',
+   135→    label: 'Limpieza',
+   136→    shortLabel: 'Limpieza',
+   137→    description: 'Tareas de limpieza y mantenimiento',
+   138→    icon: Shield,
+   139→    colorHex: '#8B5CF6',
+   140→    badgeClass: 'bg-violet-100 text-violet-800 border-violet-300',
+   141→    borderClass: 'border-l-violet-400',
+   142→    avatarGradient: 'from-violet-400 to-violet-600',
+   143→  },
+   144→];
+   145→
+   146→const PERMISOS_POR_ROL: Record<string, ModuloId[]> = {
+   147→  owner: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'facturacion', 'limpieza', 'caja', 'clientes', 'reportes', 'usuarios', 'tarifas'],
+   148→  admin: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'facturacion', 'limpieza', 'caja', 'clientes', 'reportes', 'usuarios', 'tarifas'],
+   149→  recepcion: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'clientes', 'tarifas'],
+   150→  limpieza: ['dashboard', 'habitaciones', 'limpieza'],
+   151→};
+   152→
+   153→// Modules that some roles can access as "read-only" (amber in matrix)
+   154→const READ_ONLY_PERMISOS: Partial<Record<string, ModuloId[]>> = {
+   155→  limpieza: ['reservas'],
+   156→};
+   157→
+   158→const ASSIGNABLE_ROLES = ROLES.filter(r => r.value !== 'owner');
+   159→
+   160→const ROLE_LABELS: Record<string, string> = {
+   161→  owner: 'Administrador Principal',
+   162→  admin: 'Admin',
+   163→  recepcion: 'Recepción',
+   164→  limpieza: 'Limpieza',
+   165→};
+   166→
+   167→const getRoleInfo = (rol: string): RoleInfo => ROLES.find(r => r.value === rol) || ROLES[1];
+   168→
+   169→// ═══════════════════════════════════════════════════════════
+   170→// FORM TYPES
+   171→// ═══════════════════════════════════════════════════════════
+   172→
+   173→interface UserForm {
+   174→  nombreCompleto: string;
+   175→  password: string;
+   176→  rol: string;
+   177→  permisos: ModuloId[];
+   178→}
+   179→
+   180→const emptyForm: UserForm = {
+   181→  nombreCompleto: '',
+   182→  password: '',
+   183→  rol: 'recepcion',
+   184→  permisos: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'clientes', 'tarifas'],
+   185→};
+   186→
+   187→// ═══════════════════════════════════════════════════════════
+   188→// MAIN COMPONENT
+   189→// ═══════════════════════════════════════════════════════════
+   190→
+   191→export default function UsuariosModule() {
+   192→  const usuarioActual = useHotelStore(s => s.usuarioActual);
+   193→  const auditoria = useHotelStore(s => s.auditoria);
+   194→  const setModulo = useHotelStore(s => s.setModulo);
+   195→
+   196→  const [usuarios, setUsuarios] = useState<DbTenantUser[]>([]);
+   197→  const [loading, setLoading] = useState(true);
+   198→
+   199→  // Create/Edit user dialog (existing)
+   200→  const [dialogOpen, setDialogOpen] = useState(false);
+   201→  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+   202→  const [editingId, setEditingId] = useState<string | null>(null);
+   203→  const [deletingUser, setDeletingUser] = useState<DbTenantUser | null>(null);
+   204→  const [form, setForm] = useState<UserForm>(emptyForm);
+   205→  const [saving, setSaving] = useState(false);
+   206→  const [deleting, setDeleting] = useState(false);
+   207→  const [showPassword, setShowPassword] = useState(false);
+   208→  const [ownerEditing, setOwnerEditing] = useState(false);
+   209→
+   210→  // New: permissions matrix dialog
+   211→  const [permisosDialogOpen, setPermisosDialogOpen] = useState(false);
+   212→  const [matrixPermisos, setMatrixPermisos] = useState<Record<string, ModuloId[]>>({});
+   213→  const [matrixSaving, setMatrixSaving] = useState(false);
+   214→
+   215→  // New: invite user dialog
+   216→  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+   217→  const [inviteForm, setInviteForm] = useState({ nombre: '', rol: 'recepcion' });
+   218→  const [inviteTempPassword, setInviteTempPassword] = useState('');
+   219→  const [inviting, setInviting] = useState(false);
+   220→
+   221→  // New: reset password dialog
+   222→  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+   223→  const [resetTargetUser, setResetTargetUser] = useState<DbTenantUser | null>(null);
+   224→  const [resetPassword, setResetPassword] = useState('');
+   225→  const [resetting, setResetting] = useState(false);
+   226→
+   227→  // New: pending invitations counter (session-tracked)
+   228→  const [pendingInvites, setPendingInvites] = useState(0);
+   229→
+   230→  const esOwner = usuarioActual?.rol === 'owner';
+   231→  const esAdminOOwner = esOwner || usuarioActual?.rol === 'admin';
+   232→  const puedeModificar = esOwner || usuarioActual?.permisos.includes('usuarios');
+   233→
+   234→  // ═══════════════════════════════════════════════════════════
+   235→  // FETCH
+   236→  // ═══════════════════════════════════════════════════════════
+   237→
+   238→  const fetchUsuarios = useCallback(async () => {
+   239→    try {
+   240→      setLoading(true);
+   241→      const data = await api.usuarios.list();
+   242→      setUsuarios(data);
+   243→    } catch (err: any) {
+   244→      toast.error(err.message || 'Error al cargar usuarios');
+   245→    } finally {
+   246→      setLoading(false);
+   247→    }
+   248→  }, []);
+   249→
+   250→  useEffect(() => { fetchUsuarios(); }, [fetchUsuarios]);
+   251→
+   252→  // ═══════════════════════════════════════════════════════════
+   253→  // STATS
+   254→  // ═══════════════════════════════════════════════════════════
+   255→
+   256→  const stats = useMemo(() => {
+   257→    const total = usuarios.length;
+   258→    const activos = usuarios.filter(u => u.activo).length;
+   259→    const porRol = {
+   260→      owner: usuarios.filter(u => u.rol === 'owner').length,
+   261→      admin: usuarios.filter(u => u.rol === 'admin').length,
+   262→      recepcion: usuarios.filter(u => u.rol === 'recepcion').length,
+   263→      limpieza: usuarios.filter(u => u.rol === 'limpieza').length,
+   264→    };
+   265→    return { total, activos, porRol };
+   266→  }, [usuarios]);
+   267→
+   268→  const recentActivity = useMemo(() => auditoria.slice(0, 5), [auditoria]);
+   269→
+   270→  /** Cross-reference audit entries to find the last login timestamp for a user. */
+   271→  const getLastLogin = useCallback((u: DbTenantUser): string | null => {
+   272→    const name = u.nombreCompleto || u.user?.name;
+   273→    if (!name) return null;
+   274→    const entry = auditoria.find(a => a.tipo === 'Login' && a.empleado === name);
+   275→    return entry?.fecha || null;
+   276→  }, [auditoria]);
+   277→
+   278→  // ═══════════════════════════════════════════════════════════
+   279→  // CREATE / EDIT USER DIALOG (existing functionality, preserved)
+   280→  // ═══════════════════════════════════════════════════════════
+   281→
+   282→  const openCreate = () => {
+   283→    setEditingId(null);
+   284→    setForm(emptyForm);
+   285→    setShowPassword(false);
+   286→    setOwnerEditing(false);
+   287→    setDialogOpen(true);
+   288→  };
+   289→
+   290→  const openEdit = (u: DbTenantUser) => {
+   291→    setEditingId(u.id);
+   292→    setForm({
+   293→      nombreCompleto: u.nombreCompleto || '',
+   294→      password: '',
+   295→      rol: u.rol,
+   296→      permisos: (u.permisos || []) as ModuloId[],
+   297→    });
+   298→    setShowPassword(false);
+   299→    setOwnerEditing(u.rol === 'owner');
+   300→    setDialogOpen(true);
+   301→  };
+   302→
+   303→  const openDelete = (u: DbTenantUser) => {
+   304→    if (u.rol === 'owner') {
+   305→      toast.error('El Administrador Principal no puede ser eliminado');
+   306→      return;
+   307→    }
+   308→    setDeletingUser(u);
+   309→    setDeleteDialogOpen(true);
+   310→  };
+   311→
+   312→  const handleRolChange = (newRol: string) => {
+   313→    setForm(f => ({
+   314→      ...f,
+   315→      rol: newRol,
+   316→      permisos: PERMISOS_POR_ROL[newRol] || [],
+   317→    }));
+   318→  };
+   319→
+   320→  const togglePermiso = (moduloId: ModuloId) => {
+   321→    setForm(f => ({
+   322→      ...f,
+   323→      permisos: f.permisos.includes(moduloId)
+   324→        ? f.permisos.filter(p => p !== moduloId)
+   325→        : [...f.permisos, moduloId],
+   326→    }));
+   327→  };
+   328→
+   329→  const handleSave = async () => {
+   330→    if (!form.nombreCompleto.trim()) { toast.error('El nombre del perfil es obligatorio'); return; }
+   331→    if (!editingId && form.password.length < 8) { toast.error('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número'); return; }
+   332→
+   333→    setSaving(true);
+   334→    try {
+   335→      if (editingId) {
+   336→        const updateData: Record<string, unknown> = {
+   337→          nombreCompleto: form.nombreCompleto.trim() || undefined,
+   338→          rol: form.rol,
+   339→          permisos: form.permisos,
+   340→        };
+   341→        if (form.password.length >= 6) {
+   342→          updateData.password = form.password;
+   343→        }
+   344→        await api.usuarios.update(editingId, updateData);
+   345→        toast.success('Perfil actualizado');
+   346→      } else {
+   347→        await api.usuarios.create({
+   348→          nombreCompleto: form.nombreCompleto.trim(),
+   349→          password: form.password,
+   350→          rol: form.rol,
+   351→          permisos: form.permisos,
+   352→        });
+   353→        toast.success('Usuario creado correctamente');
+   354→      }
+   355→      setDialogOpen(false);
+   356→      fetchUsuarios();
+   357→    } catch (err: any) {
+   358→      toast.error(err.message || 'Error al guardar');
+   359→    } finally {
+   360→      setSaving(false);
+   361→    }
+   362→  };
+   363→
+   364→  const handleDelete = async () => {
+   365→    if (!deletingUser) return;
+   366→    setDeleting(true);
+   367→    try {
+   368→      await api.usuarios.delete(deletingUser.id);
+   369→      toast.success('Usuario suspendido');
+   370→      setDeleteDialogOpen(false);
+   371→      setDeletingUser(null);
+   372→      fetchUsuarios();
+   373→    } catch (err: any) {
+   374→      toast.error(err.message || 'Error al eliminar');
+   375→    } finally {
+   376→      setDeleting(false);
+   377→    }
+   378→  };
+   379→
+   380→  // ═══════════════════════════════════════════════════════════
+   381→  // PERMISSIONS MATRIX
+   382→  // ═══════════════════════════════════════════════════════════
+   383→
+   384→  const openMatrix = () => {
+   385→    const matrix: Record<string, ModuloId[]> = {};
+   386→    for (const rol of ['owner', 'admin', 'recepcion', 'limpieza']) {
+   387→      const usersOfRol = usuarios.filter(u => u.rol === rol);
+   388→      matrix[rol] = usersOfRol[0]?.permisos
+   389→        ? [...(usersOfRol[0].permisos as ModuloId[])]
+   390→        : [...(PERMISOS_POR_ROL[rol] || [])];
+   391→    }
+   392→    // Owner always has all modules
+   393→    matrix['owner'] = MODULOS_SISTEMA.map(m => m.id);
+   394→    setMatrixPermisos(matrix);
+   395→    setPermisosDialogOpen(true);
+   396→  };
+   397→
+   398→  const toggleMatrixPermiso = (rol: string, moduloId: ModuloId) => {
+   399→    if (rol === 'owner') return; // owner column is read-only
+   400→    setMatrixPermisos(prev => {
+   401→      const current = prev[rol] || [];
+   402→      return {
+   403→        ...prev,
+   404→        [rol]: current.includes(moduloId)
+   405→          ? current.filter(p => p !== moduloId)
+   406→          : [...current, moduloId],
+   407→      };
+   408→    });
+   409→  };
+   410→
+   411→  const saveMatrix = async () => {
+   412→    setMatrixSaving(true);
+   413→    try {
+   414→      let updatedCount = 0;
+   415→      for (const rol of ['admin', 'recepcion', 'limpieza']) {
+   416→        const newPerms = matrixPermisos[rol] || [];
+   417→        const usersOfRol = usuarios.filter(u => u.rol === rol && u.activo);
+   418→        for (const u of usersOfRol) {
+   419→          const currentSorted = [...(u.permisos || [])].sort().join(',');
+   420→          const newSorted = [...newPerms].sort().join(',');
+   421→          if (currentSorted !== newSorted) {
+   422→            await api.usuarios.update(u.id, { permisos: newPerms });
+   423→            updatedCount++;
+   424→          }
+   425→        }
+   426→      }
+   427→      toast.success(updatedCount > 0
+   428→        ? `Permisos actualizados para ${updatedCount} usuario(s)`
+   429→        : 'Sin cambios para aplicar'
+   430→      );
+   431→      setPermisosDialogOpen(false);
+   432→      fetchUsuarios();
+   433→    } catch (err: any) {
+   434→      toast.error(err.message || 'Error al guardar permisos');
+   435→    } finally {
+   436→      setMatrixSaving(false);
+   437→    }
+   438→  };
+   439→
+   440→  // ═══════════════════════════════════════════════════════════
+   441→  // INVITE USER
+   442→  // ═══════════════════════════════════════════════════════════
+   443→
+   444→  const openInvite = () => {
+   445→    setInviteForm({ nombre: '', rol: 'recepcion' });
+   446→    setInviteTempPassword(randomPassword());
+   447→    setInviteDialogOpen(true);
+   448→  };
+   449→
+   450→  const handleInvite = async () => {
+   451→    if (!inviteForm.nombre.trim()) {
+   452→      toast.error('El nombre del perfil es obligatorio');
+   453→      return;
+   454→    }
+   455→    if (inviteForm.rol === 'owner') {
+   456→      toast.error('No se pueden invitar usuarios con rol Owner');
+   457→      return;
+   458→    }
+   459→    if (inviteTempPassword.length < 8) {
+   460→      toast.error('La contraseña temporal debe tener al menos 8 caracteres');
+   461→      return;
+   462→    }
+   463→    setInviting(true);
+   464→    try {
+   465→      await api.usuarios.create({
+   466→        nombreCompleto: inviteForm.nombre.trim(),
+   467→        password: inviteTempPassword,
+   468→        rol: inviteForm.rol,
+   469→        permisos: PERMISOS_POR_ROL[inviteForm.rol] || [],
+   470→      });
+   471→      setPendingInvites(n => n + 1);
+   472→      toast.success(`Invitación enviada a ${inviteForm.nombre.trim()}`, {
+   473→        description: `Compartí esta contraseña temporal: ${inviteTempPassword}`,
+   474→        duration: 10000,
+   475→      });
+   476→      setInviteDialogOpen(false);
+   477→      fetchUsuarios();
+   478→    } catch (err: any) {
+   479→      toast.error(err.message || 'Error al invitar usuario');
+   480→    } finally {
+   481→      setInviting(false);
+   482→    }
+   483→  };
+   484→
+   485→  // ═══════════════════════════════════════════════════════════
+   486→  // RESET PASSWORD
+   487→  // ═══════════════════════════════════════════════════════════
+   488→
+   489→  const openReset = (u: DbTenantUser) => {
+   490→    if (u.rol === 'owner' && !esOwner) {
+   491→      toast.error('Solo el Administrador Principal puede restablecer su propia contraseña');
+   492→      return;
+   493→    }
+   494→    setResetTargetUser(u);
+   495→    setResetPassword(randomPassword());
+   496→    setResetDialogOpen(true);
+   497→  };
+   498→
+   499→  const handleReset = async () => {
+   500→    if (!resetTargetUser) return;
+   501→    if (resetPassword.length < 8) {
+   502→      toast.error('La contraseña debe tener al menos 8 caracteres');
+   503→      return;
+   504→    }
+   505→    setResetting(true);
+   506→    try {
+   507→      await api.usuarios.update(resetTargetUser.id, { password: resetPassword });
+   508→      toast.success(`Contraseña restablecida para ${resetTargetUser.nombreCompleto}`, {
+   509→        description: `Nueva contraseña temporal: ${resetPassword}`,
+   510→        duration: 12000,
+   511→      });
+   512→      setResetDialogOpen(false);
+   513→      setResetTargetUser(null);
+   514→    } catch (err: any) {
+   515→      toast.error(err.message || 'Error al restablecer contraseña');
+   516→    } finally {
+   517→      setResetting(false);
+   518→    }
+   519→  };
+   520→
+   521→  // ═══════════════════════════════════════════════════════════
+   522→  // MISC HELPERS
+   523→  // ═══════════════════════════════════════════════════════════
+   524→
+   525→  const isSelf = (u: DbTenantUser) => {
+   526→    if (!usuarioActual?.tenantUserId) return u.user?.id === usuarioActual?.id;
+   527→    return u.id === usuarioActual.tenantUserId;
+   528→  };
+   529→
+   530→  const canEditUser = (u: DbTenantUser) => {
+   531→    if (!puedeModificar) return false;
+   532→    if (u.rol === 'owner' && !esOwner) return false;
+   533→    return true;
+   534→  };
+   535→
+   536→  // ═══════════════════════════════════════════════════════════
+   537→  // RENDER
+   538→  // ═══════════════════════════════════════════════════════════
+   539→
+   540→  return (
+   541→    <div className="space-y-5">
+   542→      <ModuleHeader icon={UserCog} title="Usuarios" subtitle="Gestioná perfiles, roles y permisos de tu equipo">
+   543→        <div className="flex items-center gap-2 flex-wrap">
+   544→          {puedeModificar && (
+   545→            <>
+   546→              <Button variant="outline" size="sm" onClick={openMatrix} className="gap-1.5">
+   547→                <LayoutGrid className="w-4 h-4" />
+   548→                <span className="hidden sm:inline">Ver permisos</span>
+   549→              </Button>
+   550→              <Button variant="outline" size="sm" onClick={openInvite} className="gap-1.5">
+   551→                <Mail className="w-4 h-4" />
+   552→                <span className="hidden sm:inline">Invitar</span>
+   553→              </Button>
+   554→              <Button onClick={openCreate} size="sm" className="gap-1.5">
+   555→                <Plus className="w-4 h-4" /> Crear usuario
+   556→              </Button>
+   557→            </>
+   558→          )}
+   559→        </div>
+   560→      </ModuleHeader>
+   561→
+   562→      {/* ═══════════ STATS SUMMARY ═══════════ */}
+   563→      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+   564→        {/* Total Usuarios */}
+   565→        <Card className="relative overflow-hidden border-l-[3px] border-l-emerald-500 bg-emerald-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+   566→          <CardContent className="p-4">
+   567→            <div className="flex items-start justify-between">
+   568→              <div className="space-y-1">
+   569→                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Usuarios</p>
+   570→                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-2xl font-bold text-emerald-400" />
+   571→              </div>
+   572→              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+   573→                <Users className="w-5 h-5 text-emerald-400" />
+   574→              </div>
+   575→            </div>
+   576→          </CardContent>
+   577→        </Card>
+   578→
+   579→        {/* Activos */}
+   580→        <Card className="relative overflow-hidden border-l-[3px] border-l-emerald-500 bg-emerald-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+   581→          <CardContent className="p-4">
+   582→            <div className="flex items-start justify-between">
+   583→              <div className="space-y-1">
+   584→                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Activos</p>
+   585→                <AnimatedNumber value={stats.activos} format={n => String(Math.round(n))} className="text-2xl font-bold text-emerald-700" />
+   586→              </div>
+   587→              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+   588→                <UserCheck className="w-5 h-5 text-emerald-600" />
+   589→              </div>
+   590→            </div>
+   591→          </CardContent>
+   592→        </Card>
+   593→
+   594→        {/* Por Rol */}
+   595→        <Card className="relative overflow-hidden border-l-[3px] border-l-sky-400 bg-sky-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+   596→          <CardContent className="p-4">
+   597→            <div className="flex items-start justify-between">
+   598→              <div className="space-y-1 min-w-0 flex-1">
+   599→                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Por Rol</p>
+   600→                <div className="flex items-center gap-2 text-xs font-semibold mt-1 flex-wrap">
+   601→                  <span className="text-amber-700 flex items-center gap-0.5">
+   602→                    <Crown className="w-2.5 h-2.5" />{stats.porRol.owner}
+   603→                  </span>
+   604→                  <span className="text-emerald-400 flex items-center gap-0.5">
+   605→                    <ShieldCheck className="w-2.5 h-2.5" />{stats.porRol.admin}
+   606→                  </span>
+   607→                  <span className="text-sky-700 flex items-center gap-0.5">
+   608→                    <UserCog className="w-2.5 h-2.5" />{stats.porRol.recepcion}
+   609→                  </span>
+   610→                  <span className="text-violet-700 flex items-center gap-0.5">
+   611→                    <Shield className="w-2.5 h-2.5" />{stats.porRol.limpieza}
+   612→                  </span>
+   613→                </div>
+   614→              </div>
+   615→              <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
+   616→                <Shield className="w-5 h-5 text-sky-600" />
+   617→              </div>
+   618→            </div>
+   619→          </CardContent>
+   620→        </Card>
+   621→
+   622→        {/* Invitaciones Pendientes */}
+   623→        <Card className="relative overflow-hidden border-l-[3px] border-l-amber-400 bg-amber-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+   624→          <CardContent className="p-4">
+   625→            <div className="flex items-start justify-between">
+   626→              <div className="space-y-1">
+   627→                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Invitaciones Pendientes</p>
+   628→                <AnimatedNumber value={pendingInvites} format={n => String(Math.round(n))} className="text-2xl font-bold text-amber-700" />
+   629→                <p className="text-[10px] text-muted-foreground">En esta sesión</p>
+   630→              </div>
+   631→              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+   632→                <Mail className="w-5 h-5 text-amber-600" />
+   633→              </div>
+   634→            </div>
+   635→          </CardContent>
+   636→        </Card>
+   637→      </div>
+   638→
+   639→      {/* ═══════════ USER CARDS (enhanced) ═══════════ */}
+   640→      {loading ? (
+   641→        <Card>
+   642→          <CardContent className="flex items-center justify-center py-12">
+   643→            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+   644→          </CardContent>
+   645→        </Card>
+   646→      ) : usuarios.length === 0 ? (
+   647→        <Card>
+   648→          <CardContent className="py-12 text-center text-muted-foreground">
+   649→            <Users className="w-10 h-10 mx-auto mb-2 opacity-40" />
+   650→            <p className="text-sm">No hay usuarios activos. Creá el primer perfil con el botón de arriba.</p>
+   651→          </CardContent>
+   652→        </Card>
+   653→      ) : (
+   654→        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+   655→          {usuarios.map(u => {
+   656→            const roleInfo = getRoleInfo(u.rol);
+   657→            const Icon = roleInfo.icon;
+   658→            const name = u.nombreCompleto || u.user?.name || 'Sin nombre';
+   659→            const initials = getInitials(name);
+   660→            const email = u.user?.email;
+   661→            const lastLogin = getLastLogin(u);
+   662→            const isOwner = u.rol === 'owner';
+   663→            const canEdit = canEditUser(u);
+   664→
+   665→            return (
+   666→              <Card
+   667→                key={u.id}
+   668→                className={`relative overflow-hidden border-l-[3px] ${roleInfo.borderClass} hover:shadow-md transition-all duration-200 ${isOwner ? 'bg-amber-50/30' : ''}`}
+   669→              >
+   670→                <CardContent className="p-4">
+   671→                  <div className="flex items-start gap-3">
+   672→                    {/* Avatar */}
+   673→                    <div className={`relative w-12 h-12 rounded-full bg-gradient-to-br ${roleInfo.avatarGradient} flex items-center justify-center text-white font-semibold shrink-0 shadow-sm`}>
+   674→                      {initials}
+   675→                      {/* Status indicator */}
+   676→                      <span
+   677→                        className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card ${u.activo ? 'bg-emerald-500' : 'bg-gray-400'}`}
+   678→                        title={u.activo ? 'Activo' : 'Inactivo'}
+   679→                      />
+   680→                    </div>
+   681→
+   682→                    {/* Info */}
+   683→                    <div className="flex-1 min-w-0">
+   684→                      <div className="flex items-start justify-between gap-2">
+   685→                        <div className="min-w-0 flex-1">
+   686→                          <p className="font-medium text-sm truncate">
+   687→                            {name}
+   688→                            {isSelf(u) && <span className="text-muted-foreground font-normal ml-1.5 text-xs">(vos)</span>}
+   689→                          </p>
+   690→                          {email && (
+   691→                            <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+   692→                              <Mail className="w-3 h-3 shrink-0" />
+   693→                              <span className="truncate">{email}</span>
+   694→                            </p>
+   695→                          )}
+   696→                        </div>
+   697→
+   698→                        {/* Quick actions */}
+   699→                        {canEdit && (
+   700→                          <DropdownMenu>
+   701→                            <DropdownMenuTrigger asChild>
+   702→                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Acciones">
+   703→                                <MoreVertical className="w-3.5 h-3.5" />
+   704→                              </Button>
+   705→                            </DropdownMenuTrigger>
+   706→                            <DropdownMenuContent align="end" className="w-48">
+   707→                              <DropdownMenuItem onClick={() => openEdit(u)}>
+   708→                                <Pencil className="w-3.5 h-3.5" /> Editar
+   709→                              </DropdownMenuItem>
+   710→                              <DropdownMenuItem onClick={() => openReset(u)}>
+   711→                                <KeyRound className="w-3.5 h-3.5" /> Restablecer contraseña
+   712→                              </DropdownMenuItem>
+   713→                              {!isOwner && (
+   714→                                <>
+   715→                                  <DropdownMenuSeparator />
+   716→                                  <DropdownMenuItem variant="destructive" onClick={() => openDelete(u)}>
+   717→                                    <Ban className="w-3.5 h-3.5" /> Suspender
+   718→                                  </DropdownMenuItem>
+   719→                                </>
+   720→                              )}
+   721→                            </DropdownMenuContent>
+   722→                          </DropdownMenu>
+   723→                        )}
+   724→                      </div>
+   725→
+   726→                      {/* Role badge + perms count */}
+   727→                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+   728→                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-1 ${roleInfo.badgeClass}`}>
+   729→                          <Icon className="w-2.5 h-2.5" />
+   730→                          {roleInfo.label}
+   731→                        </Badge>
+   732→                        <span className="text-[10px] text-muted-foreground">
+   733→                          {u.permisos?.length || 0}/{MODULOS_SISTEMA.length} módulos
+   734→                        </span>
+   735→                      </div>
+   736→
+   737→                      {/* Last login */}
+   738→                      {lastLogin && (
+   739→                        <p className="text-[10px] text-muted-foreground mt-1.5 flex items-center gap-1">
+   740→                          <Clock className="w-2.5 h-2.5" />
+   741→                          Último acceso: {formatRelativeTime(lastLogin)}
+   742→                        </p>
+   743→                      )}
+   744→                    </div>
+   745→                  </div>
+   746→                </CardContent>
+   747→              </Card>
+   748→            );
+   749→          })}
+   750→        </div>
+   751→      )}
+   752→
+   753→      {/* ═══════════ ACTIVITY LOG ═══════════ */}
+   754→      {recentActivity.length > 0 && (
+   755→        <Card>
+   756→          <CardContent className="p-4">
+   757→            <div className="flex items-center justify-between mb-3">
+   758→              <div className="flex items-center gap-2">
+   759→                <Activity className="w-4 h-4 text-emerald-400" />
+   760→                <h3 className="text-sm font-semibold">Actividad reciente</h3>
+   761→              </div>
+   762→              <Button
+   763→                variant="ghost"
+   764→                size="sm"
+   765→                className="h-7 text-xs gap-1 hover:text-emerald-400"
+   766→                onClick={() => setModulo('reportes')}
+   767→              >
+   768→                Ver todo <ArrowRight className="w-3 h-3" />
+   769→              </Button>
+   770→            </div>
+   771→            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+   772→              {recentActivity.map((a, idx) => (
+   773→                <div key={a.id} className="flex items-start gap-3 text-xs">
+   774→                  <div className="flex flex-col items-center self-stretch">
+   775→                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${idx === 0 ? 'bg-[#0F2B28]' : 'bg-[#0F2B28]/40'}`} />
+   776→                    {idx < recentActivity.length - 1 && (
+   777→                      <div className="w-px flex-1 bg-emerald-500/20 mt-1" />
+   778→                    )}
+   779→                  </div>
+   780→                  <div className="flex-1 min-w-0 pb-1">
+   781→                    <p className="text-foreground leading-snug">
+   782→                      <span className="font-medium">{a.empleado}</span>{' '}
+   783→                      <span className="text-muted-foreground">{a.detalle}</span>
+   784→                    </p>
+   785→                    <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[10px]">
+   786→                      <Clock className="w-2.5 h-2.5" />
+   787→                      {formatRelativeTime(a.fecha)} · <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5">{a.tipo}</Badge>
+   788→                    </p>
+   789→                  </div>
+   790→                </div>
+   791→              ))}
+   792→            </div>
+   793→          </CardContent>
+   794→        </Card>
+   795→      )}
+   796→
+   797→      {/* ═══════════ DIALOG: CREAR / EDITAR USUARIO (existing) ═══════════ */}
+   798→      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+   799→        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+   800→          <DialogHeader>
+   801→            <DialogTitle>
+   802→              {ownerEditing ? 'Editar tu perfil' : (editingId ? 'Editar usuario' : 'Crear nuevo usuario')}
+   803→            </DialogTitle>
+   804→          </DialogHeader>
+   805→
+   806→          <div className="space-y-4 py-2">
+   807→            {/* Nombre del perfil */}
+   808→            <div className="space-y-1.5">
+   809→              <Label className="text-xs">
+   810→                {ownerEditing ? 'Tu nombre' : 'Nombre del perfil'}
+   811→              </Label>
+   812→              <Input
+   813→                placeholder={ownerEditing ? 'Ej: Juan Perez' : 'Ej: Gerente, Admin 1, Recepcion Laura...'}
+   814→                value={form.nombreCompleto}
+   815→                onChange={e => setForm(f => ({ ...f, nombreCompleto: e.target.value }))}
+   816→              />
+   817→              <p className="text-[11px] text-muted-foreground">
+   818→                {ownerEditing ? 'Este nombre se muestra en el sistema' : 'Es el nombre que se va a mostrar al ingresar'}
+   819→              </p>
+   820→            </div>
+   821→
+   822→            {/* Contraseña */}
+   823→            <div className="space-y-1.5">
+   824→              <Label className="text-xs flex items-center gap-1.5">
+   825→                <KeyRound className="w-3 h-3" />
+   826→                {editingId ? 'Nueva contraseña (dejar vacio para no cambiar)' : 'Contraseña'}
+   827→              </Label>
+   828→              <div className="relative">
+   829→                <Input
+   830→                  type={showPassword ? 'text' : 'password'}
+   831→                  placeholder={editingId ? 'Solo si queres cambiarla' : 'Minimo 8 caracteres'}
+   832→                  value={form.password}
+   833→                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+   834→                  className="pr-10"
+   835→                  autoComplete="new-password"
+   836→                />
+   837→                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
+   838→                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+   839→                </button>
+   840→              </div>
+   841→              <p className="text-[11px] text-muted-foreground">
+   842→                Con esta contraseña el usuario va a ingresar al sistema
+   843→              </p>
+   844→            </div>
+   845→
+   846→            {/* Rol (solo para no-owner) */}
+   847→            {!ownerEditing && (
+   848→              <>
+   849→                <div className="space-y-1.5">
+   850→                  <Label className="text-xs">Rol</Label>
+   851→                  <Select value={form.rol} onValueChange={handleRolChange}>
+   852→                    <SelectTrigger>
+   853→                      <SelectValue placeholder="Seleccionar rol" />
+   854→                    </SelectTrigger>
+   855→                    <SelectContent>
+   856→                      {ASSIGNABLE_ROLES.map(r => (
+   857→                        <SelectItem key={r.value} value={r.value}>
+   858→                          <div className="flex items-center gap-2">
+   859→                            <r.icon className="w-4 h-4" />
+   860→                            <span>{r.label}</span>
+   861→                            <span className="text-xs text-muted-foreground">— {r.description}</span>
+   862→                          </div>
+   863→                        </SelectItem>
+   864→                      ))}
+   865→                    </SelectContent>
+   866→                  </Select>
+   867→                </div>
+   868→
+   869→                <Separator />
+   870→
+   871→                {/* Permisos */}
+   872→                <div className="space-y-2">
+   873→                  <div className="flex items-center justify-between">
+   874→                    <Label className="text-xs">Permisos de modulos</Label>
+   875→                    <span className="text-xs text-muted-foreground">{form.permisos.length} de {MODULOS_SISTEMA.length}</span>
+   876→                  </div>
+   877→                  <div className="grid grid-cols-2 gap-1">
+   878→                    {MODULOS_SISTEMA.map(mod => (
+   879→                      <label
+   880→                        key={mod.id}
+   881→                        className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 cursor-pointer transition-colors"
+   882→                      >
+   883→                        <Checkbox
+   884→                          checked={form.permisos.includes(mod.id)}
+   885→                          onCheckedChange={() => togglePermiso(mod.id)}
+   886→                        />
+   887→                        <span className="text-xs">{mod.label}</span>
+   888→                      </label>
+   889→                    ))}
+   890→                  </div>
+   891→                  <div className="flex gap-2">
+   892→                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setForm(f => ({ ...f, permisos: MODULOS_SISTEMA.map(m => m.id) }))}>
+   893→                      Todos
+   894→                    </Button>
+   895→                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setForm(f => ({ ...f, permisos: [] }))}>
+   896→                      Ninguno
+   897→                    </Button>
+   898→                  </div>
+   899→                </div>
+   900→              </>
+   901→            )}
+   902→          </div>
+   903→
+   904→          <DialogFooter>
+   905→            <DialogClose asChild><Button variant="ghost" size="sm" disabled={saving}>Cancelar</Button></DialogClose>
+   906→            <Button size="sm" onClick={handleSave} disabled={saving || !form.nombreCompleto.trim() || (!editingId && form.password.length < 8)}>
+   907→              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+   908→              {ownerEditing ? 'Guardar cambios' : (editingId ? 'Guardar cambios' : 'Crear usuario')}
+   909→            </Button>
+   910→          </DialogFooter>
+   911→        </DialogContent>
+   912→      </Dialog>
+   913→
+   914→      {/* ═══════════ DIALOG: ELIMINAR / SUSPENDER ═══════════ */}
+   915→      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+   916→        <DialogContent className="max-w-sm">
+   917→          <DialogHeader>
+   918→            <DialogTitle>Suspender usuario</DialogTitle>
+   919→          </DialogHeader>
+   920→          <p className="text-sm text-muted-foreground">
+   921→            Vas a suspender a <strong>{deletingUser?.nombreCompleto || 'este usuario'}</strong>.
+   922→            El usuario no podra acceder al sistema pero sus datos se conservan.
+   923→          </p>
+   924→          <DialogFooter>
+   925→            <DialogClose asChild><Button variant="ghost" size="sm" disabled={deleting}>Cancelar</Button></DialogClose>
+   926→            <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
+   927→              {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
+   928→              Suspender
+   929→            </Button>
+   930→          </DialogFooter>
+   931→        </DialogContent>
+   932→      </Dialog>
+   933→
+   934→      {/* ═══════════ DIALOG: MATRIZ DE PERMISOS ═══════════ */}
+   935→      <Dialog open={permisosDialogOpen} onOpenChange={setPermisosDialogOpen}>
+   936→        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+   937→          <DialogHeader>
+   938→            <DialogTitle className="flex items-center gap-2">
+   939→              <Shield className="w-5 h-5 text-emerald-400" />
+   940→              Matriz de Permisos por Rol
+   941→            </DialogTitle>
+   942→            <DialogDescription>
+   943→              Definí qué módulos puede acceder cada rol. Los cambios se aplican a todos los usuarios activos de cada rol.
+   944→              <br />El rol <strong>Owner</strong> siempre tiene acceso completo.
+   945→            </DialogDescription>
+   946→          </DialogHeader>
+   947→
+   948→          <div className="overflow-x-auto -mx-2 px-2">
+   949→            <table className="w-full text-sm border-separate border-spacing-0">
+   950→              <thead>
+   951→                <tr>
+   952→                  <th className="text-left p-2 font-medium text-muted-foreground text-xs uppercase tracking-wider sticky left-0 bg-background">Módulo</th>
+   953→                  {ROLES.map(r => (
+   954→                    <th key={r.value} className="text-center p-2 min-w-[90px]">
+   955→                      <div className="flex flex-col items-center gap-1">
+   956→                        <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${r.avatarGradient} flex items-center justify-center text-white shadow-sm`}>
+   957→                          <r.icon className="w-3.5 h-3.5" />
+   958→                        </div>
+   959→                        <span className="text-[10px] font-medium" style={{ color: r.colorHex }}>{r.shortLabel}</span>
+   960→                      </div>
+   961→                    </th>
+   962→                  ))}
+   963→                </tr>
+   964→              </thead>
+   965→              <tbody>
+   966→                {MODULOS_SISTEMA.map(mod => (
+   967→                  <tr key={mod.id} className="group">
+   968→                    <td className="p-2 font-medium text-sm border-b border-muted/50 sticky left-0 bg-background group-hover:bg-muted/30 transition-colors">
+   969→                      {mod.label}
+   970→                    </td>
+   971→                    {ROLES.map(r => {
+   972→                      const checked = (matrixPermisos[r.value] || []).includes(mod.id);
+   973→                      const isOwnerCol = r.value === 'owner';
+   974→                      const isReadOnly = READ_ONLY_PERMISOS[r.value]?.includes(mod.id);
+   975→                      const canEditCell = esAdminOOwner && !isOwnerCol;
+   976→
+   977→                      let cellClass = 'bg-gray-100 text-gray-400';
+   978→                      if (checked && isReadOnly) cellClass = 'bg-amber-100 text-amber-700';
+   979→                      else if (checked) cellClass = 'bg-emerald-100 text-emerald-700';
+   980→
+   981→                      return (
+   982→                        <td key={r.value} className="text-center p-2 border-b border-muted/50">
+   983→                          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-md ${cellClass}`}>
+   984→                            {canEditCell ? (
+   985→                              <Checkbox
+   986→                                checked={checked}
+   987→                                onCheckedChange={() => toggleMatrixPermiso(r.value, mod.id)}
+   988→                                className="border-current"
+   989→                              />
+   990→                            ) : (
+   991→                              checked ? (
+   992→                                isReadOnly ? (
+   993→                                  <span className="text-[10px] font-bold">R</span>
+   994→                                ) : (
+   995→                                  <Check className="w-4 h-4" />
+   996→                                )
+   997→                              ) : (
+   998→                                <span className="text-xs">—</span>
+   999→                              )
+  1000→                            )}
+  1001→                          </div>
+  1002→                        </td>
+  1003→                      );
+  1004→                    })}
+  1005→                  </tr>
+  1006→                ))}
+  1007→              </tbody>
+  1008→            </table>
+  1009→          </div>
+  1010→
+  1011→          {/* Legend */}
+  1012→          <div className="flex items-center gap-3 text-[11px] text-muted-foreground pt-2 flex-wrap">
+  1013→            <span className="flex items-center gap-1.5">
+  1014→              <span className="w-3 h-3 rounded bg-emerald-100 inline-block border border-emerald-300" />
+  1015→              Acceso completo
+  1016→            </span>
+  1017→            <span className="flex items-center gap-1.5">
+  1018→              <span className="w-3 h-3 rounded bg-amber-100 inline-block border border-amber-300 flex items-center justify-center text-[8px] font-bold text-amber-700">R</span>
+  1019→              Solo lectura
+  1020→            </span>
+  1021→            <span className="flex items-center gap-1.5">
+  1022→              <span className="w-3 h-3 rounded bg-gray-100 inline-block border border-gray-300" />
+  1023→              Sin acceso
+  1024→            </span>
+  1025→            {!esAdminOOwner && (
+  1026→              <span className="text-amber-600 ml-auto">Solo owner/admin pueden editar.</span>
+  1027→            )}
+  1028→          </div>
+  1029→
+  1030→          <DialogFooter>
+  1031→            <DialogClose asChild>
+  1032→              <Button variant="ghost" size="sm" disabled={matrixSaving}>Cancelar</Button>
+  1033→            </DialogClose>
+  1034→            <Button size="sm" onClick={saveMatrix} disabled={matrixSaving || !esAdminOOwner}>
+  1035→              {matrixSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+  1036→              Guardar permisos
+  1037→            </Button>
+  1038→          </DialogFooter>
+  1039→        </DialogContent>
+  1040→      </Dialog>
+  1041→
+  1042→      {/* ═══════════ DIALOG: INVITAR USUARIO ═══════════ */}
+  1043→      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+  1044→        <DialogContent className="max-w-md">
+  1045→          <DialogHeader>
+  1046→            <DialogTitle className="flex items-center gap-2">
+  1047→              <Mail className="w-5 h-5 text-emerald-400" />
+  1048→              Invitar usuario
+  1049→            </DialogTitle>
+  1050→            <DialogDescription>
+  1051→              Creá un nuevo perfil y compartí la contraseña temporal con tu compañero.
+  1052→            </DialogDescription>
+  1053→          </DialogHeader>
+  1054→
+  1055→          <div className="space-y-4 py-2">
+  1056→            <div className="space-y-1.5">
+  1057→              <Label className="text-xs">Nombre del perfil</Label>
+  1058→              <Input
+  1059→                placeholder="Ej: Recepción Laura"
+  1060→                value={inviteForm.nombre}
+  1061→                onChange={e => setInviteForm(f => ({ ...f, nombre: e.target.value }))}
+  1062→                autoFocus
+  1063→              />
+  1064→            </div>
+  1065→
+  1066→            <div className="space-y-1.5">
+  1067→              <Label className="text-xs">Rol</Label>
+  1068→              <Select value={inviteForm.rol} onValueChange={v => setInviteForm(f => ({ ...f, rol: v }))}>
+  1069→                <SelectTrigger>
+  1070→                  <SelectValue />
+  1071→                </SelectTrigger>
+  1072→                <SelectContent>
+  1073→                  {ASSIGNABLE_ROLES.map(r => (
+  1074→                    <SelectItem key={r.value} value={r.value}>
+  1075→                      <div className="flex items-center gap-2">
+  1076→                        <r.icon className="w-4 h-4" />
+  1077→                        <span>{r.label}</span>
+  1078→                      </div>
+  1079→                    </SelectItem>
+  1080→                  ))}
+  1081→                </SelectContent>
+  1082→              </Select>
+  1083→            </div>
+  1084→
+  1085→            <div className="space-y-1.5">
+  1086→              <Label className="text-xs flex items-center gap-1.5">
+  1087→                <KeyRound className="w-3 h-3" />
+  1088→                Contraseña temporal
+  1089→              </Label>
+  1090→              <div className="flex gap-2">
+  1091→                <Input
+  1092→                  value={inviteTempPassword}
+  1093→                  onChange={e => setInviteTempPassword(e.target.value)}
+  1094→                  className="font-mono text-xs"
+  1095→                />
+  1096→                <Button
+  1097→                  type="button"
+  1098→                  variant="outline"
+  1099→                  size="sm"
+  1100→                  onClick={() => setInviteTempPassword(randomPassword())}
+  1101→                  title="Generar nueva"
+  1102→                >
+  1103→                  <RotateCcw className="w-3.5 h-3.5" />
+  1104→                </Button>
+  1105→              </div>
+  1106→              <p className="text-[11px] text-muted-foreground">
+  1107→                Mínimo 8 caracteres, una mayúscula y un número.
+  1108→              </p>
+  1109→            </div>
+  1110→
+  1111→            {/* Permissions preview */}
+  1112→            <div className="space-y-1.5">
+  1113→              <Label className="text-xs">Módulos a los que tendrá acceso ({(PERMISOS_POR_ROL[inviteForm.rol] || []).length}/{MODULOS_SISTEMA.length})</Label>
+  1114→              <div className="rounded-md border p-2.5 bg-muted/20 max-h-40 overflow-y-auto">
+  1115→                <div className="grid grid-cols-2 gap-1">
+  1116→                  {MODULOS_SISTEMA.map(m => {
+  1117→                    const has = (PERMISOS_POR_ROL[inviteForm.rol] || []).includes(m.id);
+  1118→                    return (
+  1119→                      <div key={m.id} className="flex items-center gap-1.5 text-xs">
+  1120→                        {has ? (
+  1121→                          <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+  1122→                        ) : (
+  1123→                          <X className="w-3 h-3 text-gray-400 shrink-0" />
+  1124→                        )}
+  1125→                        <span className={has ? 'text-foreground' : 'text-muted-foreground line-through'}>
+  1126→                          {m.label}
+  1127→                        </span>
+  1128→                      </div>
+  1129→                    );
+  1130→                  })}
+  1131→                </div>
+  1132→              </div>
+  1133→            </div>
+  1134→          </div>
+  1135→
+  1136→          <DialogFooter>
+  1137→            <DialogClose asChild>
+  1138→              <Button variant="ghost" size="sm" disabled={inviting}>Cancelar</Button>
+  1139→            </DialogClose>
+  1140→            <Button size="sm" onClick={handleInvite} disabled={inviting || !inviteForm.nombre.trim() || inviteTempPassword.length < 8}>
+  1141→              {inviting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Mail className="w-4 h-4 mr-2" />}
+  1142→              Enviar invitación
+  1143→            </Button>
+  1144→          </DialogFooter>
+  1145→        </DialogContent>
+  1146→      </Dialog>
+  1147→
+  1148→      {/* ═══════════ DIALOG: RESTABLECER CONTRASEÑA ═══════════ */}
+  1149→      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+  1150→        <DialogContent className="max-w-md">
+  1151→          <DialogHeader>
+  1152→            <DialogTitle className="flex items-center gap-2">
+  1153→              <KeyRound className="w-5 h-5 text-emerald-400" />
+  1154→              Restablecer contraseña
+  1155→            </DialogTitle>
+  1156→            <DialogDescription>
+  1157→              Generá una nueva contraseña temporal para <strong>{resetTargetUser?.nombreCompleto}</strong>.
+  1158→            </DialogDescription>
+  1159→          </DialogHeader>
+  1160→
+  1161→          <div className="space-y-3 py-2">
+  1162→            <Label className="text-xs flex items-center gap-1.5">
+  1163→              <KeyRound className="w-3 h-3" />
+  1164→              Nueva contraseña temporal
+  1165→            </Label>
+  1166→            <div className="flex gap-2">
+  1167→              <Input
+  1168→                value={resetPassword}
+  1169→                onChange={e => setResetPassword(e.target.value)}
+  1170→                className="font-mono text-xs"
+  1171→              />
+  1172→              <Button
+  1173→                type="button"
+  1174→                variant="outline"
+  1175→                size="sm"
+  1176→                onClick={() => setResetPassword(randomPassword())}
+  1177→                title="Generar nueva"
+  1178→              >
+  1179→                <RotateCcw className="w-3.5 h-3.5" />
+  1180→              </Button>
+  1181→            </div>
+  1182→            <p className="text-[11px] text-muted-foreground">
+  1183→              Compartí esta contraseña con el usuario. Podrá cambiarla desde su perfil.
+  1184→            </p>
+  1185→          </div>
+  1186→
+  1187→          <DialogFooter>
+  1188→            <DialogClose asChild>
+  1189→              <Button variant="ghost" size="sm" disabled={resetting}>Cancelar</Button>
+  1190→            </DialogClose>
+  1191→            <Button size="sm" onClick={handleReset} disabled={resetting || resetPassword.length < 8}>
+  1192→              {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
+  1193→              Restablecer
+  1194→            </Button>
+  1195→          </DialogFooter>
+  1196→        </DialogContent>
+  1197→      </Dialog>
+  1198→    </div>
+  1199→  );
+  1200→}
+  1201→
