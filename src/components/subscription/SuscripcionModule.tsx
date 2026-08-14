@@ -109,14 +109,14 @@ export default function SuscripcionModule() {
 
   // Estado visual de la suscripción
   const estadoColor: Record<string, string> = {
-    trial: 'bg-[#DBEAFE] text-[#1E40AF]',
-    pendiente_pago: 'bg-[#FEF3C7] text-[#92400E]',
+    trial: 'bg-sky-900/30 text-sky-300',
+    pendiente_pago: 'bg-amber-900/60 text-amber-300',
     activa: isRecurring
       ? 'bg-emerald-900/60 text-emerald-300'
       : 'bg-emerald-900/60 text-emerald-300',
-    vencida: 'bg-[#FEE2E2] text-[#991B1B]',
+    vencida: 'bg-red-900/60 text-red-300',
     cancelada: 'bg-muted text-muted-foreground',
-    suspensa: 'bg-[#FEF3C7] text-[#92400E]',
+    suspensa: 'bg-amber-900/60 text-amber-300',
   };
 
   const estadoLabel: Record<string, string> = {
@@ -159,8 +159,8 @@ export default function SuscripcionModule() {
       {/* ── Header ── */}
       <div>
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center">
-            <Crown className="w-5 h-5 text-[#92400E]" />
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+            <Crown className="w-5 h-5 text-amber-300" />
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Suscripción</h1>
@@ -187,7 +187,7 @@ export default function SuscripcionModule() {
               {isTrial ? 'Período de prueba' : `${plan.precioDisplay}/mes`}
             </p>
             {isTrial && fechaVencimientoTrial && (
-              <div className={`flex items-center gap-1.5 mt-3 text-sm ${trialExpired ? 'text-destructive' : diasTrial <= 7 ? 'text-[#92400E]' : 'text-muted-foreground'}`}>
+              <div className={`flex items-center gap-1.5 mt-3 text-sm ${trialExpired ? 'text-destructive' : diasTrial <= 7 ? 'text-amber-300' : 'text-muted-foreground'}`}>
                 {trialExpired ? <AlertTriangle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                 {trialExpired ? 'Prueba vencida' : `${diasTrial} días restantes`}
               </div>
@@ -358,8 +358,8 @@ export default function SuscripcionModule() {
           onClick={() => setShowTransfer(!showTransfer)}
           className="flex items-center gap-3 group w-full text-left"
         >
-          <div className="w-10 h-10 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center shrink-0">
-            <Building2 className="w-5 h-5 text-[#1E40AF]" />
+          <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5 text-sky-300" />
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-semibold group-hover:text-primary transition-colors">
@@ -375,8 +375,8 @@ export default function SuscripcionModule() {
         {showTransfer && (
           <Card className="mt-4">
             <CardContent className="p-5 space-y-4">
-              <div className="flex items-start gap-2 p-3 bg-[#3B82F6]/5 rounded-lg">
-                <Info className="w-4 h-4 text-[#3B82F6] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 p-3 bg-sky-900/20 rounded-lg">
+                <Info className="w-4 h-4 text-sky-300 shrink-0 mt-0.5" />
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Luego de realizar la transferencia, enviá el comprobante por email a <strong>soporte@hospeda.com</strong> con tu nombre de hotel y el plan elegido. Un administrador activará tu suscripción una vez verificado el pago.
                 </p>

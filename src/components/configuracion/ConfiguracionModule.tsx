@@ -1171,8 +1171,8 @@ function SuscripcionSection() {
         {isTrial && diasTrial <= 7 && (
           <CardContent className="pt-0">
             <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/20">
-              <AlertTriangle className="w-4 h-4 text-[#92400E] shrink-0" />
-              <p className="text-sm text-[#92400E]">
+              <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
+              <p className="text-sm text-amber-300">
                 Tu prueba vence en {diasTrial} días. Seleccioná un plan para no perder acceso.
               </p>
             </div>
@@ -1291,7 +1291,7 @@ function SuscripcionSection() {
           className="flex items-center gap-3 group w-full text-left"
         >
           <div className="w-9 h-9 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center shrink-0">
-            <Building2 className="w-4 h-4 text-[#1E40AF]" />
+            <Building2 className="w-4 h-4 text-sky-300" />
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-semibold group-hover:text-primary transition-colors">

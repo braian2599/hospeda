@@ -502,7 +502,7 @@ export default function ClientesModule() {
                           {selectedLoyalty.icon}{selectedLoyalty.level}
                         </Badge>
                       </div>
-                      <Badge variant="outline" className="bg-[#F0FDF4] border-emerald-700/40 text-emerald-300 mt-1 text-xs">
+                      <Badge variant="outline" className="bg-emerald-950/30 border-emerald-700/40 text-emerald-300 mt-1 text-xs">
                         <Clock className="w-3 h-3 mr-1" /> Cliente desde: {formatFecha(selected.fechaCreacion)}
                       </Badge>
                     </div>

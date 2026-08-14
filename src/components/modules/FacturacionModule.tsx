@@ -34,8 +34,8 @@ import { AnimatedNumber } from '@/components/ui/animated-number';
 // formatFecha, formatMoney, formatFechaHora, todayLocal imported from @/lib/format
 
 const estadoPagoBadge: Record<string, string> = {
-  Pendiente: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A] shadow-sm',
-  Parcial: 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA] shadow-sm',
+  Pendiente: 'bg-amber-900/60 text-amber-300 border-amber-700/40 shadow-sm',
+  Parcial: 'bg-orange-900/40 text-orange-300 border-orange-700/40 shadow-sm',
   Pagado: 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40 shadow-sm',
 };
 
@@ -392,7 +392,7 @@ export default function FacturacionModule() {
                             </div>
                             <div>
                               <p className="text-[10px] text-muted-foreground leading-tight">Saldo</p>
-                              <p className="text-sm font-bold text-[#991B1B]">{formatMoney(saldo)}</p>
+                              <p className="text-sm font-bold text-red-300">{formatMoney(saldo)}</p>
                             </div>
                           </div>
                           {/* Actions */}
@@ -479,7 +479,7 @@ export default function FacturacionModule() {
                             <TableCell className="hidden md:table-cell">{formatFecha(r.checkout)}</TableCell>
                             <TableCell className="text-right font-bold text-emerald-400">{formatMoney(total)}</TableCell>
                             <TableCell className="text-right font-semibold text-emerald-300">{formatMoney(pagado)}</TableCell>
-                            <TableCell className="text-right text-[#991B1B] font-bold">{formatMoney(saldo)}</TableCell>
+                            <TableCell className="text-right text-red-300 font-bold">{formatMoney(saldo)}</TableCell>
                             <TableCell>
                               <div className="space-y-1 min-w-[80px]">
                                 <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -601,7 +601,7 @@ export default function FacturacionModule() {
                           {reserva && (
                             <div className="flex justify-between text-xs text-muted-foreground">
                               <span>Total: {formatMoney(totalR)}</span>
-                              <span className={saldoR <= 0 ? 'text-emerald-300 font-medium' : 'text-[#991B1B]'}>{saldoR <= 0 ? 'Pagado' : `Saldo: ${formatMoney(saldoR)}`}</span>
+                              <span className={saldoR <= 0 ? 'text-emerald-300 font-medium' : 'text-red-300'}>{saldoR <= 0 ? 'Pagado' : `Saldo: ${formatMoney(saldoR)}`}</span>
                             </div>
                           )}
                           {/* Receipt button */}
@@ -673,7 +673,7 @@ export default function FacturacionModule() {
                             <TableCell className="hidden md:table-cell text-right text-sm">
                               {formatMoney(totalR)}
                             </TableCell>
-                            <TableCell className={`hidden md:table-cell text-right text-sm font-medium ${saldoR <= 0 ? 'text-emerald-300' : 'text-[#991B1B]'}`}>
+                            <TableCell className={`hidden md:table-cell text-right text-sm font-medium ${saldoR <= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
                               {saldoR <= 0 ? 'Pagado' : formatMoney(saldoR)}
                             </TableCell>
                             <TableCell className="hidden lg:table-cell text-muted-foreground text-sm max-w-[200px] truncate">
@@ -733,7 +733,7 @@ export default function FacturacionModule() {
                 <Separator />
                 <div className="flex justify-between font-bold text-sm">
                   <span>Saldo pendiente</span>
-                  <span className="text-[#991B1B]">
+                  <span className="text-red-300">
                     {formatMoney(calcularTotalReserva(pagoReserva.id) - calcularTotalPagado(pagoReserva.id))}
                   </span>
                 </div>
@@ -987,7 +987,7 @@ function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: st
         {saldo > 0 && (
           <div className="flex justify-between text-sm font-bold">
             <span>Saldo pendiente</span>
-            <span className="text-[#991B1B]">{formatMoney(saldo)}</span>
+            <span className="text-red-300">{formatMoney(saldo)}</span>
           </div>
         )}
         {saldo <= 0 && (

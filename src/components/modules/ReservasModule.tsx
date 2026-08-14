@@ -204,7 +204,7 @@ function DateRangePickerInline({
                     day: 'relative w-full h-full p-0 text-center [&:first-child[data-selected=true]_button]:rounded-l-md [&:last-child[data-selected=true]_button]:rounded-r-md group/day aspect-square select-none',
                   }}
                 />
-                <div className="flex justify-end border-t border-[#E2E8F0] p-3">
+                <div className="flex justify-end border-t border-border p-3">
                   <Button
                     size="sm"
                     onClick={handleConfirm}
@@ -231,14 +231,14 @@ const s = (n: number) => n !== 1 ? 's' : '';
 
 const estadoReservaBadge: Record<string, string> = {
  Confirmada: 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40',
- Cancelada: 'bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]',
- 'Check-In realizado': 'bg-[#DBEAFE] text-[#1E40AF] border-[#BFDBFE]',
- 'Check-Out realizado': 'bg-[#F1F5F9] text-slate-400 border-[#CBD5E1]',
+ Cancelada: 'bg-red-900/60 text-red-300 border-red-700/40',
+ 'Check-In realizado': 'bg-sky-900/60 text-sky-300 border-sky-700/40',
+ 'Check-Out realizado': 'bg-slate-800/60 text-slate-300 border-slate-600/40',
 };
 
 const estadoPagoBadge: Record<string, string> = {
- Pendiente: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]',
- Parcial: 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA]',
+ Pendiente: 'bg-amber-900/60 text-amber-300 border-amber-700/40',
+ Parcial: 'bg-orange-900/60 text-orange-300 border-orange-700/40',
  Pagado: 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40',
 };
 
@@ -312,7 +312,7 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
             <span className={l.dim ? 'font-medium text-[#94A3B8]' : 'font-semibold text-foreground'}>{l.value}</span>
           </div>
         ))}
-        <div className="flex justify-between items-center py-1.5 mt-1 border-t border-[#E2E8F0] text-[13px]">
+        <div className="flex justify-between items-center py-1.5 mt-1 border-t border-border text-[13px]">
           <span className="font-medium text-[#475569]">Subtotal</span>
           <span className="font-bold text-foreground">{formatMoney(sub)}</span>
         </div>
@@ -1286,7 +1286,7 @@ export default function ReservasModule() {
  </div>
 
  {/* ==================== FILTER BAR ==================== */}
- <Card className="bg-muted/20 border-[#E2E8F0]/80">
+ <Card className="bg-muted/20 border-border/80">
  <CardContent className="p-4">
  <div className="flex flex-wrap gap-3 items-end justify-center">
  <div className="grid gap-1.5">
@@ -1415,7 +1415,7 @@ export default function ReservasModule() {
        <span>Pago</span>
        <span className="font-medium">{payProgress}%</span>
      </div>
-     <div className="h-1.5 rounded-full bg-[#F1F5F9] overflow-hidden">
+     <div className="h-1.5 rounded-full bg-muted overflow-hidden">
        <div
          className={cn(
            'h-full rounded-full transition-all duration-500',
@@ -1428,7 +1428,7 @@ export default function ReservasModule() {
  )}
  {/* Row 5: Saldo */}
  {saldo > 0 && (
-   <div className="flex items-center gap-1 mt-1.5 text-xs text-[#991B1B] font-medium">
+   <div className="flex items-center gap-1 mt-1.5 text-xs text-red-300 font-medium">
      <AlertTriangle className="w-3 h-3" />
      Saldo: {formatMoney(saldo)}
    </div>
@@ -1449,7 +1449,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-[#92400E] hover:bg-[#FEF3C7]"
+         className="h-7 text-xs px-2 text-amber-300 hover:bg-amber-900/30"
          onClick={() => openEdit(r)}
        >
          <Pencil className="w-3 h-3 mr-1" />Editar
@@ -1457,7 +1457,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-[#991B1B] hover:bg-[#FEE2E2]"
+         className="h-7 text-xs px-2 text-red-300 hover:bg-red-900/30"
          onClick={() => openCancel(r.id)}
        >
          <XCircle className="w-3 h-3 mr-1" />Cancelar
@@ -1469,7 +1469,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-[#EA580C] hover:bg-[#FFEDD5]"
+         className="h-7 text-xs px-2 text-orange-400 hover:bg-orange-900/30"
          disabled={isActionLoading}
          onClick={() => handleQuickCheckOut(r)}
        >
@@ -1481,7 +1481,7 @@ export default function ReservasModule() {
      <Button
        size="sm"
        variant="ghost"
-       className="h-7 text-xs px-2 text-[#7C3AED] hover:bg-[#F5F3FF]"
+       className="h-7 text-xs px-2 text-violet-300 hover:bg-violet-900/30"
        onClick={() => openEdit(r)}
      >
        <CreditCard className="w-3 h-3 mr-1" />Pago
@@ -1499,7 +1499,7 @@ export default function ReservasModule() {
  <div className="hidden sm:block overflow-x-auto">
  <Table>
  <TableHeader>
- <TableRow className="bg-[#F8FAFC]">
+ <TableRow className="bg-muted/30">
    <TableHead className="w-1 p-0" />
    <TableHead>Huésped</TableHead>
    <TableHead>Habitación</TableHead>
@@ -1574,7 +1574,7 @@ export default function ReservasModule() {
              <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-0.5">
                <span>{payProgress}%</span>
              </div>
-             <div className="h-1.5 rounded-full bg-[#F1F5F9] overflow-hidden">
+             <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                <div
                  className={cn(
                    'h-full rounded-full transition-all duration-500',
@@ -1591,7 +1591,7 @@ export default function ReservasModule() {
        <TableCell className="hidden md:table-cell">
          <div className="flex items-center gap-1">
            {saldo > 0 && <AlertTriangle className="w-3.5 h-3.5 text-[#EF4444] shrink-0" />}
-           <span className={saldo > 0 ? 'text-[#991B1B] font-medium' : 'text-muted-foreground'}>
+           <span className={saldo > 0 ? 'text-red-300 font-medium' : 'text-muted-foreground'}>
              {formatMoney(saldo)}
            </span>
          </div>
@@ -1612,7 +1612,7 @@ export default function ReservasModule() {
                <Button
                  size="sm"
                  variant="outline"
-                 className="border-[#FDE68A] text-[#92400E] hover:bg-[#FEF3C7] h-7 text-xs px-2"
+                 className="border-amber-700/40 text-amber-300 hover:bg-amber-900/30 h-7 text-xs px-2"
                  onClick={() => openEdit(r)}
                >
                  <Pencil className="w-3 h-3 mr-1" />Editar
@@ -1620,7 +1620,7 @@ export default function ReservasModule() {
                <Button
                  size="sm"
                  variant="outline"
-                 className="border-[#FECACA] text-[#991B1B] hover:bg-[#FEE2E2] h-7 text-xs px-2"
+                 className="border-red-700/40 text-red-300 hover:bg-red-900/30 h-7 text-xs px-2"
                  onClick={() => openCancel(r.id)}
                >
                  <XCircle className="w-3 h-3 mr-1" />Cancelar
@@ -1631,7 +1631,7 @@ export default function ReservasModule() {
              <Button
                size="sm"
                variant="ghost"
-               className="h-7 text-xs px-2 text-[#EA580C] hover:bg-[#FFEDD5] opacity-0 group-hover:opacity-100 transition-opacity"
+               className="h-7 text-xs px-2 text-orange-400 hover:bg-orange-900/30 opacity-0 group-hover:opacity-100 transition-opacity"
                disabled={isActionLoading}
                onClick={() => handleQuickCheckOut(r)}
              >
@@ -1642,7 +1642,7 @@ export default function ReservasModule() {
              <Button
                size="sm"
                variant="ghost"
-               className="h-7 text-xs px-2 text-[#7C3AED] hover:bg-[#F5F3FF] opacity-0 group-hover:opacity-100 transition-opacity"
+               className="h-7 text-xs px-2 text-violet-300 hover:bg-violet-900/30 opacity-0 group-hover:opacity-100 transition-opacity"
                onClick={() => openEdit(r)}
              >
                <CreditCard className="w-3 h-3 mr-1" />Pago
@@ -1763,13 +1763,13 @@ export default function ReservasModule() {
  <p className="text-xs font-medium text-emerald-300 uppercase tracking-wide mb-1">Total reserva</p>
  <p className="font-bold text-lg text-emerald-300">{formatMoney(calcularTotalReserva(detalleReserva.id))}</p>
  </div>
- <div className="rounded-xl border-2 border-[#BFDBFE] bg-[#DBEAFE]/60 p-3 text-center">
- <p className="text-xs font-medium text-[#1E40AF] uppercase tracking-wide mb-1">Pagado</p>
- <p className="font-bold text-lg text-[#1E40AF]">{formatMoney(calcularTotalPagado(detalleReserva.id))}</p>
+ <div className="rounded-xl border-2 border-sky-700/40 bg-sky-900/30 p-3 text-center">
+ <p className="text-xs font-medium text-sky-300 uppercase tracking-wide mb-1">Pagado</p>
+ <p className="font-bold text-lg text-sky-300">{formatMoney(calcularTotalPagado(detalleReserva.id))}</p>
  </div>
- <div className={`rounded-xl border-2 p-3 text-center ${getSaldo(detalleReserva) > 0 ? 'border-[#FECACA] bg-[#FEE2E2]/60' : 'border-[#E2E8F0] bg-[#F8FAFC]/60'}`}> 
- <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${getSaldo(detalleReserva) > 0 ? 'text-[#991B1B]' : 'text-slate-400'}`}>Saldo</p>
- <p className={`font-bold text-lg ${getSaldo(detalleReserva) > 0 ? 'text-[#991B1B]' : 'text-[#334155]'}`}>
+ <div className={`rounded-xl border-2 p-3 text-center ${getSaldo(detalleReserva) > 0 ? 'border-red-700/40 bg-red-900/30' : 'border-border bg-muted/30'}`}> 
+ <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${getSaldo(detalleReserva) > 0 ? 'text-red-300' : 'text-slate-400'}`}>Saldo</p>
+ <p className={`font-bold text-lg ${getSaldo(detalleReserva) > 0 ? 'text-red-300' : 'text-foreground'}`}>
  {formatMoney(getSaldo(detalleReserva))}
  </p>
  </div>
@@ -1800,9 +1800,9 @@ export default function ReservasModule() {
  </DialogHeader>
 
  {errors.length > 0 && (
- <div className="rounded-lg border border-[#FECACA] bg-[#FEE2E2] p-3 space-y-1">
+ <div className="rounded-lg border border-red-700/40 bg-red-900/30 p-3 space-y-1">
  {errors.map((err, i) => (
- <p key={i} className="text-sm text-[#991B1B] flex items-center gap-1">
+ <p key={i} className="text-sm text-red-300 flex items-center gap-1">
  <AlertTriangle className="w-3.5 h-3.5" /> {err}
  </p>
  ))}
@@ -2111,7 +2111,7 @@ export default function ReservasModule() {
  {computed.desglose && (
  <>
  {computed.desglose.ninosCount > 0 && (
- <div className="flex justify-between text-xs text-[#6D28D9]">
+ <div className="flex justify-between text-xs text-violet-300">
  <span>{computed.desglose.ninosCount} niño{computed.desglose.ninosCount > 1 ? 's' : ''} × {computed.desglose.nochesCobrables} noche{computed.desglose.nochesCobrables > 1 ? 's' : ''}</span>
  <span>{formatMoney(computed.desglose.ninosCount * computed.desglose.precioNino * computed.desglose.nochesCobrables)}</span>
  </div>
@@ -2124,7 +2124,7 @@ export default function ReservasModule() {
  </div>
  )}
  {computed.desglose.nochesGratis > 0 && (
- <div className="flex justify-between text-xs text-[#92400E]">
+ <div className="flex justify-between text-xs text-amber-300">
  <span>{computed.desglose.nochesGratis} noche{computed.desglose.nochesGratis > 1 ? 's' : ''} de cortesía</span>
  <span className="line-through opacity-60">-noches gratis-</span>
  </div>
@@ -2155,7 +2155,7 @@ export default function ReservasModule() {
  {computed.recargo > 0 && (
  <div className="flex justify-between text-sm mt-1">
  <span className="text-muted-foreground">Recargo por cuotas</span>
- <span className="text-[#92400E]">{formatMoney(computed.recargo)}</span>
+ <span className="text-amber-300">{formatMoney(computed.recargo)}</span>
  </div>
  )}
  <div className="flex justify-between text-sm mt-1 pt-1 border-t">
@@ -2265,7 +2265,7 @@ export default function ReservasModule() {
      </div>
 
      {/* ─── Forma de pago: toggle plano ─── */}
-     <div className="flex bg-[#F1F5F9] rounded-lg p-1">
+     <div className="flex bg-muted/50 rounded-lg p-1">
        {(['ninguno', 'parcial', 'total'] as PagoRadio[]).map(tipo => (
          <button
            key={tipo}
@@ -2298,7 +2298,7 @@ export default function ReservasModule() {
                  value={form.pagoMonto}
                  onChange={e => updateForm({ pagoMonto: e.target.value })}
                  placeholder="0"
-                 className="pl-7 text-[13px] font-semibold h-9 border-[#E2E8F0] focus-visible:ring-[#059669]"
+                 className="pl-7 text-[13px] font-semibold h-9 border-border focus-visible:ring-[#059669]"
                />
              </div>
              <div className="flex justify-between text-[11px] text-[#94A3B8]">
@@ -2332,7 +2332,7 @@ export default function ReservasModule() {
                  pagoCuotas: tieneCuotas ? `${metodo.cuotas[0].cantidad}|${metodo.cuotas[0].porcentaje}` : '1|0',
                });
              }}>
-               <SelectTrigger className="h-9 text-[13px] border-[#E2E8F0] focus-visible:ring-[#059669]">
+               <SelectTrigger className="h-9 text-[13px] border-border focus-visible:ring-[#059669]">
                  <SelectValue placeholder="Seleccionar..." />
                </SelectTrigger>
                <SelectContent>
@@ -2346,7 +2346,7 @@ export default function ReservasModule() {
              <div className="flex-1 space-y-1.5">
                <Label className="text-[11px] font-semibold text-slate-400">Cuotas</Label>
                <Select value={form.pagoCuotas} onValueChange={v => updateForm({ pagoCuotas: v })}>
-                 <SelectTrigger className="h-9 text-[13px] border-[#E2E8F0] focus-visible:ring-[#059669]">
+                 <SelectTrigger className="h-9 text-[13px] border-border focus-visible:ring-[#059669]">
                    <SelectValue />
                  </SelectTrigger>
                  <SelectContent>
@@ -2364,7 +2364,7 @@ export default function ReservasModule() {
      )}
 
      {/* Save / Cancel */}
-     <div className="flex justify-end gap-2 pt-3 border-t border-[#E2E8F0]">
+     <div className="flex justify-end gap-2 pt-3 border-t border-border">
        <Button variant="secondary" onClick={closeModal} className="text-[13px]">Cancelar</Button>
        <Button
          onClick={handleSave}
@@ -2400,7 +2400,7 @@ export default function ReservasModule() {
  <p className="text-sm text-muted-foreground">
  Habitación {cancelReserva.habitacion} · {formatFecha(cancelReserva.checkin)} → {formatFecha(cancelReserva.checkout)}
  </p>
- <p className="text-sm text-[#991B1B]">Esta acción no se puede deshacer.</p>
+ <p className="text-sm text-red-300">Esta acción no se puede deshacer.</p>
  </div>
  )}
  <DialogFooter>

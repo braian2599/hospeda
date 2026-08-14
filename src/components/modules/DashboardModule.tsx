@@ -144,8 +144,8 @@ function WeatherIcon({ code }: { code: number }) {
   if (code >= 56 && code <= 57) return <CloudDrizzle className="w-5 h-5 text-[#3B82F6]" />;
   if (code >= 61 && code <= 67) return <CloudRain className="w-5 h-5 text-[#3B82F6]" />;
   if (code >= 71 && code <= 77) return <CloudSnow className="w-5 h-5 text-[#3B82F6]" />;
-  if (code >= 80 && code <= 82) return <CloudLightning className="w-5 h-5 text-[#92400E]" />;
-  if (code >= 95) return <CloudLightning className="w-5 h-5 text-[#5B21B6]" />;
+  if (code >= 80 && code <= 82) return <CloudLightning className="w-5 h-5 text-amber-300" />;
+  if (code >= 95) return <CloudLightning className="w-5 h-5 text-violet-300" />;
   return <Thermometer className="w-5 h-5 text-[#94A3B8]" />;
 }
 
@@ -235,10 +235,10 @@ function GanttPopover({ data, position, onClose }: {
   const icono = iconoMap[data.estado] || <CheckCircle className="w-3.5 h-3.5 text-[#4ADE80]" />;
 
   const estadoColors: Record<string, string> = {
-    Reservada: 'bg-[#DBEAFE] text-[#1E40AF]',
+    Reservada: 'bg-sky-900/30 text-sky-300',
     Ocupada: 'bg-emerald-900/60 text-emerald-300',
-    Limpieza: 'bg-[#FEF3C7] text-[#92400E]',
-    Mantenimiento: 'bg-[#F8FAFC] text-slate-400',
+    Limpieza: 'bg-amber-900/60 text-amber-300',
+    Mantenimiento: 'bg-muted/30 text-slate-400',
   };
 
   return createPortal(
@@ -250,7 +250,7 @@ function GanttPopover({ data, position, onClose }: {
       <div className="flex items-center gap-2 mb-2">
         {icono}
         <span className="font-bold">Hab. {data.habitacion}</span>
-        <span className={`ml-auto text-[11px] px-1.5 py-0.5 rounded font-medium ${estadoColors[data.estado] || 'bg-[#F1F5F9] text-slate-400'}`}>
+        <span className={`ml-auto text-[11px] px-1.5 py-0.5 rounded font-medium ${estadoColors[data.estado] || 'bg-muted/30 text-slate-400'}`}>
           {data.estado}
         </span>
       </div>
@@ -306,7 +306,7 @@ function GanttPopover({ data, position, onClose }: {
       )}
 
       {data.estado === 'Limpieza' && (
-        <p className="text-[#92400E] text-xs flex items-center gap-1 mt-1"><SprayCan className="w-3 h-3" /> Pendiente de limpieza</p>
+        <p className="text-amber-300 text-xs flex items-center gap-1 mt-1"><SprayCan className="w-3 h-3" /> Pendiente de limpieza</p>
       )}
       {data.estado === 'Mantenimiento' && (
         <p className="text-slate-400 text-xs flex items-center gap-1 mt-1"><Wrench className="w-3 h-3" /> {data.problema || 'En mantenimiento'}</p>
@@ -460,7 +460,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
           const d = new Date(col + 'T12:00:00');
           const esFS = d.getDay() === 0 || d.getDay() === 6;
           const isHoy = col === hoyStr;
-          return <div key={ci} className={`flex-1 h-full border-l-2 border-border box-border ${esFS ? 'bg-[#FEE2E2]/40' : ''} ${isHoy ? 'bg-[#DBEAFE]/30' : ''}`} style={{ height: FILA_H }} />;
+          return <div key={ci} className={`flex-1 h-full border-l-2 border-border box-border ${esFS ? 'bg-red-900/20' : ''} ${isHoy ? 'bg-sky-900/15' : ''}`} style={{ height: FILA_H }} />;
         });
 
         const barras = reservasActivas.map((res, idx) => {
@@ -501,7 +501,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         const d = new Date(col + 'T12:00:00');
         const esFS = d.getDay() === 0 || d.getDay() === 6;
         const isHoy = col === hoyStr;
-        return <div key={ci} className={`flex-1 h-full border-l-2 border-border box-border ${esFS ? 'bg-[#FEE2E2]/40' : ''} ${isHoy ? 'bg-[#DBEAFE]/30' : ''}`} />;
+        return <div key={ci} className={`flex-1 h-full border-l-2 border-border box-border ${esFS ? 'bg-red-900/20' : ''} ${isHoy ? 'bg-sky-900/15' : ''}`} />;
       });
 
       const barras = reservasHab.map((res, idx) => {
@@ -544,7 +544,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       const esFS = d.getDay() === 0 || d.getDay() === 6;
       const isHoy = col === hoyStr;
       return (
-        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-border min-w-0 transition-colors duration-150 ${esFS ? 'bg-[#FEE2E2]/50' : ''} ${isHoy ? 'bg-[#0F2B28]/8' : ''}`}>
+        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-border min-w-0 transition-colors duration-150 ${esFS ? 'bg-red-900/30' : ''} ${isHoy ? 'bg-emerald-900/10' : ''}`}>
           <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-[#F43F5E]' : 'text-slate-400'} ${isHoy ? '!text-emerald-400' : ''}`}>
             {NOMBRES_DIAS[d.getDay()]}
           </span>
@@ -557,7 +557,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
   }, [columnas, hoyStr]);
 
   const legendItems = [
-    { label: 'Disponible', color: 'bg-[#E2E8F0] border border-[#CBD5E1]' },
+    { label: 'Disponible', color: 'bg-slate-600/40 border border-slate-600/40' },
     { label: 'Reservada', color: 'bg-[#3B82F6]' },
     { label: 'Ocupada', color: 'bg-[#4ADE80]' },
     ...(mostrarHistorial ? [{ label: 'Finalizada', color: 'bg-[#94A3B8] opacity-50' }] : []),
@@ -587,7 +587,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
               {offset !== 0 && (
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setOffset(0)}>Hoy</Button>
               )}
-              <div className="w-px h-5 bg-[#E2E8F0] mx-0.5" />
+              <div className="w-px h-5 bg-slate-600/40 mx-0.5" />
               <Button
                 variant={ganttDays === 14 ? 'default' : 'outline'}
                 size="sm"
@@ -604,7 +604,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
               >
                 1 mes
               </Button>
-              <div className="w-px h-5 bg-[#E2E8F0] mx-0.5" />
+              <div className="w-px h-5 bg-slate-600/40 mx-0.5" />
               <Button
                 variant={mostrarHistorial ? 'default' : 'outline'}
                 size="sm"
@@ -644,7 +644,7 @@ function getBarColorClass(tipo: string): string {
   const map: Record<string, string> = {
     Reservada: 'bg-[#3B82F6] shadow-[0_2px_6px_rgba(59,130,246,0.35)]',
     Ocupada: 'bg-[#4ADE80] shadow-[0_2px_6px_rgba(74,222,128,0.35)]',
-    Finalizada: 'bg-[#94A3B8] opacity-50 border border-dashed border-[#CBD5E1]',
+    Finalizada: 'bg-[#94A3B8] opacity-50 border border-dashed border-slate-600/40',
     Limpieza: 'bg-[#F59E0B] shadow-[0_2px_6px_rgba(245,158,11,0.30)]',
     Mantenimiento: 'bg-[#64748B] shadow-[0_2px_6px_rgba(100,116,139,0.25)]',
   };
@@ -698,10 +698,10 @@ function RoomHeatmap({ habitaciones, reservas }: {
 
   const colors: Record<string, string> = {
     Disponible: 'bg-emerald-900/60 text-emerald-300',
-    Ocupada: 'bg-[#FEE2E2] text-[#991B1B]',
-    Limpieza: 'bg-[#FEF3C7] text-[#92400E]',
-    Mantenimiento: 'bg-[#F8FAFC] text-slate-400',
-    Reservada: 'bg-[#E0E7FF] text-[#3730A3]',
+    Ocupada: 'bg-red-900/60 text-red-300',
+    Limpieza: 'bg-amber-900/60 text-amber-300',
+    Mantenimiento: 'bg-muted/30 text-slate-400',
+    Reservada: 'bg-indigo-900/40 text-indigo-300',
   };
   const dots: Record<string, string> = {
     Disponible: 'bg-[#4ADE80]', Ocupada: 'bg-[#EF4444]', Limpieza: 'bg-[#F59E0B]', Mantenimiento: 'bg-[#64748B]', Reservada: 'bg-[#3B82F6]',
@@ -914,11 +914,11 @@ export default function DashboardModule() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#FEF3C7] border-[#FDE68A]">
-              <span className="text-xs font-medium text-[#92400E]">Para limpiar</span>
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-900/60 border-amber-700/40">
+              <span className="text-xs font-medium text-amber-300">Para limpiar</span>
               <span className="bg-[#F59E0B] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enLimpieza}</span>
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#F8FAFC] border-border">
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border-border">
               <span className="text-xs font-medium text-slate-400">En mantenimiento</span>
               <span className="bg-[#64748B] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enMantenimiento}</span>
             </div>
@@ -950,9 +950,9 @@ export default function DashboardModule() {
             )}
 
             {enLimpieza > 0 && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#FEF3C7] border-[#FDE68A] hover:bg-muted/50 transition-colors">
-                <span className="flex items-center gap-2 text-sm text-[#92400E]">
-                  <SprayCan className="w-4 h-4 text-[#92400E]" />
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-900/60 border-amber-700/40 hover:bg-muted/50 transition-colors">
+                <span className="flex items-center gap-2 text-sm text-amber-300">
+                  <SprayCan className="w-4 h-4 text-amber-300" />
                   {enLimpieza} habitación(es) pendientes de limpieza
                 </span>
                 <div className="flex items-center gap-2">
@@ -965,9 +965,9 @@ export default function DashboardModule() {
             )}
 
             {checkinsHoy.length > 0 && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#DBEAFE] border-[#BFDBFE] hover:bg-[#BFDBFE] transition-colors">
-                <span className="flex items-center gap-2 text-sm text-[#1E40AF]">
-                  <LogIn className="w-4 h-4 text-[#1E40AF]" />
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-sky-900/30 border-sky-700/40 hover:bg-sky-900/50 transition-colors">
+                <span className="flex items-center gap-2 text-sm text-sky-300">
+                  <LogIn className="w-4 h-4 text-sky-300" />
                   {checkinsHoy.length} check-in(s) pendiente(s) hoy
                 </span>
                 <div className="flex items-center gap-2">
@@ -980,8 +980,8 @@ export default function DashboardModule() {
             )}
 
             {checkoutsHoy.length > 0 && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#FFEDD5] border-[#FED7AA] hover:bg-[#FED7AA] transition-colors">
-                <span className="flex items-center gap-2 text-sm text-[#9A3412]">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-orange-900/40 border-orange-700/40 hover:bg-orange-900/50 transition-colors">
+                <span className="flex items-center gap-2 text-sm text-orange-300">
                   <LogOut className="w-4 h-4 text-[#EA580C]" />
                   {checkoutsHoy.length} check-out(s) pendiente(s) hoy
                 </span>
@@ -990,9 +990,9 @@ export default function DashboardModule() {
             )}
 
             {cajaAbiertaHoras >= 8 && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#FEE2E2] border-[#FECACA]">
-                <span className="flex items-center gap-2 text-sm text-[#991B1B]">
-                  <LockOpen className="w-4 h-4 text-[#991B1B]" />
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-red-900/60 border-red-700/40">
+                <span className="flex items-center gap-2 text-sm text-red-300">
+                  <LockOpen className="w-4 h-4 text-red-300" />
                   Caja abierta hace {cajaAbiertaHoras} horas ({caja.apertura?.empleado})
                 </span>
                 <span className="bg-[#EF4444] text-white text-xs font-bold px-2 py-0.5 rounded">Atención</span>
@@ -1000,7 +1000,7 @@ export default function DashboardModule() {
             )}
 
             {enMantenimiento > 0 && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#F8FAFC] border-border hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border-border hover:bg-muted/50 transition-colors">
                 <span className="flex items-center gap-2 text-sm text-slate-400">
                   <Wrench className="w-4 h-4 text-slate-400" />
                   {enMantenimiento} habitación(es) en mantenimiento
@@ -1033,11 +1033,11 @@ export default function DashboardModule() {
             ) : (
               <div className="space-y-2">
                 {checkinsHoy.map(r => (
-                  <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border-[#BFDBFE] bg-[#DBEAFE]/50 hover:bg-[#DBEAFE] transition-colors">
+                  <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border-sky-700/40 bg-sky-900/20 hover:bg-sky-900/40 transition-colors">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold truncate">{r.huesped}</p>
-                        {(r.ninos || 0) > 0 && <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-[#F5F3FF] text-[#6D28D9] border-[#DDD6FE]">{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}</Badge>}
+                        {(r.ninos || 0) > 0 && <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-violet-900/40 text-violet-300 border-violet-700/40">{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}</Badge>}
                       </div>
                       <p className="text-xs text-muted-foreground">Hab. {r.habitacion} · DNI: {r.dni}</p>
                     </div>
@@ -1071,7 +1071,7 @@ export default function DashboardModule() {
                 {checkoutsHoy.map(r => {
                   const saldo = calcularTotalReserva(r.id) - calcularTotalPagado(r.id);
                   return (
-                    <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border-[#FED7AA] bg-[#FFEDD5]/50 hover:bg-[#FFEDD5] transition-colors">
+                    <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border-orange-700/40 bg-orange-900/20 hover:bg-orange-900/30 transition-colors">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate">{r.huesped}</p>
                         <p className="text-xs text-muted-foreground">Hab. {r.habitacion} · 09:00</p>

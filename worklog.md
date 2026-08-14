@@ -1,6 +1,110 @@
 # Hospedá — Worklog
 
 ---
+Task ID: 4-c
+Agent: Sub Agent (general-purpose)
+Task: Fix light-theme background colors in other modules for dark-only theme
+
+Work Log:
+- HabitacionesModule.tsx: Fixed 5 status badge entries in `estados` map — bg-[#FEF3C7]/80 text-[#92400E] → bg-amber-900/60 text-amber-300 (Ocupada), bg-[#FEF9C3]/80 text-[#854D0E] → bg-amber-900/50 text-amber-300 (Limpieza), bg-[#F1F5F9]/80 text-slate-400 → bg-muted/30 text-slate-400 (Mantenimiento), bg-[#E0F2FE]/80 text-[#075985] → bg-sky-900/20 text-sky-300 (Reservada), bg-[#FEE2E2]/80 text-[#991B1B] → bg-red-900/60 text-red-300 (Fuera de servicio)
+- LimpiezaModule.tsx: 16 replacements — bg-[#FEE2E2] → bg-red-900/60, bg-[#FEF3C7] → bg-amber-900/60, bg-[#E0F2FE] → bg-sky-900/20, bg-[#FEF9C3] → bg-amber-900/60, bg-[#FECACA] → bg-red-900/40, bg-[#F1F5F9] → bg-muted/30, bg-[#DBEAFE] → bg-sky-900/30, text-[#991B1B] → text-red-300 (6 instances), text-[#92400E] → text-amber-300 (3 instances), text-[#94A3B8] → text-slate-400, text-[#0369A1] → text-sky-300, text-[#1E40AF] → text-sky-300 (2 instances), border-[#FECACA] → border-red-700/40, border-[#FDE68A] → border-amber-700/40, border-[#991B1B]/30 → border-red-700/40, border-[#3B82F6] → border-sky-700/40, hover:bg-[#FEE2E2] → hover:bg-red-900/30
+- ReportesModule.tsx: 2 replacements — text-[#991B1B] → text-red-300 in caja turno diferencia and movimiento type cells (OccupancyBadge and Crown icon were already fixed in prior task)
+- FacturacionModule.tsx: 8 replacements — bg-[#FEF3C7] text-[#92400E] border-[#FDE68A] → bg-amber-900/60 text-amber-300 border-amber-700/40 (Pendiente), bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA] → bg-orange-900/40 text-orange-300 border-orange-700/40 (Parcial), text-[#991B1B] → text-red-300 (6 instances for saldo display)
+- ClientesModule.tsx: 1 replacement — bg-[#F0FDF4] → bg-emerald-950/30 in client-since Badge
+- SuscripcionModule.tsx: 5 replacements — bg-[#DBEAFE] text-[#1E40AF] → bg-sky-900/30 text-sky-300 (trial), bg-[#FEF3C7] text-[#92400E] → bg-amber-900/60 text-amber-300 (pendiente_pago, suspensa), bg-[#FEE2E2] text-[#991B1B] → bg-red-900/60 text-red-300 (vencida), text-[#92400E] → text-amber-300 (Crown icon + trial warning), bg-[#F59E0B]/10 → bg-amber-500/20, bg-[#3B82F6]/10 → bg-sky-500/20, text-[#1E40AF] → text-sky-300, bg-[#3B82F6]/5 → bg-sky-900/20, text-[#3B82F6] → text-sky-300
+- HabitacionesModuleAPI.tsx: 6 replacements — same status badge pattern as HabitacionesModule (Ocupada, Limpieza, Mantenimiento, Reservada), bg-[#DBEAFE] → bg-sky-900/30, text-[#1E40AF] → text-sky-300 (2 Bed icon instances)
+- Verified: zero remaining light-theme bg/text/border patterns in all 7 target files
+- TypeScript check: no new errors introduced (pre-existing errors in unrelated files only)
+
+Stage Summary:
+- 7 files modified, 43+ CSS class replacements total
+- All light-theme background colors (FEF3C7, FEE2E2, F0FDF4, F8FAFC, DBEAFE, E0F2FE, FEFC9C3, FECACA, FFEDD5, F1F5F9, E0E7FF) replaced with dark-theme equivalents
+- All light-theme text colors (92400E, 991B1B, 9A3412, 854D0E, 075985, 1E40AF, 3730A3, 94A3B8, 0369A1, 3B82F6) replaced with readable dark-theme equivalents
+- All light-theme border colors (FDE68A, FECACA, FED7AA, F1F5F9, 991B1B, 3B82F6) replaced with dark-theme border equivalents
+- Status badges now use dark-aware classes: bg-amber-900/60, bg-red-900/60, bg-sky-900/20, bg-violet-900/40, bg-muted/30
+- Hover states converted: hover:bg-[#FEE2E2] → hover:bg-red-900/30
+
+---
+Task ID: 4-a
+Agent: Sub Agent (general-purpose)
+Task: Fix light-theme background colors in CajaModule.tsx for DARK-ONLY theme app
+
+Work Log:
+- Grep audit of CajaModule.tsx: identified 40+ instances of light-theme bg/text/border classes across the 2858-line file
+- CATEGORY_CONFIG badge colors replaced:
+  - Gastos: bg-[#FEE2E2] → bg-red-900/60, text-[#991B1B] → text-red-300
+  - Mantenimiento: bg-[#FEF3C7] → bg-amber-900/60, text-[#92400E] → text-amber-300
+  - Retiros: bg-[#EDE9FE] → bg-violet-900/40, text-[#5B21B6] → text-violet-300
+  - Otros: bg-[#F1F5F9] → bg-slate-800/40, text-[#475569] → text-slate-400
+- Transaction type badges (ingreso/egreso): bg-[#FEE2E2] text-[#991B1B] → bg-red-900/60 text-red-300 (7+ locations)
+- Movement form cards: bg-[#FEF2F2]/20 → bg-red-900/20, bg-[#FEF2F2] → bg-red-900/40
+- Arqueo difference indicators: bg-[#FFFBEB] → bg-amber-900/60, bg-[#FEF3C7] → bg-amber-900/60
+- All text-[#92400E] → text-amber-300 (10+ instances: Coins icon, diferencia labels, arqueo summary)
+- All text-[#991B1B] → text-red-300 (20+ instances: egreso badges, difference indicators, arqueo summary, Register egreso button)
+- Border fixes: border-[#991B1B]/30 → border-red-700/40, hover:text-[#991B1B] → hover:text-red-300
+- Detail row highlight: bg-[#F8FAFC] → bg-muted/30
+- No logic changes — only CSS class name substitutions
+- TypeScript compilation: no new errors (pre-existing errors in store.ts/ReservasModule.tsx unrelated)
+
+Stage Summary:
+- CajaModule.tsx: 40+ light-theme color classes replaced with dark-theme equivalents
+- Badges now use dark opaque backgrounds (amber-900/60, red-900/60, violet-900/40, slate-800/40) with light text (amber-300, red-300, violet-300, slate-400)
+- All bg-[#F8FAFC], bg-[#FEF2F2], bg-[#FFFBEB] variants converted to dark theme
+- Egreso button borders: border-[#991B1B]/30 → border-red-700/40
+- Zero logic changes, zero type errors introduced
+
+---
+Task ID: 4-b
+Agent: Sub Agent (general-purpose)
+Task: Fix light-theme background colors in DashboardModule.tsx for dark-only theme
+
+Work Log:
+- Scanned DashboardModule.tsx for all light-bg, light-text, and light-border patterns
+- Found 30+ instances across 12 distinct pattern types
+- Applied replacements via MultiEdit (30 replace_all edits):
+  - bg-[#FEF3C7] → bg-amber-900/60 (4 instances: tooltip estadoColors Limpieza, colors Limpieza, Estado General card, Alertas card)
+  - bg-[#FEE2E2] → bg-red-900/60 (3 instances: colors Ocupada, Alertas caja card, + /40 /50 variants)
+  - bg-[#FEE2E2]/40 → bg-red-900/20 (2 instances: gantt weekend cells)
+  - bg-[#FEE2E2]/50 → bg-red-900/30 (1 instance: gantt compact header weekend)
+  - bg-[#F5F3FF] → bg-violet-900/40 (1 instance: niños badge)
+  - bg-[#F8FAFC] → bg-muted/30 (4 instances: tooltip estadoColors, colors, Estado General, Alertas mantenimiento)
+  - bg-[#DBEAFE] → bg-sky-900/30 (3 instances: tooltip Reservada, Alertas checkin, + /30 /50 variants)
+  - bg-[#DBEAFE]/30 → bg-sky-900/15 (2 instances: gantt today highlight cells)
+  - bg-[#DBEAFE]/50 → bg-sky-900/20 (1 instance: checkins card list item)
+  - bg-[#E0E7FF] → bg-indigo-900/40 (1 instance: colors Reservada)
+  - bg-[#FFEDD5] → bg-orange-900/40 (1 instance: Alertas checkout card)
+  - bg-[#FFEDD5]/50 → bg-orange-900/20 (1 instance: checkouts card list item)
+  - bg-[#E2E8F0] → bg-slate-600/40 (3 instances: gantt separators, legend Disponible)
+  - bg-[#0F2B28]/8 → bg-emerald-900/10 (1 instance: gantt compact today highlight)
+  - text-[#92400E] → text-amber-300 (5 instances: CloudLightning icon, tooltip, colors, cards)
+  - text-[#991B1B] → text-red-300 (3 instances: colors Ocupada, Alertas caja)
+  - text-[#6D28D9] → text-violet-300 (1 instance: niños badge)
+  - text-[#1E40AF] → text-sky-300 (3 instances: tooltip Reservada, Alertas checkin)
+  - text-[#3730A3] → text-indigo-300 (1 instance: colors Reservada)
+  - text-[#9A3412] → text-orange-300 (1 instance: Alertas checkout)
+  - border-[#FDE68A] → border-amber-700/40 (2 instances: Estado General, Alertas)
+  - border-[#FECACA] → border-red-700/40 (1 instance: Alertas caja)
+  - border-[#CBD5E1] → border-slate-600/40 (2 instances: legend Disponible, Finalizada)
+  - border-[#BFDBFE] → border-sky-700/40 (2 instances: Alertas checkin, checkins list item)
+  - border-[#DDD6FE] → border-violet-700/40 (1 instance: niños badge)
+  - border-[#FED7AA] → border-orange-700/40 (2 instances: Alertas checkout, checkouts list item)
+  - hover:bg-[#BFDBFE] → hover:bg-sky-900/50 (1 instance)
+  - hover:bg-[#FED7AA] → hover:bg-orange-900/50 (1 instance)
+  - hover:bg-[#DBEAFE] → hover:bg-sky-900/40 (1 instance)
+  - hover:bg-[#FFEDD5] → hover:bg-orange-900/30 (1 instance)
+- Verified: zero remaining light-theme patterns in file
+- No logic changes — only CSS class names modified
+
+Stage Summary:
+- DashboardModule.tsx: 30+ light-theme class instances replaced with dark-theme equivalents
+- All bg-[#xxx] light backgrounds → dark bg with appropriate opacity (900/20–900/60)
+- All text-[#xxx] dark-on-light text → light text classes (300 variants for readability on dark bg)
+- All border-[#xxx] light borders → dark border with opacity (700/40)
+- All hover:bg-[#xxx] light hovers → dark hover equivalents
+- Zero remaining light-theme background patterns
+- No logic or structural changes
+
+---
 Task ID: 8
 Agent: Main Agent
 Task: Corregir contraste y legibilidad en tema oscuro — reemplazo sistémico de colores

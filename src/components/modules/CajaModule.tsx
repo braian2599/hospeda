@@ -118,11 +118,11 @@ interface CategoryConfig {
 }
 
 const CATEGORY_CONFIG: Record<MovementCategory, CategoryConfig> = {
-  'Gastos':           { label: 'Gastos',          color: '#EF4444', badgeBg: 'bg-[#FEE2E2]', badgeText: 'text-[#991B1B]', icon: ShoppingCart },
-  'Mantenimiento':    { label: 'Mantenimiento',   color: '#F59E0B', badgeBg: 'bg-[#FEF3C7]', badgeText: 'text-[#92400E]', icon: Wrench },
+  'Gastos':           { label: 'Gastos',          color: '#EF4444', badgeBg: 'bg-red-900/60', badgeText: 'text-red-300', icon: ShoppingCart },
+  'Mantenimiento':    { label: 'Mantenimiento',   color: '#F59E0B', badgeBg: 'bg-amber-900/60', badgeText: 'text-amber-300', icon: Wrench },
   'Ingresos varios':  { label: 'Ingresos varios', color: '#059669', badgeBg: 'bg-emerald-900/60', badgeText: 'text-emerald-300', icon: ArrowUpRight },
-  'Retiros':          { label: 'Retiros',         color: '#8B5CF6', badgeBg: 'bg-[#EDE9FE]', badgeText: 'text-[#5B21B6]', icon: PiggyBank },
-  'Otros':            { label: 'Otros',           color: '#64748B', badgeBg: 'bg-[#F1F5F9]', badgeText: 'text-[#475569]', icon: Tag },
+  'Retiros':          { label: 'Retiros',         color: '#8B5CF6', badgeBg: 'bg-violet-900/40', badgeText: 'text-violet-300', icon: PiggyBank },
+  'Otros':            { label: 'Otros',           color: '#64748B', badgeBg: 'bg-slate-800/40', badgeText: 'text-slate-400', icon: Tag },
 };
 
 const CATEGORY_ORDER: MovementCategory[] = ['Ingresos varios', 'Gastos', 'Mantenimiento', 'Retiros', 'Otros'];
@@ -259,7 +259,7 @@ function CashFlowTimeline({
           <div className="w-3 h-3 rounded-full bg-[#0F2B28] ring-2 ring-white shadow-sm z-10" />
           <div className="w-0.5 flex-1 bg-[#0F2B28]/20 min-h-[16px]" />
         </div>
-        <div className="bg-[#F0FDF4]/60 border border-[#059669]/20 rounded-md px-3 py-2">
+        <div className="bg-emerald-950/20 border border-[#059669]/20 rounded-md px-3 py-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <Wallet className="w-3.5 h-3.5 text-emerald-400" />
@@ -299,26 +299,26 @@ function CashFlowTimeline({
             <div className={cn(
               'border rounded-md px-3 py-2.5 space-y-1.5 transition-all hover:shadow-sm',
               isIngreso
-                ? 'border-[#059669]/20 bg-[#F0FDF4]/30 hover:border-[#059669]/40'
-                : 'border-[#EF4444]/20 bg-[#FEF2F2]/20 hover:border-[#EF4444]/40'
+                ? 'border-[#059669]/20 bg-emerald-950/10 hover:border-[#059669]/40'
+                : 'border-[#EF4444]/20 bg-red-900/20 hover:border-[#EF4444]/40'
             )}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className={cn(
                     'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
-                    isIngreso ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#FEE2E2] text-[#991B1B]'
+                    isIngreso ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300'
                   )}>
                     {isIngreso ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                   </span>
                   <div className="min-w-0">
-                    <span className={cn('text-[11px] font-semibold', isIngreso ? 'text-emerald-300' : 'text-[#991B1B]')}>
+                    <span className={cn('text-[11px] font-semibold', isIngreso ? 'text-emerald-300' : 'text-red-300')}>
                       {isIngreso ? 'Ingreso' : 'Egreso'}
                     </span>
                     <p className="text-[10px] text-muted-foreground truncate leading-tight">{entry.descripcion}</p>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className={cn('text-xs font-bold tabular-nums', isIngreso ? 'text-emerald-300' : 'text-[#991B1B]')}>
+                  <p className={cn('text-xs font-bold tabular-nums', isIngreso ? 'text-emerald-300' : 'text-red-300')}>
                     {isIngreso ? '+' : '-'}{formatMoney(entry.monto)}
                   </p>
                 </div>
@@ -412,13 +412,13 @@ function DenominationBreakdownPanel({
       {/* Coins section */}
       <div>
         <div className="flex items-center gap-1.5 mb-1.5">
-          <Coins className="w-3.5 h-3.5 text-[#92400E]" />
+          <Coins className="w-3.5 h-3.5 text-amber-300" />
           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Monedas</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {coins.map(d => (
             <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-amber-950/15 transition-colors">
-              <Coins className="w-3.5 h-3.5 text-[#92400E] shrink-0" />
+              <Coins className="w-3.5 h-3.5 text-amber-300 shrink-0" />
               <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
               <Input
                 type="number"
@@ -448,8 +448,8 @@ function DenominationBreakdownPanel({
           diferencia === 0
             ? 'bg-emerald-900/60 border-[#059669]/30'
             : diferencia > 0
-            ? 'bg-[#FEF3C7] border-[#F59E0B]/30'
-            : 'bg-[#FEE2E2] border-[#EF4444]/30'
+            ? 'bg-amber-900/60 border-[#F59E0B]/30'
+            : 'bg-red-900/60 border-[#EF4444]/30'
         )}>
           <span className="text-xs font-medium flex items-center gap-1.5">
             {diferencia === 0
@@ -459,7 +459,7 @@ function DenominationBreakdownPanel({
           </span>
           <span className={cn(
             'text-sm font-bold tabular-nums',
-            diferencia === 0 ? 'text-emerald-300' : diferencia > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
+            diferencia === 0 ? 'text-emerald-300' : diferencia > 0 ? 'text-amber-300' : 'text-red-300'
           )}>
             {diferencia === 0 ? '✓ Cuadra' : `${diferencia > 0 ? '+' : ''}${formatMoney(diferencia)}`}
           </span>
@@ -930,7 +930,7 @@ export default function CajaModule() {
                   <Unlock className="w-4 h-4 mr-2" />Abrir caja
                 </Button>
               ) : (
-                <div className="max-w-xs mx-auto space-y-2 rounded-lg border border-emerald-800/20 bg-white/80 backdrop-blur p-4 shadow-sm">
+                <div className="max-w-xs mx-auto space-y-2 rounded-lg border border-emerald-800/20 bg-card backdrop-blur p-4 shadow-sm">
                   <Label className="text-sm text-muted-foreground">Monto inicial en efectivo</Label>
                   <Input type="number" placeholder="0.00" step="0.01" min="0" value={montoInicial} onChange={e => setMontoInicial(e.target.value)} autoFocus />
                   <div className="flex gap-2">
@@ -942,7 +942,7 @@ export default function CajaModule() {
                 </div>
               )}
               {caja.historial && caja.historial.length > 0 && (
-                <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 bg-white/60 px-3 py-1.5 rounded-full">
+                <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-full">
                   <Clock className="w-3 h-3" />Último cierre: {formatFechaHora(caja.historial[caja.historial.length - 1].cierre.fecha)}
                 </p>
               )}
@@ -1007,7 +1007,7 @@ export default function CajaModule() {
                   {caja.apertura && (
                     <div className={cn(
                       'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold shadow-sm',
-                      tendencia >= 0 ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#FEE2E2] text-[#991B1B]'
+                      tendencia >= 0 ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300'
                     )}>
                       {tendencia >= 0
                         ? <ArrowUpRight className="w-3 h-3" />
@@ -1030,8 +1030,8 @@ export default function CajaModule() {
               </div>
               {/* Action buttons */}
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="h-9 text-sm border-[#059669]/30 text-emerald-300 hover:bg-[#F0FDF4] hover:text-emerald-300" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
-                <Button variant="outline" className="h-9 text-sm border-[#991B1B]/30 text-[#991B1B] hover:bg-[#FEF2F2] hover:text-[#991B1B]" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+                <Button variant="outline" className="h-9 text-sm border-[#059669]/30 text-emerald-300 hover:bg-emerald-900/30 hover:text-emerald-300" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+                <Button variant="outline" className="h-9 text-sm border-red-700/40 text-red-300 hover:bg-red-900/30 hover:text-red-300" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
               </div>
               {/* Movement form inline */}
               {showMovForm && (
@@ -1237,7 +1237,7 @@ export default function CajaModule() {
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">vs. apertura</p>
                       <div className={cn(
                         'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm',
-                        tendencia >= 0 ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#FEE2E2] text-[#991B1B]'
+                        tendencia >= 0 ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300'
                       )}>
                         {tendencia >= 0
                           ? <TrendingUp className="w-3.5 h-3.5" />
@@ -1363,7 +1363,7 @@ export default function CajaModule() {
                                   'group transition-colors border-l-2',
                                   m.tipo === 'ingreso'
                                     ? 'border-l-[#059669] hover:bg-emerald-900/30'
-                                    : 'border-l-[#EF4444] hover:bg-[#FEF2F2]/40'
+                                    : 'border-l-[#EF4444] hover:bg-red-900/30/40'
                                 )}
                               >
                                 <TableCell className="text-xs">
@@ -1376,7 +1376,7 @@ export default function CajaModule() {
                                   <div className="flex items-center gap-2">
                                     <span className={cn(
                                       'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
-                                      m.tipo === 'ingreso' ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#FEE2E2] text-[#991B1B]'
+                                      m.tipo === 'ingreso' ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300'
                                     )}>
                                       {m.tipo === 'ingreso'
                                         ? <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1384,7 +1384,7 @@ export default function CajaModule() {
                                     </span>
                                     <span className={cn(
                                       'text-xs font-semibold',
-                                      m.tipo === 'ingreso' ? 'text-emerald-300' : 'text-[#991B1B]'
+                                      m.tipo === 'ingreso' ? 'text-emerald-300' : 'text-red-300'
                                     )}>
                                       {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
                                     </span>
@@ -1397,7 +1397,7 @@ export default function CajaModule() {
                                 </TableCell>
                                 <TableCell className={cn(
                                   'font-bold tabular-nums',
-                                  m.tipo === 'ingreso' ? 'text-emerald-300' : 'text-[#991B1B]'
+                                  m.tipo === 'ingreso' ? 'text-emerald-300' : 'text-red-300'
                                 )}>
                                   {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
                                 </TableCell>
@@ -1480,8 +1480,8 @@ export default function CajaModule() {
 
                   {/* Action buttons */}
                   <div className="grid grid-cols-2 gap-2 pt-2">
-                    <Button variant="outline" className="w-full border-[#059669]/30 text-emerald-300 hover:bg-[#F0FDF4] hover:text-emerald-300" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
-                    <Button variant="outline" className="w-full border-[#991B1B]/30 text-[#991B1B] hover:bg-[#FEF2F2] hover:text-[#991B1B]" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+                    <Button variant="outline" className="w-full border-[#059669]/30 text-emerald-300 hover:bg-emerald-900/30 hover:text-emerald-300" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+                    <Button variant="outline" className="w-full border-red-700/40 text-red-300 hover:bg-red-900/30 hover:text-red-300" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
                   </div>
 
                   {/* Movement form */}
@@ -1728,7 +1728,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                       />
                       <span className={cn(
                         'text-xs font-semibold w-20 text-right tabular-nums',
-                        diff === 0 ? 'text-emerald-300' : diff > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
+                        diff === 0 ? 'text-emerald-300' : diff > 0 ? 'text-amber-300' : 'text-red-300'
                       )}>
                         {diff === 0 ? '✓' : diff > 0 ? '+' : ''}{fmt(diff)}
                       </span>
@@ -1736,7 +1736,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                   </div>
                 );
               })}
-              <div className="flex justify-between font-bold pt-2 border-t bg-[#F0FDF4]/40 rounded-md p-2 px-3">
+              <div className="flex justify-between font-bold pt-2 border-t bg-emerald-950/15 rounded-md p-2 px-3">
                 <span>Total otros métodos</span><span className="text-emerald-400 tabular-nums">{fmt(props.otrosContadosTotal)}</span>
               </div>
             </div>
@@ -1779,7 +1779,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                   <span className="text-xs font-semibold tabular-nums">Cont: {fmt(props.totalEfectivo)}</span>
                   <span className={cn(
                     'text-xs font-bold tabular-nums w-16 text-right',
-                    props.diferenciaEfectivo === 0 ? 'text-emerald-300' : 'text-[#991B1B]'
+                    props.diferenciaEfectivo === 0 ? 'text-emerald-300' : 'text-red-300'
                   )}>
                     {props.diferenciaEfectivo === 0 ? '✓' : `${props.diferenciaEfectivo > 0 ? '+' : ''}${fmt(props.diferenciaEfectivo)}`}
                   </span>
@@ -1797,7 +1797,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                       <span className="text-xs font-semibold tabular-nums">Cont: {fmt(counted || 0)}</span>
                       <span className={cn(
                         'text-xs font-bold tabular-nums w-16 text-right',
-                        diff === 0 ? 'text-emerald-300' : 'text-[#991B1B]'
+                        diff === 0 ? 'text-emerald-300' : 'text-red-300'
                       )}>
                         {diff === 0 ? '✓' : `${diff > 0 ? '+' : ''}${fmt(diff)}`}
                       </span>
@@ -1811,7 +1811,7 @@ function ClosingWizard(props: ClosingWizardProps) {
           {props.diferenciaTotal !== 0 && (
             <div className={cn(
               'flex items-center gap-2 p-2.5 rounded-md text-sm',
-              props.diferenciaTotal > 0 ? 'bg-[#FEF3C7] text-[#92400E]' : 'bg-[#FEE2E2] text-[#991B1B]'
+              props.diferenciaTotal > 0 ? 'bg-amber-900/60 text-amber-300' : 'bg-red-900/60 text-red-300'
             )}>
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>
@@ -1844,7 +1844,7 @@ function ClosingWizard(props: ClosingWizardProps) {
               </div>
               <div className="p-3 space-y-2">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                  <div className="p-1.5 rounded-md bg-[#F0FDF4]/60 border border-[#059669]/20">
+                  <div className="p-1.5 rounded-md bg-emerald-950/20 border border-[#059669]/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Apertura</p>
                     <p className="text-xs font-bold tabular-nums text-emerald-400">{fmt(props.daySummary.aperturaMonto)}</p>
                   </div>
@@ -1852,9 +1852,9 @@ function ClosingWizard(props: ClosingWizardProps) {
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Ingresos</p>
                     <p className="text-xs font-bold tabular-nums text-emerald-300">{fmt(props.daySummary.totalIngresos)}</p>
                   </div>
-                  <div className="p-1.5 rounded-md bg-[#FEE2E2]/60 border border-[#EF4444]/20">
+                  <div className="p-1.5 rounded-md bg-red-900/40 border border-[#EF4444]/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Egresos</p>
-                    <p className="text-xs font-bold tabular-nums text-[#991B1B]">{fmt(props.daySummary.totalEgresos)}</p>
+                    <p className="text-xs font-bold tabular-nums text-red-300">{fmt(props.daySummary.totalEgresos)}</p>
                   </div>
                   <div className="p-1.5 rounded-md bg-muted/40 border">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Movimientos</p>
@@ -1863,7 +1863,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-dashed">
                   <span>Cajero: {props.daySummary.empleado}</span>
-                  <span>Neto: <span className={cn('font-bold', props.daySummary.totalIngresos - props.daySummary.totalEgresos >= 0 ? 'text-emerald-300' : 'text-[#991B1B]')}>{fmt(props.daySummary.totalIngresos - props.daySummary.totalEgresos)}</span></span>
+                  <span>Neto: <span className={cn('font-bold', props.daySummary.totalIngresos - props.daySummary.totalEgresos >= 0 ? 'text-emerald-300' : 'text-red-300')}>{fmt(props.daySummary.totalIngresos - props.daySummary.totalEgresos)}</span></span>
                 </div>
               </div>
             </div>
@@ -1877,12 +1877,12 @@ function ClosingWizard(props: ClosingWizardProps) {
             </div>
             <div className={cn(
               'p-2 rounded-md',
-              props.diferenciaTotal === 0 ? 'bg-emerald-900/60' : props.diferenciaTotal > 0 ? 'bg-[#FEF3C7]' : 'bg-[#FEE2E2]'
+              props.diferenciaTotal === 0 ? 'bg-emerald-900/60' : props.diferenciaTotal > 0 ? 'bg-amber-900/60' : 'bg-red-900/60'
             )}>
               <p className="text-[10px] text-muted-foreground">Diferencia</p>
               <p className={cn(
                 'font-bold text-sm tabular-nums',
-                props.diferenciaTotal === 0 ? 'text-emerald-300' : props.diferenciaTotal > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
+                props.diferenciaTotal === 0 ? 'text-emerald-300' : props.diferenciaTotal > 0 ? 'text-amber-300' : 'text-red-300'
               )}>
                 {props.diferenciaTotal === 0 ? '$0.00' : `${props.diferenciaTotal > 0 ? '+' : ''}${fmt(props.diferenciaTotal)}`}
               </p>
@@ -1893,7 +1893,7 @@ function ClosingWizard(props: ClosingWizardProps) {
           {props.diferenciaTotal !== 0 && (
             <div className={cn(
               'flex items-center gap-2 p-2.5 rounded-md text-xs border',
-              props.diferenciaTotal > 0 ? 'bg-[#FEF3C7] border-[#F59E0B]/30 text-[#92400E]' : 'bg-[#FEE2E2] border-[#EF4444]/30 text-[#991B1B]'
+              props.diferenciaTotal > 0 ? 'bg-amber-900/60 border-[#F59E0B]/30 text-amber-300' : 'bg-red-900/60 border-[#EF4444]/30 text-red-300'
             )}>
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>
@@ -1907,7 +1907,7 @@ function ClosingWizard(props: ClosingWizardProps) {
           {/* Discrepancy explanation — required if diff > $100 */}
           {props.diffExceedsThreshold && (
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium flex items-center gap-1.5 text-[#92400E]">
+              <Label className="text-sm font-medium flex items-center gap-1.5 text-amber-300">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 Explicación de la discrepancia <span className="text-destructive">*</span>
               </Label>
@@ -2014,8 +2014,8 @@ function ClosingWizard(props: ClosingWizardProps) {
 function ComparisonRow({ label, value, variant, showSign }: {
   label: string; value: number; variant: 'neutral' | 'success' | 'warning' | 'danger'; showSign?: boolean;
 }) {
-  const bg = variant === 'success' ? 'bg-emerald-900/60' : variant === 'warning' ? 'bg-[#FEF3C7]' : variant === 'danger' ? 'bg-[#FEE2E2]' : 'bg-muted/50';
-  const txt = variant === 'success' ? 'text-emerald-300' : variant === 'warning' ? 'text-[#92400E]' : variant === 'danger' ? 'text-[#991B1B]' : 'text-foreground';
+  const bg = variant === 'success' ? 'bg-emerald-900/60' : variant === 'warning' ? 'bg-amber-900/60' : variant === 'danger' ? 'bg-red-900/60' : 'bg-muted/50';
+  const txt = variant === 'success' ? 'text-emerald-300' : variant === 'warning' ? 'text-amber-300' : variant === 'danger' ? 'text-red-300' : 'text-foreground';
   return (
     <div className={cn('p-2.5 rounded-md', bg)}>
       <p className="text-[10px] text-muted-foreground">{label}</p>
@@ -2095,20 +2095,20 @@ function DailySummaryCard({ summary, onViewHistorial }: {
         <div className={cn(
           'flex items-center justify-between p-3 rounded-md border',
           diff === 0
-            ? 'bg-[#F0FDF4]/40 border-[#059669]/30'
+            ? 'bg-emerald-950/15 border-[#059669]/30'
             : diff > 0
-            ? 'bg-[#FFFBEB] border-[#F59E0B]/30'
-            : 'bg-[#FEF2F2] border-[#EF4444]/30'
+            ? 'bg-amber-900/60 border-[#F59E0B]/30'
+            : 'bg-red-900/40 border-[#EF4444]/30'
         )}>
           <div className="flex items-center gap-2">
             {diff === 0
               ? <Check className="w-5 h-5 text-emerald-300" />
-              : <AlertTriangle className={cn('w-5 h-5', diff > 0 ? 'text-[#92400E]' : 'text-[#991B1B]')} />}
+              : <AlertTriangle className={cn('w-5 h-5', diff > 0 ? 'text-amber-300' : 'text-red-300')} />}
             <div>
               <p className="text-xs text-muted-foreground">Diferencia al cierre</p>
               <p className={cn(
                 'font-bold text-sm tabular-nums',
-                diff === 0 ? 'text-emerald-300' : diff > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
+                diff === 0 ? 'text-emerald-300' : diff > 0 ? 'text-amber-300' : 'text-red-300'
               )}>
                 {diff === 0 ? 'Cuadra perfecto' : `${diff > 0 ? '+' : ''}${formatMoney(diff)}`}
               </p>
@@ -2419,7 +2419,7 @@ function MovementDetailPopover({ movimiento, gasto, categoria }: {
         <div className="flex items-center gap-2">
           <span className={cn(
             'w-7 h-7 rounded-full flex items-center justify-center',
-            isIngreso ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#FEE2E2] text-[#991B1B]'
+            isIngreso ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300'
           )}>
             {isIngreso ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
           </span>
@@ -2430,7 +2430,7 @@ function MovementDetailPopover({ movimiento, gasto, categoria }: {
         </div>
         <p className={cn(
           'text-sm font-bold tabular-nums',
-          isIngreso ? 'text-emerald-300' : 'text-[#991B1B]'
+          isIngreso ? 'text-emerald-300' : 'text-red-300'
         )}>
           {isIngreso ? '+' : '-'}{formatMoney(m.monto)}
         </p>
@@ -2534,7 +2534,7 @@ function MovFormInline({
         {tipo === 'ingreso' ? (
           <span className="flex items-center gap-1"><Plus className="w-3.5 h-3.5 text-emerald-300" />Registrar ingreso</span>
         ) : (
-          <span className="flex items-center gap-1"><Minus className="w-3.5 h-3.5 text-[#991B1B]" />Registrar egreso</span>
+          <span className="flex items-center gap-1"><Minus className="w-3.5 h-3.5 text-red-300" />Registrar egreso</span>
         )}
       </p>
       <div className="grid grid-cols-2 gap-2">
@@ -2722,17 +2722,17 @@ function MovementCard({
   return (
     <div
       className={cn(
-        'group relative pl-3 pr-3.5 py-3 space-y-1.5 transition-all duration-300 hover:bg-[#F8FAFC] animate-slide-up',
+        'group relative pl-3 pr-3.5 py-3 space-y-1.5 transition-all duration-300 hover:bg-muted/30 animate-slide-up',
         'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1',
         isIngreso ? 'before:bg-[#059669]' : 'before:bg-[#EF4444]',
-        isDetailOpen && 'bg-[#F8FAFC]'
+        isDetailOpen && 'bg-muted/30'
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className={cn(
             'w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm',
-            isIngreso ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#FEE2E2] text-[#991B1B]'
+            isIngreso ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300'
           )}>
             {isIngreso
               ? <ArrowUpRight className="w-3.5 h-3.5" />
@@ -2742,7 +2742,7 @@ function MovementCard({
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className={cn(
                 'text-xs font-semibold',
-                isIngreso ? 'text-emerald-300' : 'text-[#991B1B]'
+                isIngreso ? 'text-emerald-300' : 'text-red-300'
               )}>
                 {isIngreso ? 'Ingreso' : 'Egreso'}
               </span>
@@ -2772,7 +2772,7 @@ function MovementCard({
         </div>
         <p className={cn(
           'text-sm font-bold shrink-0 tabular-nums',
-          isIngreso ? 'text-emerald-300' : 'text-[#991B1B]'
+          isIngreso ? 'text-emerald-300' : 'text-red-300'
         )}>
           {isIngreso ? '+' : '-'}{formatMoney(m.monto)}
         </p>

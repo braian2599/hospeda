@@ -238,8 +238,8 @@ function OccupancyBadge({ pct }: { pct: number }) {
   const cls = pct > 80
     ? 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40'
     : pct >= 50
-      ? 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]'
-      : 'bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]';
+      ? 'bg-amber-900/60 text-amber-300 border-amber-700/40'
+      : 'bg-red-900/60 text-red-300 border-red-700/40';
   return (
     <Badge variant="outline" className={`text-xs font-semibold shadow-sm ${cls}`}>
       {pct}%
@@ -1701,7 +1701,7 @@ export default function ReportesModule() {
                         <TableCell className="text-center font-medium hidden sm:table-cell text-xs sm:text-sm">{turno.apertura.empleado}</TableCell>
                         <TableCell className="text-center whitespace-nowrap text-xs sm:text-sm">{formatFechaHora(turno.apertura.fecha)}</TableCell>
                         <TableCell className="text-center whitespace-nowrap text-xs sm:text-sm hidden sm:table-cell">{formatFechaHora(turno.cierre.fecha)}</TableCell>
-                        <TableCell className={`text-center font-medium hidden md:table-cell text-xs sm:text-sm ${turno.cierre.diferencia === 0 ? 'text-emerald-300' : 'text-[#991B1B]'}`}>
+                        <TableCell className={`text-center font-medium hidden md:table-cell text-xs sm:text-sm ${turno.cierre.diferencia === 0 ? 'text-emerald-300' : 'text-red-300'}`}>
                           {formatMoneda(turno.cierre.diferencia)}
                         </TableCell>
                         <TableCell className="text-center"><Badge variant="secondary" className="text-xs">{turno.movimientos.length}</Badge></TableCell>
@@ -2015,7 +2015,7 @@ export default function ReportesModule() {
                       <TableRow key={c.id} className={`${i % 2 === 1 ? 'bg-emerald-900/10' : ''} hover:bg-emerald-900/30 transition-colors`}>
                         <TableCell className="text-center font-medium text-xs sm:text-sm">
                           <span className="inline-flex items-center gap-1.5">
-                            {i === 0 && <Crown className="w-3.5 h-3.5 text-[#92400E]" />}
+                            {i === 0 && <Crown className="w-3.5 h-3.5 text-amber-300" />}
                             {c.nombre}
                           </span>
                         </TableCell>
@@ -2171,7 +2171,7 @@ export default function ReportesModule() {
                 </div>
                 <div className="text-center p-3 rounded-lg bg-muted/30">
                   <p className="text-xs text-muted-foreground mb-1">Diferencia</p>
-                  <p className={`text-2xl font-bold ${selectedCajaTurno.cierre.diferencia === 0 ? 'text-emerald-300' : 'text-[#991B1B]'}`}>
+                  <p className={`text-2xl font-bold ${selectedCajaTurno.cierre.diferencia === 0 ? 'text-emerald-300' : 'text-red-300'}`}>
                     {formatMoneda(selectedCajaTurno.cierre.diferencia)}
                   </p>
                 </div>
@@ -2203,7 +2203,7 @@ export default function ReportesModule() {
                               </TableCell>
                               <TableCell className="text-center hidden sm:table-cell">{m.descripcion}</TableCell>
                               <TableCell className="text-center text-muted-foreground">{m.metodo}</TableCell>
-                              <TableCell className={`text-center font-medium ${m.tipo === 'ingreso' ? 'text-emerald-300' : 'text-[#991B1B]'}`}>
+                              <TableCell className={`text-center font-medium ${m.tipo === 'ingreso' ? 'text-emerald-300' : 'text-red-300'}`}>
                                 {m.tipo === 'ingreso' ? '+' : '-'}{formatMoneda(m.monto)}
                               </TableCell>
                             </TableRow>

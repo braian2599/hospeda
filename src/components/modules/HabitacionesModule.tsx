@@ -40,11 +40,11 @@ import RoomStatusMap from './RoomStatusMap';
 
 const estados: Record<EstadoHabitacion, string> = {
   Disponible: 'bg-emerald-900/60 text-emerald-300',
-  Ocupada: 'bg-[#FEF3C7]/80 text-[#92400E]',
-  Limpieza: 'bg-[#FEF9C3]/80 text-[#854D0E]',
-  Mantenimiento: 'bg-[#F1F5F9]/80 text-slate-400',
-  Reservada: 'bg-[#E0F2FE]/80 text-[#075985]',
-  'Fuera de servicio': 'bg-[#FEE2E2]/80 text-[#991B1B]',
+  Ocupada: 'bg-amber-900/60 text-amber-300',
+  Limpieza: 'bg-amber-900/50 text-amber-300',
+  Mantenimiento: 'bg-muted/30 text-slate-400',
+  Reservada: 'bg-sky-900/20 text-sky-300',
+  'Fuera de servicio': 'bg-red-900/60 text-red-300',
 };
 
 // Status color palette for backgrounds, borders, icons
