@@ -516,3 +516,30 @@ Stage Summary:
 - All dark-on-light text colors (92400E, 991B1B, 6D28D9, 5B21B6) replaced with light-on-dark equivalents (amber-300, red-300, violet-300)
 - Tarifas cards made more compact per user request
 - Table headers in ReservasModule now visible on dark background
+---
+Task ID: 1
+Agent: main
+Task: TarifasModule — uniform emerald color scheme + compact card sizing
+
+Work Log:
+- Read full TarifasModule.tsx (1927 lines) to understand all color functions and card structure
+- Replaced modoBadgeColor(), modoGradient(), modoIconCircle() — all now return uniform emerald variants (no per-type color differentiation)
+- Compactified main tariff cards: p-3 pt-10 → p-2.5 pt-8, w-9 h-9 → w-7 h-7, text-base → text-sm, text-2xl → text-lg, gap-4 → gap-3, border-2 → border
+- Compactified mini preview card similarly
+- Unified all promo badges to emerald (removed violet/amber variants from niños and cortesía badges)
+- Unified form/wizard colors: niños section violet → emerald, noches cortesía amber → emerald
+- Changed mode selector unselected border from light-slate to border-border for dark theme compatibility
+- Changed validation messages from text-amber-600 → text-emerald-400
+- Changed comparison modal diff highlight from amber to emerald
+- Changed payment method recargo badge from amber to emerald
+- Verified: 0 remaining amber/violet references in the file
+- Lint: clean pass
+- Dev server: 200 response confirmed
+- Git commit: a9410f0
+- Git push: successful to main
+
+Stage Summary:
+- All tariff types now use a single uniform emerald color scheme
+- Cards are significantly more compact with reduced padding, smaller icons, smaller text
+- Form/wizard uses same emerald color throughout — no more clashing violet/amber tones
+- Zero amber/violet references remain in TarifasModule.tsx
