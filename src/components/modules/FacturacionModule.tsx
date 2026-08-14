@@ -36,7 +36,7 @@ import { AnimatedNumber } from '@/components/ui/animated-number';
 const estadoPagoBadge: Record<string, string> = {
   Pendiente: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A] shadow-sm',
   Parcial: 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA] shadow-sm',
-  Pagado: 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0] shadow-sm',
+  Pagado: 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40 shadow-sm',
 };
 
 /** Get initials from a name string (up to 2 chars) */
@@ -388,7 +388,7 @@ export default function FacturacionModule() {
                             </div>
                             <div>
                               <p className="text-[10px] text-muted-foreground leading-tight">Pagado</p>
-                              <p className="text-sm font-medium text-[#166534]">{formatMoney(pagado)}</p>
+                              <p className="text-sm font-medium text-emerald-300">{formatMoney(pagado)}</p>
                             </div>
                             <div>
                               <p className="text-[10px] text-muted-foreground leading-tight">Saldo</p>
@@ -453,7 +453,7 @@ export default function FacturacionModule() {
                         const borderColor = r.estadoPago === 'Parcial' ? 'border-l-amber-500' : 'border-l-red-500';
                         const dSince = daysSince(r.checkin);
                         return (
-                          <TableRow key={r.id} className={`group border-l-[3px] ${borderColor} hover:bg-[#F0FDF4]/30 hover:-translate-y-px transition-all duration-150`}>
+                          <TableRow key={r.id} className={`group border-l-[3px] ${borderColor} hover:bg-emerald-900/20 hover:-translate-y-px transition-all duration-150`}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2.5">
                                 <div className="w-7 h-7 rounded-full bg-[#0F2B28] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
@@ -477,8 +477,8 @@ export default function FacturacionModule() {
                             </TableCell>
                             <TableCell className="hidden md:table-cell">{formatFecha(r.checkin)}</TableCell>
                             <TableCell className="hidden md:table-cell">{formatFecha(r.checkout)}</TableCell>
-                            <TableCell className="text-right font-bold text-[#0F2B28]">{formatMoney(total)}</TableCell>
-                            <TableCell className="text-right font-semibold text-[#166534]">{formatMoney(pagado)}</TableCell>
+                            <TableCell className="text-right font-bold text-emerald-400">{formatMoney(total)}</TableCell>
+                            <TableCell className="text-right font-semibold text-emerald-300">{formatMoney(pagado)}</TableCell>
                             <TableCell className="text-right text-[#991B1B] font-bold">{formatMoney(saldo)}</TableCell>
                             <TableCell>
                               <div className="space-y-1 min-w-[80px]">
@@ -601,7 +601,7 @@ export default function FacturacionModule() {
                           {reserva && (
                             <div className="flex justify-between text-xs text-muted-foreground">
                               <span>Total: {formatMoney(totalR)}</span>
-                              <span className={saldoR <= 0 ? 'text-[#166534] font-medium' : 'text-[#991B1B]'}>{saldoR <= 0 ? 'Pagado' : `Saldo: ${formatMoney(saldoR)}`}</span>
+                              <span className={saldoR <= 0 ? 'text-emerald-300 font-medium' : 'text-[#991B1B]'}>{saldoR <= 0 ? 'Pagado' : `Saldo: ${formatMoney(saldoR)}`}</span>
                             </div>
                           )}
                           {/* Receipt button */}
@@ -651,7 +651,7 @@ export default function FacturacionModule() {
                         const saldoR = totalR - pagadoR;
                         const metodoType = getMetodoIcon(metodoNombre);
                         return (
-                          <TableRow key={p.id} className="group hover:bg-[#F0FDF4]/30 hover:-translate-y-px transition-all duration-150 animate-in fade-in-0 slide-in-from-bottom-1" style={{ animationDelay: `${idx * 30}ms`, animationFillMode: 'backwards' }}>
+                          <TableRow key={p.id} className="group hover:bg-emerald-900/20 hover:-translate-y-px transition-all duration-150 animate-in fade-in-0 slide-in-from-bottom-1" style={{ animationDelay: `${idx * 30}ms`, animationFillMode: 'backwards' }}>
                             <TableCell>
                               <div className="space-y-0.5">
                                 <span className="text-sm">{formatFecha(p.fecha)}</span>
@@ -673,7 +673,7 @@ export default function FacturacionModule() {
                             <TableCell className="hidden md:table-cell text-right text-sm">
                               {formatMoney(totalR)}
                             </TableCell>
-                            <TableCell className={`hidden md:table-cell text-right text-sm font-medium ${saldoR <= 0 ? 'text-[#166534]' : 'text-[#991B1B]'}`}>
+                            <TableCell className={`hidden md:table-cell text-right text-sm font-medium ${saldoR <= 0 ? 'text-emerald-300' : 'text-[#991B1B]'}`}>
                               {saldoR <= 0 ? 'Pagado' : formatMoney(saldoR)}
                             </TableCell>
                             <TableCell className="hidden lg:table-cell text-muted-foreground text-sm max-w-[200px] truncate">
@@ -727,7 +727,7 @@ export default function FacturacionModule() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Ya pagado</span>
-                    <p className="font-medium text-[#166534]">{formatMoney(calcularTotalPagado(pagoReserva.id))}</p>
+                    <p className="font-medium text-emerald-300">{formatMoney(calcularTotalPagado(pagoReserva.id))}</p>
                   </div>
                 </div>
                 <Separator />
@@ -859,7 +859,7 @@ function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: st
         <div className="mx-auto w-14 h-14 rounded-xl bg-[#0F2B28] flex items-center justify-center">
           <Building2 className="w-7 h-7 text-white" />
         </div>
-        <h3 className="text-xl font-bold tracking-wide text-[#0F2B28]">{hotelName.toUpperCase()}</h3>
+        <h3 className="text-xl font-bold tracking-wide text-emerald-400">{hotelName.toUpperCase()}</h3>
         <p className="text-xs text-muted-foreground">Dirección del hotel, Ciudad, País</p>
         <p className="text-xs text-muted-foreground">Tel: (000) 000-0000 · info@hotel.com</p>
         <Separator className="my-2" />
@@ -982,7 +982,7 @@ function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: st
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Total pagado</span>
-          <span className="font-medium text-[#166534]">{formatMoney(pagado)}</span>
+          <span className="font-medium text-emerald-300">{formatMoney(pagado)}</span>
         </div>
         {saldo > 0 && (
           <div className="flex justify-between text-sm font-bold">
@@ -991,7 +991,7 @@ function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: st
           </div>
         )}
         {saldo <= 0 && (
-          <div className="flex justify-between text-sm font-bold text-[#166534]">
+          <div className="flex justify-between text-sm font-bold text-emerald-300">
             <span>Estado</span>
             <span>PAGADO ✓</span>
           </div>

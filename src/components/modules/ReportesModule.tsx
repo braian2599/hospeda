@@ -173,12 +173,12 @@ function ProgressKpi({ label, value, max, color = 'bg-primary', suffix = '%', de
  */
 function ReportTabHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-[#0F2B28]/10 bg-teal-950/10 px-4 py-3 flex items-center gap-3">
-      <div className="w-9 h-9 rounded-lg bg-[#0F2B28]/10 flex items-center justify-center text-[#0F2B28] shrink-0">
+    <div className="relative overflow-hidden rounded-xl border border-emerald-800/30 bg-teal-950/10 px-4 py-3 flex items-center gap-3">
+      <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
         {icon}
       </div>
       <div className="min-w-0">
-        <h3 className="text-base font-semibold text-[#0F2B28] truncate">{title}</h3>
+        <h3 className="text-base font-semibold text-emerald-400 truncate">{title}</h3>
         <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
       </div>
     </div>
@@ -236,7 +236,7 @@ function SummaryCard({ icon, label, value, colorFamily, trend }: {
  */
 function OccupancyBadge({ pct }: { pct: number }) {
   const cls = pct > 80
-    ? 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]'
+    ? 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40'
     : pct >= 50
       ? 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]'
       : 'bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]';
@@ -963,7 +963,7 @@ export default function ReportesModule() {
       <ModuleHeader icon={BarChart3} title="Reportes" subtitle="Métricas y análisis de tu hotel" />
 
       {/* Date Range Filter */}
-      <Card className="bg-muted/20 border-[#E2E8F0]/80">
+      <Card className="bg-muted/20 border-border">
         <CardContent className="p-3 sm:p-4">
           <div className="flex flex-wrap items-end justify-center gap-2 sm:gap-3">
             <div className="grid gap-1.5 flex-1 min-w-[130px] sm:flex-none">
@@ -1158,8 +1158,8 @@ export default function ReportesModule() {
                         content={({ active, payload, label }: any) => {
                           if (!active || !payload?.length) return null;
                           return (
-                            <div className="bg-white border border-[#E2E8F0] rounded-lg shadow-lg px-3 py-2 text-sm">
-                              <p className="font-medium text-[#0F2B28]">{label}</p>
+                            <div className="bg-card border border-border rounded-lg shadow-lg px-3 py-2 text-sm">
+                              <p className="font-medium text-emerald-400">{label}</p>
                               <p className="text-[#059669] font-semibold">{formatMoneda(payload[0].value as number)}</p>
                             </div>
                           );
@@ -1332,8 +1332,8 @@ export default function ReportesModule() {
                           const data = payload[0].payload;
                           const pct = totalGastos > 0 ? Math.round((data.value / totalGastos) * 100) : 0;
                           return (
-                            <div className="bg-white border border-[#E2E8F0] rounded-lg shadow-lg px-3 py-2 text-sm">
-                              <p className="font-medium text-[#0F2B28]">{data.name}</p>
+                            <div className="bg-card border border-border rounded-lg shadow-lg px-3 py-2 text-sm">
+                              <p className="font-medium text-emerald-400">{data.name}</p>
                               <p className="text-[#EF4444] font-semibold">{formatMoneda(data.value)} ({pct}%)</p>
                             </div>
                           );
@@ -1362,7 +1362,7 @@ export default function ReportesModule() {
                   {/* Center total label */}
                   <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</p>
-                    <p className="text-base sm:text-lg font-bold text-[#0F2B28]">{formatMoneda(totalGastos)}</p>
+                    <p className="text-base sm:text-lg font-bold text-emerald-400">{formatMoneda(totalGastos)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1701,7 +1701,7 @@ export default function ReportesModule() {
                         <TableCell className="text-center font-medium hidden sm:table-cell text-xs sm:text-sm">{turno.apertura.empleado}</TableCell>
                         <TableCell className="text-center whitespace-nowrap text-xs sm:text-sm">{formatFechaHora(turno.apertura.fecha)}</TableCell>
                         <TableCell className="text-center whitespace-nowrap text-xs sm:text-sm hidden sm:table-cell">{formatFechaHora(turno.cierre.fecha)}</TableCell>
-                        <TableCell className={`text-center font-medium hidden md:table-cell text-xs sm:text-sm ${turno.cierre.diferencia === 0 ? 'text-[#166534]' : 'text-[#991B1B]'}`}>
+                        <TableCell className={`text-center font-medium hidden md:table-cell text-xs sm:text-sm ${turno.cierre.diferencia === 0 ? 'text-emerald-300' : 'text-[#991B1B]'}`}>
                           {formatMoneda(turno.cierre.diferencia)}
                         </TableCell>
                         <TableCell className="text-center"><Badge variant="secondary" className="text-xs">{turno.movimientos.length}</Badge></TableCell>
@@ -1772,8 +1772,8 @@ export default function ReportesModule() {
                           if (!active || !payload?.length) return null;
                           const data = payload[0].payload;
                           return (
-                            <div className="bg-white border border-[#E2E8F0] rounded-lg shadow-lg px-3 py-2 text-sm">
-                              <p className="font-medium text-[#0F2B28]">{label}</p>
+                            <div className="bg-card border border-border rounded-lg shadow-lg px-3 py-2 text-sm">
+                              <p className="font-medium text-emerald-400">{label}</p>
                               <p className="font-semibold">{data.occupied} de {data.total} hab. ({data.occupancy}%)</p>
                             </div>
                           );
@@ -1878,7 +1878,7 @@ export default function ReportesModule() {
                   {habResumen.habs.map(h => {
                     const pct = ocupacionPorHabitacion[h.numero] || 0;
                     return (
-                      <TableRow key={h.numero} className="hover:bg-[#F0FDF4]/30 transition-colors">
+                      <TableRow key={h.numero} className="hover:bg-emerald-900/20 transition-colors">
                         <TableCell className="text-center font-medium">{h.numero}</TableCell>
                         <TableCell className="text-center text-xs sm:text-sm">{h.tipo}</TableCell>
                         <TableCell className="text-center hidden sm:table-cell text-xs sm:text-sm">{h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</TableCell>
@@ -1931,7 +1931,7 @@ export default function ReportesModule() {
 
           {/* Top customer highlight */}
           {topCliente && (
-            <Card className="relative overflow-hidden border-2 border-[#0F2B28]/20 bg-teal-950/10">
+            <Card className="relative overflow-hidden border-2 border-emerald-500/30 bg-teal-950/10">
               <CardContent className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#059669] flex items-center justify-center text-white shadow-md shrink-0">
@@ -1939,7 +1939,7 @@ export default function ReportesModule() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Cliente destacado</p>
-                    <h4 className="text-lg font-bold text-[#0F2B28] truncate">{topCliente.nombre}</h4>
+                    <h4 className="text-lg font-bold text-emerald-400 truncate">{topCliente.nombre}</h4>
                     <p className="text-xs text-muted-foreground">
                       {topCliente.cantidadEstadias} estadía{topCliente.cantidadEstadias !== 1 ? 's' : ''}
                       {topCliente.ultimaVisita !== '—' && ` · última visita ${formatFecha(topCliente.ultimaVisita)}`}
@@ -1948,7 +1948,7 @@ export default function ReportesModule() {
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total gastado</p>
-                  <p className="text-2xl font-extrabold text-[#0F2B28] tabular-nums">{formatMoneda(topCliente.totalGastado)}</p>
+                  <p className="text-2xl font-extrabold text-emerald-400 tabular-nums">{formatMoneda(topCliente.totalGastado)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -2012,7 +2012,7 @@ export default function ReportesModule() {
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No hay clientes que coincidan.</TableCell></TableRow>
                   ) : (
                     clientesFrecuentes.map((c, i) => (
-                      <TableRow key={c.id} className={`${i % 2 === 1 ? 'bg-[#F0FDF4]/20' : ''} hover:bg-[#F0FDF4]/40 transition-colors`}>
+                      <TableRow key={c.id} className={`${i % 2 === 1 ? 'bg-emerald-900/10' : ''} hover:bg-emerald-900/30 transition-colors`}>
                         <TableCell className="text-center font-medium text-xs sm:text-sm">
                           <span className="inline-flex items-center gap-1.5">
                             {i === 0 && <Crown className="w-3.5 h-3.5 text-[#92400E]" />}
@@ -2021,7 +2021,7 @@ export default function ReportesModule() {
                         </TableCell>
                         <TableCell className="text-center hidden sm:table-cell text-xs sm:text-sm font-mono">{c.dni || '—'}</TableCell>
                         <TableCell className="text-center"><Badge variant="secondary" className="text-xs">{c.cantidadEstadias}</Badge></TableCell>
-                        <TableCell className="text-center font-bold text-[#0F2B28] hidden sm:table-cell text-xs sm:text-sm tabular-nums">{formatMoneda(c.totalGastado)}</TableCell>
+                        <TableCell className="text-center font-bold text-emerald-400 hidden sm:table-cell text-xs sm:text-sm tabular-nums">{formatMoneda(c.totalGastado)}</TableCell>
                         <TableCell className="text-center hidden md:table-cell text-xs sm:text-sm font-mono">{c.ultimaVisita !== '—' ? formatFecha(c.ultimaVisita) : '—'}</TableCell>
                       </TableRow>
                     ))
@@ -2171,7 +2171,7 @@ export default function ReportesModule() {
                 </div>
                 <div className="text-center p-3 rounded-lg bg-muted/30">
                   <p className="text-xs text-muted-foreground mb-1">Diferencia</p>
-                  <p className={`text-2xl font-bold ${selectedCajaTurno.cierre.diferencia === 0 ? 'text-[#166534]' : 'text-[#991B1B]'}`}>
+                  <p className={`text-2xl font-bold ${selectedCajaTurno.cierre.diferencia === 0 ? 'text-emerald-300' : 'text-[#991B1B]'}`}>
                     {formatMoneda(selectedCajaTurno.cierre.diferencia)}
                   </p>
                 </div>
@@ -2203,7 +2203,7 @@ export default function ReportesModule() {
                               </TableCell>
                               <TableCell className="text-center hidden sm:table-cell">{m.descripcion}</TableCell>
                               <TableCell className="text-center text-muted-foreground">{m.metodo}</TableCell>
-                              <TableCell className={`text-center font-medium ${m.tipo === 'ingreso' ? 'text-[#166534]' : 'text-[#991B1B]'}`}>
+                              <TableCell className={`text-center font-medium ${m.tipo === 'ingreso' ? 'text-emerald-300' : 'text-[#991B1B]'}`}>
                                 {m.tipo === 'ingreso' ? '+' : '-'}{formatMoneda(m.monto)}
                               </TableCell>
                             </TableRow>

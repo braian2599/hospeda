@@ -112,8 +112,8 @@ export default function SuscripcionModule() {
     trial: 'bg-[#DBEAFE] text-[#1E40AF]',
     pendiente_pago: 'bg-[#FEF3C7] text-[#92400E]',
     activa: isRecurring
-      ? 'bg-[#DCFCE7] text-[#166534]'
-      : 'bg-[#DCFCE7] text-[#166534]',
+      ? 'bg-emerald-900/60 text-emerald-300'
+      : 'bg-emerald-900/60 text-emerald-300',
     vencida: 'bg-[#FEE2E2] text-[#991B1B]',
     cancelada: 'bg-muted text-muted-foreground',
     suspensa: 'bg-[#FEF3C7] text-[#92400E]',

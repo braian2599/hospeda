@@ -187,7 +187,7 @@ function DateRangePickerInline({
         ? createPortal(
             <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40" onClick={() => handleOpenChange(false)}>
               <div
-                className="bg-white rounded-xl shadow-2xl border border-[#E2E8F0] pointer-events-auto"
+                className="bg-card rounded-xl shadow-2xl border border-border pointer-events-auto"
                 onClick={e => e.stopPropagation()}
                 onMouseDown={e => e.stopPropagation()}
               >
@@ -230,16 +230,16 @@ const s = (n: number) => n !== 1 ? 's' : '';
 // formatFecha and formatMoney imported from @/lib/format
 
 const estadoReservaBadge: Record<string, string> = {
- Confirmada: 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]',
+ Confirmada: 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40',
  Cancelada: 'bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]',
  'Check-In realizado': 'bg-[#DBEAFE] text-[#1E40AF] border-[#BFDBFE]',
- 'Check-Out realizado': 'bg-[#F1F5F9] text-[#64748B] border-[#CBD5E1]',
+ 'Check-Out realizado': 'bg-[#F1F5F9] text-slate-400 border-[#CBD5E1]',
 };
 
 const estadoPagoBadge: Record<string, string> = {
  Pendiente: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]',
  Parcial: 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA]',
- Pagado: 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]',
+ Pagado: 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40',
 };
 
 const estadosReserva = ['Confirmada', 'Cancelada', 'Check-In realizado', 'Check-Out realizado'];
@@ -270,7 +270,7 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
   const renderLines = (sub: number, dLocal: any) => {
     if (!dLocal) return (
       <div className="space-y-1">
-        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-[#64748B]">Subtotal</span><span className="font-semibold text-[#1E293B]">{formatMoney(sub)}</span></div>
+        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-slate-400">Subtotal</span><span className="font-semibold text-foreground">{formatMoney(sub)}</span></div>
       </div>
     );
 
@@ -304,17 +304,17 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
 
     return (
       <div className="space-y-1">
-        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-[#64748B]">Tarifa</span><span className="font-semibold text-[#1E293B] capitalize">{form.tipoTarifa}</span></div>
-        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-[#64748B]">Noches</span><span className="font-semibold text-[#1E293B]">{computed.noches}{dLocal?.nochesGratis > 0 ? ` (${dLocal.nochesCobrables} cobrables)` : ''}</span></div>
+        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-slate-400">Tarifa</span><span className="font-semibold text-foreground capitalize">{form.tipoTarifa}</span></div>
+        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-slate-400">Noches</span><span className="font-semibold text-foreground">{computed.noches}{dLocal?.nochesGratis > 0 ? ` (${dLocal.nochesCobrables} cobrables)` : ''}</span></div>
         {lines.map(l => (
           <div key={l.key} className="flex justify-between items-center py-1 text-[13px]">
-            <span className={l.dim ? 'text-[#94A3B8] line-through' : 'text-[#64748B]'}>{l.label}</span>
-            <span className={l.dim ? 'font-medium text-[#94A3B8]' : 'font-semibold text-[#1E293B]'}>{l.value}</span>
+            <span className={l.dim ? 'text-[#94A3B8] line-through' : 'text-slate-400'}>{l.label}</span>
+            <span className={l.dim ? 'font-medium text-[#94A3B8]' : 'font-semibold text-foreground'}>{l.value}</span>
           </div>
         ))}
         <div className="flex justify-between items-center py-1.5 mt-1 border-t border-[#E2E8F0] text-[13px]">
           <span className="font-medium text-[#475569]">Subtotal</span>
-          <span className="font-bold text-[#1E293B]">{formatMoney(sub)}</span>
+          <span className="font-bold text-foreground">{formatMoney(sub)}</span>
         </div>
       </div>
     );
@@ -324,11 +324,11 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
     <>
       {form.reservaMultiple ? (
         <>
-          <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">Habitación {form.habitacion}</p>
+          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Habitación {form.habitacion}</p>
           {renderLines(computed.subtotal, d)}
           {computed.subtotal2 > 0 && (
             <>
-              <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider pt-2">Habitación {form.habitacion2}</p>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider pt-2">Habitación {form.habitacion2}</p>
               {renderLines(computed.subtotal2, null)}
             </>
           )}
@@ -1383,8 +1383,8 @@ export default function ReservasModule() {
      <p className="text-xs text-muted-foreground">{r.dni}</p>
    </div>
    <div className="flex items-center gap-1 shrink-0 bg-[#0F2B28]/8 rounded-md px-2 py-1">
-     <BedDouble className="w-3.5 h-3.5 text-[#0F2B28]" />
-     <span className="text-xs font-bold text-[#0F2B28] font-mono">{r.habitacion}</span>
+     <BedDouble className="w-3.5 h-3.5 text-emerald-400" />
+     <span className="text-xs font-bold text-emerald-400 font-mono">{r.habitacion}</span>
    </div>
  </div>
  {/* Row 2: Dates with icons */}
@@ -1525,14 +1525,14 @@ export default function ReservasModule() {
    const payProgress = getPaymentProgress(r);
    const isActionLoading = quickActionLoading === r.id;
    return (
-     <TableRow key={r.id} className="group transition-all duration-150 hover:bg-[#F0FDF4]/40 hover:-translate-y-px hover:shadow-sm">
+     <TableRow key={r.id} className="group transition-all duration-150 hover:bg-emerald-900/30 hover:-translate-y-px hover:shadow-sm">
        {/* Status color indicator */}
        <TableCell className="w-1 p-0">
          <div className={cn('w-1 h-full min-h-[20px] rounded-full', getStatusDotColor(r.estado))} />
        </TableCell>
        <TableCell className="font-medium">
          <button
-           className="group-hover:text-[#0F2B28] transition-colors text-left cursor-pointer"
+           className="group-hover:text-emerald-400 transition-colors text-left cursor-pointer"
            onClick={() => openDetalle(r)}
          >
            <div>{r.huesped}</div>
@@ -1546,7 +1546,7 @@ export default function ReservasModule() {
        </TableCell>
        <TableCell>
          <div className="flex items-center gap-1.5">
-           <BedDouble className="w-3.5 h-3.5 text-[#0F2B28]" />
+           <BedDouble className="w-3.5 h-3.5 text-emerald-400" />
            <Badge variant="outline" className="font-mono font-semibold">{r.habitacion}</Badge>
          </div>
        </TableCell>
@@ -1759,16 +1759,16 @@ export default function ReservasModule() {
  <Separator />
  {/* ─── Resumen financiero ─── */}
  <div className="grid grid-cols-3 gap-3">
- <div className="rounded-xl border-2 border-[#BBF7D0] bg-[#DCFCE7]/60 p-3 text-center">
- <p className="text-xs font-medium text-[#166534] uppercase tracking-wide mb-1">Total reserva</p>
- <p className="font-bold text-lg text-[#166534]">{formatMoney(calcularTotalReserva(detalleReserva.id))}</p>
+ <div className="rounded-xl border-2 border-emerald-700/40 bg-emerald-900/60/60 p-3 text-center">
+ <p className="text-xs font-medium text-emerald-300 uppercase tracking-wide mb-1">Total reserva</p>
+ <p className="font-bold text-lg text-emerald-300">{formatMoney(calcularTotalReserva(detalleReserva.id))}</p>
  </div>
  <div className="rounded-xl border-2 border-[#BFDBFE] bg-[#DBEAFE]/60 p-3 text-center">
  <p className="text-xs font-medium text-[#1E40AF] uppercase tracking-wide mb-1">Pagado</p>
  <p className="font-bold text-lg text-[#1E40AF]">{formatMoney(calcularTotalPagado(detalleReserva.id))}</p>
  </div>
  <div className={`rounded-xl border-2 p-3 text-center ${getSaldo(detalleReserva) > 0 ? 'border-[#FECACA] bg-[#FEE2E2]/60' : 'border-[#E2E8F0] bg-[#F8FAFC]/60'}`}> 
- <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${getSaldo(detalleReserva) > 0 ? 'text-[#991B1B]' : 'text-[#64748B]'}`}>Saldo</p>
+ <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${getSaldo(detalleReserva) > 0 ? 'text-[#991B1B]' : 'text-slate-400'}`}>Saldo</p>
  <p className={`font-bold text-lg ${getSaldo(detalleReserva) > 0 ? 'text-[#991B1B]' : 'text-[#334155]'}`}>
  {formatMoney(getSaldo(detalleReserva))}
  </p>
@@ -1935,7 +1935,7 @@ export default function ReservasModule() {
  key={hab.numero}
  className={`cursor-pointer transition-all p-3 ${
  isSelected
- ? 'ring-2 ring-[#4ADE80] border-[#4ADE80] bg-[#DCFCE7]'
+ ? 'ring-2 ring-[#4ADE80] border-[#4ADE80] bg-emerald-900/60'
  : 'hover:bg-muted/50'
  }`}
  onClick={() => selectRoom(hab)}
@@ -1951,10 +1951,10 @@ export default function ReservasModule() {
  )}
  </div>
  {isSelected && (
- <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#BBF7D0]/50">
- <span className="text-xs text-[#166534] font-medium">✓ Seleccionada</span>
+ <div className="flex items-center gap-3 mt-2 pt-2 border-t border-emerald-700/40/50">
+ <span className="text-xs text-emerald-300 font-medium">✓ Seleccionada</span>
  <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
- <Label className="text-xs text-[#166534]">Pers.:</Label>
+ <Label className="text-xs text-emerald-300">Pers.:</Label>
  <Input
  type="number"
  min="1"
@@ -1970,7 +1970,7 @@ export default function ReservasModule() {
  </div>
  {tieneNinosDiferenciado && (
  <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
- <Label className="text-xs text-[#166534]">Niños:</Label>
+ <Label className="text-xs text-emerald-300">Niños:</Label>
  <Input
  type="number"
  min="0"
@@ -2046,8 +2046,8 @@ export default function ReservasModule() {
  <div
  className={`grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg border-2 transition-all ${
  isComboSelected
- ? 'border-[#4ADE80] bg-[#DCFCE7]/50 cursor-default'
- : 'border-transparent hover:border-[#BBF7D0] hover:bg-muted/30 cursor-pointer'
+ ? 'border-[#4ADE80] bg-emerald-900/60/50 cursor-default'
+ : 'border-transparent hover:border-emerald-700/40 hover:bg-muted/30 cursor-pointer'
  }`}
  onClick={() => { if (!isComboSelected) selectCombinacion(sug); }}
  >
@@ -2055,7 +2055,7 @@ export default function ReservasModule() {
  const isFirst = (isSelectedComboRev ? hi === 1 : hi === 0);
  const pVal = isFirst ? (parseInt(form.personas) || 1) : (parseInt(form.personas2) || 1);
  return (
- <Card key={hab.numero} className={`p-3 border-dashed border-[#BBF7D0] bg-[#DCFCE7]/30`}>
+ <Card key={hab.numero} className={`p-3 border-dashed border-emerald-700/40 bg-emerald-900/60/30`}>
  <div className="flex items-center justify-between">
  <span className="font-bold">{hab.numero}</span>
  <Badge variant="outline">{hab.tipo}</Badge>
@@ -2065,7 +2065,7 @@ export default function ReservasModule() {
  </div>
  {isComboSelected && (
  <div className="flex items-center gap-1.5 mt-2" onClick={e => e.stopPropagation()}>
- <Label className="text-xs text-[#166534]">Pers.:</Label>
+ <Label className="text-xs text-emerald-300">Pers.:</Label>
  <Input
  type="number"
  min="1"
@@ -2089,13 +2089,13 @@ export default function ReservasModule() {
  })}
  </div>
  <div className="flex items-center justify-center gap-2">
- <Badge className={isComboSelected ? 'bg-[#4ADE80] text-white' : 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]'}>
+ <Badge className={isComboSelected ? 'bg-[#4ADE80] text-white' : 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40'}>
  {isComboSelected
  ? `Personas: ${(parseInt(form.personas) || 1) + (parseInt(form.personas2) || 1)} / ${sug.capacidadTotal}`
  : `Total combinado: ${sug.capacidadTotal} personas`
  }
  </Badge>
- {isComboSelected && <span className="text-xs text-[#166534] font-medium">✓ Seleccionada</span>}
+ {isComboSelected && <span className="text-xs text-emerald-300 font-medium">✓ Seleccionada</span>}
  </div>
  {i < sugerenciasCombinacion.length - 1 && <Separator />}
  </div>
@@ -2117,8 +2117,8 @@ export default function ReservasModule() {
  </div>
  )}
  {computed.desglose.tieneAcompanante && (
- <div className="flex items-center gap-1.5 text-xs text-[#166534]">
- <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-[#BBF7D0] text-[#166534]">{computed.desglose.acompananteEtiqueta}</Badge>
+ <div className="flex items-center gap-1.5 text-xs text-emerald-300">
+ <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-700/40 text-emerald-300">{computed.desglose.acompananteEtiqueta}</Badge>
  <span>{computed.desglose.acompananteCantidad > 1 ? `${computed.desglose.acompananteCantidad} sin cargo` : 'sin cargo'}</span>
  {computed.desglose.acompananteCantidad > 0 && <span className="text-muted-foreground">→ Hab. {promocionesEfectivas?.acompananteSinCargo?.habitacionAsignada || 'por asignar'}</span>}
  </div>
@@ -2249,7 +2249,7 @@ export default function ReservasModule() {
      {/* Recargo por cuotas */}
      {computed.recargo > 0 && (
        <div className="flex justify-between items-center py-1 text-[13px]">
-         <span className="text-[#64748B]">Recargo por cuotas</span>
+         <span className="text-slate-400">Recargo por cuotas</span>
          <span className="font-semibold text-[#059669]">+ {formatMoney(computed.recargo)}</span>
        </div>
      )}
@@ -2274,8 +2274,8 @@ export default function ReservasModule() {
            className={cn(
              'flex-1 py-2 text-center text-[12px] font-medium rounded-md transition-all cursor-pointer',
              form.pagoTipo === tipo
-               ? 'bg-white text-[#1E293B] font-semibold shadow-sm'
-               : 'text-[#64748B] hover:text-[#475569]'
+               ? 'bg-muted text-foreground font-semibold shadow-sm'
+               : 'text-slate-400 hover:text-[#475569]'
            )}
          >
            {tipo === 'ninguno' ? 'Sin pago' : tipo === 'parcial' ? 'Parcial' : 'Total'}
@@ -2288,9 +2288,9 @@ export default function ReservasModule() {
        <div className="space-y-3">
          {form.pagoTipo === 'parcial' && (
            <div className="space-y-1.5">
-             <Label className="text-[11px] font-semibold text-[#64748B]">Monto del pago</Label>
+             <Label className="text-[11px] font-semibold text-slate-400">Monto del pago</Label>
              <div className="relative">
-               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-[#64748B]">$</span>
+               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-slate-400">$</span>
                <Input
                  type="number"
                  min={pagoMinimo}
@@ -2302,13 +2302,13 @@ export default function ReservasModule() {
                />
              </div>
              <div className="flex justify-between text-[11px] text-[#94A3B8]">
-               <span>Mínimo 30%: <strong className="text-[#64748B]">{formatMoney(pagoMinimo)}</strong></span>
-               <span>Máximo: <strong className="text-[#64748B]">{formatMoney(totalAPagar)}</strong></span>
+               <span>Mínimo 30%: <strong className="text-slate-400">{formatMoney(pagoMinimo)}</strong></span>
+               <span>Máximo: <strong className="text-slate-400">{formatMoney(totalAPagar)}</strong></span>
              </div>
              {form.pagoMonto && (parseFloat(form.pagoMonto) || 0) > 0 && (
                <div className="flex justify-between items-center py-1 text-[13px]">
-                 <span className="text-[#64748B]">Saldo restante</span>
-                 <span className="font-semibold text-[#1E293B]">
+                 <span className="text-slate-400">Saldo restante</span>
+                 <span className="font-semibold text-foreground">
                    {formatMoney(Math.max(0, totalAPagar - (parseFloat(form.pagoMonto) || 0)))}
                  </span>
                </div>
@@ -2317,13 +2317,13 @@ export default function ReservasModule() {
          )}
          {form.pagoTipo === 'total' && (
            <div className="flex justify-between items-center py-1 text-[13px]">
-             <span className="text-[#64748B]">Monto a cobrar</span>
-             <span className="font-semibold text-[#1E293B]">{formatMoney(totalAPagar)}</span>
+             <span className="text-slate-400">Monto a cobrar</span>
+             <span className="font-semibold text-foreground">{formatMoney(totalAPagar)}</span>
            </div>
          )}
          <div className="flex gap-2.5">
            <div className="flex-1 space-y-1.5">
-             <Label className="text-[11px] font-semibold text-[#64748B]">Método de pago</Label>
+             <Label className="text-[11px] font-semibold text-slate-400">Método de pago</Label>
              <Select value={form.pagoMetodo} onValueChange={v => {
                const metodo = metodosPago.find(m => m.id === v);
                const tieneCuotas = metodo?.recargo && metodo.cuotas.length > 0;
@@ -2344,7 +2344,7 @@ export default function ReservasModule() {
            </div>
            {selectedMetodo && selectedMetodo.recargo && selectedMetodo.cuotas.length > 0 && (
              <div className="flex-1 space-y-1.5">
-               <Label className="text-[11px] font-semibold text-[#64748B]">Cuotas</Label>
+               <Label className="text-[11px] font-semibold text-slate-400">Cuotas</Label>
                <Select value={form.pagoCuotas} onValueChange={v => updateForm({ pagoCuotas: v })}>
                  <SelectTrigger className="h-9 text-[13px] border-[#E2E8F0] focus-visible:ring-[#059669]">
                    <SelectValue />

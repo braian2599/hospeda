@@ -116,7 +116,7 @@ const ROLES: RoleInfo[] = [
     icon: ShieldCheck,
     colorHex: '#0F2B28',
     badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    borderClass: 'border-l-[#0F2B28]',
+    borderClass: 'border-l-emerald-700',
     avatarGradient: 'from-[#0F2B28] to-[#1a4a44]',
   },
   {
@@ -562,22 +562,22 @@ export default function UsuariosModule() {
       {/* ═══════════ STATS SUMMARY ═══════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Total Usuarios */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-[#0F2B28] bg-gradient-to-br from-[#0F2B28]/5 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-emerald-500 bg-emerald-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Usuarios</p>
-                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-2xl font-bold text-[#0F2B28]" />
+                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-2xl font-bold text-emerald-400" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-[#0F2B28]/10 flex items-center justify-center shrink-0">
-                <Users className="w-5 h-5 text-[#0F2B28]" />
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5 text-emerald-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Activos */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-emerald-500 bg-gradient-to-br from-emerald-50/60 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-emerald-500 bg-emerald-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -592,7 +592,7 @@ export default function UsuariosModule() {
         </Card>
 
         {/* Por Rol */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-sky-400 bg-gradient-to-br from-sky-50/60 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-sky-400 bg-sky-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1 min-w-0 flex-1">
@@ -601,7 +601,7 @@ export default function UsuariosModule() {
                   <span className="text-amber-700 flex items-center gap-0.5">
                     <Crown className="w-2.5 h-2.5" />{stats.porRol.owner}
                   </span>
-                  <span className="text-[#0F2B28] flex items-center gap-0.5">
+                  <span className="text-emerald-400 flex items-center gap-0.5">
                     <ShieldCheck className="w-2.5 h-2.5" />{stats.porRol.admin}
                   </span>
                   <span className="text-sky-700 flex items-center gap-0.5">
@@ -620,7 +620,7 @@ export default function UsuariosModule() {
         </Card>
 
         {/* Invitaciones Pendientes */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-amber-400 bg-gradient-to-br from-amber-50/60 to-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-amber-400 bg-amber-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -756,13 +756,13 @@ export default function UsuariosModule() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[#0F2B28]" />
+                <Activity className="w-4 h-4 text-emerald-400" />
                 <h3 className="text-sm font-semibold">Actividad reciente</h3>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs gap-1 hover:text-[#0F2B28]"
+                className="h-7 text-xs gap-1 hover:text-emerald-400"
                 onClick={() => setModulo('reportes')}
               >
                 Ver todo <ArrowRight className="w-3 h-3" />
@@ -774,7 +774,7 @@ export default function UsuariosModule() {
                   <div className="flex flex-col items-center self-stretch">
                     <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${idx === 0 ? 'bg-[#0F2B28]' : 'bg-[#0F2B28]/40'}`} />
                     {idx < recentActivity.length - 1 && (
-                      <div className="w-px flex-1 bg-[#0F2B28]/10 mt-1" />
+                      <div className="w-px flex-1 bg-emerald-500/20 mt-1" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0 pb-1">
@@ -936,7 +936,7 @@ export default function UsuariosModule() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-[#0F2B28]" />
+              <Shield className="w-5 h-5 text-emerald-400" />
               Matriz de Permisos por Rol
             </DialogTitle>
             <DialogDescription>
@@ -1044,7 +1044,7 @@ export default function UsuariosModule() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Mail className="w-5 h-5 text-[#0F2B28]" />
+              <Mail className="w-5 h-5 text-emerald-400" />
               Invitar usuario
             </DialogTitle>
             <DialogDescription>
@@ -1150,7 +1150,7 @@ export default function UsuariosModule() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-[#0F2B28]" />
+              <KeyRound className="w-5 h-5 text-emerald-400" />
               Restablecer contraseña
             </DialogTitle>
             <DialogDescription>

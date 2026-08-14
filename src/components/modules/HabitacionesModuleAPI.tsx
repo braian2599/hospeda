@@ -15,10 +15,10 @@ import { toast } from 'sonner';
 import { type TipoHabitacion, CAPACIDAD_POR_TIPO } from '@/lib/types';
 
 const estados: Record<string, string> = {
-  Disponible: 'bg-[#DCFCE7] text-[#166534]',
+  Disponible: 'bg-emerald-900/60 text-emerald-300',
   Ocupada: 'bg-[#FEE2E2] text-[#991B1B]',
   Limpieza: 'bg-[#FEF3C7] text-[#92400E]',
-  Mantenimiento: 'bg-[#F8FAFC] text-[#64748B]',
+  Mantenimiento: 'bg-[#F8FAFC] text-slate-400',
   Reservada: 'bg-[#E0E7FF] text-[#3730A3]',
 };
 

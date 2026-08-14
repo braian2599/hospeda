@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils';
 const estadoPagoBadge: Record<string, string> = {
   Pendiente: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]',
   Parcial: 'bg-[#FFEDD5] text-[#9A3412] border-[#FED7AA]',
-  Pagado: 'bg-[#DCFCE7] text-[#166534] border-[#BBF7D0]',
+  Pagado: 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40',
 };
 
 const PARENTESCO_OPTIONS = [
@@ -296,7 +296,7 @@ export default function CheckInModule() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Pendientes Check-In */}
-          <Card className="border-[#BBF7D0]/60 bg-emerald-950/20">
+          <Card className="border-emerald-700/40/60 bg-emerald-950/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <LogIn className="w-5 h-5 text-[#059669]" />
@@ -305,7 +305,7 @@ export default function CheckInModule() {
                 <Badge
                   key={`cin-${pendientesCheckIn.length}`}
                   variant="secondary"
-                  className="ml-auto count-pop bg-[#059669]/15 text-[#047857] border-[#BBF7D0] hover:bg-[#059669]/20"
+                  className="ml-auto count-pop bg-[#059669]/15 text-[#047857] border-emerald-700/40 hover:bg-[#059669]/20"
                 >
                   {pendientesCheckIn.length}
                 </Badge>
@@ -320,7 +320,7 @@ export default function CheckInModule() {
                     <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-[#ECFDF5]/40 transition-colors duration-200 group">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm group-hover:text-[#0F2B28] transition-colors">{r.huesped}</span>
+                          <span className="font-semibold text-sm group-hover:text-emerald-400 transition-colors">{r.huesped}</span>
                           <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                           {(r.ninos || 0) > 0 && (
                             <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
@@ -370,7 +370,7 @@ export default function CheckInModule() {
                     <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-[#FFF7ED]/40 transition-colors duration-200 group">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm group-hover:text-[#0F2B28] transition-colors">{r.huesped}</span>
+                          <span className="font-semibold text-sm group-hover:text-emerald-400 transition-colors">{r.huesped}</span>
                           <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                           {r.menores && r.menores.length > 0 && (
                             <Badge variant="outline" className="bg-[#F5F3FF] text-[#5B21B6] border-[#DDD6FE]">
@@ -713,12 +713,12 @@ export default function CheckInModule() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Pagado</span>
-                      <span className="font-semibold text-[#166534]">{formatMoney(pagado)}</span>
+                      <span className="font-semibold text-emerald-300">{formatMoney(pagado)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between text-sm font-bold">
                       <span>Saldo</span>
-                      <span className={saldo > 0 ? 'text-[#991B1B]' : 'text-[#166534]'}>
+                      <span className={saldo > 0 ? 'text-[#991B1B]' : 'text-emerald-300'}>
                         {formatMoney(saldo)}
                       </span>
                     </div>
@@ -1047,11 +1047,11 @@ function CheckInAccountStatus({ reserva }: { reserva: Reserva }) {
         </div>
         <div>
           <span className="text-muted-foreground text-xs block">Pagado</span>
-          <span className="font-bold text-base text-[#166534]">{formatMoney(pagado)}</span>
+          <span className="font-bold text-base text-emerald-300">{formatMoney(pagado)}</span>
         </div>
         <div>
           <span className="text-muted-foreground text-xs block">Saldo</span>
-          <span className={`font-bold text-base ${saldo > 0 ? 'text-[#991B1B]' : 'text-[#166534]'}`}>
+          <span className={`font-bold text-base ${saldo > 0 ? 'text-[#991B1B]' : 'text-emerald-300'}`}>
             {formatMoney(saldo)}
           </span>
         </div>

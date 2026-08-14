@@ -120,7 +120,7 @@ interface CategoryConfig {
 const CATEGORY_CONFIG: Record<MovementCategory, CategoryConfig> = {
   'Gastos':           { label: 'Gastos',          color: '#EF4444', badgeBg: 'bg-[#FEE2E2]', badgeText: 'text-[#991B1B]', icon: ShoppingCart },
   'Mantenimiento':    { label: 'Mantenimiento',   color: '#F59E0B', badgeBg: 'bg-[#FEF3C7]', badgeText: 'text-[#92400E]', icon: Wrench },
-  'Ingresos varios':  { label: 'Ingresos varios', color: '#059669', badgeBg: 'bg-[#DCFCE7]', badgeText: 'text-[#166534]', icon: ArrowUpRight },
+  'Ingresos varios':  { label: 'Ingresos varios', color: '#059669', badgeBg: 'bg-emerald-900/60', badgeText: 'text-emerald-300', icon: ArrowUpRight },
   'Retiros':          { label: 'Retiros',         color: '#8B5CF6', badgeBg: 'bg-[#EDE9FE]', badgeText: 'text-[#5B21B6]', icon: PiggyBank },
   'Otros':            { label: 'Otros',           color: '#64748B', badgeBg: 'bg-[#F1F5F9]', badgeText: 'text-[#475569]', icon: Tag },
 };
@@ -262,10 +262,10 @@ function CashFlowTimeline({
         <div className="bg-[#F0FDF4]/60 border border-[#059669]/20 rounded-md px-3 py-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
-              <Wallet className="w-3.5 h-3.5 text-[#0F2B28]" />
-              <span className="text-xs font-semibold text-[#0F2B28]">Apertura</span>
+              <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-xs font-semibold text-emerald-400">Apertura</span>
             </div>
-            <span className="text-xs font-bold tabular-nums text-[#0F2B28]">{formatMoney(aperturaMonto)}</span>
+            <span className="text-xs font-bold tabular-nums text-emerald-400">{formatMoney(aperturaMonto)}</span>
           </div>
         </div>
       </div>
@@ -306,19 +306,19 @@ function CashFlowTimeline({
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className={cn(
                     'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
-                    isIngreso ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-[#FEE2E2] text-[#991B1B]'
+                    isIngreso ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#FEE2E2] text-[#991B1B]'
                   )}>
                     {isIngreso ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                   </span>
                   <div className="min-w-0">
-                    <span className={cn('text-[11px] font-semibold', isIngreso ? 'text-[#166534]' : 'text-[#991B1B]')}>
+                    <span className={cn('text-[11px] font-semibold', isIngreso ? 'text-emerald-300' : 'text-[#991B1B]')}>
                       {isIngreso ? 'Ingreso' : 'Egreso'}
                     </span>
                     <p className="text-[10px] text-muted-foreground truncate leading-tight">{entry.descripcion}</p>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className={cn('text-xs font-bold tabular-nums', isIngreso ? 'text-[#166534]' : 'text-[#991B1B]')}>
+                  <p className={cn('text-xs font-bold tabular-nums', isIngreso ? 'text-emerald-300' : 'text-[#991B1B]')}>
                     {isIngreso ? '+' : '-'}{formatMoney(entry.monto)}
                   </p>
                 </div>
@@ -347,13 +347,13 @@ function CashFlowTimeline({
           <div className="absolute -left-6 top-0 flex flex-col items-center">
             <div className="w-3 h-3 rounded-full bg-[#0F2B28] ring-2 ring-white shadow-sm z-10" />
           </div>
-          <div className="bg-emerald-950/20 border border-[#0F2B28]/20 rounded-md px-3 py-2">
+          <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-md px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
-                <CircleDot className="w-3.5 h-3.5 text-[#0F2B28]" />
-                <span className="text-xs font-semibold text-[#0F2B28]">Saldo actual</span>
+                <CircleDot className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-xs font-semibold text-emerald-400">Saldo actual</span>
               </div>
-              <span className="text-sm font-bold tabular-nums text-[#0F2B28]">{formatMoney(entries[entries.length - 1].runningBalance)}</span>
+              <span className="text-sm font-bold tabular-nums text-emerald-400">{formatMoney(entries[entries.length - 1].runningBalance)}</span>
             </div>
           </div>
         </div>
@@ -388,7 +388,7 @@ function DenominationBreakdownPanel({
       {/* Bills section */}
       <div>
         <div className="flex items-center gap-1.5 mb-1.5">
-          <Banknote className="w-3.5 h-3.5 text-[#0F2B28]" />
+          <Banknote className="w-3.5 h-3.5 text-emerald-400" />
           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Billetes</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
@@ -437,7 +437,7 @@ function DenominationBreakdownPanel({
       <div className="space-y-1.5 pt-2 border-t">
         <div className="flex justify-between items-center p-2 rounded-md bg-muted/30">
           <span className="text-xs font-medium">Total contado</span>
-          <span className="text-sm font-bold tabular-nums text-[#0F2B28]">{formatMoney(totalContado)}</span>
+          <span className="text-sm font-bold tabular-nums text-emerald-400">{formatMoney(totalContado)}</span>
         </div>
         <div className="flex justify-between items-center p-2 rounded-md bg-muted/30">
           <span className="text-xs font-medium">Total esperado (sistema)</span>
@@ -446,20 +446,20 @@ function DenominationBreakdownPanel({
         <div className={cn(
           'flex justify-between items-center p-2 rounded-md border',
           diferencia === 0
-            ? 'bg-[#DCFCE7] border-[#059669]/30'
+            ? 'bg-emerald-900/60 border-[#059669]/30'
             : diferencia > 0
             ? 'bg-[#FEF3C7] border-[#F59E0B]/30'
             : 'bg-[#FEE2E2] border-[#EF4444]/30'
         )}>
           <span className="text-xs font-medium flex items-center gap-1.5">
             {diferencia === 0
-              ? <Check className="w-3.5 h-3.5 text-[#166534]" />
+              ? <Check className="w-3.5 h-3.5 text-emerald-300" />
               : <AlertTriangle className="w-3.5 h-3.5" />}
             Diferencia
           </span>
           <span className={cn(
             'text-sm font-bold tabular-nums',
-            diferencia === 0 ? 'text-[#166534]' : diferencia > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
+            diferencia === 0 ? 'text-emerald-300' : diferencia > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
           )}>
             {diferencia === 0 ? '✓ Cuadra' : `${diferencia > 0 ? '+' : ''}${formatMoney(diferencia)}`}
           </span>
@@ -910,19 +910,19 @@ export default function CajaModule() {
       {caja.estado === 'cerrada' ? (
         /* ═══════ CAJA CERRADA — inviting empty state + daily summary ═══════ */
         <div className="space-y-4">
-          <Card className="relative overflow-hidden border-2 border-dashed border-[#0F2B28]/20 celebrate-bg">
+          <Card className="relative overflow-hidden border-2 border-dashed border-emerald-500/30 celebrate-bg">
             {/* Subtle radial accent in the background */}
             <div className="pointer-events-none absolute inset-0 bg-emerald-950/15" />
             <CardContent className="relative text-center py-14 px-6 space-y-5 max-w-md mx-auto">
               <div className="relative inline-flex">
                 {/* Pulsing halo around the icon */}
                 <span className="absolute inset-0 rounded-full bg-[#059669]/20 animate-ping" />
-                <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0] flex items-center justify-center shadow-lg ring-4 ring-white">
-                  <Unlock className="w-9 h-9 text-[#0F2B28]" />
+                <div className="relative w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center shadow-lg ring-4 ring-emerald-500/30">
+                  <Unlock className="w-9 h-9 text-emerald-400" />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <h3 className="text-2xl font-bold text-[#0F2B28]">Caja cerrada</h3>
+                <h3 className="text-2xl font-bold text-emerald-400">Caja cerrada</h3>
                 <p className="text-sm text-muted-foreground">Abrí un nuevo turno para comenzar a registrar movimientos del día.</p>
               </div>
               {!showApertura ? (
@@ -930,7 +930,7 @@ export default function CajaModule() {
                   <Unlock className="w-4 h-4 mr-2" />Abrir caja
                 </Button>
               ) : (
-                <div className="max-w-xs mx-auto space-y-2 rounded-lg border border-[#0F2B28]/15 bg-white/80 backdrop-blur p-4 shadow-sm">
+                <div className="max-w-xs mx-auto space-y-2 rounded-lg border border-emerald-800/20 bg-white/80 backdrop-blur p-4 shadow-sm">
                   <Label className="text-sm text-muted-foreground">Monto inicial en efectivo</Label>
                   <Input type="number" placeholder="0.00" step="0.01" min="0" value={montoInicial} onChange={e => setMontoInicial(e.target.value)} autoFocus />
                   <div className="flex gap-2">
@@ -978,7 +978,7 @@ export default function CajaModule() {
                     <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#059669]" />
                   </span>
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-sm text-[#0F2B28] truncate">Caja abierta</h3>
+                    <h3 className="font-semibold text-sm text-emerald-400 truncate">Caja abierta</h3>
                     {caja.apertura && (
                       <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1 truncate">
                         <Clock className="w-2.5 h-2.5 shrink-0" />
@@ -1001,13 +1001,13 @@ export default function CajaModule() {
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo actual</p>
                     <AnimatedNumber
                       value={saldo}
-                      className="text-xl font-bold text-[#0F2B28] block"
+                      className="text-xl font-bold text-emerald-400 block"
                     />
                   </div>
                   {caja.apertura && (
                     <div className={cn(
                       'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold shadow-sm',
-                      tendencia >= 0 ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-[#FEE2E2] text-[#991B1B]'
+                      tendencia >= 0 ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#FEE2E2] text-[#991B1B]'
                     )}>
                       {tendencia >= 0
                         ? <ArrowUpRight className="w-3 h-3" />
@@ -1030,7 +1030,7 @@ export default function CajaModule() {
               </div>
               {/* Action buttons */}
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="h-9 text-sm border-[#059669]/30 text-[#166534] hover:bg-[#F0FDF4] hover:text-[#166534]" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+                <Button variant="outline" className="h-9 text-sm border-[#059669]/30 text-emerald-300 hover:bg-[#F0FDF4] hover:text-emerald-300" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
                 <Button variant="outline" className="h-9 text-sm border-[#991B1B]/30 text-[#991B1B] hover:bg-[#FEF2F2] hover:text-[#991B1B]" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
               </div>
               {/* Movement form inline */}
@@ -1166,7 +1166,7 @@ export default function CajaModule() {
           <Card className="lg:hidden overflow-hidden">
             <CardHeader className="bg-teal-950/10 pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Timer className="w-4 h-4 text-[#0F2B28]" />
+                <Timer className="w-4 h-4 text-emerald-400" />
                 Línea de tiempo
               </CardTitle>
             </CardHeader>
@@ -1191,9 +1191,9 @@ export default function CajaModule() {
                       <span className="relative inline-flex h-3 w-3 rounded-full bg-[#059669]" />
                     </span>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-[#0F2B28] flex items-center gap-2">
+                      <h3 className="font-semibold text-emerald-400 flex items-center gap-2">
                         Caja abierta
-                        <Badge className="bg-[#DCFCE7] text-[#166534] shadow-sm font-semibold">
+                        <Badge className="bg-emerald-900/60 text-emerald-300 shadow-sm font-semibold">
                           <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#059669] mr-1 animate-pulse-subtle" />
                           Activa
                         </Badge>
@@ -1221,14 +1221,14 @@ export default function CajaModule() {
               <Card className="bg-green-950/20 border-2 border-[#059669]/30 card-hover">
                 <CardContent className="py-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0] flex items-center justify-center shadow-sm">
-                      <Wallet className="w-6 h-6 text-[#0F2B28]" />
+                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center shadow-sm">
+                      <Wallet className="w-6 h-6 text-emerald-400" />
                     </div>
                     <div>
                       <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Saldo actual (efectivo)</p>
                       <AnimatedNumber
                         value={saldo}
-                        className="text-3xl font-bold text-[#0F2B28] tabular-nums block leading-tight"
+                        className="text-3xl font-bold text-emerald-400 tabular-nums block leading-tight"
                       />
                     </div>
                   </div>
@@ -1237,7 +1237,7 @@ export default function CajaModule() {
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">vs. apertura</p>
                       <div className={cn(
                         'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm',
-                        tendencia >= 0 ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-[#FEE2E2] text-[#991B1B]'
+                        tendencia >= 0 ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#FEE2E2] text-[#991B1B]'
                       )}>
                         {tendencia >= 0
                           ? <TrendingUp className="w-3.5 h-3.5" />
@@ -1255,7 +1255,7 @@ export default function CajaModule() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-[#0F2B28]" />
+                      <Activity className="w-4 h-4 text-emerald-400" />
                       Movimientos del turno
                       {filteredMovimientos.length !== movimientos.length && (
                         <Badge variant="secondary" className="text-[10px] shadow-sm">
@@ -1362,7 +1362,7 @@ export default function CajaModule() {
                                 className={cn(
                                   'group transition-colors border-l-2',
                                   m.tipo === 'ingreso'
-                                    ? 'border-l-[#059669] hover:bg-[#F0FDF4]/40'
+                                    ? 'border-l-[#059669] hover:bg-emerald-900/30'
                                     : 'border-l-[#EF4444] hover:bg-[#FEF2F2]/40'
                                 )}
                               >
@@ -1376,7 +1376,7 @@ export default function CajaModule() {
                                   <div className="flex items-center gap-2">
                                     <span className={cn(
                                       'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
-                                      m.tipo === 'ingreso' ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-[#FEE2E2] text-[#991B1B]'
+                                      m.tipo === 'ingreso' ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#FEE2E2] text-[#991B1B]'
                                     )}>
                                       {m.tipo === 'ingreso'
                                         ? <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1384,7 +1384,7 @@ export default function CajaModule() {
                                     </span>
                                     <span className={cn(
                                       'text-xs font-semibold',
-                                      m.tipo === 'ingreso' ? 'text-[#166534]' : 'text-[#991B1B]'
+                                      m.tipo === 'ingreso' ? 'text-emerald-300' : 'text-[#991B1B]'
                                     )}>
                                       {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
                                     </span>
@@ -1397,7 +1397,7 @@ export default function CajaModule() {
                                 </TableCell>
                                 <TableCell className={cn(
                                   'font-bold tabular-nums',
-                                  m.tipo === 'ingreso' ? 'text-[#166534]' : 'text-[#991B1B]'
+                                  m.tipo === 'ingreso' ? 'text-emerald-300' : 'text-[#991B1B]'
                                 )}>
                                   {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
                                 </TableCell>
@@ -1460,7 +1460,7 @@ export default function CajaModule() {
             {/* Info Panel */}
             <div className="space-y-4">
               <Card className="overflow-hidden">
-                <CardHeader className="bg-teal-950/10 pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#0F2B28]" />Información del turno</CardTitle></CardHeader>
+                <CardHeader className="bg-teal-950/10 pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-emerald-400" />Información del turno</CardTitle></CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   {caja.apertura && (
                     <>
@@ -1473,14 +1473,14 @@ export default function CajaModule() {
                     <span className="text-muted-foreground">Saldo actual:</span>
                     <AnimatedNumber
                       value={saldo}
-                      className="font-bold text-lg text-[#0F2B28] tabular-nums"
+                      className="font-bold text-lg text-emerald-400 tabular-nums"
                     />
                   </div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Movimientos:</span><span className="font-medium">{movimientos.length}</span></div>
 
                   {/* Action buttons */}
                   <div className="grid grid-cols-2 gap-2 pt-2">
-                    <Button variant="outline" className="w-full border-[#059669]/30 text-[#166534] hover:bg-[#F0FDF4] hover:text-[#166534]" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+                    <Button variant="outline" className="w-full border-[#059669]/30 text-emerald-300 hover:bg-[#F0FDF4] hover:text-emerald-300" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
                     <Button variant="outline" className="w-full border-[#991B1B]/30 text-[#991B1B] hover:bg-[#FEF2F2] hover:text-[#991B1B]" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
                   </div>
 
@@ -1515,7 +1515,7 @@ export default function CajaModule() {
               <Card className="overflow-hidden">
                 <CardHeader className="bg-teal-950/10 pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Timer className="w-4 h-4 text-[#0F2B28]" />
+                    <Timer className="w-4 h-4 text-emerald-400" />
                     Línea de tiempo
                   </CardTitle>
                 </CardHeader>
@@ -1650,8 +1650,8 @@ function ClosingWizard(props: ClosingWizardProps) {
               >
                 <span className={cn(
                   'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border',
-                  isActive && 'bg-white text-[#0F2B28] border-white',
-                  isDone && 'bg-[#DCFCE7] text-[#166534] border-[#059669]',
+                  isActive && 'bg-white text-emerald-400 border-white',
+                  isDone && 'bg-emerald-900/60 text-emerald-300 border-[#059669]',
                   !isActive && !isDone && 'border-muted-foreground/40'
                 )}>
                   {isDone ? <Check className="w-3 h-3" /> : <SIcon className="w-3 h-3" />}
@@ -1671,10 +1671,10 @@ function ClosingWizard(props: ClosingWizardProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="font-semibold text-sm flex items-center gap-2"><Banknote className="w-4 h-4 text-[#0F2B28]" />Conteo de denominaciones</h4>
+              <h4 className="font-semibold text-sm flex items-center gap-2"><Banknote className="w-4 h-4 text-emerald-400" />Conteo de denominaciones</h4>
               <p className="text-xs text-muted-foreground mt-0.5">Ingresá la cantidad de cada billete y moneda.</p>
             </div>
-            <Badge className="bg-[#DCFCE7] text-[#166534] shadow-sm">Esperado: {fmt(props.saldoEsperadoEfectivo)}</Badge>
+            <Badge className="bg-emerald-900/60 text-emerald-300 shadow-sm">Esperado: {fmt(props.saldoEsperadoEfectivo)}</Badge>
           </div>
           <DenominationBreakdownPanel
             denominaciones={DENOMINACIONES}
@@ -1689,7 +1689,7 @@ function ClosingWizard(props: ClosingWizardProps) {
       {props.step === 2 && (
         <div className="space-y-3">
           <div>
-            <h4 className="font-semibold text-sm flex items-center gap-2"><CreditCard className="w-4 h-4 text-[#0F2B28]" />Otros métodos de pago</h4>
+            <h4 className="font-semibold text-sm flex items-center gap-2"><CreditCard className="w-4 h-4 text-emerald-400" />Otros métodos de pago</h4>
             <p className="text-xs text-muted-foreground mt-0.5">Verificá los totales calculados por el sistema. Podés ajustarlos si es necesario.</p>
           </div>
           {Object.keys(props.resumenOtros).length === 0 ? (
@@ -1713,7 +1713,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                 return (
                   <div key={metodo} className="border rounded-md p-2.5 space-y-1.5">
                     <div className="flex items-center gap-2">
-                      <MetodoIcon className="w-4 h-4 text-[#0F2B28] shrink-0" />
+                      <MetodoIcon className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span className="text-sm font-medium flex-1">{metodo}</span>
                       <Badge variant="outline" className="text-[10px]">Sistema: {fmt(systemTotal)}</Badge>
                     </div>
@@ -1728,7 +1728,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                       />
                       <span className={cn(
                         'text-xs font-semibold w-20 text-right tabular-nums',
-                        diff === 0 ? 'text-[#166534]' : diff > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
+                        diff === 0 ? 'text-emerald-300' : diff > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
                       )}>
                         {diff === 0 ? '✓' : diff > 0 ? '+' : ''}{fmt(diff)}
                       </span>
@@ -1737,7 +1737,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                 );
               })}
               <div className="flex justify-between font-bold pt-2 border-t bg-[#F0FDF4]/40 rounded-md p-2 px-3">
-                <span>Total otros métodos</span><span className="text-[#0F2B28] tabular-nums">{fmt(props.otrosContadosTotal)}</span>
+                <span>Total otros métodos</span><span className="text-emerald-400 tabular-nums">{fmt(props.otrosContadosTotal)}</span>
               </div>
             </div>
           )}
@@ -1748,7 +1748,7 @@ function ClosingWizard(props: ClosingWizardProps) {
       {props.step === 3 && (
         <div className="space-y-3">
           <div>
-            <h4 className="font-semibold text-sm flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-[#0F2B28]" />Comparación vs sistema</h4>
+            <h4 className="font-semibold text-sm flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-emerald-400" />Comparación vs sistema</h4>
             <p className="text-xs text-muted-foreground mt-0.5">Revisá las diferencias antes de cerrar el turno.</p>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -1779,7 +1779,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                   <span className="text-xs font-semibold tabular-nums">Cont: {fmt(props.totalEfectivo)}</span>
                   <span className={cn(
                     'text-xs font-bold tabular-nums w-16 text-right',
-                    props.diferenciaEfectivo === 0 ? 'text-[#166534]' : 'text-[#991B1B]'
+                    props.diferenciaEfectivo === 0 ? 'text-emerald-300' : 'text-[#991B1B]'
                   )}>
                     {props.diferenciaEfectivo === 0 ? '✓' : `${props.diferenciaEfectivo > 0 ? '+' : ''}${fmt(props.diferenciaEfectivo)}`}
                   </span>
@@ -1797,7 +1797,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                       <span className="text-xs font-semibold tabular-nums">Cont: {fmt(counted || 0)}</span>
                       <span className={cn(
                         'text-xs font-bold tabular-nums w-16 text-right',
-                        diff === 0 ? 'text-[#166534]' : 'text-[#991B1B]'
+                        diff === 0 ? 'text-emerald-300' : 'text-[#991B1B]'
                       )}>
                         {diff === 0 ? '✓' : `${diff > 0 ? '+' : ''}${fmt(diff)}`}
                       </span>
@@ -1829,14 +1829,14 @@ function ClosingWizard(props: ClosingWizardProps) {
       {props.step === 4 && (
         <div className="space-y-3">
           <div>
-            <h4 className="font-semibold text-sm flex items-center gap-2"><StickyNote className="w-4 h-4 text-[#0F2B28]" />Resumen y cierre</h4>
+            <h4 className="font-semibold text-sm flex items-center gap-2"><StickyNote className="w-4 h-4 text-emerald-400" />Resumen y cierre</h4>
             <p className="text-xs text-muted-foreground mt-0.5">Revisá el resumen del turno antes de cerrar.</p>
           </div>
 
           {/* Day activity summary */}
           {props.daySummary && (
             <div className="border rounded-lg overflow-hidden">
-              <div className="bg-gradient-to-r from-[#0F2B28] to-[#059669] px-3 py-2">
+              <div className="bg-[#0F2B28] px-3 py-2">
                 <p className="text-xs font-semibold text-white flex items-center gap-1.5">
                   <Activity className="w-3.5 h-3.5" />
                   Resumen de la jornada
@@ -1846,11 +1846,11 @@ function ClosingWizard(props: ClosingWizardProps) {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                   <div className="p-1.5 rounded-md bg-[#F0FDF4]/60 border border-[#059669]/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Apertura</p>
-                    <p className="text-xs font-bold tabular-nums text-[#0F2B28]">{fmt(props.daySummary.aperturaMonto)}</p>
+                    <p className="text-xs font-bold tabular-nums text-emerald-400">{fmt(props.daySummary.aperturaMonto)}</p>
                   </div>
-                  <div className="p-1.5 rounded-md bg-[#DCFCE7]/60 border border-[#059669]/20">
+                  <div className="p-1.5 rounded-md bg-emerald-900/60/60 border border-[#059669]/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Ingresos</p>
-                    <p className="text-xs font-bold tabular-nums text-[#166534]">{fmt(props.daySummary.totalIngresos)}</p>
+                    <p className="text-xs font-bold tabular-nums text-emerald-300">{fmt(props.daySummary.totalIngresos)}</p>
                   </div>
                   <div className="p-1.5 rounded-md bg-[#FEE2E2]/60 border border-[#EF4444]/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Egresos</p>
@@ -1863,7 +1863,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-dashed">
                   <span>Cajero: {props.daySummary.empleado}</span>
-                  <span>Neto: <span className={cn('font-bold', props.daySummary.totalIngresos - props.daySummary.totalEgresos >= 0 ? 'text-[#166534]' : 'text-[#991B1B]')}>{fmt(props.daySummary.totalIngresos - props.daySummary.totalEgresos)}</span></span>
+                  <span>Neto: <span className={cn('font-bold', props.daySummary.totalIngresos - props.daySummary.totalEgresos >= 0 ? 'text-emerald-300' : 'text-[#991B1B]')}>{fmt(props.daySummary.totalIngresos - props.daySummary.totalEgresos)}</span></span>
                 </div>
               </div>
             </div>
@@ -1877,12 +1877,12 @@ function ClosingWizard(props: ClosingWizardProps) {
             </div>
             <div className={cn(
               'p-2 rounded-md',
-              props.diferenciaTotal === 0 ? 'bg-[#DCFCE7]' : props.diferenciaTotal > 0 ? 'bg-[#FEF3C7]' : 'bg-[#FEE2E2]'
+              props.diferenciaTotal === 0 ? 'bg-emerald-900/60' : props.diferenciaTotal > 0 ? 'bg-[#FEF3C7]' : 'bg-[#FEE2E2]'
             )}>
               <p className="text-[10px] text-muted-foreground">Diferencia</p>
               <p className={cn(
                 'font-bold text-sm tabular-nums',
-                props.diferenciaTotal === 0 ? 'text-[#166534]' : props.diferenciaTotal > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
+                props.diferenciaTotal === 0 ? 'text-emerald-300' : props.diferenciaTotal > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
               )}>
                 {props.diferenciaTotal === 0 ? '$0.00' : `${props.diferenciaTotal > 0 ? '+' : ''}${fmt(props.diferenciaTotal)}`}
               </p>
@@ -1950,7 +1950,7 @@ function ClosingWizard(props: ClosingWizardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="text-[#0F2B28]"
+              className="text-emerald-400"
               onClick={() => {
                 // Generate a simple receipt printout
                 const w = window.open('', '_blank', 'width=400,height=600');
@@ -2014,8 +2014,8 @@ function ClosingWizard(props: ClosingWizardProps) {
 function ComparisonRow({ label, value, variant, showSign }: {
   label: string; value: number; variant: 'neutral' | 'success' | 'warning' | 'danger'; showSign?: boolean;
 }) {
-  const bg = variant === 'success' ? 'bg-[#DCFCE7]' : variant === 'warning' ? 'bg-[#FEF3C7]' : variant === 'danger' ? 'bg-[#FEE2E2]' : 'bg-muted/50';
-  const txt = variant === 'success' ? 'text-[#166534]' : variant === 'warning' ? 'text-[#92400E]' : variant === 'danger' ? 'text-[#991B1B]' : 'text-foreground';
+  const bg = variant === 'success' ? 'bg-emerald-900/60' : variant === 'warning' ? 'bg-[#FEF3C7]' : variant === 'danger' ? 'bg-[#FEE2E2]' : 'bg-muted/50';
+  const txt = variant === 'success' ? 'text-emerald-300' : variant === 'warning' ? 'text-[#92400E]' : variant === 'danger' ? 'text-[#991B1B]' : 'text-foreground';
   return (
     <div className={cn('p-2.5 rounded-md', bg)}>
       <p className="text-[10px] text-muted-foreground">{label}</p>
@@ -2048,8 +2048,8 @@ function DailySummaryCard({ summary, onViewHistorial }: {
 }) {
   const diff = summary.diferencia;
   return (
-    <Card className="overflow-hidden border-2 border-[#0F2B28]/15">
-      <CardHeader className="bg-gradient-to-r from-[#0F2B28] to-[#059669] text-white pb-3">
+    <Card className="overflow-hidden border-2 border-emerald-800/20">
+      <CardHeader className="bg-[#0F2B28] text-white pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2 text-white">
             <History className="w-4 h-4" />
@@ -2102,13 +2102,13 @@ function DailySummaryCard({ summary, onViewHistorial }: {
         )}>
           <div className="flex items-center gap-2">
             {diff === 0
-              ? <Check className="w-5 h-5 text-[#166534]" />
+              ? <Check className="w-5 h-5 text-emerald-300" />
               : <AlertTriangle className={cn('w-5 h-5', diff > 0 ? 'text-[#92400E]' : 'text-[#991B1B]')} />}
             <div>
               <p className="text-xs text-muted-foreground">Diferencia al cierre</p>
               <p className={cn(
                 'font-bold text-sm tabular-nums',
-                diff === 0 ? 'text-[#166534]' : diff > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
+                diff === 0 ? 'text-emerald-300' : diff > 0 ? 'text-[#92400E]' : 'text-[#991B1B]'
               )}>
                 {diff === 0 ? 'Cuadra perfecto' : `${diff > 0 ? '+' : ''}${formatMoney(diff)}`}
               </p>
@@ -2161,7 +2161,7 @@ function DailySummaryCard({ summary, onViewHistorial }: {
           </div>
         </div>
 
-        <Button variant="outline" className="w-full border-[#0F2B28]/30 text-[#0F2B28] hover:bg-[#0F2B28] hover:text-white" onClick={onViewHistorial}>
+        <Button variant="outline" className="w-full border-emerald-700/40 text-emerald-400 hover:bg-[#0F2B28] hover:text-white" onClick={onViewHistorial}>
           <History className="w-4 h-4 mr-2" />Ver historial completo
         </Button>
       </CardContent>
@@ -2221,7 +2221,7 @@ function MovementCategoryPie({ data, compact }: { data: PieDatum[]; compact?: bo
     <Card className="overflow-hidden">
       <CardHeader className="bg-teal-950/10 pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
-          <Sparkle className="w-4 h-4 text-[#0F2B28]" />
+          <Sparkle className="w-4 h-4 text-emerald-400" />
           Movimientos por categoría
         </CardTitle>
       </CardHeader>
@@ -2255,7 +2255,7 @@ function MovementCategoryPie({ data, compact }: { data: PieDatum[]; compact?: bo
               )}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Total</p>
-                <p className="text-xs font-bold text-[#0F2B28] tabular-nums leading-tight">{formatMoney(total)}</p>
+                <p className="text-xs font-bold text-emerald-400 tabular-nums leading-tight">{formatMoney(total)}</p>
               </div>
             </div>
             <div className={cn('space-y-1', compact ? 'w-full' : 'w-1/2')}>
@@ -2419,7 +2419,7 @@ function MovementDetailPopover({ movimiento, gasto, categoria }: {
         <div className="flex items-center gap-2">
           <span className={cn(
             'w-7 h-7 rounded-full flex items-center justify-center',
-            isIngreso ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-[#FEE2E2] text-[#991B1B]'
+            isIngreso ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#FEE2E2] text-[#991B1B]'
           )}>
             {isIngreso ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
           </span>
@@ -2430,7 +2430,7 @@ function MovementDetailPopover({ movimiento, gasto, categoria }: {
         </div>
         <p className={cn(
           'text-sm font-bold tabular-nums',
-          isIngreso ? 'text-[#166534]' : 'text-[#991B1B]'
+          isIngreso ? 'text-emerald-300' : 'text-[#991B1B]'
         )}>
           {isIngreso ? '+' : '-'}{formatMoney(m.monto)}
         </p>
@@ -2532,7 +2532,7 @@ function MovFormInline({
     <div className="border rounded-lg p-3 space-y-2">
       <p className="font-medium text-sm">
         {tipo === 'ingreso' ? (
-          <span className="flex items-center gap-1"><Plus className="w-3.5 h-3.5 text-[#166534]" />Registrar ingreso</span>
+          <span className="flex items-center gap-1"><Plus className="w-3.5 h-3.5 text-emerald-300" />Registrar ingreso</span>
         ) : (
           <span className="flex items-center gap-1"><Minus className="w-3.5 h-3.5 text-[#991B1B]" />Registrar egreso</span>
         )}
@@ -2566,7 +2566,7 @@ function MovFormInline({
             <button
               type="button"
               onClick={() => setMovCategoria(suggestedCategory!)}
-              className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full bg-[#0F2B28]/5 border border-[#0F2B28]/20 text-[#0F2B28] hover:bg-[#0F2B28] hover:text-white transition-colors animate-slide-up"
+              className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-[#0F2B28] hover:text-white transition-colors animate-slide-up"
             >
               <Sparkle className="w-2.5 h-2.5" />
               Sugerencia: <strong className="font-semibold">{suggestedCategory}</strong>
@@ -2624,7 +2624,7 @@ const QUICK_STATS: QuickStatConfig[] = [
     icon: Wallet,
     colorFamily: 'emerald',
     prominent: true,
-    iconBgOverride: 'bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0]',
+    iconBgOverride: 'bg-emerald-500/20',
   },
 ];
 
@@ -2732,7 +2732,7 @@ function MovementCard({
         <div className="flex items-center gap-2 min-w-0">
           <span className={cn(
             'w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm',
-            isIngreso ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-[#FEE2E2] text-[#991B1B]'
+            isIngreso ? 'bg-emerald-900/60 text-emerald-300' : 'bg-[#FEE2E2] text-[#991B1B]'
           )}>
             {isIngreso
               ? <ArrowUpRight className="w-3.5 h-3.5" />
@@ -2742,7 +2742,7 @@ function MovementCard({
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className={cn(
                 'text-xs font-semibold',
-                isIngreso ? 'text-[#166534]' : 'text-[#991B1B]'
+                isIngreso ? 'text-emerald-300' : 'text-[#991B1B]'
               )}>
                 {isIngreso ? 'Ingreso' : 'Egreso'}
               </span>
@@ -2772,7 +2772,7 @@ function MovementCard({
         </div>
         <p className={cn(
           'text-sm font-bold shrink-0 tabular-nums',
-          isIngreso ? 'text-[#166534]' : 'text-[#991B1B]'
+          isIngreso ? 'text-emerald-300' : 'text-[#991B1B]'
         )}>
           {isIngreso ? '+' : '-'}{formatMoney(m.monto)}
         </p>
@@ -2785,7 +2785,7 @@ function MovementCard({
           <span>{formatHora(m.fecha)}</span>
         </p>
         <div className="flex gap-0.5">
-          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-[#0F2B28]" onClick={onToggleDetail}>
+          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-emerald-400" onClick={onToggleDetail}>
             <Eye className="w-3 h-3 mr-0.5" />Detalle
           </Button>
           {canEdit && (

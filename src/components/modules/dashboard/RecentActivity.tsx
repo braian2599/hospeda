@@ -194,7 +194,7 @@ export default function RecentActivity() {
     <Card className="flex flex-col">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <Activity className="w-4 h-4 text-[#0F2B28]" />
+          <Activity className="w-4 h-4 text-emerald-400" />
           Actividad Reciente
           {events.length > 0 && (
             <Badge className="ml-auto bg-[#0F2B28] hover:bg-[#0F2B28]">{events.length}</Badge>

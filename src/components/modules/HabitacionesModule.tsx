@@ -39,10 +39,10 @@ import RoomStatusMap from './RoomStatusMap';
 // ═══════════════════════════════════════════════════════════
 
 const estados: Record<EstadoHabitacion, string> = {
-  Disponible: 'bg-[#DCFCE7]/80 text-[#166534]',
+  Disponible: 'bg-emerald-900/60 text-emerald-300',
   Ocupada: 'bg-[#FEF3C7]/80 text-[#92400E]',
   Limpieza: 'bg-[#FEF9C3]/80 text-[#854D0E]',
-  Mantenimiento: 'bg-[#F1F5F9]/80 text-[#64748B]',
+  Mantenimiento: 'bg-[#F1F5F9]/80 text-slate-400',
   Reservada: 'bg-[#E0F2FE]/80 text-[#075985]',
   'Fuera de servicio': 'bg-[#FEE2E2]/80 text-[#991B1B]',
 };
@@ -214,13 +214,13 @@ function RoomStatsBanner() {
     <div
       className={`
         flex items-center gap-3 p-3 rounded-xl border border-l-[3px] border-l-[#10B981]
-        bg-gradient-to-br from-[#F0FDF4]/40 to-white
+        bg-emerald-950/20
         transition-all duration-500 ease-out
         ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
       `}
     >
-      <div className="size-8 rounded-full flex items-center justify-center shrink-0 bg-[#0F2B28]/10">
-        <Bed className="w-4 h-4 text-[#0F2B28]" />
+      <div className="size-8 rounded-full flex items-center justify-center shrink-0 bg-emerald-500/20">
+        <Bed className="w-4 h-4 text-emerald-400" />
       </div>
       <div className="min-w-0">
         <div className="text-2xl font-bold leading-tight text-foreground">{total}</div>
@@ -228,7 +228,7 @@ function RoomStatsBanner() {
       </div>
       <div className="ml-auto text-right">
         <div className="text-xs text-muted-foreground">Ocupación</div>
-        <div className="text-lg font-bold text-[#0F2B28]">{ocupacionPct}%</div>
+        <div className="text-lg font-bold text-emerald-400">{ocupacionPct}%</div>
       </div>
     </div>
   );
@@ -296,8 +296,8 @@ function RoomTypeAnalytics() {
   return (
     <div className="rounded-xl border bg-card p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-[#0F2B28]/10 flex items-center justify-center">
-          <Bed className="w-3.5 h-3.5 text-[#0F2B28]" />
+        <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+          <Bed className="w-3.5 h-3.5 text-emerald-400" />
         </div>
         <span className="text-sm font-semibold text-foreground">Distribución por tipo</span>
       </div>
@@ -634,7 +634,7 @@ function FloorGroup({
             className="w-full flex items-center gap-2.5 p-3 hover:bg-accent/30 transition-colors cursor-pointer"
             aria-label={`${isOpen ? 'Colapsar' : 'Expandir'} ${floorLabel}`}
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#0F2B28]/10 text-[#0F2B28] shrink-0">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
               {isFloorPattern ? (
                 <span className="text-sm font-bold">{floorNum}</span>
               ) : (

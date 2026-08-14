@@ -282,7 +282,7 @@ function HotelSection() {
       {/* Hero + Hotel name */}
       <Card className="overflow-hidden">
         <div
-          className="h-32 md:h-40 w-full bg-gradient-to-br from-[#0F2B28] to-[#059669] relative"
+          className="h-32 md:h-40 w-full bg-[#0F2B28] relative"
           aria-hidden
         >
           {form.heroUrl ? (
@@ -293,7 +293,7 @@ function HotelSection() {
               onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
             />
           ) : null}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
         </div>
         <CardContent className="p-4 md:p-6 -mt-12 relative">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4">
@@ -616,7 +616,7 @@ function FiscalSection() {
           <CardDescription>Así se verá el próximo comprobante emitido</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mx-auto max-w-sm bg-white border border-border rounded-md shadow-sm p-5 text-black font-mono text-xs space-y-2">
+          <div className="mx-auto max-w-sm bg-card border border-border rounded-md shadow-sm p-5 text-foreground font-mono text-xs space-y-2">
             <div className="flex justify-between items-start border-b border-dashed border-gray-300 pb-2">
               <div>
                 <p className="font-bold text-sm">{form.ciudad || 'Ciudad'}</p>

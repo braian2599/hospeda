@@ -315,10 +315,10 @@ export default function LimpiezaModule() {
           <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto custom-scroll">
             {porLimpiar.length === 0 ? (
               <div className="text-center py-8">
-                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#DCFCE7] flex items-center justify-center shadow-sm">
-                  <CheckCircle className="w-7 h-7 text-[#166534]" />
+                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-emerald-900/60 flex items-center justify-center shadow-sm">
+                  <CheckCircle className="w-7 h-7 text-emerald-300" />
                 </div>
-                <p className="text-sm font-medium text-[#166534]">¡Todo limpio!</p>
+                <p className="text-sm font-medium text-emerald-300">¡Todo limpio!</p>
                 <p className="text-xs text-muted-foreground mt-0.5">No hay habitaciones pendientes.</p>
               </div>
             ) : porLimpiar.map(([num, h], index) => {
@@ -331,7 +331,7 @@ export default function LimpiezaModule() {
                 <div
                   key={num}
                   className={cn(
-                    'group pl-3 pr-2.5 py-2.5 rounded-lg border-l-[3px] border bg-white hover:shadow-md transition-all duration-300',
+                    'group pl-3 pr-2.5 py-2.5 rounded-lg border-l-[3px] border bg-card hover:shadow-md transition-all duration-300',
                     isHighPriority ? 'border-l-[#EF4444]' : sinceCheckoutMs > 0 && (sinceCheckoutMs / 3_600_000) >= 1 ? 'border-l-[#F59E0B]' : 'border-l-[#0EA5E9]',
                     'hover:-translate-y-0.5'
                   )}
@@ -350,7 +350,7 @@ export default function LimpiezaModule() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-sm font-bold text-[#0F2B28]">Hab. {num}</p>
+                          <p className="text-sm font-bold text-emerald-400">Hab. {num}</p>
                           {isHighPriority && (
                             <Badge className="text-[10px] bg-[#FEE2E2] text-[#991B1B] shadow-sm font-semibold">Urgente</Badge>
                           )}
@@ -413,7 +413,7 @@ export default function LimpiezaModule() {
             ) : enMantenimiento.map(([num, h], index) => (
               <div
                 key={num}
-                className="group pl-3 pr-2.5 py-2.5 rounded-lg border-l-[3px] border-l-[#EF4444] border bg-white hover:shadow-md transition-all duration-300 hover:-translate-y-0.5"
+                className="group pl-3 pr-2.5 py-2.5 rounded-lg border-l-[3px] border-l-[#EF4444] border bg-card hover:shadow-md transition-all duration-300 hover:-translate-y-0.5"
                 style={{ animationDelay: `${index * 40}ms` }}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -422,7 +422,7 @@ export default function LimpiezaModule() {
                       <Wrench className="w-4 h-4 text-[#991B1B]" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-[#0F2B28]">Hab. {num}</p>
+                      <p className="text-sm font-bold text-emerald-400">Hab. {num}</p>
                       <p className="text-xs text-[#991B1B] font-medium truncate">{h.problema || 'Sin descripción'}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{h.tipo}</p>
                     </div>
@@ -430,7 +430,7 @@ export default function LimpiezaModule() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 text-xs border-[#059669]/30 text-[#166534] hover:bg-[#DCFCE7] shrink-0"
+                    className="h-7 text-xs border-[#059669]/30 text-emerald-300 hover:bg-emerald-900/60 shrink-0"
                     onClick={() => setModalResolver(num)}
                   >
                     <Check className="w-3 h-3 mr-1" />Resolver
@@ -608,11 +608,11 @@ export default function LimpiezaModule() {
                     onClick={() => setSacarDeCaja(true)}
                     className={cn(
                       'flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all',
-                      sacarDeCaja ? 'border-[#4ADE80] bg-[#DCFCE7]' : 'border-muted hover:border-muted-foreground/30'
+                      sacarDeCaja ? 'border-[#4ADE80] bg-emerald-900/60' : 'border-muted hover:border-muted-foreground/30'
                     )}
                   >
-                    <Wallet className={cn('w-5 h-5', sacarDeCaja ? 'text-[#166534]' : 'text-muted-foreground')} />
-                    <span className={cn('text-xs font-medium', sacarDeCaja ? 'text-[#166534]' : 'text-muted-foreground')}>De caja</span>
+                    <Wallet className={cn('w-5 h-5', sacarDeCaja ? 'text-emerald-300' : 'text-muted-foreground')} />
+                    <span className={cn('text-xs font-medium', sacarDeCaja ? 'text-emerald-300' : 'text-muted-foreground')}>De caja</span>
                     <span className="text-[10px] text-muted-foreground">Sale de la caja del turno</span>
                   </button>
                   <button

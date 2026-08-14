@@ -154,7 +154,7 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
               <span className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-[#0F2B28] text-white">
                 <Keyboard className="w-4 h-4" />
               </span>
-              <DialogTitle className="text-base font-semibold text-[#0F2B28]">
+              <DialogTitle className="text-base font-semibold text-emerald-400">
                 Atajos de teclado y consejos
               </DialogTitle>
             </div>
@@ -218,7 +218,7 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="w-full mt-1 gap-1.5 text-xs h-8 text-[#0F2B28] hover:bg-[#0F2B28]/5"
+              className="w-full mt-1 gap-1.5 text-xs h-8 text-emerald-400 hover:bg-emerald-500/10"
               onClick={() => {
                 setOpen(false);
                 // Defer to let this dialog close before opening the full overlay.
@@ -241,25 +241,25 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
             <SectionLabel>Consejos rápidos</SectionLabel>
             <ul className="space-y-2 text-sm text-foreground/80">
               <li className="flex gap-2">
-                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[#0F2B28]" />
+                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" />
                 <span>
                   Usa <Kbd>⌘K</Kbd> para buscar cualquier cosa al instante.
                 </span>
               </li>
               <li className="flex gap-2">
-                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[#0F2B28]" />
+                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" />
                 <span>
                   Click en una habitación para ver detalles y reservas.
                 </span>
               </li>
               <li className="flex gap-2">
-                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[#0F2B28]" />
+                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" />
                 <span>
                   Las notificaciones muestran eventos importantes en tiempo real.
                 </span>
               </li>
               <li className="flex gap-2">
-                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[#0F2B28]" />
+                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" />
                 <span>
                   Cambia entre modo claro/oscuro desde el botón de tema.
                 </span>

@@ -236,21 +236,21 @@ function GanttPopover({ data, position, onClose }: {
 
   const estadoColors: Record<string, string> = {
     Reservada: 'bg-[#DBEAFE] text-[#1E40AF]',
-    Ocupada: 'bg-[#DCFCE7] text-[#166534]',
+    Ocupada: 'bg-emerald-900/60 text-emerald-300',
     Limpieza: 'bg-[#FEF3C7] text-[#92400E]',
-    Mantenimiento: 'bg-[#F8FAFC] text-[#64748B]',
+    Mantenimiento: 'bg-[#F8FAFC] text-slate-400',
   };
 
   return createPortal(
     <div
       ref={ref}
-      className="fixed z-[9999] bg-white border-2 border-[#E2E8F0] rounded-xl p-3.5 shadow-2xl min-w-[220px] max-w-[280px] text-sm animate-in fade-in-0 zoom-in-95 duration-150"
+      className="fixed z-[9999] bg-card border-2 border-border rounded-xl p-3.5 shadow-2xl min-w-[220px] max-w-[280px] text-sm animate-in fade-in-0 zoom-in-95 duration-150"
       style={{ top: position.top, left: Math.max(position.left, 10) }}
     >
       <div className="flex items-center gap-2 mb-2">
         {icono}
         <span className="font-bold">Hab. {data.habitacion}</span>
-        <span className={`ml-auto text-[11px] px-1.5 py-0.5 rounded font-medium ${estadoColors[data.estado] || 'bg-[#F1F5F9] text-[#64748B]'}`}>
+        <span className={`ml-auto text-[11px] px-1.5 py-0.5 rounded font-medium ${estadoColors[data.estado] || 'bg-[#F1F5F9] text-slate-400'}`}>
           {data.estado}
         </span>
       </div>
@@ -260,7 +260,7 @@ function GanttPopover({ data, position, onClose }: {
       )}
 
       {data.checkin && data.checkout && (
-        <div className="flex gap-3 text-[11px] text-[#64748B] mb-2">
+        <div className="flex gap-3 text-[11px] text-slate-400 mb-2">
           <span className="flex items-center gap-1">
             <LogIn className="w-3 h-3 text-[#0EA5E9]" />
             {formatearFecha(data.checkin)} 14:00
@@ -285,13 +285,13 @@ function GanttPopover({ data, position, onClose }: {
           {data.monto !== undefined && data.monto > 0 && (
             <div className="flex justify-between text-[11px]">
               <span className="text-[#94A3B8]">Total</span>
-              <span className="font-bold text-[#166534]">{formatMoney(data.monto)}</span>
+              <span className="font-bold text-emerald-300">{formatMoney(data.monto)}</span>
             </div>
           )}
           {data.estadoPago && (
             <div className="flex justify-between text-[11px]">
               <span className="text-[#94A3B8]">Pago</span>
-              <span className={`font-medium ${data.estadoPago === 'Pagado' ? 'text-[#166534]' : data.estadoPago === 'Parcial' ? 'text-[#EA580C]' : 'text-[#EF4444]'}`}>
+              <span className={`font-medium ${data.estadoPago === 'Pagado' ? 'text-emerald-300' : data.estadoPago === 'Parcial' ? 'text-[#EA580C]' : 'text-[#EF4444]'}`}>
                 {data.estadoPago}
               </span>
             </div>
@@ -309,10 +309,10 @@ function GanttPopover({ data, position, onClose }: {
         <p className="text-[#92400E] text-xs flex items-center gap-1 mt-1"><SprayCan className="w-3 h-3" /> Pendiente de limpieza</p>
       )}
       {data.estado === 'Mantenimiento' && (
-        <p className="text-[#64748B] text-xs flex items-center gap-1 mt-1"><Wrench className="w-3 h-3" /> {data.problema || 'En mantenimiento'}</p>
+        <p className="text-slate-400 text-xs flex items-center gap-1 mt-1"><Wrench className="w-3 h-3" /> {data.problema || 'En mantenimiento'}</p>
       )}
       {data.estado === 'Disponible' && (
-        <p className="text-[#166534] text-xs flex items-center gap-1 mt-1"><CheckCircle className="w-3 h-3" /> Disponible</p>
+        <p className="text-emerald-300 text-xs flex items-center gap-1 mt-1"><CheckCircle className="w-3 h-3" /> Disponible</p>
       )}
     </div>,
     document.body
@@ -460,7 +460,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
           const d = new Date(col + 'T12:00:00');
           const esFS = d.getDay() === 0 || d.getDay() === 6;
           const isHoy = col === hoyStr;
-          return <div key={ci} className={`flex-1 h-full border-l-2 border-[#E2E8F0] box-border ${esFS ? 'bg-[#FEE2E2]/40' : ''} ${isHoy ? 'bg-[#DBEAFE]/30' : ''}`} style={{ height: FILA_H }} />;
+          return <div key={ci} className={`flex-1 h-full border-l-2 border-border box-border ${esFS ? 'bg-[#FEE2E2]/40' : ''} ${isHoy ? 'bg-[#DBEAFE]/30' : ''}`} style={{ height: FILA_H }} />;
         });
 
         const barras = reservasActivas.map((res, idx) => {
@@ -482,10 +482,10 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         });
 
         result.push(
-          <div key={num} className={`flex items-stretch border-b-2 border-[#E2E8F0] last:border-b-0 hover:bg-[#F0FDF4]/30 transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-[#F8FAFC]/50' : ''}`} style={{ height: FILA_H }}>
-            <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-[#E2E8F0] bg-white z-[5]" style={{ height: FILA_H }}>
-              <span className="text-[12px] font-bold text-[#1E293B] leading-tight">{num}</span>
-              <span className="text-[10px] text-[#64748B] font-medium mt-0.5">{hab.tipo}</span>
+          <div key={num} className={`flex items-stretch border-b-2 border-border last:border-b-0 hover:bg-emerald-950/10 transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-card/80' : ''}`} style={{ height: FILA_H }}>
+            <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-border bg-card z-[5]" style={{ height: FILA_H }}>
+              <span className="text-[12px] font-bold text-foreground leading-tight">{num}</span>
+              <span className="text-[10px] text-slate-400 font-medium mt-0.5">{hab.tipo}</span>
             </div>
             <div className="flex-1 relative overflow-hidden min-w-0">
               <div className="absolute top-0 left-0 w-full h-full flex pointer-events-none">{bgCells}</div>
@@ -501,7 +501,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         const d = new Date(col + 'T12:00:00');
         const esFS = d.getDay() === 0 || d.getDay() === 6;
         const isHoy = col === hoyStr;
-        return <div key={ci} className={`flex-1 h-full border-l-2 border-[#E2E8F0] box-border ${esFS ? 'bg-[#FEE2E2]/40' : ''} ${isHoy ? 'bg-[#DBEAFE]/30' : ''}`} />;
+        return <div key={ci} className={`flex-1 h-full border-l-2 border-border box-border ${esFS ? 'bg-[#FEE2E2]/40' : ''} ${isHoy ? 'bg-[#DBEAFE]/30' : ''}`} />;
       });
 
       const barras = reservasHab.map((res, idx) => {
@@ -522,10 +522,10 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       });
 
       result.push(
-        <div key={num} className={`flex items-stretch border-b-2 border-[#E2E8F0] last:border-b-0 hover:bg-[#F0FDF4]/30 transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-[#F8FAFC]/50' : ''}`} style={{ height: ROW_H }}>
-          <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-[#E2E8F0] bg-white z-[5]" style={{ height: ROW_H }}>
-            <span className="text-[12px] font-bold text-[#1E293B] leading-tight">{num}</span>
-            <span className="text-[10px] text-[#64748B] font-medium mt-0.5">{hab.tipo}</span>
+        <div key={num} className={`flex items-stretch border-b-2 border-border last:border-b-0 hover:bg-emerald-950/10 transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-card/80' : ''}`} style={{ height: ROW_H }}>
+          <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-border bg-card z-[5]" style={{ height: ROW_H }}>
+            <span className="text-[12px] font-bold text-foreground leading-tight">{num}</span>
+            <span className="text-[10px] text-slate-400 font-medium mt-0.5">{hab.tipo}</span>
           </div>
           <div className="flex-1 relative overflow-hidden min-w-0">
             <div className="absolute top-0 left-0 w-full h-full flex pointer-events-none">{bgCells}</div>
@@ -544,11 +544,11 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       const esFS = d.getDay() === 0 || d.getDay() === 6;
       const isHoy = col === hoyStr;
       return (
-        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-[#E2E8F0] min-w-0 transition-colors duration-150 ${esFS ? 'bg-[#FEE2E2]/50' : ''} ${isHoy ? 'bg-[#0F2B28]/8' : ''}`}>
-          <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-[#F43F5E]' : 'text-[#64748B]'} ${isHoy ? '!text-[#0F2B28]' : ''}`}>
+        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-border min-w-0 transition-colors duration-150 ${esFS ? 'bg-[#FEE2E2]/50' : ''} ${isHoy ? 'bg-[#0F2B28]/8' : ''}`}>
+          <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-[#F43F5E]' : 'text-slate-400'} ${isHoy ? '!text-emerald-400' : ''}`}>
             {NOMBRES_DIAS[d.getDay()]}
           </span>
-          <span className={`text-[15px] font-bold leading-none mt-0.5 ${esFS ? 'text-[#F43F5E]' : 'text-[#1E293B]'} ${isHoy ? '!text-[#0F2B28] underline decoration-2 underline-offset-2 decoration-[#4ADE80]' : ''}`}>
+          <span className={`text-[15px] font-bold leading-none mt-0.5 ${esFS ? 'text-[#F43F5E]' : 'text-foreground'} ${isHoy ? '!text-emerald-400 underline decoration-2 underline-offset-2 decoration-[#4ADE80]' : ''}`}>
             {d.getDate()}
           </span>
         </div>
@@ -618,15 +618,15 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="bg-white border-2 border-[#E2E8F0] rounded-lg overflow-hidden shadow-sm">
-            <div className="flex border-b-2 border-[#E2E8F0] bg-[#F8FAFC]">
-              <div className="w-[130px] min-w-[130px] shrink-0 border-r-2 border-[#E2E8F0]" />
+          <div className="bg-card border-2 border-border rounded-lg overflow-hidden shadow-sm">
+            <div className="flex border-b-2 border-border bg-card">
+              <div className="w-[130px] min-w-[130px] shrink-0 border-r-2 border-border" />
               <div className="flex flex-1">{headerCols}</div>
             </div>
             <div className="overflow-x-auto">{rows}</div>
-            <div className="flex gap-4 flex-wrap px-3.5 py-2.5 border-t-2 border-[#E2E8F0]">
+            <div className="flex gap-4 flex-wrap px-3.5 py-2.5 border-t-2 border-border">
               {legendItems.map(item => (
-                <span key={item.label} className="flex items-center gap-1.5 text-xs text-[#64748B] font-medium">
+                <span key={item.label} className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
                   <span className={`inline-block w-3.5 h-2.5 rounded-sm ${item.color}`} />
                   {item.label}
                 </span>
@@ -697,10 +697,10 @@ function RoomHeatmap({ habitaciones, reservas }: {
   }, [reservas, hoyStr]);
 
   const colors: Record<string, string> = {
-    Disponible: 'bg-[#DCFCE7] text-[#166534]',
+    Disponible: 'bg-emerald-900/60 text-emerald-300',
     Ocupada: 'bg-[#FEE2E2] text-[#991B1B]',
     Limpieza: 'bg-[#FEF3C7] text-[#92400E]',
-    Mantenimiento: 'bg-[#F8FAFC] text-[#64748B]',
+    Mantenimiento: 'bg-[#F8FAFC] text-slate-400',
     Reservada: 'bg-[#E0E7FF] text-[#3730A3]',
   };
   const dots: Record<string, string> = {
@@ -918,13 +918,13 @@ export default function DashboardModule() {
               <span className="text-xs font-medium text-[#92400E]">Para limpiar</span>
               <span className="bg-[#F59E0B] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enLimpieza}</span>
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#F8FAFC] border-[#E2E8F0]">
-              <span className="text-xs font-medium text-[#64748B]">En mantenimiento</span>
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#F8FAFC] border-border">
+              <span className="text-xs font-medium text-slate-400">En mantenimiento</span>
               <span className="bg-[#64748B] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enMantenimiento}</span>
             </div>
             {enLimpieza === 0 && enMantenimiento === 0 && (
-              <div className="flex items-center justify-center p-3 rounded-lg bg-[#DCFCE7] border-[#BBF7D0]">
-                <span className="text-xs font-medium text-[#166534] flex items-center gap-1.5">
+              <div className="flex items-center justify-center p-3 rounded-lg bg-emerald-900/60 border-emerald-700/40">
+                <span className="text-xs font-medium text-emerald-300 flex items-center gap-1.5">
                   <CheckCircle className="w-4 h-4" />
                   Todo al día
                 </span>
@@ -943,7 +943,7 @@ export default function DashboardModule() {
           </CardHeader>
           <CardContent className="space-y-2">
             {!tieneAlertas && (
-              <div className="flex items-center gap-2 p-3 text-[#166534] text-sm rounded-lg bg-[#DCFCE7] border-[#BBF7D0]">
+              <div className="flex items-center gap-2 p-3 text-emerald-300 text-sm rounded-lg bg-emerald-900/60 border-emerald-700/40">
                 <CheckCircle className="w-4 h-4" />
                 Sin alertas pendientes
               </div>
@@ -1000,9 +1000,9 @@ export default function DashboardModule() {
             )}
 
             {enMantenimiento > 0 && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#F8FAFC] border-[#E2E8F0] hover:bg-muted/50 transition-colors">
-                <span className="flex items-center gap-2 text-sm text-[#64748B]">
-                  <Wrench className="w-4 h-4 text-[#64748B]" />
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#F8FAFC] border-border hover:bg-muted/50 transition-colors">
+                <span className="flex items-center gap-2 text-sm text-slate-400">
+                  <Wrench className="w-4 h-4 text-slate-400" />
                   {enMantenimiento} habitación(es) en mantenimiento
                 </span>
                 <div className="flex items-center gap-2">

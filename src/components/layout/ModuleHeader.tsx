@@ -12,18 +12,18 @@ interface ModuleHeaderProps {
 }
 
 export default function ModuleHeader({ icon: Icon, title, subtitle, iconBg, iconColor, children }: ModuleHeaderProps) {
-  const textColor = iconColor || 'text-[#0F2B28]';
-  const bgColor = iconBg || 'bg-[#0F2B28]/10';
+  const textColor = iconColor || 'text-emerald-400';
+  const bgColor = iconBg || 'bg-emerald-500/20';
 
   return (
-    <div className="flex items-start justify-between gap-4 mb-6 px-4 py-3 -mx-4 -mt-1 rounded-xl bg-gradient-to-r from-[#0F2B28]/[0.03] via-transparent to-transparent">
+    <div className="flex items-start justify-between gap-4 mb-6 px-4 py-3 -mx-4 -mt-1 rounded-xl">
       <div className="flex items-center gap-3.5">
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-gradient-to-br ${bgColor} shadow-sm`}>
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${bgColor} shadow-sm`}>
           <Icon className={`w-5 h-5 shrink-0 ${textColor}`} />
         </div>
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground">{title}</h2>
-          {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-sm text-slate-300 mt-0.5">{subtitle}</p>}
         </div>
       </div>
       {children}

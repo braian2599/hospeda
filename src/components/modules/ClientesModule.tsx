@@ -361,7 +361,7 @@ export default function ClientesModule() {
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <h4 className="font-semibold text-sm truncate group-hover:text-[#0F2B28] transition-colors">{c.nombre}</h4>
+                          <h4 className="font-semibold text-sm truncate group-hover:text-emerald-400 transition-colors">{c.nombre}</h4>
                           {/* Loyalty badge */}
                           <Badge className={`${loyalty.color} ${loyalty.textColor} border-0 text-[10px] px-1.5 py-0 h-auto gap-0.5 font-semibold`}>
                             {loyalty.icon}{loyalty.level}
@@ -394,7 +394,7 @@ export default function ClientesModule() {
                         {/* Bottom row: stays count + last stay + actions */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <span className="text-xs font-mono font-semibold text-[#0F2B28]">
+                            <span className="text-xs font-mono font-semibold text-emerald-400">
                               {stayCount} {stayCount === 1 ? 'estadía' : 'estadías'}
                             </span>
                             {lastCheckout && (
@@ -502,7 +502,7 @@ export default function ClientesModule() {
                           {selectedLoyalty.icon}{selectedLoyalty.level}
                         </Badge>
                       </div>
-                      <Badge variant="outline" className="bg-[#F0FDF4] border-[#BBF7D0] text-[#166534] mt-1 text-xs">
+                      <Badge variant="outline" className="bg-[#F0FDF4] border-emerald-700/40 text-emerald-300 mt-1 text-xs">
                         <Clock className="w-3 h-3 mr-1" /> Cliente desde: {formatFecha(selected.fechaCreacion)}
                       </Badge>
                     </div>
@@ -544,33 +544,33 @@ export default function ClientesModule() {
 
                   {/* Customer Stats Summary (enhanced) */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <Card className="p-3 bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-[#0F2B28]">
+                    <Card className="p-3 bg-green-950/20 border-emerald-700/40/40 border-l-[3px] border-l-emerald-700">
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-[#166534]" />
+                        <Calendar className="w-4 h-4 text-emerald-300" />
                         <span className="text-xs text-muted-foreground">Total estadías</span>
                       </div>
-                      <AnimatedNumber value={totalEstadias} format={n => String(Math.round(n))} className="font-bold text-lg text-[#0F2B28] mt-1" />
+                      <AnimatedNumber value={totalEstadias} format={n => String(Math.round(n))} className="font-bold text-lg text-emerald-400 mt-1" />
                     </Card>
-                    <Card className="p-3 bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-emerald-400">
+                    <Card className="p-3 bg-green-950/20 border-emerald-700/40/40 border-l-[3px] border-l-emerald-400">
                       <div className="flex items-center gap-2">
                         <DollarSign className="w-4 h-4 text-emerald-600" />
                         <span className="text-xs text-muted-foreground">Total gastado</span>
                       </div>
-                      <AnimatedNumber value={totalGastado} className="font-bold text-lg text-[#0F2B28] mt-1" />
+                      <AnimatedNumber value={totalGastado} className="font-bold text-lg text-emerald-400 mt-1" />
                     </Card>
-                    <Card className="p-3 bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-amber-400">
+                    <Card className="p-3 bg-green-950/20 border-emerald-700/40/40 border-l-[3px] border-l-amber-400">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-amber-600" />
                         <span className="text-xs text-muted-foreground">Promedio/estadía</span>
                       </div>
-                      <AnimatedNumber value={promedioPorEstadia} className="font-bold text-lg text-[#0F2B28] mt-1" />
+                      <AnimatedNumber value={promedioPorEstadia} className="font-bold text-lg text-emerald-400 mt-1" />
                     </Card>
-                    <Card className="p-3 bg-green-950/20 border-[#BBF7D0]/40 border-l-[3px] border-l-sky-400">
+                    <Card className="p-3 bg-green-950/20 border-emerald-700/40/40 border-l-[3px] border-l-sky-400">
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-sky-600" />
                         <span className="text-xs text-muted-foreground">Duración prom.</span>
                       </div>
-                      <div className="font-bold text-lg text-[#0F2B28] mt-1">
+                      <div className="font-bold text-lg text-emerald-400 mt-1">
                         {avgStayDuration > 0 ? `${avgStayDuration.toFixed(1)} días` : '—'}
                       </div>
                     </Card>
@@ -592,16 +592,16 @@ export default function ClientesModule() {
                                 {/* Timeline line */}
                                 <div className="flex flex-col items-center shrink-0">
                                   <div className={`w-3 h-3 rounded-full border-2 ${isLast ? 'bg-[#0F2B28] border-[#0F2B28]' : 'bg-white border-[#0F2B28]/40'} mt-1.5`} />
-                                  <div className={`w-0.5 flex-1 ${isLast ? 'bg-transparent' : 'bg-[#0F2B28]/15'}`} />
+                                  <div className={`w-0.5 flex-1 ${isLast ? 'bg-transparent' : 'bg-emerald-500/15'}`} />
                                 </div>
                                 {/* Timeline content */}
                                 <div className={`flex-1 pb-3 ${isLast ? 'pb-0' : ''}`}>
-                                  <div className="rounded-lg border bg-white p-3 shadow-sm hover:shadow-md transition-shadow duration-150">
+                                  <div className="rounded-lg border bg-card p-3 shadow-sm hover:shadow-md transition-shadow duration-150">
                                     <div className="flex items-center justify-between mb-1.5">
-                                      <span className="text-xs font-semibold text-[#0F2B28]">
+                                      <span className="text-xs font-semibold text-emerald-400">
                                         Hab. {h.habitacion}
                                       </span>
-                                      <span className="text-xs font-mono font-bold text-[#0F2B28]">
+                                      <span className="text-xs font-mono font-bold text-emerald-400">
                                         {formatMoney(h.gastoTotal)}
                                       </span>
                                     </div>
@@ -617,9 +617,9 @@ export default function ClientesModule() {
                           })}
                       </div>
                       {/* Total row */}
-                      <div className="mt-3 pt-2 border-t border-[#BBF7D0]/40 flex items-center justify-between text-sm">
-                        <span className="font-semibold text-[#0F2B28]">Total gastado</span>
-                        <span className="font-mono font-bold text-[#0F2B28]">{formatMoney(totalGastado)}</span>
+                      <div className="mt-3 pt-2 border-t border-emerald-700/40/40 flex items-center justify-between text-sm">
+                        <span className="font-semibold text-emerald-400">Total gastado</span>
+                        <span className="font-mono font-bold text-emerald-400">{formatMoney(totalGastado)}</span>
                       </div>
                     </div>
                   ) : (
