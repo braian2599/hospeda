@@ -1,6 +1,46 @@
 # Hospedá — Worklog
 
 ---
+Task ID: 8
+Agent: Main Agent
+Task: Corregir contraste y legibilidad en tema oscuro — reemplazo sistémico de colores
+
+Work Log:
+- Análisis visual con VLM de 10 capturas del sistema → identificación de texto invisible, gradientes inapropiados, contraste insuficiente
+- Exploración profunda del codebase → 68+ instancias de text-[#0F2B28] (casi invisible en dark bg), 10 de text-[#1E293B], 30+ de text-[#64748B]
+- ModuleHeader.tsx: icon default text-[#0F2B28] → text-emerald-400, bg-[#0F2B28]/10 → bg-emerald-500/20, subtitle text-muted-foreground → text-slate-300, removed decorative gradient wrapper
+- Global sed: text-[#0F2B28] → text-emerald-400 (101 instancias en 14 archivos)
+- Global sed: text-[#1E293B] → text-foreground (11 instancias en 2 archivos)
+- Global sed: text-[#64748B] → text-slate-400 (32 instancias en 4 archivos)
+- UsuariosModule: 4 stat cards bg-gradient-to-br ... to-white → solid bg-emerald/sky/amber-950/20
+- HabitacionesModule: bg-gradient-to-br from-[#F0FDF4]/40 to-white → bg-emerald-950/20
+- CajaModule: 2 gradient headers bg-gradient-to-r from-[#0F2B28] to-[#059669] → solid bg-[#0F2B28]
+- CajaModule: 2 light green circles bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0] → bg-emerald-500/20
+- LimpiezaModule: 2x bg-white → bg-card
+- ClientesModule: timeline card bg-white → bg-card
+- DashboardModule: tooltip bg-white → bg-card, room labels bg-white → bg-card, bg-[#F8FAFC] → bg-card, borders border-[#E2E8F0] → border-border
+- ReservasModule: dialog bg-white → bg-card, payment toggle bg-white → bg-muted
+- ReportesModule: 3x tooltip bg-white → bg-card, border-[#E2E8F0] → border-border
+- ConfiguracionModule: hero gradient → solid, preview factura bg-white → bg-card
+- TarifasModule: hover shine from-white/50 → from-emerald-400/10, range bar from-[#0F2B28] to-[#10B981] → from-emerald-800 to-emerald-500
+- bg-[#0F2B28]/10 → bg-emerald-500/20, bg-[#0F2B28]/15 → bg-emerald-500/15, bg-[#0F2B28]/5 → bg-emerald-500/10
+- border-l-[#0F2B28] → border-l-emerald-700, border-[#0F2B28]/10 → border-emerald-800/30
+- bg-[#DCFCE7] → bg-emerald-900/60, text-[#166534] → text-emerald-300, border-[#BBF7D0] → border-emerald-700/40
+- hover:bg-[#F0FDF4] → hover:bg-emerald-900, bg-[#F0FDF4]/20 → bg-emerald-900/10
+- ring-white → ring-emerald-500/30 (CajaModule icon circles)
+- Lint pasa limpio
+- Commit 1735e1e pushed to origin/main
+
+Stage Summary:
+- 24 archivos modificados, 318 insertions, 318 deletions
+- 144+ instancias de colores ilegibles corregidas (text-[#0F2B28], text-[#1E293B], text-[#64748B])
+- Degradés eliminados: to-white, gradient headers, light gradient circles, hero gradients
+- bg-white → bg-card en 6+ módulos para consistencia con dark theme
+- Badges de estado adaptados: bg-[#DCFCE7] → bg-emerald-900/60
+- ModuleHeader ahora visible en dark theme con iconos emerald
+- Commit: 1735e1e pushed to origin/main
+
+---
 Task ID: 7
 Agent: Main Agent
 Task: ClientesModule - sincronizar campos domicilio, fechaNacimiento, nacionalidad en toda la pila
