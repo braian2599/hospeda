@@ -1,0 +1,252 @@
+/home/z/my-project/src/app/layout.tsx:72:        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+/home/z/my-project/src/app/(app)/layout.tsx:64:          <p className="text-sm text-muted-foreground">Selecciona con que hotel queres trabajar</p>
+/home/z/my-project/src/app/(app)/layout.tsx:76:                    <p className="text-xs text-muted-foreground">{rolLabel(h.rol)} · Plan {h.plan}</p>
+/home/z/my-project/src/app/(app)/layout.tsx:79:                {loadingId === h.tenantId ? <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /> : <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+/home/z/my-project/src/app/(app)/layout.tsx:133:          <CardDescription className="text-sm text-muted-foreground">
+/home/z/my-project/src/app/(app)/layout.tsx:147:                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+/home/z/my-project/src/app/(app)/layout.tsx:156:                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+/home/z/my-project/src/app/(app)/layout.tsx:403:          <p className="text-sm text-muted-foreground">Cargando...</p>
+/home/z/my-project/src/app/(app)/layout.tsx:428:          <p className="text-sm text-muted-foreground">Cargando...</p>
+/home/z/my-project/src/app/(app)/layout.tsx:439:          <p className="text-sm text-muted-foreground">Cargando...</p>
+/home/z/my-project/src/app/(app)/app/page.tsx:76:          <h2 className="text-xl font-bold text-destructive">
+/home/z/my-project/src/app/(app)/app/page.tsx:79:          <p className="text-muted-foreground mt-1 max-w-sm">
+/home/z/my-project/src/app/(app)/setup-hotel/page.tsx:59:          <CardDescription className="text-sm text-muted-foreground">
+/home/z/my-project/src/app/(app)/setup-hotel/page.tsx:76:              <p className="text-xs text-muted-foreground">
+/home/z/my-project/src/app/(app)/setup-hotel/page.tsx:90:          <p className="text-[10px] text-center text-muted-foreground mt-4">
+/home/z/my-project/src/components/super-admin/SuperAdminPagos.tsx:204:          <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/super-admin/SuperAdminPagos.tsx:277:                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminPagos.tsx:290:                          <p className="text-xs text-muted-foreground md:hidden capitalize">{p.metodo}</p>
+/home/z/my-project/src/components/super-admin/SuperAdminPagos.tsx:297:                        <span className="text-sm text-muted-foreground capitalize">
+/home/z/my-project/src/components/super-admin/SuperAdminPagos.tsx:302:                      <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminPagos.tsx:317:          <p className="text-sm text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminPagos.tsx:411:              <div className="p-3 rounded-lg bg-muted/50 text-sm">
+/home/z/my-project/src/components/super-admin/SuperAdminPagos.tsx:412:                <p className="text-muted-foreground">Se registrará un pago para:</p>
+/home/z/my-project/src/components/super-admin/SuperAdminConfig.tsx:89:          <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/super-admin/SuperAdminConfig.tsx:114:        <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/super-admin/SuperAdminConfig.tsx:142:                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+/home/z/my-project/src/components/super-admin/SuperAdminConfig.tsx:152:              <p className="text-xs text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminConfig.tsx:173:              <p className="text-xs text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminConfig.tsx:191:                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+/home/z/my-project/src/components/super-admin/SuperAdminConfig.tsx:201:              <p className="text-xs text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:134:          <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:161:        <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:175:                    <p className="text-xs text-muted-foreground capitalize mt-0.5">{plan.type}</p>
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:198:                  <p className="text-xs text-muted-foreground">/mes</p>
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:204:                <div className="p-3 rounded-lg bg-muted/50">
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:205:                  <p className="text-xs text-muted-foreground">Habitaciones</p>
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:208:                <div className="p-3 rounded-lg bg-muted/50">
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:209:                  <p className="text-xs text-muted-foreground">Usuarios</p>
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:212:                <div className="p-3 rounded-lg bg-muted/50">
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:213:                  <p className="text-xs text-muted-foreground">Tarifas</p>
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:216:                <div className="p-3 rounded-lg bg-muted/50">
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:217:                  <p className="text-xs text-muted-foreground">Reservas/mes</p>
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:224:                <p className="text-xs text-muted-foreground mb-2">Módulos incluidos</p>
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:275:              <p className="text-xs text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:288:                <p className="text-xs text-muted-foreground">0 = ilimitado</p>
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:298:                <p className="text-xs text-muted-foreground">0 = ilimitado</p>
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:308:                <p className="text-xs text-muted-foreground">0 = ilimitado</p>
+/home/z/my-project/src/components/super-admin/SuperAdminPlanes.tsx:318:                <p className="text-xs text-muted-foreground">0 = ilimitado</p>
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:306:        <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:315:            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:360:                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:371:                            className="p-0.5 hover:bg-muted rounded"
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:384:                            <p className="text-xs text-muted-foreground md:hidden">{t.email}</p>
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:387:                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:441:                              className="h-8 w-8 text-destructive hover:text-destructive"
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:453:                          <TableCell colSpan={9} className="bg-muted/30 p-4">
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:455:                              <p className="text-xs font-medium text-muted-foreground mb-2">
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:463:                                      className="flex items-center justify-between p-2 rounded-lg border bg-card"
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:467:                                        <p className="text-xs text-muted-foreground">{u.email}</p>
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:487:                                <p className="text-xs text-muted-foreground">No hay usuarios activos.</p>
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:505:          <p className="text-sm text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:585:            <p className="text-sm text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:586:              Usuario: <span className="font-medium text-foreground">{selectedTenant?.usuarios.find(u => u.id === selectedUserId)?.nombre || selectedTenant?.usuarios.find(u => u.id === selectedUserId)?.email}</span>
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:620:            <p className="text-sm text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminCuentas.tsx:662:              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:153:            <p className="text-sm text-muted-foreground">{title}</p>
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:160:              <p className="text-xs text-muted-foreground">{subtitle}</p>
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:204:            <span className="text-xs text-muted-foreground">{getShortMonth(d.mes)}</span>
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:234:          <AlertTriangle className="w-10 h-10 mx-auto mb-3 text-destructive" />
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:235:          <p className="text-sm text-muted-foreground">{error}</p>
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:245:        <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:334:                      <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:356:            <p className="text-sm text-muted-foreground text-center py-6">
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:400:                      <TableCell className="hidden md:table-cell text-sm capitalize text-muted-foreground">
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:410:            <p className="text-sm text-muted-foreground text-center py-6">
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:437:                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:445:                      <p className="text-xs text-muted-foreground truncate">{t.email}</p>
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:450:                    <span className="text-xs text-muted-foreground hidden sm:block">
+/home/z/my-project/src/components/super-admin/SuperAdminDashboard.tsx:458:            <p className="text-sm text-muted-foreground text-center py-6">
+/home/z/my-project/src/components/subscription/ModuleLockedDialog.tsx:62:        <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+/home/z/my-project/src/components/subscription/ModuleLockedDialog.tsx:64:            <span className="text-sm text-muted-foreground">Módulo solicitado</span>
+/home/z/my-project/src/components/subscription/ModuleLockedDialog.tsx:68:            <span className="text-sm text-muted-foreground">Tu plan actual</span>
+/home/z/my-project/src/components/subscription/ModuleLockedDialog.tsx:74:              <span className="text-sm text-muted-foreground">Plan mínimo requerido</span>
+/home/z/my-project/src/components/subscription/ModuleLockedDialog.tsx:77:                <span className="text-xs text-muted-foreground ml-1">{sigPlan.precioDisplay}/mes</span>
+/home/z/my-project/src/components/subscription/ModuleLockedDialog.tsx:85:            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+/home/z/my-project/src/components/subscription/TrialBanner.tsx:43:        <div className="flex items-center justify-between px-4 py-1.5 bg-secondary/50 border-b border-border text-xs text-muted-foreground">
+/home/z/my-project/src/components/subscription/TrialBanner.tsx:45:            Plan <span className="font-medium text-foreground">{plans[planActual].nombre}</span>
+/home/z/my-project/src/components/subscription/TrialBanner.tsx:69:        <div className="flex items-center gap-3 px-4 py-3 bg-destructive/10 border-b border-destructive/20">
+/home/z/my-project/src/components/subscription/TrialBanner.tsx:70:          <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+/home/z/my-project/src/components/subscription/TrialBanner.tsx:72:            <p className="text-sm font-medium text-destructive">
+/home/z/my-project/src/components/subscription/TrialBanner.tsx:75:            <p className="text-xs text-muted-foreground mt-0.5">
+/home/z/my-project/src/components/subscription/TrialBanner.tsx:119:          <p className="text-xs text-muted-foreground mt-0.5">
+/home/z/my-project/src/components/subscription/TrialBanner.tsx:139:            className="p-1 rounded-md hover:bg-accent transition-colors"
+/home/z/my-project/src/components/subscription/TrialBanner.tsx:142:            <X className="w-3.5 h-3.5 text-muted-foreground" />
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:118:    cancelada: 'bg-muted text-muted-foreground',
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:167:            <p className="text-sm text-muted-foreground">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:180:              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Plan actual</span>
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:186:            <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:190:              <div className={`flex items-center gap-1.5 mt-3 text-sm ${trialExpired ? 'text-destructive' : diasTrial <= 7 ? 'text-amber-300' : 'text-muted-foreground'}`}>
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:202:              <Calendar className="w-4 h-4 text-muted-foreground" />
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:203:              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:212:                <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:225:                <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:236:                <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:241:              <p className="text-sm text-muted-foreground">Sin suscripción activa</p>
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:250:              <Shield className="w-4 h-4 text-muted-foreground" />
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:251:              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Módulos incluidos</span>
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:254:            <p className="text-sm text-muted-foreground mt-1">de {Object.keys(NOMBRES_MODULOS).length} disponibles</p>
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:273:        <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:280:              <p className="text-xs text-muted-foreground">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:290:                className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:318:        <div className="flex items-start gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:319:          <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:321:            <p className="text-sm font-medium text-destructive">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:324:            <p className="text-xs text-muted-foreground mt-1">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:335:          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:368:            <p className="text-sm text-muted-foreground">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:372:          <ArrowRight className={`w-5 h-5 text-muted-foreground transition-transform ${showTransfer ? 'rotate-90' : ''}`} />
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:380:                <p className="text-xs text-muted-foreground leading-relaxed">
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:439:      <span className="text-sm text-muted-foreground">{label}</span>
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:445:            className="p-1.5 rounded-md hover:bg-accent transition-colors"
+/home/z/my-project/src/components/subscription/SuscripcionModule.tsx:451:              <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:144:                <p className="text-xs text-muted-foreground">{PLAN_DESC[selectedPlan]}</p>
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:148:                <p className="text-xs text-muted-foreground">/mes</p>
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:171:                <p className="text-xs text-muted-foreground">
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:185:              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:186:                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:206:                <span className="text-xs text-muted-foreground">Débito automático con tarjeta</span>
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:222:              <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground pt-1">
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:239:              <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:253:                <p className="text-sm text-muted-foreground mt-1">
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:264:              <p className="text-xs text-muted-foreground max-w-xs">
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:280:              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:281:                <AlertTriangle className="w-8 h-8 text-destructive" />
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:285:                <p className="text-sm text-muted-foreground mt-1">{errorMessage}</p>
+/home/z/my-project/src/components/payments/PaymentResultBanner.tsx:60:        <p className="text-xs text-muted-foreground mt-0.5">{c.message}</p>
+/home/z/my-project/src/components/payments/PaymentResultBanner.tsx:64:        className="p-1 rounded-md hover:bg-accent/50 transition-colors shrink-0"
+/home/z/my-project/src/components/payments/PaymentResultBanner.tsx:67:        <X className="w-4 h-4 text-muted-foreground" />
+/home/z/my-project/src/components/payments/PlanCard.tsx:37:      <div className={`relative h-full flex flex-col rounded-2xl border border-border bg-card animate-pulse ${compact ? 'p-4 lg:p-5' : 'p-6 lg:p-8'}`}>
+/home/z/my-project/src/components/payments/PlanCard.tsx:38:        <div className="h-6 w-24 rounded bg-muted mb-3" />
+/home/z/my-project/src/components/payments/PlanCard.tsx:39:        <div className="h-8 w-32 rounded bg-muted mb-2" />
+/home/z/my-project/src/components/payments/PlanCard.tsx:40:        <div className="h-4 w-full rounded bg-muted mb-6" />
+/home/z/my-project/src/components/payments/PlanCard.tsx:43:            <div key={i} className="h-4 w-3/4 rounded bg-muted" />
+/home/z/my-project/src/components/payments/PlanCard.tsx:55:          ? 'border-primary bg-card shadow-lg shadow-primary/5'
+/home/z/my-project/src/components/payments/PlanCard.tsx:56:          : 'border-border bg-card hover:border-primary/30'
+/home/z/my-project/src/components/payments/PlanCard.tsx:74:        <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+/home/z/my-project/src/components/payments/PlanCard.tsx:80:        <span className="text-muted-foreground">/mes</span>
+/home/z/my-project/src/components/payments/PlanCard.tsx:81:        <p className="text-xs text-muted-foreground mt-1">Precios en pesos argentinos (ARS)</p>
+/home/z/my-project/src/components/payments/PlanCard.tsx:126:        <p className="text-[11px] text-muted-foreground text-center mt-2">
+/home/z/my-project/src/components/payments/PlanIndicator.tsx:44:          <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors text-left">
+/home/z/my-project/src/components/payments/PlanIndicator.tsx:49:              <span className="text-xs font-medium text-muted-foreground block">Plan</span>
+/home/z/my-project/src/components/payments/PlanIndicator.tsx:57:            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+/home/z/my-project/src/components/payments/PlanIndicator.tsx:63:            <p className="text-xs text-muted-foreground font-medium">Tu plan actual</p>
+/home/z/my-project/src/components/payments/PlanIndicator.tsx:65:            <p className="text-xs text-muted-foreground mt-0.5">
+/home/z/my-project/src/components/payments/PlanIndicator.tsx:81:                  <p className="text-xs text-muted-foreground">{plans.profesional.precioDisplay}/mes</p>
+/home/z/my-project/src/components/payments/PlanIndicator.tsx:91:                  <p className="text-xs text-muted-foreground">{plans.premium.precioDisplay}/mes</p>
+/home/z/my-project/src/components/payments/PlanIndicator.tsx:98:            <DropdownMenuItem disabled className="text-sm text-muted-foreground">
+/home/z/my-project/src/components/ProfileSelector.tsx:127:            <p className="text-sm text-muted-foreground">
+/home/z/my-project/src/components/ProfileSelector.tsx:145:                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+/home/z/my-project/src/components/ProfileSelector.tsx:173:          <p className="text-sm text-muted-foreground">{email}</p>
+/home/z/my-project/src/components/ProfileSelector.tsx:176:        <p className="text-center text-sm text-muted-foreground">
+/home/z/my-project/src/components/ProfileSelector.tsx:197:                      <p className="text-xs text-muted-foreground">{rolInfo.label}</p>
+/home/z/my-project/src/components/ProfileSelector.tsx:202:                      <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+/home/z/my-project/src/components/ProfileSelector.tsx:205:                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+/home/z/my-project/src/components/ProfileSelector.tsx:207:                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+/home/z/my-project/src/components/ui/pagination-bar.tsx:60:      <p className="text-sm text-muted-foreground">
+/home/z/my-project/src/components/ui/accordion.tsx:44:        <ChevronDownIcon className="text-muted-foreground pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200" />
+/home/z/my-project/src/components/ui/navigation-menu.tsx:62:  "group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=open]:hover:bg-accent data-[state=open]:text-accent-foreground data-[state=open]:focus:bg-accent data-[state=open]:bg-accent/50 focus-visible:ring-ring/50 outline-none transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1"
+/home/z/my-project/src/components/ui/navigation-menu.tsx:94:        "group-data-[viewport=false]/navigation-menu:bg-popover group-data-[viewport=false]/navigation-menu:text-popover-foreground group-data-[viewport=false]/navigation-menu:data-[state=open]:animate-in group-data-[viewport=false]/navigation-menu:data-[state=closed]:animate-out group-data-[viewport=false]/navigation-menu:data-[state=closed]:zoom-out-95 group-data-[viewport=false]/navigation-menu:data-[state=open]:zoom-in-95 group-data-[viewport=false]/navigation-menu:data-[state=open]:fade-in-0 group-data-[viewport=false]/navigation-menu:data-[state=closed]:fade-out-0 group-data-[viewport=false]/navigation-menu:top-full group-data-[viewport=false]/navigation-menu:mt-1.5 group-data-[viewport=false]/navigation-menu:overflow-hidden group-data-[viewport=false]/navigation-menu:rounded-md group-data-[viewport=false]/navigation-menu:border group-data-[viewport=false]/navigation-menu:shadow group-data-[viewport=false]/navigation-menu:duration-200 **:data-[slot=navigation-menu-link]:focus:ring-0 **:data-[slot=navigation-menu-link]:focus:outline-none",
+/home/z/my-project/src/components/ui/navigation-menu.tsx:115:          "origin-top-center bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 relative mt-1.5 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-md border shadow md:w-[var(--radix-navigation-menu-viewport-width)]",
+/home/z/my-project/src/components/ui/navigation-menu.tsx:132:        "data-[active=true]:focus:bg-accent data-[active=true]:hover:bg-accent data-[active=true]:bg-accent/50 data-[active=true]:text-accent-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus-visible:ring-ring/50 [&_svg:not([class*='text-'])]:text-muted-foreground flex flex-col gap-1 rounded-sm p-2 text-sm transition-all outline-none focus-visible:ring-[3px] focus-visible:outline-1 [&_svg:not([class*='size-'])]:size-4",
+/home/z/my-project/src/components/ui/alert.tsx:11:        default: "bg-card text-card-foreground",
+/home/z/my-project/src/components/ui/alert.tsx:13:          "text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90",
+/home/z/my-project/src/components/ui/alert.tsx:58:        "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
+/home/z/my-project/src/components/ui/drawer.tsx:68:        <div className="bg-muted mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
+/home/z/my-project/src/components/ui/drawer.tsx:105:      className={cn("text-foreground font-semibold", className)}
+/home/z/my-project/src/components/ui/drawer.tsx:118:      className={cn("text-muted-foreground text-sm", className)}
+/home/z/my-project/src/components/ui/slider.tsx:42:          "bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
+/home/z/my-project/src/components/ui/sheet.tsx:75:        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
+/home/z/my-project/src/components/ui/sheet.tsx:111:      className={cn("text-foreground font-semibold", className)}
+/home/z/my-project/src/components/ui/sheet.tsx:124:      className={cn("text-muted-foreground text-sm", className)}
+/home/z/my-project/src/components/ui/avatar.tsx:45:        "bg-muted flex size-full items-center justify-center rounded-full",
+/home/z/my-project/src/components/ui/menubar.tsx:59:        "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex items-center rounded-sm px-2 py-1 text-sm font-medium outline-hidden select-none",
+/home/z/my-project/src/components/ui/menubar.tsx:82:          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[12rem] origin-(--radix-menubar-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-md",
+/home/z/my-project/src/components/ui/menubar.tsx:106:        "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+/home/z/my-project/src/components/ui/menubar.tsx:124:        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+/home/z/my-project/src/components/ui/menubar.tsx:149:        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+/home/z/my-project/src/components/ui/menubar.tsx:205:        "text-muted-foreground ml-auto text-xs tracking-widest",
+/home/z/my-project/src/components/ui/menubar.tsx:232:        "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none data-[inset]:pl-8",
+/home/z/my-project/src/components/ui/menubar.tsx:251:        "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-menubar-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg",
+/home/z/my-project/src/components/ui/popover.tsx:33:          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-md border p-4 shadow-md outline-hidden",
+/home/z/my-project/src/components/ui/toggle.tsx:10:  "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none transition-[color,box-shadow] aria-invalid:ring-destructive/40 aria-invalid:border-destructive whitespace-nowrap",
+/home/z/my-project/src/components/ui/toggle.tsx:16:          "border border-input bg-transparent shadow-xs hover:bg-accent hover:text-accent-foreground",
+/home/z/my-project/src/components/ui/button.tsx:15:          "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/40 bg-destructive/60",
+/home/z/my-project/src/components/ui/button.tsx:17:          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground bg-input/30 border-input hover:bg-input/50",
+/home/z/my-project/src/components/ui/button.tsx:19:          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
+/home/z/my-project/src/components/ui/button.tsx:21:          "hover:bg-accent hover:text-accent-foreground hover:bg-accent/50",
+/home/z/my-project/src/components/ui/chart.tsx:191:                "[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5",
+/home/z/my-project/src/components/ui/chart.tsx:231:                      <span className="text-muted-foreground">
+/home/z/my-project/src/components/ui/chart.tsx:236:                      <span className="text-foreground font-mono font-medium tabular-nums">
+/home/z/my-project/src/components/ui/chart.tsx:286:              "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3"
+/home/z/my-project/src/components/ui/tabs.tsx:29:        "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]",
+/home/z/my-project/src/components/ui/tabs.tsx:45:        "data-[state=active]:bg-input/30 data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring data-[state=active]:border-input text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+/home/z/my-project/src/components/ui/hover-card.tsx:35:          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-64 origin-(--radix-hover-card-content-transform-origin) rounded-md border p-4 shadow-md outline-hidden",
+/home/z/my-project/src/components/ui/card.tsx:24:        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+/home/z/my-project/src/components/ui/card.tsx:61:      className={cn("text-muted-foreground text-sm", className)}
+/home/z/my-project/src/components/ui/dialog.tsx:72:            className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+/home/z/my-project/src/components/ui/dialog.tsx:126:      className={cn("text-muted-foreground text-sm", className)}
+/home/z/my-project/src/components/ui/badge.tsx:15:          "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+/home/z/my-project/src/components/ui/badge.tsx:17:          "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/40 bg-destructive/60",
+/home/z/my-project/src/components/ui/badge.tsx:19:          "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+/home/z/my-project/src/components/ui/select.tsx:40:        "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-input/30 hover:bg-input/50 flex w-fit items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+/home/z/my-project/src/components/ui/select.tsx:64:          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
+/home/z/my-project/src/components/ui/select.tsx:95:      className={cn("text-muted-foreground px-2 py-1.5 text-xs", className)}
+/home/z/my-project/src/components/ui/select.tsx:110:        "focus:bg-accent focus:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+/home/z/my-project/src/components/ui/form.tsx:100:      className={cn("data-[error=true]:text-destructive", className)}
+/home/z/my-project/src/components/ui/form.tsx:132:      className={cn("text-muted-foreground text-sm", className)}
+/home/z/my-project/src/components/ui/form.tsx:150:      className={cn("text-destructive text-sm", className)}
+/home/z/my-project/src/components/ui/calendar.tsx:77:          "absolute bg-popover inset-0 opacity-0",
+/home/z/my-project/src/components/ui/calendar.tsx:84:            : "rounded-md pl-2 pr-1 flex items-center gap-1 text-sm h-8 [&>svg]:text-muted-foreground [&>svg]:size-3.5",
+/home/z/my-project/src/components/ui/calendar.tsx:90:          "text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] select-none",
+/home/z/my-project/src/components/ui/calendar.tsx:99:          "text-[0.8rem] select-none text-muted-foreground",
+/home/z/my-project/src/components/ui/calendar.tsx:107:          "rounded-l-md bg-accent",
+/home/z/my-project/src/components/ui/calendar.tsx:111:        range_end: cn("rounded-r-md bg-accent", defaultClassNames.range_end),
+/home/z/my-project/src/components/ui/calendar.tsx:113:          "bg-accent text-accent-foreground rounded-md data-[selected=true]:rounded-none",
+/home/z/my-project/src/components/ui/calendar.tsx:117:          "text-muted-foreground aria-selected:text-muted-foreground",
+/home/z/my-project/src/components/ui/calendar.tsx:121:          "text-muted-foreground opacity-50",
+/home/z/my-project/src/components/ui/calendar.tsx:204:        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 hover:text-accent-foreground flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[range-end=true]:rounded-md data-[range-end=true]:rounded-r-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md data-[range-start=true]:rounded-l-md [&>span]:text-xs [&>span]:opacity-70",
+/home/z/my-project/src/components/ui/toast.tsx:32:        default: "border bg-background text-foreground",
+/home/z/my-project/src/components/ui/toast.tsx:34:          "destructive group border-destructive bg-destructive text-destructive-foreground",
+/home/z/my-project/src/components/ui/toast.tsx:65:      "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
+/home/z/my-project/src/components/ui/toast.tsx:80:      "absolute right-1 top-1 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-1 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
+/home/z/my-project/src/components/ui/error-boundary.tsx:46:            <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+/home/z/my-project/src/components/ui/error-boundary.tsx:47:              <AlertTriangle className="w-8 h-8 text-destructive" />
+/home/z/my-project/src/components/ui/error-boundary.tsx:49:            <h2 className="text-xl font-semibold text-foreground">
+/home/z/my-project/src/components/ui/error-boundary.tsx:52:            <p className="text-sm text-muted-foreground">
+/home/z/my-project/src/components/ui/error-boundary.tsx:57:              <details className="text-left bg-muted rounded-lg p-3 text-xs font-mono text-muted-foreground">
+/home/z/my-project/src/components/ui/empty-state.tsx:32:        <Icon className="w-8 h-8 text-muted-foreground/40 mb-2" />
+/home/z/my-project/src/components/ui/empty-state.tsx:33:        <p className="text-sm text-muted-foreground">{title || v.title}</p>
+/home/z/my-project/src/components/ui/empty-state.tsx:50:      <p className="text-sm text-muted-foreground max-w-sm mb-4">{description || v.description}</p>
+/home/z/my-project/src/components/ui/dropdown-menu.tsx:45:          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
+/home/z/my-project/src/components/ui/dropdown-menu.tsx:77:        "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+/home/z/my-project/src/components/ui/dropdown-menu.tsx:95:        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+/home/z/my-project/src/components/ui/dropdown-menu.tsx:131:        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+/home/z/my-project/src/components/ui/dropdown-menu.tsx:187:        "text-muted-foreground ml-auto text-xs tracking-widest",
+/home/z/my-project/src/components/ui/dropdown-menu.tsx:214:        "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8",
+/home/z/my-project/src/components/ui/dropdown-menu.tsx:233:        "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg",
+/home/z/my-project/src/components/ui/table.tsx:47:        "bg-muted/50 border-t font-medium [&>tr]:last:border-b-0",
+/home/z/my-project/src/components/ui/table.tsx:60:        "hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors table-row-click",
+/home/z/my-project/src/components/ui/table.tsx:73:        "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+
+[Showing results with pagination = limit: 250]
