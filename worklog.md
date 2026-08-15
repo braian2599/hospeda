@@ -564,3 +564,38 @@ Stage Summary:
 - No data flow altered — permissions are still set per-user via form checkboxes
 - PERMISOS_POR_ROL preserved for default permission assignment on role change
 - Roles remain as categories; permissions are per-user, not per-role
+
+---
+Task ID: 5
+Agent: Main Agent
+Task: Implement real-time online status tracking for UsuariosModule
+
+Work Log:
+- Analyzed UsuariosModule.tsx (1032 lines) — identified KPI "Activos" showing `usuarios.filter(u => u.activo).length` (just the activo flag, not real online)
+- Identified green dot on user cards using `u.activo ? 'bg-emerald-500' : 'bg-gray-400'` (based on activo flag, not real-time)
+- Added UserPresence model to Prisma schema (tenantUserId UNIQUE, tenantId, lastSeenAt, indexes)
+- Generated Prisma client with `bun run db:generate`
+- Created UserPresence table in SQLite database via better-sqlite3
+- Created POST /api/presence/heartbeat — authenticated client sends heartbeat every ~30s, upserts UserPresence row
+- Created GET /api/presence/online — returns tenantUserIds with lastSeenAt within 90s, auto-cleans stale entries (>10min)
+- Created usePresence hook (src/hooks/usePresence.ts) — manages heartbeat sending + online users polling
+- Created presence-store.ts (Zustand) — lightweight store for shared online status (onlineUserIds Set, onlineCount, loaded)
+- Updated UsuariosModule: KPI "Activos" → "En línea" showing real onlineCount / total activos
+- Updated green dot: onlineUserIds.has(u.id) → pulsing emerald-500 + "en línea" label + Wifi icon
+- Offline users: gray dot + "Último acceso" with WifiOff icon
+- Integrated usePresence() in app layout SessionLoader — starts heartbeat on login
+- Added api.presence endpoints to api-client.ts
+- Installed better-sqlite3 for direct SQLite table creation
+- Verified: lint clean, dev server 200, both presence endpoints return 401 for unauthenticated (correct)
+- Committed as f7be799 and pushed to main
+
+Stage Summary:
+- New model: UserPresence (Prisma + SQLite table)
+- New API routes: /api/presence/heartbeat (POST), /api/presence/online (GET)
+- New hook: usePresence (heartbeat + polling, 30s/15s intervals)
+- New store: presence-store (Zustand, lightweight)
+- UsuariosModule KPI now shows real-time "En línea" count instead of static "Activos" count
+- Green dot on user cards reflects actual online status (heartbeat within 90s), not just activo flag
+- Online users get pulsing green dot + "en línea" text + Wifi icon
+- Offline active users get gray dot + last access time + WifiOff icon
+- No data flow broken — purely additive changes, existing functionality preserved
