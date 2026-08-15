@@ -96,23 +96,23 @@ function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, borderC
   const trendUp = trend && trend.value > 0;
   const trendDown = trend && trend.value < 0;
   const trendIcon = trendUp ? '\u2191' : trendDown ? '\u2193' : '';
-  const trendColor = trendUp ? 'text-emerald-500' : trendDown ? 'text-red-500' : 'text-muted-foreground';
+  const trendColor = trendUp ? 'text-primary' : trendDown ? 'text-red-500' : 'text-muted-foreground';
 
   return (
     <div
-      className={`relative rounded-xl border-l-[3px] ${borderColor || 'border-l-emerald-500'} ${bgGradient || 'bg-emerald-950/20'} p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive`}
+      className={`relative rounded-xl border-l-[3px] ${borderColor || 'border-l-primary'} ${bgGradient || 'bg-primary/5'} p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive`}
     >
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <p className={`text-xs font-medium ${labelColor || 'text-emerald-400'}`}>{label}</p>
-          <p className={`text-xl font-bold ${valueColor || 'text-emerald-200'}`}>
+          <p className={`text-xs font-medium ${labelColor || 'text-primary'}`}>{label}</p>
+          <p className={`text-xl font-bold ${valueColor || 'text-primary'}`}>
             {numericValue !== undefined ? (
-              <><AnimatedNumber value={numericValue} duration={600} format={suffix === '%' ? (n: number) => `${Math.round(n)}%` : (n: number) => String(Math.round(n))} className={`text-xl font-bold ${valueColor || 'text-emerald-200'}`} /></>
+              <><AnimatedNumber value={numericValue} duration={600} format={suffix === '%' ? (n: number) => `${Math.round(n)}%` : (n: number) => String(Math.round(n))} className={`text-xl font-bold ${valueColor || 'text-primary'}`} /></>
             ) : value}
           </p>
-          {sub && <p className={`text-[10px] ${subColor || 'text-emerald-400/50'} mt-1`}>{sub}</p>}
+          {sub && <p className={`text-[10px] ${subColor || 'text-primary/50'} mt-1`}>{sub}</p>}
         </div>
-        <div className={`w-10 h-10 rounded-full ${iconBg || 'bg-emerald-500/20'} flex items-center justify-center`}>
+        <div className={`w-10 h-10 rounded-full ${iconBg || 'bg-primary/20'} flex items-center justify-center`}>
           <Icon className={`w-5 h-5 ${color}`} />
         </div>
       </div>
@@ -285,13 +285,13 @@ function GanttPopover({ data, position, onClose }: {
           {data.monto !== undefined && data.monto > 0 && (
             <div className="flex justify-between text-[11px]">
               <span className="text-[#94A3B8]">Total</span>
-              <span className="font-bold text-emerald-300">{formatMoney(data.monto)}</span>
+              <span className="font-bold text-primary">{formatMoney(data.monto)}</span>
             </div>
           )}
           {data.estadoPago && (
             <div className="flex justify-between text-[11px]">
               <span className="text-[#94A3B8]">Pago</span>
-              <span className={`font-medium ${data.estadoPago === 'Pagado' ? 'text-emerald-300' : data.estadoPago === 'Parcial' ? 'text-[#EA580C]' : 'text-[#EF4444]'}`}>
+              <span className={`font-medium ${data.estadoPago === 'Pagado' ? 'text-primary' : data.estadoPago === 'Parcial' ? 'text-[#EA580C]' : 'text-[#EF4444]'}`}>
                 {data.estadoPago}
               </span>
             </div>
@@ -312,7 +312,7 @@ function GanttPopover({ data, position, onClose }: {
         <p className="text-slate-400 text-xs flex items-center gap-1 mt-1"><Wrench className="w-3 h-3" /> {data.problema || 'En mantenimiento'}</p>
       )}
       {data.estado === 'Disponible' && (
-        <p className="text-emerald-300 text-xs flex items-center gap-1 mt-1"><CheckCircle className="w-3 h-3" /> Disponible</p>
+        <p className="text-primary text-xs flex items-center gap-1 mt-1"><CheckCircle className="w-3 h-3" /> Disponible</p>
       )}
     </div>,
     document.body
@@ -482,7 +482,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         });
 
         result.push(
-          <div key={num} className={`flex items-stretch border-b-2 border-border last:border-b-0 hover:bg-emerald-950/10 transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-card/80' : ''}`} style={{ height: FILA_H }}>
+          <div key={num} className={`flex items-stretch border-b-2 border-border last:border-b-0 hover:bg-primary/5 transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-card/80' : ''}`} style={{ height: FILA_H }}>
             <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-border bg-card z-[5]" style={{ height: FILA_H }}>
               <span className="text-[12px] font-bold text-foreground leading-tight">{num}</span>
               <span className="text-[10px] text-slate-400 font-medium mt-0.5">{hab.tipo}</span>
@@ -522,7 +522,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       });
 
       result.push(
-        <div key={num} className={`flex items-stretch border-b-2 border-border last:border-b-0 hover:bg-emerald-950/10 transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-card/80' : ''}`} style={{ height: ROW_H }}>
+        <div key={num} className={`flex items-stretch border-b-2 border-border last:border-b-0 hover:bg-primary/5 transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-card/80' : ''}`} style={{ height: ROW_H }}>
           <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-border bg-card z-[5]" style={{ height: ROW_H }}>
             <span className="text-[12px] font-bold text-foreground leading-tight">{num}</span>
             <span className="text-[10px] text-slate-400 font-medium mt-0.5">{hab.tipo}</span>
@@ -544,11 +544,11 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       const esFS = d.getDay() === 0 || d.getDay() === 6;
       const isHoy = col === hoyStr;
       return (
-        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-border min-w-0 transition-colors duration-150 ${esFS ? 'bg-red-900/30' : ''} ${isHoy ? 'bg-emerald-900/10' : ''}`}>
-          <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-[#F43F5E]' : 'text-slate-400'} ${isHoy ? '!text-emerald-400' : ''}`}>
+        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-border min-w-0 transition-colors duration-150 ${esFS ? 'bg-red-900/30' : ''} ${isHoy ? 'bg-primary/5' : ''}`}>
+          <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-[#F43F5E]' : 'text-slate-400'} ${isHoy ? '!text-primary' : ''}`}>
             {NOMBRES_DIAS[d.getDay()]}
           </span>
-          <span className={`text-[15px] font-bold leading-none mt-0.5 ${esFS ? 'text-[#F43F5E]' : 'text-foreground'} ${isHoy ? '!text-emerald-400 underline decoration-2 underline-offset-2 decoration-[#4ADE80]' : ''}`}>
+          <span className={`text-[15px] font-bold leading-none mt-0.5 ${esFS ? 'text-[#F43F5E]' : 'text-foreground'} ${isHoy ? '!text-primary underline decoration-2 underline-offset-2 decoration-primary' : ''}`}>
             {d.getDate()}
           </span>
         </div>
@@ -591,7 +591,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
               <Button
                 variant={ganttDays === 14 ? 'default' : 'outline'}
                 size="sm"
-                className={cn('h-7 text-xs', ganttDays === 14 && 'bg-[#0F2B28] hover:bg-[#1a3d35]')}
+                className={cn('h-7 text-xs', ganttDays === 14 && 'bg-primary hover:bg-[#1a3d35]')}
                 onClick={() => setGanttDays(14)}
               >
                 2 sem
@@ -599,7 +599,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
               <Button
                 variant={ganttDays === 30 ? 'default' : 'outline'}
                 size="sm"
-                className={cn('h-7 text-xs', ganttDays === 30 && 'bg-[#0F2B28] hover:bg-[#1a3d35]')}
+                className={cn('h-7 text-xs', ganttDays === 30 && 'bg-primary hover:bg-[#1a3d35]')}
                 onClick={() => setGanttDays(30)}
               >
                 1 mes
@@ -853,7 +853,7 @@ export default function DashboardModule() {
       {actionLog.length > 0 && (
         <div className="fixed top-4 right-4 z-50 space-y-2">
           {actionLog.map((msg, i) => (
-            <div key={i} className="bg-[#059669] text-white px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium flex items-center gap-2 animate-in slide-in-from-right-full fade-in-0 duration-300">
+            <div key={i} className="bg-primary text-white px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium flex items-center gap-2 animate-in slide-in-from-right-full fade-in-0 duration-300">
               <CheckCircle className="w-4 h-4" />
               {msg}
             </div>
@@ -863,8 +863,8 @@ export default function DashboardModule() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
-        <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-emerald-400" borderColor="border-l-emerald-500" bgGradient="bg-emerald-950/20" iconBg="bg-emerald-500/20" labelColor="text-emerald-400" valueColor="text-emerald-200" subColor="text-emerald-400/50" numericValue={tasaOcupacion} suffix="%" sparkData={sparkOccupancy} sparkColor="#059669" />
-        <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-emerald-400" borderColor="border-l-emerald-500" bgGradient="bg-emerald-950/20" iconBg="bg-emerald-500/20" labelColor="text-emerald-400" valueColor="text-emerald-200" subColor="text-emerald-400/50" numericValue={checkinsHoy.length} sparkData={sparkCheckins} sparkColor="#059669" />
+        <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-primary" borderColor="border-l-primary" bgGradient="bg-primary/5" iconBg="bg-primary/20" labelColor="text-primary" valueColor="text-primary" subColor="text-primary/50" numericValue={tasaOcupacion} suffix="%" sparkData={sparkOccupancy} sparkColor="#059669" />
+        <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-primary" borderColor="border-l-primary" bgGradient="bg-primary/5" iconBg="bg-primary/20" labelColor="text-primary" valueColor="text-primary" subColor="text-primary/50" numericValue={checkinsHoy.length} sparkData={sparkCheckins} sparkColor="#059669" />
         <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-amber-400" borderColor="border-l-amber-500" bgGradient="bg-amber-950/20" iconBg="bg-amber-500/20" labelColor="text-amber-400" valueColor="text-amber-200" subColor="text-amber-400/50" numericValue={checkoutsHoy.length} sparkData={sparkCheckouts} sparkColor="#F59E0B" />
         <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-teal-400" borderColor="border-l-teal-500" bgGradient="bg-teal-950/20" iconBg="bg-teal-500/20" labelColor="text-teal-400" valueColor="text-teal-200" subColor="text-teal-400/50" numericValue={reservadas} sparkData={sparkRevenue} sparkColor="#059669" />
       </div>
@@ -923,8 +923,8 @@ export default function DashboardModule() {
               <span className="bg-[#64748B] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enMantenimiento}</span>
             </div>
             {enLimpieza === 0 && enMantenimiento === 0 && (
-              <div className="flex items-center justify-center p-3 rounded-lg bg-emerald-900/60 border-emerald-700/40">
-                <span className="text-xs font-medium text-emerald-300 flex items-center gap-1.5">
+              <div className="flex items-center justify-center p-3 rounded-lg bg-primary/10 border-primary/40">
+                <span className="text-xs font-medium text-primary flex items-center gap-1.5">
                   <CheckCircle className="w-4 h-4" />
                   Todo al día
                 </span>
@@ -943,7 +943,7 @@ export default function DashboardModule() {
           </CardHeader>
           <CardContent className="space-y-2">
             {!tieneAlertas && (
-              <div className="flex items-center gap-2 p-3 text-emerald-300 text-sm rounded-lg bg-emerald-900/60 border-emerald-700/40">
+              <div className="flex items-center gap-2 p-3 text-primary text-sm rounded-lg bg-primary/10 border-primary/40">
                 <CheckCircle className="w-4 h-4" />
                 Sin alertas pendientes
               </div>
@@ -1043,7 +1043,7 @@ export default function DashboardModule() {
                     </div>
                     <Button
                       size="sm"
-                      className="bg-[#059669] hover:bg-[#047857] h-8 text-xs shrink-0 ml-2"
+                      className="bg-primary hover:bg-primary/80 h-8 text-xs shrink-0 ml-2"
                       onClick={() => handleCheckIn()}
                     >
                       <LogIn className="w-3 h-3 mr-1" />Check-In

@@ -194,10 +194,10 @@ export default function RecentActivity() {
     <Card className="flex flex-col">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <Activity className="w-4 h-4 text-emerald-400" />
+          <Activity className="w-4 h-4 text-primary" />
           Actividad Reciente
           {events.length > 0 && (
-            <Badge className="ml-auto bg-[#0F2B28] hover:bg-[#0F2B28]">{events.length}</Badge>
+            <Badge className="ml-auto bg-primary hover:bg-primary">{events.length}</Badge>
           )}
         </CardTitle>
       </CardHeader>
@@ -268,7 +268,7 @@ export default function RecentActivity() {
                             className={cn(
                               'text-xs font-bold tabular-nums ml-auto',
                               isIncome
-                                ? 'text-[#059669]'
+                                ? 'text-primary'
                                 : isExpense
                                   ? 'text-[#EF4444]'
                                   : 'text-muted-foreground',

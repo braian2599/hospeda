@@ -63,8 +63,8 @@ export default function ProfileSetup({ email, currentName, onComplete }: Profile
       <div className="h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-sm mx-4 rounded-2xl shadow-2xl text-center">
           <CardContent className="pt-8 pb-6 space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-emerald-900/30 flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <CheckCircle2 className="w-8 h-8 text-primary" />
             </div>
             <h2 className="text-xl font-bold">Perfil listo</h2>
             <p className="text-sm text-muted-foreground">

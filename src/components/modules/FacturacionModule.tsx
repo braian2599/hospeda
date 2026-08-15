@@ -36,7 +36,7 @@ import { AnimatedNumber } from '@/components/ui/animated-number';
 const estadoPagoBadge: Record<string, string> = {
   Pendiente: 'bg-amber-900/60 text-amber-300 border-amber-700/40 shadow-sm',
   Parcial: 'bg-orange-900/40 text-orange-300 border-orange-700/40 shadow-sm',
-  Pagado: 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40 shadow-sm',
+  Pagado: 'bg-emerald-900/60 text-emerald-300 border-primary/40 shadow-sm',
 };
 
 /** Get initials from a name string (up to 2 chars) */
@@ -266,17 +266,17 @@ export default function FacturacionModule() {
         </div>
 
         {/* Total Cobrado Hoy */}
-        <div className="relative rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <div className="relative rounded-xl border-l-[3px] border-l-primary bg-primary/5 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-emerald-400">Cobrado Hoy</p>
-              <AnimatedNumber value={analytics.totalCobradoHoy} className="text-xl font-bold text-emerald-200" />
+              <p className="text-xs font-medium text-primary">Cobrado Hoy</p>
+              <AnimatedNumber value={analytics.totalCobradoHoy} className="text-xl font-bold text-primary" />
             </div>
-            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-primary" />
             </div>
           </div>
-          <p className="text-emerald-600/70 text-emerald-400/50 mt-2">{pagos.filter(p => p.fecha.startsWith(todayLocal())).length} pago{pagos.filter(p => p.fecha.startsWith(todayLocal())).length !== 1 ? 's' : ''} del día</p>
+          <p className="text-primary/50 text-primary/50 mt-2">{pagos.filter(p => p.fecha.startsWith(todayLocal())).length} pago{pagos.filter(p => p.fecha.startsWith(todayLocal())).length !== 1 ? 's' : ''} del día</p>
         </div>
 
         {/* Cobros este Mes */}
@@ -310,10 +310,10 @@ export default function FacturacionModule() {
 
       <Tabs defaultValue="pendientes">
         <TabsList className="bg-muted/50">
-          <TabsTrigger value="pendientes" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all">
+          <TabsTrigger value="pendientes" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
             <CreditCard className="w-4 h-4 mr-1" />Cobros pendientes
           </TabsTrigger>
-          <TabsTrigger value="historial" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all">
+          <TabsTrigger value="historial" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
             <FileText className="w-4 h-4 mr-1" />Historial de pagos
           </TabsTrigger>
         </TabsList>
@@ -346,7 +346,7 @@ export default function FacturacionModule() {
                           {/* Guest avatar + Room + Days */}
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-8 h-8 rounded-full bg-[#0F2B28] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0">
                                 {getInitials(r.huesped)}
                               </div>
                               <div className="min-w-0">
@@ -377,7 +377,7 @@ export default function FacturacionModule() {
                               <Badge className={`text-[10px] px-1.5 py-0 ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                             </div>
                             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                              <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                              <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                             </div>
                           </div>
                           {/* Money summary */}
@@ -388,7 +388,7 @@ export default function FacturacionModule() {
                             </div>
                             <div>
                               <p className="text-[10px] text-muted-foreground leading-tight">Pagado</p>
-                              <p className="text-sm font-medium text-emerald-300">{formatMoney(pagado)}</p>
+                              <p className="text-sm font-medium text-primary">{formatMoney(pagado)}</p>
                             </div>
                             <div>
                               <p className="text-[10px] text-muted-foreground leading-tight">Saldo</p>
@@ -399,7 +399,7 @@ export default function FacturacionModule() {
                           <div className="flex gap-2 pt-0.5">
                             <Button
                               size="sm"
-                              className="flex-1 h-8 text-xs bg-[#0F2B28] hover:bg-[#0F2B28]/90"
+                              className="flex-1 h-8 text-xs bg-primary hover:bg-primary/90"
                               onClick={() => openPagoDialog(r.id)}
                             >
                               <CreditCard className="w-3.5 h-3.5 mr-1" />Cobrar
@@ -453,10 +453,10 @@ export default function FacturacionModule() {
                         const borderColor = r.estadoPago === 'Parcial' ? 'border-l-amber-500' : 'border-l-red-500';
                         const dSince = daysSince(r.checkin);
                         return (
-                          <TableRow key={r.id} className={`group border-l-[3px] ${borderColor} hover:bg-emerald-900/20 hover:-translate-y-px transition-all duration-150`}>
+                          <TableRow key={r.id} className={`group border-l-[3px] ${borderColor} hover:bg-primary/10 hover:-translate-y-px transition-all duration-150`}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-full bg-[#0F2B28] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                                <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold shrink-0">
                                   {getInitials(r.huesped)}
                                 </div>
                                 <div>
@@ -477,13 +477,13 @@ export default function FacturacionModule() {
                             </TableCell>
                             <TableCell className="hidden md:table-cell">{formatFecha(r.checkin)}</TableCell>
                             <TableCell className="hidden md:table-cell">{formatFecha(r.checkout)}</TableCell>
-                            <TableCell className="text-right font-bold text-emerald-400">{formatMoney(total)}</TableCell>
-                            <TableCell className="text-right font-semibold text-emerald-300">{formatMoney(pagado)}</TableCell>
+                            <TableCell className="text-right font-bold text-primary">{formatMoney(total)}</TableCell>
+                            <TableCell className="text-right font-semibold text-primary">{formatMoney(pagado)}</TableCell>
                             <TableCell className="text-right text-red-300 font-bold">{formatMoney(saldo)}</TableCell>
                             <TableCell>
                               <div className="space-y-1 min-w-[80px]">
                                 <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                                  <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                                  <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                                 </div>
                                 <div className="flex justify-between text-[10px] text-muted-foreground">
                                   <span>{Math.round(pct)}%</span>
@@ -496,7 +496,7 @@ export default function FacturacionModule() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
-                                <Button size="sm" onClick={() => openPagoDialog(r.id)} className="bg-[#0F2B28] hover:bg-[#0F2B28]/90">
+                                <Button size="sm" onClick={() => openPagoDialog(r.id)} className="bg-primary hover:bg-primary/90">
                                   <CreditCard className="w-3.5 h-3.5 mr-1" />Cobrar
                                 </Button>
                                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openRecibo(r.id)}>
@@ -582,7 +582,7 @@ export default function FacturacionModule() {
                               <span>{formatFecha(p.fecha)}</span>
                               <span className="text-[10px] opacity-60">({relativeTime(p.fecha)})</span>
                             </div>
-                            <p className="text-base font-bold text-[#059669] shrink-0">{formatMoney(p.monto)}</p>
+                            <p className="text-base font-bold text-primary shrink-0">{formatMoney(p.monto)}</p>
                           </div>
                           {/* Guest + Room */}
                           <div className="flex items-center gap-2">
@@ -601,7 +601,7 @@ export default function FacturacionModule() {
                           {reserva && (
                             <div className="flex justify-between text-xs text-muted-foreground">
                               <span>Total: {formatMoney(totalR)}</span>
-                              <span className={saldoR <= 0 ? 'text-emerald-300 font-medium' : 'text-red-300'}>{saldoR <= 0 ? 'Pagado' : `Saldo: ${formatMoney(saldoR)}`}</span>
+                              <span className={saldoR <= 0 ? 'text-primary font-medium' : 'text-red-300'}>{saldoR <= 0 ? 'Pagado' : `Saldo: ${formatMoney(saldoR)}`}</span>
                             </div>
                           )}
                           {/* Receipt button */}
@@ -651,7 +651,7 @@ export default function FacturacionModule() {
                         const saldoR = totalR - pagadoR;
                         const metodoType = getMetodoIcon(metodoNombre);
                         return (
-                          <TableRow key={p.id} className="group hover:bg-emerald-900/20 hover:-translate-y-px transition-all duration-150 animate-in fade-in-0 slide-in-from-bottom-1" style={{ animationDelay: `${idx * 30}ms`, animationFillMode: 'backwards' }}>
+                          <TableRow key={p.id} className="group hover:bg-primary/10 hover:-translate-y-px transition-all duration-150 animate-in fade-in-0 slide-in-from-bottom-1" style={{ animationDelay: `${idx * 30}ms`, animationFillMode: 'backwards' }}>
                             <TableCell>
                               <div className="space-y-0.5">
                                 <span className="text-sm">{formatFecha(p.fecha)}</span>
@@ -667,13 +667,13 @@ export default function FacturacionModule() {
                             <TableCell>
                               <MetodoIconBadge type={metodoType} name={metodoNombre} />
                             </TableCell>
-                            <TableCell className="text-right font-bold text-[#059669]">
+                            <TableCell className="text-right font-bold text-primary">
                               {formatMoney(p.monto)}
                             </TableCell>
                             <TableCell className="hidden md:table-cell text-right text-sm">
                               {formatMoney(totalR)}
                             </TableCell>
-                            <TableCell className={`hidden md:table-cell text-right text-sm font-medium ${saldoR <= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                            <TableCell className={`hidden md:table-cell text-right text-sm font-medium ${saldoR <= 0 ? 'text-primary' : 'text-red-300'}`}>
                               {saldoR <= 0 ? 'Pagado' : formatMoney(saldoR)}
                             </TableCell>
                             <TableCell className="hidden lg:table-cell text-muted-foreground text-sm max-w-[200px] truncate">
@@ -727,7 +727,7 @@ export default function FacturacionModule() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Ya pagado</span>
-                    <p className="font-medium text-emerald-300">{formatMoney(calcularTotalPagado(pagoReserva.id))}</p>
+                    <p className="font-medium text-primary">{formatMoney(calcularTotalPagado(pagoReserva.id))}</p>
                   </div>
                 </div>
                 <Separator />
@@ -817,7 +817,7 @@ function MetodoIconBadge({ type, name }: { type: 'credit' | 'bank' | 'wallet' | 
     credit: 'bg-sky-900/30 text-sky-400',
     bank: 'bg-violet-900/30 text-violet-400',
     wallet: 'bg-amber-900/30 text-amber-400',
-    cash: 'bg-emerald-900/30 text-emerald-400',
+    cash: 'bg-primary/10 text-primary',
   };
   return (
     <Badge variant="secondary" className={`gap-1 ${colorMap[type]}`}>
@@ -856,10 +856,10 @@ function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: st
       {/* ── Hotel Branding Header ── */}
       <div className="text-center space-y-2">
         {/* Logo placeholder */}
-        <div className="mx-auto w-14 h-14 rounded-xl bg-[#0F2B28] flex items-center justify-center">
+        <div className="mx-auto w-14 h-14 rounded-xl bg-primary flex items-center justify-center">
           <Building2 className="w-7 h-7 text-white" />
         </div>
-        <h3 className="text-xl font-bold tracking-wide text-emerald-400">{hotelName.toUpperCase()}</h3>
+        <h3 className="text-xl font-bold tracking-wide text-primary">{hotelName.toUpperCase()}</h3>
         <p className="text-xs text-muted-foreground">Dirección del hotel, Ciudad, País</p>
         <p className="text-xs text-muted-foreground">Tel: (000) 000-0000 · info@hotel.com</p>
         <Separator className="my-2" />
@@ -962,7 +962,7 @@ function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: st
                       <TableCell className="text-xs py-2">
                         <MetodoIconBadge type={metodoType} name={metodoNombre} />
                       </TableCell>
-                      <TableCell className="text-xs py-2 text-right font-medium text-[#059669]">{formatMoney(p.monto)}</TableCell>
+                      <TableCell className="text-xs py-2 text-right font-medium text-primary">{formatMoney(p.monto)}</TableCell>
                     </TableRow>
                   );
                 })}
@@ -982,7 +982,7 @@ function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: st
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Total pagado</span>
-          <span className="font-medium text-emerald-300">{formatMoney(pagado)}</span>
+          <span className="font-medium text-primary">{formatMoney(pagado)}</span>
         </div>
         {saldo > 0 && (
           <div className="flex justify-between text-sm font-bold">
@@ -991,7 +991,7 @@ function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: st
           </div>
         )}
         {saldo <= 0 && (
-          <div className="flex justify-between text-sm font-bold text-emerald-300">
+          <div className="flex justify-between text-sm font-bold text-primary">
             <span>Estado</span>
             <span>PAGADO ✓</span>
           </div>

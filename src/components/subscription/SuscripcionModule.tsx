@@ -212,7 +212,7 @@ export default function SuscripcionModule() {
                 <p className="text-sm text-muted-foreground mt-1">
                   Día 1 del mes que viene
                 </p>
-                <div className="flex items-center gap-1.5 mt-3 text-xs text-[#059669]">
+                <div className="flex items-center gap-1.5 mt-3 text-xs text-primary">
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Débito automático activo</span>
                 </div>
@@ -272,8 +272,8 @@ export default function SuscripcionModule() {
       {isRecurring && currentEstado === 'activa' && (
         <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#059669]/10 flex items-center justify-center">
-              <CreditCard className="w-5 h-5 text-[#059669]" />
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <CreditCard className="w-5 h-5 text-primary" />
             </div>
             <div>
               <p className="text-sm font-medium">Suscripción recurrente activa</p>

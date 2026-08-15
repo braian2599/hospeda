@@ -26,8 +26,8 @@ export default function PaymentResultBanner() {
   const config = {
     success: {
       icon: CheckCircle2,
-      bg: 'bg-emerald-500/10 border-emerald-500/20',
-      iconColor: 'text-emerald-400',
+      bg: 'bg-primary/10 border-primary/20',
+      iconColor: 'text-primary',
       title: '¡Pago recibido!',
       message: 'Tu suscripción se está activando. En unos minutos verás tu nuevo plan reflejado.',
     },

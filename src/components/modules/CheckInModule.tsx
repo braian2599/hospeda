@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils';
 const estadoPagoBadge: Record<string, string> = {
   Pendiente: 'bg-amber-900/60 text-amber-300 border-amber-700/40',
   Parcial: 'bg-orange-900/60 text-orange-300 border-orange-700/40',
-  Pagado: 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40',
+  Pagado: 'bg-emerald-900/60 text-emerald-300 border-primary/40',
 };
 
 const PARENTESCO_OPTIONS = [
@@ -296,16 +296,16 @@ export default function CheckInModule() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Pendientes Check-In */}
-          <Card className="border-emerald-700/40/60 bg-emerald-950/20">
+          <Card className="border-primary/30 bg-primary/5">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
-                <LogIn className="w-5 h-5 text-[#059669]" />
+                <LogIn className="w-5 h-5 text-primary" />
                 Check-Ins Pendientes
-                {pendientesCheckIn.length > 0 && <PulsingDot color="bg-emerald-500" />}
+                {pendientesCheckIn.length > 0 && <PulsingDot color="bg-primary" />}
                 <Badge
                   key={`cin-${pendientesCheckIn.length}`}
                   variant="secondary"
-                  className="ml-auto count-pop bg-[#059669]/15 text-[#047857] border-emerald-700/40 hover:bg-[#059669]/20"
+                  className="ml-auto count-pop bg-primary/15 text-primary border-primary/30 hover:bg-primary/80/20"
                 >
                   {pendientesCheckIn.length}
                 </Badge>
@@ -317,10 +317,10 @@ export default function CheckInModule() {
               ) : (
                 <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
                   {pendientesCheckIn.map(r => (
-                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-emerald-950/40 transition-colors duration-200 group">
+                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-primary/10 transition-colors duration-200 group">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm group-hover:text-emerald-400 transition-colors">{r.huesped}</span>
+                          <span className="font-semibold text-sm group-hover:text-primary transition-colors">{r.huesped}</span>
                           <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                           {(r.ninos || 0) > 0 && (
                             <Badge variant="outline" className="bg-violet-900/40 text-violet-300 border-violet-700/40">
@@ -335,7 +335,7 @@ export default function CheckInModule() {
                           <span>{r.personas} adulto{s(r.personas)}{(r.ninos || 0) > 0 ? ` + ${r.ninos} niño${(r.ninos || 0) > 1 ? 's' : ''}` : ''}</span>
                         </div>
                       </div>
-                      <Button size="sm" className="bg-[#059669] hover:bg-[#047857] text-white shadow-sm" onClick={() => openCheckIn(r)}>
+                      <Button size="sm" className="bg-primary hover:bg-primary/80 text-white shadow-sm" onClick={() => openCheckIn(r)}>
                         <KeyRound className="w-3.5 h-3.5 mr-1" />Check-In
                       </Button>
                     </div>
@@ -370,7 +370,7 @@ export default function CheckInModule() {
                     <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-amber-950/40 transition-colors duration-200 group">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm group-hover:text-emerald-400 transition-colors">{r.huesped}</span>
+                          <span className="font-semibold text-sm group-hover:text-primary transition-colors">{r.huesped}</span>
                           <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                           {r.menores && r.menores.length > 0 && (
                             <Badge variant="outline" className="bg-violet-900/40 text-violet-300 border-violet-700/40">
@@ -713,12 +713,12 @@ export default function CheckInModule() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Pagado</span>
-                      <span className="font-semibold text-emerald-300">{formatMoney(pagado)}</span>
+                      <span className="font-semibold text-primary">{formatMoney(pagado)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between text-sm font-bold">
                       <span>Saldo</span>
-                      <span className={saldo > 0 ? 'text-red-300' : 'text-emerald-300'}>
+                      <span className={saldo > 0 ? 'text-red-300' : 'text-primary'}>
                         {formatMoney(saldo)}
                       </span>
                     </div>
@@ -816,7 +816,7 @@ function TodayActivitySummary() {
       label: 'Check-ins completados hoy',
       value: checkinsHoy,
       icon: LogIn,
-      colorName: 'emerald',
+      colorName: 'primary',
       trend: checkinsHoy === 0 && checkinsAyer === 0 ? undefined : checkinsHoy - checkinsAyer,
     },
     {
@@ -869,14 +869,14 @@ const KPI_COLORS: Record<string, {
   iconBg: string;
   icon: string;
 }> = {
-  emerald: {
-    border: 'border-l-emerald-500',
-    bg: 'bg-emerald-950/20',
-    label: 'text-emerald-400',
-    value: 'text-emerald-200',
-    sub: 'text-emerald-400/50',
-    iconBg: 'bg-emerald-500/20',
-    icon: 'text-emerald-400',
+  primary: {
+    border: 'border-l-primary',
+    bg: 'bg-primary/5',
+    label: 'text-primary',
+    value: 'text-primary',
+    sub: 'text-primary/50',
+    iconBg: 'bg-primary/20',
+    icon: 'text-primary',
   },
   amber: {
     border: 'border-l-amber-500',
@@ -927,7 +927,7 @@ function StatCard({
   sublabel?: string;
   delay?: number;
 }) {
-  const c = KPI_COLORS[colorName] ?? KPI_COLORS.emerald;
+  const c = KPI_COLORS[colorName] ?? KPI_COLORS.primary;
 
   const trendText = trend !== undefined && trend !== 0
     ? `${trend > 0 ? '+' : ''}${trend} vs ayer`
@@ -966,7 +966,7 @@ function StatCard({
  * PulsingDot — small animated indicator for "pending work" signal.
  * Renders a layered ping + dot using Tailwind's animate-ping.
  */
-function PulsingDot({ color = 'bg-emerald-500' }: { color?: string }) {
+function PulsingDot({ color = 'bg-primary' }: { color?: string }) {
   return (
     <span className="relative flex size-2.5 ml-0.5" aria-hidden="true">
       <span className={cn('absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping', color)} />
@@ -982,9 +982,9 @@ function PulsingDot({ color = 'bg-emerald-500' }: { color?: string }) {
  */
 function CelebratoryEmptyState() {
   return (
-    <div className="rounded-lg p-6 flex flex-col items-center justify-center text-center border border-emerald-800/30 bg-emerald-950/20">
-      <div className="size-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
-        <CheckCircle className="w-7 h-7 text-emerald-400" />
+    <div className="rounded-lg p-6 flex flex-col items-center justify-center text-center border border-primary/20 bg-primary/5">
+      <div className="size-12 rounded-full bg-primary/20 flex items-center justify-center mb-3">
+        <CheckCircle className="w-7 h-7 text-primary" />
       </div>
       <p className="text-sm font-semibold text-foreground">¡Todo al día!</p>
       <p className="text-xs text-muted-foreground mt-0.5">No hay check-ins/check-outs pendientes.</p>
@@ -1047,11 +1047,11 @@ function CheckInAccountStatus({ reserva }: { reserva: Reserva }) {
         </div>
         <div>
           <span className="text-muted-foreground text-xs block">Pagado</span>
-          <span className="font-bold text-base text-emerald-300">{formatMoney(pagado)}</span>
+          <span className="font-bold text-base text-primary">{formatMoney(pagado)}</span>
         </div>
         <div>
           <span className="text-muted-foreground text-xs block">Saldo</span>
-          <span className={`font-bold text-base ${saldo > 0 ? 'text-red-300' : 'text-emerald-300'}`}>
+          <span className={`font-bold text-base ${saldo > 0 ? 'text-red-300' : 'text-primary'}`}>
             {formatMoney(saldo)}
           </span>
         </div>

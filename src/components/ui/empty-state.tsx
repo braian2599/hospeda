@@ -3,7 +3,7 @@ import { Bed, CalendarDays, Users, Wallet, Sparkles, SprayCan, BarChart3, FileTe
 const variants: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; title: string; description: string }> = {
   reservas: { icon: CalendarDays, color: 'text-blue-500 bg-blue-900/30', title: 'Sin reservas', description: 'No hay reservas que coincidan con los filtros actuales.' },
   clientes: { icon: Users, color: 'text-rose-500 bg-rose-900/30', title: 'Sin clientes', description: 'No hay clientes registrados. Creá el primero.' },
-  pagos: { icon: Wallet, color: 'text-emerald-500 bg-emerald-900/30', title: 'Sin pagos', description: 'No hay pagos registrados para esta reserva.' },
+  pagos: { icon: Wallet, color: 'text-primary bg-primary/10', title: 'Sin pagos', description: 'No hay pagos registrados para esta reserva.' },
   habitaciones: { icon: Bed, color: 'text-sky-500 bg-sky-900/30', title: 'Sin habitaciones', description: 'No hay habitaciones registradas. Creá la primera.' },
   limpieza: { icon: SprayCan, color: 'text-amber-500 bg-amber-900/30', title: 'Todo limpio', description: 'No hay habitaciones pendientes de limpieza.' },
   mantenimiento: { icon: Sparkles, color: 'text-slate-500 bg-slate-800/50', title: 'Sin mantenimiento', description: 'No hay habitaciones en mantenimiento.' },

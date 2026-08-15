@@ -177,7 +177,7 @@ export default function SuperAdminPlanes() {
                 </div>
                 <div className="flex items-center gap-2">
                   {plan.activo ? (
-                    <Badge variant="outline" className="text-emerald-400 border-emerald-700">
+                    <Badge variant="outline" className="text-emerald-400 border-primary">
                       <Check className="w-3 h-3 mr-1" /> Activo
                     </Badge>
                   ) : (

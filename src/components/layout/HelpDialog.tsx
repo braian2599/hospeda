@@ -151,10 +151,10 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
         <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-[#0F2B28] text-white">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-primary text-white">
                 <Keyboard className="w-4 h-4" />
               </span>
-              <DialogTitle className="text-base font-semibold text-emerald-400">
+              <DialogTitle className="text-base font-semibold text-primary">
                 Atajos de teclado y consejos
               </DialogTitle>
             </div>
@@ -218,7 +218,7 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="w-full mt-1 gap-1.5 text-xs h-8 text-emerald-400 hover:bg-emerald-500/10"
+              className="w-full mt-1 gap-1.5 text-xs h-8 text-primary hover:bg-primary/10"
               onClick={() => {
                 setOpen(false);
                 // Defer to let this dialog close before opening the full overlay.
@@ -241,25 +241,25 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
             <SectionLabel>Consejos rápidos</SectionLabel>
             <ul className="space-y-2 text-sm text-foreground/80">
               <li className="flex gap-2">
-                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" />
+                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
                 <span>
                   Usa <Kbd>⌘K</Kbd> para buscar cualquier cosa al instante.
                 </span>
               </li>
               <li className="flex gap-2">
-                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" />
+                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
                 <span>
                   Click en una habitación para ver detalles y reservas.
                 </span>
               </li>
               <li className="flex gap-2">
-                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" />
+                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
                 <span>
                   Las notificaciones muestran eventos importantes en tiempo real.
                 </span>
               </li>
               <li className="flex gap-2">
-                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" />
+                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
                 <span>
                   Cambia entre modo claro/oscuro desde el botón de tema.
                 </span>
@@ -273,7 +273,7 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={handleContactSupport}
-                className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white gap-2 flex-1"
+                className="bg-primary hover:bg-primary/90 text-white gap-2 flex-1"
               >
                 <LifeBuoy className="w-4 h-4" />
                 Contactar soporte

@@ -158,17 +158,17 @@ function modoLabel(m: ModoCobro): string {
 
 // Single uniform color for all tariff types — no per-mode differentiation
 function modoBadgeColor(_m: ModoCobro): string {
-  return 'bg-emerald-900/60 text-emerald-300 border-0';
+  return 'bg-primary/10 text-primary border-0';
 }
 
 // Uniform subtle tint for all rate cards
 function modoGradient(_m: ModoCobro): string {
-  return 'bg-emerald-950/20';
+  return 'bg-primary/5';
 }
 
 // Uniform icon circle color for all rate cards
 function modoIconCircle(_m: ModoCobro): string {
-  return 'bg-emerald-900/60 text-emerald-300';
+  return 'bg-primary/10 text-primary';
 }
 
 function crearRangoDefault(modo: ModoCobro, minPersonas: number = 1): RangoPrecio {
@@ -270,15 +270,15 @@ function WizardStepper({ current, onSelect }: { current: 1 | 2 | 3; onSelect: (s
                 onClick={() => onSelect(s.n)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
                   isActive
-                    ? 'bg-[#0F2B28] text-white shadow-sm'
+                    ? 'bg-primary text-white shadow-sm'
                     : isDone
-                      ? 'bg-emerald-900/60 text-emerald-300 hover:bg-emerald-800/40'
+                      ? 'bg-primary/10 text-primary hover:bg-primary/20'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }`}
                 aria-current={isActive ? 'step' : undefined}
               >
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                  isActive ? 'bg-white/20' : isDone ? 'bg-[#10B981] text-white' : 'bg-background'
+                  isActive ? 'bg-white/20' : isDone ? 'bg-primary text-white' : 'bg-background'
                 }`}>
                   {isDone ? <Check className="w-3 h-3" /> : s.n}
                 </span>
@@ -286,7 +286,7 @@ function WizardStepper({ current, onSelect }: { current: 1 | 2 | 3; onSelect: (s
                 <Icon className="w-3.5 h-3.5 sm:hidden" />
               </button>
               {i < steps.length - 1 && (
-                <div className={`flex-1 h-0.5 mx-1 rounded ${isDone ? 'bg-[#10B981]' : 'bg-muted'}`} />
+                <div className={`flex-1 h-0.5 mx-1 rounded ${isDone ? 'bg-primary' : 'bg-muted'}`} />
               )}
             </div>
           );
@@ -334,10 +334,10 @@ function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount
         </div>
 
         {/* Desde */}
-        <div className="mb-1.5 pb-1.5 border-b border-emerald-800/30">
+        <div className="mb-1.5 pb-1.5 border-b border-primary/20">
           <p className="text-[8px] text-muted-foreground uppercase tracking-wider">Desde</p>
           <div className="flex items-baseline gap-1">
-            <span className="text-lg font-bold text-emerald-400 tabular-nums">{formatMoney(desde)}</span>
+            <span className="text-lg font-bold text-primary tabular-nums">{formatMoney(desde)}</span>
             <span className="text-[9px] text-muted-foreground">/noche</span>
           </div>
         </div>
@@ -345,11 +345,11 @@ function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount
         {/* Rangos */}
         <div className="space-y-0.5 mb-1.5">
           {rangos.slice(0, 4).map((r, i) => (
-            <div key={i} className="flex justify-between text-[10px] px-1.5 py-0.5 rounded border-l-2 border-emerald-700/40">
+            <div key={i} className="flex justify-between text-[10px] px-1.5 py-0.5 rounded border-l-26 border-primary/30">
               <span className="text-muted-foreground font-mono">
                 {formatoRango(r)} {modo === 'porHabitacion' ? 'hab.' : modo === 'porCama' ? 'cama' : 'pers.'}
               </span>
-              <span className="font-bold text-emerald-400 tabular-nums">{formatMoney(r.precio)}</span>
+              <span className="font-bold text-primary tabular-nums">{formatMoney(r.precio)}</span>
             </div>
           ))}
           {rangos.length > 4 && (
@@ -361,17 +361,17 @@ function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount
         {(tieneAcomp || tieneNinos || tieneNoches) && (
           <div className="flex gap-1 flex-wrap mb-1.5">
             {tieneAcomp && (
-              <Badge className="bg-emerald-900/60 text-emerald-300 border-0 text-[9px] py-0 h-4">
+              <Badge className="bg-primary/10 text-primary border-0 text-[9px] py-0 h-4">
                 <Star className="w-2.5 h-2.5 mr-0.5" />Acompañante
               </Badge>
             )}
             {tieneNinos && (
-              <Badge className="bg-emerald-900/60 text-emerald-300 border-0 text-[9px] py-0 h-4">
+              <Badge className="bg-primary/10 text-primary border-0 text-[9px] py-0 h-4">
                 <Baby className="w-2.5 h-2.5 mr-0.5" />Niños
               </Badge>
             )}
             {tieneNoches && (
-              <Badge className="bg-emerald-900/60 text-emerald-300 border-0 text-[9px] py-0 h-4">
+              <Badge className="bg-primary/10 text-primary border-0 text-[9px] py-0 h-4">
                 <Zap className="w-2.5 h-2.5 mr-0.5" />Cortesía
               </Badge>
             )}
@@ -379,7 +379,7 @@ function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount
         )}
 
         {/* Stats footer */}
-        <div className="flex items-center gap-2 text-[9px] text-muted-foreground pt-1.5 border-t border-emerald-800/30">
+        <div className="flex items-center gap-2 text-[9px] text-muted-foreground pt-1.5 border-t border-primary/20">
           <span className="flex items-center gap-0.5"><Tags className="w-2.5 h-2.5" />{rangos.length}</span>
           <span className="flex items-center gap-0.5"><Sparkles className="w-2.5 h-2.5" />{promoCount}</span>
           <span className="flex items-center gap-0.5"><Info className="w-2.5 h-2.5" />{camposCount}</span>
@@ -393,7 +393,7 @@ function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount
 
 function ComparisonRow({ label, differs, children }: { label: string; differs: boolean; children: React.ReactNode }) {
   return (
-    <TableRow className={differs ? 'bg-emerald-950/20' : ''}>
+    <TableRow className={differs ? 'bg-primary/5' : ''}>
       <TableCell className="font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">{label}</TableCell>
       {children}
     </TableRow>
@@ -426,7 +426,7 @@ function ComparisonModal({ tariffs, onClose }: {
     <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2 text-xl">
-          <GitCompareArrows className="w-5 h-5 text-emerald-400" />
+          <GitCompareArrows className="w-5 h-5 text-primary" />
           Comparación de tarifas
         </DialogTitle>
         <p className="text-sm text-muted-foreground mt-1">
@@ -440,9 +440,9 @@ function ComparisonModal({ tariffs, onClose }: {
             <TableRow className="bg-muted/40">
               <TableHead className="w-40 sticky left-0 bg-muted/40 z-10">Característica</TableHead>
               {tariffs.map(({ tipo }) => (
-                <TableHead key={tipo} className="font-bold text-emerald-400 min-w-[160px]">
+                <TableHead key={tipo} className="font-bold text-primary min-w-[160px]">
                   <div className="flex items-center gap-1.5">
-                    <Crown className="w-3.5 h-3.5 text-[#10B981]" />
+                    <Crown className="w-3.5 h-3.5 text-primary" />
                     {tipo}
                   </div>
                 </TableHead>
@@ -466,7 +466,7 @@ function ComparisonModal({ tariffs, onClose }: {
             <ComparisonRow label="Precio desde" differs={priceDiffers}>
               {basePrices.map((p, i) => (
                 <TableCell key={i}>
-                  <span className="text-lg font-extrabold text-emerald-400 tabular-nums">{formatMoney(p)}</span>
+                  <span className="text-lg font-extrabold text-primary tabular-nums">{formatMoney(p)}</span>
                   <span className="text-xs text-muted-foreground ml-1">/noche</span>
                 </TableCell>
               ))}
@@ -489,7 +489,7 @@ function ComparisonModal({ tariffs, onClose }: {
                         <span className="text-muted-foreground font-mono">
                           {formatoRango(r)} {t.modoCobro === 'porHabitacion' ? 'hab.' : t.modoCobro === 'porCama' ? 'cama' : 'pers.'}
                         </span>
-                        <span className="font-bold text-emerald-400 tabular-nums">{formatMoney(r.precio)}</span>
+                        <span className="font-bold text-primary tabular-nums">{formatMoney(r.precio)}</span>
                       </div>
                     ))}
                     {(t.rangos || []).length > 5 && (
@@ -506,7 +506,7 @@ function ComparisonModal({ tariffs, onClose }: {
                 return (
                   <TableCell key={tipo}>
                     {a?.activo ? (
-                      <Badge className="bg-emerald-900/60 text-emerald-300 border-0">
+                      <Badge className="bg-primary/10 text-primary border-0">
                         <Star className="w-3 h-3 mr-0.5" />{a.etiqueta || 'Sí'}
                         {a.cantidad > 1 && ` ×${a.cantidad}`}
                       </Badge>
@@ -524,7 +524,7 @@ function ComparisonModal({ tariffs, onClose }: {
                 return (
                   <TableCell key={tipo}>
                     {n?.activo ? (
-                      <Badge className="bg-emerald-900/60 text-emerald-300 border-0">
+                      <Badge className="bg-primary/10 text-primary border-0">
                         <Baby className="w-3 h-3 mr-0.5" />{formatMoney(n.precioNino || 0)}/noche
                       </Badge>
                     ) : (
@@ -541,7 +541,7 @@ function ComparisonModal({ tariffs, onClose }: {
                 return (
                   <TableCell key={tipo}>
                     {nc?.activo ? (
-                      <Badge className="bg-emerald-900/60 text-emerald-300 border-0">
+                      <Badge className="bg-primary/10 text-primary border-0">
                         <Zap className="w-3 h-3 mr-0.5" />{describeNochesCortesia(nc.modalidad)}
                       </Badge>
                     ) : (
@@ -988,9 +988,9 @@ export default function TarifasModule() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="bg-muted/50">
-          <TabsTrigger value="tarifas" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all"><Tags className="w-4 h-4 mr-1" />Tarifas</TabsTrigger>
-          <TabsTrigger value="metodos" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all"><CreditCard className="w-4 h-4 mr-1" />Métodos de Pago</TabsTrigger>
-          <TabsTrigger value="categorias" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white transition-all"><ListChecks className="w-4 h-4 mr-1" />Categorías de Gastos</TabsTrigger>
+          <TabsTrigger value="tarifas" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all"><Tags className="w-4 h-4 mr-1" />Tarifas</TabsTrigger>
+          <TabsTrigger value="metodos" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all"><CreditCard className="w-4 h-4 mr-1" />Métodos de Pago</TabsTrigger>
+          <TabsTrigger value="categorias" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all"><ListChecks className="w-4 h-4 mr-1" />Categorías de Gastos</TabsTrigger>
         </TabsList>
 
         {/* ==================== TAB: TARIFAS ==================== */}
@@ -999,7 +999,7 @@ export default function TarifasModule() {
             <div className="flex items-center gap-3">
               <h3 className="text-lg font-semibold">Tarifas</h3>
               {selectedForCompare.length > 0 && (
-                <Badge className="bg-[#0F2B28] text-white border-0">
+                <Badge className="bg-primary text-white border-0">
                   {selectedForCompare.length} seleccionada{selectedForCompare.length !== 1 ? 's' : ''}
                 </Badge>
               )}
@@ -1010,7 +1010,7 @@ export default function TarifasModule() {
                   variant="outline"
                   size="sm"
                   onClick={selectedForCompare.length >= 2 ? openComparison : () => toast.info('Seleccioná al menos 2 tarifas para comparar.')}
-                  className="border-emerald-700/40 text-emerald-400 hover:bg-emerald-800/40 hover:text-white"
+                  className="border-primary/30 text-primary hover:bg-primary/20 hover:text-white"
                 >
                   <GitCompareArrows className="w-4 h-4 mr-1" />
                   Comparar {selectedForCompare.length > 0 && `(${selectedForCompare.length})`}
@@ -1025,7 +1025,7 @@ export default function TarifasModule() {
             </div>
           </div>
 
-          <div className="flex items-start gap-2 p-2 rounded-lg bg-emerald-950/30 border-emerald-700/40 text-emerald-300 text-sm">
+          <div className="flex items-start gap-2 p-2 rounded-lg bg-primary/5 border-primary/30 text-primary text-sm">
             <Info className="w-4 h-4 mt-0.5 shrink-0" />
             Haga clic en una tarifa para editarla. Usá las casillas para seleccionar 2-3 tarifas y compararlas. Los cambios se guardan automáticamente al confirmar.
           </div>
@@ -1051,7 +1051,7 @@ export default function TarifasModule() {
                 <Card
                   key={tipo}
                   className={`card-hover cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg border group relative overflow-hidden ${modoGradient(modo)} ${
-                    isSelected ? 'border-emerald-800 ring-2 ring-emerald-800/20' : 'border-border hover:border-emerald-700/40'
+                    isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/30'
                   }`}
                   onClick={() => openModalTarifa(tipo)}
                 >
@@ -1065,8 +1065,8 @@ export default function TarifasModule() {
                       onClick={() => toggleCompareSelection(tipo)}
                       className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
                         isSelected
-                          ? 'bg-emerald-800 border-emerald-800 text-white'
-                          : 'bg-card/80 border-border text-transparent hover:border-emerald-500'
+                          ? 'bg-primary border-primary text-white'
+                          : 'bg-card/80 border-border text-transparent hover:border-primary'
                       }`}
                       aria-label={isSelected ? 'Quitar de comparación' : 'Seleccionar para comparar'}
                       aria-pressed={isSelected}
@@ -1077,7 +1077,7 @@ export default function TarifasModule() {
 
                   {/* Shine overlay — animates in on hover */}
                   <div
-                    className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                    className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                     aria-hidden="true"
                   />
 
@@ -1149,7 +1149,7 @@ export default function TarifasModule() {
                           <CardIcon className="w-3.5 h-3.5" />
                         </div>
                         <div className="min-w-0">
-                          <h4 className="font-bold text-sm group-hover:text-emerald-400 transition-colors truncate">{tipo}</h4>
+                          <h4 className="font-bold text-sm group-hover:text-primary transition-colors truncate">{tipo}</h4>
                           <p className="text-[10px] text-muted-foreground">{modoLabel(modo)}</p>
                         </div>
                       </div>
@@ -1159,10 +1159,10 @@ export default function TarifasModule() {
                     </div>
 
                     {/* Prominent "Desde" price */}
-                    <div className="mb-1.5 pb-1.5 border-b border-emerald-800/30">
+                    <div className="mb-1.5 pb-1.5 border-b border-primary/20">
                       <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Desde</p>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-lg font-bold text-emerald-400 tabular-nums">{formatMoney(precioDesdeVal)}</span>
+                        <span className="text-lg font-bold text-primary tabular-nums">{formatMoney(precioDesdeVal)}</span>
                         <span className="text-[10px] text-muted-foreground">/noche</span>
                       </div>
                     </div>
@@ -1175,14 +1175,14 @@ export default function TarifasModule() {
                       {rangos.map((r, i) => (
                         <div
                           key={i}
-                          className={`flex justify-between items-center text-xs px-1.5 py-1 rounded-md border-l-2 border-emerald-700/40 transition-colors ${
-                            i % 2 === 1 ? 'bg-emerald-950/15' : ''
-                          } hover:bg-emerald-900/20`}
+                          className={`flex justify-between items-center text-xs px-1.5 py-1 rounded-md border-l-26 border-primary/30 transition-colors ${
+                            i % 2 === 1 ? 'bg-primary/5' : ''
+                          } hover:bg-primary/10`}
                         >
                           <span className="text-muted-foreground font-mono text-[10px]">
                             {formatoRango(r)} {modo === 'porHabitacion' ? 'hab.' : modo === 'porCama' ? 'cama' : 'pers.'}
                           </span>
-                          <span className="font-bold text-emerald-400 tabular-nums text-xs">
+                          <span className="font-bold text-primary tabular-nums text-xs">
                             {formatMoney(r.precio)}
                             {modo === 'porPersona' && <span className="text-[10px] font-normal text-muted-foreground"> c/u</span>}
                             {modo === 'porCama' && <span className="text-[10px] font-normal text-muted-foreground"> c/cama</span>}
@@ -1192,12 +1192,12 @@ export default function TarifasModule() {
                     </div>
 
                     {/* Footer: promo badges + quick stats */}
-                    <div className="mt-1.5 pt-1.5 border-t border-emerald-800/30 space-y-1">
+                    <div className="mt-1.5 pt-1.5 border-t border-primary/20 space-y-1">
                       {/* Promotion indicators with icons */}
                       {(tieneAcompanante || tieneNinos || tieneNoches) && (
                         <div className="flex gap-1 flex-wrap">
                           {tieneAcompanante && (
-                            <Badge className="bg-emerald-900/60 text-emerald-300 border-0 text-[10px] py-0 h-5" title={tarifaPromos!.acompananteSinCargo!.etiqueta || 'Acompañante sin cargo'}>
+                            <Badge className="bg-primary/10 text-primary border-0 text-[10px] py-0 h-5" title={tarifaPromos!.acompananteSinCargo!.etiqueta || 'Acompañante sin cargo'}>
                               <Star className="w-2.5 h-2.5 mr-0.5" />{tarifaPromos!.acompananteSinCargo!.etiqueta || 'Acompañante gratis'}
                               {tarifaPromos!.acompananteSinCargo!.cantidad > 1 && (
                                 <span className="ml-0.5 opacity-75">×{tarifaPromos!.acompananteSinCargo!.cantidad}</span>
@@ -1205,12 +1205,12 @@ export default function TarifasModule() {
                             </Badge>
                           )}
                           {tieneNinos && (
-                            <Badge className="bg-emerald-900/60 text-emerald-300 border-0 text-[10px] py-0 h-5">
+                            <Badge className="bg-primary/10 text-primary border-0 text-[10px] py-0 h-5">
                               <Baby className="w-2.5 h-2.5 mr-0.5" />Niños {formatMoney(tarifaPromos!.ninosDiferenciado!.precioNino || 0)}/noche
                             </Badge>
                           )}
                           {tieneNoches && (
-                            <Badge className="bg-emerald-900/60 text-emerald-300 border-0 text-[10px] py-0 h-5" title={describeNochesCortesia(tarifaPromos!.nochesCortesia!.modalidad)}>
+                            <Badge className="bg-primary/10 text-primary border-0 text-[10px] py-0 h-5" title={describeNochesCortesia(tarifaPromos!.nochesCortesia!.modalidad)}>
                               <Zap className="w-2.5 h-2.5 mr-0.5" />{describeNochesCortesia(tarifaPromos!.nochesCortesia!.modalidad)}
                             </Badge>
                           )}
@@ -1220,13 +1220,13 @@ export default function TarifasModule() {
                       {/* Quick stats: ranges, custom fields, promotions count */}
                       <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
                         <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-muted/50" title={`${rangos.length} rango(s) de precio`}>
-                          <Tags className="w-2.5 h-2.5 text-emerald-400/60" />{rangos.length} rango{rangos.length !== 1 ? 's' : ''}
+                          <Tags className="w-2.5 h-2.5 text-primary/60" />{rangos.length} rango{rangos.length !== 1 ? 's' : ''}
                         </span>
                         <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-muted/50" title={`${promoCount} promoción(es) activa(s)`}>
-                          <Sparkles className={`w-2.5 h-2.5 ${promoCount > 0 ? 'text-[#10B981]' : 'text-muted-foreground/60'}`} />{promoCount} promo{promoCount !== 1 ? 's' : ''}
+                          <Sparkles className={`w-2.5 h-2.5 ${promoCount > 0 ? 'text-primary' : 'text-muted-foreground/60'}`} />{promoCount} promo{promoCount !== 1 ? 's' : ''}
                         </span>
                         <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-muted/50" title={`${campos} campo(s) personalizado(s)`}>
-                          <Info className="w-2.5 h-2.5 text-emerald-400/60" />{campos} campo{campos !== 1 ? 's' : ''}
+                          <Info className="w-2.5 h-2.5 text-primary/60" />{campos} campo{campos !== 1 ? 's' : ''}
                         </span>
                       </div>
                     </div>
@@ -1281,7 +1281,7 @@ export default function TarifasModule() {
                   <TableRow key={m.id}>
                     <TableCell className="font-medium">{m.nombre}</TableCell>
                     <TableCell><Badge variant="outline">{m.tipo}</Badge></TableCell>
-                    <TableCell className="hidden sm:table-cell">{m.recargo ? <Badge className="bg-emerald-900/60 text-emerald-300 border-0">Sí</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{m.recargo ? <Badge className="bg-primary/10 text-primary border-0">Sí</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
                     <TableCell className="text-xs hidden md:table-cell">
                       {m.recargo && m.cuotas.length > 0
                         ? m.cuotas.map(c => `${c.cantidad} ctas (${c.porcentaje}%)`).join(', ')
@@ -1354,7 +1354,7 @@ export default function TarifasModule() {
         <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
-              {editandoTarifa ? <><Pencil className="w-5 h-5" />Editar - {editandoTarifa}</> : <><Sparkles className="w-5 h-5 text-[#10B981]" />Nueva Tarifa</>}
+              {editandoTarifa ? <><Pencil className="w-5 h-5" />Editar - {editandoTarifa}</> : <><Sparkles className="w-5 h-5 text-primary" />Nueva Tarifa</>}
             </DialogTitle>
           </DialogHeader>
 
@@ -1376,7 +1376,7 @@ export default function TarifasModule() {
                       autoFocus
                     />
                     {tarifaForm.nombre.trim().length === 0 && (
-                      <p className="text-[11px] text-emerald-400 flex items-center gap-1">
+                      <p className="text-[11px] text-primary flex items-center gap-1">
                         <Info className="w-3 h-3" />El nombre es obligatorio
                       </p>
                     )}
@@ -1395,8 +1395,8 @@ export default function TarifasModule() {
                             onClick={() => handleModoCobroChange(opt.value)}
                             className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all text-center ${
                               selected
-                                ? 'border-[#0F2B28] bg-emerald-900/60 text-emerald-400 shadow-sm'
-                                : 'border-border hover:border-emerald-700/40 text-muted-foreground'
+                                ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                                : 'border-border hover:border-primary/30 text-muted-foreground'
                             }`}
                           >
                             <Icon className="w-5 h-5" />
@@ -1405,7 +1405,7 @@ export default function TarifasModule() {
                         );
                       })}
                     </div>
-                    <div className="flex items-start gap-2 p-2 rounded-lg bg-emerald-950/30 border border-emerald-700/40 text-emerald-300">
+                    <div className="flex items-start gap-2 p-2 rounded-lg bg-primary/5 border border-primary/30 text-primary">
                       <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                       <p className="text-[11px]">{MODO_OPTIONS.find(o => o.value === tarifaForm.modoCobro)?.description}</p>
                     </div>
@@ -1436,9 +1436,9 @@ export default function TarifasModule() {
                             const heightPct = Math.max((r.precio / max) * 100, 8);
                             return (
                               <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
-                                <span className="text-[10px] font-bold text-emerald-400 tabular-nums">{formatMoney(r.precio)}</span>
+                                <span className="text-[10px] font-bold text-primary tabular-nums">{formatMoney(r.precio)}</span>
                                 <div
-                                  className="w-full rounded-t bg-gradient-to-t from-emerald-800 to-emerald-500 transition-all duration-300"
+                                  className="w-full rounded-t bg-gradient-to-t from-primary to-primary transition-all duration-300"
                                   style={{ height: `${heightPct}%` }}
                                   title={`${formatoRango(r)} pers. — ${formatMoney(r.precio)}`}
                                 />
@@ -1469,7 +1469,7 @@ export default function TarifasModule() {
                       </Button>
                     )}
                     {tarifaForm.rangos.length === 0 && (
-                      <p className="text-[11px] text-emerald-400 flex items-center gap-1 mt-2">
+                      <p className="text-[11px] text-primary flex items-center gap-1 mt-2">
                         <Info className="w-3 h-3" />Agregá al menos un rango de precios
                       </p>
                     )}
@@ -1481,7 +1481,7 @@ export default function TarifasModule() {
               {wizardStep === 3 && (
                 <div className="space-y-5 animate-fade-in">
                   <div className="space-y-5 border rounded-xl p-4 bg-muted/20">
-                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-[#10B981]" />Promociones</h3>
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-primary" />Promociones</h3>
 
                     {/* 1. Acompañante sin cargo */}
                     <div className="space-y-2">
@@ -1498,11 +1498,11 @@ export default function TarifasModule() {
                           }}
                         />
                         <Label htmlFor="acompanante-check" className="text-sm font-medium flex items-center gap-1.5">
-                          <Star className="w-3.5 h-3.5 text-[#10B981]" />Acompañante sin cargo
+                          <Star className="w-3.5 h-3.5 text-primary" />Acompañante sin cargo
                         </Label>
                       </div>
                       {promos?.acompananteSinCargo?.activo && (
-                        <div className="ml-6 space-y-2 border-l-2 border-emerald-700/40 pl-3">
+                        <div className="ml-6 space-y-2 border-l-26 border-primary/30 pl-3">
                           <div className="space-y-1.5">
                             <Label className="text-xs">Etiqueta (nombre del beneficio)</Label>
                             <Input
@@ -1580,11 +1580,11 @@ export default function TarifasModule() {
                           }}
                         />
                         <Label htmlFor="ninos-check" className="text-sm font-medium flex items-center gap-1.5">
-                          <Baby className="w-3.5 h-3.5 text-emerald-300" />Niños con precio diferenciado
+                          <Baby className="w-3.5 h-3.5 text-primary" />Niños con precio diferenciado
                         </Label>
                       </div>
                       {promos?.ninosDiferenciado?.activo && (
-                        <div className="ml-6 space-y-2 border-l-2 border-emerald-700/40 pl-3">
+                        <div className="ml-6 space-y-2 border-l-26 border-primary/30 pl-3">
                           <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1.5">
                               <Label className="text-xs">Precio por niño / noche</Label>
@@ -1629,11 +1629,11 @@ export default function TarifasModule() {
                           }}
                         />
                         <Label htmlFor="noches-check" className="text-sm font-medium flex items-center gap-1.5">
-                          <Zap className="w-3.5 h-3.5 text-emerald-300" />Noches de cortesía
+                          <Zap className="w-3.5 h-3.5 text-primary" />Noches de cortesía
                         </Label>
                       </div>
                       {promos?.nochesCortesia?.activo && (
-                        <div className="ml-6 space-y-2 border-l-2 border-emerald-700/40 pl-3">
+                        <div className="ml-6 space-y-2 border-l-26 border-primary/30 pl-3">
                           <Select
                             value={promos.nochesCortesia.modalidad.tipo}
                             onValueChange={v => {
@@ -1720,7 +1720,7 @@ export default function TarifasModule() {
                     {/* Campos adicionales */}
                     <div>
                       <p className="text-sm font-medium mb-1 flex items-center gap-1.5">
-                        <Info className="w-3.5 h-3.5 text-emerald-400/60" />Campos adicionales
+                        <Info className="w-3.5 h-3.5 text-primary/60" />Campos adicionales
                       </p>
                       <p className="text-xs text-muted-foreground mb-2">Se pedirán al elegir esta tarifa en la reserva.</p>
                       <div className="space-y-2">
@@ -1752,7 +1752,7 @@ export default function TarifasModule() {
             {/* ═══ RIGHT: Live preview ═══ */}
             <div className="lg:sticky lg:top-0 lg:self-start">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#10B981]" />Vista previa en vivo
+                <Sparkles className="w-3.5 h-3.5 text-primary" />Vista previa en vivo
               </p>
               <TariffMiniPreview
                 nombre={tarifaForm.nombre}

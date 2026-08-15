@@ -91,7 +91,7 @@ interface PlanOption {
 function subEstadoBadge(estado: string) {
   const map: Record<string, string> = {
     trial: 'bg-amber-900/30 text-amber-400 border-amber-800',
-    activa: 'bg-emerald-900/30 text-emerald-400 border-emerald-800',
+    activa: 'bg-emerald-900/30 text-emerald-400 border-primary',
     vencida: 'bg-red-900/30 text-red-400 border-red-800',
     cancelada: 'bg-gray-900/30 text-gray-400 border-gray-800',
     suspensa: 'bg-orange-900/30 text-orange-400 border-orange-800',

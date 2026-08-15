@@ -120,7 +120,7 @@ interface CategoryConfig {
 const CATEGORY_CONFIG: Record<MovementCategory, CategoryConfig> = {
   'Gastos':           { label: 'Gastos',          color: '#EF4444', badgeBg: 'bg-red-900/60', badgeText: 'text-red-300', icon: ShoppingCart },
   'Mantenimiento':    { label: 'Mantenimiento',   color: '#F59E0B', badgeBg: 'bg-amber-900/60', badgeText: 'text-amber-300', icon: Wrench },
-  'Ingresos varios':  { label: 'Ingresos varios', color: '#059669', badgeBg: 'bg-emerald-900/60', badgeText: 'text-emerald-300', icon: ArrowUpRight },
+  'Ingresos varios':  { label: 'Ingresos varios', color: '#059669', badgeBg: 'bg-primary/20', badgeText: 'text-primary', icon: ArrowUpRight },
   'Retiros':          { label: 'Retiros',         color: '#8B5CF6', badgeBg: 'bg-violet-900/40', badgeText: 'text-violet-300', icon: PiggyBank },
   'Otros':            { label: 'Otros',           color: '#64748B', badgeBg: 'bg-slate-800/40', badgeText: 'text-slate-400', icon: Tag },
 };
@@ -256,16 +256,16 @@ function CashFlowTimeline({
       <div className="relative pb-4 animate-slide-up" style={{ animationDelay: '0ms' }}>
         {/* Dot */}
         <div className="absolute -left-6 top-0 flex flex-col items-center">
-          <div className="w-3 h-3 rounded-full bg-[#0F2B28] ring-2 ring-white shadow-sm z-10" />
-          <div className="w-0.5 flex-1 bg-[#0F2B28]/20 min-h-[16px]" />
+          <div className="w-3 h-3 rounded-full bg-primary ring-2 ring-white shadow-sm z-10" />
+          <div className="w-0.5 flex-1 bg-primary/20 min-h-[16px]" />
         </div>
-        <div className="bg-emerald-950/20 border border-[#059669]/20 rounded-md px-3 py-2">
+        <div className="bg-primary/5 border border-primary/20 rounded-md px-3 py-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
-              <Wallet className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-xs font-semibold text-emerald-400">Apertura</span>
+              <Wallet className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-semibold text-primary">Apertura</span>
             </div>
-            <span className="text-xs font-bold tabular-nums text-emerald-400">{formatMoney(aperturaMonto)}</span>
+            <span className="text-xs font-bold tabular-nums text-primary">{formatMoney(aperturaMonto)}</span>
           </div>
         </div>
       </div>
@@ -288,7 +288,7 @@ function CashFlowTimeline({
             <div className="absolute -left-6 top-0 flex flex-col items-center h-full">
               <div className={cn(
                 'w-3 h-3 rounded-full ring-2 ring-white shadow-sm z-10',
-                isIngreso ? 'bg-[#059669]' : 'bg-[#EF4444]'
+                isIngreso ? 'bg-primary' : 'bg-[#EF4444]'
               )} />
               {idx < entries.length - 1 && (
                 <div className="w-0.5 flex-1 bg-muted-foreground/15 min-h-[16px]" />
@@ -299,26 +299,26 @@ function CashFlowTimeline({
             <div className={cn(
               'border rounded-md px-3 py-2.5 space-y-1.5 transition-all hover:shadow-sm',
               isIngreso
-                ? 'border-[#059669]/20 bg-emerald-950/10 hover:border-[#059669]/40'
+                ? 'border-primary/20 bg-primary/5 hover:border-primary/40'
                 : 'border-[#EF4444]/20 bg-red-900/20 hover:border-[#EF4444]/40'
             )}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className={cn(
                     'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
-                    isIngreso ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300'
+                    isIngreso ? 'bg-primary/20 text-primary' : 'bg-red-900/60 text-red-300'
                   )}>
                     {isIngreso ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                   </span>
                   <div className="min-w-0">
-                    <span className={cn('text-[11px] font-semibold', isIngreso ? 'text-emerald-300' : 'text-red-300')}>
+                    <span className={cn('text-[11px] font-semibold', isIngreso ? 'text-primary' : 'text-red-300')}>
                       {isIngreso ? 'Ingreso' : 'Egreso'}
                     </span>
                     <p className="text-[10px] text-muted-foreground truncate leading-tight">{entry.descripcion}</p>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className={cn('text-xs font-bold tabular-nums', isIngreso ? 'text-emerald-300' : 'text-red-300')}>
+                  <p className={cn('text-xs font-bold tabular-nums', isIngreso ? 'text-primary' : 'text-red-300')}>
                     {isIngreso ? '+' : '-'}{formatMoney(entry.monto)}
                   </p>
                 </div>
@@ -345,15 +345,15 @@ function CashFlowTimeline({
       {entries.length > 0 && (
         <div className="relative animate-slide-up" style={{ animationDelay: `${(entries.length + 1) * 80}ms` }}>
           <div className="absolute -left-6 top-0 flex flex-col items-center">
-            <div className="w-3 h-3 rounded-full bg-[#0F2B28] ring-2 ring-white shadow-sm z-10" />
+            <div className="w-3 h-3 rounded-full bg-primary ring-2 ring-white shadow-sm z-10" />
           </div>
-          <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-md px-3 py-2">
+          <div className="bg-primary/5 border border-primary/30 rounded-md px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
-                <CircleDot className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-xs font-semibold text-emerald-400">Saldo actual</span>
+                <CircleDot className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-semibold text-primary">Saldo actual</span>
               </div>
-              <span className="text-sm font-bold tabular-nums text-emerald-400">{formatMoney(entries[entries.length - 1].runningBalance)}</span>
+              <span className="text-sm font-bold tabular-nums text-primary">{formatMoney(entries[entries.length - 1].runningBalance)}</span>
             </div>
           </div>
         </div>
@@ -388,13 +388,13 @@ function DenominationBreakdownPanel({
       {/* Bills section */}
       <div>
         <div className="flex items-center gap-1.5 mb-1.5">
-          <Banknote className="w-3.5 h-3.5 text-emerald-400" />
+          <Banknote className="w-3.5 h-3.5 text-primary" />
           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Billetes</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {bills.map(d => (
             <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-green-950/15 transition-colors">
-              <Banknote className="w-3.5 h-3.5 text-[#059669] shrink-0" />
+              <Banknote className="w-3.5 h-3.5 text-primary shrink-0" />
               <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
               <Input
                 type="number"
@@ -437,7 +437,7 @@ function DenominationBreakdownPanel({
       <div className="space-y-1.5 pt-2 border-t">
         <div className="flex justify-between items-center p-2 rounded-md bg-muted/30">
           <span className="text-xs font-medium">Total contado</span>
-          <span className="text-sm font-bold tabular-nums text-emerald-400">{formatMoney(totalContado)}</span>
+          <span className="text-sm font-bold tabular-nums text-primary">{formatMoney(totalContado)}</span>
         </div>
         <div className="flex justify-between items-center p-2 rounded-md bg-muted/30">
           <span className="text-xs font-medium">Total esperado (sistema)</span>
@@ -446,20 +446,20 @@ function DenominationBreakdownPanel({
         <div className={cn(
           'flex justify-between items-center p-2 rounded-md border',
           diferencia === 0
-            ? 'bg-emerald-900/60 border-[#059669]/30'
+            ? 'bg-primary/20 border-primary/30'
             : diferencia > 0
             ? 'bg-amber-900/60 border-[#F59E0B]/30'
             : 'bg-red-900/60 border-[#EF4444]/30'
         )}>
           <span className="text-xs font-medium flex items-center gap-1.5">
             {diferencia === 0
-              ? <Check className="w-3.5 h-3.5 text-emerald-300" />
+              ? <Check className="w-3.5 h-3.5 text-primary" />
               : <AlertTriangle className="w-3.5 h-3.5" />}
             Diferencia
           </span>
           <span className={cn(
             'text-sm font-bold tabular-nums',
-            diferencia === 0 ? 'text-emerald-300' : diferencia > 0 ? 'text-amber-300' : 'text-red-300'
+            diferencia === 0 ? 'text-primary' : diferencia > 0 ? 'text-amber-300' : 'text-red-300'
           )}>
             {diferencia === 0 ? '✓ Cuadra' : `${diferencia > 0 ? '+' : ''}${formatMoney(diferencia)}`}
           </span>
@@ -891,7 +891,7 @@ export default function CajaModule() {
     <div className="space-y-6">
 
       <ModuleHeader icon={Wallet} title="Caja" subtitle="Controla los movimientos de dinero del dia">
-        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors" onClick={() => {
           const headers = ['Fecha', 'Tipo', 'Monto', 'Descripción', 'Método'];
           const rows = movimientos.map(m => [
             m.fecha || '',
@@ -910,31 +910,31 @@ export default function CajaModule() {
       {caja.estado === 'cerrada' ? (
         /* ═══════ CAJA CERRADA — inviting empty state + daily summary ═══════ */
         <div className="space-y-4">
-          <Card className="relative overflow-hidden border-2 border-dashed border-emerald-500/30 celebrate-bg">
+          <Card className="relative overflow-hidden border-2 border-dashed border-primary/30 celebrate-bg">
             {/* Subtle radial accent in the background */}
-            <div className="pointer-events-none absolute inset-0 bg-emerald-950/15" />
+            <div className="pointer-events-none absolute inset-0 bg-primary/5" />
             <CardContent className="relative text-center py-14 px-6 space-y-5 max-w-md mx-auto">
               <div className="relative inline-flex">
                 {/* Pulsing halo around the icon */}
-                <span className="absolute inset-0 rounded-full bg-[#059669]/20 animate-ping" />
-                <div className="relative w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center shadow-lg ring-4 ring-emerald-500/30">
-                  <Unlock className="w-9 h-9 text-emerald-400" />
+                <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+                <div className="relative w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center shadow-lg ring-4 ring-primary/30">
+                  <Unlock className="w-9 h-9 text-primary" />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <h3 className="text-2xl font-bold text-emerald-400">Caja cerrada</h3>
+                <h3 className="text-2xl font-bold text-primary">Caja cerrada</h3>
                 <p className="text-sm text-muted-foreground">Abrí un nuevo turno para comenzar a registrar movimientos del día.</p>
               </div>
               {!showApertura ? (
-                <Button size="lg" onClick={() => setShowApertura(true)} className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
+                <Button size="lg" onClick={() => setShowApertura(true)} className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
                   <Unlock className="w-4 h-4 mr-2" />Abrir caja
                 </Button>
               ) : (
-                <div className="max-w-xs mx-auto space-y-2 rounded-lg border border-emerald-800/20 bg-card backdrop-blur p-4 shadow-sm">
+                <div className="max-w-xs mx-auto space-y-2 rounded-lg border border-primary/20 bg-card backdrop-blur p-4 shadow-sm">
                   <Label className="text-sm text-muted-foreground">Monto inicial en efectivo</Label>
                   <Input type="number" placeholder="0.00" step="0.01" min="0" value={montoInicial} onChange={e => setMontoInicial(e.target.value)} autoFocus />
                   <div className="flex gap-2">
-                    <Button onClick={handleAbrir} className="flex-1 bg-[#059669] hover:bg-[#047857] text-white" disabled={loadingAbrir}>
+                    <Button onClick={handleAbrir} className="flex-1 bg-primary hover:bg-primary/80 text-white" disabled={loadingAbrir}>
                       {loadingAbrir ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Unlock className="w-4 h-4 mr-1" />}Confirmar apertura
                     </Button>
                     <Button variant="secondary" onClick={() => setShowApertura(false)} disabled={loadingAbrir}>Cancelar</Button>
@@ -975,10 +975,10 @@ export default function CajaModule() {
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="relative flex h-2.5 w-2.5 shrink-0">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4ADE80] opacity-75" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#059669]" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
                   </span>
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-sm text-emerald-400 truncate">Caja abierta</h3>
+                    <h3 className="font-semibold text-sm text-primary truncate">Caja abierta</h3>
                     {caja.apertura && (
                       <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1 truncate">
                         <Clock className="w-2.5 h-2.5 shrink-0" />
@@ -995,19 +995,19 @@ export default function CajaModule() {
                 </Dialog>
               </div>
               {/* Balance display — animated + trend */}
-              <div className="rounded-lg border-2 border-[#059669]/30 bg-green-950/20 p-3">
+              <div className="rounded-lg border-2 border-primary/30 bg-green-950/20 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo actual</p>
                     <AnimatedNumber
                       value={saldo}
-                      className="text-xl font-bold text-emerald-400 block"
+                      className="text-xl font-bold text-primary block"
                     />
                   </div>
                   {caja.apertura && (
                     <div className={cn(
                       'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold shadow-sm',
-                      tendencia >= 0 ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300'
+                      tendencia >= 0 ? 'bg-primary/20 text-primary' : 'bg-red-900/60 text-red-300'
                     )}>
                       {tendencia >= 0
                         ? <ArrowUpRight className="w-3 h-3" />
@@ -1030,7 +1030,7 @@ export default function CajaModule() {
               </div>
               {/* Action buttons */}
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="h-9 text-sm border-[#059669]/30 text-emerald-300 hover:bg-emerald-900/30 hover:text-emerald-300" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+                <Button variant="outline" className="h-9 text-sm border-primary/30 text-primary hover:bg-primary/20 hover:text-primary" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
                 <Button variant="outline" className="h-9 text-sm border-red-700/40 text-red-300 hover:bg-red-900/30 hover:text-red-300" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
               </div>
               {/* Movement form inline */}
@@ -1088,7 +1088,7 @@ export default function CajaModule() {
                       className={cn(
                         'px-2.5 py-1 text-[11px] font-medium transition-colors',
                         filterTipo === val
-                          ? 'bg-[#0F2B28] text-white'
+                          ? 'bg-primary text-white'
                           : 'bg-background text-muted-foreground hover:bg-muted/50'
                       )}
                       onClick={() => setFilterTipo(val)}
@@ -1166,7 +1166,7 @@ export default function CajaModule() {
           <Card className="lg:hidden overflow-hidden">
             <CardHeader className="bg-teal-950/10 pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Timer className="w-4 h-4 text-emerald-400" />
+                <Timer className="w-4 h-4 text-primary" />
                 Línea de tiempo
               </CardTitle>
             </CardHeader>
@@ -1188,13 +1188,13 @@ export default function CajaModule() {
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="relative flex h-3 w-3 shrink-0">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4ADE80] opacity-75" />
-                      <span className="relative inline-flex h-3 w-3 rounded-full bg-[#059669]" />
+                      <span className="relative inline-flex h-3 w-3 rounded-full bg-primary" />
                     </span>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-emerald-400 flex items-center gap-2">
+                      <h3 className="font-semibold text-primary flex items-center gap-2">
                         Caja abierta
-                        <Badge className="bg-emerald-900/60 text-emerald-300 shadow-sm font-semibold">
-                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#059669] mr-1 animate-pulse-subtle" />
+                        <Badge className="bg-primary/20 text-primary shadow-sm font-semibold">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary mr-1 animate-pulse-subtle" />
                           Activa
                         </Badge>
                       </h3>
@@ -1218,17 +1218,17 @@ export default function CajaModule() {
               </Card>
 
               {/* Balance display — large animated number + trend indicator */}
-              <Card className="bg-green-950/20 border-2 border-[#059669]/30 card-hover">
+              <Card className="bg-green-950/20 border-2 border-primary/30 card-hover">
                 <CardContent className="py-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center shadow-sm">
-                      <Wallet className="w-6 h-6 text-emerald-400" />
+                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shadow-sm">
+                      <Wallet className="w-6 h-6 text-primary" />
                     </div>
                     <div>
                       <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Saldo actual (efectivo)</p>
                       <AnimatedNumber
                         value={saldo}
-                        className="text-3xl font-bold text-emerald-400 tabular-nums block leading-tight"
+                        className="text-3xl font-bold text-primary tabular-nums block leading-tight"
                       />
                     </div>
                   </div>
@@ -1237,7 +1237,7 @@ export default function CajaModule() {
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">vs. apertura</p>
                       <div className={cn(
                         'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm',
-                        tendencia >= 0 ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300'
+                        tendencia >= 0 ? 'bg-primary/20 text-primary' : 'bg-red-900/60 text-red-300'
                       )}>
                         {tendencia >= 0
                           ? <TrendingUp className="w-3.5 h-3.5" />
@@ -1255,7 +1255,7 @@ export default function CajaModule() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-emerald-400" />
+                      <Activity className="w-4 h-4 text-primary" />
                       Movimientos del turno
                       {filteredMovimientos.length !== movimientos.length && (
                         <Badge variant="secondary" className="text-[10px] shadow-sm">
@@ -1286,7 +1286,7 @@ export default function CajaModule() {
                           className={cn(
                             'px-3 py-1 text-xs font-medium transition-colors',
                             filterTipo === val
-                              ? 'bg-[#0F2B28] text-white'
+                              ? 'bg-primary text-white'
                               : 'bg-background text-muted-foreground hover:bg-muted/50'
                           )}
                           onClick={() => setFilterTipo(val)}
@@ -1362,7 +1362,7 @@ export default function CajaModule() {
                                 className={cn(
                                   'group transition-colors border-l-2',
                                   m.tipo === 'ingreso'
-                                    ? 'border-l-[#059669] hover:bg-emerald-900/30'
+                                    ? 'border-l-primary hover:bg-primary/10'
                                     : 'border-l-[#EF4444] hover:bg-red-900/30/40'
                                 )}
                               >
@@ -1376,7 +1376,7 @@ export default function CajaModule() {
                                   <div className="flex items-center gap-2">
                                     <span className={cn(
                                       'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
-                                      m.tipo === 'ingreso' ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300'
+                                      m.tipo === 'ingreso' ? 'bg-primary/20 text-primary' : 'bg-red-900/60 text-red-300'
                                     )}>
                                       {m.tipo === 'ingreso'
                                         ? <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1384,7 +1384,7 @@ export default function CajaModule() {
                                     </span>
                                     <span className={cn(
                                       'text-xs font-semibold',
-                                      m.tipo === 'ingreso' ? 'text-emerald-300' : 'text-red-300'
+                                      m.tipo === 'ingreso' ? 'text-primary' : 'text-red-300'
                                     )}>
                                       {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
                                     </span>
@@ -1397,7 +1397,7 @@ export default function CajaModule() {
                                 </TableCell>
                                 <TableCell className={cn(
                                   'font-bold tabular-nums',
-                                  m.tipo === 'ingreso' ? 'text-emerald-300' : 'text-red-300'
+                                  m.tipo === 'ingreso' ? 'text-primary' : 'text-red-300'
                                 )}>
                                   {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
                                 </TableCell>
@@ -1460,7 +1460,7 @@ export default function CajaModule() {
             {/* Info Panel */}
             <div className="space-y-4">
               <Card className="overflow-hidden">
-                <CardHeader className="bg-teal-950/10 pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-emerald-400" />Información del turno</CardTitle></CardHeader>
+                <CardHeader className="bg-teal-950/10 pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary" />Información del turno</CardTitle></CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   {caja.apertura && (
                     <>
@@ -1473,14 +1473,14 @@ export default function CajaModule() {
                     <span className="text-muted-foreground">Saldo actual:</span>
                     <AnimatedNumber
                       value={saldo}
-                      className="font-bold text-lg text-emerald-400 tabular-nums"
+                      className="font-bold text-lg text-primary tabular-nums"
                     />
                   </div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Movimientos:</span><span className="font-medium">{movimientos.length}</span></div>
 
                   {/* Action buttons */}
                   <div className="grid grid-cols-2 gap-2 pt-2">
-                    <Button variant="outline" className="w-full border-[#059669]/30 text-emerald-300 hover:bg-emerald-900/30 hover:text-emerald-300" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+                    <Button variant="outline" className="w-full border-primary/30 text-primary hover:bg-primary/20 hover:text-primary" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
                     <Button variant="outline" className="w-full border-red-700/40 text-red-300 hover:bg-red-900/30 hover:text-red-300" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
                   </div>
 
@@ -1515,7 +1515,7 @@ export default function CajaModule() {
               <Card className="overflow-hidden">
                 <CardHeader className="bg-teal-950/10 pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Timer className="w-4 h-4 text-emerald-400" />
+                    <Timer className="w-4 h-4 text-primary" />
                     Línea de tiempo
                   </CardTitle>
                 </CardHeader>
@@ -1643,15 +1643,15 @@ function ClosingWizard(props: ClosingWizardProps) {
                 onClick={() => props.setStep(s.n)}
                 className={cn(
                   'flex-1 flex flex-col items-center gap-1 py-1.5 px-1 rounded-md transition-all',
-                  isActive && 'bg-[#0F2B28] text-white shadow-sm',
-                  isDone && 'text-[#059669]',
+                  isActive && 'bg-primary text-white shadow-sm',
+                  isDone && 'text-primary',
                   !isActive && !isDone && 'text-muted-foreground hover:bg-muted/40'
                 )}
               >
                 <span className={cn(
                   'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border',
-                  isActive && 'bg-white text-emerald-400 border-white',
-                  isDone && 'bg-emerald-900/60 text-emerald-300 border-[#059669]',
+                  isActive && 'bg-white text-primary border-white',
+                  isDone && 'bg-primary/20 text-primary border-primary',
                   !isActive && !isDone && 'border-muted-foreground/40'
                 )}>
                   {isDone ? <Check className="w-3 h-3" /> : <SIcon className="w-3 h-3" />}
@@ -1659,7 +1659,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                 <span className="text-[10px] font-medium leading-tight text-center">{s.label}</span>
               </button>
               {idx < steps.length - 1 && (
-                <div className={cn('h-0.5 w-4 rounded', props.step > s.n ? 'bg-[#059669]' : 'bg-muted-foreground/20')} />
+                <div className={cn('h-0.5 w-4 rounded', props.step > s.n ? 'bg-primary' : 'bg-muted-foreground/20')} />
               )}
             </div>
           );
@@ -1671,10 +1671,10 @@ function ClosingWizard(props: ClosingWizardProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="font-semibold text-sm flex items-center gap-2"><Banknote className="w-4 h-4 text-emerald-400" />Conteo de denominaciones</h4>
+              <h4 className="font-semibold text-sm flex items-center gap-2"><Banknote className="w-4 h-4 text-primary" />Conteo de denominaciones</h4>
               <p className="text-xs text-muted-foreground mt-0.5">Ingresá la cantidad de cada billete y moneda.</p>
             </div>
-            <Badge className="bg-emerald-900/60 text-emerald-300 shadow-sm">Esperado: {fmt(props.saldoEsperadoEfectivo)}</Badge>
+            <Badge className="bg-primary/20 text-primary shadow-sm">Esperado: {fmt(props.saldoEsperadoEfectivo)}</Badge>
           </div>
           <DenominationBreakdownPanel
             denominaciones={DENOMINACIONES}
@@ -1689,7 +1689,7 @@ function ClosingWizard(props: ClosingWizardProps) {
       {props.step === 2 && (
         <div className="space-y-3">
           <div>
-            <h4 className="font-semibold text-sm flex items-center gap-2"><CreditCard className="w-4 h-4 text-emerald-400" />Otros métodos de pago</h4>
+            <h4 className="font-semibold text-sm flex items-center gap-2"><CreditCard className="w-4 h-4 text-primary" />Otros métodos de pago</h4>
             <p className="text-xs text-muted-foreground mt-0.5">Verificá los totales calculados por el sistema. Podés ajustarlos si es necesario.</p>
           </div>
           {Object.keys(props.resumenOtros).length === 0 ? (
@@ -1713,7 +1713,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                 return (
                   <div key={metodo} className="border rounded-md p-2.5 space-y-1.5">
                     <div className="flex items-center gap-2">
-                      <MetodoIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <MetodoIcon className="w-4 h-4 text-primary shrink-0" />
                       <span className="text-sm font-medium flex-1">{metodo}</span>
                       <Badge variant="outline" className="text-[10px]">Sistema: {fmt(systemTotal)}</Badge>
                     </div>
@@ -1728,7 +1728,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                       />
                       <span className={cn(
                         'text-xs font-semibold w-20 text-right tabular-nums',
-                        diff === 0 ? 'text-emerald-300' : diff > 0 ? 'text-amber-300' : 'text-red-300'
+                        diff === 0 ? 'text-primary' : diff > 0 ? 'text-amber-300' : 'text-red-300'
                       )}>
                         {diff === 0 ? '✓' : diff > 0 ? '+' : ''}{fmt(diff)}
                       </span>
@@ -1736,8 +1736,8 @@ function ClosingWizard(props: ClosingWizardProps) {
                   </div>
                 );
               })}
-              <div className="flex justify-between font-bold pt-2 border-t bg-emerald-950/15 rounded-md p-2 px-3">
-                <span>Total otros métodos</span><span className="text-emerald-400 tabular-nums">{fmt(props.otrosContadosTotal)}</span>
+              <div className="flex justify-between font-bold pt-2 border-t bg-primary/5 rounded-md p-2 px-3">
+                <span>Total otros métodos</span><span className="text-primary tabular-nums">{fmt(props.otrosContadosTotal)}</span>
               </div>
             </div>
           )}
@@ -1748,7 +1748,7 @@ function ClosingWizard(props: ClosingWizardProps) {
       {props.step === 3 && (
         <div className="space-y-3">
           <div>
-            <h4 className="font-semibold text-sm flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-emerald-400" />Comparación vs sistema</h4>
+            <h4 className="font-semibold text-sm flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-primary" />Comparación vs sistema</h4>
             <p className="text-xs text-muted-foreground mt-0.5">Revisá las diferencias antes de cerrar el turno.</p>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -1773,13 +1773,13 @@ function ClosingWizard(props: ClosingWizardProps) {
             <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Detalle por método</h5>
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-sm py-1 border-b border-dashed">
-                <span className="flex items-center gap-2"><Banknote className="w-3.5 h-3.5 text-[#059669]" />Efectivo</span>
+                <span className="flex items-center gap-2"><Banknote className="w-3.5 h-3.5 text-primary" />Efectivo</span>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-muted-foreground">Esp: {fmt(props.saldoEsperadoEfectivo)}</span>
                   <span className="text-xs font-semibold tabular-nums">Cont: {fmt(props.totalEfectivo)}</span>
                   <span className={cn(
                     'text-xs font-bold tabular-nums w-16 text-right',
-                    props.diferenciaEfectivo === 0 ? 'text-emerald-300' : 'text-red-300'
+                    props.diferenciaEfectivo === 0 ? 'text-primary' : 'text-red-300'
                   )}>
                     {props.diferenciaEfectivo === 0 ? '✓' : `${props.diferenciaEfectivo > 0 ? '+' : ''}${fmt(props.diferenciaEfectivo)}`}
                   </span>
@@ -1797,7 +1797,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                       <span className="text-xs font-semibold tabular-nums">Cont: {fmt(counted || 0)}</span>
                       <span className={cn(
                         'text-xs font-bold tabular-nums w-16 text-right',
-                        diff === 0 ? 'text-emerald-300' : 'text-red-300'
+                        diff === 0 ? 'text-primary' : 'text-red-300'
                       )}>
                         {diff === 0 ? '✓' : `${diff > 0 ? '+' : ''}${fmt(diff)}`}
                       </span>
@@ -1829,14 +1829,14 @@ function ClosingWizard(props: ClosingWizardProps) {
       {props.step === 4 && (
         <div className="space-y-3">
           <div>
-            <h4 className="font-semibold text-sm flex items-center gap-2"><StickyNote className="w-4 h-4 text-emerald-400" />Resumen y cierre</h4>
+            <h4 className="font-semibold text-sm flex items-center gap-2"><StickyNote className="w-4 h-4 text-primary" />Resumen y cierre</h4>
             <p className="text-xs text-muted-foreground mt-0.5">Revisá el resumen del turno antes de cerrar.</p>
           </div>
 
           {/* Day activity summary */}
           {props.daySummary && (
             <div className="border rounded-lg overflow-hidden">
-              <div className="bg-[#0F2B28] px-3 py-2">
+              <div className="bg-primary px-3 py-2">
                 <p className="text-xs font-semibold text-white flex items-center gap-1.5">
                   <Activity className="w-3.5 h-3.5" />
                   Resumen de la jornada
@@ -1844,13 +1844,13 @@ function ClosingWizard(props: ClosingWizardProps) {
               </div>
               <div className="p-3 space-y-2">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                  <div className="p-1.5 rounded-md bg-emerald-950/20 border border-[#059669]/20">
+                  <div className="p-1.5 rounded-md bg-primary/5 border border-primary/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Apertura</p>
-                    <p className="text-xs font-bold tabular-nums text-emerald-400">{fmt(props.daySummary.aperturaMonto)}</p>
+                    <p className="text-xs font-bold tabular-nums text-primary">{fmt(props.daySummary.aperturaMonto)}</p>
                   </div>
-                  <div className="p-1.5 rounded-md bg-emerald-900/60/60 border border-[#059669]/20">
+                  <div className="p-1.5 rounded-md bg-primary/10 border border-primary/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Ingresos</p>
-                    <p className="text-xs font-bold tabular-nums text-emerald-300">{fmt(props.daySummary.totalIngresos)}</p>
+                    <p className="text-xs font-bold tabular-nums text-primary">{fmt(props.daySummary.totalIngresos)}</p>
                   </div>
                   <div className="p-1.5 rounded-md bg-red-900/40 border border-[#EF4444]/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Egresos</p>
@@ -1863,7 +1863,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-dashed">
                   <span>Cajero: {props.daySummary.empleado}</span>
-                  <span>Neto: <span className={cn('font-bold', props.daySummary.totalIngresos - props.daySummary.totalEgresos >= 0 ? 'text-emerald-300' : 'text-red-300')}>{fmt(props.daySummary.totalIngresos - props.daySummary.totalEgresos)}</span></span>
+                  <span>Neto: <span className={cn('font-bold', props.daySummary.totalIngresos - props.daySummary.totalEgresos >= 0 ? 'text-primary' : 'text-red-300')}>{fmt(props.daySummary.totalIngresos - props.daySummary.totalEgresos)}</span></span>
                 </div>
               </div>
             </div>
@@ -1877,12 +1877,12 @@ function ClosingWizard(props: ClosingWizardProps) {
             </div>
             <div className={cn(
               'p-2 rounded-md',
-              props.diferenciaTotal === 0 ? 'bg-emerald-900/60' : props.diferenciaTotal > 0 ? 'bg-amber-900/60' : 'bg-red-900/60'
+              props.diferenciaTotal === 0 ? 'bg-primary/20' : props.diferenciaTotal > 0 ? 'bg-amber-900/60' : 'bg-red-900/60'
             )}>
               <p className="text-[10px] text-muted-foreground">Diferencia</p>
               <p className={cn(
                 'font-bold text-sm tabular-nums',
-                props.diferenciaTotal === 0 ? 'text-emerald-300' : props.diferenciaTotal > 0 ? 'text-amber-300' : 'text-red-300'
+                props.diferenciaTotal === 0 ? 'text-primary' : props.diferenciaTotal > 0 ? 'text-amber-300' : 'text-red-300'
               )}>
                 {props.diferenciaTotal === 0 ? '$0.00' : `${props.diferenciaTotal > 0 ? '+' : ''}${fmt(props.diferenciaTotal)}`}
               </p>
@@ -1950,7 +1950,7 @@ function ClosingWizard(props: ClosingWizardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="text-emerald-400"
+              className="text-primary"
               onClick={() => {
                 // Generate a simple receipt printout
                 const w = window.open('', '_blank', 'width=400,height=600');
@@ -1989,7 +1989,7 @@ function ClosingWizard(props: ClosingWizardProps) {
             </Button>
           )}
           {props.step < 4 ? (
-            <Button size="sm" className="bg-[#0F2B28] hover:bg-[#0F2B28]/90" onClick={() => props.setStep((props.step + 1) as 1 | 2 | 3 | 4)}>
+            <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => props.setStep((props.step + 1) as 1 | 2 | 3 | 4)}>
               Siguiente<ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
@@ -2014,8 +2014,8 @@ function ClosingWizard(props: ClosingWizardProps) {
 function ComparisonRow({ label, value, variant, showSign }: {
   label: string; value: number; variant: 'neutral' | 'success' | 'warning' | 'danger'; showSign?: boolean;
 }) {
-  const bg = variant === 'success' ? 'bg-emerald-900/60' : variant === 'warning' ? 'bg-amber-900/60' : variant === 'danger' ? 'bg-red-900/60' : 'bg-muted/50';
-  const txt = variant === 'success' ? 'text-emerald-300' : variant === 'warning' ? 'text-amber-300' : variant === 'danger' ? 'text-red-300' : 'text-foreground';
+  const bg = variant === 'success' ? 'bg-primary/20' : variant === 'warning' ? 'bg-amber-900/60' : variant === 'danger' ? 'bg-red-900/60' : 'bg-muted/50';
+  const txt = variant === 'success' ? 'text-primary' : variant === 'warning' ? 'text-amber-300' : variant === 'danger' ? 'text-red-300' : 'text-foreground';
   return (
     <div className={cn('p-2.5 rounded-md', bg)}>
       <p className="text-[10px] text-muted-foreground">{label}</p>
@@ -2048,8 +2048,8 @@ function DailySummaryCard({ summary, onViewHistorial }: {
 }) {
   const diff = summary.diferencia;
   return (
-    <Card className="overflow-hidden border-2 border-emerald-800/20">
-      <CardHeader className="bg-[#0F2B28] text-white pb-3">
+    <Card className="overflow-hidden border-2 border-primary/20">
+      <CardHeader className="bg-primary text-white pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2 text-white">
             <History className="w-4 h-4" />
@@ -2069,7 +2069,7 @@ function DailySummaryCard({ summary, onViewHistorial }: {
             label="Apertura"
             value={summary.apertura}
             icon={Unlock}
-            colorFamily="emerald"
+            colorFamily="primary"
           />
           <SummaryStat
             label="Ingresos"
@@ -2087,7 +2087,7 @@ function DailySummaryCard({ summary, onViewHistorial }: {
             label="Cierre"
             value={summary.cierre}
             icon={Lock}
-            colorFamily="emerald"
+            colorFamily="primary"
           />
         </div>
 
@@ -2095,20 +2095,20 @@ function DailySummaryCard({ summary, onViewHistorial }: {
         <div className={cn(
           'flex items-center justify-between p-3 rounded-md border',
           diff === 0
-            ? 'bg-emerald-950/15 border-[#059669]/30'
+            ? 'bg-primary/5 border-primary/30'
             : diff > 0
             ? 'bg-amber-900/60 border-[#F59E0B]/30'
             : 'bg-red-900/40 border-[#EF4444]/30'
         )}>
           <div className="flex items-center gap-2">
             {diff === 0
-              ? <Check className="w-5 h-5 text-emerald-300" />
+              ? <Check className="w-5 h-5 text-primary" />
               : <AlertTriangle className={cn('w-5 h-5', diff > 0 ? 'text-amber-300' : 'text-red-300')} />}
             <div>
               <p className="text-xs text-muted-foreground">Diferencia al cierre</p>
               <p className={cn(
                 'font-bold text-sm tabular-nums',
-                diff === 0 ? 'text-emerald-300' : diff > 0 ? 'text-amber-300' : 'text-red-300'
+                diff === 0 ? 'text-primary' : diff > 0 ? 'text-amber-300' : 'text-red-300'
               )}>
                 {diff === 0 ? 'Cuadra perfecto' : `${diff > 0 ? '+' : ''}${formatMoney(diff)}`}
               </p>
@@ -2122,26 +2122,26 @@ function DailySummaryCard({ summary, onViewHistorial }: {
 
         {/* Quick stats row — Facturacion KPI style */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+          <div className="rounded-xl border-l-[3px] border-l-primary bg-primary/5 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-emerald-400">Movimientos</p>
-                <p className="text-xl font-bold text-emerald-200">{summary.movCount}</p>
+                <p className="text-xs font-medium text-primary">Movimientos</p>
+                <p className="text-xl font-bold text-primary/70">{summary.movCount}</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
                 <Receipt className="w-5 h-5" />
               </div>
             </div>
           </div>
-          <div className={cn('rounded-xl border-l-[3px] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive', summary.ingresos - summary.egresos >= 0 ? 'border-l-emerald-500 bg-emerald-950/20' : 'border-l-red-500 bg-red-950/20')}>
+          <div className={cn('rounded-xl border-l-[3px] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive', summary.ingresos - summary.egresos >= 0 ? 'border-l-primary bg-primary/5' : 'border-l-red-500 bg-red-950/20')}>
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className={cn('text-xs font-medium', summary.ingresos - summary.egresos >= 0 ? 'text-emerald-400' : 'text-red-400')}>Balance neto</p>
-                <p className={cn('text-xl font-bold tabular-nums', summary.ingresos - summary.egresos >= 0 ? 'text-emerald-200' : 'text-red-200')}>
+                <p className={cn('text-xs font-medium', summary.ingresos - summary.egresos >= 0 ? 'text-primary' : 'text-red-400')}>Balance neto</p>
+                <p className={cn('text-xl font-bold tabular-nums', summary.ingresos - summary.egresos >= 0 ? 'text-primary/70' : 'text-red-200')}>
                   {formatMoney(summary.ingresos - summary.egresos)}
                 </p>
               </div>
-              <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', summary.ingresos - summary.egresos >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400')}>
+              <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', summary.ingresos - summary.egresos >= 0 ? 'bg-primary/20 text-primary' : 'bg-red-500/20 text-red-400')}>
                 <Wallet className="w-5 h-5" />
               </div>
             </div>
@@ -2161,7 +2161,7 @@ function DailySummaryCard({ summary, onViewHistorial }: {
           </div>
         </div>
 
-        <Button variant="outline" className="w-full border-emerald-700/40 text-emerald-400 hover:bg-[#0F2B28] hover:text-white" onClick={onViewHistorial}>
+        <Button variant="outline" className="w-full border-primary/40 text-primary hover:bg-primary hover:text-white" onClick={onViewHistorial}>
           <History className="w-4 h-4 mr-2" />Ver historial completo
         </Button>
       </CardContent>
@@ -2170,7 +2170,7 @@ function DailySummaryCard({ summary, onViewHistorial }: {
 }
 
 const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; label: string; value: string; sub: string; iconBg: string; iconColor: string }> = {
-  emerald: { borderL: 'border-l-emerald-500', bg: 'bg-emerald-50/40', darkBg: 'bg-emerald-950/20', label: 'text-emerald-400', value: 'text-emerald-200', sub: 'text-emerald-400/50', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-400' },
+  emerald: { borderL: 'border-l-primary', bg: 'bg-primary/10', darkBg: 'bg-primary/5', label: 'text-primary', value: 'text-primary/70', sub: 'text-primary/50', iconBg: 'bg-primary/20', iconColor: 'text-primary' },
   green: { borderL: 'border-l-green-500', bg: 'bg-green-50/40', darkBg: 'bg-green-950/20', label: 'text-green-400', value: 'text-green-200', sub: 'text-green-400/50', iconBg: 'bg-green-500/20', iconColor: 'text-green-400' },
   red: { borderL: 'border-l-red-500', bg: 'bg-red-50/40', darkBg: 'bg-red-950/20', label: 'text-red-400', value: 'text-red-200', sub: 'text-red-400/50', iconBg: 'bg-red-500/20', iconColor: 'text-red-400' },
   amber: { borderL: 'border-l-amber-500', bg: 'bg-amber-50/40', darkBg: 'bg-amber-950/20', label: 'text-amber-400', value: 'text-amber-200', sub: 'text-amber-400/50', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-400' },
@@ -2221,7 +2221,7 @@ function MovementCategoryPie({ data, compact }: { data: PieDatum[]; compact?: bo
     <Card className="overflow-hidden">
       <CardHeader className="bg-teal-950/10 pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
-          <Sparkle className="w-4 h-4 text-emerald-400" />
+          <Sparkle className="w-4 h-4 text-primary" />
           Movimientos por categoría
         </CardTitle>
       </CardHeader>
@@ -2255,7 +2255,7 @@ function MovementCategoryPie({ data, compact }: { data: PieDatum[]; compact?: bo
               )}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Total</p>
-                <p className="text-xs font-bold text-emerald-400 tabular-nums leading-tight">{formatMoney(total)}</p>
+                <p className="text-xs font-bold text-primary tabular-nums leading-tight">{formatMoney(total)}</p>
               </div>
             </div>
             <div className={cn('space-y-1', compact ? 'w-full' : 'w-1/2')}>
@@ -2279,7 +2279,7 @@ function PieTooltip({ active, payload }: { active?: boolean; payload?: Array<{ p
   if (!active || !payload || !payload.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="bg-[#0F2B28] text-white px-3 py-2 rounded-lg shadow-xl text-xs border border-[#059669]/30">
+    <div className="bg-primary text-white px-3 py-2 rounded-lg shadow-xl text-xs border border-primary/30">
       <p className="font-semibold">{d.name}</p>
       <p className="tabular-nums">{formatMoney(d.value)} · {d.percentage}%</p>
     </div>
@@ -2419,7 +2419,7 @@ function MovementDetailPopover({ movimiento, gasto, categoria }: {
         <div className="flex items-center gap-2">
           <span className={cn(
             'w-7 h-7 rounded-full flex items-center justify-center',
-            isIngreso ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300'
+            isIngreso ? 'bg-primary/20 text-primary' : 'bg-red-900/60 text-red-300'
           )}>
             {isIngreso ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
           </span>
@@ -2430,7 +2430,7 @@ function MovementDetailPopover({ movimiento, gasto, categoria }: {
         </div>
         <p className={cn(
           'text-sm font-bold tabular-nums',
-          isIngreso ? 'text-emerald-300' : 'text-red-300'
+          isIngreso ? 'text-primary' : 'text-red-300'
         )}>
           {isIngreso ? '+' : '-'}{formatMoney(m.monto)}
         </p>
@@ -2532,7 +2532,7 @@ function MovFormInline({
     <div className="border rounded-lg p-3 space-y-2">
       <p className="font-medium text-sm">
         {tipo === 'ingreso' ? (
-          <span className="flex items-center gap-1"><Plus className="w-3.5 h-3.5 text-emerald-300" />Registrar ingreso</span>
+          <span className="flex items-center gap-1"><Plus className="w-3.5 h-3.5 text-primary" />Registrar ingreso</span>
         ) : (
           <span className="flex items-center gap-1"><Minus className="w-3.5 h-3.5 text-red-300" />Registrar egreso</span>
         )}
@@ -2566,7 +2566,7 @@ function MovFormInline({
             <button
               type="button"
               onClick={() => setMovCategoria(suggestedCategory!)}
-              className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-[#0F2B28] hover:text-white transition-colors animate-slide-up"
+              className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-white transition-colors animate-slide-up"
             >
               <Sparkle className="w-2.5 h-2.5" />
               Sugerencia: <strong className="font-semibold">{suggestedCategory}</strong>
@@ -2624,7 +2624,7 @@ const QUICK_STATS: QuickStatConfig[] = [
     icon: Wallet,
     colorFamily: 'emerald',
     prominent: true,
-    iconBgOverride: 'bg-emerald-500/20',
+    iconBgOverride: 'bg-primary/20',
   },
 ];
 
@@ -2724,7 +2724,7 @@ function MovementCard({
       className={cn(
         'group relative pl-3 pr-3.5 py-3 space-y-1.5 transition-all duration-300 hover:bg-muted/30 animate-slide-up',
         'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1',
-        isIngreso ? 'before:bg-[#059669]' : 'before:bg-[#EF4444]',
+        isIngreso ? 'before:bg-primary' : 'before:bg-[#EF4444]',
         isDetailOpen && 'bg-muted/30'
       )}
     >
@@ -2732,7 +2732,7 @@ function MovementCard({
         <div className="flex items-center gap-2 min-w-0">
           <span className={cn(
             'w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm',
-            isIngreso ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300'
+            isIngreso ? 'bg-primary/20 text-primary' : 'bg-red-900/60 text-red-300'
           )}>
             {isIngreso
               ? <ArrowUpRight className="w-3.5 h-3.5" />
@@ -2742,7 +2742,7 @@ function MovementCard({
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className={cn(
                 'text-xs font-semibold',
-                isIngreso ? 'text-emerald-300' : 'text-red-300'
+                isIngreso ? 'text-primary' : 'text-red-300'
               )}>
                 {isIngreso ? 'Ingreso' : 'Egreso'}
               </span>
@@ -2772,7 +2772,7 @@ function MovementCard({
         </div>
         <p className={cn(
           'text-sm font-bold shrink-0 tabular-nums',
-          isIngreso ? 'text-emerald-300' : 'text-red-300'
+          isIngreso ? 'text-primary' : 'text-red-300'
         )}>
           {isIngreso ? '+' : '-'}{formatMoney(m.monto)}
         </p>
@@ -2785,7 +2785,7 @@ function MovementCard({
           <span>{formatHora(m.fecha)}</span>
         </p>
         <div className="flex gap-0.5">
-          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-emerald-400" onClick={onToggleDetail}>
+          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-primary" onClick={onToggleDetail}>
             <Eye className="w-3 h-3 mr-0.5" />Detalle
           </Button>
           {canEdit && (

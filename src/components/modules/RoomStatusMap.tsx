@@ -33,7 +33,7 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
     key: 'Disponible',
     label: 'Disponible',
     color: '#059669',
-    bgColor: 'bg-[#059669]/8',
+    bgColor: 'bg-primary/8',
     icon: CheckCircle,
     needsAttention: false,
   },
@@ -177,7 +177,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
         >
           {/* Floor header */}
           <div className="flex items-center gap-2 mb-2">
-            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/20 text-primary">
               <Bed className="w-3.5 h-3.5" />
             </div>
             <span className="text-sm font-semibold text-foreground">
@@ -296,7 +296,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Bed className="w-5 h-5 text-emerald-400" />
+              <Bed className="w-5 h-5 text-primary" />
               Habitación {detailHab?.numero}
             </DialogTitle>
           </DialogHeader>

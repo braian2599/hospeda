@@ -109,10 +109,10 @@ export default function GuestTimeline() {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
-          <Clock className="w-3.5 h-3.5 text-[#059669]" />
+          <Clock className="w-3.5 h-3.5 text-primary" />
           Actividad de hoy
           {arrivals.length > 0 && (
-            <Badge className="bg-[#059669] text-white text-[10px] px-1.5 ml-1">
+            <Badge className="bg-primary text-white text-[10px] px-1.5 ml-1">
               <LogIn className="w-2.5 h-2.5 mr-0.5" />{arrivals.length}
             </Badge>
           )}
@@ -141,7 +141,7 @@ export default function GuestTimeline() {
                   className={cn(
                     'relative z-10 w-[10px] h-[10px] rounded-full shrink-0 ring-2 ring-white shadow-sm',
                     evt.type === 'arrival'
-                      ? 'bg-[#059669]'
+                      ? 'bg-primary'
                       : 'bg-[#F59E0B]'
                   )}
                 />
@@ -154,7 +154,7 @@ export default function GuestTimeline() {
                 {/* Event details */}
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   {evt.type === 'arrival' ? (
-                    <LogIn className="w-3 h-3 text-[#059669] shrink-0" />
+                    <LogIn className="w-3 h-3 text-primary shrink-0" />
                   ) : (
                     <LogOut className="w-3 h-3 text-[#F59E0B] shrink-0" />
                   )}
@@ -172,7 +172,7 @@ export default function GuestTimeline() {
         {totalCount > 0 && (
           <div className="flex items-center gap-3 mt-3 pt-2 border-t border-slate-100 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#059669]" />
+              <span className="w-2 h-2 rounded-full bg-primary" />
               {arrivals.length} llegada{arrivals.length !== 1 ? 's' : ''}
             </span>
             <span className="flex items-center gap-1">

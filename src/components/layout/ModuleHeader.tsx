@@ -12,8 +12,8 @@ interface ModuleHeaderProps {
 }
 
 export default function ModuleHeader({ icon: Icon, title, subtitle, iconBg, iconColor, children }: ModuleHeaderProps) {
-  const textColor = iconColor || 'text-emerald-400';
-  const bgColor = iconBg || 'bg-emerald-500/20';
+  const textColor = iconColor || 'text-primary';
+  const bgColor = iconBg || 'bg-primary/20';
 
   return (
     <div className="flex items-start justify-between gap-4 mb-6 px-4 py-3 -mx-4 -mt-1 rounded-xl">

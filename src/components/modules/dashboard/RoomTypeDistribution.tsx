@@ -100,7 +100,7 @@ export default function RoomTypeDistribution() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
-            <Bed className="w-3.5 h-3.5 text-[#059669]" />
+            <Bed className="w-3.5 h-3.5 text-primary" />
             Distribución por tipo
           </CardTitle>
         </CardHeader>
@@ -117,7 +117,7 @@ export default function RoomTypeDistribution() {
     <Card className={mounted ? 'opacity-100' : 'opacity-0'} style={{ transition: 'opacity 0.5s ease' }}>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
-          <Bed className="w-3.5 h-3.5 text-[#059669]" />
+          <Bed className="w-3.5 h-3.5 text-primary" />
           Distribución por tipo
           <span className="ml-auto text-xs font-normal text-muted-foreground">
             {totalRooms} hab.

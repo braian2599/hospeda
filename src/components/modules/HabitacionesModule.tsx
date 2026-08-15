@@ -59,8 +59,8 @@ type StatusVisual = {
 const STATUS_VISUAL: Record<EstadoHabitacion, StatusVisual> = {
   Disponible: {
     color: '#059669',
-    bgTint: 'bg-emerald-50/60',
-    borderClass: 'border-l-[3px] border-l-emerald-400',
+    bgTint: 'bg-primary/10',
+    borderClass: 'border-l-[3px] border-l-primary',
     icon: CheckCircle,
     needsAttention: false,
   },
@@ -214,13 +214,13 @@ function RoomStatsBanner() {
     <div
       className={`
         flex items-center gap-3 p-3 rounded-xl border border-l-[3px] border-l-[#10B981]
-        bg-emerald-950/20
+        bg-primary/5
         transition-all duration-500 ease-out
         ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
       `}
     >
-      <div className="size-8 rounded-full flex items-center justify-center shrink-0 bg-emerald-500/20">
-        <Bed className="w-4 h-4 text-emerald-400" />
+      <div className="size-8 rounded-full flex items-center justify-center shrink-0 bg-primary/20">
+        <Bed className="w-4 h-4 text-primary" />
       </div>
       <div className="min-w-0">
         <div className="text-2xl font-bold leading-tight text-foreground">{total}</div>
@@ -228,7 +228,7 @@ function RoomStatsBanner() {
       </div>
       <div className="ml-auto text-right">
         <div className="text-xs text-muted-foreground">Ocupación</div>
-        <div className="text-lg font-bold text-emerald-400">{ocupacionPct}%</div>
+        <div className="text-lg font-bold text-primary">{ocupacionPct}%</div>
       </div>
     </div>
   );
@@ -296,8 +296,8 @@ function RoomTypeAnalytics() {
   return (
     <div className="rounded-xl border bg-card p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-          <Bed className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
+          <Bed className="w-3.5 h-3.5 text-primary" />
         </div>
         <span className="text-sm font-semibold text-foreground">Distribución por tipo</span>
       </div>
@@ -634,7 +634,7 @@ function FloorGroup({
             className="w-full flex items-center gap-2.5 p-3 hover:bg-accent/30 transition-colors cursor-pointer"
             aria-label={`${isOpen ? 'Colapsar' : 'Expandir'} ${floorLabel}`}
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 text-primary shrink-0">
               {isFloorPattern ? (
                 <span className="text-sm font-bold">{floorNum}</span>
               ) : (
@@ -909,7 +909,7 @@ export default function HabitacionesModule() {
               Mapa
             </button>
           </div>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors" onClick={() => {
             const headers = ['Número', 'Tipo', 'Estado', 'Piso', 'Precio'];
             const rows = sorted.map(([, h]) => [
               h.numero || '',

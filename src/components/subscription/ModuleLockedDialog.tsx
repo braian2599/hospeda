@@ -90,7 +90,7 @@ export default function ModuleLockedDialog() {
                 .filter(m => !planActualInfo.modulos.includes(m))
                 .map(m => (
                   <div key={m} className="flex items-center gap-1 bg-primary/5 rounded-md px-2 py-1 text-xs">
-                    <Check className="w-3 h-3 text-[#059669]" />
+                    <Check className="w-3 h-3 text-primary" />
                     {NOMBRES_MODULOS[m]}
                   </div>
                 ))}

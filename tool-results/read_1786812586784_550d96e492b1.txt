@@ -1,0 +1,1096 @@
+     1→'use client';
+     2→
+     3→import { useState, useMemo, useEffect, useCallback } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import { Card, CardContent } from '@/components/ui/card';
+     6→import { Button } from '@/components/ui/button';
+     7→import { Input } from '@/components/ui/input';
+     8→import { Label } from '@/components/ui/label';
+     9→import { Badge } from '@/components/ui/badge';
+    10→import {
+    11→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    12→} from '@/components/ui/dialog';
+    13→import {
+    14→  Popover, PopoverTrigger, PopoverContent,
+    15→} from '@/components/ui/popover';
+    16→import {
+    17→  Collapsible, CollapsibleTrigger, CollapsibleContent,
+    18→} from '@/components/ui/collapsible';
+    19→import {
+    20→  Tooltip, TooltipTrigger, TooltipContent,
+    21→} from '@/components/ui/tooltip';
+    22→import {
+    23→  Plus, Pencil, Trash2, Bed, User, Users,
+    24→  CheckCircle, UserCheck, CalendarCheck, SprayCan, Wrench, Ban,
+    25→  Download, LayoutGrid, List,
+    26→  ChevronDown, ChevronRight,
+    27→  DoorOpen, Sparkles,
+    28→  type LucideIcon,
+    29→} from 'lucide-react';
+    30→import ModuleHeader from '@/components/layout/ModuleHeader';
+    31→import { toast } from 'sonner';
+    32→import { type TipoHabitacion, type EstadoHabitacion, type Habitacion, CAPACIDAD_POR_TIPO } from '@/lib/types';
+    33→import { todayLocal, safeDate } from '@/lib/format';
+    34→import { exportToCSV } from '@/lib/csv-export';
+    35→import RoomStatusMap from './RoomStatusMap';
+    36→
+    37→// ═══════════════════════════════════════════════════════════
+    38→// STATUS CONFIGURATION
+    39→// ═══════════════════════════════════════════════════════════
+    40→
+    41→const estados: Record<EstadoHabitacion, string> = {
+    42→  Disponible: 'bg-emerald-900/60 text-emerald-300',
+    43→  Ocupada: 'bg-amber-900/60 text-amber-300',
+    44→  Limpieza: 'bg-amber-900/50 text-amber-300',
+    45→  Mantenimiento: 'bg-muted/30 text-slate-400',
+    46→  Reservada: 'bg-sky-900/20 text-sky-300',
+    47→  'Fuera de servicio': 'bg-red-900/60 text-red-300',
+    48→};
+    49→
+    50→// Status color palette for backgrounds, borders, icons
+    51→type StatusVisual = {
+    52→  color: string;       // main hex color
+    53→  bgTint: string;      // Tailwind bg tint class
+    54→  borderClass: string; // Tailwind left border class
+    55→  icon: LucideIcon;
+    56→  needsAttention: boolean;
+    57→};
+    58→
+    59→const STATUS_VISUAL: Record<EstadoHabitacion, StatusVisual> = {
+    60→  Disponible: {
+    61→    color: '#059669',
+    62→    bgTint: 'bg-emerald-50/60',
+    63→    borderClass: 'border-l-[3px] border-l-emerald-400',
+    64→    icon: CheckCircle,
+    65→    needsAttention: false,
+    66→  },
+    67→  Ocupada: {
+    68→    color: '#D97706',
+    69→    bgTint: 'bg-amber-50/60',
+    70→    borderClass: 'border-l-[3px] border-l-amber-400',
+    71→    icon: UserCheck,
+    72→    needsAttention: false,
+    73→  },
+    74→  Limpieza: {
+    75→    color: '#EAB308',
+    76→    bgTint: 'bg-yellow-50/60',
+    77→    borderClass: 'border-l-[3px] border-l-yellow-400',
+    78→    icon: SprayCan,
+    79→    needsAttention: true,
+    80→  },
+    81→  Mantenimiento: {
+    82→    color: '#94A3B8',
+    83→    bgTint: 'bg-slate-50/60',
+    84→    borderClass: 'border-l-[3px] border-l-slate-400',
+    85→    icon: Wrench,
+    86→    needsAttention: true,
+    87→  },
+    88→  Reservada: {
+    89→    color: '#0EA5E9',
+    90→    bgTint: 'bg-sky-50/60',
+    91→    borderClass: 'border-l-[3px] border-l-sky-400',
+    92→    icon: CalendarCheck,
+    93→    needsAttention: false,
+    94→  },
+    95→  'Fuera de servicio': {
+    96→    color: '#EF4444',
+    97→    bgTint: 'bg-red-50/60',
+    98→    borderClass: 'border-l-[3px] border-l-red-400',
+    99→    icon: Ban,
+   100→    needsAttention: false,
+   101→  },
+   102→};
+   103→
+   104→const ALL_ESTADOS: EstadoHabitacion[] = [
+   105→  'Disponible', 'Ocupada', 'Limpieza', 'Mantenimiento', 'Reservada', 'Fuera de servicio',
+   106→];
+   107→
+   108→// ═══════════════════════════════════════════════════════════
+   109→// ROOM TYPE CONFIG
+   110→// ═══════════════════════════════════════════════════════════
+   111→
+   112→const TIPOS_HABITACION: { tipo: TipoHabitacion; label: string; descripcion: string; personas: string; icon: LucideIcon }[] = [
+   113→  { tipo: 'Simple',    label: 'Simple',    descripcion: '1 cama',      personas: '1 persona',    icon: User },
+   114→  { tipo: 'Doble',     label: 'Doble',     descripcion: '2 camas',     personas: '2 personas',   icon: Users },
+   115→  { tipo: 'Triple',    label: 'Triple',    descripcion: '3 camas',     personas: '3 personas',   icon: Users },
+   116→  { tipo: 'Cuádruple', label: 'Cuádruple', descripcion: '4 camas',     personas: '4 personas',   icon: Users },
+   117→  { tipo: 'Compartida', label: 'Compartida', descripcion: 'N camas',  personas: 'Personalizable', icon: Bed },
+   118→];
+   119→
+   120→const tipoIconMap: Record<string, LucideIcon> = Object.fromEntries(
+   121→  TIPOS_HABITACION.map(t => [t.tipo, t.icon])
+   122→);
+   123→
+   124→// ═══════════════════════════════════════════════════════════
+   125→// FLOOR EXTRACTION HELPER
+   126→// ═══════════════════════════════════════════════════════════
+   127→
+   128→function extractFloor(roomNumber: string): number {
+   129→  const match = roomNumber.match(/^(\d)/);
+   130→  return match ? parseInt(match[1]) : 0;
+   131→}
+   132→
+   133→function getRoomFloor(hab: Habitacion): number {
+   134→  return hab.piso ?? extractFloor(hab.numero);
+   135→}
+   136→
+   137→// ═══════════════════════════════════════════════════════════
+   138→// RoomStatusLegend — Reusable status legend bar
+   139→// ═══════════════════════════════════════════════════════════
+   140→
+   141→function RoomStatusLegend() {
+   142→  const habitaciones = useHotelStore(s => s.habitaciones);
+   143→  const [mounted, setMounted] = useState(false);
+   144→  useEffect(() => {
+   145→    const t = setTimeout(() => setMounted(true), 50);
+   146→    return () => clearTimeout(t);
+   147→  }, []);
+   148→
+   149→  const allRooms = Object.values(habitaciones);
+   150→  const counts = allRooms.reduce<Record<EstadoHabitacion, number>>(
+   151→    (acc, h) => { acc[h.estado] = (acc[h.estado] || 0) + 1; return acc; },
+   152→    { Disponible: 0, Ocupada: 0, Limpieza: 0, Mantenimiento: 0, Reservada: 0, 'Fuera de servicio': 0 }
+   153→  );
+   154→
+   155→  if (allRooms.length === 0) return null;
+   156→
+   157→  return (
+   158→    <div
+   159→      className={`
+   160→        flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 px-4 py-2
+   161→        rounded-xl border bg-card
+   162→        transition-all duration-500 ease-out
+   163→        ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+   164→      `}
+   165→    >
+   166→      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mr-1">
+   167→        Estados
+   168→      </span>
+   169→      {ALL_ESTADOS.map(estado => {
+   170→        const vis = STATUS_VISUAL[estado];
+   171→        const Icon = vis.icon;
+   172→        const count = counts[estado];
+   173→        return (
+   174→          <div key={estado} className="flex items-center gap-1">
+   175→            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: vis.color }} />
+   176→            <Icon className="w-3 h-3" style={{ color: vis.color }} />
+   177→            <span className="text-[11px] font-medium text-foreground">{estado}</span>
+   178→            <span className="text-[11px] text-muted-foreground">({count})</span>
+   179→          </div>
+   180→        );
+   181→      })}
+   182→    </div>
+   183→  );
+   184→}
+   185→
+   186→// ═══════════════════════════════════════════════════════════
+   187→// RoomStatsBanner
+   188→// ═══════════════════════════════════════════════════════════
+   189→
+   190→function RoomStatsBanner() {
+   191→  const habitaciones = useHotelStore(s => s.habitaciones);
+   192→
+   193→  const [mounted, setMounted] = useState(false);
+   194→  useEffect(() => {
+   195→    const t = setTimeout(() => setMounted(true), 50);
+   196→    return () => clearTimeout(t);
+   197→  }, []);
+   198→
+   199→  const allRooms = Object.values(habitaciones);
+   200→  const total = allRooms.length;
+   201→
+   202→  if (total === 0) {
+   203→    return (
+   204→      <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+   205→        No hay habitaciones cargadas.
+   206→      </div>
+   207→    );
+   208→  }
+   209→
+   210→  const ocupadas = allRooms.filter(h => h.estado === 'Ocupada').length;
+   211→  const ocupacionPct = Math.round((ocupadas / total) * 100);
+   212→
+   213→  return (
+   214→    <div
+   215→      className={`
+   216→        flex items-center gap-3 p-3 rounded-xl border border-l-[3px] border-l-[#10B981]
+   217→        bg-primary/5
+   218→        transition-all duration-500 ease-out
+   219→        ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+   220→      `}
+   221→    >
+   222→      <div className="size-8 rounded-full flex items-center justify-center shrink-0 bg-primary/20">
+   223→        <Bed className="w-4 h-4 text-primary" />
+   224→      </div>
+   225→      <div className="min-w-0">
+   226→        <div className="text-2xl font-bold leading-tight text-foreground">{total}</div>
+   227→        <div className="text-xs text-muted-foreground">Total habitaciones</div>
+   228→      </div>
+   229→      <div className="ml-auto text-right">
+   230→        <div className="text-xs text-muted-foreground">Ocupación</div>
+   231→        <div className="text-lg font-bold text-primary">{ocupacionPct}%</div>
+   232→      </div>
+   233→    </div>
+   234→  );
+   235→}
+   236→
+   237→// ═══════════════════════════════════════════════════════════
+   238→// RoomTypeAnalytics — compact analytics section
+   239→// ═══════════════════════════════════════════════════════════
+   240→
+   241→function RoomTypeAnalytics() {
+   242→  const habitaciones = useHotelStore(s => s.habitaciones);
+   243→  const reservas = useHotelStore(s => s.reservas);
+   244→  const today = useMemo(() => todayLocal(), []);
+   245→
+   246→  const allRooms = Object.values(habitaciones);
+   247→  const total = allRooms.length;
+   248→
+   249→  const typeData = useMemo(() => {
+   250→    if (total === 0) return [];
+   251→
+   252→    const todayDate = safeDate(today).getTime();
+   253→
+   254→    // Group by type
+   255→    const byType = new Map<string, Habitacion[]>();
+   256→    allRooms.forEach(h => {
+   257→      const t = h.tipo || 'Sin tipo';
+   258→      if (!byType.has(t)) byType.set(t, []);
+   259→      byType.get(t)!.push(h);
+   260→    });
+   261→
+   262→    return Array.from(byType.entries())
+   263→      .sort(([a], [b]) => a.localeCompare(b))
+   264→      .map(([tipo, rooms]) => {
+   265→        const count = rooms.length;
+   266→        const occupied = rooms.filter(h => h.estado === 'Ocupada').length;
+   267→        const occupancyRate = Math.round((occupied / count) * 100);
+   268→
+   269→        // Calculate revenue for occupied rooms
+   270→        let revenue = 0;
+   271→        rooms.forEach(h => {
+   272→          if (h.estado === 'Ocupada' || h.estado === 'Reservada') {
+   273→            const res = reservas.find(r =>
+   274→              r.habitacion === h.numero &&
+   275→              (r.estado === 'Check-In realizado' || r.estado === 'Confirmada') &&
+   276→              safeDate(r.checkin).getTime() <= todayDate &&
+   277→              safeDate(r.checkout).getTime() >= todayDate
+   278→            );
+   279→            if (res?.total) revenue += res.total;
+   280→          }
+   281→        });
+   282→
+   283→        const Icon = tipoIconMap[tipo] || Bed;
+   284→
+   285→        return { tipo, count, occupied, occupancyRate, revenue, Icon };
+   286→      });
+   287→  }, [allRooms, reservas, today, total]);
+   288→
+   289→  if (total === 0 || typeData.length === 0) return null;
+   290→
+   291→  const maxCount = Math.max(...typeData.map(d => d.count));
+   292→
+   293→  // Type color palette
+   294→  const typeColors = ['#059669', '#D97706', '#0EA5E9', '#8B5CF6', '#EF4444'];
+   295→
+   296→  return (
+   297→    <div className="rounded-xl border bg-card p-4 space-y-3">
+   298→      <div className="flex items-center gap-2">
+   299→        <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
+   300→          <Bed className="w-3.5 h-3.5 text-primary" />
+   301→        </div>
+   302→        <span className="text-sm font-semibold text-foreground">Distribución por tipo</span>
+   303→      </div>
+   304→
+   305→      {/* Horizontal distribution bar */}
+   306→      <div className="h-2.5 rounded-full bg-muted overflow-hidden flex">
+   307→        {typeData.map((d, i) => {
+   308→          const pct = (d.count / total) * 100;
+   309→          return (
+   310→            <div
+   311→              key={d.tipo}
+   312→              className="transition-all duration-300"
+   313→              style={{ width: `${pct}%`, backgroundColor: typeColors[i % typeColors.length] }}
+   314→              title={`${d.tipo}: ${d.count} (${Math.round(pct)}%)`}
+   315→            />
+   316→          );
+   317→        })}
+   318→      </div>
+   319→
+   320→      {/* Type breakdown rows */}
+   321→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2">
+   322→        {typeData.map((d, i) => {
+   323→          const color = typeColors[i % typeColors.length];
+   324→          const barPct = (d.count / maxCount) * 100;
+   325→          return (
+   326→            <div
+   327→              key={d.tipo}
+   328→              className="rounded-lg border bg-muted/20 p-2.5 space-y-1.5"
+   329→            >
+   330→              <div className="flex items-center gap-2">
+   331→                <d.Icon className="w-3.5 h-3.5 shrink-0" style={{ color }} />
+   332→                <span className="text-xs font-semibold text-foreground truncate">{d.tipo}</span>
+   333→                <span className="ml-auto text-xs font-bold text-foreground">{d.count}</span>
+   334→              </div>
+   335→              {/* Mini bar */}
+   336→              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+   337→                <div
+   338→                  className="h-full rounded-full transition-all duration-300"
+   339→                  style={{ width: `${barPct}%`, backgroundColor: color }}
+   340→                />
+   341→              </div>
+   342→              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+   343→                <span>Ocup. {d.occupancyRate}%</span>
+   344→                {d.revenue > 0 && <span>${d.revenue.toLocaleString('es-AR')}</span>}
+   345→              </div>
+   346→            </div>
+   347→          );
+   348→        })}
+   349→      </div>
+   350→    </div>
+   351→  );
+   352→}
+   353→
+   354→// ═══════════════════════════════════════════════════════════
+   355→// StatusChangePopover — Quick status change for a room
+   356→// ═══════════════════════════════════════════════════════════
+   357→
+   358→function StatusChangePopover({
+   359→  numero,
+   360→  currentEstado,
+   361→  onStatusChange,
+   362→  children,
+   363→}: {
+   364→  numero: string;
+   365→  currentEstado: EstadoHabitacion;
+   366→  onStatusChange: (numero: string, newEstado: EstadoHabitacion) => void;
+   367→  children: React.ReactNode;
+   368→}) {
+   369→  const [open, setOpen] = useState(false);
+   370→  const [confirmDestructive, setConfirmDestructive] = useState<EstadoHabitacion | null>(null);
+   371→
+   372→  const handleSelect = (newEstado: EstadoHabitacion) => {
+   373→    if (newEstado === currentEstado) {
+   374→      setOpen(false);
+   375→      return;
+   376→    }
+   377→    // Destructive states need confirmation
+   378→    const isDestructive = newEstado === 'Fuera de servicio' || newEstado === 'Mantenimiento';
+   379→    if (isDestructive && !confirmDestructive) {
+   380→      setConfirmDestructive(newEstado);
+   381→      return;
+   382→    }
+   383→    onStatusChange(numero, newEstado);
+   384→    setConfirmDestructive(null);
+   385→    setOpen(false);
+   386→  };
+   387→
+   388→  return (
+   389→    <Popover open={open} onOpenChange={(v) => { setOpen(v); setConfirmDestructive(null); }}>
+   390→      <PopoverTrigger asChild>{children}</PopoverTrigger>
+   391→      <PopoverContent className="w-56 p-2" align="start" side="bottom">
+   392→        {confirmDestructive ? (
+   393→          <div className="space-y-2 p-1">
+   394→            <p className="text-xs text-muted-foreground">
+   395→              ¿Cambiar a <strong className="text-foreground">{confirmDestructive}</strong>?
+   396→              {confirmDestructive === 'Fuera de servicio' && ' La habitación no será asignable.'}
+   397→              {confirmDestructive === 'Mantenimiento' && ' Se requiere reparación antes de habilitar.'}
+   398→            </p>
+   399→            <div className="flex gap-1.5">
+   400→              <Button
+   401→                size="sm"
+   402→                variant="destructive"
+   403→                className="h-7 text-xs flex-1"
+   404→                onClick={() => handleSelect(confirmDestructive)}
+   405→              >
+   406→                Confirmar
+   407→              </Button>
+   408→              <Button
+   409→                size="sm"
+   410→                variant="ghost"
+   411→                className="h-7 text-xs"
+   412→                onClick={() => setConfirmDestructive(null)}
+   413→              >
+   414→                Cancelar
+   415→              </Button>
+   416→            </div>
+   417→          </div>
+   418→        ) : (
+   419→          <div className="space-y-0.5">
+   420→            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold px-2 pt-1 pb-1.5">
+   421→              Cambiar estado
+   422→            </div>
+   423→            {ALL_ESTADOS.map(estado => {
+   424→              const vis = STATUS_VISUAL[estado];
+   425→              const Icon = vis.icon;
+   426→              const isCurrent = estado === currentEstado;
+   427→              return (
+   428→                <button
+   429→                  key={estado}
+   430→                  type="button"
+   431→                  onClick={() => handleSelect(estado)}
+   432→                  className={`
+   433→                    w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs
+   434→                    transition-colors cursor-pointer
+   435→                    ${isCurrent
+   436→                      ? 'bg-accent/50 font-semibold text-foreground'
+   437→                      : 'text-foreground/80 hover:bg-accent/40'
+   438→                    }
+   439→                  `}
+   440→                >
+   441→                  <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: vis.color }} />
+   442→                  <span className="truncate">{estado}</span>
+   443→                  {isCurrent && (
+   444→                    <span className="ml-auto text-[10px] text-muted-foreground">actual</span>
+   445→                  )}
+   446→                </button>
+   447→              );
+   448→            })}
+   449→          </div>
+   450→        )}
+   451→      </PopoverContent>
+   452→    </Popover>
+   453→  );
+   454→}
+   455→
+   456→// ═══════════════════════════════════════════════════════════
+   457→// EnhancedRoomCard
+   458→// ═══════════════════════════════════════════════════════════
+   459→
+   460→function EnhancedRoomCard({
+   461→  hab,
+   462→  huesped,
+   463→  onEdit,
+   464→  onDelete,
+   465→  onStatusChange,
+   466→}: {
+   467→  hab: Habitacion;
+   468→  huesped: ReturnType<typeof useHotelStore> extends { reservas: any } ? any : any;
+   469→  onEdit: (num: string) => void;
+   470→  onDelete: (num: string) => void;
+   471→  onStatusChange: (num: string, estado: EstadoHabitacion) => void;
+   472→}) {
+   473→  const vis = STATUS_VISUAL[hab.estado] || STATUS_VISUAL.Disponible;
+   474→  const StatusIcon = vis.icon;
+   475→  const TipoIcon = tipoIconMap[hab.tipo] || Bed;
+   476→
+   477→  const camasText = hab.tipo === 'Compartida'
+   478→    ? `${hab.capacidad} camas`
+   479→    : [
+   480→        hab.camasMatrimoniales > 0 ? `${hab.camasMatrimoniales} matr.` : '',
+   481→        hab.camasSimples > 0 ? `${hab.camasSimples} indiv.` : '',
+   482→      ].filter(Boolean).join(' + ') || '—';
+   483→
+   484→  return (
+   485→    <Card className={`
+   486→      relative card-hover card-interactive transition-all duration-200 group
+   487→      ${vis.borderClass}
+   488→      ${vis.bgTint}
+   489→      hover:-translate-y-0.5 hover:shadow-md
+   490→    `}>
+   491→      <CardContent className="p-2 flex flex-col gap-0.5">
+   492→        {/* Row 1: Room number + status badge */}
+   493→        <div className="flex items-center justify-between gap-1">
+   494→          <span className="text-lg font-bold leading-tight text-foreground">{hab.numero}</span>
+   495→          <StatusChangePopover
+   496→            numero={hab.numero}
+   497→            currentEstado={hab.estado}
+   498→            onStatusChange={onStatusChange}
+   499→          >
+   500→            <button
+   501→              type="button"
+   502→              className="shrink-0"
+   503→              aria-label={`Cambiar estado de habitación ${hab.numero}`}
+   504→            >
+   505→              <Badge className={`text-[9px] px-1 py-0 font-semibold shadow-sm cursor-pointer hover:opacity-80 transition-opacity ${estados[hab.estado] || ''}`}>
+   506→                {hab.estado}
+   507→              </Badge>
+   508→            </button>
+   509→          </StatusChangePopover>
+   510→        </div>
+   511→
+   512→        {/* Row 2: Type badge + camas inline */}
+   513→        <div className="flex items-center gap-1">
+   514→          <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5 border-muted-foreground/25">
+   515→            <TipoIcon className="w-2 h-2" />
+   516→            {hab.tipo}
+   517→          </Badge>
+   518→          <span className="text-[9px] text-muted-foreground leading-tight truncate">{camasText}</span>
+   519→        </div>
+   520→
+   521→        {/* Row 3: Guest / problem / attention dot */}
+   522→        {vis.needsAttention && (
+   523→          <span
+   524→            className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full animate-pulse"
+   525→            style={{ backgroundColor: vis.color }}
+   526→          />
+   527→        )}
+   528→        {huesped ? (
+   529→          <div className="flex items-center gap-1 min-w-0">
+   530→            <UserCheck className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+   531→            <span className="text-[10px] font-semibold text-foreground truncate" title={huesped.huesped}>
+   532→              {huesped.huesped}
+   533→            </span>
+   534→            <span className="text-[9px] text-muted-foreground shrink-0">{huesped.checkin}→{huesped.checkout}</span>
+   535→          </div>
+   536→        ) : hab.problema ? (
+   537→          <div className="flex items-center gap-1 min-w-0">
+   538→            <Wrench className="w-2.5 h-2.5 text-red-500 shrink-0" />
+   539→            <span className="text-[9px] text-red-600 truncate" title={hab.problema}>{hab.problema}</span>
+   540→          </div>
+   541→        ) : null}
+   542→
+   543→        {/* Row 4: Quick actions (hover) */}
+   544→        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+   545→          <Tooltip>
+   546→            <TooltipTrigger asChild>
+   547→              <Button
+   548→                size="icon"
+   549→                variant="ghost"
+   550→                className="h-5 w-5"
+   551→                onClick={() => onEdit(hab.numero)}
+   552→                aria-label={`Editar habitación ${hab.numero}`}
+   553→              >
+   554→                <Pencil className="w-2.5 h-2.5" />
+   555→              </Button>
+   556→            </TooltipTrigger>
+   557→            <TooltipContent side="bottom" className="text-xs">Editar</TooltipContent>
+   558→          </Tooltip>
+   559→          <Tooltip>
+   560→            <TooltipTrigger asChild>
+   561→              <Button
+   562→                size="icon"
+   563→                variant="ghost"
+   564→                className="h-5 w-5"
+   565→                onClick={() => onStatusChange(hab.numero, hab.estado === 'Limpieza' ? 'Disponible' : 'Limpieza')}
+   566→                aria-label={hab.estado === 'Limpieza' ? 'Marcar como limpia' : 'Enviar a limpieza'}
+   567→              >
+   568→                <Sparkles className="w-2.5 h-2.5" />
+   569→              </Button>
+   570→            </TooltipTrigger>
+   571→            <TooltipContent side="bottom" className="text-xs">
+   572→              {hab.estado === 'Limpieza' ? 'Marcar como limpia' : 'Enviar a limpieza'}
+   573→            </TooltipContent>
+   574→          </Tooltip>
+   575→          <Tooltip>
+   576→            <TooltipTrigger asChild>
+   577→              <Button
+   578→                size="icon"
+   579→                variant="ghost"
+   580→                className="h-5 w-5 text-destructive hover:text-destructive"
+   581→                onClick={() => onDelete(hab.numero)}
+   582→                aria-label={`Eliminar habitación ${hab.numero}`}
+   583→              >
+   584→                <Trash2 className="w-2.5 h-2.5" />
+   585→              </Button>
+   586→            </TooltipTrigger>
+   587→            <TooltipContent side="bottom" className="text-xs">Eliminar</TooltipContent>
+   588→          </Tooltip>
+   589→        </div>
+   590→      </CardContent>
+   591→    </Card>
+   592→  );
+   593→}
+   594→
+   595→// ═══════════════════════════════════════════════════════════
+   596→// FloorGroup — Collapsible floor section
+   597→// ═══════════════════════════════════════════════════════════
+   598→
+   599→function FloorGroup({
+   600→  floorLabel,
+   601→  floorNum,
+   602→  rooms,
+   603→  isFloorPattern,
+   604→  getHuespedActual,
+   605→  onEdit,
+   606→  onDelete,
+   607→  onStatusChange,
+   608→}: {
+   609→  floorLabel: string;
+   610→  floorNum: number;
+   611→  rooms: Habitacion[];
+   612→  isFloorPattern: boolean;
+   613→  getHuespedActual: (num: string) => any;
+   614→  onEdit: (num: string) => void;
+   615→  onDelete: (num: string) => void;
+   616→  onStatusChange: (num: string, estado: EstadoHabitacion) => void;
+   617→}) {
+   618→  const [isOpen, setIsOpen] = useState(true);
+   619→
+   620→  // Count statuses in this floor
+   621→  const statusCounts = useMemo(() => {
+   622→    const c: Partial<Record<EstadoHabitacion, number>> = {};
+   623→    rooms.forEach(h => { c[h.estado] = (c[h.estado] || 0) + 1; });
+   624→    return c;
+   625→  }, [rooms]);
+   626→
+   627→  return (
+   628→    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+   629→      <div className="rounded-xl border bg-card overflow-hidden">
+   630→        {/* Floor header */}
+   631→        <CollapsibleTrigger asChild>
+   632→          <button
+   633→            type="button"
+   634→            className="w-full flex items-center gap-2.5 p-3 hover:bg-accent/30 transition-colors cursor-pointer"
+   635→            aria-label={`${isOpen ? 'Colapsar' : 'Expandir'} ${floorLabel}`}
+   636→          >
+   637→            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 text-primary shrink-0">
+   638→              {isFloorPattern ? (
+   639→                <span className="text-sm font-bold">{floorNum}</span>
+   640→              ) : (
+   641→                <Bed className="w-4 h-4" />
+   642→              )}
+   643→            </div>
+   644→            <div className="text-left min-w-0">
+   645→              <span className="text-sm font-semibold text-foreground">{floorLabel}</span>
+   646→              <span className="text-xs text-muted-foreground ml-2">
+   647→                {rooms.length} {rooms.length === 1 ? 'habitación' : 'habitaciones'}
+   648→              </span>
+   649→            </div>
+   650→            {/* Mini status indicators */}
+   651→            <div className="ml-auto flex items-center gap-1.5">
+   652→              {ALL_ESTADOS.map(estado => {
+   653→                const count = statusCounts[estado] || 0;
+   654→                if (count === 0) return null;
+   655→                const vis = STATUS_VISUAL[estado];
+   656→                return (
+   657→                  <div key={estado} className="flex items-center gap-0.5" title={`${estado}: ${count}`}>
+   658→                    <span
+   659→                      className="w-2 h-2 rounded-sm"
+   660→                      style={{ backgroundColor: vis.color }}
+   661→                    />
+   662→                    <span className="text-[10px] text-muted-foreground">{count}</span>
+   663→                  </div>
+   664→                );
+   665→              })}
+   666→            </div>
+   667→            <div className="shrink-0 ml-1">
+   668→              {isOpen ? (
+   669→                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+   670→              ) : (
+   671→                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+   672→              )}
+   673→            </div>
+   674→          </button>
+   675→        </CollapsibleTrigger>
+   676→
+   677→        {/* Room grid */}
+   678→        <CollapsibleContent>
+   679→          <div className="p-3 pt-0">
+   680→            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 card-grid-stagger">
+   681→              {rooms.map(hab => {
+   682→                const huesped = (hab.estado === 'Ocupada' || hab.estado === 'Reservada')
+   683→                  ? getHuespedActual(hab.numero)
+   684→                  : null;
+   685→                return (
+   686→                  <EnhancedRoomCard
+   687→                    key={hab.numero}
+   688→                    hab={hab}
+   689→                    huesped={huesped}
+   690→                    onEdit={onEdit}
+   691→                    onDelete={onDelete}
+   692→                    onStatusChange={onStatusChange}
+   693→                  />
+   694→                );
+   695→              })}
+   696→            </div>
+   697→          </div>
+   698→        </CollapsibleContent>
+   699→      </div>
+   700→    </Collapsible>
+   701→  );
+   702→}
+   703→
+   704→// ═══════════════════════════════════════════════════════════
+   705→// HabitacionesModule — Main component
+   706→// ═══════════════════════════════════════════════════════════
+   707→
+   708→export default function HabitacionesModule() {
+   709→  // Granular selectors — avoids re-rendering on unrelated store changes
+   710→  const habitaciones = useHotelStore(s => s.habitaciones);
+   711→  const reservas = useHotelStore(s => s.reservas);
+   712→  const agregarHabitacion = useHotelStore(s => s.agregarHabitacion);
+   713→  const editarHabitacion = useHotelStore(s => s.editarHabitacion);
+   714→  const eliminarHabitacion = useHotelStore(s => s.eliminarHabitacion);
+   715→  const cambiarEstadoHabitacion = useHotelStore(s => s.cambiarEstadoHabitacion);
+   716→  const [modal, setModal] = useState<'nueva' | 'editar' | 'eliminar' | null>(null);
+   717→  const [sel, setSel] = useState<string>('');
+   718→  const [viewMode, setViewMode] = useState<'lista' | 'mapa'>('lista');
+   719→  const [form, setForm] = useState({
+   720→    numero: '',
+   721→    tipo: 'Doble' as TipoHabitacion,
+   722→    capacidad: '2',
+   723→    camasMatrimoniales: '0',
+   724→    camasSimples: '0',
+   725→    piso: '',
+   726→  });
+   727→
+   728→  const esCompartida = form.tipo === 'Compartida';
+   729→  const today = useMemo(() => todayLocal(), []);
+   730→  const sorted = useMemo(
+   731→    () => Object.entries(habitaciones).sort(([a], [b]) => a.localeCompare(b)),
+   732→    [habitaciones]
+   733→  );
+   734→
+   735→  // Find the active guest for a room
+   736→  const getHuespedActual = useCallback((num: string) => {
+   737→    const todayDate = safeDate(today).getTime();
+   738→    return reservas.find(r =>
+   739→      r.habitacion === num &&
+   740→      (r.estado === 'Check-In realizado' || r.estado === 'Confirmada') &&
+   741→      safeDate(r.checkin).getTime() <= todayDate &&
+   742→      safeDate(r.checkout).getTime() >= todayDate
+   743→    );
+   744→  }, [reservas, today]);
+   745→
+   746→  // Detect if room numbers follow a floor pattern (e.g., 1xx = floor 1)
+   747→  const isFloorPattern = useMemo(() => {
+   748→    if (sorted.length === 0) return false;
+   749→    const floorSet = new Set<number>();
+   750→    sorted.forEach(([, hab]) => floorSet.add(getRoomFloor(hab)));
+   751→    return floorSet.size > 1; // Multiple floors detected → use floor pattern
+   752→  }, [sorted]);
+   753→
+   754→  // Group rooms by floor or type
+   755→  const groupedRooms = useMemo(() => {
+   756→    if (isFloorPattern) {
+   757→      // Group by floor
+   758→      const map = new Map<number, Habitacion[]>();
+   759→      sorted.forEach(([, hab]) => {
+   760→        const floor = getRoomFloor(hab);
+   761→        if (!map.has(floor)) map.set(floor, []);
+   762→        map.get(floor)!.push(hab);
+   763→      });
+   764→      return Array.from(map.entries())
+   765→        .sort(([a], [b]) => a - b)
+   766→        .map(([floorNum, rooms]) => ({
+   767→          key: `floor-${floorNum}`,
+   768→          label: floorNum === 0 ? 'Sin piso' : `Piso ${floorNum}`,
+   769→          floorNum,
+   770→          rooms,
+   771→        }));
+   772→    }
+   773→    // Group by type
+   774→    const map = new Map<string, Habitacion[]>();
+   775→    sorted.forEach(([, hab]) => {
+   776→      const tipo = hab.tipo || 'Sin tipo';
+   777→      if (!map.has(tipo)) map.set(tipo, []);
+   778→      map.get(tipo)!.push(hab);
+   779→    });
+   780→    return Array.from(map.entries())
+   781→      .sort(([a], [b]) => a.localeCompare(b))
+   782→      .map(([tipo, rooms], idx) => ({
+   783→        key: `type-${tipo}`,
+   784→        label: tipo,
+   785→        floorNum: idx + 1,
+   786→        rooms,
+   787→      }));
+   788→  }, [sorted, isFloorPattern]);
+   789→
+   790→  // ── Helpers ──
+   791→  const capacidadDesdeTipo = (tipo: TipoHabitacion) => {
+   792→    const cap = CAPACIDAD_POR_TIPO[tipo];
+   793→    return cap !== null ? String(cap) : '1';
+   794→  };
+   795→
+   796→  const handleTipoChange = (tipo: TipoHabitacion) => {
+   797→    setForm(prev => ({
+   798→      ...prev,
+   799→      tipo,
+   800→      capacidad: CAPACIDAD_POR_TIPO[tipo] !== null ? String(CAPACIDAD_POR_TIPO[tipo]) : prev.capacidad,
+   801→    }));
+   802→  };
+   803→
+   804→  const getCapacidadFinal = (): number => {
+   805→    if (esCompartida) return parseInt(form.capacidad) || 1;
+   806→    return CAPACIDAD_POR_TIPO[form.tipo] || 1;
+   807→  };
+   808→
+   809→  // ── Abrir modales ──
+   810→  const openNew = () => {
+   811→    setForm({ numero: '', tipo: 'Doble', capacidad: '2', camasMatrimoniales: '0', camasSimples: '0', piso: '' });
+   812→    setModal('nueva');
+   813→  };
+   814→
+   815→  const openEdit = (num: string) => {
+   816→    const h = habitaciones[num];
+   817→    if (!h) return;
+   818→    const tipo = h.tipo as TipoHabitacion;
+   819→    setSel(num);
+   820→    setForm({
+   821→      numero: num,
+   822→      tipo,
+   823→      capacidad: CAPACIDAD_POR_TIPO[tipo] !== null ? String(CAPACIDAD_POR_TIPO[tipo]) : String(h.capacidad),
+   824→      camasMatrimoniales: String(h.camasMatrimoniales),
+   825→      camasSimples: String(h.camasSimples),
+   826→      piso: h.piso ? String(h.piso) : '',
+   827→    });
+   828→    setModal('editar');
+   829→  };
+   830→
+   831→  const openDelete = (num: string) => { setSel(num); setModal('eliminar'); };
+   832→
+   833→  // ── Status change handler ──
+   834→  const handleStatusChange = async (numero: string, nuevoEstado: EstadoHabitacion) => {
+   835→    const ok = await cambiarEstadoHabitacion(numero, nuevoEstado);
+   836→    if (ok) {
+   837→      toast.success(`Hab. ${numero} → ${nuevoEstado}`);
+   838→    } else {
+   839→      toast.error('No se pudo cambiar el estado');
+   840→    }
+   841→  };
+   842→
+   843→  // ── Acciones ──
+   844→  const handleSave = async () => {
+   845→    const capacidad = getCapacidadFinal();
+   846→    const camasM = parseInt(form.camasMatrimoniales) || 0;
+   847→    const camasS = parseInt(form.camasSimples) || 0;
+   848→    const pisoVal = form.piso ? parseInt(form.piso) : undefined;
+   849→    let ok: boolean;
+   850→    if (modal === 'nueva') {
+   851→      ok = await agregarHabitacion(form.numero.trim(), form.tipo, capacidad, camasM, camasS, pisoVal);
+   852→    } else if (modal === 'editar') {
+   853→      ok = await editarHabitacion(sel, form.numero.trim(), form.tipo, capacidad, camasM, camasS, pisoVal);
+   854→    } else return;
+   855→    if (ok) {
+   856→      toast.success('Habitación guardada');
+   857→      setModal(null);
+   858→    } else {
+   859→      toast.error('No se pudo guardar');
+   860→    }
+   861→  };
+   862→
+   863→  const handleDelete = async () => {
+   864→    const ok = await eliminarHabitacion(sel);
+   865→    if (ok) {
+   866→      toast.success('Habitación eliminada');
+   867→      setModal(null);
+   868→    } else {
+   869→      toast.error('No se pudo eliminar');
+   870→    }
+   871→  };
+   872→
+   873→  return (
+   874→    <div className="space-y-6">
+   875→      <ModuleHeader icon={Bed} title="Habitaciones" subtitle="Gestioná las habitaciones de tu hotel">
+   876→        <div className="flex items-center gap-2">
+   877→          {/* ── View toggle ── */}
+   878→          <div className="flex items-center gap-0.5 rounded-lg border bg-muted/50 p-0.5">
+   879→            <button
+   880→              type="button"
+   881→              onClick={() => setViewMode('lista')}
+   882→              className={`
+   883→                flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium
+   884→                transition-all duration-200
+   885→                ${viewMode === 'lista'
+   886→                  ? 'bg-card text-foreground shadow-sm'
+   887→                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+   888→                }
+   889→              `}
+   890→              aria-label="Vista de lista"
+   891→            >
+   892→              <List className="w-3.5 h-3.5" />
+   893→              Lista
+   894→            </button>
+   895→            <button
+   896→              type="button"
+   897→              onClick={() => setViewMode('mapa')}
+   898→              className={`
+   899→                flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium
+   900→                transition-all duration-200
+   901→                ${viewMode === 'mapa'
+   902→                  ? 'bg-card text-foreground shadow-sm'
+   903→                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+   904→                }
+   905→              `}
+   906→              aria-label="Vista de mapa"
+   907→            >
+   908→              <LayoutGrid className="w-3.5 h-3.5" />
+   909→              Mapa
+   910→            </button>
+   911→          </div>
+   912→          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors" onClick={() => {
+   913→            const headers = ['Número', 'Tipo', 'Estado', 'Piso', 'Precio'];
+   914→            const rows = sorted.map(([, h]) => [
+   915→              h.numero || '',
+   916→              h.tipo || '',
+   917→              h.estado || '',
+   918→              h.piso ?? (h.numero || '').replace(/\D/g, '').charAt(0) ?? '',
+   919→              h.precioPorCama ?? '',
+   920→            ]);
+   921→            exportToCSV('habitaciones.csv', headers, rows);
+   922→            toast.success('CSV exportado');
+   923→          }}>
+   924→            <Download className="w-3.5 h-3.5" />Exportar CSV
+   925→          </Button>
+   926→          <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Nueva Habitación</Button>
+   927→        </div>
+   928→      </ModuleHeader>
+   929→
+   930→      {/* ── Stats banner + Room type analytics ── */}
+   931→      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+   932→        <RoomStatsBanner />
+   933→        <div className="lg:col-span-3">
+   934→          <RoomTypeAnalytics />
+   935→        </div>
+   936→      </div>
+   937→
+   938→      {/* ── Status legend (both views) ── */}
+   939→      <RoomStatusLegend />
+   940→
+   941→      {/* ── Map view ── */}
+   942→      {viewMode === 'mapa' && (
+   943→        <RoomStatusMap onEditRoom={openEdit} onDeleteRoom={openDelete} />
+   944→      )}
+   945→
+   946→      {/* ── Lista view: grouped rooms ── */}
+   947→      {viewMode === 'lista' && (
+   948→        <div className="space-y-3">
+   949→          {groupedRooms.length === 0 ? (
+   950→            <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center text-sm text-muted-foreground">
+   951→              <DoorOpen className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+   952→              No hay habitaciones cargadas. Creá la primera con el botón{' '}
+   953→              <span className="font-semibold text-foreground">&quot;Nueva Habitación&quot;</span>.
+   954→            </div>
+   955→          ) : (
+   956→            groupedRooms.map(group => (
+   957→              <FloorGroup
+   958→                key={group.key}
+   959→                floorLabel={group.label}
+   960→                floorNum={group.floorNum}
+   961→                rooms={group.rooms}
+   962→                isFloorPattern={isFloorPattern}
+   963→                getHuespedActual={getHuespedActual}
+   964→                onEdit={openEdit}
+   965→                onDelete={openDelete}
+   966→                onStatusChange={handleStatusChange}
+   967→              />
+   968→            ))
+   969→          )}
+   970→        </div>
+   971→      )}
+   972→
+   973→      {/* ── Modal Nueva / Editar ── */}
+   974→      <Dialog open={modal === 'nueva' || modal === 'editar'} onOpenChange={() => setModal(null)}>
+   975→        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+   976→          <DialogHeader>
+   977→            <DialogTitle>{modal === 'nueva' ? 'Nueva Habitación' : `Editar ${sel}`}</DialogTitle>
+   978→          </DialogHeader>
+   979→
+   980→          <div className="grid gap-5 py-4">
+   981→            {/* Número */}
+   982→            <div className="grid gap-2">
+   983→              <Label>Número de habitación</Label>
+   984→              <Input
+   985→                value={form.numero}
+   986→                onChange={e => setForm({ ...form, numero: e.target.value })}
+   987→                placeholder="Ej: 101, 201A"
+   988→              />
+   989→            </div>
+   990→
+   991→            {/* Piso */}
+   992→            <div className="grid gap-2">
+   993→              <Label>Piso</Label>
+   994→              <Input
+   995→                type="number"
+   996→                min="0"
+   997→                value={form.piso}
+   998→                onChange={e => setForm({ ...form, piso: e.target.value })}
+   999→                placeholder="Ej: 1, 2, 3 (se infiere del número si se deja vacío)"
+  1000→              />
+  1001→            </div>
+  1002→
+  1003→            {/* Tipo de habitación — selector visual */}
+  1004→            <div className="grid gap-2">
+  1005→              <Label>Tipo de habitación</Label>
+  1006→              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+  1007→                {TIPOS_HABITACION.map(t => {
+  1008→                  const selected = form.tipo === t.tipo;
+  1009→                  const Icon = t.icon;
+  1010→                  return (
+  1011→                    <button
+  1012→                      key={t.tipo}
+  1013→                      type="button"
+  1014→                      onClick={() => handleTipoChange(t.tipo)}
+  1015→                      className={`
+  1016→                        flex flex-col items-center gap-0.5 rounded-lg border-2 p-2.5 text-center
+  1017→                        transition-all cursor-pointer hover:bg-accent/50
+  1018→                        ${selected
+  1019→                          ? 'border-primary bg-primary/5 shadow-sm'
+  1020→                          : 'border-muted hover:border-muted-foreground/30'
+  1021→                        }
+  1022→                      `}
+  1023→                    >
+  1024→                      <Icon className={`w-4 h-4 ${selected ? 'text-primary' : 'text-muted-foreground'}`} />
+  1025→                      <span className={`text-xs font-semibold leading-tight ${selected ? 'text-primary' : 'text-foreground'}`}>
+  1026→                        {t.label}
+  1027→                      </span>
+  1028→                      <span className="text-[10px] text-muted-foreground leading-tight">
+  1029→                        {t.personas}
+  1030→                      </span>
+  1031→                    </button>
+  1032→                  );
+  1033→                })}
+  1034→              </div>
+  1035→            </div>
+  1036→
+  1037→            {/* Capacidad — solo visible para Compartida */}
+  1038→            {esCompartida && (
+  1039→              <div className="grid gap-2">
+  1040→                <Label>Capacidad (cantidad de personas)</Label>
+  1041→                <Input
+  1042→                  type="number"
+  1043→                  min="1"
+  1044→                  value={form.capacidad}
+  1045→                  onChange={e => setForm({ ...form, capacidad: e.target.value })}
+  1046→                  placeholder="Ej: 6"
+  1047→                />
+  1048→              </div>
+  1049→            )}
+  1050→
+  1051→            {/* Tipos de cama — siempre visible */}
+  1052→            <div className="grid grid-cols-2 gap-4">
+  1053→              <div className="grid gap-2">
+  1054→                <Label>Camas matrimoniales</Label>
+  1055→                <Input
+  1056→                  type="number"
+  1057→                  min="0"
+  1058→                  value={form.camasMatrimoniales}
+  1059→                  onChange={e => setForm({ ...form, camasMatrimoniales: e.target.value })}
+  1060→                />
+  1061→              </div>
+  1062→              <div className="grid gap-2">
+  1063→                <Label>Camas individuales</Label>
+  1064→                <Input
+  1065→                  type="number"
+  1066→                  min="0"
+  1067→                  value={form.camasSimples}
+  1068→                  onChange={e => setForm({ ...form, camasSimples: e.target.value })}
+  1069→                />
+  1070→              </div>
+  1071→            </div>
+  1072→          </div>
+  1073→
+  1074→          <DialogFooter>
+  1075→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+  1076→            <Button onClick={handleSave} disabled={!form.numero.trim()}>Guardar</Button>
+  1077→          </DialogFooter>
+  1078→        </DialogContent>
+  1079→      </Dialog>
+  1080→
+  1081→      {/* ── Modal Eliminar ── */}
+  1082→      <Dialog open={modal === 'eliminar'} onOpenChange={() => setModal(null)}>
+  1083→        <DialogContent className="sm:max-w-md">
+  1084→          <DialogHeader><DialogTitle className="text-destructive">Eliminar Habitación</DialogTitle></DialogHeader>
+  1085→          <p>¿Está seguro de eliminar la habitación <strong>{sel}</strong>?</p>
+  1086→          <p className="text-sm text-muted-foreground">Las reservas futuras serán canceladas.</p>
+  1087→          <DialogFooter>
+  1088→            <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+  1089→            <Button variant="destructive" onClick={handleDelete}>Eliminar</Button>
+  1090→          </DialogFooter>
+  1091→        </DialogContent>
+  1092→      </Dialog>
+  1093→    </div>
+  1094→  );
+  1095→}
+  1096→

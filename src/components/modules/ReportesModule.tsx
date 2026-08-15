@@ -63,7 +63,8 @@ const PIE_COLORS = ['#0F2B28', '#059669', '#F59E0B', '#EF4444', '#3B82F6', '#7C3
 // ==================== KPI CARD ====================
 
 const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; label: string; value: string; sub: string; iconBg: string; iconColor: string }> = {
-  emerald: { borderL: 'border-l-emerald-500', bg: 'bg-emerald-50/40', darkBg: 'bg-emerald-950/20', label: 'text-emerald-400', value: 'text-emerald-200', sub: 'text-emerald-400/50', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-400' },
+  primary: { borderL: 'border-l-primary', bg: 'bg-primary/10', darkBg: 'bg-primary/5', label: 'text-primary', value: 'text-primary', sub: 'text-primary/50', iconBg: 'bg-primary/20', iconColor: 'text-primary' },
+  emerald: { borderL: 'border-l-primary', bg: 'bg-primary/5', darkBg: 'bg-primary/5', label: 'text-primary', value: 'text-primary/70', sub: 'text-primary/50', iconBg: 'bg-primary/20', iconColor: 'text-primary' },
   green: { borderL: 'border-l-green-500', bg: 'bg-green-50/40', darkBg: 'bg-green-950/20', label: 'text-green-400', value: 'text-green-200', sub: 'text-green-400/50', iconBg: 'bg-green-500/20', iconColor: 'text-green-400' },
   red: { borderL: 'border-l-red-500', bg: 'bg-red-50/40', darkBg: 'bg-red-950/20', label: 'text-red-400', value: 'text-red-200', sub: 'text-red-400/50', iconBg: 'bg-red-500/20', iconColor: 'text-red-400' },
   amber: { borderL: 'border-l-amber-500', bg: 'bg-amber-50/40', darkBg: 'bg-amber-950/20', label: 'text-amber-400', value: 'text-amber-200', sub: 'text-amber-400/50', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-400' },
@@ -86,7 +87,7 @@ interface KpiProps {
 }
 
 function KpiCard({ label, value, icon, colorFamily, tooltip, subtext, trend, onClick }: KpiProps) {
-  const c = KPI_COLORS[colorFamily] || KPI_COLORS.emerald;
+  const c = KPI_COLORS[colorFamily] || KPI_COLORS.primary;
   const card = (
     <div
       className={`relative overflow-hidden rounded-xl border-l-[3px] ${c.borderL} ${c.bg} ${c.darkBg} p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive ${onClick ? 'cursor-pointer group' : ''}`}
@@ -99,13 +100,13 @@ function KpiCard({ label, value, icon, colorFamily, tooltip, subtext, trend, onC
           {trend && (
             <div className="flex items-center gap-1 mt-1">
               {trend.value > 0 ? (
-                <ArrowUpRight className="w-3 h-3 text-[#059669]" />
+                <ArrowUpRight className="w-3 h-3 text-primary" />
               ) : trend.value < 0 ? (
                 <ArrowDownRight className="w-3 h-3 text-[#EF4444]" />
               ) : (
                 <Minus className="w-3 h-3 text-muted-foreground" />
               )}
-              <span className={`text-[11px] font-medium ${trend.value > 0 ? 'text-[#059669]' : trend.value < 0 ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
+              <span className={`text-[11px] font-medium ${trend.value > 0 ? 'text-primary' : trend.value < 0 ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
                 {Math.abs(trend.value)}%
               </span>
               <span className="text-[11px] text-muted-foreground hidden sm:inline">{trend.label}</span>
@@ -173,12 +174,12 @@ function ProgressKpi({ label, value, max, color = 'bg-primary', suffix = '%', de
  */
 function ReportTabHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-emerald-800/30 bg-teal-950/10 px-4 py-3 flex items-center gap-3">
-      <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+    <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-teal-950/10 px-4 py-3 flex items-center gap-3">
+      <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center text-primary shrink-0">
         {icon}
       </div>
       <div className="min-w-0">
-        <h3 className="text-base font-semibold text-emerald-400 truncate">{title}</h3>
+        <h3 className="text-base font-semibold text-primary truncate">{title}</h3>
         <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
       </div>
     </div>
@@ -196,7 +197,7 @@ function SummaryCard({ icon, label, value, colorFamily, trend }: {
   colorFamily: string;
   trend?: { dir: 'up' | 'down' | 'flat'; pct: number };
 }) {
-  const c = KPI_COLORS[colorFamily] || KPI_COLORS.emerald;
+  const c = KPI_COLORS[colorFamily] || KPI_COLORS.primary;
   return (
     <div className={`rounded-xl border-l-[3px] ${c.borderL} ${c.bg} ${c.darkBg} p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive`}>
       <div className="flex items-start justify-between">
@@ -211,13 +212,13 @@ function SummaryCard({ icon, label, value, colorFamily, trend }: {
       {trend && (
         <div className="flex items-center gap-1 mt-2 shrink-0">
           {trend.dir === 'up' ? (
-            <ArrowUpRight className="w-3.5 h-3.5 text-[#059669]" />
+            <ArrowUpRight className="w-3.5 h-3.5 text-primary" />
           ) : trend.dir === 'down' ? (
             <ArrowDownRight className="w-3.5 h-3.5 text-[#EF4444]" />
           ) : (
             <Minus className="w-3.5 h-3.5 text-muted-foreground" />
           )}
-          <span className={`text-xs font-semibold ${trend.dir === 'up' ? 'text-[#059669]' : trend.dir === 'down' ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
+          <span className={`text-xs font-semibold ${trend.dir === 'up' ? 'text-primary' : trend.dir === 'down' ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
             {trend.pct}%
           </span>
         </div>
@@ -236,7 +237,7 @@ function SummaryCard({ icon, label, value, colorFamily, trend }: {
  */
 function OccupancyBadge({ pct }: { pct: number }) {
   const cls = pct > 80
-    ? 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40'
+    ? 'bg-emerald-900/60 text-emerald-300 border-primary/40'
     : pct >= 50
       ? 'bg-amber-900/60 text-amber-300 border-amber-700/40'
       : 'bg-red-900/60 text-red-300 border-red-700/40';
@@ -984,7 +985,7 @@ export default function ReportesModule() {
               size="sm"
               variant="outline"
               onClick={handleExportCSV}
-              className="text-xs sm:text-sm gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors"
+              className="text-xs sm:text-sm gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
               Exportar CSV
@@ -993,7 +994,7 @@ export default function ReportesModule() {
               size="sm"
               variant="outline"
               onClick={handleExportPDF}
-              className="text-xs sm:text-sm gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors"
+              className="text-xs sm:text-sm gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors"
             >
               <FileDown className="w-3.5 h-3.5" />
               Exportar PDF
@@ -1002,7 +1003,7 @@ export default function ReportesModule() {
               size="sm"
               variant="outline"
               onClick={() => window.print()}
-              className="text-xs sm:text-sm gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors"
+              className="text-xs sm:text-sm gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors"
             >
               <Printer className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Imprimir</span>
@@ -1035,7 +1036,7 @@ export default function ReportesModule() {
           label="Ganancia Neta"
           value={formatMoneda(gananciaNeta)}
           icon={<TrendingUp className="w-5 h-5" />}
-          colorFamily={gananciaNeta >= 0 ? 'emerald' : 'red'}
+          colorFamily={gananciaNeta >= 0 ? 'primary' : 'red'}
           tooltip="Ingresos menos gastos. Margen de rentabilidad."
           trend={{ value: trendPct(gananciaNeta, prevGanancia), label: 'vs periodo anterior' }}
         />
@@ -1091,13 +1092,13 @@ export default function ReportesModule() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <div className="flex justify-center overflow-x-auto -mx-1 px-1">
           <TabsList className="flex flex-nowrap h-auto gap-0.5 sm:gap-1 min-w-max bg-muted/50">
-            <TabsTrigger value="financiero" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><DollarSign className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Financiero</span></TabsTrigger>
-            <TabsTrigger value="gastos" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><TrendingDown className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Gastos</span></TabsTrigger>
-            <TabsTrigger value="auditoria" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><FileText className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Auditoría</span></TabsTrigger>
-            <TabsTrigger value="historial-caja" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><Wallet className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Caja</span></TabsTrigger>
-            <TabsTrigger value="habitaciones" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><BedDouble className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Habitaciones</span></TabsTrigger>
-            <TabsTrigger value="clientes" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><Users className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Clientes</span></TabsTrigger>
-            <TabsTrigger value="empleados" className="data-[state=active]:bg-[#0F2B28] data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><UserCog className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Empleados</span></TabsTrigger>
+            <TabsTrigger value="financiero" className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><DollarSign className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Financiero</span></TabsTrigger>
+            <TabsTrigger value="gastos" className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><TrendingDown className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Gastos</span></TabsTrigger>
+            <TabsTrigger value="auditoria" className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><FileText className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Auditoría</span></TabsTrigger>
+            <TabsTrigger value="historial-caja" className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><Wallet className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Caja</span></TabsTrigger>
+            <TabsTrigger value="habitaciones" className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><BedDouble className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Habitaciones</span></TabsTrigger>
+            <TabsTrigger value="clientes" className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><Users className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Clientes</span></TabsTrigger>
+            <TabsTrigger value="empleados" className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><UserCog className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Empleados</span></TabsTrigger>
           </TabsList>
         </div>
 
@@ -1115,7 +1116,7 @@ export default function ReportesModule() {
               size="icon"
               variant={showFinChart ? 'default' : 'outline'}
               onClick={() => setShowFinChart(!showFinChart)}
-              className={`shrink-0 h-9 w-9 transition-all ${showFinChart ? 'bg-[#0F2B28] text-white hover:bg-[#0F2B28]/90' : 'hover:bg-[#0F2B28] hover:text-white'}`}
+              className={`shrink-0 h-9 w-9 transition-all ${showFinChart ? 'bg-primary text-white hover:bg-primary/90' : 'hover:bg-primary hover:text-white'}`}
               aria-label={showFinChart ? 'Ocultar gráfico' : 'Mostrar gráfico'}
             >
               <BarChart3 className="w-4 h-4" />
@@ -1159,8 +1160,8 @@ export default function ReportesModule() {
                           if (!active || !payload?.length) return null;
                           return (
                             <div className="bg-card border border-border rounded-lg shadow-lg px-3 py-2 text-sm">
-                              <p className="font-medium text-emerald-400">{label}</p>
-                              <p className="text-[#059669] font-semibold">{formatMoneda(payload[0].value as number)}</p>
+                              <p className="font-medium text-primary">{label}</p>
+                              <p className="text-primary font-semibold">{formatMoneda(payload[0].value as number)}</p>
                             </div>
                           );
                         }}
@@ -1199,7 +1200,7 @@ export default function ReportesModule() {
               icon={<Wallet className="w-5 h-5" />}
               label="Balance Neto"
               value={formatMoneda(gananciaNeta)}
-              colorFamily="emerald"
+              colorFamily="primary"
               trend={prevGanancia !== 0 ? { dir: trendPct(gananciaNeta, prevGanancia) > 0 ? 'up' : trendPct(gananciaNeta, prevGanancia) < 0 ? 'down' : 'flat', pct: Math.abs(trendPct(gananciaNeta, prevGanancia)) } : undefined}
             />
           </div>
@@ -1294,7 +1295,7 @@ export default function ReportesModule() {
               size="icon"
               variant={showGastoChart ? 'default' : 'outline'}
               onClick={() => setShowGastoChart(!showGastoChart)}
-              className={`shrink-0 h-9 w-9 transition-all ${showGastoChart ? 'bg-[#0F2B28] text-white hover:bg-[#0F2B28]/90' : 'hover:bg-[#0F2B28] hover:text-white'}`}
+              className={`shrink-0 h-9 w-9 transition-all ${showGastoChart ? 'bg-primary text-white hover:bg-primary/90' : 'hover:bg-primary hover:text-white'}`}
               aria-label={showGastoChart ? 'Ocultar gráfico' : 'Mostrar gráfico'}
             >
               <BarChart3 className="w-4 h-4" />
@@ -1333,7 +1334,7 @@ export default function ReportesModule() {
                           const pct = totalGastos > 0 ? Math.round((data.value / totalGastos) * 100) : 0;
                           return (
                             <div className="bg-card border border-border rounded-lg shadow-lg px-3 py-2 text-sm">
-                              <p className="font-medium text-emerald-400">{data.name}</p>
+                              <p className="font-medium text-primary">{data.name}</p>
                               <p className="text-[#EF4444] font-semibold">{formatMoneda(data.value)} ({pct}%)</p>
                             </div>
                           );
@@ -1362,7 +1363,7 @@ export default function ReportesModule() {
                   {/* Center total label */}
                   <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</p>
-                    <p className="text-base sm:text-lg font-bold text-emerald-400">{formatMoneda(totalGastos)}</p>
+                    <p className="text-base sm:text-lg font-bold text-primary">{formatMoneda(totalGastos)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1388,7 +1389,7 @@ export default function ReportesModule() {
               icon={<Wallet className="w-5 h-5" />}
               label="Promedio por Gasto"
               value={formatMoneda(gastosEnPeriodo.length > 0 ? Math.round(totalGastos / gastosEnPeriodo.length) : 0)}
-              colorFamily="emerald"
+              colorFamily="primary"
             />
           </div>
 
@@ -1733,7 +1734,7 @@ export default function ReportesModule() {
               size="icon"
               variant={showHabChart ? 'default' : 'outline'}
               onClick={() => setShowHabChart(!showHabChart)}
-              className={`shrink-0 h-9 w-9 transition-all ${showHabChart ? 'bg-[#0F2B28] text-white hover:bg-[#0F2B28]/90' : 'hover:bg-[#0F2B28] hover:text-white'}`}
+              className={`shrink-0 h-9 w-9 transition-all ${showHabChart ? 'bg-primary text-white hover:bg-primary/90' : 'hover:bg-primary hover:text-white'}`}
               aria-label={showHabChart ? 'Ocultar gráfico' : 'Mostrar gráfico'}
             >
               <BarChart3 className="w-4 h-4" />
@@ -1773,7 +1774,7 @@ export default function ReportesModule() {
                           const data = payload[0].payload;
                           return (
                             <div className="bg-card border border-border rounded-lg shadow-lg px-3 py-2 text-sm">
-                              <p className="font-medium text-emerald-400">{label}</p>
+                              <p className="font-medium text-primary">{label}</p>
                               <p className="font-semibold">{data.occupied} de {data.total} hab. ({data.occupancy}%)</p>
                             </div>
                           );
@@ -1806,7 +1807,7 @@ export default function ReportesModule() {
               icon={<Moon className="w-5 h-5" />}
               label="Total Noches Vendidas"
               value={nochesVendidas}
-              colorFamily="emerald"
+              colorFamily="primary"
             />
             <SummaryCard
               icon={<DollarSign className="w-5 h-5" />}
@@ -1819,7 +1820,7 @@ export default function ReportesModule() {
           {/* Estado actual — Facturacion KPI style */}
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3">
             {[
-              { label: 'Total', value: habResumen.total, colorFamily: 'emerald', icon: <BedDouble className="w-4 h-4" /> },
+              { label: 'Total', value: habResumen.total, colorFamily: 'primary', icon: <BedDouble className="w-4 h-4" /> },
               { label: 'Disponible', value: habResumen.disponibles, colorFamily: 'green', icon: <BedDouble className="w-4 h-4" /> },
               { label: 'Ocupada', value: habResumen.ocupadas, colorFamily: 'red', icon: <BedDouble className="w-4 h-4" /> },
               { label: 'Reservada', value: habResumen.reservadas, colorFamily: 'amber', icon: <CalendarDays className="w-4 h-4" /> },
@@ -1827,7 +1828,7 @@ export default function ReportesModule() {
               { label: 'Mantenim.', value: habResumen.mantenimiento, colorFamily: 'amber', icon: <TrendingDown className="w-4 h-4" /> },
               { label: 'Fuera serv.', value: habResumen.fueraServicio, colorFamily: 'blue', icon: <TrendingDown className="w-4 h-4" /> },
             ].map(item => {
-              const c = KPI_COLORS[item.colorFamily] || KPI_COLORS.emerald;
+              const c = KPI_COLORS[item.colorFamily] || KPI_COLORS.primary;
               return (
                 <div key={item.label} className={`rounded-xl border-l-[3px] ${c.borderL} ${c.bg} ${c.darkBg} p-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive`}>
                   <div className="flex items-start justify-between">
@@ -1878,7 +1879,7 @@ export default function ReportesModule() {
                   {habResumen.habs.map(h => {
                     const pct = ocupacionPorHabitacion[h.numero] || 0;
                     return (
-                      <TableRow key={h.numero} className="hover:bg-emerald-900/20 transition-colors">
+                      <TableRow key={h.numero} className="hover:bg-primary/10 transition-colors">
                         <TableCell className="text-center font-medium">{h.numero}</TableCell>
                         <TableCell className="text-center text-xs sm:text-sm">{h.tipo}</TableCell>
                         <TableCell className="text-center hidden sm:table-cell text-xs sm:text-sm">{h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</TableCell>
@@ -1913,7 +1914,7 @@ export default function ReportesModule() {
               icon={<Users className="w-5 h-5" />}
               label="Total Clientes"
               value={clientes.length}
-              colorFamily="emerald"
+              colorFamily="primary"
             />
             <SummaryCard
               icon={<TrendingUp className="w-5 h-5" />}
@@ -1931,7 +1932,7 @@ export default function ReportesModule() {
 
           {/* Top customer highlight */}
           {topCliente && (
-            <Card className="relative overflow-hidden border-2 border-emerald-500/30 bg-teal-950/10">
+            <Card className="relative overflow-hidden border-2 border-primary/30 bg-teal-950/10">
               <CardContent className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#059669] flex items-center justify-center text-white shadow-md shrink-0">
@@ -1939,7 +1940,7 @@ export default function ReportesModule() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Cliente destacado</p>
-                    <h4 className="text-lg font-bold text-emerald-400 truncate">{topCliente.nombre}</h4>
+                    <h4 className="text-lg font-bold text-primary truncate">{topCliente.nombre}</h4>
                     <p className="text-xs text-muted-foreground">
                       {topCliente.cantidadEstadias} estadía{topCliente.cantidadEstadias !== 1 ? 's' : ''}
                       {topCliente.ultimaVisita !== '—' && ` · última visita ${formatFecha(topCliente.ultimaVisita)}`}
@@ -1948,7 +1949,7 @@ export default function ReportesModule() {
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total gastado</p>
-                  <p className="text-2xl font-extrabold text-emerald-400 tabular-nums">{formatMoneda(topCliente.totalGastado)}</p>
+                  <p className="text-2xl font-extrabold text-primary tabular-nums">{formatMoneda(topCliente.totalGastado)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -2012,7 +2013,7 @@ export default function ReportesModule() {
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No hay clientes que coincidan.</TableCell></TableRow>
                   ) : (
                     clientesFrecuentes.map((c, i) => (
-                      <TableRow key={c.id} className={`${i % 2 === 1 ? 'bg-emerald-900/10' : ''} hover:bg-emerald-900/30 transition-colors`}>
+                      <TableRow key={c.id} className={`${i % 2 === 1 ? 'bg-primary/5' : ''} hover:bg-primary/10 transition-colors`}>
                         <TableCell className="text-center font-medium text-xs sm:text-sm">
                           <span className="inline-flex items-center gap-1.5">
                             {i === 0 && <Crown className="w-3.5 h-3.5 text-amber-300" />}
@@ -2021,7 +2022,7 @@ export default function ReportesModule() {
                         </TableCell>
                         <TableCell className="text-center hidden sm:table-cell text-xs sm:text-sm font-mono">{c.dni || '—'}</TableCell>
                         <TableCell className="text-center"><Badge variant="secondary" className="text-xs">{c.cantidadEstadias}</Badge></TableCell>
-                        <TableCell className="text-center font-bold text-emerald-400 hidden sm:table-cell text-xs sm:text-sm tabular-nums">{formatMoneda(c.totalGastado)}</TableCell>
+                        <TableCell className="text-center font-bold text-primary hidden sm:table-cell text-xs sm:text-sm tabular-nums">{formatMoneda(c.totalGastado)}</TableCell>
                         <TableCell className="text-center hidden md:table-cell text-xs sm:text-sm font-mono">{c.ultimaVisita !== '—' ? formatFecha(c.ultimaVisita) : '—'}</TableCell>
                       </TableRow>
                     ))

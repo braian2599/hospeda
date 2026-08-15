@@ -209,7 +209,7 @@ function DateRangePickerInline({
                     size="sm"
                     onClick={handleConfirm}
                     disabled={!localRange.from}
-                    className="bg-[#059669] hover:bg-[#047857] text-white text-xs h-8"
+                    className="bg-primary hover:bg-primary/80 text-white text-xs h-8"
                   >
                     Confirmar fechas
                   </Button>
@@ -230,7 +230,7 @@ const s = (n: number) => n !== 1 ? 's' : '';
 // formatFecha and formatMoney imported from @/lib/format
 
 const estadoReservaBadge: Record<string, string> = {
- Confirmada: 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40',
+ Confirmada: 'bg-emerald-900/60 text-emerald-300 border-primary/40',
  Cancelada: 'bg-red-900/60 text-red-300 border-red-700/40',
  'Check-In realizado': 'bg-sky-900/60 text-sky-300 border-sky-700/40',
  'Check-Out realizado': 'bg-slate-800/60 text-slate-300 border-slate-600/40',
@@ -239,7 +239,7 @@ const estadoReservaBadge: Record<string, string> = {
 const estadoPagoBadge: Record<string, string> = {
  Pendiente: 'bg-amber-900/60 text-amber-300 border-amber-700/40',
  Parcial: 'bg-orange-900/60 text-orange-300 border-orange-700/40',
- Pagado: 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40',
+ Pagado: 'bg-emerald-900/60 text-emerald-300 border-primary/40',
 };
 
 const estadosReserva = ['Confirmada', 'Cancelada', 'Check-In realizado', 'Check-Out realizado'];
@@ -715,7 +715,7 @@ export default function ReservasModule() {
 
  const getStatusDotColor = (estado: string) => {
  switch (estado) {
-   case 'Confirmada': return 'bg-[#10B981]';
+   case 'Confirmada': return 'bg-primary';
    case 'Check-In realizado': return 'bg-[#3B82F6]';
    case 'Check-Out realizado': return 'bg-[#F59E0B]';
    case 'Cancelada': return 'bg-[#EF4444]';
@@ -1250,14 +1250,14 @@ export default function ReservasModule() {
 
  {/* ==================== TODAY'S ACTIVITY SUMMARY ==================== */}
  <div className="grid grid-cols-3 gap-3 card-grid-stagger">
-   <div className="relative rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   <div className="relative rounded-xl border-l-[3px] border-l-primary bg-primary/5 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
      <div className="flex items-start justify-between">
        <div className="space-y-1">
-         <p className="text-xs font-medium text-emerald-400">Check-ins hoy</p>
-         <p className="text-xl font-bold text-emerald-200">{todayActivity.checkinsHoy}</p>
+         <p className="text-xs font-medium text-primary">Check-ins hoy</p>
+         <p className="text-xl font-bold text-primary">{todayActivity.checkinsHoy}</p>
        </div>
-       <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-         <TrendingUp className="w-5 h-5 text-emerald-400" />
+       <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+         <TrendingUp className="w-5 h-5 text-primary" />
        </div>
      </div>
    </div>
@@ -1330,7 +1330,7 @@ export default function ReservasModule() {
  <Button variant="outline" size="sm" onClick={() => { const today = new Date().toLocaleDateString('en-CA'); setFiltroEstado('todos'); setFiltroTipo('todos'); setFiltroEstadoPago('todos'); setFiltroDesde(today); setFiltroHasta(today); setPage(1); }}>
  <XCircle className="w-3.5 h-3.5 mr-1" />Limpiar
  </Button>
- <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+ <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors" onClick={() => {
    const headers = ['Huésped', 'DNI', 'Habitación', 'Check-in', 'Check-out', 'Estado', 'Total'];
    const rows = filteredReservas.map(r => [
      r.huesped || '',
@@ -1382,14 +1382,14 @@ export default function ReservasModule() {
      <p className="font-semibold text-sm truncate">{r.huesped}</p>
      <p className="text-xs text-muted-foreground">{r.dni}</p>
    </div>
-   <div className="flex items-center gap-1 shrink-0 bg-[#0F2B28]/8 rounded-md px-2 py-1">
-     <BedDouble className="w-3.5 h-3.5 text-emerald-400" />
-     <span className="text-xs font-bold text-emerald-400 font-mono">{r.habitacion}</span>
+   <div className="flex items-center gap-1 shrink-0 bg-primary/8 rounded-md px-2 py-1">
+     <BedDouble className="w-3.5 h-3.5 text-primary" />
+     <span className="text-xs font-bold text-primary font-mono">{r.habitacion}</span>
    </div>
  </div>
  {/* Row 2: Dates with icons */}
  <div className="flex items-center gap-2 text-xs mt-2">
-   <div className="flex items-center gap-1 text-[#10B981]">
+   <div className="flex items-center gap-1 text-primary">
      <CalendarDays className="w-3 h-3 shrink-0" />
      <span className="font-medium">{formatFecha(r.checkin)}</span>
    </div>
@@ -1419,7 +1419,7 @@ export default function ReservasModule() {
        <div
          className={cn(
            'h-full rounded-full transition-all duration-500',
-           payProgress >= 80 ? 'bg-[#10B981]' : payProgress >= 40 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'
+           payProgress >= 80 ? 'bg-primary' : payProgress >= 40 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'
          )}
          style={{ width: `${payProgress}%` }}
        />
@@ -1440,7 +1440,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-[#10B981] hover:bg-[#10B981]/10 hover:text-[#10B981]"
+         className="h-7 text-xs px-2 text-primary hover:bg-primary/10 hover:text-primary"
          disabled={isActionLoading}
          onClick={() => handleQuickCheckIn(r)}
        >
@@ -1525,14 +1525,14 @@ export default function ReservasModule() {
    const payProgress = getPaymentProgress(r);
    const isActionLoading = quickActionLoading === r.id;
    return (
-     <TableRow key={r.id} className="group transition-all duration-150 hover:bg-emerald-900/30 hover:-translate-y-px hover:shadow-sm">
+     <TableRow key={r.id} className="group transition-all duration-150 hover:bg-primary/10 hover:-translate-y-px hover:shadow-sm">
        {/* Status color indicator */}
        <TableCell className="w-1 p-0">
          <div className={cn('w-1 h-full min-h-[20px] rounded-full', getStatusDotColor(r.estado))} />
        </TableCell>
        <TableCell className="font-medium">
          <button
-           className="group-hover:text-emerald-400 transition-colors text-left cursor-pointer"
+           className="group-hover:text-primary transition-colors text-left cursor-pointer"
            onClick={() => openDetalle(r)}
          >
            <div>{r.huesped}</div>
@@ -1546,13 +1546,13 @@ export default function ReservasModule() {
        </TableCell>
        <TableCell>
          <div className="flex items-center gap-1.5">
-           <BedDouble className="w-3.5 h-3.5 text-emerald-400" />
+           <BedDouble className="w-3.5 h-3.5 text-primary" />
            <Badge variant="outline" className="font-mono font-semibold">{r.habitacion}</Badge>
          </div>
        </TableCell>
        <TableCell>
          <div className="flex items-center gap-1 text-xs">
-           <CalendarDays className="w-3 h-3 text-[#10B981] shrink-0" />
+           <CalendarDays className="w-3 h-3 text-primary shrink-0" />
            <span>{formatFecha(r.checkin)}</span>
          </div>
        </TableCell>
@@ -1578,14 +1578,14 @@ export default function ReservasModule() {
                <div
                  className={cn(
                    'h-full rounded-full transition-all duration-500',
-                   payProgress >= 80 ? 'bg-[#10B981]' : payProgress >= 40 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'
+                   payProgress >= 80 ? 'bg-primary' : payProgress >= 40 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'
                  )}
                  style={{ width: `${payProgress}%` }}
                />
              </div>
            </div>
          ) : (
-           <span className="text-[10px] text-[#10B981] font-semibold">✓ Completo</span>
+           <span className="text-[10px] text-primary font-semibold">✓ Completo</span>
          )}
        </TableCell>
        <TableCell className="hidden md:table-cell">
@@ -1603,7 +1603,7 @@ export default function ReservasModule() {
                <Button
                  size="sm"
                  variant="ghost"
-                 className="h-7 text-xs px-2 text-[#10B981] hover:bg-[#10B981]/10 hover:text-[#10B981] opacity-0 group-hover:opacity-100 transition-opacity"
+                 className="h-7 text-xs px-2 text-primary hover:bg-primary/10 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
                  disabled={isActionLoading}
                  onClick={() => handleQuickCheckIn(r)}
                >
@@ -1759,9 +1759,9 @@ export default function ReservasModule() {
  <Separator />
  {/* ─── Resumen financiero ─── */}
  <div className="grid grid-cols-3 gap-3">
- <div className="rounded-xl border-2 border-emerald-700/40 bg-emerald-900/60/60 p-3 text-center">
- <p className="text-xs font-medium text-emerald-300 uppercase tracking-wide mb-1">Total reserva</p>
- <p className="font-bold text-lg text-emerald-300">{formatMoney(calcularTotalReserva(detalleReserva.id))}</p>
+ <div className="rounded-xl border-2 border-primary/30 bg-primary/10 p-3 text-center">
+ <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">Total reserva</p>
+ <p className="font-bold text-lg text-primary">{formatMoney(calcularTotalReserva(detalleReserva.id))}</p>
  </div>
  <div className="rounded-xl border-2 border-sky-700/40 bg-sky-900/30 p-3 text-center">
  <p className="text-xs font-medium text-sky-300 uppercase tracking-wide mb-1">Pagado</p>
@@ -1935,7 +1935,7 @@ export default function ReservasModule() {
  key={hab.numero}
  className={`cursor-pointer transition-all p-3 ${
  isSelected
- ? 'ring-2 ring-[#4ADE80] border-[#4ADE80] bg-emerald-900/60'
+ ? 'ring-2 ring-[#4ADE80] border-[#4ADE80] bg-primary/10'
  : 'hover:bg-muted/50'
  }`}
  onClick={() => selectRoom(hab)}
@@ -1951,10 +1951,10 @@ export default function ReservasModule() {
  )}
  </div>
  {isSelected && (
- <div className="flex items-center gap-3 mt-2 pt-2 border-t border-emerald-700/40/50">
- <span className="text-xs text-emerald-300 font-medium">✓ Seleccionada</span>
+ <div className="flex items-center gap-3 mt-2 pt-2 border-t border-primary/40/50">
+ <span className="text-xs text-primary font-medium">✓ Seleccionada</span>
  <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
- <Label className="text-xs text-emerald-300">Pers.:</Label>
+ <Label className="text-xs text-primary">Pers.:</Label>
  <Input
  type="number"
  min="1"
@@ -1970,7 +1970,7 @@ export default function ReservasModule() {
  </div>
  {tieneNinosDiferenciado && (
  <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
- <Label className="text-xs text-emerald-300">Niños:</Label>
+ <Label className="text-xs text-primary">Niños:</Label>
  <Input
  type="number"
  min="0"
@@ -2046,8 +2046,8 @@ export default function ReservasModule() {
  <div
  className={`grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg border-2 transition-all ${
  isComboSelected
- ? 'border-[#4ADE80] bg-emerald-900/60/50 cursor-default'
- : 'border-transparent hover:border-emerald-700/40 hover:bg-muted/30 cursor-pointer'
+ ? 'border-[#4ADE80] bg-primary/10 cursor-default'
+ : 'border-transparent hover:border-primary/30 hover:bg-muted/30 cursor-pointer'
  }`}
  onClick={() => { if (!isComboSelected) selectCombinacion(sug); }}
  >
@@ -2055,7 +2055,7 @@ export default function ReservasModule() {
  const isFirst = (isSelectedComboRev ? hi === 1 : hi === 0);
  const pVal = isFirst ? (parseInt(form.personas) || 1) : (parseInt(form.personas2) || 1);
  return (
- <Card key={hab.numero} className={`p-3 border-dashed border-emerald-700/40 bg-emerald-900/60/30`}>
+ <Card key={hab.numero} className={`p-3 border-dashed border-primary/40 bg-primary/5`}>
  <div className="flex items-center justify-between">
  <span className="font-bold">{hab.numero}</span>
  <Badge variant="outline">{hab.tipo}</Badge>
@@ -2065,7 +2065,7 @@ export default function ReservasModule() {
  </div>
  {isComboSelected && (
  <div className="flex items-center gap-1.5 mt-2" onClick={e => e.stopPropagation()}>
- <Label className="text-xs text-emerald-300">Pers.:</Label>
+ <Label className="text-xs text-primary">Pers.:</Label>
  <Input
  type="number"
  min="1"
@@ -2089,13 +2089,13 @@ export default function ReservasModule() {
  })}
  </div>
  <div className="flex items-center justify-center gap-2">
- <Badge className={isComboSelected ? 'bg-[#4ADE80] text-white' : 'bg-emerald-900/60 text-emerald-300 border-emerald-700/40'}>
+ <Badge className={isComboSelected ? 'bg-[#4ADE80] text-white' : 'bg-primary/10 text-primary border-primary/40'}>
  {isComboSelected
  ? `Personas: ${(parseInt(form.personas) || 1) + (parseInt(form.personas2) || 1)} / ${sug.capacidadTotal}`
  : `Total combinado: ${sug.capacidadTotal} personas`
  }
  </Badge>
- {isComboSelected && <span className="text-xs text-emerald-300 font-medium">✓ Seleccionada</span>}
+ {isComboSelected && <span className="text-xs text-primary font-medium">✓ Seleccionada</span>}
  </div>
  {i < sugerenciasCombinacion.length - 1 && <Separator />}
  </div>
@@ -2117,8 +2117,8 @@ export default function ReservasModule() {
  </div>
  )}
  {computed.desglose.tieneAcompanante && (
- <div className="flex items-center gap-1.5 text-xs text-emerald-300">
- <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-700/40 text-emerald-300">{computed.desglose.acompananteEtiqueta}</Badge>
+ <div className="flex items-center gap-1.5 text-xs text-primary">
+ <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary">{computed.desglose.acompananteEtiqueta}</Badge>
  <span>{computed.desglose.acompananteCantidad > 1 ? `${computed.desglose.acompananteCantidad} sin cargo` : 'sin cargo'}</span>
  {computed.desglose.acompananteCantidad > 0 && <span className="text-muted-foreground">→ Hab. {promocionesEfectivas?.acompananteSinCargo?.habitacionAsignada || 'por asignar'}</span>}
  </div>
@@ -2250,12 +2250,12 @@ export default function ReservasModule() {
      {computed.recargo > 0 && (
        <div className="flex justify-between items-center py-1 text-[13px]">
          <span className="text-slate-400">Recargo por cuotas</span>
-         <span className="font-semibold text-[#059669]">+ {formatMoney(computed.recargo)}</span>
+         <span className="font-semibold text-primary">+ {formatMoney(computed.recargo)}</span>
        </div>
      )}
 
      {/* Total: barra oscura */}
-     <div className="flex justify-between items-center py-3 px-4 bg-[#0F2B28] rounded-lg my-2">
+     <div className="flex justify-between items-center py-3 px-4 bg-primary rounded-lg my-2">
        <span className="text-[13px] font-medium text-white/70">
          {form.reservaMultiple ? 'Total combinado' : 'Total'}
        </span>
@@ -2373,7 +2373,7 @@ export default function ReservasModule() {
            !form.habitacion || !form.huesped.trim() || !form.dni.trim() || !form.telefono.trim() ||
            (form.reservaMultiple && !form.habitacion2)
          }
-         className="min-w-[200px] bg-[#059669] hover:bg-[#047857] text-white text-[13px] font-semibold"
+         className="min-w-[200px] bg-primary hover:bg-primary/80 text-white text-[13px] font-semibold"
        >
          {editingId ? 'Guardar cambios' : form.reservaMultiple ? 'Crear reservas múltiples' : 'Crear reserva'}
          <span className="ml-2 font-bold">({formatMoney(totalAPagar)})</span>

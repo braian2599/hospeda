@@ -182,11 +182,11 @@ export default function SmsVerificationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden">
         {/* Header with gradient */}
-        <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent px-6 pt-6 pb-4">
+        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pt-6 pb-4">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                <Smartphone className="w-5 h-5 text-emerald-400" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Smartphone className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <DialogTitle className="text-xl">
@@ -354,8 +354,8 @@ export default function SmsVerificationDialog({
           {/* ── STEP 3: Verified ── */}
           {step === 'verified' && (
             <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-emerald-900/30 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-primary" />
               </div>
               <div>
                 <p className="font-semibold text-lg">Verificación exitosa</p>

@@ -262,7 +262,7 @@ export default function SuperAdminDashboard() {
           value={data?.generales.tenantsActivos?.toLocaleString('es-AR') ?? '—'}
           subtitle={`${data?.generales.tenantsInactivos ?? 0} inactivos`}
           icon={Hotel}
-          iconColor="bg-emerald-900/30 text-emerald-400"
+          iconColor="bg-primary/10 text-primary"
           loading={loading}
         />
         <StatCard
@@ -274,7 +274,7 @@ export default function SuperAdminDashboard() {
               : undefined
           }
           icon={DollarSign}
-          iconColor="bg-emerald-900/30 text-emerald-400"
+          iconColor="bg-primary/10 text-primary"
           loading={loading}
         />
         <StatCard
@@ -364,7 +364,7 @@ export default function SuperAdminDashboard() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-emerald-500" />
+            <DollarSign className="w-4 h-4 text-primary" />
             <CardTitle className="text-base">Últimos pagos</CardTitle>
           </div>
         </CardHeader>

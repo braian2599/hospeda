@@ -89,7 +89,7 @@ export class ModuleErrorBoundary extends React.Component<Props, State> {
               <Button
                 onClick={this.handleGoDashboard}
                 size="sm"
-                className="bg-[#0F2B28] hover:bg-[#0F2B28]/90"
+                className="bg-primary hover:bg-primary/90"
               >
                 <LayoutDashboard className="w-4 h-4 mr-1" />
                 Ir al Dashboard

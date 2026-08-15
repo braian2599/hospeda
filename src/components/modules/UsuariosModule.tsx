@@ -116,8 +116,8 @@ const ROLES: RoleInfo[] = [
     description: 'Acceso completo a todos los módulos',
     icon: ShieldCheck,
     colorHex: '#0F2B28',
-    badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    borderClass: 'border-l-emerald-700',
+    badgeClass: 'bg-primary/10 text-primary border-primary/30',
+    borderClass: 'border-l-primary',
     avatarGradient: 'from-[#0F2B28] to-[#1a4a44]',
   },
   {
@@ -493,36 +493,36 @@ export default function UsuariosModule() {
       {/* ═══════════ STATS SUMMARY ═══════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Total Usuarios */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-emerald-500 bg-emerald-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-primary bg-primary/5 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Usuarios</p>
-                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-2xl font-bold text-emerald-400" />
+                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-2xl font-bold text-primary" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                <Users className="w-5 h-5 text-emerald-400" />
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* En línea (real-time) */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-emerald-500 bg-emerald-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-primary bg-primary/5 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">En línea</p>
                 <div className="flex items-baseline gap-2">
-                  <AnimatedNumber value={onlineCount} format={n => String(Math.round(n))} className="text-2xl font-bold text-emerald-400" />
+                  <AnimatedNumber value={onlineCount} format={n => String(Math.round(n))} className="text-2xl font-bold text-primary" />
                   <span className="text-[10px] text-muted-foreground">/ {stats.activos}</span>
                 </div>
                 {!presenceLoaded && (
                   <p className="text-[10px] text-muted-foreground animate-pulse">Detectando...</p>
                 )}
               </div>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${onlineCount > 0 ? 'bg-emerald-500/20' : 'bg-emerald-100'}`}>
-                <Activity className={`w-5 h-5 ${onlineCount > 0 ? 'text-emerald-500' : 'text-emerald-600'}`} />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${onlineCount > 0 ? 'bg-primary/20' : 'bg-primary/10'}`}>
+                <Activity className={`w-5 h-5 ${onlineCount > 0 ? 'text-primary' : 'text-primary'}`} />
               </div>
             </div>
           </CardContent>
@@ -538,7 +538,7 @@ export default function UsuariosModule() {
                   <span className="text-amber-700 flex items-center gap-0.5">
                     <Crown className="w-2.5 h-2.5" />{stats.porRol.owner}
                   </span>
-                  <span className="text-emerald-400 flex items-center gap-0.5">
+                  <span className="text-primary flex items-center gap-0.5">
                     <ShieldCheck className="w-2.5 h-2.5" />{stats.porRol.admin}
                   </span>
                   <span className="text-sky-700 flex items-center gap-0.5">
@@ -704,13 +704,13 @@ export default function UsuariosModule() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-emerald-400" />
+                <Activity className="w-4 h-4 text-primary" />
                 <h3 className="text-sm font-semibold">Actividad reciente</h3>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs gap-1 hover:text-emerald-400"
+                className="h-7 text-xs gap-1 hover:text-primary"
                 onClick={() => setModulo('reportes')}
               >
                 Ver todo <ArrowRight className="w-3 h-3" />
@@ -720,9 +720,9 @@ export default function UsuariosModule() {
               {recentActivity.map((a, idx) => (
                 <div key={a.id} className="flex items-start gap-3 text-xs">
                   <div className="flex flex-col items-center self-stretch">
-                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${idx === 0 ? 'bg-[#0F2B28]' : 'bg-[#0F2B28]/40'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${idx === 0 ? 'bg-primary' : 'bg-primary/40'}`} />
                     {idx < recentActivity.length - 1 && (
-                      <div className="w-px flex-1 bg-emerald-500/20 mt-1" />
+                      <div className="w-px flex-1 bg-primary/20 mt-1" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0 pb-1">
@@ -884,7 +884,7 @@ export default function UsuariosModule() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Mail className="w-5 h-5 text-emerald-400" />
+              <Mail className="w-5 h-5 text-primary" />
               Invitar usuario
             </DialogTitle>
             <DialogDescription>
@@ -990,7 +990,7 @@ export default function UsuariosModule() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-emerald-400" />
+              <KeyRound className="w-5 h-5 text-primary" />
               Restablecer contraseña
             </DialogTitle>
             <DialogDescription>

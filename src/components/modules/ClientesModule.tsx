@@ -58,10 +58,10 @@ interface LoyaltyInfo {
 const getLoyaltyInfo = (stayCount: number): LoyaltyInfo => {
   if (stayCount >= 7) return {
     level: 'VIP',
-    color: 'bg-emerald-100',
-    textColor: 'text-emerald-700',
-    borderColor: 'border-l-emerald-500',
-    icon: <Star className="w-3 h-3 fill-emerald-500 text-emerald-500" />,
+    color: 'bg-primary/10',
+    textColor: 'text-primary',
+    borderColor: 'border-l-primary',
+    icon: <Star className="w-3 h-3 fill-primary text-primary" />,
   };
   if (stayCount >= 4) return {
     level: 'Frecuente',
@@ -215,7 +215,7 @@ export default function ClientesModule() {
     <div className="space-y-6">
       <ModuleHeader icon={Users} title="Clientes" subtitle="Base de huéspedes y datos de contacto">
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-[#0F2B28] hover:text-white hover:border-[#0F2B28] transition-colors" onClick={() => {
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors" onClick={() => {
             const headers = ['Nombre', 'DNI', 'Email', 'Teléfono', 'Dirección'];
             const rows = lista.map(c => [
               c.nombre || '',
@@ -266,15 +266,15 @@ export default function ClientesModule() {
         </Card>
 
         {/* Nuevos este Mes */}
-        <Card className="rounded-xl border-l-[3px] border-l-emerald-500 bg-emerald-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-primary bg-primary/5 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-emerald-400">Nuevos este Mes</p>
-                <AnimatedNumber value={stats.thisMonth} format={n => String(Math.round(n))} className="text-xl font-bold text-emerald-200" />
+                <p className="text-xs font-medium text-primary">Nuevos este Mes</p>
+                <AnimatedNumber value={stats.thisMonth} format={n => String(Math.round(n))} className="text-xl font-bold text-primary" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <UserPlus className="w-5 h-5 text-emerald-400" />
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                <UserPlus className="w-5 h-5 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -361,7 +361,7 @@ export default function ClientesModule() {
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <h4 className="font-semibold text-sm truncate group-hover:text-emerald-400 transition-colors">{c.nombre}</h4>
+                          <h4 className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{c.nombre}</h4>
                           {/* Loyalty badge */}
                           <Badge className={`${loyalty.color} ${loyalty.textColor} border-0 text-[10px] px-1.5 py-0 h-auto gap-0.5 font-semibold`}>
                             {loyalty.icon}{loyalty.level}
@@ -394,7 +394,7 @@ export default function ClientesModule() {
                         {/* Bottom row: stays count + last stay + actions */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <span className="text-xs font-mono font-semibold text-emerald-400">
+                            <span className="text-xs font-mono font-semibold text-primary">
                               {stayCount} {stayCount === 1 ? 'estadía' : 'estadías'}
                             </span>
                             {lastCheckout && (
@@ -502,7 +502,7 @@ export default function ClientesModule() {
                           {selectedLoyalty.icon}{selectedLoyalty.level}
                         </Badge>
                       </div>
-                      <Badge variant="outline" className="bg-emerald-950/30 border-emerald-700/40 text-emerald-300 mt-1 text-xs">
+                      <Badge variant="outline" className="bg-primary/5 border-primary/30 text-primary mt-1 text-xs">
                         <Clock className="w-3 h-3 mr-1" /> Cliente desde: {formatFecha(selected.fechaCreacion)}
                       </Badge>
                     </div>
@@ -544,33 +544,33 @@ export default function ClientesModule() {
 
                   {/* Customer Stats Summary (enhanced) */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <Card className="p-3 bg-green-950/20 border-emerald-700/40/40 border-l-[3px] border-l-emerald-700">
+                    <Card className="p-3 bg-primary/5 border-primary/30 border-l-[3px] border-l-primary">
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-emerald-300" />
+                        <Calendar className="w-4 h-4 text-primary" />
                         <span className="text-xs text-muted-foreground">Total estadías</span>
                       </div>
-                      <AnimatedNumber value={totalEstadias} format={n => String(Math.round(n))} className="font-bold text-lg text-emerald-400 mt-1" />
+                      <AnimatedNumber value={totalEstadias} format={n => String(Math.round(n))} className="font-bold text-lg text-primary mt-1" />
                     </Card>
-                    <Card className="p-3 bg-green-950/20 border-emerald-700/40/40 border-l-[3px] border-l-emerald-400">
+                    <Card className="p-3 bg-primary/5 border-primary/30 border-l-[3px] border-l-primary">
                       <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-emerald-600" />
+                        <DollarSign className="w-4 h-4 text-primary" />
                         <span className="text-xs text-muted-foreground">Total gastado</span>
                       </div>
-                      <AnimatedNumber value={totalGastado} className="font-bold text-lg text-emerald-400 mt-1" />
+                      <AnimatedNumber value={totalGastado} className="font-bold text-lg text-primary mt-1" />
                     </Card>
-                    <Card className="p-3 bg-green-950/20 border-emerald-700/40/40 border-l-[3px] border-l-amber-400">
+                    <Card className="p-3 bg-primary/5 border-primary/30 border-l-[3px] border-l-amber-400">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-amber-600" />
                         <span className="text-xs text-muted-foreground">Promedio/estadía</span>
                       </div>
-                      <AnimatedNumber value={promedioPorEstadia} className="font-bold text-lg text-emerald-400 mt-1" />
+                      <AnimatedNumber value={promedioPorEstadia} className="font-bold text-lg text-primary mt-1" />
                     </Card>
-                    <Card className="p-3 bg-green-950/20 border-emerald-700/40/40 border-l-[3px] border-l-sky-400">
+                    <Card className="p-3 bg-primary/5 border-primary/30 border-l-[3px] border-l-sky-400">
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-sky-600" />
                         <span className="text-xs text-muted-foreground">Duración prom.</span>
                       </div>
-                      <div className="font-bold text-lg text-emerald-400 mt-1">
+                      <div className="font-bold text-lg text-primary mt-1">
                         {avgStayDuration > 0 ? `${avgStayDuration.toFixed(1)} días` : '—'}
                       </div>
                     </Card>
@@ -591,17 +591,17 @@ export default function ClientesModule() {
                               <div key={i} className="flex gap-3">
                                 {/* Timeline line */}
                                 <div className="flex flex-col items-center shrink-0">
-                                  <div className={`w-3 h-3 rounded-full border-2 ${isLast ? 'bg-[#0F2B28] border-[#0F2B28]' : 'bg-white border-[#0F2B28]/40'} mt-1.5`} />
-                                  <div className={`w-0.5 flex-1 ${isLast ? 'bg-transparent' : 'bg-emerald-500/15'}`} />
+                                  <div className={`w-3 h-3 rounded-full border-2 ${isLast ? 'bg-primary border-primary' : 'bg-white border-primary/40'} mt-1.5`} />
+                                  <div className={`w-0.5 flex-1 ${isLast ? 'bg-transparent' : 'bg-primary/15'}`} />
                                 </div>
                                 {/* Timeline content */}
                                 <div className={`flex-1 pb-3 ${isLast ? 'pb-0' : ''}`}>
                                   <div className="rounded-lg border bg-card p-3 shadow-sm hover:shadow-md transition-shadow duration-150">
                                     <div className="flex items-center justify-between mb-1.5">
-                                      <span className="text-xs font-semibold text-emerald-400">
+                                      <span className="text-xs font-semibold text-primary">
                                         Hab. {h.habitacion}
                                       </span>
-                                      <span className="text-xs font-mono font-bold text-emerald-400">
+                                      <span className="text-xs font-mono font-bold text-primary">
                                         {formatMoney(h.gastoTotal)}
                                       </span>
                                     </div>
@@ -617,9 +617,9 @@ export default function ClientesModule() {
                           })}
                       </div>
                       {/* Total row */}
-                      <div className="mt-3 pt-2 border-t border-emerald-700/40/40 flex items-center justify-between text-sm">
-                        <span className="font-semibold text-emerald-400">Total gastado</span>
-                        <span className="font-mono font-bold text-emerald-400">{formatMoney(totalGastado)}</span>
+                      <div className="mt-3 pt-2 border-t border-primary/30 flex items-center justify-between text-sm">
+                        <span className="font-semibold text-primary">Total gastado</span>
+                        <span className="font-mono font-bold text-primary">{formatMoney(totalGastado)}</span>
                       </div>
                     </div>
                   ) : (
@@ -641,7 +641,7 @@ export default function ClientesModule() {
                   <Button onClick={() => {
                     window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { type: 'new-reserva', clienteId: selected.id } }));
                     setModal(null);
-                  }} className="bg-[#0F2B28] hover:bg-[#0F2B28]/90">
+                  }} className="bg-primary hover:bg-primary/90">
                     <Plus className="w-4 h-4 mr-1" /> Crear Reserva
                   </Button>
                   <Button variant="outline" onClick={() => { openEdit(selected.id); }}>Editar</Button>

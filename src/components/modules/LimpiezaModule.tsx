@@ -315,10 +315,10 @@ export default function LimpiezaModule() {
           <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto custom-scroll">
             {porLimpiar.length === 0 ? (
               <div className="text-center py-8">
-                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-emerald-900/60 flex items-center justify-center shadow-sm">
-                  <CheckCircle className="w-7 h-7 text-emerald-300" />
+                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center shadow-sm">
+                  <CheckCircle className="w-7 h-7 text-primary" />
                 </div>
-                <p className="text-sm font-medium text-emerald-300">¡Todo limpio!</p>
+                <p className="text-sm font-medium text-primary">¡Todo limpio!</p>
                 <p className="text-xs text-muted-foreground mt-0.5">No hay habitaciones pendientes.</p>
               </div>
             ) : porLimpiar.map(([num, h], index) => {
@@ -350,7 +350,7 @@ export default function LimpiezaModule() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-sm font-bold text-emerald-400">Hab. {num}</p>
+                          <p className="text-sm font-bold text-primary">Hab. {num}</p>
                           {isHighPriority && (
                             <Badge className="text-[10px] bg-red-900/60 text-red-300 shadow-sm font-semibold">Urgente</Badge>
                           )}
@@ -368,7 +368,7 @@ export default function LimpiezaModule() {
                     </div>
                     <Button
                       size="sm"
-                      className="h-7 text-xs bg-[#059669] hover:bg-[#047857] text-white shadow-sm shrink-0"
+                      className="h-7 text-xs bg-primary hover:bg-primary/80 text-white shadow-sm shrink-0"
                       disabled={markingClean === num}
                       onClick={() => handleMarcarLimpia(num)}
                     >
@@ -422,7 +422,7 @@ export default function LimpiezaModule() {
                       <Wrench className="w-4 h-4 text-red-300" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-emerald-400">Hab. {num}</p>
+                      <p className="text-sm font-bold text-primary">Hab. {num}</p>
                       <p className="text-xs text-red-300 font-medium truncate">{h.problema || 'Sin descripción'}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{h.tipo}</p>
                     </div>
@@ -430,7 +430,7 @@ export default function LimpiezaModule() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 text-xs border-[#059669]/30 text-emerald-300 hover:bg-emerald-900/60 shrink-0"
+                    className="h-7 text-xs border-primary/30 text-primary hover:bg-primary/20 shrink-0"
                     onClick={() => setModalResolver(num)}
                   >
                     <Check className="w-3 h-3 mr-1" />Resolver
@@ -608,11 +608,11 @@ export default function LimpiezaModule() {
                     onClick={() => setSacarDeCaja(true)}
                     className={cn(
                       'flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all',
-                      sacarDeCaja ? 'border-[#4ADE80] bg-emerald-900/60' : 'border-muted hover:border-muted-foreground/30'
+                      sacarDeCaja ? 'border-[#4ADE80] bg-primary/10' : 'border-muted hover:border-muted-foreground/30'
                     )}
                   >
-                    <Wallet className={cn('w-5 h-5', sacarDeCaja ? 'text-emerald-300' : 'text-muted-foreground')} />
-                    <span className={cn('text-xs font-medium', sacarDeCaja ? 'text-emerald-300' : 'text-muted-foreground')}>De caja</span>
+                    <Wallet className={cn('w-5 h-5', sacarDeCaja ? 'text-primary' : 'text-muted-foreground')} />
+                    <span className={cn('text-xs font-medium', sacarDeCaja ? 'text-primary' : 'text-muted-foreground')}>De caja</span>
                     <span className="text-[10px] text-muted-foreground">Sale de la caja del turno</span>
                   </button>
                   <button
@@ -641,7 +641,7 @@ export default function LimpiezaModule() {
             <Button
               onClick={handleResolver}
               disabled={!reparacion.trim() || resolviendo}
-              className="bg-[#059669] hover:bg-[#047857] text-white"
+              className="bg-primary hover:bg-primary/80 text-white"
             >
               {resolviendo ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
               Marcar como Resuelto

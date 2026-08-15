@@ -108,7 +108,7 @@ function getPasswordStrength(pw: string): { level: StrengthLevel; label: string;
   const hasMixed = /[a-z]/.test(pw) && /[A-Z]/.test(pw);
 
   if (len >= 10 && hasNumbers && (hasSymbols || hasMixed)) {
-    return { level: 'strong', label: 'Fuerte', pct: 100, color: 'bg-[#059669]', textColor: 'text-[#059669]' };
+    return { level: 'strong', label: 'Fuerte', pct: 100, color: 'bg-primary', textColor: 'text-primary' };
   }
   if (len >= 6 && hasLetters && hasNumbers) {
     return { level: 'medium', label: 'Media', pct: 60, color: 'bg-[#F59E0B]', textColor: 'text-[#F59E0B]' };
@@ -122,8 +122,10 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-const forest = '#0F2B28';
-const forestAccent = '#059669';
+const forest = 'var(--primary)';
+const forestAccent = 'var(--primary)';
+/** Primary color with opacity — generates valid CSS rgba from the CSS variable */
+const forestAlpha = (alpha: number) => `color-mix(in srgb, var(--primary) ${alpha}%, transparent)`;
 
 // ─── Main module ───
 export default function ConfiguracionModule() {
@@ -154,7 +156,7 @@ export default function ConfiguracionModule() {
             className={`
               w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
               ${active
-                ? 'bg-[#0F2B28] text-white shadow-sm'
+                ? 'bg-primary text-white shadow-sm'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'}
             `}
           >
@@ -171,7 +173,7 @@ export default function ConfiguracionModule() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${forest}15` }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: forestAlpha(15) }}>
             <Settings className="w-5 h-5 shrink-0" style={{ color: forest }} />
           </div>
           <div>
@@ -282,7 +284,7 @@ function HotelSection() {
       {/* Hero + Hotel name */}
       <Card className="overflow-hidden">
         <div
-          className="h-32 md:h-40 w-full bg-[#0F2B28] relative"
+          className="h-32 md:h-40 w-full bg-primary relative"
           aria-hidden
         >
           {form.heroUrl ? (
@@ -529,7 +531,7 @@ function FiscalSection() {
                 value={form.cuit}
                 onChange={e => setForm({ ...form, cuit: e.target.value })}
                 placeholder="20-12345678-9"
-                className={cuitDigits.length >= 11 ? (cuitValido ? 'border-[#059669] focus-visible:ring-[#059669]/30' : 'border-red-500 focus-visible:ring-red-500/30') : ''}
+                className={cuitDigits.length >= 11 ? (cuitValido ? 'border-primary focus-visible:ring-[#059669]/30' : 'border-red-500 focus-visible:ring-red-500/30') : ''}
               />
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Dígito verificador esperado:</span>
@@ -538,10 +540,10 @@ function FiscalSection() {
                     <span className="text-muted-foreground">—</span>
                   ) : (
                     <>
-                      <span className={cuitValido ? 'text-[#059669]' : 'text-red-500'}>{computedDigit}</span>
+                      <span className={cuitValido ? 'text-primary' : 'text-red-500'}>{computedDigit}</span>
                       {cuitDigits.length >= 11 && (
                         cuitValido
-                          ? <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" />
+                          ? <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                           : <XCircle className="w-3.5 h-3.5 text-red-500" />
                       )}
                     </>
@@ -848,15 +850,15 @@ function CuentaSection() {
                 </div>
                 <ul className="text-xs text-muted-foreground space-y-0.5 mt-1" aria-label="Requisitos de contraseña">
                   <li className="flex items-center gap-1.5">
-                    {newPass.length >= 6 ? <CheckCircle2 className="w-3 h-3 text-[#059669]" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                    {newPass.length >= 6 ? <CheckCircle2 className="w-3 h-3 text-primary" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                     Al menos 6 caracteres
                   </li>
                   <li className="flex items-center gap-1.5">
-                    {/[a-zA-Z]/.test(newPass) && /[0-9]/.test(newPass) ? <CheckCircle2 className="w-3 h-3 text-[#059669]" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                    {/[a-zA-Z]/.test(newPass) && /[0-9]/.test(newPass) ? <CheckCircle2 className="w-3 h-3 text-primary" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                     Letras y números
                   </li>
                   <li className="flex items-center gap-1.5">
-                    {newPass.length >= 10 && (/[!@#$%^&*(),.?":{}|<>_\-+=/[\]\\;'`~]/.test(newPass) || (/[a-z]/.test(newPass) && /[A-Z]/.test(newPass))) ? <CheckCircle2 className="w-3 h-3 text-[#059669]" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+                    {newPass.length >= 10 && (/[!@#$%^&*(),.?":{}|<>_\-+=/[\]\\;'`~]/.test(newPass) || (/[a-z]/.test(newPass) && /[A-Z]/.test(newPass))) ? <CheckCircle2 className="w-3 h-3 text-primary" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
                     10+ caracteres con símbolos o mayúsculas
                   </li>
                 </ul>
@@ -873,7 +875,7 @@ function CuentaSection() {
                 value={confirmPass}
                 onChange={e => setConfirmPass(e.target.value)}
                 placeholder="Repetí la nueva contraseña"
-                className={`pr-10 ${passwordsMismatch ? 'border-red-500 focus-visible:ring-red-500/30' : passwordsMatch ? 'border-[#059669] focus-visible:ring-[#059669]/30' : ''}`}
+                className={`pr-10 ${passwordsMismatch ? 'border-red-500 focus-visible:ring-red-500/30' : passwordsMatch ? 'border-primary focus-visible:ring-[#059669]/30' : ''}`}
               />
               <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showConfirm ? 'Ocultar' : 'Mostrar'}>
                 {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -881,7 +883,7 @@ function CuentaSection() {
               {confirmPass.length > 0 && (
                 <span className="absolute right-10 top-1/2 -translate-y-1/2">
                   {passwordsMatch
-                    ? <CheckCircle2 className="w-4 h-4 text-[#059669]" />
+                    ? <CheckCircle2 className="w-4 h-4 text-primary" />
                     : <XCircle className="w-4 h-4 text-red-500" />}
                 </span>
               )}
@@ -893,7 +895,7 @@ function CuentaSection() {
               </p>
             )}
             {passwordsMatch && (
-              <p className="text-xs text-[#059669] flex items-center gap-1">
+              <p className="text-xs text-primary flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" />
                 Las contraseñas coinciden
               </p>
@@ -1023,7 +1025,7 @@ function ExportarSection() {
               <Card key={exp.id} className="overflow-hidden flex flex-col">
                 <CardContent className="p-4 flex flex-col gap-3 flex-1">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${forest}15` }}>
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: forestAlpha(15) }}>
                       <Icon className="w-5 h-5" style={{ color: forest }} />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -1074,7 +1076,7 @@ function ExportarSection() {
               {history.map(h => (
                 <li key={h.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${forest}15` }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: forestAlpha(15) }}>
                       {h.formato === 'JSON' ? <Database className="w-4 h-4" style={{ color: forest }} /> : <FileText className="w-4 h-4" style={{ color: forest }} />}
                     </div>
                     <div className="min-w-0">
@@ -1241,19 +1243,19 @@ function SuscripcionSection() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5 text-[#059669] shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
                       <span>{plan.maxHabitaciones === 0 ? 'Habitaciones ilimitadas' : `Hasta ${plan.maxHabitaciones} habitaciones`}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5 text-[#059669] shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
                       <span>{plan.maxUsuarios === 0 ? 'Usuarios ilimitados' : `Hasta ${plan.maxUsuarios} usuarios`}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5 text-[#059669] shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
                       <span>{plan.maxTarifas === 0 ? 'Tarifas ilimitadas' : `Hasta ${plan.maxTarifas} tarifas`}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5 text-[#059669] shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
                       <span>{plan.maxReservasMes === 0 ? 'Reservas ilimitadas' : `${plan.maxReservasMes} reservas/mes`}</span>
                     </div>
                   </div>
@@ -1332,7 +1334,7 @@ function SuscripcionSection() {
                         className="p-1 rounded hover:bg-accent transition-colors"
                       >
                         {copiedField === item.label
-                          ? <Check className="w-3 h-3 text-[#059669]" />
+                          ? <Check className="w-3 h-3 text-primary" />
                           : <Copy className="w-3 h-3 text-muted-foreground" />}
                       </button>
                     )}
