@@ -599,3 +599,35 @@ Stage Summary:
 - Online users get pulsing green dot + "en línea" text + Wifi icon
 - Offline active users get gray dot + last access time + WifiOff icon
 - No data flow broken — purely additive changes, existing functionality preserved
+
+---
+Task ID: 6
+Agent: Main Agent
+Task: Complete light theme migration + CSS variable system + hardcoded color elimination
+
+Work Log:
+- Phase 1: Updated globals.css with light theme as :root default (white bg, dark text)
+- Added .dark class with original dark teal palette for future dark mode toggle
+- Added semantic CSS variables: --success, --warning, --info + foreground variants
+- Registered all new variables in @theme inline block for Tailwind utility support
+- Installed next-themes + ThemeProvider with defaultTheme='light'
+- Added suppressHydrationWarning on <html> for next-themes compatibility
+
+- Phase 2a (Hex → primary): Replaced bg-[#0F2B28] → bg-primary (63× in 13 files), bg-[#059669] → bg-primary (37× in 9 files), text-[#059669] → text-primary (11×), border-[#0F2B28] → border-primary (6×), hover variants, and other hex brand colors
+- ConfiguracionModule: forest/forestAccent constants → var(--primary) + color-mix helper
+
+- Phase 2b (Emerald → primary): Replaced text-emerald-400 → text-primary (36×), text-emerald-300/500/600/700 → text-primary, bg-emerald-950/20 → bg-primary/5, bg-emerald-500/10,/20,/30 → bg-primary equivalents, bg-emerald-900/60 → bg-primary/20,/10, border-emerald-* → border-primary, from-emerald/to-emerald → from-primary/to-primary
+- CajaModule: 51 emerald refs → mostly primary (kept KPI colorFamily keys as JS identifiers)
+- All other modules migrated in parallel
+
+- Status colors KEPT: room/payment/reservation status maps (Disponible, Pagado, Confirmada), online indicator dot, success checkmarks — these are universal semantic colors that shouldn't change with brand
+
+- Verified: lint clean, dev server 200, agent-browser confirms white background, proper contrast, no white-on-white text, CSS variables resolve correctly
+
+Stage Summary:
+- 56 files modified, commit 75f3ab2 pushed to main
+- Emerald hardcoded: 400+ → 39 (all status/semantic, intentionally kept)
+- Hex brand hardcoded: 290+ → ~50 (landing page + auth pages kept separate)
+- App now defaults to light theme (white bg, dark text, teal primary)
+- Dark theme available via .dark class for future toggle
+- Theme infrastructure fully functional (next-themes + CSS variables)
