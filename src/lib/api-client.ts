@@ -234,6 +234,12 @@ export const api = {
   reportes: {
     get: (tipo?: string) => apiFetch<DbReportes>(`/reportes${tipo ? `?tipo=${tipo}` : ''}`),
   },
+
+  // ── Presence (online status) ──
+  presence: {
+    heartbeat: () => apiFetch<{ ok: boolean }>('/presence/heartbeat', { method: 'POST' }),
+    online: () => apiFetch<{ onlineUserIds: string[]; onlineCount: number }>('/presence/online'),
+  },
 };
 
 // ═══════════════════════════════════════════════════════════

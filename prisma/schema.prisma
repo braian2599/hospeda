@@ -632,3 +632,18 @@ enum TipoMovimientoCaja {
   ingreso
   egreso
 }
+
+// ═══════════════════════════════════════════════════════════
+// PRESENCIA / ONLINE STATUS
+// ═══════════════════════════════════════════════════════════
+
+model UserPresence {
+  id             String   @id @default(cuid())
+  tenantUserId   String   @unique
+  tenantId       String
+  lastSeenAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, lastSeenAt])
+}

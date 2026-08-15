@@ -23,11 +23,12 @@ import {
 import {
   Plus, UserCog, Pencil, Shield, ShieldCheck, Loader2, Eye, EyeOff, KeyRound,
   Users, UserCheck, Mail, Crown, Ban, RotateCcw, MoreVertical, X, Activity,
-  ArrowRight, Clock, CheckCircle2,
+  ArrowRight, Clock, CheckCircle2, Wifi, WifiOff,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { toast } from 'sonner';
+import { usePresenceStore } from '@/lib/presence-store';
 
 // ═══════════════════════════════════════════════════════════
 // HELPERS
@@ -243,6 +244,9 @@ export default function UsuariosModule() {
   // ═══════════════════════════════════════════════════════════
   // STATS
   // ═══════════════════════════════════════════════════════════
+
+  // ── Real-time online status ──
+  const { onlineUserIds, onlineCount, loaded: presenceLoaded } = usePresenceStore();
 
   const stats = useMemo(() => {
     const total = usuarios.length;
@@ -503,16 +507,22 @@ export default function UsuariosModule() {
           </CardContent>
         </Card>
 
-        {/* Activos */}
+        {/* En línea (real-time) */}
         <Card className="relative overflow-hidden border-l-[3px] border-l-emerald-500 bg-emerald-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Activos</p>
-                <AnimatedNumber value={stats.activos} format={n => String(Math.round(n))} className="text-2xl font-bold text-emerald-700" />
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">En línea</p>
+                <div className="flex items-baseline gap-2">
+                  <AnimatedNumber value={onlineCount} format={n => String(Math.round(n))} className="text-2xl font-bold text-emerald-400" />
+                  <span className="text-[10px] text-muted-foreground">/ {stats.activos}</span>
+                </div>
+                {!presenceLoaded && (
+                  <p className="text-[10px] text-muted-foreground animate-pulse">Detectando...</p>
+                )}
               </div>
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                <UserCheck className="w-5 h-5 text-emerald-600" />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${onlineCount > 0 ? 'bg-emerald-500/20' : 'bg-emerald-100'}`}>
+                <Activity className={`w-5 h-5 ${onlineCount > 0 ? 'text-emerald-500' : 'text-emerald-600'}`} />
               </div>
             </div>
           </CardContent>
@@ -588,6 +598,7 @@ export default function UsuariosModule() {
             const lastLogin = getLastLogin(u);
             const isOwner = u.rol === 'owner';
             const canEdit = canEditUser(u);
+            const isOnline = onlineUserIds.has(u.id);
 
             return (
               <Card
@@ -599,10 +610,10 @@ export default function UsuariosModule() {
                     {/* Avatar */}
                     <div className={`relative w-12 h-12 rounded-full bg-gradient-to-br ${roleInfo.avatarGradient} flex items-center justify-center text-white font-semibold shrink-0 shadow-sm`}>
                       {initials}
-                      {/* Status indicator */}
+                      {/* Online/Offline indicator — based on real-time heartbeat */}
                       <span
-                        className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card ${u.activo ? 'bg-emerald-500' : 'bg-gray-400'}`}
-                        title={u.activo ? 'Activo' : 'Inactivo'}
+                        className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card ${isOnline ? 'bg-emerald-500' : u.activo ? 'bg-gray-400' : 'bg-gray-300'} ${isOnline ? 'animate-pulse' : ''}`}
+                        title={isOnline ? 'En línea' : u.activo ? 'Desconectado' : 'Inactivo'}
                       />
                     </div>
 
@@ -613,6 +624,7 @@ export default function UsuariosModule() {
                           <p className="font-medium text-sm truncate">
                             {name}
                             {isSelf(u) && <span className="text-muted-foreground font-normal ml-1.5 text-xs">(vos)</span>}
+                            {isOnline && <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-500">● en línea</span>}
                           </p>
                           {email && (
                             <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
@@ -661,13 +673,22 @@ export default function UsuariosModule() {
                         </span>
                       </div>
 
-                      {/* Last login */}
-                      {lastLogin && (
-                        <p className="text-[10px] text-muted-foreground mt-1.5 flex items-center gap-1">
-                          <Clock className="w-2.5 h-2.5" />
-                          Último acceso: {formatRelativeTime(lastLogin)}
-                        </p>
-                      )}
+                      {/* Online status + Last login */}
+                      <div className="mt-1.5">
+                        {isOnline ? (
+                          <p className="text-[10px] text-emerald-500 font-medium flex items-center gap-1">
+                            <Wifi className="w-2.5 h-2.5" />
+                            En línea ahora
+                          </p>
+                        ) : (
+                          lastLogin && (
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <WifiOff className="w-2.5 h-2.5" />
+                              Último acceso: {formatRelativeTime(lastLogin)}
+                            </p>
+                          )
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
