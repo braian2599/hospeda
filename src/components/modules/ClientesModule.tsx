@@ -236,30 +236,30 @@ export default function ClientesModule() {
       {/* ═══════════ CLIENT STATS SUMMARY ═══════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
         {/* Total Clientes */}
-        <Card className="rounded-xl border-l-[3px] border-l-teal-500 bg-teal-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-teal-500 bg-primary/5 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-teal-400">Total Clientes</p>
-                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-xl font-bold text-teal-200" />
+                <p className="text-xs font-medium text-teal-600">Total Clientes</p>
+                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-xl font-bold text-teal-800" />
               </div>
               <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center">
-                <Users className="w-5 h-5 text-teal-400" />
+                <Users className="w-5 h-5 text-teal-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Clientes Recurrentes */}
-        <Card className="rounded-xl border-l-[3px] border-l-amber-500 bg-amber-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-amber-500 bg-amber-50/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-amber-400">Recurrentes</p>
-                <AnimatedNumber value={stats.recurrentes} format={n => String(Math.round(n))} className="text-xl font-bold text-amber-200" />
+                <p className="text-xs font-medium text-amber-600">Recurrentes</p>
+                <AnimatedNumber value={stats.recurrentes} format={n => String(Math.round(n))} className="text-xl font-bold text-amber-800" />
               </div>
               <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                <Star className="w-5 h-5 text-amber-400" />
+                <Star className="w-5 h-5 text-amber-600" />
               </div>
             </div>
           </CardContent>
@@ -281,15 +281,15 @@ export default function ClientesModule() {
         </Card>
 
         {/* Ocupación Promedio */}
-        <Card className="rounded-xl border-l-[3px] border-l-sky-500 bg-sky-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-sky-500 bg-sky-50/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-sky-400">Estadías/Cliente</p>
-                <AnimatedNumber value={stats.avgStays} format={n => n.toFixed(1)} className="text-xl font-bold text-sky-200" />
+                <p className="text-xs font-medium text-sky-600">Estadías/Cliente</p>
+                <AnimatedNumber value={stats.avgStays} format={n => n.toFixed(1)} className="text-xl font-bold text-sky-800" />
               </div>
               <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-sky-400" />
+                <BarChart3 className="w-5 h-5 text-sky-600" />
               </div>
             </div>
           </CardContent>
@@ -304,7 +304,7 @@ export default function ClientesModule() {
             placeholder="Buscar por nombre, DNI o email..."
             value={busqueda}
             onChange={e => { setBusqueda(e.target.value); setPage(1); }}
-            className="pl-9 pr-9 transition-all duration-200 focus-visible:ring-[#0F2B28] focus-visible:ring-offset-1"
+            className="pl-9 pr-9 transition-all duration-200 focus-visible:ring-brand-deep focus-visible:ring-offset-1"
           />
           {busqueda.length >= 2 && (
             <button
@@ -354,7 +354,7 @@ export default function ClientesModule() {
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       {/* Avatar */}
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#0F2B28]/70 flex items-center justify-center shrink-0 shadow-sm">
+                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-deep to-brand-deep/70 flex items-center justify-center shrink-0 shadow-sm">
                         <span className="text-sm font-bold text-white">{initials}</span>
                       </div>
 
@@ -492,7 +492,7 @@ export default function ClientesModule() {
                 <div className="space-y-5 py-2">
                   {/* Client header with avatar + loyalty */}
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#0F2B28]/70 flex items-center justify-center shrink-0 shadow-md">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-deep to-brand-deep/70 flex items-center justify-center shrink-0 shadow-md">
                       <span className="text-lg font-bold text-white">{selectedInitials}</span>
                     </div>
                     <div className="flex-1">

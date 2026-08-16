@@ -270,7 +270,7 @@ export default function RecentActivity() {
                               isIncome
                                 ? 'text-primary'
                                 : isExpense
-                                  ? 'text-[#EF4444]'
+                                  ? 'text-status-occupied'
                                   : 'text-muted-foreground',
                             )}
                           >

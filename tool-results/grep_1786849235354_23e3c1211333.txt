@@ -1,0 +1,232 @@
+/home/z/my-project/src/components/subscription/TrialBanner.tsx:98:          ? 'bg-[#F59E0B]/10 border-[#F59E0B]/20'
+/home/z/my-project/src/components/subscription/TrialBanner.tsx:102:          urgencia ? 'bg-[#F59E0B]/15' : 'bg-primary/10'
+/home/z/my-project/src/components/subscription/ModuleLockedDialog.tsx:48:            <div className="w-10 h-10 rounded-full bg-[#F59E0B]/15 flex items-center justify-center">
+/home/z/my-project/src/components/layout/QuickStatsBar.tsx:19: *   - Forest green  #0F2B28
+/home/z/my-project/src/components/layout/QuickStatsBar.tsx:20: *   - Emerald       #059669
+/home/z/my-project/src/components/layout/QuickStatsBar.tsx:21: *   - Amber         #F59E0B
+/home/z/my-project/src/components/layout/QuickStatsBar.tsx:22: *   - Red           #EF4444
+/home/z/my-project/src/components/layout/HelpDialog.tsx:145:        className={`text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-[#162826] transition-colors ${compact ? 'h-8 w-8' : 'h-9 w-9'}`}
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:199:                <div className="flex items-center gap-1.5 bg-[#009EE3]/10 rounded-full px-3 py-1.5">
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:201:                    <path d="M3 4h18v16H3V4z" fill="#009EE3" rx="2"/>
+/home/z/my-project/src/components/payments/CheckoutDialog.tsx:204:                  <span className="text-xs font-medium text-[#009EE3]">Mercado Pago</span>
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:114:    return { level: 'medium', label: 'Media', pct: 60, color: 'bg-[#F59E0B]', textColor: 'text-[#F59E0B]' };
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:534:                className={cuitDigits.length >= 11 ? (cuitValido ? 'border-primary focus-visible:ring-[#059669]/30' : 'border-red-500 focus-visible:ring-red-500/30') : ''}
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:878:                className={`pr-10 ${passwordsMismatch ? 'border-red-500 focus-visible:ring-red-500/30' : passwordsMatch ? 'border-primary focus-visible:ring-[#059669]/30' : ''}`}
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1175:            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/20">
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1295:          <div className="w-9 h-9 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center shrink-0">
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1312:              <div className="flex items-start gap-2 p-2.5 bg-[#3B82F6]/5 rounded-lg">
+/home/z/my-project/src/components/configuracion/ConfiguracionModule.tsx:1313:                <Info className="w-3.5 h-3.5 text-[#3B82F6] shrink-0 mt-0.5" />
+/home/z/my-project/src/components/modules/ReservasModule.tsx:201:                    range_start: 'rounded-l-md bg-[#0D3D33] [&>button]:!bg-[#0D3D33] [&>button]:!text-white',
+/home/z/my-project/src/components/modules/ReservasModule.tsx:202:                    range_end: 'rounded-r-md bg-[#0D3D33] [&>button]:!bg-[#0D3D33] [&>button]:!text-white',
+/home/z/my-project/src/components/modules/ReservasModule.tsx:203:                    range_middle: 'rounded-none bg-[#0D3D33] [&>button]:!bg-[#0D3D33] [&>button]:!text-white',
+/home/z/my-project/src/components/modules/ReservasModule.tsx:311:            <span className={l.dim ? 'text-[#94A3B8] line-through' : 'text-slate-400'}>{l.label}</span>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:312:            <span className={l.dim ? 'font-medium text-[#94A3B8]' : 'font-semibold text-foreground'}>{l.value}</span>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:316:          <span className="font-medium text-[#475569]">Subtotal</span>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:708:   case 'Confirmada': return 'border-l-[#10B981]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:709:   case 'Check-In realizado': return 'border-l-[#3B82F6]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:710:   case 'Check-Out realizado': return 'border-l-[#F59E0B]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:711:   case 'Cancelada': return 'border-l-[#EF4444]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:712:   default: return 'border-l-[#94A3B8]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:719:   case 'Check-In realizado': return 'bg-[#3B82F6]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:720:   case 'Check-Out realizado': return 'bg-[#F59E0B]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:721:   case 'Cancelada': return 'bg-[#EF4444]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:722:   default: return 'bg-[#94A3B8]';
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1361: <div className="divide-y divide-[#E2E8F0]/60">
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1397:   <div className="flex items-center gap-1 text-[#F59E0B]">
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1422:           payProgress >= 80 ? 'bg-primary' : payProgress >= 40 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1541:             <span className="text-[#94A3B8]">·</span>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1561:           <CalendarDays className="w-3 h-3 text-[#F59E0B] shrink-0" />
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1581:                   payProgress >= 80 ? 'bg-primary' : payProgress >= 40 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1593:           {saldo > 0 && <AlertTriangle className="w-3.5 h-3.5 text-[#EF4444] shrink-0" />}
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1878: {campo.nombre} {campo.requerido && <span className="text-[#EF4444]">*</span>}
+/home/z/my-project/src/components/modules/ReservasModule.tsx:1938: ? 'ring-2 ring-[#4ADE80] border-[#4ADE80] bg-primary/10'
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2049: ? 'border-[#4ADE80] bg-primary/10 cursor-default'
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2092: <Badge className={isComboSelected ? 'bg-[#4ADE80] text-white' : 'bg-primary/10 text-primary border-primary/40'}>
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2262:       <span className="font-bold text-xl text-[#4ADE80]">
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2278:               : 'text-slate-400 hover:text-[#475569]'
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2301:                 className="pl-7 text-[13px] font-semibold h-9 border-border focus-visible:ring-[#059669]"
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2304:             <div className="flex justify-between text-[11px] text-[#94A3B8]">
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2335:               <SelectTrigger className="h-9 text-[13px] border-border focus-visible:ring-[#059669]">
+/home/z/my-project/src/components/modules/ReservasModule.tsx:2349:                 <SelectTrigger className="h-9 text-[13px] border-border focus-visible:ring-[#059669]">
+/home/z/my-project/src/components/modules/CheckInModule.tsx:352:                <LogOut className="w-5 h-5 text-[#EA580C]" />
+/home/z/my-project/src/components/modules/CheckInModule.tsx:422:                      Datos de menores ({selReserva.ninos}) — <span className="text-[#EF4444]">Obligatorio</span>
+/home/z/my-project/src/components/modules/CheckInModule.tsx:443:                            <Baby className="w-4 h-4 text-[#7C3AED]" />
+/home/z/my-project/src/components/modules/CheckInModule.tsx:506:                  <AlertCircle className="w-4 h-4 text-[#F59E0B]" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:140:  if (code === 0) return <Sun className="w-5 h-5 text-[#F59E0B]" />;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:141:  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:142:  if (code >= 45 && code <= 48) return <CloudFog className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:143:  if (code >= 51 && code <= 55) return <CloudDrizzle className="w-5 h-5 text-[#3B82F6]" />;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:144:  if (code >= 56 && code <= 57) return <CloudDrizzle className="w-5 h-5 text-[#3B82F6]" />;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:145:  if (code >= 61 && code <= 67) return <CloudRain className="w-5 h-5 text-[#3B82F6]" />;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:146:  if (code >= 71 && code <= 77) return <CloudSnow className="w-5 h-5 text-[#3B82F6]" />;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:149:  return <Thermometer className="w-5 h-5 text-[#94A3B8]" />;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:190:      <div className="font-mono text-lg font-semibold tabular-nums tracking-wide text-[#334155]">
+/home/z/my-project/src/components/modules/DashboardModule.tsx:230:    Reservada: <CalendarCheck className="w-3.5 h-3.5 text-[#3B82F6]" />,
+/home/z/my-project/src/components/modules/DashboardModule.tsx:231:    Ocupada: <Bed className="w-3.5 h-3.5 text-[#EF4444]" />,
+/home/z/my-project/src/components/modules/DashboardModule.tsx:232:    Limpieza: <SprayCan className="w-3.5 h-3.5 text-[#F59E0B]" />,
+/home/z/my-project/src/components/modules/DashboardModule.tsx:233:    Mantenimiento: <Wrench className="w-3.5 h-3.5 text-[#94A3B8]" />,
+/home/z/my-project/src/components/modules/DashboardModule.tsx:235:  const icono = iconoMap[data.estado] || <CheckCircle className="w-3.5 h-3.5 text-[#4ADE80]" />;
+/home/z/my-project/src/components/modules/DashboardModule.tsx:265:            <LogIn className="w-3 h-3 text-[#0EA5E9]" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:270:            <LogOut className="w-3 h-3 text-[#F43F5E]" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:281:              <span className="text-[#94A3B8]">Tarifa</span>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:287:              <span className="text-[#94A3B8]">Total</span>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:293:              <span className="text-[#94A3B8]">Pago</span>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:294:              <span className={`font-medium ${data.estadoPago === 'Pagado' ? 'text-primary' : data.estadoPago === 'Parcial' ? 'text-[#EA580C]' : 'text-[#EF4444]'}`}>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:301:              <span className="text-[#94A3B8]">Menores</span>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:302:              <span className="font-medium text-[#7C3AED]">{data.ninos} niño{data.ninos > 1 ? 's' : ''}</span>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:330:        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-[#1E293B] text-white text-[11px] rounded-lg whitespace-nowrap z-50 shadow-lg pointer-events-none animate-in fade-in-0 zoom-in-95 duration-100">
+/home/z/my-project/src/components/modules/DashboardModule.tsx:332:          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1E293B]" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:548:          <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-[#F43F5E]' : 'text-slate-400'} ${isHoy ? '!text-primary' : ''}`}>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:551:          <span className={`text-[15px] font-bold leading-none mt-0.5 ${esFS ? 'text-[#F43F5E]' : 'text-foreground'} ${isHoy ? '!text-primary underline decoration-2 underline-offset-2 decoration-primary' : ''}`}>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:561:    { label: 'Reservada', color: 'bg-[#3B82F6]' },
+/home/z/my-project/src/components/modules/DashboardModule.tsx:562:    { label: 'Ocupada', color: 'bg-[#4ADE80]' },
+/home/z/my-project/src/components/modules/DashboardModule.tsx:563:    ...(mostrarHistorial ? [{ label: 'Finalizada', color: 'bg-[#94A3B8] opacity-50' }] : []),
+/home/z/my-project/src/components/modules/DashboardModule.tsx:564:    { label: 'Limpieza', color: 'bg-[#F59E0B]' },
+/home/z/my-project/src/components/modules/DashboardModule.tsx:565:    { label: 'Mantenimiento', color: 'bg-[#64748B]' },
+/home/z/my-project/src/components/modules/DashboardModule.tsx:576:              <CalendarCheck className="w-4 h-4 text-[#3B82F6]" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:594:                className={cn('h-7 text-xs', ganttDays === 14 && 'bg-primary hover:bg-[#1a3d35]')}
+/home/z/my-project/src/components/modules/DashboardModule.tsx:602:                className={cn('h-7 text-xs', ganttDays === 30 && 'bg-primary hover:bg-[#1a3d35]')}
+/home/z/my-project/src/components/modules/DashboardModule.tsx:611:                className={cn('h-7 text-xs gap-1.5', mostrarHistorial && 'bg-[#475569] hover:bg-[#334155]')}
+/home/z/my-project/src/components/modules/DashboardModule.tsx:645:    Reservada: 'bg-[#3B82F6] shadow-[0_2px_6px_rgba(59,130,246,0.35)]',
+/home/z/my-project/src/components/modules/DashboardModule.tsx:646:    Ocupada: 'bg-[#4ADE80] shadow-[0_2px_6px_rgba(74,222,128,0.35)]',
+/home/z/my-project/src/components/modules/DashboardModule.tsx:647:    Finalizada: 'bg-[#94A3B8] opacity-50 border border-dashed border-slate-600/40',
+/home/z/my-project/src/components/modules/DashboardModule.tsx:648:    Limpieza: 'bg-[#F59E0B] shadow-[0_2px_6px_rgba(245,158,11,0.30)]',
+/home/z/my-project/src/components/modules/DashboardModule.tsx:649:    Mantenimiento: 'bg-[#64748B] shadow-[0_2px_6px_rgba(100,116,139,0.25)]',
+/home/z/my-project/src/components/modules/DashboardModule.tsx:707:    Disponible: 'bg-[#4ADE80]', Ocupada: 'bg-[#EF4444]', Limpieza: 'bg-[#F59E0B]', Mantenimiento: 'bg-[#64748B]', Reservada: 'bg-[#3B82F6]',
+/home/z/my-project/src/components/modules/DashboardModule.tsx:736:          {Object.entries({ Disponible: 'bg-[#4ADE80]', Ocupada: 'bg-[#EF4444]', Reservada: 'bg-[#3B82F6]', Limpieza: 'bg-[#F59E0B]', Mantenimiento: 'bg-[#64748B]' }).map(([label, dot]) => (
+/home/z/my-project/src/components/modules/DashboardModule.tsx:866:        <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-primary" borderColor="border-l-primary" bgGradient="bg-primary/5" iconBg="bg-primary/20" labelColor="text-primary" valueColor="text-primary" subColor="text-primary/50" numericValue={tasaOcupacion} suffix="%" sparkData={sparkOccupancy} sparkColor="#059669" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:867:        <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-primary" borderColor="border-l-primary" bgGradient="bg-primary/5" iconBg="bg-primary/20" labelColor="text-primary" valueColor="text-primary" subColor="text-primary/50" numericValue={checkinsHoy.length} sparkData={sparkCheckins} sparkColor="#059669" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:868:        <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-amber-400" borderColor="border-l-amber-500" bgGradient="bg-amber-950/20" iconBg="bg-amber-500/20" labelColor="text-amber-400" valueColor="text-amber-200" subColor="text-amber-400/50" numericValue={checkoutsHoy.length} sparkData={sparkCheckouts} sparkColor="#F59E0B" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:869:        <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-teal-400" borderColor="border-l-teal-500" bgGradient="bg-teal-950/20" iconBg="bg-teal-500/20" labelColor="text-teal-400" valueColor="text-teal-200" subColor="text-teal-400/50" numericValue={reservadas} sparkData={sparkRevenue} sparkColor="#059669" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:875:          { icon: CalendarPlus, label: 'Nueva Reserva', modulo: 'reservas' as const, color: '#059669' },
+/home/z/my-project/src/components/modules/DashboardModule.tsx:876:          { icon: LogIn, label: 'Check-in', modulo: 'checkin' as const, color: '#059669' },
+/home/z/my-project/src/components/modules/DashboardModule.tsx:877:          { icon: Wallet, label: 'Abrir Caja', modulo: 'caja' as const, color: '#F59E0B' },
+/home/z/my-project/src/components/modules/DashboardModule.tsx:878:          { icon: BarChart3, label: 'Ver Reportes', modulo: 'reportes' as const, color: '#0F2B28' },
+/home/z/my-project/src/components/modules/DashboardModule.tsx:911:              <SprayCan className="w-3.5 h-3.5 text-[#94A3B8]" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:912:              <Wrench className="w-3.5 h-3.5 text-[#94A3B8]" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:919:              <span className="bg-[#F59E0B] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enLimpieza}</span>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:923:              <span className="bg-[#64748B] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enMantenimiento}</span>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:959:                  <span className="bg-[#F59E0B] text-white text-xs font-bold px-2 py-0.5 rounded">
+/home/z/my-project/src/components/modules/DashboardModule.tsx:974:                  <span className="bg-[#3B82F6] text-white text-xs font-bold px-2 py-0.5 rounded max-w-[200px] truncate">
+/home/z/my-project/src/components/modules/DashboardModule.tsx:985:                  <LogOut className="w-4 h-4 text-[#EA580C]" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:998:                <span className="bg-[#EF4444] text-white text-xs font-bold px-2 py-0.5 rounded">Atención</span>
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1009:                  <span className="bg-[#64748B] text-white text-xs font-bold px-2 py-0.5 rounded">
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1025:              <LogIn className="w-4 h-4 text-[#3B82F6]" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1027:              {checkinsHoy.length > 0 && <Badge className="bg-[#3B82F6] ml-auto">{checkinsHoy.length}</Badge>}
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1061:              <LogOut className="w-4 h-4 text-[#F97316]" />
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1063:              {checkoutsHoy.length > 0 && <Badge className="bg-[#F97316] ml-auto">{checkoutsHoy.length}</Badge>}
+/home/z/my-project/src/components/modules/DashboardModule.tsx:1078:                        {saldo > 0 && <p className="text-xs text-[#EF4444] font-medium">Saldo: {formatMoney(saldo)}</p>}
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:35:    color: '#059669',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:43:    color: '#D97706',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:44:    bgColor: 'bg-[#D97706]/8',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:51:    color: '#0D9488',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:52:    bgColor: 'bg-[#0D9488]/8',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:59:    color: '#EAB308',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:60:    bgColor: 'bg-[#EAB308]/8',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:67:    color: '#DC2626',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:68:    bgColor: 'bg-[#DC2626]/8',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:75:    color: '#94A3B8',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:76:    bgColor: 'bg-[#94A3B8]/8',
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:358:                  <div className="rounded-lg border-l-[3px] p-3 bg-[#D97706]/5" style={{ borderLeftColor: '#D97706' }}>
+/home/z/my-project/src/components/modules/RoomStatusMap.tsx:369:                  <div className="rounded-lg border-l-[3px] p-3 bg-[#DC2626]/5" style={{ borderLeftColor: '#DC2626' }}>
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:61:    color: '#059669',
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:68:    color: '#D97706',
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:75:    color: '#EAB308',
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:82:    color: '#94A3B8',
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:89:    color: '#0EA5E9',
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:96:    color: '#EF4444',
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:216:        flex items-center gap-3 p-3 rounded-xl border border-l-[3px] border-l-[#10B981]
+/home/z/my-project/src/components/modules/HabitacionesModule.tsx:294:  const typeColors = ['#059669', '#D97706', '#0EA5E9', '#8B5CF6', '#EF4444'];
+/home/z/my-project/src/components/ui/chart.tsx:58:          "[&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border flex aspect-video justify-center text-xs [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
+/home/z/my-project/src/components/modules/CajaModule.tsx:121:  'Gastos':           { label: 'Gastos',          color: '#EF4444', badgeBg: 'bg-red-900/60', badgeText: 'text-red-300', icon: ShoppingCart },
+/home/z/my-project/src/components/modules/CajaModule.tsx:122:  'Mantenimiento':    { label: 'Mantenimiento',   color: '#F59E0B', badgeBg: 'bg-amber-900/60', badgeText: 'text-amber-300', icon: Wrench },
+/home/z/my-project/src/components/modules/CajaModule.tsx:123:  'Ingresos varios':  { label: 'Ingresos varios', color: '#059669', badgeBg: 'bg-primary/20', badgeText: 'text-primary', icon: ArrowUpRight },
+/home/z/my-project/src/components/modules/CajaModule.tsx:124:  'Retiros':          { label: 'Retiros',         color: '#8B5CF6', badgeBg: 'bg-violet-900/40', badgeText: 'text-violet-300', icon: PiggyBank },
+/home/z/my-project/src/components/modules/CajaModule.tsx:125:  'Otros':            { label: 'Otros',           color: '#64748B', badgeBg: 'bg-slate-800/40', badgeText: 'text-slate-400', icon: Tag },
+/home/z/my-project/src/components/modules/CajaModule.tsx:291:                isIngreso ? 'bg-primary' : 'bg-[#EF4444]'
+/home/z/my-project/src/components/modules/CajaModule.tsx:303:                : 'border-[#EF4444]/20 bg-red-900/20 hover:border-[#EF4444]/40'
+/home/z/my-project/src/components/modules/CajaModule.tsx:451:            ? 'bg-amber-900/60 border-[#F59E0B]/30'
+/home/z/my-project/src/components/modules/CajaModule.tsx:452:            : 'bg-red-900/60 border-[#EF4444]/30'
+/home/z/my-project/src/components/modules/CajaModule.tsx:977:                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4ADE80] opacity-75" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:1190:                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4ADE80] opacity-75" />
+/home/z/my-project/src/components/modules/CajaModule.tsx:1366:                                    : 'border-l-[#EF4444] hover:bg-red-900/30/40'
+/home/z/my-project/src/components/modules/CajaModule.tsx:1855:                  <div className="p-1.5 rounded-md bg-red-900/40 border border-[#EF4444]/20">
+/home/z/my-project/src/components/modules/CajaModule.tsx:1896:              props.diferenciaTotal > 0 ? 'bg-amber-900/60 border-[#F59E0B]/30 text-amber-300' : 'bg-red-900/60 border-[#EF4444]/30 text-red-300'
+/home/z/my-project/src/components/modules/CajaModule.tsx:1959:                w.document.write(`<!DOCTYPE html><html><head><title>Comprobante de Cierre</title><style>body{font-family:monospace;font-size:12px;padding:20px;max-width:300px;margin:0 auto}h2{text-align:center;border-bottom:1px dashed #000;padding-bottom:8px}.row{display:flex;justify-content:space-between;padding:2px 0}.sep{border-top:1px dashed #000;margin:8px 0;text-align:center}</style></head><body>`);
+/home/z/my-project/src/components/modules/CajaModule.tsx:2100:            ? 'bg-amber-900/60 border-[#F59E0B]/30'
+/home/z/my-project/src/components/modules/CajaModule.tsx:2101:            : 'bg-red-900/40 border-[#EF4444]/30'
+/home/z/my-project/src/components/modules/CajaModule.tsx:2245:                      stroke="#fff"
+/home/z/my-project/src/components/modules/CajaModule.tsx:2727:        isIngreso ? 'before:bg-primary' : 'before:bg-[#EF4444]',
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:269:                <span className="absolute inset-0 rounded-full bg-[#EF4444]/20 animate-ping" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:305:                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#F59E0B] opacity-75" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:306:                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#F59E0B]" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:335:                    isHighPriority ? 'border-l-[#EF4444]' : sinceCheckoutMs > 0 && (sinceCheckoutMs / 3_600_000) >= 1 ? 'border-l-[#F59E0B]' : 'border-l-[#0EA5E9]',
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:394:                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#EF4444] opacity-75" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:395:                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#EF4444]" />
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:416:                className="group pl-3 pr-2.5 py-2.5 rounded-lg border-l-[3px] border-l-[#EF4444] border bg-card hover:shadow-md transition-all duration-300 hover:-translate-y-0.5"
+/home/z/my-project/src/components/modules/LimpiezaModule.tsx:611:                      sacarDeCaja ? 'border-[#4ADE80] bg-primary/10' : 'border-muted hover:border-muted-foreground/30'
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:107:    colorHex: '#F59E0B',
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:118:    colorHex: '#0F2B28',
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:121:    avatarGradient: 'from-[#0F2B28] to-[#1a4a44]',
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:129:    colorHex: '#0EA5E9',
+/home/z/my-project/src/components/modules/UsuariosModule.tsx:140:    colorHex: '#8B5CF6',
+/home/z/my-project/src/components/modules/ReportesModule.tsx:59:const PIE_COLORS = ['#0F2B28', '#059669', '#F59E0B', '#EF4444', '#3B82F6', '#7C3AED', '#EC4899', '#14B8A6', '#F97316', '#6B7280'];
+/home/z/my-project/src/components/modules/ReportesModule.tsx:105:                <ArrowDownRight className="w-3 h-3 text-[#EF4444]" />
+/home/z/my-project/src/components/modules/ReportesModule.tsx:109:              <span className={`text-[11px] font-medium ${trend.value > 0 ? 'text-primary' : trend.value < 0 ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:217:            <ArrowDownRight className="w-3.5 h-3.5 text-[#EF4444]" />
+/home/z/my-project/src/components/modules/ReportesModule.tsx:221:          <span className={`text-xs font-semibold ${trend.dir === 'up' ? 'text-primary' : trend.dir === 'down' ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1140:                          <stop offset="5%" stopColor="#0F2B28" stopOpacity={0.3} />
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1141:                          <stop offset="95%" stopColor="#0F2B28" stopOpacity={0.02} />
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1144:                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1147:                        tick={{ fontSize: 11, fill: '#64748B' }}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1149:                        axisLine={{ stroke: '#E2E8F0' }}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1153:                        tick={{ fontSize: 11, fill: '#64748B' }}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1172:                        stroke="#0F2B28"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1338:                              <p className="text-[#EF4444] font-semibold">{formatMoneda(data.value)} ({pct}%)</p>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1412:                          <span className="font-medium text-[#EF4444]">-{formatMoneda(monto)}</span>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1489:                        <TableCell className="text-center font-medium text-[#EF4444] text-xs sm:text-sm">-{formatMoneda(g.monto)}</TableCell>
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1756:                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1759:                        tick={{ fontSize: 11, fill: '#64748B' }}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1761:                        axisLine={{ stroke: '#E2E8F0' }}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1766:                        tick={{ fontSize: 11, fill: '#64748B' }}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1787:                            fill={entry.occupancy > 80 ? '#059669' : entry.occupancy >= 50 ? '#F59E0B' : '#EF4444'}
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1861:              color="bg-[#4ADE80]"
+/home/z/my-project/src/components/modules/ReportesModule.tsx:1938:                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#059669] flex items-center justify-center text-white shadow-md shrink-0">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:307:            className="pl-9 pr-9 transition-all duration-200 focus-visible:ring-[#0F2B28] focus-visible:ring-offset-1"
+/home/z/my-project/src/components/modules/ClientesModule.tsx:357:                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#0F2B28]/70 flex items-center justify-center shrink-0 shadow-sm">
+/home/z/my-project/src/components/modules/ClientesModule.tsx:495:                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#0F2B28]/70 flex items-center justify-center shrink-0 shadow-md">
+/home/z/my-project/src/components/modules/dashboard/GuestTimeline.tsx:120:            <Badge className="bg-[#F59E0B] text-white text-[10px] px-1.5 ml-0.5">
+/home/z/my-project/src/components/modules/dashboard/GuestTimeline.tsx:135:            <div className="absolute left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-[#059669]/30 via-[#94A3B8]/20 to-[#F59E0B]/30" />
+/home/z/my-project/src/components/modules/dashboard/GuestTimeline.tsx:145:                      : 'bg-[#F59E0B]'
+/home/z/my-project/src/components/modules/dashboard/GuestTimeline.tsx:159:                    <LogOut className="w-3 h-3 text-[#F59E0B] shrink-0" />
+/home/z/my-project/src/components/modules/dashboard/GuestTimeline.tsx:161:                  <span className="text-xs font-medium text-[#334155] truncate">{evt.guestName}</span>
+/home/z/my-project/src/components/modules/dashboard/GuestTimeline.tsx:179:              <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+/home/z/my-project/src/components/modules/dashboard/RecentActivity.tsx:39:  reserva: { color: '#3B82F6', icon: CalendarPlus, label: 'Reserva' },
+/home/z/my-project/src/components/modules/dashboard/RecentActivity.tsx:40:  checkin: { color: '#059669', icon: LogIn, label: 'Check-In' },
+/home/z/my-project/src/components/modules/dashboard/RecentActivity.tsx:41:  checkout: { color: '#EA580C', icon: LogOut, label: 'Check-Out' },
+/home/z/my-project/src/components/modules/dashboard/RecentActivity.tsx:42:  pago: { color: '#10B981', icon: DollarSign, label: 'Pago' },
+/home/z/my-project/src/components/modules/dashboard/RecentActivity.tsx:43:  gasto: { color: '#EF4444', icon: Receipt, label: 'Gasto' },
+/home/z/my-project/src/components/modules/dashboard/RecentActivity.tsx:44:  caja: { color: '#7C3AED', icon: Wallet, label: 'Caja' },
+/home/z/my-project/src/components/modules/dashboard/RecentActivity.tsx:273:                                  ? 'text-[#EF4444]'
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:14: *  - Simple: emerald (#059669)
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:15: *  - Doble: sky (#0EA5E9)
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:16: *  - Triple: amber (#F59E0B)
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:17: *  - Cuádruple: violet (#8B5CF6)
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:18: *  - Compartida: rose (#F43F5E)
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:19: *  - Matrimonial: indigo (#6366F1)
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:20: *  - Others: gray (#64748B)
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:41:  'Simple': '#059669',
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:42:  'Doble': '#0EA5E9',
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:43:  'Triple': '#F59E0B',
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:44:  'Cuádruple': '#8B5CF6',
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:45:  'Compartida': '#F43F5E',
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:46:  'Matrimonial': '#6366F1',
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:49:const DEFAULT_TYPE_COLOR = '#64748B';
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:54:  if (lower.includes('simple')) return '#059669';
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:55:  if (lower.includes('doble')) return '#0EA5E9';
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:56:  if (lower.includes('triple')) return '#F59E0B';
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:57:  if (lower.includes('cuád') || lower.includes('cuadr')) return '#8B5CF6';
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:58:  if (lower.includes('compart')) return '#F43F5E';
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:59:  if (lower.includes('matri')) return '#6366F1';
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:133:                <span className="text-xs font-medium text-[#334155] flex items-center gap-1.5">
+/home/z/my-project/src/components/modules/dashboard/RoomTypeDistribution.tsx:141:                  <span className="font-semibold text-[#334155]">{entry.count}</span>

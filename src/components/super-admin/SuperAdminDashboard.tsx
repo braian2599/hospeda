@@ -102,13 +102,13 @@ function getShortMonth(mesKey: string) {
 
 function estadoBadge(estado: string) {
   const variants: Record<string, string> = {
-    pendiente: 'bg-amber-900/30 text-amber-400',
-    pagado: 'bg-emerald-900/30 text-emerald-400',
-    fallido: 'bg-red-900/30 text-red-400',
-    devuelto: 'bg-gray-900/30 text-gray-400',
+    pendiente: 'bg-amber-100/30 text-amber-700',
+    pagado: 'bg-emerald-100/30 text-emerald-700',
+    fallido: 'bg-red-100/30 text-red-700',
+    devuelto: 'bg-gray-100/30 text-gray-600',
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-gray-100 text-gray-800'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-gray-100/60 text-gray-800'}`}>
       {estado.charAt(0).toUpperCase() + estado.slice(1)}
     </span>
   );
@@ -116,14 +116,14 @@ function estadoBadge(estado: string) {
 
 function subEstadoBadge(estado: string) {
   const variants: Record<string, string> = {
-    trial: 'bg-amber-900/30 text-amber-400',
-    activa: 'bg-emerald-900/30 text-emerald-400',
-    vencida: 'bg-red-900/30 text-red-400',
-    cancelada: 'bg-gray-900/30 text-gray-400',
-    suspensa: 'bg-orange-900/30 text-orange-400',
+    trial: 'bg-amber-100/30 text-amber-700',
+    activa: 'bg-emerald-100/30 text-emerald-700',
+    vencida: 'bg-red-100/30 text-red-700',
+    cancelada: 'bg-gray-100/30 text-gray-600',
+    suspensa: 'bg-orange-100/30 text-orange-700',
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-gray-100 text-gray-800'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-gray-100/60 text-gray-800'}`}>
       {estado.charAt(0).toUpperCase() + estado.slice(1)}
     </span>
   );
@@ -282,7 +282,7 @@ export default function SuperAdminDashboard() {
           value={data?.ingresos.pagosPendientes?.toString() ?? '—'}
           subtitle={`${data?.ingresos.pagosMesActual ?? 0} pagos este mes`}
           icon={AlertTriangle}
-          iconColor="bg-amber-900/30 text-amber-400"
+          iconColor="bg-amber-100/30 text-amber-700"
           loading={loading}
         />
       </div>

@@ -118,7 +118,7 @@ const ROLES: RoleInfo[] = [
     colorHex: '#0F2B28',
     badgeClass: 'bg-primary/10 text-primary border-primary/30',
     borderClass: 'border-l-primary',
-    avatarGradient: 'from-[#0F2B28] to-[#1a4a44]',
+    avatarGradient: 'from-brand-deep to-brand-teal',
   },
   {
     value: 'recepcion',
@@ -529,7 +529,7 @@ export default function UsuariosModule() {
         </Card>
 
         {/* Por Rol */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-sky-400 bg-sky-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-sky-500 bg-sky-50/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1 min-w-0 flex-1">
@@ -557,7 +557,7 @@ export default function UsuariosModule() {
         </Card>
 
         {/* Invitaciones Pendientes */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-amber-400 bg-amber-950/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-amber-500 bg-amber-50/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">

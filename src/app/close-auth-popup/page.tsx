@@ -11,8 +11,8 @@ export default function CloseAuthPopup() {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a1628]">
-      <p className="text-white/60 text-sm">Autenticación exitosa. Cerrando...</p>
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <p className="text-muted-foreground text-sm">Autenticación exitosa. Cerrando...</p>
     </div>
   );
 }

@@ -142,7 +142,7 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
         aria-label="Ayuda y atajos"
         title="Ayuda y atajos"
         onClick={() => setOpen(true)}
-        className={`text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-[#162826] transition-colors ${compact ? 'h-8 w-8' : 'h-9 w-9'}`}
+        className={`text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors ${compact ? 'h-8 w-8' : 'h-9 w-9'}`}
       >
         <Keyboard className="w-4 h-4" />
       </Button>

@@ -1,6 +1,82 @@
 # Hospedá — Worklog
 
 ---
+Task ID: 2-f
+Agent: Sub Agent (general-purpose)
+Task: Refactor payment, subscription, and configuration components — Replace ALL hardcoded hex colors
+
+Work Log:
+- TrialBanner.tsx: 4 replacements — bg-[#F59E0B]/10 → bg-brand-amber/10, border-[#F59E0B]/20 → border-brand-amber/20, bg-[#F59E0B]/15 → bg-brand-amber/15, text-amber-300 → text-amber-700 (×2, dark-mode fix)
+- ModuleLockedDialog.tsx: 2 replacements — bg-[#F59E0B]/15 → bg-brand-amber/15, text-amber-300 → text-amber-700
+- SuscripcionModule.tsx: 10 replacements — estadoColor map: bg-sky-900/30 text-sky-300 → bg-sky-100/30 text-sky-700 (trial), bg-amber-900/60 text-amber-300 → bg-amber-100/60 text-amber-700 (pendiente_pago, suspensa), bg-emerald-900/60 text-emerald-300 → bg-emerald-100/60 text-emerald-700 (activa), bg-red-900/60 text-red-300 → bg-red-100/60 text-red-700 (vencida); icons: text-amber-300 → text-amber-700 (Crown), text-sky-300 → text-sky-700 (Building2, Info); bg-sky-900/20 → bg-sky-100/20 (transfer info box); diasTrial urgency text-amber-300 → text-amber-700
+- CheckoutDialog.tsx: 2 replacements — bg-[#009EE3]/10 → bg-sky-500/10 (MP badge), text-[#009EE3] → text-sky-500 (MP text); SVG fill="#009EE3" kept as-is (not Tailwind)
+- PlanCard.tsx: 0 replacements — no hardcoded hex colors found
+- PaymentStatusBadge.tsx: 0 replacements — no hardcoded hex colors found
+- PlanIndicator.tsx: 0 replacements — no hardcoded hex colors found
+- PaymentResultBanner.tsx: 0 replacements — no hardcoded hex colors found
+- ConfiguracionModule.tsx: 9 replacements — bg-[#F59E0B] → bg-brand-amber, text-[#F59E0B] → text-brand-amber (password strength medium), focus-visible:ring-[#059669]/30 → focus-visible:ring-brand-emerald/30 (×2, CUIT + password), bg-[#F59E0B]/10 border-[#F59E0B]/20 → bg-brand-amber/10 border-brand-amber/20 (trial warning), bg-[#3B82F6]/10 → bg-info/10 (transfer icon), bg-[#3B82F6]/5 → bg-info/5 (transfer info box), text-[#3B82F6] → text-info (Info icon); dark-mode fixes: text-amber-300 → text-amber-700 (×2), text-sky-300 → text-sky-700
+- SuperAdminDashboard.tsx: 12 replacements — estadoBadge: bg-amber-900/30 text-amber-400 → bg-amber-100/30 text-amber-700, bg-emerald-900/30 text-emerald-400 → bg-emerald-100/30 text-emerald-700, bg-red-900/30 text-red-400 → bg-red-100/30 text-red-700, bg-gray-900/30 text-gray-400 → bg-gray-100/30 text-gray-600; subEstadoBadge: same pattern + bg-orange-900/30 text-orange-400 → bg-orange-100/30 text-orange-700; fallback bg-gray-100 text-gray-800 → bg-gray-100/60 text-gray-800; iconColor bg-amber-900/30 text-amber-400 → bg-amber-100/30 text-amber-700
+- SuperAdminCuentas.tsx: 6 replacements — subEstadoBadge map: all 5 entries converted (900/30 → 100/30, 400 → 700/600, 800 borders → 300 borders); text-red-400 → text-red-600 (diasRestantes urgency)
+- SuperAdminPagos.tsx: 4 replacements — estadoBadge map: all 4 entries converted (900/30 → 100/30, 400 → 700/600, 800 borders → 300 borders)
+- SuperAdminPlanes.tsx: 2 replacements — bg-gray-400 → bg-gray-500 (fallback dot), text-emerald-400 → text-emerald-600 (Activo badge)
+- SuperAdminConfig.tsx: 0 replacements — no hardcoded hex colors or dark-mode classes found
+
+Stage Summary:
+- 9 files modified, 41 CSS class replacements total
+- All hardcoded hex colors eliminated: zero instances of bg-[#*, text-[#*, border-[#* remaining in 14 target files
+- All dark-mode-specific classes converted to light-theme equivalents (900 bg → 100 bg, 300/400 text → 600/700 text, 700/800 borders → 300 borders)
+- Semantic tokens used: brand-amber, brand-emerald, info, sky-500
+- SVG fill attributes preserved (not Tailwind classes)
+- Zero logic changes — only CSS class name substitutions
+
+---
+Task ID: 2-c
+Agent: Sub Agent (general-purpose)
+Task: Refactor DashboardModule.tsx — Replace ALL hardcoded hex colors with semantic Tailwind tokens
+
+Work Log:
+
+**DashboardModule.tsx (32 replacements):**
+- Weather icons: text-[#F59E0B] → text-brand-amber (sun), text-[#94A3B8] → text-slate-400 (3 instances: clouds/fog/thermometer), text-[#3B82F6] → text-info (4 instances: rain/snow/drizzle)
+- Live clock: text-[#334155] → text-slate-700
+- Popover status icons: text-[#3B82F6] → text-status-reserved, text-[#EF4444] → text-status-occupied, text-[#F59E0B] → text-status-cleaning, text-[#94A3B8] → text-slate-400, text-[#4ADE80] → text-status-available
+- Popover detail icons: text-[#0EA5E9] → text-sky-500 (checkin), text-[#F43F5E] → text-rose-500 (checkout)
+- Popover labels: text-[#94A3B8] → text-slate-400 (4 instances: Tarifa/Total/Pago/Menores)
+- Popover payment state: text-[#EA580C] → text-orange-600 (Parcial), text-[#EF4444] → text-status-occupied (unpaid)
+- Popover niños: text-[#7C3AED] → text-purple-600
+- Tooltip: bg-[#1E293B] → bg-slate-800, border-t-[#1E293B] → border-t-slate-800
+- Gantt weekday headers: text-[#F43F5E] → text-rose-500 (2 instances: day name + day number for weekends)
+- Gantt legend items: bg-[#3B82F6] → bg-status-reserved, bg-[#4ADE80] → bg-status-available, bg-[#94A3B8] → bg-status-finalized, bg-[#F59E0B] → bg-status-cleaning, bg-[#64748B] → bg-status-maintenance
+- Gantt calendar icon: text-[#3B82F6] → text-status-reserved
+- Gantt range buttons: hover:bg-[#1a3d35] → hover:bg-primary/80 (2 instances)
+- Historial button: bg-[#475569] hover:bg-[#334155] → bg-slate-600 hover:bg-slate-700
+- Gantt bar styles (getBarColorClass): Replaced entire map — bg-[#3B82F6]+shadow → bg-status-reserved shadow-sm, bg-[#4ADE80]+shadow → bg-status-available shadow-sm, bg-[#94A3B8] → bg-status-finalized, bg-[#F59E0B]+shadow → bg-status-cleaning shadow-sm, bg-[#64748B]+shadow → bg-status-maintenance shadow-sm
+- Room heatmap dots: bg-[#4ADE80] → bg-status-available, bg-[#EF4444] → bg-status-occupied, bg-[#F59E0B] → bg-status-cleaning, bg-[#64748B] → bg-status-maintenance, bg-[#3B82F6] → bg-status-reserved (2 maps: `dots` object + inline legend)
+- Estado General icons: text-[#94A3B8] → text-slate-400 (2 instances)
+- Status count badges: bg-[#F59E0B] → bg-status-cleaning (2 instances), bg-[#64748B] → bg-status-maintenance (2 instances)
+- Alert badges: bg-[#3B82F6] → bg-status-reserved, bg-[#EF4444] → bg-status-occupied, bg-[#64748B] → bg-status-maintenance
+- Checkout icon: text-[#EA580C] → text-orange-600
+- Check-in section: text-[#3B82F6] → text-status-reserved, bg-[#3B82F6] → bg-status-reserved
+- Check-out section: text-[#F97316] → text-orange-500, bg-[#F97316] → bg-orange-500
+- Saldo text: text-[#EF4444] → text-status-occupied
+
+**RoomTypeDistribution.tsx (2 replacements):**
+- text-[#334155] → text-slate-700 (2 instances: label and count)
+- Note: TYPE_COLORS hex values kept as-is — they're JS strings used in inline `style={{ backgroundColor }}`, not Tailwind className tokens
+
+**RecentActivity.tsx (1 replacement):**
+- text-[#EF4444] → text-status-occupied (expense amount display)
+- Note: EVENT_STYLES hex color values kept as-is — they're JS strings used in inline `style={{ backgroundColor/color }}`, not Tailwind className tokens
+
+**GuestTimeline.tsx (6 replacements):**
+- bg-[#F59E0B] → bg-status-cleaning (3 instances: badge, dot, summary)
+- text-[#F59E0B] → text-status-cleaning (checkout icon)
+- text-[#334155] → text-slate-700 (guest name)
+- Gradient: from-[#059669]/30 → from-status-available/30, via-[#94A3B8]/20 → via-slate-400/20, to-[#F59E0B]/30 → to-status-cleaning/30
+
+**Verification:** Zero remaining instances of `bg-[#`, `text-[#`, `border-[#`, or `shadow-[` with hex values in all four files.
+
+---
 Task ID: 4-c
 Agent: Sub Agent (general-purpose)
 Task: Fix light-theme background colors in other modules for dark-only theme
@@ -631,3 +707,283 @@ Stage Summary:
 - App now defaults to light theme (white bg, dark text, teal primary)
 - Dark theme available via .dark class for future toggle
 - Theme infrastructure fully functional (next-themes + CSS variables)
+
+---
+Task ID: 2-d
+Agent: Sub Agent (general-purpose)
+Task: Refactor ReservasModule.tsx & CheckInModule.tsx — Replace ALL hardcoded hex colors with semantic Tailwind tokens
+
+Work Log:
+- ReservasModule.tsx: 27 replacements across all categories:
+  - Date range picker: bg-[#0D3D33] → bg-primary, [&>button]:!bg-[#0D3D33] → [&>button]:!bg-primary (3 lines: range_start, range_end, range_middle)
+  - Status border colors: border-l-[#10B981] → border-l-status-available (Confirmada), border-l-[#3B82F6] → border-l-status-reserved, border-l-[#F59E0B] → border-l-status-cleaning, border-l-[#EF4444] → border-l-status-occupied, border-l-[#94A3B8] → border-l-status-finalized
+  - Status dot colors: bg-[#3B82F6] → bg-status-reserved, bg-[#F59E0B] → bg-status-cleaning, bg-[#EF4444] → bg-destructive, bg-[#94A3B8] → bg-status-finalized
+  - Text colors: text-[#94A3B8] → text-slate-400 (4 instances: dim label, dim value, dot separator, payment hint), text-[#475569] → text-slate-600 (Subtotal), text-[#F59E0B] → text-brand-amber (checkout date, checkout calendar icon), text-[#EF4444] → text-destructive (alert saldo, required asterisk)
+  - Border/ring colors: ring-[#4ADE80] border-[#4ADE80] → ring-brand-mint border-brand-mint (selected room), border-[#4ADE80] → border-brand-mint (combo selected), bg-[#4ADE80] → bg-brand-mint (combo badge), text-[#4ADE80] → text-brand-mint (total price)
+  - Payment progress: bg-[#F59E0B] → bg-brand-amber, bg-[#EF4444] → bg-destructive (2 instances: mobile + desktop)
+  - Hover: hover:text-[#475569] → hover:text-slate-600 (payment type button)
+  - Focus ring: focus-visible:ring-[#059669] → focus-visible:ring-primary (3 instances: monto input, metodo trigger, cuotas trigger)
+  - Divider: divide-[#E2E8F0]/60 → divide-slate-700/60
+- CheckInModule.tsx: 4 replacements:
+  - text-[#EA580C] → text-orange-600 (checkout icon)
+  - text-[#EF4444] → text-destructive (menores obligatorio label)
+  - text-[#7C3AED] → text-purple-600 (baby icon in menor card)
+  - text-[#F59E0B] → text-brand-amber (alert/requisitos icon)
+- Result: ZERO hardcoded hex colors (bg-[#, text-[#, border-[#, ring-[#) remain in either file
+
+---
+Task ID: 2-a
+Agent: Sub Agent (general-purpose)
+Task: Refactor page.tsx landing page colors
+
+Work Log:
+- #059669 (emerald brand) replacements (20 instances):
+  - bg-[#059669] → bg-brand-emerald (2: avatarColor, carousel indicator)
+  - bg-[#059669]/10 → bg-brand-emerald/10 (4: stats iconColor ×2, hero feature icons, version badge)
+  - bg-[#059669]/12 → bg-brand-emerald/12 (1: hero orb 1)
+  - bg-[#059669]/15 → bg-brand-emerald/15 (5: stats card gradient, demo table estadoColor ×4)
+  - bg-[#059669]/6 → bg-brand-emerald/6 (1: features bg blur)
+  - bg-[#059669]/5 → bg-brand-emerald/5 (2: pricing table th highlight, td highlight)
+  - bg-[#059669]/25 → bg-brand-emerald/25 (1: carousel inactive indicator)
+  - text-[#059669] → text-brand-emerald (14: stats iconColor ×2, version badge, Sparkles icon, Zap icon, trust badge icon, carousel indicator, pricing th, pricing check icon, demo table estadoColor ×4, social hover)
+  - border-[#059669]/20 → border-brand-emerald/20 (1: version badge border)
+  - hover:shadow-[#059669]/10 → hover:shadow-brand-emerald/10 (1: stats card hover)
+  - hover:border-[#059669]/40 → hover:border-brand-emerald/40 (1: trust badge hover)
+  - from-[#059669]/15 → from-brand-emerald/15 (1: stats card decorative gradient)
+  - from-[#059669]/12 → from-brand-emerald/12 (1: testimonial decorative gradient)
+- #0F2B28 (brand deep) replacements (10 instances):
+  - bg-[#0F2B28] → bg-brand-deep (3: avatarColor, pricing tab, CTA button)
+  - bg-[#0F2B28]/10 → bg-brand-deep/10 (3: stats iconColor ×2, hero feature icon)
+  - bg-[#0F2B28]/8 → bg-brand-deep/8 (1: hero orb 2)
+  - bg-[#0F2B28]/5 → bg-brand-deep/5 (1: features bg blur)
+  - text-[#0F2B28] → text-brand-deep (5: stats iconColor ×2, Shield icon, stats heading, stats number)
+  - shadow-[#0F2B28]/20 → shadow-brand-deep/20 (1: pricing tab shadow)
+  - hover:bg-[#0F2B28]/90 → hover:bg-brand-deep/90 (1: CTA button hover)
+- #F59E0B (brand amber) replacements (5 instances):
+  - bg-[#F59E0B]/10 → bg-brand-amber/10 (2: hero orb 3, hero feature icon)
+  - text-[#F59E0B] → text-brand-amber (2: Globe icon, Star rating text)
+  - fill-[#F59E0B] → fill-brand-amber (1: Star rating fill)
+- #EA580C (orange) replacements (1 instance):
+  - bg-[#EA580C] → bg-orange-600 (1: avatarColor)
+- #F0FDF4 (light emerald tint) replacements (3 instances):
+  - to-[#F0FDF4]/40 → to-emerald-50/40 (1: stats section gradient)
+  - from-[#F0FDF4]/60 → from-emerald-50/60 (1: stats card gradient)
+  - from-[#F0FDF4]/30 → from-emerald-50/30 (1: features section gradient)
+- #BBF7D0 (light emerald border) replacements (2 instances):
+  - border-[#BBF7D0]/40 → border-emerald-200/40 (1: stats card border)
+  - border-[#BBF7D0]/50 → border-emerald-200/50 (1: trust badge border)
+- #166534 (dark green text) replacements (1 instance):
+  - text-[#166534] → text-emerald-800 (1: trust badge text)
+
+Stage Summary:
+- All 42 hardcoded hex color instances replaced with semantic tokens across 16 unique patterns
+- ZERO instances of bg-[#, text-[#, border-[#, from-[#, to-[#, fill-[#, shadow-[# remain
+- 1 SVG attribute fill="#009EE3" left unchanged (inline SVG, not Tailwind class)
+- Key mappings: #059669→brand-emerald, #0F2B28→brand-deep, #F59E0B→brand-amber, #EA580C→orange-600, #F0FDF4→emerald-50, #BBF7D0→emerald-200, #166534→emerald-800
+
+---
+Task ID: 2-b
+Agent: Sub Agent (general-purpose)
+Task: Refactor auth pages and layout components colors
+
+Work Log:
+- AuthCard.tsx: Major dark→light theme refactor (50+ replacements)
+  - bg-[#0a1628] → bg-background (2 instances: success screen + main screen)
+  - Glassmorphism card: removed rgba(15,23,42,0.6) background + backdropFilter → bg-card shadow-xl
+  - border-white/[0.08] → border-border (2 instances)
+  - shadow-2xl shadow-sky-900/20 → shadow-xl
+  - Right panel: bg-white/[0.03] → bg-muted/20 (2 instances: login + signup)
+  - MobileLogo: bg-white/90 → bg-primary/10, text-white → text-foreground
+  - All right panel text: text-white → text-foreground, text-white/50 → text-muted-foreground, text-white/25 → text-muted-foreground/50, text-white/80 → text-foreground/80, text-white/20 → text-foreground/20, text-white/30 → text-foreground/30
+  - Input styling: border-white/10 → border-border, bg-white/[0.04] → bg-muted/30, text-white → text-foreground, placeholder:text-white/25 → placeholder:text-muted-foreground/50, focus:border-sky-500/50 → focus:border-primary/50, focus:ring-sky-500/20 → focus:ring-primary/20
+  - Google button: border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white → border-border bg-muted/30 hover:bg-muted/50 text-foreground
+  - Divider: border-white/10 → border-border, text-white/30 → text-foreground/30, bg-transparent → bg-card
+  - CTA buttons: bg-sky-500 hover:bg-sky-400 text-white → bg-primary hover:bg-primary/90 text-primary-foreground
+  - Links: text-sky-400 hover:text-sky-300 → text-primary hover:text-primary/80
+  - Alert: text-emerald-400 → text-emerald-600, text-red-400 → text-red-600
+  - Left panel (dark gradient branding): kept text-white* as-is (on dark background)
+  - DecoElements/Logo: kept bg-white* as-is (on dark gradient panel)
+  - Inline style gradients (decorative blobs + left panel): kept as-is (JS style objects, not Tailwind classes)
+- forgot-password/page.tsx: Same dark→light refactor (30+ replacements)
+  - bg-[#0a1628] → bg-background (2 instances: success + form)
+  - Glassmorphism → bg-card shadow-xl border-border
+  - All text-white* → semantic tokens (text-foreground, text-muted-foreground, text-foreground/80, text-foreground/30)
+  - Input: border-border bg-muted/30 text-foreground placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-primary/20
+  - CTA: bg-primary hover:bg-primary/90 text-primary-foreground
+  - Link: text-primary hover:text-primary/80
+  - Logo: text-white → text-foreground
+- close-auth-popup/page.tsx: 2 replacements
+  - bg-[#0a1628] → bg-background
+  - text-white/60 → text-muted-foreground
+- HelpDialog.tsx: 1 replacement
+  - hover:bg-[#162826] → hover:bg-sidebar-accent
+- reset-password/page.tsx: 5 replacements
+  - bg-slate-900/90 backdrop-blur-xl → bg-card shadow-xl (3 instances: error card, success card, form card)
+  - border-white/10 → border-border (2 instances)
+- accept-invitation/page.tsx: 5 replacements
+  - bg-slate-900/90 backdrop-blur-xl → bg-card shadow-xl (3 instances)
+  - border-white/10 → border-border (2 instances)
+- AnimatedBackground.tsx: No changes (canvas colors in JS arrays, not Tailwind classes)
+- register/page.tsx: No changes (wraps AuthCard)
+- Sidebar.tsx: No changes (already uses semantic tokens throughout)
+- QuickStatsBar.tsx: No changes (already uses semantic tokens throughout)
+
+Stage Summary:
+- ZERO instances of bg-[#0a1628] or bg-[#162826] remaining in entire src/ tree
+- ZERO Tailwind arbitrary hex classes (bg|text|border)-[# remain in auth pages or layout components
+- Auth pages converted from dark glassmorphism to light theme (bg-background + bg-card)
+- All form text colors adapted for light theme readability (text-foreground, text-muted-foreground)
+- Left branding panels with dark gradients preserved (text-white appropriate on dark bg)
+- Decorative inline-style gradients (JS objects) kept as-is — not Tailwind classes
+
+---
+Task ID: 2-e
+Agent: Sub Agent (general-purpose)
+Task: Refactor remaining modules — Replace ALL hardcoded hex colors with semantic Tailwind tokens + fix dark-mode-specific classes
+
+Work Log:
+
+**CajaModule.tsx** (2858 lines):
+- CATEGORY_CONFIG: Replaced `color: '#EF4444'` → `var(--destructive)`, `color: '#F59E0B'` → `var(--brand-amber)`, `color: '#8B5CF6'` → `var(--violet-500)`, `color: '#64748B'` → `var(--status-maintenance)`, `color: '#059669'` → `var(--brand-emerald)`
+- CATEGORY_CONFIG dark-mode: `bg-red-900/60 text-red-300` → `bg-red-100/60 text-red-700`, `bg-amber-900/60 text-amber-300` → `bg-amber-100/60 text-amber-700`, `bg-violet-900/40 text-violet-300` → `bg-violet-100/40 text-violet-700`, `bg-slate-800/40` → `bg-slate-100/40`
+- All `bg-red-900/*` → `bg-red-100/*` (20, 30, 40, 60 variants)
+- All `bg-amber-900/60` → `bg-amber-100/60`
+- All `text-red-300` → `text-red-700`, `text-amber-300` → `text-amber-700`
+- `bg-teal-950/10` → `bg-primary/5` (4 instances)
+- `bg-green-950/*` → `bg-green-50/*`, `bg-red-950/20` → `bg-red-50/20`, `bg-amber-950/*` → `bg-amber-50/*`
+- `text-amber-900` → `text-amber-800` (4 instances)
+- `border-red-700/40` → `border-red-300/40`
+- KPI_COLORS config: All `950` darkBg → `50` variants, all `400` label → `600`, all `200` value → `800`, all `400/50` sub → `600/50`
+
+**LimpiezaModule.tsx** (635 lines):
+- `bg-[#EF4444]/20` → `bg-destructive/20`, `bg-[#F59E0B]` → `bg-brand-amber`, `bg-[#EF4444]` → `bg-destructive`
+- `border-l-[#EF4444]` → `border-l-destructive`, `border-l-[#F59E0B]` → `border-l-brand-amber`, `border-l-[#0EA5E9]` → `border-l-info`, `border-[#4ADE80]` → `border-brand-mint`
+- `border-red-700/40` → `border-red-300/40`, `border-amber-700/40` → `border-amber-300/40`, `border-sky-700/40` → `border-sky-300/40`
+- `bg-red-900/*` → `bg-red-100/*`, `bg-amber-900/60` → `bg-amber-100/60`, `bg-sky-900/*` → `bg-sky-100/*`, `bg-red-950/20` → `bg-red-50/20`
+- `text-red-300` → `text-red-700`, `text-amber-300` → `text-amber-700`, `text-sky-300` → `text-sky-700`
+
+**ReportesModule.tsx** (2200+ lines):
+- `text-[#EF4444]` → `text-destructive` (5 instances), `bg-[#4ADE80]` → `bg-brand-mint`, `from-[#0F2B28] to-[#059669]` → `from-brand-deep to-brand-emerald`
+- `text-emerald-300` → `text-emerald-700`, `text-red-300` → `text-red-700`, `text-amber-300` → `text-amber-700`
+- `bg-emerald-900/60` → `bg-emerald-100/60`, `bg-amber-900/60` → `bg-amber-100/60`, `bg-red-900/60` → `bg-red-100/60`
+- `border-amber-700/40` → `border-amber-300/40`, `border-red-700/40` → `border-red-300/40`
+- `bg-teal-950/10` → `bg-primary/5`
+- KPI_COLORS config: All 9 color entries refactored — `950` darkBg → `50`, `400` label → `600`, `200` value → `800`, `400/50` sub → `600/50`
+
+**ClientesModule.tsx** (780 lines):
+- `focus-visible:ring-[#0F2B28]` → `focus-visible:ring-brand-deep`
+- `from-[#0F2B28] to-[#0F2B28]/70` → `from-brand-deep to-brand-deep/70` (2 instances)
+- `bg-amber-950/20` → `bg-amber-50/20`, `bg-sky-950/20` → `bg-sky-50/20`, `bg-teal-950/20` → `bg-primary/5`
+- `text-amber-400` → `text-amber-600`, `text-amber-200` → `text-amber-800`, `text-sky-400` → `text-sky-600`, `text-sky-200` → `text-sky-800`, `text-teal-400` → `text-teal-600`, `text-teal-200` → `text-teal-800`
+
+**UsuariosModule.tsx** (1130 lines):
+- `from-[#0F2B28] to-[#1a4a44]` → `from-brand-deep to-brand-teal`
+- `border-l-sky-400` → `border-l-sky-500`, `bg-sky-950/20` → `bg-sky-50/20`
+- `border-l-amber-400` → `border-l-amber-500`, `bg-amber-950/20` → `bg-amber-50/20`
+
+**RoomStatusMap.tsx** (408 lines):
+- STATUS_MAP_CONFIG: `color: '#059669'` → `var(--brand-emerald)`, `color: '#D97706'` → `var(--brand-amber)`, `color: '#0D9488'` → `var(--brand-teal)`, `color: '#EAB308'` → `var(--warning)`, `color: '#DC2626'` → `var(--destructive)`, `color: '#94A3B8'` → `var(--status-finalized)`
+- `bg-[#D97706]/8` → `bg-amber-600/8`, `bg-[#0D9488]/8` → `bg-teal-600/8`, `bg-[#EAB308]/8` → `bg-yellow-500/8`, `bg-[#DC2626]/8` → `bg-red-600/8`, `bg-[#94A3B8]/8` → `bg-slate-400/8`
+- `bg-[#D97706]/5` → `bg-amber-600/5`, `style={{ borderLeftColor: '#D97706' }}` → `style={{ borderLeftColor: 'var(--brand-amber)' }}`
+- `bg-[#DC2626]/5` → `bg-red-600/5`, `style={{ borderLeftColor: '#DC2626' }}` → `style={{ borderLeftColor: 'var(--destructive)' }}`
+
+**TarifasModule.tsx** — Already clean, no changes needed.
+
+**FacturacionModule.tsx** (990+ lines):
+- `estadoPagoBadge`: `bg-amber-900/60 text-amber-300 border-amber-700/40` → `bg-amber-100/60 text-amber-700 border-amber-300/40`, `bg-orange-900/40 text-orange-300 border-orange-700/40` → `bg-orange-100/40 text-orange-700 border-orange-300/40`, `bg-emerald-900/60 text-emerald-300` → `bg-emerald-100/60 text-emerald-700`
+- `bg-amber-950/20` → `bg-amber-50/20`, `bg-sky-950/20` → `bg-sky-50/20`, `bg-violet-950/20` → `bg-violet-50/20`
+- `text-red-300` → `text-red-700` (7 instances)
+- `text-amber-400` → `text-amber-600`, `text-amber-200` → `text-amber-800`, `text-sky-400` → `text-sky-600`, `text-sky-200` → `text-sky-800`, `text-violet-400` → `text-violet-600`, `text-violet-200` → `text-violet-800`
+- Payment method colors: `bg-sky-900/30 text-sky-400` → `bg-sky-100/30 text-sky-600`, `bg-violet-900/30 text-violet-400` → `bg-violet-100/30 text-violet-600`, `bg-amber-900/30 text-amber-400` → `bg-amber-100/30 text-amber-600`
+
+**HabitacionesModule.tsx** (1096 lines):
+- `estados` map: All entries refactored — `bg-emerald-900/60 text-emerald-300` → `bg-emerald-100/60 text-emerald-700`, `bg-amber-900/60 text-amber-300` → `bg-amber-100/60 text-amber-700`, `bg-sky-900/20 text-sky-300` → `bg-sky-100/20 text-sky-700`, `bg-red-900/60 text-red-300` → `bg-red-100/60 text-red-700`
+- `border-l-[#10B981]` → `border-l-status-available`
+- STATUS_VISUAL: All hex color values → CSS var references: `#059669` → `var(--brand-emerald)`, `#D97706` → `var(--brand-amber)`, `#EAB308` → `var(--warning)`, `#94A3B8` → `var(--status-finalized)`, `#0EA5E9` → `var(--info)`, `#EF4444` → `var(--destructive)`
+
+**HabitacionesModuleAPI.tsx** (256 lines):
+- `estados` map: `bg-emerald-900/60 text-emerald-300` → `bg-emerald-100/60 text-emerald-700`, `bg-red-900/60 text-red-300` → `bg-red-100/60 text-red-700`, `bg-amber-900/60 text-amber-300` → `bg-amber-100/60 text-amber-700`, `bg-violet-900/40 text-violet-300` → `bg-violet-100/40 text-violet-700`
+- `bg-sky-900/30` → `bg-sky-100/30`, `text-sky-300` → `text-sky-700`
+
+**Verification**: All 10 target files now have ZERO instances of:
+- `bg-[#`, `text-[#`, `border-[#`, `from-[#`, `to-[#` Tailwind hex classes
+- `color: '#hex'` JS hex values
+- Dark-mode-only classes (`bg-*-900`, `bg-*-950`, `text-*-300`, `text-*-200`)
+- All replaced with semantic tokens or light-theme-appropriate Tailwind classes
+
+---
+Task ID: 3
+Agent: Sub Agent (general-purpose)
+Task: Fix remaining dark-mode-specific color classes in components
+
+Work Log:
+- **ReservasModule.tsx**: 34 replacements
+  - estadoReservaBadge: bg-emerald-900/60 text-emerald-300 → bg-emerald-100/60 text-emerald-700, bg-red-900/60 text-red-300 border-red-700/40 → bg-red-100/60 text-red-700 border-red-300/40, bg-sky-900/60 text-sky-300 border-sky-700/40 → bg-sky-100/60 text-sky-700 border-sky-300/40, bg-slate-800/60 text-slate-300 → bg-slate-200/60 text-slate-600
+  - estadoPagoBadge: bg-amber-900/60 text-amber-300 border-amber-700/40 → bg-amber-100/60 text-amber-700 border-amber-300/40, bg-orange-900/60 text-orange-300 border-orange-700/40 → bg-orange-100/60 text-orange-700 border-orange-300/40, bg-emerald-900/60 text-emerald-300 → bg-emerald-100/60 text-emerald-700
+  - Activity cards: bg-amber-950/20 → bg-amber-50, bg-green-950/20 → bg-green-50, text-amber-400 → text-amber-600, text-amber-200 → text-amber-800, text-green-400 → text-green-600, text-green-200 → text-green-800
+  - Quick actions & table actions: text-amber-300 → text-amber-700, text-red-300 → text-red-700, text-orange-400 → text-orange-600, hover:bg-*-900/30 → hover:bg-*-100/30, border-*-700/40 → border-*-300/40
+  - Financial summary: border-sky-700/40 bg-sky-900/30 → border-sky-300/40 bg-sky-100/30, text-sky-300 → text-sky-700, border-red-700/40 bg-red-900/30 → border-red-300/40 bg-red-100/30, text-red-300 → text-red-700
+  - Error boxes: border-red-700/40 bg-red-900/30 → border-red-300/40 bg-red-100/30, text-red-300 → text-red-700
+  - Promotions: text-amber-300 → text-amber-700, text-violet-300 → text-violet-700, hover:bg-violet-900/30 → hover:bg-violet-100/30
+  - Cancel dialog: text-red-300 → text-red-700
+
+- **DashboardModule.tsx**: 25+ replacements
+  - Tooltip estadoColors: bg-sky-900/30 text-sky-300 → bg-sky-100/30 text-sky-700, bg-emerald-900/60 text-emerald-300 → bg-emerald-100/60 text-emerald-700, bg-amber-900/60 text-amber-300 → bg-amber-100/60 text-amber-700
+  - Room status colors: same pattern for Disponible/Ocupada/Limpieza + bg-indigo-900/40 text-indigo-300 → bg-indigo-100/40 text-indigo-700
+  - Gantt grid: bg-red-900/20 → bg-red-100/20, bg-red-900/30 → bg-red-100/30, bg-sky-900/15 → bg-sky-100/15
+  - KPI cards: bg-amber-950/20 → bg-amber-50, text-amber-400/200 → text-amber-600/800, bg-teal-950/20 → bg-teal-50, text-teal-400/200 → text-teal-600/800
+  - Alert sections: bg-amber-900/60 border-amber-700/40 → bg-amber-100/60 border-amber-300/40, text-amber-300 → text-amber-700; bg-sky-900/30 border-sky-700/40 → bg-sky-100/30 border-sky-300/40, text-sky-300 → text-sky-700; bg-orange-900/40 border-orange-700/40 → bg-orange-100/40 border-orange-300/40, text-orange-300 → text-orange-700; bg-red-900/60 border-red-700/40 → bg-red-100/60 border-red-300/40, text-red-300 → text-red-700
+  - Pending lists: border-sky-700/40 bg-sky-900/20 hover:bg-sky-900/40 → border-sky-300/40 bg-sky-100/20 hover:bg-sky-100/40; border-orange-700/40 bg-orange-900/20 → border-orange-300/40 bg-orange-100/20
+  - Kids badge: bg-violet-900/40 text-violet-300 border-violet-700/40 → bg-violet-100/40 text-violet-700 border-violet-300/40
+  - Weather icon: text-violet-300 → text-violet-600
+
+- **CheckInModule.tsx**: 15+ replacements
+  - estadoPagoBadge: same pattern as ReservasModule
+  - Card: border-orange-700/40 bg-amber-950/20 → border-orange-300/40 bg-amber-50
+  - Badge: bg-orange-900/40 text-orange-300 border-orange-700/40 → bg-orange-100/40 text-orange-700 border-orange-300/40
+  - Hover: hover:bg-amber-950/40 → hover:bg-amber-100/40
+  - Errors: border-red-700/40 bg-red-900/30 → border-red-300/40 bg-red-100/30, text-red-300 → text-red-700
+  - Saldo: text-red-300 → text-red-700, text-amber-300 → text-amber-700
+  - Color tokens: bg-amber-950/20 → bg-amber-50, text-amber-400/200 → text-amber-600/800, bg-teal-950/20 → bg-teal-50, text-teal-400/200 → text-teal-600/800
+  - Kids: bg-violet-900/40 text-violet-300 border-violet-700/40 → bg-violet-100/40 text-violet-700 border-violet-300/40, text-violet-300 → text-violet-700
+
+- **TodaySummary.tsx**: 12 replacements
+  - bg-amber-950/20 → bg-amber-50, text-amber-400/200 → text-amber-600/800
+  - bg-green-950/20 → bg-green-50, text-green-400/200 → text-green-600/800
+  - bg-violet-950/20 → bg-violet-50, text-violet-400/200 → text-violet-600/800
+
+- **SmsLoginTab.tsx**: 1 replacement — bg-amber-900/30 text-amber-400 → bg-amber-100/30 text-amber-600
+
+- **ProfileWelcome.tsx**: 4 replacements — ROL_INFO: bg-amber-900/30 text-amber-300 → bg-amber-100/30 text-amber-700, bg-purple-900/30 text-purple-300 → bg-purple-100/30 text-purple-700, bg-blue-900/30 text-blue-300 → bg-blue-100/30 text-blue-700, bg-green-900/30 text-green-300 → bg-green-100/30 text-green-700
+
+- **ProfileSelector.tsx**: 4 replacements — same ROL_INFO pattern as ProfileWelcome
+
+- **SmsVerificationDialog.tsx**: 1 replacement — bg-amber-900/30 text-amber-400 → bg-amber-100/30 text-amber-600
+
+Verification: `rg 'text-amber-300|text-red-300|text-sky-300|text-orange-300|bg-amber-900|bg-red-900|bg-emerald-950|bg-sky-900|bg-orange-900|bg-rose-900' src/components/modules/` returns ZERO results ✓
+
+---
+Task ID: 3-main
+Agent: Main Agent
+Task: Deep color system refactor - Replace ALL hardcoded hex colors with semantic tokens
+
+Work Log:
+- Read and analyzed entire globals.css (1653 lines), page.tsx, all module components, auth pages, layout components, payment/subscription components
+- Identified 150+ hardcoded hex color instances across 30+ files
+- Phase 1: Added new CSS variables (--brand-deep, --brand-emerald, --brand-mint, --brand-teal, --brand-amber, --status-available/occupied/reserved/cleaning/maintenance/finalized, --danger) to :root and .dark theme, registered them in @theme inline block
+- Phase 1: Replaced all hardcoded hex colors in CSS utility classes (scroll-progress, premium-badge, cta-premium, glass-card, hero-gradient-text, hero-underline, premium-quote, feature-grid-item, celebrate-bg, wave-border-hover, sidebar-gradient, bg-grid-pattern, pulseGlow, hover-glow, sidebar-active-glow, feature-connector, value-flash, typewriter-cursor, social-icon-hover, back-to-top-btn, footer-wave-divider, status-border-*, progress-branded-fill, progress-indeterminate-fill, card-interactive, hover-lift, card-hover, icon-shimmer-hover, badgeGlow) with CSS variable references
+- Phase 2: Delegated page.tsx landing page refactor to subagent (42 replacements)
+- Phase 3: Delegated auth pages refactor to subagent (bg-[#0a1628] → bg-background, glass cards → bg-card shadow-xl)
+- Phase 4: Delegated DashboardModule refactor to subagent (32+ replacements, status colors, gantt bars, tooltips)
+- Phase 5: Delegated ReservasModule + CheckInModule refactor to subagent (31 replacements)
+- Phase 6: Delegated remaining modules refactor to subagent (Caja, Limpieza, Reportes, Clientes, Usuarios, RoomStatusMap, Facturacion, Habitaciones - 9 files modified)
+- Phase 7: Delegated payment/config/subscription/super-admin refactor to subagent (9 files modified)
+- Phase 8: Fixed remaining dark-mode-specific color classes (text-*-300 → text-*-700, bg-*-900 → bg-*-100, border-*-700 → border-*-300) across all module components
+
+Stage Summary:
+- ZERO hardcoded hex colors remain in Tailwind utility classes (bg-[#, text-[#, border-[#, from-[#, to-[#)
+- ZERO dark-mode-only classes remain in module components (only shadcn UI base components retain them)
+- All CSS utility classes in globals.css use CSS variables instead of hardcoded hex
+- New semantic tokens available: brand-deep, brand-emerald, brand-mint, brand-teal, brand-amber, status-available/occupied/reserved/cleaning/maintenance/finalized, danger
+- Lint passes clean
+- Dev server compiles and serves page with 200 status

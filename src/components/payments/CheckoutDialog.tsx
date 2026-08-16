@@ -196,12 +196,12 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
 
               {/* MP badge */}
               <div className="flex items-center justify-center gap-2 py-2">
-                <div className="flex items-center gap-1.5 bg-[#009EE3]/10 rounded-full px-3 py-1.5">
+                <div className="flex items-center gap-1.5 bg-sky-500/10 rounded-full px-3 py-1.5">
                   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none">
                     <path d="M3 4h18v16H3V4z" fill="#009EE3" rx="2"/>
                     <path d="M7 8h4l-1 4h3l-4 6 1-4H8l2-6H7z" fill="white"/>
                   </svg>
-                  <span className="text-xs font-medium text-[#009EE3]">Mercado Pago</span>
+                  <span className="text-xs font-medium text-sky-500">Mercado Pago</span>
                 </div>
                 <span className="text-xs text-muted-foreground">Débito automático con tarjeta</span>
               </div>

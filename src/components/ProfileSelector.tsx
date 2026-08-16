@@ -10,10 +10,10 @@ import { signOut, useSession } from 'next-auth/react';
 import { useHotelStore } from '@/lib/store';
 
 const ROL_INFO: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
-  owner: { label: 'Administrador Principal', icon: ShieldCheck, color: 'bg-amber-900/30 text-amber-300' },
-  admin: { label: 'Admin', icon: Shield, color: 'bg-purple-900/30 text-purple-300' },
-  recepcion: { label: 'Recepcion', icon: UserCog, color: 'bg-blue-900/30 text-blue-300' },
-  limpieza: { label: 'Limpieza', icon: Sparkles, color: 'bg-green-900/30 text-green-300' },
+  owner: { label: 'Administrador Principal', icon: ShieldCheck, color: 'bg-amber-100/30 text-amber-700' },
+  admin: { label: 'Admin', icon: Shield, color: 'bg-purple-100/30 text-purple-700' },
+  recepcion: { label: 'Recepcion', icon: UserCog, color: 'bg-blue-100/30 text-blue-700' },
+  limpieza: { label: 'Limpieza', icon: Sparkles, color: 'bg-green-100/30 text-green-700' },
 };
 
 interface ProfileSelectorProps {

@@ -15,11 +15,11 @@ import { toast } from 'sonner';
 import { type TipoHabitacion, CAPACIDAD_POR_TIPO } from '@/lib/types';
 
 const estados: Record<string, string> = {
-  Disponible: 'bg-emerald-900/60 text-emerald-300',
-  Ocupada: 'bg-red-900/60 text-red-300',
-  Limpieza: 'bg-amber-900/60 text-amber-300',
+  Disponible: 'bg-emerald-100/60 text-emerald-700',
+  Ocupada: 'bg-red-100/60 text-red-700',
+  Limpieza: 'bg-amber-100/60 text-amber-700',
   Mantenimiento: 'bg-muted/30 text-slate-400',
-  Reservada: 'bg-violet-900/40 text-violet-300',
+  Reservada: 'bg-violet-100/40 text-violet-700',
 };
 
 const TIPOS_HABITACION: { tipo: TipoHabitacion; label: string; descripcion: string; personas: string }[] = [
@@ -114,7 +114,7 @@ export default function HabitacionesModuleAPI() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-sky-900/30 flex items-center justify-center"><Bed className="w-5 h-5 text-sky-300" /></div>
+            <div className="w-9 h-9 rounded-lg bg-sky-100/30 flex items-center justify-center"><Bed className="w-5 h-5 text-sky-700" /></div>
             Gestión de Habitaciones
           </h2>
         </div>
@@ -130,7 +130,7 @@ export default function HabitacionesModuleAPI() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg bg-sky-900/30 flex items-center justify-center"><Bed className="w-5 h-5 text-sky-300" /></div>
+          <div className="w-9 h-9 rounded-lg bg-sky-100/30 flex items-center justify-center"><Bed className="w-5 h-5 text-sky-700" /></div>
           Gestión de Habitaciones
         </h2>
         <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Nueva</Button>

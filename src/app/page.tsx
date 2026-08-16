@@ -194,28 +194,28 @@ const stats = [
     value: 500,
     format: (n: number) => `${Math.round(n)}+`,
     label: 'hoteles confían en Hospedá',
-    iconColor: 'bg-[#059669]/10 text-[#059669]',
+    iconColor: 'bg-brand-emerald/10 text-brand-emerald',
   },
   {
     icon: CalendarCheck,
     value: 50,
     format: (n: number) => `${Math.round(n)}K+`,
     label: 'reservas gestionadas',
-    iconColor: 'bg-[#0F2B28]/10 text-[#0F2B28]',
+    iconColor: 'bg-brand-deep/10 text-brand-deep',
   },
   {
     icon: Server,
     value: 99.9,
     format: (n: number) => `${n.toFixed(1)}%`,
     label: 'uptime garantizado',
-    iconColor: 'bg-[#059669]/10 text-[#059669]',
+    iconColor: 'bg-brand-emerald/10 text-brand-emerald',
   },
   {
     icon: Headphones,
     value: 24,
     format: (n: number) => `${Math.round(n)}/7`,
     label: 'soporte dedicado',
-    iconColor: 'bg-[#0F2B28]/10 text-[#0F2B28]',
+    iconColor: 'bg-brand-deep/10 text-brand-deep',
   },
 ];
 
@@ -235,7 +235,7 @@ const testimonials = [
     nombre: 'María González',
     rol: 'Gerente, Hotel Sunset',
     avatar: 'MG',
-    avatarColor: 'bg-[#059669]',
+    avatarColor: 'bg-brand-emerald',
     texto: 'Hospedá transformó la forma en que gestionamos nuestro hotel. Antes nos llevaba horas hacer el check-in, ahora son segundos.',
     rating: 5,
   },
@@ -243,7 +243,7 @@ const testimonials = [
     nombre: 'Carlos Rodríguez',
     rol: 'Dueño, Hostel Centro',
     avatar: 'CR',
-    avatarColor: 'bg-[#0F2B28]',
+    avatarColor: 'bg-brand-deep',
     texto: 'La facturación integrada con la caja nos ahorra un montón de tiempo. Los reportes son claros y útiles para tomar decisiones.',
     rating: 5,
   },
@@ -251,7 +251,7 @@ const testimonials = [
     nombre: 'Laura Martínez',
     rol: 'Administradora, Cabañas del Lago',
     avatar: 'LM',
-    avatarColor: 'bg-[#EA580C]',
+    avatarColor: 'bg-orange-600',
     texto: 'El soporte es excelente y siempre están dispuestos a ayudar. La interfaz es intuitiva, nuestro staff aprendió a usarla en minutos.',
     rating: 5,
   },
@@ -361,7 +361,7 @@ function Navbar() {
           <span className="font-bold text-lg tracking-tight">
             Hospedá
           </span>
-          <span className="version-badge-pulse inline-flex items-center px-1.5 py-0.5 rounded-md bg-[#059669]/10 text-[10px] font-semibold text-[#059669] border border-[#059669]/20">
+          <span className="version-badge-pulse inline-flex items-center px-1.5 py-0.5 rounded-md bg-brand-emerald/10 text-[10px] font-semibold text-brand-emerald border border-brand-emerald/20">
             v2.1
           </span>
         </Link>
@@ -446,9 +446,9 @@ function Hero() {
           }}
         />
         {/* Floating orbs with smooth animation */}
-        <div className="hero-orb orb-1 w-[28rem] h-[28rem] bg-[#059669]/12 top-[8%] left-[-8%]" />
-        <div className="hero-orb orb-2 w-[32rem] h-[32rem] bg-[#0F2B28]/8 bottom-[5%] right-[-10%]" />
-        <div className="hero-orb orb-3 w-[20rem] h-[20rem] bg-[#F59E0B]/10 top-[40%] right-[15%]" />
+        <div className="hero-orb orb-1 w-[28rem] h-[28rem] bg-brand-emerald/12 top-[8%] left-[-8%]" />
+        <div className="hero-orb orb-2 w-[32rem] h-[32rem] bg-brand-deep/8 bottom-[5%] right-[-10%]" />
+        <div className="hero-orb orb-3 w-[20rem] h-[20rem] bg-brand-amber/10 top-[40%] right-[15%]" />
         {/* Subtle grid pattern overlay */}
         <div className="absolute inset-0 bg-grid-pattern opacity-50" />
         {/* Gradient fade at bottom */}
@@ -458,7 +458,7 @@ function Hero() {
       <div className="mx-auto max-w-4xl px-4 sm:px-6 text-center relative">
         <FadeIn>
           <div className="premium-badge mb-6">
-            <Sparkles className="w-3.5 h-3.5 text-[#059669]" />
+            <Sparkles className="w-3.5 h-3.5 text-brand-emerald" />
             30 días de prueba gratuita — sin tarjeta
           </div>
         </FadeIn>
@@ -502,22 +502,22 @@ function Hero() {
         <FadeIn delay={500}>
           <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-[#059669]/10 flex items-center justify-center shadow-sm">
-                <Zap className="w-4 h-4 text-[#059669]" />
+              <div className="w-9 h-9 rounded-lg bg-brand-emerald/10 flex items-center justify-center shadow-sm">
+                <Zap className="w-4 h-4 text-brand-emerald" />
               </div>
               <span className="font-medium">Configuración en 2 min</span>
             </div>
             <div className="hidden sm:block w-px h-6 bg-border" />
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-[#0F2B28]/10 flex items-center justify-center shadow-sm">
-                <Shield className="w-4 h-4 text-[#0F2B28]" />
+              <div className="w-9 h-9 rounded-lg bg-brand-deep/10 flex items-center justify-center shadow-sm">
+                <Shield className="w-4 h-4 text-brand-deep" />
               </div>
               <span className="font-medium">Datos aislados</span>
             </div>
             <div className="hidden sm:block w-px h-6 bg-border" />
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center shadow-sm">
-                <Globe className="w-4 h-4 text-[#F59E0B]" />
+              <div className="w-9 h-9 rounded-lg bg-brand-amber/10 flex items-center justify-center shadow-sm">
+                <Globe className="w-4 h-4 text-brand-amber" />
               </div>
               <span className="font-medium">Desde cualquier dispositivo</span>
             </div>
@@ -533,7 +533,7 @@ function StatsSection() {
   const { ref, inView } = useInView(0.25);
 
   return (
-    <section className="py-16 sm:py-20 bg-gradient-to-b from-white to-[#F0FDF4]/40 relative overflow-hidden">
+    <section className="py-16 sm:py-20 bg-gradient-to-b from-white to-emerald-50/40 relative overflow-hidden">
       {/* Subtle decorative pattern */}
       <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
 
@@ -544,7 +544,7 @@ function StatsSection() {
               <BarChart3 className="w-3.5 h-3.5" />
               Confianza comprobada
             </Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0F2B28]">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-brand-deep">
               Números que hablan por sí solos
             </h2>
           </div>
@@ -553,14 +553,14 @@ function StatsSection() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s, i) => (
             <FadeIn key={s.label} delay={i * 100}>
-              <div className="group relative p-6 text-center bg-gradient-to-br from-[#F0FDF4]/60 to-white border border-[#BBF7D0]/40 rounded-2xl hover:shadow-xl hover:shadow-[#059669]/10 hover:-translate-y-1 transition-all duration-300 h-full overflow-hidden">
+              <div className="group relative p-6 text-center bg-gradient-to-br from-emerald-50/60 to-white border border-emerald-200/40 rounded-2xl hover:shadow-xl hover:shadow-brand-emerald/10 hover:-translate-y-1 transition-all duration-300 h-full overflow-hidden">
                 {/* Decorative gradient ring around icon */}
-                <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-gradient-to-br from-[#059669]/15 to-transparent opacity-50 group-hover:opacity-80 group-hover:scale-110 transition-all duration-500" />
+                <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-gradient-to-br from-brand-emerald/15 to-transparent opacity-50 group-hover:opacity-80 group-hover:scale-110 transition-all duration-500" />
 
                 <div className={`stat-icon-pulse w-14 h-14 rounded-2xl ${s.iconColor} flex items-center justify-center mx-auto mb-4 shadow-sm ring-4 ring-slate-800/60`}>
                   <s.icon className="w-7 h-7" />
                 </div>
-                <div className="text-4xl sm:text-5xl font-extrabold text-[#0F2B28] tabular-nums">
+                <div className="text-4xl sm:text-5xl font-extrabold text-brand-deep tabular-nums">
                   {inView ? (
                     <AnimatedNumber value={s.value} duration={1500} format={s.format} />
                   ) : (
@@ -579,9 +579,9 @@ function StatsSection() {
             {trustBadges.map((b) => (
               <div
                 key={b.label}
-                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-[#BBF7D0]/50 text-[#166534] text-sm font-medium shadow-sm hover:shadow-md hover:border-[#059669]/40 transition-all duration-200 snap-start shrink-0"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-emerald-200/50 text-emerald-800 text-sm font-medium shadow-sm hover:shadow-md hover:border-brand-emerald/40 transition-all duration-200 snap-start shrink-0"
               >
-                <b.icon className="w-4 h-4 text-[#059669] group-hover:scale-110 transition-transform" />
+                <b.icon className="w-4 h-4 text-brand-emerald group-hover:scale-110 transition-transform" />
                 {b.label}
               </div>
             ))}
@@ -771,10 +771,10 @@ function TestimonialsSection() {
   }, [isHovered]);
 
   return (
-    <section className="py-24 sm:py-32 bg-gradient-to-b from-[#F0FDF4]/30 via-white to-white relative overflow-hidden">
+    <section className="py-24 sm:py-32 bg-gradient-to-b from-emerald-50/30 via-white to-white relative overflow-hidden">
       {/* Decorative gradient orbs */}
-      <div className="absolute top-10 left-10 w-72 h-72 bg-[#059669]/6 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-80 h-80 bg-[#0F2B28]/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-10 left-10 w-72 h-72 bg-brand-emerald/6 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-80 h-80 bg-brand-deep/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6 relative">
         <FadeIn>
@@ -813,7 +813,7 @@ function TestimonialsSection() {
                 style={{ animationDelay: `${i * 120}ms` }}
               >
                 {/* Top-right accent gradient blob */}
-                <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-gradient-to-br from-[#059669]/12 to-transparent blur-xl pointer-events-none" />
+                <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-gradient-to-br from-brand-emerald/12 to-transparent blur-xl pointer-events-none" />
 
                 {/* Large premium quote mark with fade-in */}
                 <div className="absolute top-3 right-4 premium-quote quote-fade-in select-none pointer-events-none" aria-hidden="true">
@@ -823,7 +823,7 @@ function TestimonialsSection() {
                 {/* Star rating */}
                 <div className="flex gap-0.5 mb-4 relative z-10">
                   {Array.from({ length: t.rating }, (_, idx) => (
-                    <Star key={idx} className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />
+                    <Star key={idx} className="w-4 h-4 fill-brand-amber text-brand-amber" />
                   ))}
                 </div>
 
@@ -854,7 +854,7 @@ function TestimonialsSection() {
               key={i}
               onClick={() => setActiveIdx(i)}
               className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                i === activeIdx ? 'bg-[#059669] w-6' : 'bg-[#059669]/25'
+                i === activeIdx ? 'bg-brand-emerald w-6' : 'bg-brand-emerald/25'
               }`}
               aria-label={`Testimonio ${i + 1}`}
             />
@@ -978,7 +978,7 @@ function ComparisonTable() {
                 <tr className="sticky top-0 z-10 bg-secondary/80 backdrop-blur-sm">
                   <th className="text-left py-3 px-4 font-semibold text-foreground border-b border-border min-w-[140px]">Funcionalidad</th>
                   <th className="text-center py-3 px-4 font-semibold text-foreground border-b border-border min-w-[100px]">Básico</th>
-                  <th className="text-center py-3 px-4 font-semibold border-b min-w-[100px] text-[#059669] bg-[#059669]/5">Profesional</th>
+                  <th className="text-center py-3 px-4 font-semibold border-b min-w-[100px] text-brand-emerald bg-brand-emerald/5">Profesional</th>
                   <th className="text-center py-3 px-4 font-semibold text-foreground border-b border-border min-w-[100px]">Premium</th>
                 </tr>
               </thead>
@@ -989,10 +989,10 @@ function ComparisonTable() {
                     {[row.basico, row.profesional, row.premium].map((val, j) => (
                       <td
                         key={j}
-                        className={`py-2.5 px-4 text-center ${j === 1 ? 'bg-[#059669]/5' : ''}`}
+                        className={`py-2.5 px-4 text-center ${j === 1 ? 'bg-brand-emerald/5' : ''}`}
                       >
                         {val === true ? (
-                          <Check className="w-4 h-4 text-[#059669] mx-auto" />
+                          <Check className="w-4 h-4 text-brand-emerald mx-auto" />
                         ) : val === false ? (
                           <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />
                         ) : (
@@ -1021,7 +1021,7 @@ const demoTabs = [
       title: 'Gestión de Reservas',
       subtitle: 'Visualizá y gestioná todas tus reservas en un solo lugar',
       rows: [
-        { habitacion: '101 - Doble', huesped: 'María González', checkin: '15 Mar', checkout: '18 Mar', estado: 'Confirmada', estadoColor: 'bg-[#059669]/15 text-[#059669]' },
+        { habitacion: '101 - Doble', huesped: 'María González', checkin: '15 Mar', checkout: '18 Mar', estado: 'Confirmada', estadoColor: 'bg-brand-emerald/15 text-brand-emerald' },
         { habitacion: '205 - Suite', huesped: 'Carlos Rodríguez', checkin: '16 Mar', checkout: '20 Mar', estado: 'Check-In', estadoColor: 'bg-blue-500/15 text-blue-600' },
         { habitacion: '310 - Simple', huesped: 'Ana López', checkin: '17 Mar', checkout: '19 Mar', estado: 'Pendiente', estadoColor: 'bg-amber-500/15 text-amber-600' },
       ],
@@ -1035,7 +1035,7 @@ const demoTabs = [
       title: 'Facturación y Pagos',
       subtitle: 'Controlá los pagos y la facturación de tu hotel',
       rows: [
-        { habitacion: 'Factura #1247', huesped: 'María González', checkin: '$45.000', checkout: 'Pagado', estado: 'Completo', estadoColor: 'bg-[#059669]/15 text-[#059669]' },
+        { habitacion: 'Factura #1247', huesped: 'María González', checkin: '$45.000', checkout: 'Pagado', estado: 'Completo', estadoColor: 'bg-brand-emerald/15 text-brand-emerald' },
         { habitacion: 'Factura #1248', huesped: 'Laura Martínez', checkin: '$78.500', checkout: 'Parcial', estado: '$32.000 pagado', estadoColor: 'bg-amber-500/15 text-amber-600' },
         { habitacion: 'Factura #1249', huesped: 'Roberto Díaz', checkin: '$23.000', checkout: 'Pendiente', estado: 'Sin pago', estadoColor: 'bg-red-500/15 text-red-600' },
       ],
@@ -1049,9 +1049,9 @@ const demoTabs = [
       title: 'Reportes y Estadísticas',
       subtitle: 'Métricas clave para tomar mejores decisiones',
       rows: [
-        { habitacion: 'Ocupación mensual', huesped: '', checkin: '87.3%', checkout: '', estado: '↑ 5.2% vs mes anterior', estadoColor: 'bg-[#059669]/15 text-[#059669]' },
-        { habitacion: 'Ingresos del mes', huesped: '', checkin: '$1.245.000', checkout: '', estado: '↑ 12.8% vs mes anterior', estadoColor: 'bg-[#059669]/15 text-[#059669]' },
-        { habitacion: 'RevPAR', huesped: '', checkin: '$15.620', checkout: '', estado: '↑ 3.1% vs mes anterior', estadoColor: 'bg-[#059669]/15 text-[#059669]' },
+        { habitacion: 'Ocupación mensual', huesped: '', checkin: '87.3%', checkout: '', estado: '↑ 5.2% vs mes anterior', estadoColor: 'bg-brand-emerald/15 text-brand-emerald' },
+        { habitacion: 'Ingresos del mes', huesped: '', checkin: '$1.245.000', checkout: '', estado: '↑ 12.8% vs mes anterior', estadoColor: 'bg-brand-emerald/15 text-brand-emerald' },
+        { habitacion: 'RevPAR', huesped: '', checkin: '$15.620', checkout: '', estado: '↑ 3.1% vs mes anterior', estadoColor: 'bg-brand-emerald/15 text-brand-emerald' },
       ],
     },
   },
@@ -1089,7 +1089,7 @@ function DemoPreview() {
                   onClick={() => setActiveTab(tab.key)}
                   className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                     isActive
-                      ? 'bg-[#0F2B28] text-white shadow-md shadow-[#0F2B28]/20'
+                      ? 'bg-brand-deep text-white shadow-md shadow-brand-deep/20'
                       : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
@@ -1159,7 +1159,7 @@ function DemoPreview() {
               <div className="mt-8 text-center">
                 <Button
                   asChild
-                  className="bg-[#0F2B28] hover:bg-[#0F2B28]/90 text-white px-8 h-11"
+                  className="bg-brand-deep hover:bg-brand-deep/90 text-white px-8 h-11"
                 >
                   <Link href="/register">
                     Probá gratis
@@ -1393,7 +1393,7 @@ function Footer() {
               <a
                 key={s.label}
                 href={s.href}
-                className="social-icon-hover text-muted-foreground hover:text-[#059669]"
+                className="social-icon-hover text-muted-foreground hover:text-brand-emerald"
                 aria-label={s.label}
               >
                 <s.icon className="w-4 h-4" />

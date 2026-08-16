@@ -117,7 +117,7 @@ export default function GuestTimeline() {
             </Badge>
           )}
           {departures.length > 0 && (
-            <Badge className="bg-[#F59E0B] text-white text-[10px] px-1.5 ml-0.5">
+            <Badge className="bg-status-cleaning text-white text-[10px] px-1.5 ml-0.5">
               <LogOut className="w-2.5 h-2.5 mr-0.5" />{departures.length}
             </Badge>
           )}
@@ -132,7 +132,7 @@ export default function GuestTimeline() {
         ) : (
           <div className="relative space-y-0 max-h-64 overflow-y-auto">
             {/* Timeline line */}
-            <div className="absolute left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-[#059669]/30 via-[#94A3B8]/20 to-[#F59E0B]/30" />
+            <div className="absolute left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-status-available/30 via-slate-400/20 to-status-cleaning/30" />
 
             {events.map(evt => (
               <div key={evt.id} className="relative flex items-center gap-3 py-1.5 pl-1">
@@ -142,7 +142,7 @@ export default function GuestTimeline() {
                     'relative z-10 w-[10px] h-[10px] rounded-full shrink-0 ring-2 ring-white shadow-sm',
                     evt.type === 'arrival'
                       ? 'bg-primary'
-                      : 'bg-[#F59E0B]'
+                      : 'bg-status-cleaning'
                   )}
                 />
 
@@ -156,9 +156,9 @@ export default function GuestTimeline() {
                   {evt.type === 'arrival' ? (
                     <LogIn className="w-3 h-3 text-primary shrink-0" />
                   ) : (
-                    <LogOut className="w-3 h-3 text-[#F59E0B] shrink-0" />
+                    <LogOut className="w-3 h-3 text-status-cleaning shrink-0" />
                   )}
-                  <span className="text-xs font-medium text-[#334155] truncate">{evt.guestName}</span>
+                  <span className="text-xs font-medium text-slate-700 truncate">{evt.guestName}</span>
                   <span className="text-[10px] text-muted-foreground shrink-0">
                     Hab. {evt.roomNumber}
                   </span>
@@ -176,7 +176,7 @@ export default function GuestTimeline() {
               {arrivals.length} llegada{arrivals.length !== 1 ? 's' : ''}
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+              <span className="w-2 h-2 rounded-full bg-status-cleaning" />
               {departures.length} salida{departures.length !== 1 ? 's' : ''}
             </span>
           </div>

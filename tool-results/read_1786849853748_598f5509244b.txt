@@ -1,0 +1,692 @@
+     1→'use client';
+     2→
+     3→import { useEffect, useState, useCallback } from 'react';
+     4→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+     5→import { Badge } from '@/components/ui/badge';
+     6→import { Button } from '@/components/ui/button';
+     7→import { Input } from '@/components/ui/input';
+     8→import { Label } from '@/components/ui/label';
+     9→import { Skeleton } from '@/components/ui/skeleton';
+    10→import {
+    11→  Table,
+    12→  TableBody,
+    13→  TableCell,
+    14→  TableHead,
+    15→  TableHeader,
+    16→  TableRow,
+    17→} from '@/components/ui/table';
+    18→import {
+    19→  Dialog,
+    20→  DialogContent,
+    21→  DialogHeader,
+    22→  DialogTitle,
+    23→  DialogFooter,
+    24→  DialogTrigger,
+    25→} from '@/components/ui/dialog';
+    26→import {
+    27→  AlertDialog,
+    28→  AlertDialogAction,
+    29→  AlertDialogCancel,
+    30→  AlertDialogContent,
+    31→  AlertDialogDescription,
+    32→  AlertDialogFooter,
+    33→  AlertDialogHeader,
+    34→  AlertDialogTitle,
+    35→} from '@/components/ui/alert-dialog';
+    36→import {
+    37→  Select,
+    38→  SelectContent,
+    39→  SelectItem,
+    40→  SelectTrigger,
+    41→  SelectValue,
+    42→} from '@/components/ui/select';
+    43→import { Search, ChevronDown, ChevronRight, RefreshCw, CreditCard, Clock, KeyRound, Power, Loader2, Trash2 } from 'lucide-react';
+    44→import { toast } from 'sonner';
+    45→
+    46→// ─── Types ───
+    47→interface TenantUser {
+    48→  id: string;
+    49→  nombre: string;
+    50→  email: string;
+    51→  rol: string;
+    52→  tienePassword: boolean;
+    53→}
+    54→
+    55→interface TenantSubscription {
+    56→  id: string;
+    57→  plan: string;
+    58→  planType: string;
+    59→  estado: string;
+    60→  fechaInicio: string;
+    61→  fechaVencimiento: string;
+    62→  diasRestantes: number;
+    63→  paymentProviderId: string | null;
+    64→}
+    65→
+    66→interface Tenant {
+    67→  id: string;
+    68→  nombre: string;
+    69→  slug: string;
+    70→  email: string;
+    71→  telefono: string | null;
+    72→  pais: string;
+    73→  activo: boolean;
+    74→  creadoEn: string;
+    75→  suscripcion: TenantSubscription | null;
+    76→  usuarios: TenantUser[];
+    77→  stats: {
+    78→    habitaciones: number;
+    79→    reservas: number;
+    80→    usuariosActivos: number;
+    81→  };
+    82→}
+    83→
+    84→interface PlanOption {
+    85→  id: string;
+    86→  type: string;
+    87→  nombre: string;
+    88→}
+    89→
+    90→// ─── Helpers ───
+    91→function subEstadoBadge(estado: string) {
+    92→  const map: Record<string, string> = {
+    93→    trial: 'bg-amber-900/30 text-amber-400 border-amber-800',
+    94→    activa: 'bg-emerald-900/30 text-emerald-400 border-primary',
+    95→    vencida: 'bg-red-900/30 text-red-400 border-red-800',
+    96→    cancelada: 'bg-gray-900/30 text-gray-400 border-gray-800',
+    97→    suspensa: 'bg-orange-900/30 text-orange-400 border-orange-800',
+    98→  };
+    99→  return (
+   100→    <Badge variant="outline" className={map[estado] || ''}>
+   101→      {estado.charAt(0).toUpperCase() + estado.slice(1)}
+   102→    </Badge>
+   103→  );
+   104→}
+   105→
+   106→function formatDate(iso: string) {
+   107→  return new Date(iso).toLocaleDateString('es-AR', {
+   108→    day: '2-digit',
+   109→    month: 'short',
+   110→    year: 'numeric',
+   111→  });
+   112→}
+   113→
+   114→// ─── Main Component ───
+   115→export default function SuperAdminCuentas() {
+   116→  const [tenants, setTenants] = useState<Tenant[]>([]);
+   117→  const [plans, setPlans] = useState<PlanOption[]>([]);
+   118→  const [loading, setLoading] = useState(true);
+   119→  const [search, setSearch] = useState('');
+   120→  const [page, setPage] = useState(1);
+   121→  const [total, setTotal] = useState(0);
+   122→  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+   123→
+   124→  // Dialog states
+   125→  const [changePlanOpen, setChangePlanOpen] = useState(false);
+   126→  const [resetPassOpen, setResetPassOpen] = useState(false);
+   127→  const [extendOpen, setExtendOpen] = useState(false);
+   128→  const [deleteOpen, setDeleteOpen] = useState(false);
+   129→
+   130→  // Form states
+   131→  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+   132→  const [selectedPlanId, setSelectedPlanId] = useState('');
+   133→  const [duracionMeses, setDuracionMeses] = useState('1');
+   134→  const [selectedUserId, setSelectedUserId] = useState('');
+   135→  const [newPassword, setNewPassword] = useState('');
+   136→  const [extendDays, setExtendDays] = useState('');
+   137→  const [actionLoading, setActionLoading] = useState(false);
+   138→
+   139→  const limit = 10;
+   140→
+   141→  const fetchTenants = useCallback(async () => {
+   142→    setLoading(true);
+   143→    try {
+   144→      const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+   145→      if (search) params.set('search', search);
+   146→      const res = await fetch(`/api/super-admin/tenants?${params}`);
+   147→      const data = await res.json();
+   148→      if (data.error) throw new Error(data.error);
+   149→      setTenants(data.tenants);
+   150→      setTotal(data.total);
+   151→    } catch (err) {
+   152→      toast.error('Error al cargar cuentas');
+   153→    } finally {
+   154→      setLoading(false);
+   155→    }
+   156→  }, [page, search]);
+   157→
+   158→  useEffect(() => {
+   159→    fetchTenants();
+   160→  }, [fetchTenants]);
+   161→
+   162→  useEffect(() => {
+   163→    fetch('/api/super-admin/plans')
+   164→      .then((r) => r.json())
+   165→      .then((data) => setPlans(data.plans || []))
+   166→      .catch(() => {});
+   167→  }, []);
+   168→
+   169→  const totalPages = Math.ceil(total / limit);
+   170→
+   171→  const toggleExpand = (id: string) => {
+   172→    setExpandedRows((prev) => {
+   173→      const next = new Set(prev);
+   174→      if (next.has(id)) next.delete(id);
+   175→      else next.add(id);
+   176→      return next;
+   177→    });
+   178→  };
+   179→
+   180→  // ─── Actions ───
+   181→  const handleChangePlan = async () => {
+   182→    if (!selectedTenant || !selectedPlanId) return;
+   183→    setActionLoading(true);
+   184→    try {
+   185→      const res = await fetch('/api/super-admin/tenants', {
+   186→        method: 'PATCH',
+   187→        headers: { 'Content-Type': 'application/json' },
+   188→        body: JSON.stringify({
+   189→          tenantId: selectedTenant.id,
+   190→          action: 'changePlan',
+   191→          planId: selectedPlanId,
+   192→          duracionMeses: parseInt(duracionMeses) || 1,
+   193→        }),
+   194→      });
+   195→      const data = await res.json();
+   196→      if (!res.ok) throw new Error(data.error);
+   197→      toast.success('Plan actualizado correctamente');
+   198→      setChangePlanOpen(false);
+   199→      fetchTenants();
+   200→    } catch (err: unknown) {
+   201→      toast.error((err as Error).message || 'Error al cambiar plan');
+   202→    } finally {
+   203→      setActionLoading(false);
+   204→    }
+   205→  };
+   206→
+   207→  const handleResetPassword = async () => {
+   208→    if (!selectedTenant || !selectedUserId || !newPassword) return;
+   209→    if (newPassword.length < 6) {
+   210→      toast.error('La contraseña debe tener al menos 6 caracteres');
+   211→      return;
+   212→    }
+   213→    setActionLoading(true);
+   214→    try {
+   215→      const res = await fetch('/api/super-admin/tenants', {
+   216→        method: 'PATCH',
+   217→        headers: { 'Content-Type': 'application/json' },
+   218→        body: JSON.stringify({
+   219→          tenantId: selectedTenant.id,
+   220→          action: 'resetPassword',
+   221→          tenantUserId: selectedUserId,
+   222→          newPassword,
+   223→        }),
+   224→      });
+   225→      const data = await res.json();
+   226→      if (!res.ok) throw new Error(data.error);
+   227→      toast.success('Contraseña actualizada');
+   228→      setResetPassOpen(false);
+   229→      setNewPassword('');
+   230→    } catch (err: unknown) {
+   231→      toast.error((err as Error).message || 'Error al resetear contraseña');
+   232→    } finally {
+   233→      setActionLoading(false);
+   234→    }
+   235→  };
+   236→
+   237→  const handleExtend = async () => {
+   238→    if (!selectedTenant || !extendDays || parseInt(extendDays) <= 0) return;
+   239→    setActionLoading(true);
+   240→    try {
+   241→      const res = await fetch('/api/super-admin/tenants', {
+   242→        method: 'PATCH',
+   243→        headers: { 'Content-Type': 'application/json' },
+   244→        body: JSON.stringify({
+   245→          tenantId: selectedTenant.id,
+   246→          action: 'extendSubscription',
+   247→          dias: parseInt(extendDays),
+   248→        }),
+   249→      });
+   250→      const data = await res.json();
+   251→      if (!res.ok) throw new Error(data.error);
+   252→      toast.success(`Suscripción extendida ${extendDays} días`);
+   253→      setExtendOpen(false);
+   254→      setExtendDays('');
+   255→      fetchTenants();
+   256→    } catch (err: unknown) {
+   257→      toast.error((err as Error).message || 'Error al extender suscripción');
+   258→    } finally {
+   259→      setActionLoading(false);
+   260→    }
+   261→  };
+   262→
+   263→  const handleToggleActive = async (tenant: Tenant) => {
+   264→    try {
+   265→      const res = await fetch('/api/super-admin/tenants', {
+   266→        method: 'PATCH',
+   267→        headers: { 'Content-Type': 'application/json' },
+   268→        body: JSON.stringify({
+   269→          tenantId: tenant.id,
+   270→          action: 'toggleActive',
+   271→        }),
+   272→      });
+   273→      const data = await res.json();
+   274→      if (!res.ok) throw new Error(data.error);
+   275→      toast.success(tenant.activo ? 'Cuenta desactivada' : 'Cuenta activada');
+   276→      fetchTenants();
+   277→    } catch (err: unknown) {
+   278→      toast.error((err as Error).message || 'Error al cambiar estado');
+   279→    }
+   280→  };
+   281→
+   282→  const openChangePlan = (tenant: Tenant) => {
+   283→    setSelectedTenant(tenant);
+   284→    setSelectedPlanId(tenant.suscripcion?.planType === 'trial' ? '' : tenant.suscripcion?.planType || '');
+   285→    setDuracionMeses('1');
+   286→    setChangePlanOpen(true);
+   287→  };
+   288→
+   289→  const openResetPass = (tenant: Tenant, userId: string) => {
+   290→    setSelectedTenant(tenant);
+   291→    setSelectedUserId(userId);
+   292→    setNewPassword('');
+   293→    setResetPassOpen(true);
+   294→  };
+   295→
+   296→  const openExtend = (tenant: Tenant) => {
+   297→    setSelectedTenant(tenant);
+   298→    setExtendDays('30');
+   299→    setExtendOpen(true);
+   300→  };
+   301→
+   302→  return (
+   303→    <div className="space-y-6">
+   304→      <div>
+   305→        <h2 className="text-2xl font-bold tracking-tight">Cuentas</h2>
+   306→        <p className="text-sm text-muted-foreground mt-1">
+   307→          Gestión de hoteles y suscripciones
+   308→        </p>
+   309→      </div>
+   310→
+   311→      {/* ─── Search ─── */}
+   312→      <Card>
+   313→        <CardContent className="p-4">
+   314→          <div className="relative max-w-sm">
+   315→            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+   316→            <Input
+   317→              placeholder="Buscar hotel o email..."
+   318→              className="pl-9"
+   319→              value={search}
+   320→              onChange={(e) => {
+   321→                setSearch(e.target.value);
+   322→                setPage(1);
+   323→              }}
+   324→            />
+   325→          </div>
+   326→        </CardContent>
+   327→      </Card>
+   328→
+   329→      {/* ─── Table ─── */}
+   330→      <Card>
+   331→        <CardContent className="p-0">
+   332→          <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+   333→            <Table>
+   334→              <TableHeader>
+   335→                <TableRow>
+   336→                  <TableHead className="w-8" />
+   337→                  <TableHead>Hotel</TableHead>
+   338→                  <TableHead className="hidden md:table-cell">Email</TableHead>
+   339→                  <TableHead>Plan</TableHead>
+   340→                  <TableHead>Estado</TableHead>
+   341→                  <TableHead className="text-right">Días rest.</TableHead>
+   342→                  <TableHead className="hidden lg:table-cell text-right">Habit.</TableHead>
+   343→                  <TableHead className="hidden lg:table-cell text-right">Usu.</TableHead>
+   344→                  <TableHead className="text-right">Acciones</TableHead>
+   345→                </TableRow>
+   346→              </TableHeader>
+   347→              <TableBody>
+   348→                {loading ? (
+   349→                  Array.from({ length: 5 }).map((_, i) => (
+   350→                    <TableRow key={i}>
+   351→                      {Array.from({ length: 9 }).map((_, j) => (
+   352→                        <TableCell key={j}>
+   353→                          <Skeleton className="h-5 w-16" />
+   354→                        </TableCell>
+   355→                      ))}
+   356→                    </TableRow>
+   357→                  ))
+   358→                ) : tenants.length === 0 ? (
+   359→                  <TableRow>
+   360→                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+   361→                      No se encontraron cuentas.
+   362→                    </TableCell>
+   363→                  </TableRow>
+   364→                ) : (
+   365→                  tenants.map((t) => (
+   366→                    <>
+   367→                      <TableRow key={t.id} className={t.activo ? '' : 'opacity-60'}>
+   368→                        <TableCell>
+   369→                          <button
+   370→                            onClick={() => toggleExpand(t.id)}
+   371→                            className="p-0.5 hover:bg-muted rounded"
+   372→                            aria-label={expandedRows.has(t.id) ? 'Colapsar' : 'Expandir'}
+   373→                          >
+   374→                            {expandedRows.has(t.id) ? (
+   375→                              <ChevronDown className="w-4 h-4" />
+   376→                            ) : (
+   377→                              <ChevronRight className="w-4 h-4" />
+   378→                            )}
+   379→                          </button>
+   380→                        </TableCell>
+   381→                        <TableCell>
+   382→                          <div>
+   383→                            <p className="font-medium text-sm">{t.nombre}</p>
+   384→                            <p className="text-xs text-muted-foreground md:hidden">{t.email}</p>
+   385→                          </div>
+   386→                        </TableCell>
+   387→                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+   388→                          {t.email}
+   389→                        </TableCell>
+   390→                        <TableCell>
+   391→                          <Badge variant="outline">{t.suscripcion?.plan || '—'}</Badge>
+   392→                        </TableCell>
+   393→                        <TableCell>
+   394→                          {t.suscripcion ? subEstadoBadge(t.suscripcion.estado) : (
+   395→                            <Badge variant="outline">Sin plan</Badge>
+   396→                          )}
+   397→                        </TableCell>
+   398→                        <TableCell className="text-right">
+   399→                          <span className={t.suscripcion && t.suscripcion.diasRestantes <= 7 ? 'text-red-400 font-medium' : ''}>
+   400→                            {t.suscripcion?.diasRestantes ?? '—'}
+   401→                          </span>
+   402→                        </TableCell>
+   403→                        <TableCell className="hidden lg:table-cell text-right text-sm">
+   404→                          {t.stats.habitaciones}
+   405→                        </TableCell>
+   406→                        <TableCell className="hidden lg:table-cell text-right text-sm">
+   407→                          {t.stats.usuariosActivos}
+   408→                        </TableCell>
+   409→                        <TableCell className="text-right">
+   410→                          <div className="flex items-center justify-end gap-1">
+   411→                            <Button
+   412→                              variant="ghost"
+   413→                              size="icon"
+   414→                              className="h-8 w-8"
+   415→                              title="Cambiar plan"
+   416→                              onClick={() => openChangePlan(t)}
+   417→                            >
+   418→                              <CreditCard className="w-3.5 h-3.5" />
+   419→                            </Button>
+   420→                            <Button
+   421→                              variant="ghost"
+   422→                              size="icon"
+   423→                              className="h-8 w-8"
+   424→                              title="Extender suscripción"
+   425→                              onClick={() => openExtend(t)}
+   426→                            >
+   427→                              <Clock className="w-3.5 h-3.5" />
+   428→                            </Button>
+   429→                            <Button
+   430→                              variant="ghost"
+   431→                              size="icon"
+   432→                              className={`h-8 w-8 ${t.activo ? 'text-red-500 hover:text-red-600' : 'text-emerald-500 hover:text-emerald-600'}`}
+   433→                              title={t.activo ? 'Desactivar' : 'Activar'}
+   434→                              onClick={() => handleToggleActive(t)}
+   435→                            >
+   436→                              <Power className="w-3.5 h-3.5" />
+   437→                            </Button>
+   438→                            <Button
+   439→                              variant="ghost"
+   440→                              size="icon"
+   441→                              className="h-8 w-8 text-destructive hover:text-destructive"
+   442→                              title="Eliminar cuenta"
+   443→                              onClick={() => { setSelectedTenant(t); setDeleteOpen(true); }}
+   444→                            >
+   445→                              <Trash2 className="w-3.5 h-3.5" />
+   446→                            </Button>
+   447→                          </div>
+   448→                        </TableCell>
+   449→                      </TableRow>
+   450→                      {/* Expanded row: users */}
+   451→                      {expandedRows.has(t.id) && (
+   452→                        <TableRow key={`${t.id}-expanded`}>
+   453→                          <TableCell colSpan={9} className="bg-muted/30 p-4">
+   454→                            <div className="max-w-2xl">
+   455→                              <p className="text-xs font-medium text-muted-foreground mb-2">
+   456→                                Usuarios de {t.nombre} ({t.usuarios.length})
+   457→                              </p>
+   458→                              {t.usuarios.length > 0 ? (
+   459→                                <div className="space-y-2">
+   460→                                  {t.usuarios.map((u) => (
+   461→                                    <div
+   462→                                      key={u.id}
+   463→                                      className="flex items-center justify-between p-2 rounded-lg border bg-card"
+   464→                                    >
+   465→                                      <div className="min-w-0">
+   466→                                        <p className="text-sm font-medium truncate">{u.nombre || 'Sin nombre'}</p>
+   467→                                        <p className="text-xs text-muted-foreground">{u.email}</p>
+   468→                                      </div>
+   469→                                      <div className="flex items-center gap-2 shrink-0 ml-2">
+   470→                                        <Badge variant="outline" className="text-xs capitalize">
+   471→                                          {u.rol}
+   472→                                        </Badge>
+   473→                                        <Button
+   474→                                          variant="ghost"
+   475→                                          size="icon"
+   476→                                          className="h-7 w-7"
+   477→                                          title="Resetear contraseña"
+   478→                                          onClick={() => openResetPass(t, u.id)}
+   479→                                        >
+   480→                                          <KeyRound className="w-3.5 h-3.5" />
+   481→                                        </Button>
+   482→                                      </div>
+   483→                                    </div>
+   484→                                  ))}
+   485→                                </div>
+   486→                              ) : (
+   487→                                <p className="text-xs text-muted-foreground">No hay usuarios activos.</p>
+   488→                              )}
+   489→                            </div>
+   490→                          </TableCell>
+   491→                        </TableRow>
+   492→                      )}
+   493→                    </>
+   494→                  ))
+   495→                )}
+   496→              </TableBody>
+   497→            </Table>
+   498→          </div>
+   499→        </CardContent>
+   500→      </Card>
+   501→
+   502→      {/* ─── Pagination ─── */}
+   503→      {!loading && totalPages > 1 && (
+   504→        <div className="flex items-center justify-between">
+   505→          <p className="text-sm text-muted-foreground">
+   506→            {total} cuenta{total !== 1 ? 's' : ''} — Página {page} de {totalPages}
+   507→          </p>
+   508→          <div className="flex gap-2">
+   509→            <Button
+   510→              variant="outline"
+   511→              size="sm"
+   512→              disabled={page <= 1}
+   513→              onClick={() => setPage(page - 1)}
+   514→            >
+   515→              Anterior
+   516→            </Button>
+   517→            <Button
+   518→              variant="outline"
+   519→              size="sm"
+   520→              disabled={page >= totalPages}
+   521→              onClick={() => setPage(page + 1)}
+   522→            >
+   523→              Siguiente
+   524→            </Button>
+   525→          </div>
+   526→        </div>
+   527→      )}
+   528→
+   529→      {/* ─── Dialog: Cambiar Plan ─── */}
+   530→      <Dialog open={changePlanOpen} onOpenChange={setChangePlanOpen}>
+   531→        <DialogContent>
+   532→          <DialogHeader>
+   533→            <DialogTitle>Cambiar plan — {selectedTenant?.nombre}</DialogTitle>
+   534→          </DialogHeader>
+   535→          <div className="space-y-4 py-2">
+   536→            <div className="space-y-2">
+   537→              <Label>Nuevo plan</Label>
+   538→              <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+   539→                <SelectTrigger>
+   540→                  <SelectValue placeholder="Seleccionar plan" />
+   541→                </SelectTrigger>
+   542→                <SelectContent>
+   543→                  {plans
+   544→                    .filter((p) => p.type !== 'trial')
+   545→                    .map((p) => (
+   546→                      <SelectItem key={p.id} value={p.id}>
+   547→                        {p.nombre}
+   548→                      </SelectItem>
+   549→                    ))}
+   550→                </SelectContent>
+   551→              </Select>
+   552→            </div>
+   553→            <div className="space-y-2">
+   554→              <Label>Duración (meses)</Label>
+   555→              <Input
+   556→                type="number"
+   557→                min={1}
+   558→                value={duracionMeses}
+   559→                onChange={(e) => setDuracionMeses(e.target.value)}
+   560→              />
+   561→            </div>
+   562→          </div>
+   563→          <DialogFooter>
+   564→            <Button variant="outline" onClick={() => setChangePlanOpen(false)}>
+   565→              Cancelar
+   566→            </Button>
+   567→            <Button
+   568→              onClick={handleChangePlan}
+   569→              disabled={!selectedPlanId || actionLoading}
+   570→            >
+   571→              {actionLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+   572→              Guardar
+   573→            </Button>
+   574→          </DialogFooter>
+   575→        </DialogContent>
+   576→      </Dialog>
+   577→
+   578→      {/* ─── Dialog: Reset Password ─── */}
+   579→      <Dialog open={resetPassOpen} onOpenChange={setResetPassOpen}>
+   580→        <DialogContent>
+   581→          <DialogHeader>
+   582→            <DialogTitle>Resetear contraseña</DialogTitle>
+   583→          </DialogHeader>
+   584→          <div className="space-y-4 py-2">
+   585→            <p className="text-sm text-muted-foreground">
+   586→              Usuario: <span className="font-medium text-foreground">{selectedTenant?.usuarios.find(u => u.id === selectedUserId)?.nombre || selectedTenant?.usuarios.find(u => u.id === selectedUserId)?.email}</span>
+   587→            </p>
+   588→            <div className="space-y-2">
+   589→              <Label>Nueva contraseña</Label>
+   590→              <Input
+   591→                type="password"
+   592→                value={newPassword}
+   593→                onChange={(e) => setNewPassword(e.target.value)}
+   594→                placeholder="Mínimo 6 caracteres"
+   595→              />
+   596→            </div>
+   597→          </div>
+   598→          <DialogFooter>
+   599→            <Button variant="outline" onClick={() => setResetPassOpen(false)}>
+   600→              Cancelar
+   601→            </Button>
+   602→            <Button
+   603→              onClick={handleResetPassword}
+   604→              disabled={newPassword.length < 6 || actionLoading}
+   605→            >
+   606→              {actionLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+   607→              Actualizar
+   608→            </Button>
+   609→          </DialogFooter>
+   610→        </DialogContent>
+   611→      </Dialog>
+   612→
+   613→      {/* ─── Dialog: Extender Suscripción ─── */}
+   614→      <Dialog open={extendOpen} onOpenChange={setExtendOpen}>
+   615→        <DialogContent>
+   616→          <DialogHeader>
+   617→            <DialogTitle>Extender suscripción — {selectedTenant?.nombre}</DialogTitle>
+   618→          </DialogHeader>
+   619→          <div className="space-y-4 py-2">
+   620→            <p className="text-sm text-muted-foreground">
+   621→              Se agregarán días a partir de la fecha de vencimiento actual.
+   622→            </p>
+   623→            <div className="space-y-2">
+   624→              <Label>Días a extender</Label>
+   625→              <Input
+   626→                type="number"
+   627→                min={1}
+   628→                value={extendDays}
+   629→                onChange={(e) => setExtendDays(e.target.value)}
+   630→              />
+   631→            </div>
+   632→          </div>
+   633→          <DialogFooter>
+   634→            <Button variant="outline" onClick={() => setExtendOpen(false)}>
+   635→              Cancelar
+   636→            </Button>
+   637→            <Button
+   638→              onClick={handleExtend}
+   639→              disabled={!extendDays || parseInt(extendDays) <= 0 || actionLoading}
+   640→            >
+   641→              {actionLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+   642→              Extender
+   643→            </Button>
+   644→          </DialogFooter>
+   645→        </DialogContent>
+   646→      </Dialog>
+   647→
+   648→      {/* ─── Alert: Eliminar Cuenta ─── */}
+   649→      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+   650→        <AlertDialogContent>
+   651→          <AlertDialogHeader>
+   652→            <AlertDialogTitle>Eliminar cuenta</AlertDialogTitle>
+   653→            <AlertDialogDescription>
+   654→              Vas a eliminar permanentemente <strong>{selectedTenant?.nombre}</strong> y todos sus datos asociados:
+   655→              habitaciones, reservas, clientes, pagos, usuarios, configuración y auditoría.
+   656→              Esta acción no se puede deshacer.
+   657→            </AlertDialogDescription>
+   658→          </AlertDialogHeader>
+   659→          <AlertDialogFooter>
+   660→            <AlertDialogCancel disabled={actionLoading}>Cancelar</AlertDialogCancel>
+   661→            <AlertDialogAction
+   662→              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+   663→              disabled={actionLoading}
+   664→              onClick={async () => {
+   665→                if (!selectedTenant) return;
+   666→                setActionLoading(true);
+   667→                try {
+   668→                  const res = await fetch(`/api/super-admin/tenants?tenantId=${selectedTenant.id}`, {
+   669→                    method: 'DELETE',
+   670→                  });
+   671→                  const data = await res.json();
+   672→                  if (!res.ok) throw new Error(data.error);
+   673→                  toast.success(data.message);
+   674→                  setDeleteOpen(false);
+   675→                  setSelectedTenant(null);
+   676→                  fetchTenants();
+   677→                } catch (err: unknown) {
+   678→                  toast.error((err as Error).message);
+   679→                } finally {
+   680→                  setActionLoading(false);
+   681→                }
+   682→              }}
+   683→            >
+   684→              {actionLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+   685→              Sí, eliminar todo
+   686→            </AlertDialogAction>
+   687→          </AlertDialogFooter>
+   688→        </AlertDialogContent>
+   689→      </AlertDialog>
+   690→    </div>
+   691→  );
+   692→}

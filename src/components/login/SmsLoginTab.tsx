@@ -206,7 +206,7 @@ export default function SmsLoginTab() {
           {/* Dev code */}
           {devCode && (
             <div className="text-center">
-              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-amber-900/30 text-amber-400 font-mono">
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-amber-100/30 text-amber-600 font-mono">
                 DEV: {devCode}
               </span>
             </div>

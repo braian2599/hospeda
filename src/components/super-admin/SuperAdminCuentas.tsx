@@ -90,11 +90,11 @@ interface PlanOption {
 // ─── Helpers ───
 function subEstadoBadge(estado: string) {
   const map: Record<string, string> = {
-    trial: 'bg-amber-900/30 text-amber-400 border-amber-800',
-    activa: 'bg-emerald-900/30 text-emerald-400 border-primary',
-    vencida: 'bg-red-900/30 text-red-400 border-red-800',
-    cancelada: 'bg-gray-900/30 text-gray-400 border-gray-800',
-    suspensa: 'bg-orange-900/30 text-orange-400 border-orange-800',
+    trial: 'bg-amber-100/30 text-amber-700 border-amber-300',
+    activa: 'bg-emerald-100/30 text-emerald-700 border-primary',
+    vencida: 'bg-red-100/30 text-red-700 border-red-300',
+    cancelada: 'bg-gray-100/30 text-gray-600 border-gray-300',
+    suspensa: 'bg-orange-100/30 text-orange-700 border-orange-300',
   };
   return (
     <Badge variant="outline" className={map[estado] || ''}>
@@ -396,7 +396,7 @@ export default function SuperAdminCuentas() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={t.suscripcion && t.suscripcion.diasRestantes <= 7 ? 'text-red-400 font-medium' : ''}>
+                          <span className={t.suscripcion && t.suscripcion.diasRestantes <= 7 ? 'text-red-600 font-medium' : ''}>
                             {t.suscripcion?.diasRestantes ?? '—'}
                           </span>
                         </TableCell>

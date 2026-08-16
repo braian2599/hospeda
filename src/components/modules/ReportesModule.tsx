@@ -65,14 +65,14 @@ const PIE_COLORS = ['#0F2B28', '#059669', '#F59E0B', '#EF4444', '#3B82F6', '#7C3
 const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; label: string; value: string; sub: string; iconBg: string; iconColor: string }> = {
   primary: { borderL: 'border-l-primary', bg: 'bg-primary/10', darkBg: 'bg-primary/5', label: 'text-primary', value: 'text-primary', sub: 'text-primary/50', iconBg: 'bg-primary/20', iconColor: 'text-primary' },
   emerald: { borderL: 'border-l-primary', bg: 'bg-primary/5', darkBg: 'bg-primary/5', label: 'text-primary', value: 'text-primary/70', sub: 'text-primary/50', iconBg: 'bg-primary/20', iconColor: 'text-primary' },
-  green: { borderL: 'border-l-green-500', bg: 'bg-green-50/40', darkBg: 'bg-green-950/20', label: 'text-green-400', value: 'text-green-200', sub: 'text-green-400/50', iconBg: 'bg-green-500/20', iconColor: 'text-green-400' },
-  red: { borderL: 'border-l-red-500', bg: 'bg-red-50/40', darkBg: 'bg-red-950/20', label: 'text-red-400', value: 'text-red-200', sub: 'text-red-400/50', iconBg: 'bg-red-500/20', iconColor: 'text-red-400' },
-  amber: { borderL: 'border-l-amber-500', bg: 'bg-amber-50/40', darkBg: 'bg-amber-950/20', label: 'text-amber-400', value: 'text-amber-200', sub: 'text-amber-400/50', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-400' },
-  violet: { borderL: 'border-l-violet-500', bg: 'bg-violet-50/40', darkBg: 'bg-violet-950/20', label: 'text-violet-400', value: 'text-violet-200', sub: 'text-violet-400/50', iconBg: 'bg-violet-500/20', iconColor: 'text-violet-400' },
-  teal: { borderL: 'border-l-teal-500', bg: 'bg-teal-50/40', darkBg: 'bg-teal-950/20', label: 'text-teal-400', value: 'text-teal-200', sub: 'text-teal-400/50', iconBg: 'bg-teal-500/20', iconColor: 'text-teal-400' },
-  blue: { borderL: 'border-l-blue-500', bg: 'bg-blue-50/40', darkBg: 'bg-blue-950/20', label: 'text-blue-400', value: 'text-blue-200', sub: 'text-blue-400/50', iconBg: 'bg-blue-500/20', iconColor: 'text-blue-400' },
-  sky: { borderL: 'border-l-sky-500', bg: 'bg-sky-50/40', darkBg: 'bg-sky-950/20', label: 'text-sky-400', value: 'text-sky-200', sub: 'text-sky-400/50', iconBg: 'bg-sky-500/20', iconColor: 'text-sky-400' },
-  pink: { borderL: 'border-l-pink-500', bg: 'bg-pink-50/40', darkBg: 'bg-pink-950/20', label: 'text-pink-400', value: 'text-pink-200', sub: 'text-pink-400/50', iconBg: 'bg-pink-500/20', iconColor: 'text-pink-400' },
+  green: { borderL: 'border-l-green-500', bg: 'bg-green-50/40', darkBg: 'bg-green-50/20', label: 'text-green-600', value: 'text-green-800', sub: 'text-green-600/50', iconBg: 'bg-green-500/20', iconColor: 'text-green-600' },
+  red: { borderL: 'border-l-red-500', bg: 'bg-red-50/40', darkBg: 'bg-red-50/20', label: 'text-red-600', value: 'text-red-800', sub: 'text-red-600/50', iconBg: 'bg-red-500/20', iconColor: 'text-red-600' },
+  amber: { borderL: 'border-l-amber-500', bg: 'bg-amber-50/40', darkBg: 'bg-amber-50/20', label: 'text-amber-600', value: 'text-amber-800', sub: 'text-amber-600/50', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-600' },
+  violet: { borderL: 'border-l-violet-500', bg: 'bg-violet-50/40', darkBg: 'bg-violet-50/20', label: 'text-violet-600', value: 'text-violet-800', sub: 'text-violet-600/50', iconBg: 'bg-violet-500/20', iconColor: 'text-violet-600' },
+  teal: { borderL: 'border-l-teal-500', bg: 'bg-teal-50/40', darkBg: 'bg-teal-50/20', label: 'text-teal-600', value: 'text-teal-800', sub: 'text-teal-600/50', iconBg: 'bg-teal-500/20', iconColor: 'text-teal-600' },
+  blue: { borderL: 'border-l-blue-500', bg: 'bg-blue-50/40', darkBg: 'bg-blue-50/20', label: 'text-blue-600', value: 'text-blue-800', sub: 'text-blue-600/50', iconBg: 'bg-blue-500/20', iconColor: 'text-blue-600' },
+  sky: { borderL: 'border-l-sky-500', bg: 'bg-sky-50/40', darkBg: 'bg-sky-50/20', label: 'text-sky-600', value: 'text-sky-800', sub: 'text-sky-600/50', iconBg: 'bg-sky-500/20', iconColor: 'text-sky-600' },
+  pink: { borderL: 'border-l-pink-500', bg: 'bg-pink-50/40', darkBg: 'bg-pink-50/20', label: 'text-pink-600', value: 'text-pink-800', sub: 'text-pink-600/50', iconBg: 'bg-pink-500/20', iconColor: 'text-pink-600' },
 };
 
 interface KpiProps {
@@ -102,11 +102,11 @@ function KpiCard({ label, value, icon, colorFamily, tooltip, subtext, trend, onC
               {trend.value > 0 ? (
                 <ArrowUpRight className="w-3 h-3 text-primary" />
               ) : trend.value < 0 ? (
-                <ArrowDownRight className="w-3 h-3 text-[#EF4444]" />
+                <ArrowDownRight className="w-3 h-3 text-destructive" />
               ) : (
                 <Minus className="w-3 h-3 text-muted-foreground" />
               )}
-              <span className={`text-[11px] font-medium ${trend.value > 0 ? 'text-primary' : trend.value < 0 ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
+              <span className={`text-[11px] font-medium ${trend.value > 0 ? 'text-primary' : trend.value < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                 {Math.abs(trend.value)}%
               </span>
               <span className="text-[11px] text-muted-foreground hidden sm:inline">{trend.label}</span>
@@ -174,7 +174,7 @@ function ProgressKpi({ label, value, max, color = 'bg-primary', suffix = '%', de
  */
 function ReportTabHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-teal-950/10 px-4 py-3 flex items-center gap-3">
+    <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex items-center gap-3">
       <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center text-primary shrink-0">
         {icon}
       </div>
@@ -214,11 +214,11 @@ function SummaryCard({ icon, label, value, colorFamily, trend }: {
           {trend.dir === 'up' ? (
             <ArrowUpRight className="w-3.5 h-3.5 text-primary" />
           ) : trend.dir === 'down' ? (
-            <ArrowDownRight className="w-3.5 h-3.5 text-[#EF4444]" />
+            <ArrowDownRight className="w-3.5 h-3.5 text-destructive" />
           ) : (
             <Minus className="w-3.5 h-3.5 text-muted-foreground" />
           )}
-          <span className={`text-xs font-semibold ${trend.dir === 'up' ? 'text-primary' : trend.dir === 'down' ? 'text-[#EF4444]' : 'text-muted-foreground'}`}>
+          <span className={`text-xs font-semibold ${trend.dir === 'up' ? 'text-primary' : trend.dir === 'down' ? 'text-destructive' : 'text-muted-foreground'}`}>
             {trend.pct}%
           </span>
         </div>
@@ -237,10 +237,10 @@ function SummaryCard({ icon, label, value, colorFamily, trend }: {
  */
 function OccupancyBadge({ pct }: { pct: number }) {
   const cls = pct > 80
-    ? 'bg-emerald-900/60 text-emerald-300 border-primary/40'
+    ? 'bg-emerald-100/60 text-emerald-700 border-primary/40'
     : pct >= 50
-      ? 'bg-amber-900/60 text-amber-300 border-amber-700/40'
-      : 'bg-red-900/60 text-red-300 border-red-700/40';
+      ? 'bg-amber-100/60 text-amber-700 border-amber-300/40'
+      : 'bg-red-100/60 text-red-700 border-red-300/40';
   return (
     <Badge variant="outline" className={`text-xs font-semibold shadow-sm ${cls}`}>
       {pct}%
@@ -1335,7 +1335,7 @@ export default function ReportesModule() {
                           return (
                             <div className="bg-card border border-border rounded-lg shadow-lg px-3 py-2 text-sm">
                               <p className="font-medium text-primary">{data.name}</p>
-                              <p className="text-[#EF4444] font-semibold">{formatMoneda(data.value)} ({pct}%)</p>
+                              <p className="text-destructive font-semibold">{formatMoneda(data.value)} ({pct}%)</p>
                             </div>
                           );
                         }}
@@ -1409,7 +1409,7 @@ export default function ReportesModule() {
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">{cat}</span>
                         <div className="flex items-center gap-3">
-                          <span className="font-medium text-[#EF4444]">-{formatMoneda(monto)}</span>
+                          <span className="font-medium text-destructive">-{formatMoneda(monto)}</span>
                           <Badge variant="secondary" className="w-12 justify-center">{pct}%</Badge>
                         </div>
                       </div>
@@ -1486,7 +1486,7 @@ export default function ReportesModule() {
                         <TableCell className="text-center whitespace-nowrap text-xs sm:text-sm">{formatFecha(g.fecha)}</TableCell>
                         <TableCell className="text-center"><Badge variant="secondary" className="text-xs">{g.tipo}</Badge></TableCell>
                         <TableCell className="text-center hidden sm:table-cell text-xs sm:text-sm">{g.descripcion}</TableCell>
-                        <TableCell className="text-center font-medium text-[#EF4444] text-xs sm:text-sm">-{formatMoneda(g.monto)}</TableCell>
+                        <TableCell className="text-center font-medium text-destructive text-xs sm:text-sm">-{formatMoneda(g.monto)}</TableCell>
                         <TableCell className="text-center hidden md:table-cell text-xs sm:text-sm">{g.empleado}</TableCell>
                       </TableRow>
                     ))
@@ -1702,7 +1702,7 @@ export default function ReportesModule() {
                         <TableCell className="text-center font-medium hidden sm:table-cell text-xs sm:text-sm">{turno.apertura.empleado}</TableCell>
                         <TableCell className="text-center whitespace-nowrap text-xs sm:text-sm">{formatFechaHora(turno.apertura.fecha)}</TableCell>
                         <TableCell className="text-center whitespace-nowrap text-xs sm:text-sm hidden sm:table-cell">{formatFechaHora(turno.cierre.fecha)}</TableCell>
-                        <TableCell className={`text-center font-medium hidden md:table-cell text-xs sm:text-sm ${turno.cierre.diferencia === 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                        <TableCell className={`text-center font-medium hidden md:table-cell text-xs sm:text-sm ${turno.cierre.diferencia === 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                           {formatMoneda(turno.cierre.diferencia)}
                         </TableCell>
                         <TableCell className="text-center"><Badge variant="secondary" className="text-xs">{turno.movimientos.length}</Badge></TableCell>
@@ -1858,7 +1858,7 @@ export default function ReportesModule() {
               label="Ocupación en Periodo"
               value={tasaOcupacion}
               max={100}
-              color="bg-[#4ADE80]"
+              color="bg-brand-mint"
               description={`${nochesVendidas} de ${nochesDisponibles} noches`}
             />
           </div>
@@ -1932,10 +1932,10 @@ export default function ReportesModule() {
 
           {/* Top customer highlight */}
           {topCliente && (
-            <Card className="relative overflow-hidden border-2 border-primary/30 bg-teal-950/10">
+            <Card className="relative overflow-hidden border-2 border-primary/30 bg-primary/5">
               <CardContent className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0F2B28] to-[#059669] flex items-center justify-center text-white shadow-md shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-deep to-brand-emerald flex items-center justify-center text-white shadow-md shrink-0">
                     <Crown className="w-6 h-6" />
                   </div>
                   <div className="min-w-0">
@@ -2016,7 +2016,7 @@ export default function ReportesModule() {
                       <TableRow key={c.id} className={`${i % 2 === 1 ? 'bg-primary/5' : ''} hover:bg-primary/10 transition-colors`}>
                         <TableCell className="text-center font-medium text-xs sm:text-sm">
                           <span className="inline-flex items-center gap-1.5">
-                            {i === 0 && <Crown className="w-3.5 h-3.5 text-amber-300" />}
+                            {i === 0 && <Crown className="w-3.5 h-3.5 text-amber-700" />}
                             {c.nombre}
                           </span>
                         </TableCell>
@@ -2172,7 +2172,7 @@ export default function ReportesModule() {
                 </div>
                 <div className="text-center p-3 rounded-lg bg-muted/30">
                   <p className="text-xs text-muted-foreground mb-1">Diferencia</p>
-                  <p className={`text-2xl font-bold ${selectedCajaTurno.cierre.diferencia === 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                  <p className={`text-2xl font-bold ${selectedCajaTurno.cierre.diferencia === 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                     {formatMoneda(selectedCajaTurno.cierre.diferencia)}
                   </p>
                 </div>
@@ -2204,7 +2204,7 @@ export default function ReportesModule() {
                               </TableCell>
                               <TableCell className="text-center hidden sm:table-cell">{m.descripcion}</TableCell>
                               <TableCell className="text-center text-muted-foreground">{m.metodo}</TableCell>
-                              <TableCell className={`text-center font-medium ${m.tipo === 'ingreso' ? 'text-emerald-300' : 'text-red-300'}`}>
+                              <TableCell className={`text-center font-medium ${m.tipo === 'ingreso' ? 'text-emerald-700' : 'text-red-700'}`}>
                                 {m.tipo === 'ingreso' ? '+' : '-'}{formatMoneda(m.monto)}
                               </TableCell>
                             </TableRow>

@@ -118,11 +118,11 @@ interface CategoryConfig {
 }
 
 const CATEGORY_CONFIG: Record<MovementCategory, CategoryConfig> = {
-  'Gastos':           { label: 'Gastos',          color: '#EF4444', badgeBg: 'bg-red-900/60', badgeText: 'text-red-300', icon: ShoppingCart },
-  'Mantenimiento':    { label: 'Mantenimiento',   color: '#F59E0B', badgeBg: 'bg-amber-900/60', badgeText: 'text-amber-300', icon: Wrench },
-  'Ingresos varios':  { label: 'Ingresos varios', color: '#059669', badgeBg: 'bg-primary/20', badgeText: 'text-primary', icon: ArrowUpRight },
-  'Retiros':          { label: 'Retiros',         color: '#8B5CF6', badgeBg: 'bg-violet-900/40', badgeText: 'text-violet-300', icon: PiggyBank },
-  'Otros':            { label: 'Otros',           color: '#64748B', badgeBg: 'bg-slate-800/40', badgeText: 'text-slate-400', icon: Tag },
+  'Gastos':           { label: 'Gastos',          color: 'var(--destructive)', badgeBg: 'bg-red-100/60', badgeText: 'text-red-700', icon: ShoppingCart },
+  'Mantenimiento':    { label: 'Mantenimiento',   color: 'var(--brand-amber)', badgeBg: 'bg-amber-100/60', badgeText: 'text-amber-700', icon: Wrench },
+  'Ingresos varios':  { label: 'Ingresos varios', color: 'var(--brand-emerald)', badgeBg: 'bg-primary/20', badgeText: 'text-primary', icon: ArrowUpRight },
+  'Retiros':          { label: 'Retiros',         color: 'var(--violet-500)', badgeBg: 'bg-violet-100/40', badgeText: 'text-violet-700', icon: PiggyBank },
+  'Otros':            { label: 'Otros',           color: 'var(--status-maintenance)', badgeBg: 'bg-slate-100/40', badgeText: 'text-slate-400', icon: Tag },
 };
 
 const CATEGORY_ORDER: MovementCategory[] = ['Ingresos varios', 'Gastos', 'Mantenimiento', 'Retiros', 'Otros'];
@@ -288,7 +288,7 @@ function CashFlowTimeline({
             <div className="absolute -left-6 top-0 flex flex-col items-center h-full">
               <div className={cn(
                 'w-3 h-3 rounded-full ring-2 ring-white shadow-sm z-10',
-                isIngreso ? 'bg-primary' : 'bg-[#EF4444]'
+                isIngreso ? 'bg-primary' : 'bg-destructive'
               )} />
               {idx < entries.length - 1 && (
                 <div className="w-0.5 flex-1 bg-muted-foreground/15 min-h-[16px]" />
@@ -300,25 +300,25 @@ function CashFlowTimeline({
               'border rounded-md px-3 py-2.5 space-y-1.5 transition-all hover:shadow-sm',
               isIngreso
                 ? 'border-primary/20 bg-primary/5 hover:border-primary/40'
-                : 'border-[#EF4444]/20 bg-red-900/20 hover:border-[#EF4444]/40'
+                : 'border-destructive/20 bg-red-100/20 hover:border-destructive/40'
             )}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className={cn(
                     'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
-                    isIngreso ? 'bg-primary/20 text-primary' : 'bg-red-900/60 text-red-300'
+                    isIngreso ? 'bg-primary/20 text-primary' : 'bg-red-100/60 text-red-700'
                   )}>
                     {isIngreso ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                   </span>
                   <div className="min-w-0">
-                    <span className={cn('text-[11px] font-semibold', isIngreso ? 'text-primary' : 'text-red-300')}>
+                    <span className={cn('text-[11px] font-semibold', isIngreso ? 'text-primary' : 'text-red-700')}>
                       {isIngreso ? 'Ingreso' : 'Egreso'}
                     </span>
                     <p className="text-[10px] text-muted-foreground truncate leading-tight">{entry.descripcion}</p>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className={cn('text-xs font-bold tabular-nums', isIngreso ? 'text-primary' : 'text-red-300')}>
+                  <p className={cn('text-xs font-bold tabular-nums', isIngreso ? 'text-primary' : 'text-red-700')}>
                     {isIngreso ? '+' : '-'}{formatMoney(entry.monto)}
                   </p>
                 </div>
@@ -393,7 +393,7 @@ function DenominationBreakdownPanel({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {bills.map(d => (
-            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-green-950/15 transition-colors">
+            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-green-50/15 transition-colors">
               <Banknote className="w-3.5 h-3.5 text-primary shrink-0" />
               <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
               <Input
@@ -412,13 +412,13 @@ function DenominationBreakdownPanel({
       {/* Coins section */}
       <div>
         <div className="flex items-center gap-1.5 mb-1.5">
-          <Coins className="w-3.5 h-3.5 text-amber-300" />
+          <Coins className="w-3.5 h-3.5 text-amber-700" />
           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Monedas</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {coins.map(d => (
-            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-amber-950/15 transition-colors">
-              <Coins className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-amber-50/15 transition-colors">
+              <Coins className="w-3.5 h-3.5 text-amber-700 shrink-0" />
               <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
               <Input
                 type="number"
@@ -448,8 +448,8 @@ function DenominationBreakdownPanel({
           diferencia === 0
             ? 'bg-primary/20 border-primary/30'
             : diferencia > 0
-            ? 'bg-amber-900/60 border-[#F59E0B]/30'
-            : 'bg-red-900/60 border-[#EF4444]/30'
+            ? 'bg-amber-100/60 border-brand-amber/30'
+            : 'bg-red-100/60 border-destructive/30'
         )}>
           <span className="text-xs font-medium flex items-center gap-1.5">
             {diferencia === 0
@@ -459,7 +459,7 @@ function DenominationBreakdownPanel({
           </span>
           <span className={cn(
             'text-sm font-bold tabular-nums',
-            diferencia === 0 ? 'text-primary' : diferencia > 0 ? 'text-amber-300' : 'text-red-300'
+            diferencia === 0 ? 'text-primary' : diferencia > 0 ? 'text-amber-700' : 'text-red-700'
           )}>
             {diferencia === 0 ? '✓ Cuadra' : `${diferencia > 0 ? '+' : ''}${formatMoney(diferencia)}`}
           </span>
@@ -974,7 +974,7 @@ export default function CajaModule() {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="relative flex h-2.5 w-2.5 shrink-0">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4ADE80] opacity-75" />
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-mint opacity-75" />
                     <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
                   </span>
                   <div className="min-w-0">
@@ -995,7 +995,7 @@ export default function CajaModule() {
                 </Dialog>
               </div>
               {/* Balance display — animated + trend */}
-              <div className="rounded-lg border-2 border-primary/30 bg-green-950/20 p-3">
+              <div className="rounded-lg border-2 border-primary/30 bg-green-50/20 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo actual</p>
@@ -1007,7 +1007,7 @@ export default function CajaModule() {
                   {caja.apertura && (
                     <div className={cn(
                       'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold shadow-sm',
-                      tendencia >= 0 ? 'bg-primary/20 text-primary' : 'bg-red-900/60 text-red-300'
+                      tendencia >= 0 ? 'bg-primary/20 text-primary' : 'bg-red-100/60 text-red-700'
                     )}>
                       {tendencia >= 0
                         ? <ArrowUpRight className="w-3 h-3" />
@@ -1031,7 +1031,7 @@ export default function CajaModule() {
               {/* Action buttons */}
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="outline" className="h-9 text-sm border-primary/30 text-primary hover:bg-primary/20 hover:text-primary" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
-                <Button variant="outline" className="h-9 text-sm border-red-700/40 text-red-300 hover:bg-red-900/30 hover:text-red-300" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+                <Button variant="outline" className="h-9 text-sm border-red-300/40 text-red-700 hover:bg-red-100/30 hover:text-red-700" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
               </div>
               {/* Movement form inline */}
               {showMovForm && (
@@ -1164,7 +1164,7 @@ export default function CajaModule() {
 
           {/* ── Mobile: Cash Flow Timeline ── */}
           <Card className="lg:hidden overflow-hidden">
-            <CardHeader className="bg-teal-950/10 pb-3">
+            <CardHeader className="bg-primary/5 pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Timer className="w-4 h-4 text-primary" />
                 Línea de tiempo
@@ -1187,7 +1187,7 @@ export default function CajaModule() {
                 <CardContent className="flex items-center justify-between py-4 relative">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="relative flex h-3 w-3 shrink-0">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4ADE80] opacity-75" />
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-mint opacity-75" />
                       <span className="relative inline-flex h-3 w-3 rounded-full bg-primary" />
                     </span>
                     <div className="min-w-0">
@@ -1218,7 +1218,7 @@ export default function CajaModule() {
               </Card>
 
               {/* Balance display — large animated number + trend indicator */}
-              <Card className="bg-green-950/20 border-2 border-primary/30 card-hover">
+              <Card className="bg-green-50/20 border-2 border-primary/30 card-hover">
                 <CardContent className="py-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shadow-sm">
@@ -1237,7 +1237,7 @@ export default function CajaModule() {
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">vs. apertura</p>
                       <div className={cn(
                         'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm',
-                        tendencia >= 0 ? 'bg-primary/20 text-primary' : 'bg-red-900/60 text-red-300'
+                        tendencia >= 0 ? 'bg-primary/20 text-primary' : 'bg-red-100/60 text-red-700'
                       )}>
                         {tendencia >= 0
                           ? <TrendingUp className="w-3.5 h-3.5" />
@@ -1363,7 +1363,7 @@ export default function CajaModule() {
                                   'group transition-colors border-l-2',
                                   m.tipo === 'ingreso'
                                     ? 'border-l-primary hover:bg-primary/10'
-                                    : 'border-l-[#EF4444] hover:bg-red-900/30/40'
+                                    : 'border-l-destructive hover:bg-red-100/30/40'
                                 )}
                               >
                                 <TableCell className="text-xs">
@@ -1376,7 +1376,7 @@ export default function CajaModule() {
                                   <div className="flex items-center gap-2">
                                     <span className={cn(
                                       'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
-                                      m.tipo === 'ingreso' ? 'bg-primary/20 text-primary' : 'bg-red-900/60 text-red-300'
+                                      m.tipo === 'ingreso' ? 'bg-primary/20 text-primary' : 'bg-red-100/60 text-red-700'
                                     )}>
                                       {m.tipo === 'ingreso'
                                         ? <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1384,7 +1384,7 @@ export default function CajaModule() {
                                     </span>
                                     <span className={cn(
                                       'text-xs font-semibold',
-                                      m.tipo === 'ingreso' ? 'text-primary' : 'text-red-300'
+                                      m.tipo === 'ingreso' ? 'text-primary' : 'text-red-700'
                                     )}>
                                       {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
                                     </span>
@@ -1397,7 +1397,7 @@ export default function CajaModule() {
                                 </TableCell>
                                 <TableCell className={cn(
                                   'font-bold tabular-nums',
-                                  m.tipo === 'ingreso' ? 'text-primary' : 'text-red-300'
+                                  m.tipo === 'ingreso' ? 'text-primary' : 'text-red-700'
                                 )}>
                                   {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
                                 </TableCell>
@@ -1460,7 +1460,7 @@ export default function CajaModule() {
             {/* Info Panel */}
             <div className="space-y-4">
               <Card className="overflow-hidden">
-                <CardHeader className="bg-teal-950/10 pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary" />Información del turno</CardTitle></CardHeader>
+                <CardHeader className="bg-primary/5 pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary" />Información del turno</CardTitle></CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   {caja.apertura && (
                     <>
@@ -1481,7 +1481,7 @@ export default function CajaModule() {
                   {/* Action buttons */}
                   <div className="grid grid-cols-2 gap-2 pt-2">
                     <Button variant="outline" className="w-full border-primary/30 text-primary hover:bg-primary/20 hover:text-primary" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
-                    <Button variant="outline" className="w-full border-red-700/40 text-red-300 hover:bg-red-900/30 hover:text-red-300" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+                    <Button variant="outline" className="w-full border-red-300/40 text-red-700 hover:bg-red-100/30 hover:text-red-700" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
                   </div>
 
                   {/* Movement form */}
@@ -1513,7 +1513,7 @@ export default function CajaModule() {
 
               {/* Cash Flow Timeline */}
               <Card className="overflow-hidden">
-                <CardHeader className="bg-teal-950/10 pb-3">
+                <CardHeader className="bg-primary/5 pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Timer className="w-4 h-4 text-primary" />
                     Línea de tiempo
@@ -1728,7 +1728,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                       />
                       <span className={cn(
                         'text-xs font-semibold w-20 text-right tabular-nums',
-                        diff === 0 ? 'text-primary' : diff > 0 ? 'text-amber-300' : 'text-red-300'
+                        diff === 0 ? 'text-primary' : diff > 0 ? 'text-amber-700' : 'text-red-700'
                       )}>
                         {diff === 0 ? '✓' : diff > 0 ? '+' : ''}{fmt(diff)}
                       </span>
@@ -1779,7 +1779,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                   <span className="text-xs font-semibold tabular-nums">Cont: {fmt(props.totalEfectivo)}</span>
                   <span className={cn(
                     'text-xs font-bold tabular-nums w-16 text-right',
-                    props.diferenciaEfectivo === 0 ? 'text-primary' : 'text-red-300'
+                    props.diferenciaEfectivo === 0 ? 'text-primary' : 'text-red-700'
                   )}>
                     {props.diferenciaEfectivo === 0 ? '✓' : `${props.diferenciaEfectivo > 0 ? '+' : ''}${fmt(props.diferenciaEfectivo)}`}
                   </span>
@@ -1797,7 +1797,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                       <span className="text-xs font-semibold tabular-nums">Cont: {fmt(counted || 0)}</span>
                       <span className={cn(
                         'text-xs font-bold tabular-nums w-16 text-right',
-                        diff === 0 ? 'text-primary' : 'text-red-300'
+                        diff === 0 ? 'text-primary' : 'text-red-700'
                       )}>
                         {diff === 0 ? '✓' : `${diff > 0 ? '+' : ''}${fmt(diff)}`}
                       </span>
@@ -1811,7 +1811,7 @@ function ClosingWizard(props: ClosingWizardProps) {
           {props.diferenciaTotal !== 0 && (
             <div className={cn(
               'flex items-center gap-2 p-2.5 rounded-md text-sm',
-              props.diferenciaTotal > 0 ? 'bg-amber-900/60 text-amber-300' : 'bg-red-900/60 text-red-300'
+              props.diferenciaTotal > 0 ? 'bg-amber-100/60 text-amber-700' : 'bg-red-100/60 text-red-700'
             )}>
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>
@@ -1852,9 +1852,9 @@ function ClosingWizard(props: ClosingWizardProps) {
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Ingresos</p>
                     <p className="text-xs font-bold tabular-nums text-primary">{fmt(props.daySummary.totalIngresos)}</p>
                   </div>
-                  <div className="p-1.5 rounded-md bg-red-900/40 border border-[#EF4444]/20">
+                  <div className="p-1.5 rounded-md bg-red-100/40 border border-destructive/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Egresos</p>
-                    <p className="text-xs font-bold tabular-nums text-red-300">{fmt(props.daySummary.totalEgresos)}</p>
+                    <p className="text-xs font-bold tabular-nums text-red-700">{fmt(props.daySummary.totalEgresos)}</p>
                   </div>
                   <div className="p-1.5 rounded-md bg-muted/40 border">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Movimientos</p>
@@ -1863,7 +1863,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-dashed">
                   <span>Cajero: {props.daySummary.empleado}</span>
-                  <span>Neto: <span className={cn('font-bold', props.daySummary.totalIngresos - props.daySummary.totalEgresos >= 0 ? 'text-primary' : 'text-red-300')}>{fmt(props.daySummary.totalIngresos - props.daySummary.totalEgresos)}</span></span>
+                  <span>Neto: <span className={cn('font-bold', props.daySummary.totalIngresos - props.daySummary.totalEgresos >= 0 ? 'text-primary' : 'text-red-700')}>{fmt(props.daySummary.totalIngresos - props.daySummary.totalEgresos)}</span></span>
                 </div>
               </div>
             </div>
@@ -1877,12 +1877,12 @@ function ClosingWizard(props: ClosingWizardProps) {
             </div>
             <div className={cn(
               'p-2 rounded-md',
-              props.diferenciaTotal === 0 ? 'bg-primary/20' : props.diferenciaTotal > 0 ? 'bg-amber-900/60' : 'bg-red-900/60'
+              props.diferenciaTotal === 0 ? 'bg-primary/20' : props.diferenciaTotal > 0 ? 'bg-amber-100/60' : 'bg-red-100/60'
             )}>
               <p className="text-[10px] text-muted-foreground">Diferencia</p>
               <p className={cn(
                 'font-bold text-sm tabular-nums',
-                props.diferenciaTotal === 0 ? 'text-primary' : props.diferenciaTotal > 0 ? 'text-amber-300' : 'text-red-300'
+                props.diferenciaTotal === 0 ? 'text-primary' : props.diferenciaTotal > 0 ? 'text-amber-700' : 'text-red-700'
               )}>
                 {props.diferenciaTotal === 0 ? '$0.00' : `${props.diferenciaTotal > 0 ? '+' : ''}${fmt(props.diferenciaTotal)}`}
               </p>
@@ -1893,7 +1893,7 @@ function ClosingWizard(props: ClosingWizardProps) {
           {props.diferenciaTotal !== 0 && (
             <div className={cn(
               'flex items-center gap-2 p-2.5 rounded-md text-xs border',
-              props.diferenciaTotal > 0 ? 'bg-amber-900/60 border-[#F59E0B]/30 text-amber-300' : 'bg-red-900/60 border-[#EF4444]/30 text-red-300'
+              props.diferenciaTotal > 0 ? 'bg-amber-100/60 border-brand-amber/30 text-amber-700' : 'bg-red-100/60 border-destructive/30 text-red-700'
             )}>
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>
@@ -1907,7 +1907,7 @@ function ClosingWizard(props: ClosingWizardProps) {
           {/* Discrepancy explanation — required if diff > $100 */}
           {props.diffExceedsThreshold && (
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium flex items-center gap-1.5 text-amber-300">
+              <Label className="text-sm font-medium flex items-center gap-1.5 text-amber-700">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 Explicación de la discrepancia <span className="text-destructive">*</span>
               </Label>
@@ -2014,8 +2014,8 @@ function ClosingWizard(props: ClosingWizardProps) {
 function ComparisonRow({ label, value, variant, showSign }: {
   label: string; value: number; variant: 'neutral' | 'success' | 'warning' | 'danger'; showSign?: boolean;
 }) {
-  const bg = variant === 'success' ? 'bg-primary/20' : variant === 'warning' ? 'bg-amber-900/60' : variant === 'danger' ? 'bg-red-900/60' : 'bg-muted/50';
-  const txt = variant === 'success' ? 'text-primary' : variant === 'warning' ? 'text-amber-300' : variant === 'danger' ? 'text-red-300' : 'text-foreground';
+  const bg = variant === 'success' ? 'bg-primary/20' : variant === 'warning' ? 'bg-amber-100/60' : variant === 'danger' ? 'bg-red-100/60' : 'bg-muted/50';
+  const txt = variant === 'success' ? 'text-primary' : variant === 'warning' ? 'text-amber-700' : variant === 'danger' ? 'text-red-700' : 'text-foreground';
   return (
     <div className={cn('p-2.5 rounded-md', bg)}>
       <p className="text-[10px] text-muted-foreground">{label}</p>
@@ -2097,18 +2097,18 @@ function DailySummaryCard({ summary, onViewHistorial }: {
           diff === 0
             ? 'bg-primary/5 border-primary/30'
             : diff > 0
-            ? 'bg-amber-900/60 border-[#F59E0B]/30'
-            : 'bg-red-900/40 border-[#EF4444]/30'
+            ? 'bg-amber-100/60 border-brand-amber/30'
+            : 'bg-red-100/40 border-destructive/30'
         )}>
           <div className="flex items-center gap-2">
             {diff === 0
               ? <Check className="w-5 h-5 text-primary" />
-              : <AlertTriangle className={cn('w-5 h-5', diff > 0 ? 'text-amber-300' : 'text-red-300')} />}
+              : <AlertTriangle className={cn('w-5 h-5', diff > 0 ? 'text-amber-700' : 'text-red-700')} />}
             <div>
               <p className="text-xs text-muted-foreground">Diferencia al cierre</p>
               <p className={cn(
                 'font-bold text-sm tabular-nums',
-                diff === 0 ? 'text-primary' : diff > 0 ? 'text-amber-300' : 'text-red-300'
+                diff === 0 ? 'text-primary' : diff > 0 ? 'text-amber-700' : 'text-red-700'
               )}>
                 {diff === 0 ? 'Cuadra perfecto' : `${diff > 0 ? '+' : ''}${formatMoney(diff)}`}
               </p>
@@ -2133,28 +2133,28 @@ function DailySummaryCard({ summary, onViewHistorial }: {
               </div>
             </div>
           </div>
-          <div className={cn('rounded-xl border-l-[3px] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive', summary.ingresos - summary.egresos >= 0 ? 'border-l-primary bg-primary/5' : 'border-l-red-500 bg-red-950/20')}>
+          <div className={cn('rounded-xl border-l-[3px] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive', summary.ingresos - summary.egresos >= 0 ? 'border-l-primary bg-primary/5' : 'border-l-red-500 bg-red-50/20')}>
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className={cn('text-xs font-medium', summary.ingresos - summary.egresos >= 0 ? 'text-primary' : 'text-red-400')}>Balance neto</p>
-                <p className={cn('text-xl font-bold tabular-nums', summary.ingresos - summary.egresos >= 0 ? 'text-primary/70' : 'text-red-200')}>
+                <p className={cn('text-xs font-medium', summary.ingresos - summary.egresos >= 0 ? 'text-primary' : 'text-red-600')}>Balance neto</p>
+                <p className={cn('text-xl font-bold tabular-nums', summary.ingresos - summary.egresos >= 0 ? 'text-primary/70' : 'text-red-800')}>
                   {formatMoney(summary.ingresos - summary.egresos)}
                 </p>
               </div>
-              <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', summary.ingresos - summary.egresos >= 0 ? 'bg-primary/20 text-primary' : 'bg-red-500/20 text-red-400')}>
+              <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', summary.ingresos - summary.egresos >= 0 ? 'bg-primary/20 text-primary' : 'bg-red-500/20 text-red-600')}>
                 <Wallet className="w-5 h-5" />
               </div>
             </div>
           </div>
-          <div className="rounded-xl border-l-[3px] border-l-amber-500 bg-amber-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+          <div className="rounded-xl border-l-[3px] border-l-amber-500 bg-amber-50/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-amber-400">% Egresos</p>
-                <p className="text-xl font-bold text-amber-200 tabular-nums">
+                <p className="text-xs font-medium text-amber-600">% Egresos</p>
+                <p className="text-xl font-bold text-amber-800 tabular-nums">
                   {summary.ingresos > 0 ? Math.round((summary.egresos / summary.ingresos) * 100) : 0}%
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400">
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-600">
                 <AlertTriangle className="w-5 h-5" />
               </div>
             </div>
@@ -2171,9 +2171,9 @@ function DailySummaryCard({ summary, onViewHistorial }: {
 
 const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; label: string; value: string; sub: string; iconBg: string; iconColor: string }> = {
   emerald: { borderL: 'border-l-primary', bg: 'bg-primary/10', darkBg: 'bg-primary/5', label: 'text-primary', value: 'text-primary/70', sub: 'text-primary/50', iconBg: 'bg-primary/20', iconColor: 'text-primary' },
-  green: { borderL: 'border-l-green-500', bg: 'bg-green-50/40', darkBg: 'bg-green-950/20', label: 'text-green-400', value: 'text-green-200', sub: 'text-green-400/50', iconBg: 'bg-green-500/20', iconColor: 'text-green-400' },
-  red: { borderL: 'border-l-red-500', bg: 'bg-red-50/40', darkBg: 'bg-red-950/20', label: 'text-red-400', value: 'text-red-200', sub: 'text-red-400/50', iconBg: 'bg-red-500/20', iconColor: 'text-red-400' },
-  amber: { borderL: 'border-l-amber-500', bg: 'bg-amber-50/40', darkBg: 'bg-amber-950/20', label: 'text-amber-400', value: 'text-amber-200', sub: 'text-amber-400/50', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-400' },
+  green: { borderL: 'border-l-green-500', bg: 'bg-green-50/40', darkBg: 'bg-green-50/20', label: 'text-green-600', value: 'text-green-800', sub: 'text-green-600/50', iconBg: 'bg-green-500/20', iconColor: 'text-green-600' },
+  red: { borderL: 'border-l-red-500', bg: 'bg-red-50/40', darkBg: 'bg-red-50/20', label: 'text-red-600', value: 'text-red-800', sub: 'text-red-600/50', iconBg: 'bg-red-500/20', iconColor: 'text-red-600' },
+  amber: { borderL: 'border-l-amber-500', bg: 'bg-amber-50/40', darkBg: 'bg-amber-50/20', label: 'text-amber-600', value: 'text-amber-800', sub: 'text-amber-600/50', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-600' },
 };
 
 function SummaryStat({ label, value, icon: Icon, colorFamily }: {
@@ -2219,7 +2219,7 @@ function MovementCategoryPie({ data, compact }: { data: PieDatum[]; compact?: bo
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="bg-teal-950/10 pb-2">
+      <CardHeader className="bg-primary/5 pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Sparkle className="w-4 h-4 text-primary" />
           Movimientos por categoría
@@ -2419,7 +2419,7 @@ function MovementDetailPopover({ movimiento, gasto, categoria }: {
         <div className="flex items-center gap-2">
           <span className={cn(
             'w-7 h-7 rounded-full flex items-center justify-center',
-            isIngreso ? 'bg-primary/20 text-primary' : 'bg-red-900/60 text-red-300'
+            isIngreso ? 'bg-primary/20 text-primary' : 'bg-red-100/60 text-red-700'
           )}>
             {isIngreso ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
           </span>
@@ -2430,7 +2430,7 @@ function MovementDetailPopover({ movimiento, gasto, categoria }: {
         </div>
         <p className={cn(
           'text-sm font-bold tabular-nums',
-          isIngreso ? 'text-primary' : 'text-red-300'
+          isIngreso ? 'text-primary' : 'text-red-700'
         )}>
           {isIngreso ? '+' : '-'}{formatMoney(m.monto)}
         </p>
@@ -2473,11 +2473,11 @@ function MovementDetailPopover({ movimiento, gasto, categoria }: {
           <div className="bg-amber-50 border border-amber-200 rounded-md p-2 text-[11px] space-y-0.5">
             <div className="flex justify-between">
               <span className="text-amber-700">Tipo:</span>
-              <span className="font-medium text-amber-900">{gasto.tipo}</span>
+              <span className="font-medium text-amber-800">{gasto.tipo}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-amber-700">Monto:</span>
-              <span className="font-semibold tabular-nums text-amber-900">{formatMoney(gasto.monto)}</span>
+              <span className="font-semibold tabular-nums text-amber-800">{formatMoney(gasto.monto)}</span>
             </div>
             {gasto.descripcion && (
               <p className="text-amber-800 italic truncate">"{gasto.descripcion}"</p>
@@ -2534,7 +2534,7 @@ function MovFormInline({
         {tipo === 'ingreso' ? (
           <span className="flex items-center gap-1"><Plus className="w-3.5 h-3.5 text-primary" />Registrar ingreso</span>
         ) : (
-          <span className="flex items-center gap-1"><Minus className="w-3.5 h-3.5 text-red-300" />Registrar egreso</span>
+          <span className="flex items-center gap-1"><Minus className="w-3.5 h-3.5 text-red-700" />Registrar egreso</span>
         )}
       </p>
       <div className="grid grid-cols-2 gap-2">
@@ -2724,7 +2724,7 @@ function MovementCard({
       className={cn(
         'group relative pl-3 pr-3.5 py-3 space-y-1.5 transition-all duration-300 hover:bg-muted/30 animate-slide-up',
         'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1',
-        isIngreso ? 'before:bg-primary' : 'before:bg-[#EF4444]',
+        isIngreso ? 'before:bg-primary' : 'before:bg-destructive',
         isDetailOpen && 'bg-muted/30'
       )}
     >
@@ -2732,7 +2732,7 @@ function MovementCard({
         <div className="flex items-center gap-2 min-w-0">
           <span className={cn(
             'w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm',
-            isIngreso ? 'bg-primary/20 text-primary' : 'bg-red-900/60 text-red-300'
+            isIngreso ? 'bg-primary/20 text-primary' : 'bg-red-100/60 text-red-700'
           )}>
             {isIngreso
               ? <ArrowUpRight className="w-3.5 h-3.5" />
@@ -2742,7 +2742,7 @@ function MovementCard({
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className={cn(
                 'text-xs font-semibold',
-                isIngreso ? 'text-primary' : 'text-red-300'
+                isIngreso ? 'text-primary' : 'text-red-700'
               )}>
                 {isIngreso ? 'Ingreso' : 'Egreso'}
               </span>
@@ -2772,7 +2772,7 @@ function MovementCard({
         </div>
         <p className={cn(
           'text-sm font-bold shrink-0 tabular-nums',
-          isIngreso ? 'text-primary' : 'text-red-300'
+          isIngreso ? 'text-primary' : 'text-red-700'
         )}>
           {isIngreso ? '+' : '-'}{formatMoney(m.monto)}
         </p>
@@ -2837,11 +2837,11 @@ function MovementCard({
               <div className="bg-amber-50 border border-amber-200 rounded-md p-2 text-[11px] space-y-0.5">
                 <div className="flex justify-between">
                   <span className="text-amber-700">Tipo:</span>
-                  <span className="font-medium text-amber-900">{gastoVinculado.tipo}</span>
+                  <span className="font-medium text-amber-800">{gastoVinculado.tipo}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-amber-700">Monto:</span>
-                  <span className="font-semibold tabular-nums text-amber-900">{formatMoney(gastoVinculado.monto)}</span>
+                  <span className="font-semibold tabular-nums text-amber-800">{formatMoney(gastoVinculado.monto)}</span>
                 </div>
                 {gastoVinculado.descripcion && (
                   <p className="text-amber-800 italic truncate">"{gastoVinculado.descripcion}"</p>

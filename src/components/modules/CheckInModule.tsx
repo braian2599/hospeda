@@ -30,9 +30,9 @@ import { formatMoney, formatFecha, todayLocal, daysAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 const estadoPagoBadge: Record<string, string> = {
-  Pendiente: 'bg-amber-900/60 text-amber-300 border-amber-700/40',
-  Parcial: 'bg-orange-900/60 text-orange-300 border-orange-700/40',
-  Pagado: 'bg-emerald-900/60 text-emerald-300 border-primary/40',
+  Pendiente: 'bg-amber-100/60 text-amber-700 border-amber-300/40',
+  Parcial: 'bg-orange-100/60 text-orange-700 border-orange-300/40',
+  Pagado: 'bg-emerald-100/60 text-emerald-700 border-primary/40',
 };
 
 const PARENTESCO_OPTIONS = [
@@ -323,7 +323,7 @@ export default function CheckInModule() {
                           <span className="font-semibold text-sm group-hover:text-primary transition-colors">{r.huesped}</span>
                           <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                           {(r.ninos || 0) > 0 && (
-                            <Badge variant="outline" className="bg-violet-900/40 text-violet-300 border-violet-700/40">
+                            <Badge variant="outline" className="bg-violet-100/40 text-violet-700 border-violet-300/40">
                               <Baby className="w-3 h-3 mr-1" />{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}
                             </Badge>
                           )}
@@ -346,16 +346,16 @@ export default function CheckInModule() {
           </Card>
 
           {/* Pendientes Check-Out */}
-          <Card className="border-orange-700/40 bg-amber-950/20">
+          <Card className="border-orange-300/40 bg-amber-50">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
-                <LogOut className="w-5 h-5 text-[#EA580C]" />
+                <LogOut className="w-5 h-5 text-orange-600" />
                 Check-Outs Pendientes
                 {pendientesCheckOut.length > 0 && <PulsingDot color="bg-orange-500" />}
                 <Badge
                   key={`cout-${pendientesCheckOut.length}`}
                   variant="secondary"
-                  className="ml-auto count-pop bg-orange-900/40 text-orange-300 border-orange-700/40 hover:bg-orange-900/60"
+                  className="ml-auto count-pop bg-orange-100/40 text-orange-700 border-orange-300/40 hover:bg-orange-100/60"
                 >
                   {pendientesCheckOut.length}
                 </Badge>
@@ -367,13 +367,13 @@ export default function CheckInModule() {
               ) : (
                 <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
                   {pendientesCheckOut.map(r => (
-                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-amber-950/40 transition-colors duration-200 group">
+                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-amber-100/40 transition-colors duration-200 group">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-sm group-hover:text-primary transition-colors">{r.huesped}</span>
                           <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                           {r.menores && r.menores.length > 0 && (
-                            <Badge variant="outline" className="bg-violet-900/40 text-violet-300 border-violet-700/40">
+                            <Badge variant="outline" className="bg-violet-100/40 text-violet-700 border-violet-300/40">
                               <Baby className="w-3 h-3 mr-1" />{r.menores.length} menor{r.menores.length > 1 ? 'es' : ''}
                             </Badge>
                           )}
@@ -417,9 +417,9 @@ export default function CheckInModule() {
               {requiereMenores && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <Baby className="w-5 h-5 text-violet-300" />
+                    <Baby className="w-5 h-5 text-violet-700" />
                     <h4 className="font-semibold text-sm">
-                      Datos de menores ({selReserva.ninos}) — <span className="text-[#EF4444]">Obligatorio</span>
+                      Datos de menores ({selReserva.ninos}) — <span className="text-destructive">Obligatorio</span>
                     </h4>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -428,9 +428,9 @@ export default function CheckInModule() {
                   </p>
 
                   {menoresErrors.length > 0 && (
-                    <div className="rounded-lg border border-red-700/40 bg-red-900/30 p-3 space-y-1">
+                    <div className="rounded-lg border border-red-300/40 bg-red-100/30 p-3 space-y-1">
                       {menoresErrors.map((err, i) => (
-                        <p key={i} className="text-xs text-red-300">{err}</p>
+                        <p key={i} className="text-xs text-red-700">{err}</p>
                       ))}
                     </div>
                   )}
@@ -440,7 +440,7 @@ export default function CheckInModule() {
                       <div key={idx} className="rounded-lg border p-4 space-y-3 bg-muted/30">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-semibold flex items-center gap-1.5">
-                            <Baby className="w-4 h-4 text-[#7C3AED]" />
+                            <Baby className="w-4 h-4 text-purple-600" />
                             Menor {idx + 1}
                           </span>
                         </div>
@@ -503,7 +503,7 @@ export default function CheckInModule() {
               {/* Requerimientos */}
               <div className="space-y-4">
                 <h4 className="font-semibold text-sm flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-[#F59E0B]" />
+                  <AlertCircle className="w-4 h-4 text-brand-amber" />
                   Requisitos
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -718,14 +718,14 @@ export default function CheckInModule() {
                     <Separator />
                     <div className="flex justify-between text-sm font-bold">
                       <span>Saldo</span>
-                      <span className={saldo > 0 ? 'text-red-300' : 'text-primary'}>
+                      <span className={saldo > 0 ? 'text-red-700' : 'text-primary'}>
                         {formatMoney(saldo)}
                       </span>
                     </div>
                   </div>
 
                   {saldo > 0 && (
-                    <div className="flex items-center gap-2 text-amber-300 text-sm">
+                    <div className="flex items-center gap-2 text-amber-700 text-sm">
                       <CreditCard className="w-4 h-4" />
                       <span>El huésped tiene un saldo pendiente de {formatMoney(saldo)}.</span>
                     </div>
@@ -880,21 +880,21 @@ const KPI_COLORS: Record<string, {
   },
   amber: {
     border: 'border-l-amber-500',
-    bg: 'bg-amber-950/20',
-    label: 'text-amber-400',
-    value: 'text-amber-200',
-    sub: 'text-amber-400/50',
+    bg: 'bg-amber-50',
+    label: 'text-amber-600',
+    value: 'text-amber-800',
+    sub: 'text-amber-600/50',
     iconBg: 'bg-amber-500/20',
-    icon: 'text-amber-400',
+    icon: 'text-amber-600',
   },
   teal: {
     border: 'border-l-teal-500',
-    bg: 'bg-teal-950/20',
-    label: 'text-teal-400',
-    value: 'text-teal-200',
-    sub: 'text-teal-400/50',
+    bg: 'bg-teal-50',
+    label: 'text-teal-600',
+    value: 'text-teal-800',
+    sub: 'text-teal-600/50',
     iconBg: 'bg-teal-500/20',
-    icon: 'text-teal-400',
+    icon: 'text-teal-600',
   },
 };
 
@@ -1051,14 +1051,14 @@ function CheckInAccountStatus({ reserva }: { reserva: Reserva }) {
         </div>
         <div>
           <span className="text-muted-foreground text-xs block">Saldo</span>
-          <span className={`font-bold text-base ${saldo > 0 ? 'text-red-300' : 'text-primary'}`}>
+          <span className={`font-bold text-base ${saldo > 0 ? 'text-red-700' : 'text-primary'}`}>
             {formatMoney(saldo)}
           </span>
         </div>
       </div>
       <div className="text-xs text-muted-foreground">
         {reserva.personas} adulto{s(reserva.personas)}
-        {cantNinos > 0 ? <span className="text-violet-300 font-medium"> + {cantNinos} niño{s(cantNinos)}</span> : null}
+        {cantNinos > 0 ? <span className="text-violet-700 font-medium"> + {cantNinos} niño{s(cantNinos)}</span> : null}
         {' · '}{noches} noche{s(noches)} · {reserva.tipoTarifa || 'Normal'}
       </div>
     </div>

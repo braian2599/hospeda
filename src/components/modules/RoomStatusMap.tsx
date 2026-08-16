@@ -32,7 +32,7 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
   {
     key: 'Disponible',
     label: 'Disponible',
-    color: '#059669',
+    color: 'var(--brand-emerald)',
     bgColor: 'bg-primary/8',
     icon: CheckCircle,
     needsAttention: false,
@@ -40,40 +40,40 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
   {
     key: 'Ocupada',
     label: 'Ocupada',
-    color: '#D97706',
-    bgColor: 'bg-[#D97706]/8',
+    color: 'var(--brand-amber)',
+    bgColor: 'bg-amber-600/8',
     icon: UserCheck,
     needsAttention: false,
   },
   {
     key: 'Reservada',
     label: 'Reservada',
-    color: '#0D9488',
-    bgColor: 'bg-[#0D9488]/8',
+    color: 'var(--brand-teal)',
+    bgColor: 'bg-teal-600/8',
     icon: CalendarCheck,
     needsAttention: false,
   },
   {
     key: 'Limpieza',
     label: 'Limpieza',
-    color: '#EAB308',
-    bgColor: 'bg-[#EAB308]/8',
+    color: 'var(--warning)',
+    bgColor: 'bg-yellow-500/8',
     icon: SprayCan,
     needsAttention: true,
   },
   {
     key: 'Mantenimiento',
     label: 'Mantenimiento',
-    color: '#DC2626',
-    bgColor: 'bg-[#DC2626]/8',
+    color: 'var(--destructive)',
+    bgColor: 'bg-red-600/8',
     icon: Wrench,
     needsAttention: true,
   },
   {
     key: 'Fuera de servicio',
     label: 'Fuera de servicio',
-    color: '#94A3B8',
-    bgColor: 'bg-[#94A3B8]/8',
+    color: 'var(--status-finalized)',
+    bgColor: 'bg-slate-400/8',
     icon: Ban,
     needsAttention: false,
   },
@@ -355,7 +355,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
 
                 {/* Guest info */}
                 {detailHuesped && (
-                  <div className="rounded-lg border-l-[3px] p-3 bg-[#D97706]/5" style={{ borderLeftColor: '#D97706' }}>
+                  <div className="rounded-lg border-l-[3px] p-3 bg-amber-600/5" style={{ borderLeftColor: 'var(--brand-amber)' }}>
                     <div className="text-xs font-semibold text-muted-foreground mb-1">Huésped actual</div>
                     <div className="text-sm font-semibold text-foreground">{detailHuesped.huesped}</div>
                     <div className="text-xs text-muted-foreground">
@@ -366,7 +366,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
 
                 {/* Problem note */}
                 {detailHab.problema && (
-                  <div className="rounded-lg border-l-[3px] p-3 bg-[#DC2626]/5" style={{ borderLeftColor: '#DC2626' }}>
+                  <div className="rounded-lg border-l-[3px] p-3 bg-red-600/5" style={{ borderLeftColor: 'var(--destructive)' }}>
                     <div className="text-xs font-semibold text-muted-foreground mb-1">Problema reportado</div>
                     <div className="text-sm text-foreground">{detailHab.problema}</div>
                   </div>

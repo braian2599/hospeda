@@ -95,21 +95,21 @@ export default function TrialBanner() {
     <>
       <div className={`flex items-center gap-3 px-4 py-2.5 border-b ${
         urgencia
-          ? 'bg-[#F59E0B]/10 border-[#F59E0B]/20'
+          ? 'bg-brand-amber/10 border-brand-amber/20'
           : 'bg-primary/5 border-border'
       }`}>
         <div className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-full ${
-          urgencia ? 'bg-[#F59E0B]/15' : 'bg-primary/10'
+          urgencia ? 'bg-brand-amber/15' : 'bg-primary/10'
         }`}>
           {urgencia
-            ? <AlertTriangle className="w-4 h-4 text-amber-300" />
+            ? <AlertTriangle className="w-4 h-4 text-amber-700" />
             : <Clock className="w-4 h-4 text-primary" />
           }
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className={`text-sm font-medium ${urgencia ? 'text-amber-300' : ''}`}>
+            <p className={`text-sm font-medium ${urgencia ? 'text-amber-700' : ''}`}>
               {dias === 1 ? 'Último día' : `${dias} días restantes`} de prueba gratuita
             </p>
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">

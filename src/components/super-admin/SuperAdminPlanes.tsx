@@ -169,7 +169,7 @@ export default function SuperAdminPlanes() {
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${planTypeColors[plan.type] || 'bg-gray-400'}`} />
+                  <div className={`w-3 h-3 rounded-full ${planTypeColors[plan.type] || 'bg-gray-500'}`} />
                   <div>
                     <CardTitle className="text-lg">{plan.nombre}</CardTitle>
                     <p className="text-xs text-muted-foreground capitalize mt-0.5">{plan.type}</p>
@@ -177,7 +177,7 @@ export default function SuperAdminPlanes() {
                 </div>
                 <div className="flex items-center gap-2">
                   {plan.activo ? (
-                    <Badge variant="outline" className="text-emerald-400 border-primary">
+                    <Badge variant="outline" className="text-emerald-600 border-primary">
                       <Check className="w-3 h-3 mr-1" /> Activo
                     </Badge>
                   ) : (

@@ -198,9 +198,9 @@ function DateRangePickerInline({
                   numberOfMonths={2}
                   autoFocus
                   classNames={{
-                    range_start: 'rounded-l-md bg-[#0D3D33] [&>button]:!bg-[#0D3D33] [&>button]:!text-white',
-                    range_end: 'rounded-r-md bg-[#0D3D33] [&>button]:!bg-[#0D3D33] [&>button]:!text-white',
-                    range_middle: 'rounded-none bg-[#0D3D33] [&>button]:!bg-[#0D3D33] [&>button]:!text-white',
+                    range_start: 'rounded-l-md bg-primary [&>button]:!bg-primary [&>button]:!text-white',
+                    range_end: 'rounded-r-md bg-primary [&>button]:!bg-primary [&>button]:!text-white',
+                    range_middle: 'rounded-none bg-primary [&>button]:!bg-primary [&>button]:!text-white',
                     day: 'relative w-full h-full p-0 text-center [&:first-child[data-selected=true]_button]:rounded-l-md [&:last-child[data-selected=true]_button]:rounded-r-md group/day aspect-square select-none',
                   }}
                 />
@@ -230,16 +230,16 @@ const s = (n: number) => n !== 1 ? 's' : '';
 // formatFecha and formatMoney imported from @/lib/format
 
 const estadoReservaBadge: Record<string, string> = {
- Confirmada: 'bg-emerald-900/60 text-emerald-300 border-primary/40',
- Cancelada: 'bg-red-900/60 text-red-300 border-red-700/40',
- 'Check-In realizado': 'bg-sky-900/60 text-sky-300 border-sky-700/40',
- 'Check-Out realizado': 'bg-slate-800/60 text-slate-300 border-slate-600/40',
+ Confirmada: 'bg-emerald-100/60 text-emerald-700 border-primary/40',
+ Cancelada: 'bg-red-100/60 text-red-700 border-red-300/40',
+ 'Check-In realizado': 'bg-sky-100/60 text-sky-700 border-sky-300/40',
+ 'Check-Out realizado': 'bg-slate-200/60 text-slate-600 border-slate-400/40',
 };
 
 const estadoPagoBadge: Record<string, string> = {
- Pendiente: 'bg-amber-900/60 text-amber-300 border-amber-700/40',
- Parcial: 'bg-orange-900/60 text-orange-300 border-orange-700/40',
- Pagado: 'bg-emerald-900/60 text-emerald-300 border-primary/40',
+ Pendiente: 'bg-amber-100/60 text-amber-700 border-amber-300/40',
+ Parcial: 'bg-orange-100/60 text-orange-700 border-orange-300/40',
+ Pagado: 'bg-emerald-100/60 text-emerald-700 border-primary/40',
 };
 
 const estadosReserva = ['Confirmada', 'Cancelada', 'Check-In realizado', 'Check-Out realizado'];
@@ -308,12 +308,12 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
         <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-slate-400">Noches</span><span className="font-semibold text-foreground">{computed.noches}{dLocal?.nochesGratis > 0 ? ` (${dLocal.nochesCobrables} cobrables)` : ''}</span></div>
         {lines.map(l => (
           <div key={l.key} className="flex justify-between items-center py-1 text-[13px]">
-            <span className={l.dim ? 'text-[#94A3B8] line-through' : 'text-slate-400'}>{l.label}</span>
-            <span className={l.dim ? 'font-medium text-[#94A3B8]' : 'font-semibold text-foreground'}>{l.value}</span>
+            <span className={l.dim ? 'text-slate-400 line-through' : 'text-slate-400'}>{l.label}</span>
+            <span className={l.dim ? 'font-medium text-slate-400' : 'font-semibold text-foreground'}>{l.value}</span>
           </div>
         ))}
         <div className="flex justify-between items-center py-1.5 mt-1 border-t border-border text-[13px]">
-          <span className="font-medium text-[#475569]">Subtotal</span>
+          <span className="font-medium text-slate-600">Subtotal</span>
           <span className="font-bold text-foreground">{formatMoney(sub)}</span>
         </div>
       </div>
@@ -705,21 +705,21 @@ export default function ReservasModule() {
  // ==================== STATUS COLOR HELPERS ====================
  const getStatusBorderColor = (estado: string) => {
  switch (estado) {
-   case 'Confirmada': return 'border-l-[#10B981]';
-   case 'Check-In realizado': return 'border-l-[#3B82F6]';
-   case 'Check-Out realizado': return 'border-l-[#F59E0B]';
-   case 'Cancelada': return 'border-l-[#EF4444]';
-   default: return 'border-l-[#94A3B8]';
+   case 'Confirmada': return 'border-l-status-available';
+   case 'Check-In realizado': return 'border-l-status-reserved';
+   case 'Check-Out realizado': return 'border-l-status-cleaning';
+   case 'Cancelada': return 'border-l-status-occupied';
+   default: return 'border-l-status-finalized';
  }
  };
 
  const getStatusDotColor = (estado: string) => {
  switch (estado) {
    case 'Confirmada': return 'bg-primary';
-   case 'Check-In realizado': return 'bg-[#3B82F6]';
-   case 'Check-Out realizado': return 'bg-[#F59E0B]';
-   case 'Cancelada': return 'bg-[#EF4444]';
-   default: return 'bg-[#94A3B8]';
+   case 'Check-In realizado': return 'bg-status-reserved';
+   case 'Check-Out realizado': return 'bg-status-cleaning';
+   case 'Cancelada': return 'bg-destructive';
+   default: return 'bg-status-finalized';
  }
  };
 
@@ -1261,25 +1261,25 @@ export default function ReservasModule() {
        </div>
      </div>
    </div>
-   <div className="relative rounded-xl border-l-[3px] border-l-amber-500 bg-amber-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   <div className="relative rounded-xl border-l-[3px] border-l-amber-500 bg-amber-50 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
      <div className="flex items-start justify-between">
        <div className="space-y-1">
-         <p className="text-xs font-medium text-amber-400">Check-outs hoy</p>
-         <p className="text-xl font-bold text-amber-200">{todayActivity.checkoutsHoy}</p>
+         <p className="text-xs font-medium text-amber-600">Check-outs hoy</p>
+         <p className="text-xl font-bold text-amber-800">{todayActivity.checkoutsHoy}</p>
        </div>
        <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-         <TrendingDown className="w-5 h-5 text-amber-400" />
+         <TrendingDown className="w-5 h-5 text-amber-600" />
        </div>
      </div>
    </div>
-   <div className="relative rounded-xl border-l-[3px] border-l-green-500 bg-green-950/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   <div className="relative rounded-xl border-l-[3px] border-l-green-500 bg-green-50 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
      <div className="flex items-start justify-between">
        <div className="space-y-1">
-         <p className="text-xs font-medium text-green-400">En alojamiento</p>
-         <p className="text-xl font-bold text-green-200">{todayActivity.inHouse}</p>
+         <p className="text-xs font-medium text-green-600">En alojamiento</p>
+         <p className="text-xl font-bold text-green-800">{todayActivity.inHouse}</p>
        </div>
        <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
-         <Bed className="w-5 h-5 text-green-400" />
+         <Bed className="w-5 h-5 text-green-600" />
        </div>
      </div>
    </div>
@@ -1358,7 +1358,7 @@ export default function ReservasModule() {
  {filteredReservas.length === 0 ? (
  <div className="text-center py-10 text-muted-foreground">No se encontraron reservas.</div>
  ) : (
- <div className="divide-y divide-[#E2E8F0]/60">
+ <div className="divide-y divide-slate-700/60">
  {pagedReservas.map(r => {
  const saldo = getSaldo(r);
  const payProgress = getPaymentProgress(r);
@@ -1394,7 +1394,7 @@ export default function ReservasModule() {
      <span className="font-medium">{formatFecha(r.checkin)}</span>
    </div>
    <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-   <div className="flex items-center gap-1 text-[#F59E0B]">
+   <div className="flex items-center gap-1 text-brand-amber">
      <CalendarDays className="w-3 h-3 shrink-0" />
      <span className="font-medium">{formatFecha(r.checkout)}</span>
    </div>
@@ -1419,7 +1419,7 @@ export default function ReservasModule() {
        <div
          className={cn(
            'h-full rounded-full transition-all duration-500',
-           payProgress >= 80 ? 'bg-primary' : payProgress >= 40 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'
+           payProgress >= 80 ? 'bg-primary' : payProgress >= 40 ? 'bg-brand-amber' : 'bg-destructive'
          )}
          style={{ width: `${payProgress}%` }}
        />
@@ -1428,7 +1428,7 @@ export default function ReservasModule() {
  )}
  {/* Row 5: Saldo */}
  {saldo > 0 && (
-   <div className="flex items-center gap-1 mt-1.5 text-xs text-red-300 font-medium">
+   <div className="flex items-center gap-1 mt-1.5 text-xs text-red-700 font-medium">
      <AlertTriangle className="w-3 h-3" />
      Saldo: {formatMoney(saldo)}
    </div>
@@ -1449,7 +1449,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-amber-300 hover:bg-amber-900/30"
+         className="h-7 text-xs px-2 text-amber-700 hover:bg-amber-100/30"
          onClick={() => openEdit(r)}
        >
          <Pencil className="w-3 h-3 mr-1" />Editar
@@ -1457,7 +1457,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-red-300 hover:bg-red-900/30"
+         className="h-7 text-xs px-2 text-red-700 hover:bg-red-100/30"
          onClick={() => openCancel(r.id)}
        >
          <XCircle className="w-3 h-3 mr-1" />Cancelar
@@ -1469,7 +1469,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-orange-400 hover:bg-orange-900/30"
+         className="h-7 text-xs px-2 text-orange-600 hover:bg-orange-100/30"
          disabled={isActionLoading}
          onClick={() => handleQuickCheckOut(r)}
        >
@@ -1481,7 +1481,7 @@ export default function ReservasModule() {
      <Button
        size="sm"
        variant="ghost"
-       className="h-7 text-xs px-2 text-violet-300 hover:bg-violet-900/30"
+       className="h-7 text-xs px-2 text-violet-700 hover:bg-violet-100/30"
        onClick={() => openEdit(r)}
      >
        <CreditCard className="w-3 h-3 mr-1" />Pago
@@ -1538,7 +1538,7 @@ export default function ReservasModule() {
            <div>{r.huesped}</div>
            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
              <span>{r.dni}</span>
-             <span className="text-[#94A3B8]">·</span>
+             <span className="text-slate-400">·</span>
              <User className="w-3 h-3" />
              <span>{r.personas}</span>
            </div>
@@ -1558,7 +1558,7 @@ export default function ReservasModule() {
        </TableCell>
        <TableCell>
          <div className="flex items-center gap-1 text-xs">
-           <CalendarDays className="w-3 h-3 text-[#F59E0B] shrink-0" />
+           <CalendarDays className="w-3 h-3 text-brand-amber shrink-0" />
            <span>{formatFecha(r.checkout)}</span>
          </div>
        </TableCell>
@@ -1578,7 +1578,7 @@ export default function ReservasModule() {
                <div
                  className={cn(
                    'h-full rounded-full transition-all duration-500',
-                   payProgress >= 80 ? 'bg-primary' : payProgress >= 40 ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'
+                   payProgress >= 80 ? 'bg-primary' : payProgress >= 40 ? 'bg-brand-amber' : 'bg-destructive'
                  )}
                  style={{ width: `${payProgress}%` }}
                />
@@ -1590,8 +1590,8 @@ export default function ReservasModule() {
        </TableCell>
        <TableCell className="hidden md:table-cell">
          <div className="flex items-center gap-1">
-           {saldo > 0 && <AlertTriangle className="w-3.5 h-3.5 text-[#EF4444] shrink-0" />}
-           <span className={saldo > 0 ? 'text-red-300 font-medium' : 'text-muted-foreground'}>
+           {saldo > 0 && <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />}
+           <span className={saldo > 0 ? 'text-red-700 font-medium' : 'text-muted-foreground'}>
              {formatMoney(saldo)}
            </span>
          </div>
@@ -1612,7 +1612,7 @@ export default function ReservasModule() {
                <Button
                  size="sm"
                  variant="outline"
-                 className="border-amber-700/40 text-amber-300 hover:bg-amber-900/30 h-7 text-xs px-2"
+                 className="border-amber-300/40 text-amber-700 hover:bg-amber-100/30 h-7 text-xs px-2"
                  onClick={() => openEdit(r)}
                >
                  <Pencil className="w-3 h-3 mr-1" />Editar
@@ -1620,7 +1620,7 @@ export default function ReservasModule() {
                <Button
                  size="sm"
                  variant="outline"
-                 className="border-red-700/40 text-red-300 hover:bg-red-900/30 h-7 text-xs px-2"
+                 className="border-red-300/40 text-red-700 hover:bg-red-100/30 h-7 text-xs px-2"
                  onClick={() => openCancel(r.id)}
                >
                  <XCircle className="w-3 h-3 mr-1" />Cancelar
@@ -1631,7 +1631,7 @@ export default function ReservasModule() {
              <Button
                size="sm"
                variant="ghost"
-               className="h-7 text-xs px-2 text-orange-400 hover:bg-orange-900/30 opacity-0 group-hover:opacity-100 transition-opacity"
+               className="h-7 text-xs px-2 text-orange-600 hover:bg-orange-100/30 opacity-0 group-hover:opacity-100 transition-opacity"
                disabled={isActionLoading}
                onClick={() => handleQuickCheckOut(r)}
              >
@@ -1642,7 +1642,7 @@ export default function ReservasModule() {
              <Button
                size="sm"
                variant="ghost"
-               className="h-7 text-xs px-2 text-violet-300 hover:bg-violet-900/30 opacity-0 group-hover:opacity-100 transition-opacity"
+               className="h-7 text-xs px-2 text-violet-700 hover:bg-violet-100/30 opacity-0 group-hover:opacity-100 transition-opacity"
                onClick={() => openEdit(r)}
              >
                <CreditCard className="w-3 h-3 mr-1" />Pago
@@ -1763,13 +1763,13 @@ export default function ReservasModule() {
  <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">Total reserva</p>
  <p className="font-bold text-lg text-primary">{formatMoney(calcularTotalReserva(detalleReserva.id))}</p>
  </div>
- <div className="rounded-xl border-2 border-sky-700/40 bg-sky-900/30 p-3 text-center">
- <p className="text-xs font-medium text-sky-300 uppercase tracking-wide mb-1">Pagado</p>
- <p className="font-bold text-lg text-sky-300">{formatMoney(calcularTotalPagado(detalleReserva.id))}</p>
+ <div className="rounded-xl border-2 border-sky-300/40 bg-sky-100/30 p-3 text-center">
+ <p className="text-xs font-medium text-sky-700 uppercase tracking-wide mb-1">Pagado</p>
+ <p className="font-bold text-lg text-sky-700">{formatMoney(calcularTotalPagado(detalleReserva.id))}</p>
  </div>
- <div className={`rounded-xl border-2 p-3 text-center ${getSaldo(detalleReserva) > 0 ? 'border-red-700/40 bg-red-900/30' : 'border-border bg-muted/30'}`}> 
- <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${getSaldo(detalleReserva) > 0 ? 'text-red-300' : 'text-slate-400'}`}>Saldo</p>
- <p className={`font-bold text-lg ${getSaldo(detalleReserva) > 0 ? 'text-red-300' : 'text-foreground'}`}>
+ <div className={`rounded-xl border-2 p-3 text-center ${getSaldo(detalleReserva) > 0 ? 'border-red-300/40 bg-red-100/30' : 'border-border bg-muted/30'}`}> 
+ <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${getSaldo(detalleReserva) > 0 ? 'text-red-700' : 'text-slate-400'}`}>Saldo</p>
+ <p className={`font-bold text-lg ${getSaldo(detalleReserva) > 0 ? 'text-red-700' : 'text-foreground'}`}>
  {formatMoney(getSaldo(detalleReserva))}
  </p>
  </div>
@@ -1800,9 +1800,9 @@ export default function ReservasModule() {
  </DialogHeader>
 
  {errors.length > 0 && (
- <div className="rounded-lg border border-red-700/40 bg-red-900/30 p-3 space-y-1">
+ <div className="rounded-lg border border-red-300/40 bg-red-100/30 p-3 space-y-1">
  {errors.map((err, i) => (
- <p key={i} className="text-sm text-red-300 flex items-center gap-1">
+ <p key={i} className="text-sm text-red-700 flex items-center gap-1">
  <AlertTriangle className="w-3.5 h-3.5" /> {err}
  </p>
  ))}
@@ -1875,7 +1875,7 @@ export default function ReservasModule() {
  {camposPersonalizados.map(campo => (
  <div key={campo.nombre} className="grid gap-1.5">
  <Label className="text-sm">
- {campo.nombre} {campo.requerido && <span className="text-[#EF4444]">*</span>}
+ {campo.nombre} {campo.requerido && <span className="text-destructive">*</span>}
  </Label>
  {campo.tipo === 'numero' ? (
  <Input
@@ -1935,7 +1935,7 @@ export default function ReservasModule() {
  key={hab.numero}
  className={`cursor-pointer transition-all p-3 ${
  isSelected
- ? 'ring-2 ring-[#4ADE80] border-[#4ADE80] bg-primary/10'
+ ? 'ring-2 ring-brand-mint border-brand-mint bg-primary/10'
  : 'hover:bg-muted/50'
  }`}
  onClick={() => selectRoom(hab)}
@@ -2046,7 +2046,7 @@ export default function ReservasModule() {
  <div
  className={`grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg border-2 transition-all ${
  isComboSelected
- ? 'border-[#4ADE80] bg-primary/10 cursor-default'
+ ? 'border-brand-mint bg-primary/10 cursor-default'
  : 'border-transparent hover:border-primary/30 hover:bg-muted/30 cursor-pointer'
  }`}
  onClick={() => { if (!isComboSelected) selectCombinacion(sug); }}
@@ -2089,7 +2089,7 @@ export default function ReservasModule() {
  })}
  </div>
  <div className="flex items-center justify-center gap-2">
- <Badge className={isComboSelected ? 'bg-[#4ADE80] text-white' : 'bg-primary/10 text-primary border-primary/40'}>
+ <Badge className={isComboSelected ? 'bg-brand-mint text-white' : 'bg-primary/10 text-primary border-primary/40'}>
  {isComboSelected
  ? `Personas: ${(parseInt(form.personas) || 1) + (parseInt(form.personas2) || 1)} / ${sug.capacidadTotal}`
  : `Total combinado: ${sug.capacidadTotal} personas`
@@ -2111,7 +2111,7 @@ export default function ReservasModule() {
  {computed.desglose && (
  <>
  {computed.desglose.ninosCount > 0 && (
- <div className="flex justify-between text-xs text-violet-300">
+ <div className="flex justify-between text-xs text-violet-700">
  <span>{computed.desglose.ninosCount} niño{computed.desglose.ninosCount > 1 ? 's' : ''} × {computed.desglose.nochesCobrables} noche{computed.desglose.nochesCobrables > 1 ? 's' : ''}</span>
  <span>{formatMoney(computed.desglose.ninosCount * computed.desglose.precioNino * computed.desglose.nochesCobrables)}</span>
  </div>
@@ -2124,7 +2124,7 @@ export default function ReservasModule() {
  </div>
  )}
  {computed.desglose.nochesGratis > 0 && (
- <div className="flex justify-between text-xs text-amber-300">
+ <div className="flex justify-between text-xs text-amber-700">
  <span>{computed.desglose.nochesGratis} noche{computed.desglose.nochesGratis > 1 ? 's' : ''} de cortesía</span>
  <span className="line-through opacity-60">-noches gratis-</span>
  </div>
@@ -2155,7 +2155,7 @@ export default function ReservasModule() {
  {computed.recargo > 0 && (
  <div className="flex justify-between text-sm mt-1">
  <span className="text-muted-foreground">Recargo por cuotas</span>
- <span className="text-amber-300">{formatMoney(computed.recargo)}</span>
+ <span className="text-amber-700">{formatMoney(computed.recargo)}</span>
  </div>
  )}
  <div className="flex justify-between text-sm mt-1 pt-1 border-t">
@@ -2259,7 +2259,7 @@ export default function ReservasModule() {
        <span className="text-[13px] font-medium text-white/70">
          {form.reservaMultiple ? 'Total combinado' : 'Total'}
        </span>
-       <span className="font-bold text-xl text-[#4ADE80]">
+       <span className="font-bold text-xl text-brand-mint">
          {formatMoney(form.reservaMultiple ? (computed.totalFinalCombinado || computed.totalFinal) : computed.totalFinal)}
        </span>
      </div>
@@ -2275,7 +2275,7 @@ export default function ReservasModule() {
              'flex-1 py-2 text-center text-[12px] font-medium rounded-md transition-all cursor-pointer',
              form.pagoTipo === tipo
                ? 'bg-muted text-foreground font-semibold shadow-sm'
-               : 'text-slate-400 hover:text-[#475569]'
+               : 'text-slate-400 hover:text-slate-600'
            )}
          >
            {tipo === 'ninguno' ? 'Sin pago' : tipo === 'parcial' ? 'Parcial' : 'Total'}
@@ -2298,10 +2298,10 @@ export default function ReservasModule() {
                  value={form.pagoMonto}
                  onChange={e => updateForm({ pagoMonto: e.target.value })}
                  placeholder="0"
-                 className="pl-7 text-[13px] font-semibold h-9 border-border focus-visible:ring-[#059669]"
+                 className="pl-7 text-[13px] font-semibold h-9 border-border focus-visible:ring-primary"
                />
              </div>
-             <div className="flex justify-between text-[11px] text-[#94A3B8]">
+             <div className="flex justify-between text-[11px] text-slate-400">
                <span>Mínimo 30%: <strong className="text-slate-400">{formatMoney(pagoMinimo)}</strong></span>
                <span>Máximo: <strong className="text-slate-400">{formatMoney(totalAPagar)}</strong></span>
              </div>
@@ -2332,7 +2332,7 @@ export default function ReservasModule() {
                  pagoCuotas: tieneCuotas ? `${metodo.cuotas[0].cantidad}|${metodo.cuotas[0].porcentaje}` : '1|0',
                });
              }}>
-               <SelectTrigger className="h-9 text-[13px] border-border focus-visible:ring-[#059669]">
+               <SelectTrigger className="h-9 text-[13px] border-border focus-visible:ring-primary">
                  <SelectValue placeholder="Seleccionar..." />
                </SelectTrigger>
                <SelectContent>
@@ -2346,7 +2346,7 @@ export default function ReservasModule() {
              <div className="flex-1 space-y-1.5">
                <Label className="text-[11px] font-semibold text-slate-400">Cuotas</Label>
                <Select value={form.pagoCuotas} onValueChange={v => updateForm({ pagoCuotas: v })}>
-                 <SelectTrigger className="h-9 text-[13px] border-border focus-visible:ring-[#059669]">
+                 <SelectTrigger className="h-9 text-[13px] border-border focus-visible:ring-primary">
                    <SelectValue />
                  </SelectTrigger>
                  <SelectContent>
@@ -2400,7 +2400,7 @@ export default function ReservasModule() {
  <p className="text-sm text-muted-foreground">
  Habitación {cancelReserva.habitacion} · {formatFecha(cancelReserva.checkin)} → {formatFecha(cancelReserva.checkout)}
  </p>
- <p className="text-sm text-red-300">Esta acción no se puede deshacer.</p>
+ <p className="text-sm text-red-700">Esta acción no se puede deshacer.</p>
  </div>
  )}
  <DialogFooter>

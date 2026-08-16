@@ -39,12 +39,12 @@ import RoomStatusMap from './RoomStatusMap';
 // ═══════════════════════════════════════════════════════════
 
 const estados: Record<EstadoHabitacion, string> = {
-  Disponible: 'bg-emerald-900/60 text-emerald-300',
-  Ocupada: 'bg-amber-900/60 text-amber-300',
-  Limpieza: 'bg-amber-900/50 text-amber-300',
+  Disponible: 'bg-emerald-100/60 text-emerald-700',
+  Ocupada: 'bg-amber-100/60 text-amber-700',
+  Limpieza: 'bg-amber-100/50 text-amber-700',
   Mantenimiento: 'bg-muted/30 text-slate-400',
-  Reservada: 'bg-sky-900/20 text-sky-300',
-  'Fuera de servicio': 'bg-red-900/60 text-red-300',
+  Reservada: 'bg-sky-100/20 text-sky-700',
+  'Fuera de servicio': 'bg-red-100/60 text-red-700',
 };
 
 // Status color palette for backgrounds, borders, icons
@@ -58,42 +58,42 @@ type StatusVisual = {
 
 const STATUS_VISUAL: Record<EstadoHabitacion, StatusVisual> = {
   Disponible: {
-    color: '#059669',
+    color: 'var(--brand-emerald)',
     bgTint: 'bg-primary/10',
     borderClass: 'border-l-[3px] border-l-primary',
     icon: CheckCircle,
     needsAttention: false,
   },
   Ocupada: {
-    color: '#D97706',
+    color: 'var(--brand-amber)',
     bgTint: 'bg-amber-50/60',
     borderClass: 'border-l-[3px] border-l-amber-400',
     icon: UserCheck,
     needsAttention: false,
   },
   Limpieza: {
-    color: '#EAB308',
+    color: 'var(--warning)',
     bgTint: 'bg-yellow-50/60',
     borderClass: 'border-l-[3px] border-l-yellow-400',
     icon: SprayCan,
     needsAttention: true,
   },
   Mantenimiento: {
-    color: '#94A3B8',
+    color: 'var(--status-finalized)',
     bgTint: 'bg-slate-50/60',
     borderClass: 'border-l-[3px] border-l-slate-400',
     icon: Wrench,
     needsAttention: true,
   },
   Reservada: {
-    color: '#0EA5E9',
+    color: 'var(--info)',
     bgTint: 'bg-sky-50/60',
     borderClass: 'border-l-[3px] border-l-sky-400',
     icon: CalendarCheck,
     needsAttention: false,
   },
   'Fuera de servicio': {
-    color: '#EF4444',
+    color: 'var(--destructive)',
     bgTint: 'bg-red-50/60',
     borderClass: 'border-l-[3px] border-l-red-400',
     icon: Ban,
@@ -213,7 +213,7 @@ function RoomStatsBanner() {
   return (
     <div
       className={`
-        flex items-center gap-3 p-3 rounded-xl border border-l-[3px] border-l-[#10B981]
+        flex items-center gap-3 p-3 rounded-xl border border-l-[3px] border-l-status-available
         bg-primary/5
         transition-all duration-500 ease-out
         ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}

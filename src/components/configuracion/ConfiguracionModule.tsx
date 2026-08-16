@@ -111,7 +111,7 @@ function getPasswordStrength(pw: string): { level: StrengthLevel; label: string;
     return { level: 'strong', label: 'Fuerte', pct: 100, color: 'bg-primary', textColor: 'text-primary' };
   }
   if (len >= 6 && hasLetters && hasNumbers) {
-    return { level: 'medium', label: 'Media', pct: 60, color: 'bg-[#F59E0B]', textColor: 'text-[#F59E0B]' };
+    return { level: 'medium', label: 'Media', pct: 60, color: 'bg-brand-amber', textColor: 'text-brand-amber' };
   }
   return { level: 'weak', label: 'Débil', pct: 25, color: 'bg-red-500', textColor: 'text-red-500' };
 }
@@ -531,7 +531,7 @@ function FiscalSection() {
                 value={form.cuit}
                 onChange={e => setForm({ ...form, cuit: e.target.value })}
                 placeholder="20-12345678-9"
-                className={cuitDigits.length >= 11 ? (cuitValido ? 'border-primary focus-visible:ring-[#059669]/30' : 'border-red-500 focus-visible:ring-red-500/30') : ''}
+                className={cuitDigits.length >= 11 ? (cuitValido ? 'border-primary focus-visible:ring-brand-emerald/30' : 'border-red-500 focus-visible:ring-red-500/30') : ''}
               />
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Dígito verificador esperado:</span>
@@ -875,7 +875,7 @@ function CuentaSection() {
                 value={confirmPass}
                 onChange={e => setConfirmPass(e.target.value)}
                 placeholder="Repetí la nueva contraseña"
-                className={`pr-10 ${passwordsMismatch ? 'border-red-500 focus-visible:ring-red-500/30' : passwordsMatch ? 'border-primary focus-visible:ring-[#059669]/30' : ''}`}
+                className={`pr-10 ${passwordsMismatch ? 'border-red-500 focus-visible:ring-red-500/30' : passwordsMatch ? 'border-primary focus-visible:ring-brand-emerald/30' : ''}`}
               />
               <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showConfirm ? 'Ocultar' : 'Mostrar'}>
                 {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -1172,9 +1172,9 @@ function SuscripcionSection() {
 
         {isTrial && diasTrial <= 7 && (
           <CardContent className="pt-0">
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/20">
-              <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
-              <p className="text-sm text-amber-300">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-brand-amber/10 border border-brand-amber/20">
+              <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0" />
+              <p className="text-sm text-amber-700">
                 Tu prueba vence en {diasTrial} días. Seleccioná un plan para no perder acceso.
               </p>
             </div>
@@ -1292,8 +1292,8 @@ function SuscripcionSection() {
           onClick={() => setShowTransfer(!showTransfer)}
           className="flex items-center gap-3 group w-full text-left"
         >
-          <div className="w-9 h-9 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center shrink-0">
-            <Building2 className="w-4 h-4 text-sky-300" />
+          <div className="w-9 h-9 rounded-xl bg-info/10 flex items-center justify-center shrink-0">
+            <Building2 className="w-4 h-4 text-sky-700" />
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-semibold group-hover:text-primary transition-colors">
@@ -1309,8 +1309,8 @@ function SuscripcionSection() {
         {showTransfer && (
           <Card className="mt-3">
             <CardContent className="p-4 space-y-3">
-              <div className="flex items-start gap-2 p-2.5 bg-[#3B82F6]/5 rounded-lg">
-                <Info className="w-3.5 h-3.5 text-[#3B82F6] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 p-2.5 bg-info/5 rounded-lg">
+                <Info className="w-3.5 h-3.5 text-info shrink-0 mt-0.5" />
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Luego de realizar la transferencia, enviá el comprobante por email a <strong>soporte@hospeda.com</strong> con tu nombre de hotel y el plan elegido.
                 </p>

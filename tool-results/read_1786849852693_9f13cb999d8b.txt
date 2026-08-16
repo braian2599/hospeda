@@ -1,0 +1,1419 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useCallback, useMemo } from 'react';
+     4→import { useHotelStore } from '@/lib/store';
+     5→import { NOMBRES_MODULOS, diasRestantesTrial, type PlanTipo } from '@/lib/plan-config';
+     6→import { usePlans } from '@/hooks/usePlans';
+     7→import { Button } from '@/components/ui/button';
+     8→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+     9→import { Input } from '@/components/ui/input';
+    10→import { Label } from '@/components/ui/label';
+    11→import { Badge } from '@/components/ui/badge';
+    12→import { Separator } from '@/components/ui/separator';
+    13→import { Progress } from '@/components/ui/progress';
+    14→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+    15→import { Textarea } from '@/components/ui/textarea';
+    16→import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+    17→import { AnimatedNumber } from '@/components/ui/animated-number';
+    18→import {
+    19→  CreditCard, Building2, FileText, Shield, Headphones, Download,
+    20→  Crown, Check, Loader2, Save, Eye, EyeOff, Star, ArrowRight,
+    21→  AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
+    22→  Settings, Copy, Info, Menu, BedDouble, KeyRound, Database, Receipt,
+    23→  Users, History, CheckCircle2, XCircle, Lock, Printer,
+    24→} from 'lucide-react';
+    25→import { toast } from 'sonner';
+    26→import dynamic from 'next/dynamic';
+    27→
+    28→const CheckoutDialog = dynamic(
+    29→  () => import('@/components/payments/CheckoutDialog'),
+    30→  { ssr: false }
+    31→);
+    32→
+    33→// ─── Sidebar sections ───
+    34→const SECTIONS = [
+    35→  { id: 'hotel', label: 'Hotel Info', icon: Building2 },
+    36→  { id: 'fiscal', label: 'Fiscal', icon: FileText },
+    37→  { id: 'habitaciones', label: 'Habitaciones', icon: BedDouble },
+    38→  { id: 'cuenta', label: 'Cuenta y Contraseña', icon: KeyRound },
+    39→  { id: 'exportar', label: 'Datos / Export', icon: Database },
+    40→  { id: 'suscripcion', label: 'Suscripción', icon: CreditCard },
+    41→  { id: 'soporte', label: 'Soporte', icon: Headphones },
+    42→] as const;
+    43→
+    44→type SectionId = (typeof SECTIONS)[number]['id'];
+    45→
+    46→// ─── Static helpers ───
+    47→
+    48→function UsageBar({ label, current, max, icon: Icon }: { label: string; current: number; max: number; icon: React.ComponentType<{ className?: string }> }) {
+    49→  const pct = max === 0 ? 0 : Math.min(100, Math.round((current / max) * 100));
+    50→  const isUnlimited = max === 0;
+    51→  return (
+    52→    <div className="space-y-1.5">
+    53→      <div className="flex items-center justify-between text-sm">
+    54→        <div className="flex items-center gap-2">
+    55→          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+    56→          <span>{label}</span>
+    57→        </div>
+    58→        <span className="text-muted-foreground">
+    59→          {current} / {isUnlimited ? 'Ilimitado' : max}
+    60→        </span>
+    61→      </div>
+    62→      {isUnlimited ? (
+    63→        <div className="h-2 rounded-full bg-muted" />
+    64→      ) : (
+    65→        <Progress value={pct} className="h-2" />
+    66→      )}
+    67→    </div>
+    68→  );
+    69→}
+    70→
+    71→function ConfigField({ label, icon: Icon, children, hint }: { label: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode; hint?: string }) {
+    72→  return (
+    73→    <div className="space-y-1.5">
+    74→      <Label className="text-sm font-medium flex items-center gap-2">
+    75→        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+    76→        {label}
+    77→      </Label>
+    78→      {children}
+    79→      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    80→    </div>
+    81→  );
+    82→}
+    83→
+    84→/** Argentine CUIT/CUIL verification digit (dígito verificador). */
+    85→function calcularDigitoVerificadorCuit(cuit: string): number | null {
+    86→  const digits = cuit.replace(/\D/g, '');
+    87→  if (digits.length < 10) return null;
+    88→  const first10 = digits.slice(0, 10).split('').map(Number);
+    89→  if (first10.some(n => Number.isNaN(n))) return null;
+    90→  const mult = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+    91→  let sum = 0;
+    92→  for (let i = 0; i < 10; i++) sum += first10[i] * mult[i];
+    93→  const rest = sum % 11;
+    94→  const digit = 11 - rest;
+    95→  if (digit === 11) return 0;
+    96→  if (digit === 10) return null;
+    97→  return digit;
+    98→}
+    99→
+   100→type StrengthLevel = 'weak' | 'medium' | 'strong';
+   101→
+   102→function getPasswordStrength(pw: string): { level: StrengthLevel; label: string; pct: number; color: string; textColor: string } {
+   103→  if (!pw) return { level: 'weak', label: '—', pct: 0, color: 'bg-muted', textColor: 'text-muted-foreground' };
+   104→  const len = pw.length;
+   105→  const hasLetters = /[a-zA-Z]/.test(pw);
+   106→  const hasNumbers = /[0-9]/.test(pw);
+   107→  const hasSymbols = /[^a-zA-Z0-9]/.test(pw);
+   108→  const hasMixed = /[a-z]/.test(pw) && /[A-Z]/.test(pw);
+   109→
+   110→  if (len >= 10 && hasNumbers && (hasSymbols || hasMixed)) {
+   111→    return { level: 'strong', label: 'Fuerte', pct: 100, color: 'bg-primary', textColor: 'text-primary' };
+   112→  }
+   113→  if (len >= 6 && hasLetters && hasNumbers) {
+   114→    return { level: 'medium', label: 'Media', pct: 60, color: 'bg-[#F59E0B]', textColor: 'text-[#F59E0B]' };
+   115→  }
+   116→  return { level: 'weak', label: 'Débil', pct: 25, color: 'bg-red-500', textColor: 'text-red-500' };
+   117→}
+   118→
+   119→function formatBytes(bytes: number): string {
+   120→  if (bytes < 1024) return `${bytes} B`;
+   121→  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+   122→  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+   123→}
+   124→
+   125→const forest = 'var(--primary)';
+   126→const forestAccent = 'var(--primary)';
+   127→/** Primary color with opacity — generates valid CSS rgba from the CSS variable */
+   128→const forestAlpha = (alpha: number) => `color-mix(in srgb, var(--primary) ${alpha}%, transparent)`;
+   129→
+   130→// ─── Main module ───
+   131→export default function ConfiguracionModule() {
+   132→  const [activeSection, setActiveSection] = useState<SectionId>('hotel');
+   133→  const [mobileOpen, setMobileOpen] = useState(false);
+   134→  const { usuarioActual } = useHotelStore();
+   135→
+   136→  if (!usuarioActual || usuarioActual.rol !== 'owner') {
+   137→    return (
+   138→      <div className="flex flex-col items-center justify-center py-20 text-center">
+   139→        <Shield className="w-12 h-12 text-muted-foreground mb-3" />
+   140→        <h2 className="text-xl font-bold">Acceso restringido</h2>
+   141→        <p className="text-muted-foreground mt-1">Solo el perfil principal puede acceder a esta sección.</p>
+   142→      </div>
+   143→    );
+   144→  }
+   145→
+   146→  const sidebarNav = (
+   147→    <nav aria-label="Secciones de configuración" className="space-y-1">
+   148→      {SECTIONS.map(s => {
+   149→        const Icon = s.icon;
+   150→        const active = activeSection === s.id;
+   151→        return (
+   152→          <button
+   153→            key={s.id}
+   154→            onClick={() => { setActiveSection(s.id); setMobileOpen(false); }}
+   155→            aria-current={active ? 'page' : undefined}
+   156→            className={`
+   157→              w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+   158→              ${active
+   159→                ? 'bg-primary text-white shadow-sm'
+   160→                : 'text-muted-foreground hover:bg-muted hover:text-foreground'}
+   161→            `}
+   162→          >
+   163→            <Icon className="w-4 h-4 shrink-0" />
+   164→            <span className="truncate">{s.label}</span>
+   165→          </button>
+   166→        );
+   167→      })}
+   168→    </nav>
+   169→  );
+   170→
+   171→  return (
+   172→    <div className="space-y-6">
+   173→      {/* Header */}
+   174→      <div className="flex items-center justify-between gap-3">
+   175→        <div className="flex items-center gap-3">
+   176→          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: forestAlpha(15) }}>
+   177→            <Settings className="w-5 h-5 shrink-0" style={{ color: forest }} />
+   178→          </div>
+   179→          <div>
+   180→            <h2 className="text-2xl font-bold tracking-tight">Configuración</h2>
+   181→            <p className="text-sm text-muted-foreground mt-0.5">Administrá tu hotel, plan y cuenta</p>
+   182→          </div>
+   183→        </div>
+   184→
+   185→        {/* Mobile menu trigger */}
+   186→        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+   187→          <SheetTrigger asChild>
+   188→            <Button variant="outline" size="icon" className="md:hidden" aria-label="Abrir menú de secciones">
+   189→              <Menu className="w-4 h-4" />
+   190→            </Button>
+   191→          </SheetTrigger>
+   192→          <SheetContent side="left" className="w-72 p-4 overflow-y-auto">
+   193→            <SheetTitle className="text-base mb-3">Secciones</SheetTitle>
+   194→            {sidebarNav}
+   195→          </SheetContent>
+   196→        </Sheet>
+   197→      </div>
+   198→
+   199→      {/* Body: sidebar + content */}
+   200→      <div className="flex gap-6">
+   201→        {/* Desktop sticky sidebar */}
+   202→        <aside className="hidden md:block w-60 shrink-0" aria-label="Navegación de configuración">
+   203→          <div className="sticky top-4">
+   204→            {sidebarNav}
+   205→          </div>
+   206→        </aside>
+   207→
+   208→        {/* Active section content */}
+   209→        <div className="flex-1 min-w-0 animate-in fade-in-0 duration-200" key={activeSection}>
+   210→          {activeSection === 'hotel' && <HotelSection />}
+   211→          {activeSection === 'fiscal' && <FiscalSection />}
+   212→          {activeSection === 'habitaciones' && <HabitacionesSection />}
+   213→          {activeSection === 'cuenta' && <CuentaSection />}
+   214→          {activeSection === 'exportar' && <ExportarSection />}
+   215→          {activeSection === 'suscripcion' && <SuscripcionSection />}
+   216→          {activeSection === 'soporte' && <SoporteSection />}
+   217→        </div>
+   218→      </div>
+   219→    </div>
+   220→  );
+   221→}
+   222→
+   223→// ═══════════════════════════════════════════
+   224→// 1. DATOS DEL HOTEL (enhanced)
+   225→// ═══════════════════════════════════════════
+   226→function HotelSection() {
+   227→  const { planActual } = useHotelStore();
+   228→  const plans = usePlans();
+   229→  const [form, setForm] = useState({ nombre: '', email: '', telefono: '', direccion: '', pais: 'Argentina', moneda: 'ARS', timezone: 'America/Argentina/Buenos_Aires', logoUrl: '', heroUrl: '' });
+   230→  const [loading, setLoading] = useState(true);
+   231→  const [saving, setSaving] = useState(false);
+   232→  const [metrics, setMetrics] = useState<{ habitaciones: number; usuarios: number } | null>(null);
+   233→
+   234→  useEffect(() => {
+   235→    fetch('/api/configuracion/hotel')
+   236→      .then(r => r.json())
+   237→      .then(data => {
+   238→        if (!data.error) setForm({
+   239→          nombre: data.nombre || '',
+   240→          email: data.email || '',
+   241→          telefono: data.telefono || '',
+   242→          direccion: data.direccion || '',
+   243→          pais: data.pais || 'Argentina',
+   244→          moneda: data.moneda || 'ARS',
+   245→          timezone: data.timezone || 'America/Argentina/Buenos_Aires',
+   246→          logoUrl: data.logoUrl || '',
+   247→          heroUrl: data.heroUrl || '',
+   248→        });
+   249→      })
+   250→      .catch(() => {})
+   251→      .finally(() => setLoading(false));
+   252→    // Fetch metrics (habitaciones / usuarios counts)
+   253→    fetch('/api/configuracion/usage')
+   254→      .then(r => r.json())
+   255→      .then(data => {
+   256→        if (!data.error) setMetrics({ habitaciones: data.habitaciones ?? 0, usuarios: data.usuarios ?? 0 });
+   257→      })
+   258→      .catch(() => {});
+   259→  }, []);
+   260→
+   261→  const handleSave = async () => {
+   262→    setSaving(true);
+   263→    try {
+   264→      // Only send fields the API knows about — heroUrl stays client-side.
+   265→      const payload = {
+   266→        nombre: form.nombre, email: form.email, telefono: form.telefono,
+   267→        direccion: form.direccion, pais: form.pais, moneda: form.moneda,
+   268→        timezone: form.timezone, logoUrl: form.logoUrl,
+   269→      };
+   270→      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+   271→      const data = await res.json();
+   272→      if (!res.ok) { toast.error(data.error || 'Error'); return; }
+   273→      toast.success('Datos del hotel guardados');
+   274→    } catch { toast.error('Error de conexión'); }
+   275→    setSaving(false);
+   276→  };
+   277→
+   278→  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+   279→
+   280→  const planNombre = plans?.[planActual]?.nombre ?? planActual;
+   281→
+   282→  return (
+   283→    <div className="space-y-6">
+   284→      {/* Hero + Hotel name */}
+   285→      <Card className="overflow-hidden">
+   286→        <div
+   287→          className="h-32 md:h-40 w-full bg-primary relative"
+   288→          aria-hidden
+   289→        >
+   290→          {form.heroUrl ? (
+   291→            <img
+   292→              src={form.heroUrl}
+   293→              alt="Imagen del hotel"
+   294→              className="h-full w-full object-cover"
+   295→              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+   296→            />
+   297→          ) : null}
+   298→          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+   299→        </div>
+   300→        <CardContent className="p-4 md:p-6 -mt-12 relative">
+   301→          <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+   302→            {/* Logo placeholder */}
+   303→            <div className="w-20 h-20 rounded-2xl border-4 border-background bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+   304→              {form.logoUrl ? (
+   305→                <img src={form.logoUrl} alt="Logo" className="w-full h-full object-contain" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+   306→              ) : (
+   307→                <Hotel className="w-8 h-8 text-muted-foreground" />
+   308→              )}
+   309→            </div>
+   310→            <div className="flex-1 min-w-0 pb-1">
+   311→              <h3 className="text-xl font-bold truncate">{form.nombre || 'Sin nombre'}</h3>
+   312→              <p className="text-sm text-muted-foreground truncate">
+   313→                {form.direccion || 'Sin dirección'} · {form.pais || 'Argentina'}
+   314→              </p>
+   315→            </div>
+   316→            <Badge variant="secondary" className="self-start sm:self-end capitalize">
+   317→              <Crown className="w-3 h-3 mr-1" />
+   318→              {planNombre}
+   319→            </Badge>
+   320→          </div>
+   321→
+   322→          {/* Hotel metrics */}
+   323→          <div className="grid grid-cols-3 gap-3 mt-5">
+   324→            <MetricCard
+   325→              icon={Hotel}
+   326→              label="Habitaciones"
+   327→              value={metrics?.habitaciones ?? 0}
+   328→              color={forest}
+   329→            />
+   330→            <MetricCard
+   331→              icon={Users}
+   332→              label="Usuarios"
+   333→              value={metrics?.usuarios ?? 0}
+   334→              color={forestAccent}
+   335→            />
+   336→            <MetricCard
+   337→              icon={Crown}
+   338→              label="Plan actual"
+   339→              value={planNombre}
+   340→              isText
+   341→              color={forest}
+   342→            />
+   343→          </div>
+   344→        </CardContent>
+   345→      </Card>
+   346→
+   347→      {/* Contact info cards */}
+   348→      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   349→        <ContactInfoCard icon={Phone} label="Teléfono" value={form.telefono} color={forestAccent} />
+   350→        <ContactInfoCard icon={Mail} label="Email" value={form.email} color={forest} />
+   351→        <ContactInfoCard icon={MapPin} label="Dirección" value={form.direccion} color={forestAccent} />
+   352→      </div>
+   353→
+   354→      {/* Editable form */}
+   355→      <Card>
+   356→        <CardHeader>
+   357→          <CardTitle className="text-lg">Información del Hotel</CardTitle>
+   358→          <CardDescription>Datos que aparecen en comprobantes y la interfaz del sistema</CardDescription>
+   359→        </CardHeader>
+   360→        <CardContent className="space-y-4">
+   361→          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   362→            <ConfigField label="Nombre del hotel" icon={Hotel}>
+   363→              <Input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre comercial" />
+   364→            </ConfigField>
+   365→            <ConfigField label="Email de contacto" icon={Mail} hint="Email público del hotel para huéspedes">
+   366→              <Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="hotel@ejemplo.com" />
+   367→            </ConfigField>
+   368→            <ConfigField label="Teléfono" icon={Phone}>
+   369→              <Input value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="+54 11 1234-5678" />
+   370→            </ConfigField>
+   371→            <ConfigField label="Dirección" icon={MapPin}>
+   372→              <Input value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} placeholder="Av. Siempre Viva 742" />
+   373→            </ConfigField>
+   374→            <ConfigField label="País" icon={Globe}>
+   375→              <Input value={form.pais} onChange={e => setForm({ ...form, pais: e.target.value })} placeholder="Argentina" />
+   376→            </ConfigField>
+   377→            <ConfigField label="Moneda" icon={DollarSign}>
+   378→              <Select value={form.moneda} onValueChange={v => setForm({ ...form, moneda: v })}>
+   379→                <SelectTrigger><SelectValue /></SelectTrigger>
+   380→                <SelectContent>
+   381→                  <SelectItem value="ARS">ARS - Peso Argentino</SelectItem>
+   382→                  <SelectItem value="USD">USD - Dólar Estadounidense</SelectItem>
+   383→                  <SelectItem value="EUR">EUR - Euro</SelectItem>
+   384→                  <SelectItem value="BRL">BRL - Real Brasileño</SelectItem>
+   385→                  <SelectItem value="UYU">UYU - Peso Uruguayo</SelectItem>
+   386→                  <SelectItem value="CLP">CLP - Peso Chileno</SelectItem>
+   387→                </SelectContent>
+   388→              </Select>
+   389→            </ConfigField>
+   390→            <ConfigField label="Zona horaria" icon={Clock}>
+   391→              <Select value={form.timezone} onValueChange={v => setForm({ ...form, timezone: v })}>
+   392→                <SelectTrigger><SelectValue /></SelectTrigger>
+   393→                <SelectContent>
+   394→                  <SelectItem value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</SelectItem>
+   395→                  <SelectItem value="America/Argentina/Cordoba">Argentina (Córdoba)</SelectItem>
+   396→                  <SelectItem value="America/Argentina/Mendoza">Argentina (Mendoza)</SelectItem>
+   397→                  <SelectItem value="America/Argentina/Tucuman">Argentina (Tucumán)</SelectItem>
+   398→                  <SelectItem value="America/Santiago">Chile</SelectItem>
+   399→                  <SelectItem value="America/Montevideo">Uruguay</SelectItem>
+   400→                  <SelectItem value="America/Sao_Paulo">Brasil (São Paulo)</SelectItem>
+   401→                  <SelectItem value="America/Bogota">Colombia</SelectItem>
+   402→                  <SelectItem value="America/Mexico_City">México</SelectItem>
+   403→                  <SelectItem value="America/Lima">Perú</SelectItem>
+   404→                  <SelectItem value="America/New_York">EE.UU. (New York)</SelectItem>
+   405→                  <SelectItem value="Europe/Madrid">España</SelectItem>
+   406→                </SelectContent>
+   407→              </Select>
+   408→            </ConfigField>
+   409→            <ConfigField label="URL del Logo" icon={Globe} hint="Pegá la URL de la imagen de tu logo">
+   410→              <Input value={form.logoUrl} onChange={e => setForm({ ...form, logoUrl: e.target.value })} placeholder="https://ejemplo.com/logo.png" />
+   411→            </ConfigField>
+   412→            <ConfigField label="URL de imagen destacada (hero)" icon={Building2} hint="Aparece como banner superior del hotel">
+   413→              <Input value={form.heroUrl} onChange={e => setForm({ ...form, heroUrl: e.target.value })} placeholder="https://ejemplo.com/hero.jpg" />
+   414→            </ConfigField>
+   415→          </div>
+   416→
+   417→          {form.logoUrl && (
+   418→            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+   419→              <img src={form.logoUrl} alt="Logo" className="w-12 h-12 rounded-lg object-contain bg-white p-1" onError={e => (e.currentTarget.style.display = 'none')} />
+   420→              <span className="text-sm text-muted-foreground">Vista previa del logo</span>
+   421→            </div>
+   422→          )}
+   423→
+   424→          <div className="flex justify-end">
+   425→            <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: forest }}>
+   426→              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+   427→              Guardar cambios
+   428→            </Button>
+   429→          </div>
+   430→        </CardContent>
+   431→      </Card>
+   432→    </div>
+   433→  );
+   434→}
+   435→
+   436→function MetricCard({ icon: Icon, label, value, isText, color }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; value: number | string; isText?: boolean; color: string }) {
+   437→  return (
+   438→    <div className="rounded-xl border bg-card p-3 flex flex-col gap-1">
+   439→      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   440→        <Icon className="w-3 h-3" style={{ color }} />
+   441→        <span>{label}</span>
+   442→      </div>
+   443→      {isText ? (
+   444→        <span className="text-base font-bold leading-tight capitalize">{value}</span>
+   445→      ) : (
+   446→        <span className="text-2xl font-bold tabular-nums" style={{ color }}>
+   447→          <AnimatedNumber value={Number(value) || 0} duration={500} format={n => String(Math.round(n))} />
+   448→        </span>
+   449→      )}
+   450→    </div>
+   451→  );
+   452→}
+   453→
+   454→function ContactInfoCard({ icon: Icon, label, value, color }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; value: string; color: string }) {
+   455→  return (
+   456→    <Card className="overflow-hidden">
+   457→      <CardContent className="p-4 flex items-start gap-3">
+   458→        <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}15` }}>
+   459→          <Icon className="w-5 h-5" style={{ color }} />
+   460→        </div>
+   461→        <div className="min-w-0 flex-1">
+   462→          <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
+   463→          <p className="text-sm font-medium truncate mt-0.5">{value || '—'}</p>
+   464→        </div>
+   465→      </CardContent>
+   466→    </Card>
+   467→  );
+   468→}
+   469→
+   470→// ═══════════════════════════════════════════
+   471→// 2. DATOS FISCALES (enhanced)
+   472→// ═══════════════════════════════════════════
+   473→function FiscalSection() {
+   474→  const [form, setForm] = useState({ cuit: '', iva: '', direccionFiscal: '', ciudad: '', puntoVenta: 1, numeroInicio: 1 });
+   475→  const [loading, setLoading] = useState(true);
+   476→  const [saving, setSaving] = useState(false);
+   477→
+   478→  useEffect(() => {
+   479→    fetch('/api/configuracion/fiscal')
+   480→      .then(r => r.json())
+   481→      .then(data => { if (!data.error) setForm({ cuit: data.cuit || '', iva: data.iva || '', direccionFiscal: data.direccionFiscal || '', ciudad: data.ciudad || '', puntoVenta: data.puntoVenta || 1, numeroInicio: 1 }); })
+   482→      .catch(() => {})
+   483→      .finally(() => setLoading(false));
+   484→  }, []);
+   485→
+   486→  const handleSave = async () => {
+   487→    setSaving(true);
+   488→    try {
+   489→      // API only supports these fields; numeroInicio is UI-only.
+   490→      const payload = {
+   491→        cuit: form.cuit, iva: form.iva, direccionFiscal: form.direccionFiscal,
+   492→        ciudad: form.ciudad, puntoVenta: form.puntoVenta,
+   493→      };
+   494→      const res = await fetch('/api/configuracion/fiscal', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+   495→      const data = await res.json();
+   496→      if (!res.ok) { toast.error(data.error || 'Error'); return; }
+   497→      toast.success('Datos fiscales guardados');
+   498→    } catch { toast.error('Error de conexión'); }
+   499→    setSaving(false);
+   500→  };
+   501→
+   502→  // Compute verification digit
+   503→  const cuitDigits = form.cuit.replace(/\D/g, '');
+   504→  const providedDigit = cuitDigits.length >= 11 ? Number(cuitDigits[10]) : null;
+   505→  const computedDigit = calcularDigitoVerificadorCuit(form.cuit);
+   506→  const cuitValido = computedDigit !== null && providedDigit !== null && computedDigit === providedDigit;
+   507→
+   508→  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+   509→
+   510→  // Print preview invoice number
+   511→  const invoicePreview = `${String(form.puntoVenta || 1).padStart(4, '0')}-${String(form.numeroInicio || 1).padStart(8, '0')}`;
+   512→
+   513→  return (
+   514→    <div className="space-y-6">
+   515→      <Card>
+   516→        <CardHeader>
+   517→          <CardTitle className="text-lg flex items-center gap-2">
+   518→            <FileText className="w-4 h-4" style={{ color: forest }} />
+   519→            Datos Fiscales
+   520→          </CardTitle>
+   521→          <CardDescription>Información para la emisión de comprobantes y facturas</CardDescription>
+   522→        </CardHeader>
+   523→        <CardContent className="space-y-4">
+   524→          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   525→            <div className="space-y-1.5">
+   526→              <Label className="text-sm font-medium flex items-center gap-2">
+   527→                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+   528→                CUIT / CUIL / RUT
+   529→              </Label>
+   530→              <Input
+   531→                value={form.cuit}
+   532→                onChange={e => setForm({ ...form, cuit: e.target.value })}
+   533→                placeholder="20-12345678-9"
+   534→                className={cuitDigits.length >= 11 ? (cuitValido ? 'border-primary focus-visible:ring-[#059669]/30' : 'border-red-500 focus-visible:ring-red-500/30') : ''}
+   535→              />
+   536→              <div className="flex items-center justify-between text-xs">
+   537→                <span className="text-muted-foreground">Dígito verificador esperado:</span>
+   538→                <span className="flex items-center gap-1.5 font-medium">
+   539→                  {computedDigit === null ? (
+   540→                    <span className="text-muted-foreground">—</span>
+   541→                  ) : (
+   542→                    <>
+   543→                      <span className={cuitValido ? 'text-primary' : 'text-red-500'}>{computedDigit}</span>
+   544→                      {cuitDigits.length >= 11 && (
+   545→                        cuitValido
+   546→                          ? <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+   547→                          : <XCircle className="w-3.5 h-3.5 text-red-500" />
+   548→                      )}
+   549→                    </>
+   550→                  )}
+   551→                </span>
+   552→              </div>
+   553→            </div>
+   554→            <div className="space-y-1.5">
+   555→              <Label className="text-sm font-medium flex items-center gap-2">
+   556→                <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+   557→                Régimen / Condición frente a IVA
+   558→              </Label>
+   559→              <Select value={form.iva} onValueChange={v => setForm({ ...form, iva: v })}>
+   560→                <SelectTrigger><SelectValue placeholder="Seleccioná..." /></SelectTrigger>
+   561→                <SelectContent>
+   562→                  <SelectItem value="Responsable Inscripto">Responsable Inscripto</SelectItem>
+   563→                  <SelectItem value="Responsable Monotributo">Responsable Monotributo</SelectItem>
+   564→                  <SelectItem value="Monotributista">Monotributista</SelectItem>
+   565→                  <SelectItem value="Exento">Exento</SelectItem>
+   566→                  <SelectItem value="Consumidor Final">Consumidor Final</SelectItem>
+   567→                </SelectContent>
+   568→              </Select>
+   569→            </div>
+   570→            <div className="space-y-1.5">
+   571→              <Label className="text-sm font-medium flex items-center gap-2">
+   572→                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+   573→                Dirección fiscal
+   574→              </Label>
+   575→              <Input value={form.direccionFiscal} onChange={e => setForm({ ...form, direccionFiscal: e.target.value })} placeholder="Av. Corrientes 1234, Piso 3" />
+   576→            </div>
+   577→            <div className="space-y-1.5">
+   578→              <Label className="text-sm font-medium flex items-center gap-2">
+   579→                <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+   580→                Ciudad
+   581→              </Label>
+   582→              <Input value={form.ciudad} onChange={e => setForm({ ...form, ciudad: e.target.value })} placeholder="Ciudad Autónoma de Buenos Aires" />
+   583→            </div>
+   584→            <div className="space-y-1.5">
+   585→              <Label className="text-sm font-medium flex items-center gap-2">
+   586→                <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+   587→                Punto de venta
+   588→              </Label>
+   589→              <Input type="number" min={1} value={form.puntoVenta} onChange={e => setForm({ ...form, puntoVenta: parseInt(e.target.value) || 1 })} />
+   590→              <p className="text-xs text-muted-foreground">Número de punto de venta para facturación</p>
+   591→            </div>
+   592→            <div className="space-y-1.5">
+   593→              <Label className="text-sm font-medium flex items-center gap-2">
+   594→                <Receipt className="w-3.5 h-3.5 text-muted-foreground" />
+   595→                Número de inicio de facturación
+   596→              </Label>
+   597→              <Input type="number" min={1} value={form.numeroInicio} onChange={e => setForm({ ...form, numeroInicio: parseInt(e.target.value) || 1 })} />
+   598→              <p className="text-xs text-muted-foreground">Primer número de comprobante a emitir</p>
+   599→            </div>
+   600→          </div>
+   601→
+   602→          <div className="flex justify-end">
+   603→            <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: forest }}>
+   604→              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+   605→              Guardar datos fiscales
+   606→            </Button>
+   607→          </div>
+   608→        </CardContent>
+   609→      </Card>
+   610→
+   611→      {/* Print format preview */}
+   612→      <Card>
+   613→        <CardHeader>
+   614→          <CardTitle className="text-lg flex items-center gap-2">
+   615→            <Printer className="w-4 h-4" style={{ color: forest }} />
+   616→            Vista previa de comprobante
+   617→          </CardTitle>
+   618→          <CardDescription>Así se verá el próximo comprobante emitido</CardDescription>
+   619→        </CardHeader>
+   620→        <CardContent>
+   621→          <div className="mx-auto max-w-sm bg-card border border-border rounded-md shadow-sm p-5 text-foreground font-mono text-xs space-y-2">
+   622→            <div className="flex justify-between items-start border-b border-dashed border-gray-300 pb-2">
+   623→              <div>
+   624→                <p className="font-bold text-sm">{form.ciudad || 'Ciudad'}</p>
+   625→                <p className="text-gray-600">{form.direccionFiscal || 'Dirección fiscal'}</p>
+   626→              </div>
+   627→              <div className="text-right">
+   628→                <p className="text-[10px] uppercase tracking-wide text-gray-500">{form.iva || 'Condición IVA'}</p>
+   629→                <p className="text-[10px] text-gray-600">CUIT: {form.cuit || '—'}</p>
+   630→              </div>
+   631→            </div>
+   632→            <div className="flex justify-between items-center">
+   633→              <div>
+   634→                <p className="font-bold uppercase">Comprobante</p>
+   635→                <p className="text-gray-500 text-[10px]">Punto de venta: {String(form.puntoVenta || 1).padStart(4, '0')}</p>
+   636→              </div>
+   637→              <div className="text-right">
+   638→                <p className="text-[10px] text-gray-500">N°</p>
+   639→                <p className="font-bold">{invoicePreview}</p>
+   640→              </div>
+   641→            </div>
+   642→            <div className="border-t border-dashed border-gray-300 pt-2 space-y-1 text-[11px]">
+   643→              <div className="flex justify-between"><span className="text-gray-600">Fecha</span><span>{new Date().toLocaleDateString('es-AR')}</span></div>
+   644→              <div className="flex justify-between"><span className="text-gray-600">Cliente</span><span>Consumidor Final</span></div>
+   645→              <div className="flex justify-between border-t border-dashed border-gray-300 pt-1 mt-1"><span className="font-bold">TOTAL</span><span className="font-bold">$ 0,00</span></div>
+   646→            </div>
+   647→          </div>
+   648→        </CardContent>
+   649→      </Card>
+   650→    </div>
+   651→  );
+   652→}
+   653→
+   654→// ═══════════════════════════════════════════
+   655→// 3. HABITACIONES
+   656→// ═══════════════════════════════════════════
+   657→function HabitacionesSection() {
+   658→  const { habitaciones } = useHotelStore();
+   659→
+   660→  // Compute room type summary from store
+   661→  const roomSummary = useMemo(() => {
+   662→    const list = Object.values(habitaciones);
+   663→    const byTipo: Record<string, { count: number; camasMatrimoniales: number; camasSimples: number }> = {};
+   664→    list.forEach(h => {
+   665→      const t = h.tipo || 'Otros';
+   666→      if (!byTipo[t]) byTipo[t] = { count: 0, camasMatrimoniales: 0, camasSimples: 0 };
+   667→      byTipo[t].count += 1;
+   668→      byTipo[t].camasMatrimoniales += h.camasMatrimoniales || 0;
+   669→      byTipo[t].camasSimples += h.camasSimples || 0;
+   670→    });
+   671→    return byTipo;
+   672→  }, [habitaciones]);
+   673→
+   674→  const totalHabitaciones = Object.values(habitaciones).length;
+   675→
+   676→  return (
+   677→    <div className="space-y-6">
+   678→      {/* Room summary */}
+   679→      <Card>
+   680→        <CardHeader>
+   681→          <CardTitle className="text-lg">Resumen de habitaciones</CardTitle>
+   682→          <CardDescription>Distribución actual de habitaciones por tipo</CardDescription>
+   683→        </CardHeader>
+   684→        <CardContent className="space-y-3">
+   685→          <div className="flex items-center justify-between p-3 rounded-lg border">
+   686→            <div className="flex items-center gap-2 text-sm">
+   687→              <Hotel className="w-4 h-4 text-muted-foreground" />
+   688→              <span className="font-medium">Total de habitaciones</span>
+   689→            </div>
+   690→            <span className="text-2xl font-bold tabular-nums" style={{ color: forest }}>
+   691→              <AnimatedNumber value={totalHabitaciones} duration={500} format={n => String(Math.round(n))} />
+   692→            </span>
+   693→          </div>
+   694→
+   695→          {Object.keys(roomSummary).length === 0 ? (
+   696→            <p className="text-sm text-muted-foreground text-center py-4">No hay habitaciones cargadas.</p>
+   697→          ) : (
+   698→            <div className="space-y-2">
+   699→              {Object.entries(roomSummary).map(([tipo, info]) => (
+   700→                <div key={tipo} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+   701→                  <div className="flex items-center gap-2 min-w-0">
+   702→                    <BedDouble className="w-4 h-4 shrink-0" style={{ color: forestAccent }} />
+   703→                    <span className="text-sm font-medium capitalize truncate">{tipo}</span>
+   704→                  </div>
+   705→                  <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
+   706→                    <span><strong className="text-foreground">{info.count}</strong> hab.</span>
+   707→                    <span><strong className="text-foreground">{info.camasMatrimoniales}</strong> c. matr.</span>
+   708→                    <span><strong className="text-foreground">{info.camasSimples}</strong> c. sim.</span>
+   709→                  </div>
+   710→                </div>
+   711→              ))}
+   712→            </div>
+   713→          )}
+   714→        </CardContent>
+   715→      </Card>
+   716→    </div>
+   717→  );
+   718→}
+   719→
+   720→// ═══════════════════════════════════════════
+   721→// 4. CUENTA Y CONTRASEÑA (enhanced)
+   722→// ═══════════════════════════════════════════
+   723→function CuentaSection() {
+   724→  const { usuarioActual } = useHotelStore();
+   725→  const [currentPass, setCurrentPass] = useState('');
+   726→  const [newPass, setNewPass] = useState('');
+   727→  const [confirmPass, setConfirmPass] = useState('');
+   728→  const [showCurrent, setShowCurrent] = useState(false);
+   729→  const [showNew, setShowNew] = useState(false);
+   730→  const [showConfirm, setShowConfirm] = useState(false);
+   731→  const [saving, setSaving] = useState(false);
+   732→  const [lastChanged, setLastChanged] = useState<Date | null>(null);
+   733→
+   734→  const strength = useMemo(() => getPasswordStrength(newPass), [newPass]);
+   735→  const passwordsMatch = confirmPass.length > 0 && newPass === confirmPass;
+   736→  const passwordsMismatch = confirmPass.length > 0 && newPass !== confirmPass;
+   737→
+   738→  const handleChangePassword = async () => {
+   739→    if (!currentPass) { toast.error('Ingresá tu contraseña actual'); return; }
+   740→    if (newPass.length < 6) { toast.error('Mínimo 6 caracteres'); return; }
+   741→    if (newPass !== confirmPass) { toast.error('Las contraseñas no coinciden'); return; }
+   742→
+   743→    setSaving(true);
+   744→    try {
+   745→      const res = await fetch('/api/configuracion/password', {
+   746→        method: 'PUT',
+   747→        headers: { 'Content-Type': 'application/json' },
+   748→        body: JSON.stringify({ currentPassword: currentPass, newPassword: newPass }),
+   749→      });
+   750→      const data = await res.json();
+   751→      if (!res.ok) { toast.error(data.error || 'Error'); setSaving(false); return; }
+   752→      toast.success('Contraseña actualizada');
+   753→      setCurrentPass(''); setNewPass(''); setConfirmPass('');
+   754→      setLastChanged(new Date());
+   755→    } catch { toast.error('Error de conexión'); }
+   756→    setSaving(false);
+   757→  };
+   758→
+   759→  return (
+   760→    <div className="space-y-6">
+   761→      {/* Account info */}
+   762→      <Card>
+   763→        <CardHeader>
+   764→          <CardTitle className="text-lg flex items-center gap-2">
+   765→            <Users className="w-4 h-4" style={{ color: forest }} />
+   766→            Cuenta vinculada
+   767→          </CardTitle>
+   768→          <CardDescription>Tu cuenta está vinculada con Google</CardDescription>
+   769→        </CardHeader>
+   770→        <CardContent>
+   771→          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+   772→            <div className="space-y-1">
+   773→              <span className="text-muted-foreground">Email</span>
+   774→              <div className="flex items-center gap-2">
+   775→                <Mail className="w-4 h-4 text-muted-foreground" />
+   776→                <span className="font-medium">{usuarioActual?.email || '—'}</span>
+   777→              </div>
+   778→            </div>
+   779→            <div className="space-y-1">
+   780→              <span className="text-muted-foreground">Rol</span>
+   781→              <Badge variant="secondary" className="capitalize">{usuarioActual?.rol}</Badge>
+   782→            </div>
+   783→            <div className="space-y-1">
+   784→              <span className="text-muted-foreground">Nombre del perfil</span>
+   785→              <p className="font-medium">{usuarioActual?.nombreCompleto || '—'}</p>
+   786→            </div>
+   787→            <div className="space-y-1">
+   788→              <span className="text-muted-foreground">Hotel</span>
+   789→              <p className="font-medium">{usuarioActual?.tenantNombre || '—'}</p>
+   790→            </div>
+   791→          </div>
+   792→        </CardContent>
+   793→      </Card>
+   794→
+   795→      {/* Change password */}
+   796→      <Card>
+   797→        <CardHeader>
+   798→          <div className="flex items-start justify-between gap-3">
+   799→            <div>
+   800→              <CardTitle className="text-lg flex items-center gap-2">
+   801→                <KeyRound className="w-4 h-4" style={{ color: forest }} />
+   802→                Cambiar contraseña
+   803→              </CardTitle>
+   804→              <CardDescription>Esta es la contraseña que usás para ingresar con email + contraseña</CardDescription>
+   805→            </div>
+   806→            <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+   807→              <Clock className="w-3 h-3" />
+   808→              <span>
+   809→                {lastChanged
+   810→                  ? `Actualizada: ${lastChanged.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}`
+   811→                  : 'Sin cambios recientes'}
+   812→              </span>
+   813→            </div>
+   814→          </div>
+   815→        </CardHeader>
+   816→        <CardContent className="space-y-4 max-w-md">
+   817→          {/* Current password */}
+   818→          <div className="space-y-1.5">
+   819→            <Label className="text-sm">Contraseña actual</Label>
+   820→            <div className="relative">
+   821→              <Input type={showCurrent ? 'text' : 'password'} value={currentPass} onChange={e => setCurrentPass(e.target.value)} placeholder="Tu contraseña actual" className="pr-10" />
+   822→              <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showCurrent ? 'Ocultar' : 'Mostrar'}>
+   823→                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+   824→              </button>
+   825→            </div>
+   826→          </div>
+   827→
+   828→          {/* New password */}
+   829→          <div className="space-y-1.5">
+   830→            <Label className="text-sm">Nueva contraseña</Label>
+   831→            <div className="relative">
+   832→              <Input type={showNew ? 'text' : 'password'} value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Mínimo 6 caracteres" className="pr-10" />
+   833→              <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showNew ? 'Ocultar' : 'Mostrar'}>
+   834→                {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+   835→              </button>
+   836→            </div>
+   837→
+   838→            {/* Strength meter */}
+   839→            {newPass.length > 0 && (
+   840→              <div className="space-y-1.5">
+   841→                <div className="h-2 rounded-full bg-muted overflow-hidden">
+   842→                  <div
+   843→                    className={`h-full rounded-full transition-all duration-300 ${strength.color}`}
+   844→                    style={{ width: `${strength.pct}%` }}
+   845→                  />
+   846→                </div>
+   847→                <div className="flex items-center justify-between text-xs">
+   848→                  <span className="text-muted-foreground">Fortaleza</span>
+   849→                  <span className={`font-medium ${strength.textColor}`}>{strength.label}</span>
+   850→                </div>
+   851→                <ul className="text-xs text-muted-foreground space-y-0.5 mt-1" aria-label="Requisitos de contraseña">
+   852→                  <li className="flex items-center gap-1.5">
+   853→                    {newPass.length >= 6 ? <CheckCircle2 className="w-3 h-3 text-primary" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+   854→                    Al menos 6 caracteres
+   855→                  </li>
+   856→                  <li className="flex items-center gap-1.5">
+   857→                    {/[a-zA-Z]/.test(newPass) && /[0-9]/.test(newPass) ? <CheckCircle2 className="w-3 h-3 text-primary" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+   858→                    Letras y números
+   859→                  </li>
+   860→                  <li className="flex items-center gap-1.5">
+   861→                    {newPass.length >= 10 && (/[!@#$%^&*(),.?":{}|<>_\-+=/[\]\\;'`~]/.test(newPass) || (/[a-z]/.test(newPass) && /[A-Z]/.test(newPass))) ? <CheckCircle2 className="w-3 h-3 text-primary" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
+   862→                    10+ caracteres con símbolos o mayúsculas
+   863→                  </li>
+   864→                </ul>
+   865→              </div>
+   866→            )}
+   867→          </div>
+   868→
+   869→          {/* Confirm password */}
+   870→          <div className="space-y-1.5">
+   871→            <Label className="text-sm">Confirmar nueva contraseña</Label>
+   872→            <div className="relative">
+   873→              <Input
+   874→                type={showConfirm ? 'text' : 'password'}
+   875→                value={confirmPass}
+   876→                onChange={e => setConfirmPass(e.target.value)}
+   877→                placeholder="Repetí la nueva contraseña"
+   878→                className={`pr-10 ${passwordsMismatch ? 'border-red-500 focus-visible:ring-red-500/30' : passwordsMatch ? 'border-primary focus-visible:ring-[#059669]/30' : ''}`}
+   879→              />
+   880→              <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showConfirm ? 'Ocultar' : 'Mostrar'}>
+   881→                {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+   882→              </button>
+   883→              {confirmPass.length > 0 && (
+   884→                <span className="absolute right-10 top-1/2 -translate-y-1/2">
+   885→                  {passwordsMatch
+   886→                    ? <CheckCircle2 className="w-4 h-4 text-primary" />
+   887→                    : <XCircle className="w-4 h-4 text-red-500" />}
+   888→                </span>
+   889→              )}
+   890→            </div>
+   891→            {passwordsMismatch && (
+   892→              <p className="text-xs text-red-500 flex items-center gap-1">
+   893→                <XCircle className="w-3 h-3" />
+   894→                Las contraseñas no coinciden
+   895→              </p>
+   896→            )}
+   897→            {passwordsMatch && (
+   898→              <p className="text-xs text-primary flex items-center gap-1">
+   899→                <CheckCircle2 className="w-3 h-3" />
+   900→                Las contraseñas coinciden
+   901→              </p>
+   902→            )}
+   903→          </div>
+   904→
+   905→          <div className="flex justify-end">
+   906→            <Button
+   907→              onClick={handleChangePassword}
+   908→              disabled={saving || !newPass || !confirmPass || !currentPass || passwordsMismatch}
+   909→              style={{ backgroundColor: forest }}
+   910→            >
+   911→              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+   912→              Actualizar contraseña
+   913→            </Button>
+   914→          </div>
+   915→        </CardContent>
+   916→      </Card>
+   917→    </div>
+   918→  );
+   919→}
+   920→
+   921→// ═══════════════════════════════════════════
+   922→// 5. EXPORTAR DATOS (enhanced)
+   923→// ═══════════════════════════════════════════
+   924→type ExportRecord = { id: string; tipo: string; formato: 'CSV' | 'JSON'; bytes: number; fecha: string };
+   925→
+   926→function ExportarSection() {
+   927→  const [exporting, setExporting] = useState<string | null>(null);
+   928→  const [history, setHistory] = useState<ExportRecord[]>([]);
+   929→
+   930→  const addHistory = (tipo: string, formato: 'CSV' | 'JSON', bytes: number) => {
+   931→    const rec: ExportRecord = { id: `${Date.now()}`, tipo, formato, bytes, fecha: new Date().toISOString() };
+   932→    setHistory(prev => [rec, ...prev].slice(0, 5));
+   933→  };
+   934→
+   935→  const handleExport = async (tipo: string, formato: 'CSV' | 'JSON') => {
+   936→    setExporting(tipo);
+   937→    try {
+   938→      if (tipo === 'backup') {
+   939→        // Full backup as JSON: pull reservas, clientes, habitaciones, pagos, gastos
+   940→        const [rRes, rCli, rHab, rPag, rGasto] = await Promise.all([
+   941→          fetch('/api/reservas').then(r => r.json()).catch(() => []),
+   942→          fetch('/api/clientes').then(r => r.json()).catch(() => []),
+   943→          fetch('/api/habitaciones').then(r => r.json()).catch(() => []),
+   944→          fetch('/api/pagos').then(r => r.json()).catch(() => []),
+   945→          fetch('/api/gastos').then(r => r.json()).catch(() => []),
+   946→        ]);
+   947→        const normalize = (d: any) => Array.isArray(d) ? d : (d?.data || d?.reservas || d?.clientes || d?.habitaciones || d?.pagos || d?.gastos || []);
+   948→        const backup = {
+   949→          generatedAt: new Date().toISOString(),
+   950→          reservas: normalize(rRes),
+   951→          clientes: normalize(rCli),
+   952→          habitaciones: normalize(rHab),
+   953→          pagos: normalize(rPag),
+   954→          gastos: normalize(rGasto),
+   955→        };
+   956→        const text = JSON.stringify(backup, null, 2);
+   957→        const blob = new Blob([text], { type: 'application/json;charset=utf-8;' });
+   958→        const link = document.createElement('a');
+   959→        link.href = URL.createObjectURL(blob);
+   960→        link.download = `hospeda-backup-${new Date().toLocaleDateString('en-CA')}.json`;
+   961→        link.click();
+   962→        URL.revokeObjectURL(link.href);
+   963→        addHistory('Backup completo', 'JSON', blob.size);
+   964→        toast.success('Backup completo exportado');
+   965→        setExporting(null);
+   966→        return;
+   967→      }
+   968→
+   969→      // CSV exports
+   970→      const endpoints: Record<string, string> = {
+   971→        reservas: '/api/reservas',
+   972→        clientes: '/api/clientes',
+   973→        pagos: '/api/pagos',
+   974→      };
+   975→      const url = endpoints[tipo];
+   976→      if (!url) return;
+   977→
+   978→      const res = await fetch(url);
+   979→      const data = await res.json();
+   980→      const items = Array.isArray(data) ? data : (data.data || data.reservas || data.clientes || data.pagos || []);
+   981→
+   982→      if (!items.length) { toast.info('No hay datos para exportar'); setExporting(null); return; }
+   983→
+   984→      const headers = Object.keys(items[0]).filter(k => typeof items[0][k] !== 'object');
+   985→      const csv = [
+   986→        headers.join(','),
+   987→        ...items.map((row: any) => headers.map(h => {
+   988→          let val = row[h];
+   989→          if (val === null || val === undefined) val = '';
+   990→          if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) val = `"${val.replace(/"/g, '""')}"`;
+   991→          return val;
+   992→        }).join(','))
+   993→      ].join('\n');
+   994→
+   995→      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+   996→      const link = document.createElement('a');
+   997→      link.href = URL.createObjectURL(blob);
+   998→      link.download = `hospeda-${tipo}-${new Date().toLocaleDateString('en-CA')}.csv`;
+   999→      link.click();
+  1000→      URL.revokeObjectURL(link.href);
+  1001→      addHistory(tipo.charAt(0).toUpperCase() + tipo.slice(1), 'CSV', blob.size);
+  1002→      toast.success(`${tipo} exportados correctamente`);
+  1003→    } catch {
+  1004→      toast.error('Error al exportar');
+  1005→    }
+  1006→    setExporting(null);
+  1007→  };
+  1008→
+  1009→  const exports: Array<{ id: string; tipo: string; formato: 'CSV' | 'JSON'; label: string; desc: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; sizeEst: string }> = [
+  1010→    { id: 'reservas', tipo: 'reservas', formato: 'CSV', label: 'Export Reservas', desc: 'Historial completo de reservas con estados y pagos', icon: CreditCard, sizeEst: '~ 50 KB' },
+  1011→    { id: 'clientes', tipo: 'clientes', formato: 'CSV', label: 'Export Clientes', desc: 'Base de huéspedes con datos de contacto', icon: Users, sizeEst: '~ 20 KB' },
+  1012→    { id: 'pagos', tipo: 'pagos', formato: 'CSV', label: 'Export Pagos', desc: 'Registro de pagos con métodos y montos', icon: DollarSign, sizeEst: '~ 30 KB' },
+  1013→    { id: 'backup', tipo: 'backup', formato: 'JSON', label: 'Export Full Backup', desc: 'Respaldo completo en formato JSON (reservas, clientes, habitaciones, pagos y gastos)', icon: Database, sizeEst: '~ 200 KB' },
+  1014→  ];
+  1015→
+  1016→  return (
+  1017→    <div className="space-y-6">
+  1018→      <div>
+  1019→        <h3 className="text-lg font-semibold mb-3">Exportar Datos</h3>
+  1020→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  1021→          {exports.map(exp => {
+  1022→            const Icon = exp.icon;
+  1023→            const isExporting = exporting === exp.tipo;
+  1024→            return (
+  1025→              <Card key={exp.id} className="overflow-hidden flex flex-col">
+  1026→                <CardContent className="p-4 flex flex-col gap-3 flex-1">
+  1027→                  <div className="flex items-start gap-3">
+  1028→                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: forestAlpha(15) }}>
+  1029→                      <Icon className="w-5 h-5" style={{ color: forest }} />
+  1030→                    </div>
+  1031→                    <div className="min-w-0 flex-1">
+  1032→                      <div className="flex items-center gap-2 flex-wrap">
+  1033→                        <p className="text-sm font-semibold">{exp.label}</p>
+  1034→                        <Badge variant="outline" className="text-[10px] py-0 px-1.5">{exp.formato}</Badge>
+  1035→                      </div>
+  1036→                      <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{exp.desc}</p>
+  1037→                    </div>
+  1038→                  </div>
+  1039→                  <div className="flex items-center justify-between mt-auto pt-2 border-t">
+  1040→                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+  1041→                      <FileText className="w-3 h-3" />
+  1042→                      Tamaño estimado: {exp.sizeEst}
+  1043→                    </span>
+  1044→                    <Button
+  1045→                      variant="outline"
+  1046→                      size="sm"
+  1047→                      onClick={() => handleExport(exp.tipo, exp.formato)}
+  1048→                      disabled={isExporting}
+  1049→                      className="shrink-0"
+  1050→                    >
+  1051→                      {isExporting ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Download className="w-4 h-4 mr-1.5" />}
+  1052→                      Descargar
+  1053→                    </Button>
+  1054→                  </div>
+  1055→                </CardContent>
+  1056→              </Card>
+  1057→            );
+  1058→          })}
+  1059→        </div>
+  1060→      </div>
+  1061→
+  1062→      {/* Export history */}
+  1063→      <Card>
+  1064→        <CardHeader>
+  1065→          <CardTitle className="text-base flex items-center gap-2">
+  1066→            <History className="w-4 h-4" style={{ color: forest }} />
+  1067→            Historial de exportaciones
+  1068→          </CardTitle>
+  1069→          <CardDescription>Últimas 5 exportaciones realizadas en esta sesión</CardDescription>
+  1070→        </CardHeader>
+  1071→        <CardContent>
+  1072→          {history.length === 0 ? (
+  1073→            <p className="text-sm text-muted-foreground text-center py-6">Todavía no realizaste exportaciones en esta sesión.</p>
+  1074→          ) : (
+  1075→            <ul className="space-y-2 max-h-72 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+  1076→              {history.map(h => (
+  1077→                <li key={h.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+  1078→                  <div className="flex items-center gap-3 min-w-0">
+  1079→                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: forestAlpha(15) }}>
+  1080→                      {h.formato === 'JSON' ? <Database className="w-4 h-4" style={{ color: forest }} /> : <FileText className="w-4 h-4" style={{ color: forest }} />}
+  1081→                    </div>
+  1082→                    <div className="min-w-0">
+  1083→                      <p className="text-sm font-medium truncate">{h.tipo}</p>
+  1084→                      <p className="text-xs text-muted-foreground">
+  1085→                        {new Date(h.fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · {formatBytes(h.bytes)}
+  1086→                      </p>
+  1087→                    </div>
+  1088→                  </div>
+  1089→                  <Badge variant="outline" className="text-[10px] shrink-0">{h.formato}</Badge>
+  1090→                </li>
+  1091→              ))}
+  1092→            </ul>
+  1093→          )}
+  1094→        </CardContent>
+  1095→      </Card>
+  1096→    </div>
+  1097→  );
+  1098→}
+  1099→
+  1100→// ═══════════════════════════════════════════
+  1101→// 6. SUSCRIPCIÓN Y PLANES
+  1102→// ═══════════════════════════════════════════
+  1103→const TRANSFERENCIA_DATA = {
+  1104→  banco: 'Banco Nación',
+  1105→  titular: 'Hospedá S.A.',
+  1106→  cbu: '0110222255002233334444',
+  1107→  alias: 'hospeda.mp',
+  1108→  cuit: '20-12345678-9',
+  1109→  cuenta: 'Cuenta Corriente en Pesos',
+  1110→};
+  1111→
+  1112→function SuscripcionSection() {
+  1113→  const { planActual, fechaVencimientoTrial } = useHotelStore();
+  1114→  const [usage, setUsage] = useState<any>(null);
+  1115→  const [loading, setLoading] = useState(true);
+  1116→  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  1117→  const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanTipo, 'trial'> | null>(null);
+  1118→  const [showTransfer, setShowTransfer] = useState(false);
+  1119→  const [copiedField, setCopiedField] = useState('');
+  1120→  const plans = usePlans();
+  1121→
+  1122→  const fetchUsage = useCallback(async () => {
+  1123→    try {
+  1124→      const res = await fetch('/api/configuracion/usage');
+  1125→      const data = await res.json();
+  1126→      setUsage(data);
+  1127→    } catch { /* ignore */ }
+  1128→    setLoading(false);
+  1129→  }, []);
+  1130→
+  1131→  useEffect(() => { queueMicrotask(() => fetchUsage()); }, [fetchUsage]);
+  1132→
+  1133→  const planInfo = plans[planActual];
+  1134→  const diasTrial = fechaVencimientoTrial ? diasRestantesTrial(fechaVencimientoTrial) : 0;
+  1135→  const isTrial = planActual === 'trial';
+  1136→  const trialExpired = isTrial && fechaVencimientoTrial && diasTrial === 0;
+  1137→
+  1138→  const handlePagar = (tipo: Exclude<PlanTipo, 'trial'>) => {
+  1139→    setSelectedPlan(tipo);
+  1140→    setCheckoutOpen(true);
+  1141→  };
+  1142→
+  1143→  const copyToClipboard = (text: string, field: string) => {
+  1144→    navigator.clipboard.writeText(text);
+  1145→    setCopiedField(field);
+  1146→    toast.success('Copiado al portapapeles');
+  1147→    setTimeout(() => setCopiedField(''), 2000);
+  1148→  };
+  1149→
+  1150→  return (
+  1151→    <div className="space-y-6">
+  1152→      {/* Current plan card */}
+  1153→      <Card>
+  1154→        <CardHeader className="pb-3">
+  1155→          <div className="flex items-center justify-between">
+  1156→            <div className="flex items-center gap-3">
+  1157→              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+  1158→                <Crown className="w-5 h-5 text-primary" />
+  1159→              </div>
+  1160→              <div>
+  1161→                <CardTitle className="text-lg">Plan Actual</CardTitle>
+  1162→                <CardDescription>
+  1163→                  {isTrial ? `Prueba gratuita — ${diasTrial} días restantes` : `Renovación mensual`}
+  1164→                </CardDescription>
+  1165→              </div>
+  1166→            </div>
+  1167→            <Badge variant={isTrial ? 'outline' : 'default'} className="text-sm px-3 py-1">
+  1168→              {planInfo?.nombre ?? planActual}
+  1169→            </Badge>
+  1170→          </div>
+  1171→        </CardHeader>
+  1172→
+  1173→        {isTrial && diasTrial <= 7 && (
+  1174→          <CardContent className="pt-0">
+  1175→            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/20">
+  1176→              <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
+  1177→              <p className="text-sm text-amber-300">
+  1178→                Tu prueba vence en {diasTrial} días. Seleccioná un plan para no perder acceso.
+  1179→              </p>
+  1180→            </div>
+  1181→          </CardContent>
+  1182→        )}
+  1183→
+  1184→        {!isTrial && usage?.subscription && (
+  1185→          <CardContent className="pt-0">
+  1186→            <div className="grid grid-cols-2 gap-4 text-sm">
+  1187→              <div>
+  1188→                <span className="text-muted-foreground">Estado</span>
+  1189→                <p className="font-medium capitalize">{usage.subscription.estado}</p>
+  1190→              </div>
+  1191→              <div>
+  1192→                <span className="text-muted-foreground">Próximo vencimiento</span>
+  1193→                <p className="font-medium">
+  1194→                  {new Date(usage.subscription.fechaVencimiento).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
+  1195→                </p>
+  1196→              </div>
+  1197→            </div>
+  1198→          </CardContent>
+  1199→        )}
+  1200→      </Card>
+  1201→
+  1202→      {/* Usage */}
+  1203→      {loading ? (
+  1204→        <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+  1205→      ) : usage && planInfo && (
+  1206→        <Card>
+  1207→          <CardHeader className="pb-3">
+  1208→            <CardTitle className="text-base">Uso del plan</CardTitle>
+  1209→            <CardDescription>Recursos utilizados de tu plan actual</CardDescription>
+  1210→          </CardHeader>
+  1211→          <CardContent className="space-y-4">
+  1212→            <UsageBar label="Habitaciones" current={usage.habitaciones} max={planInfo.maxHabitaciones} icon={Hotel} />
+  1213→            <UsageBar label="Usuarios" current={usage.usuarios} max={planInfo.maxUsuarios} icon={Star} />
+  1214→            <UsageBar label="Tarifas" current={usage.tarifas} max={planInfo.maxTarifas} icon={DollarSign} />
+  1215→            <UsageBar label="Reservas este mes" current={usage.reservasMes} max={planInfo.maxReservasMes} icon={CreditCard} />
+  1216→          </CardContent>
+  1217→        </Card>
+  1218→      )}
+  1219→
+  1220→      {/* Plan comparison */}
+  1221→      <div>
+  1222→        <h3 className="text-lg font-semibold mb-4">Planes disponibles</h3>
+  1223→        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  1224→          {(['basico', 'profesional', 'premium'] as const).map(tipo => {
+  1225→            const plan = plans[tipo];
+  1226→            if (!plan) return null;
+  1227→            const isCurrent = planActual === tipo;
+  1228→
+  1229→            return (
+  1230→              <Card key={tipo} className={`relative ${isCurrent ? 'border-primary ring-1 ring-primary' : ''}`}>
+  1231→                {isCurrent && (
+  1232→                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+  1233→                    <Badge className="bg-primary text-primary-foreground">Plan Actual</Badge>
+  1234→                  </div>
+  1235→                )}
+  1236→                <CardHeader className="text-center pb-2">
+  1237→                  <CardTitle className="text-base">{plan.nombre}</CardTitle>
+  1238→                  <div className="mt-2">
+  1239→                    <span className="text-2xl font-bold">{plan.precioDisplay}</span>
+  1240→                    <span className="text-sm text-muted-foreground">/mes</span>
+  1241→                  </div>
+  1242→                </CardHeader>
+  1243→                <CardContent className="space-y-4">
+  1244→                  <div className="space-y-2 text-sm">
+  1245→                    <div className="flex items-center gap-2">
+  1246→                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+  1247→                      <span>{plan.maxHabitaciones === 0 ? 'Habitaciones ilimitadas' : `Hasta ${plan.maxHabitaciones} habitaciones`}</span>
+  1248→                    </div>
+  1249→                    <div className="flex items-center gap-2">
+  1250→                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+  1251→                      <span>{plan.maxUsuarios === 0 ? 'Usuarios ilimitados' : `Hasta ${plan.maxUsuarios} usuarios`}</span>
+  1252→                    </div>
+  1253→                    <div className="flex items-center gap-2">
+  1254→                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+  1255→                      <span>{plan.maxTarifas === 0 ? 'Tarifas ilimitadas' : `Hasta ${plan.maxTarifas} tarifas`}</span>
+  1256→                    </div>
+  1257→                    <div className="flex items-center gap-2">
+  1258→                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+  1259→                      <span>{plan.maxReservasMes === 0 ? 'Reservas ilimitadas' : `${plan.maxReservasMes} reservas/mes`}</span>
+  1260→                    </div>
+  1261→                  </div>
+  1262→
+  1263→                  <Separator />
+  1264→
+  1265→                  <div className="flex flex-wrap gap-1.5">
+  1266→                    {plan.modulos.map(m => (
+  1267→                      <span key={m} className="text-xs bg-muted rounded-md px-2 py-1">{NOMBRES_MODULOS[m]}</span>
+  1268→                    ))}
+  1269→                  </div>
+  1270→
+  1271→                  {!isCurrent && (
+  1272→                    <Button
+  1273→                      className="w-full"
+  1274→                      variant="default"
+  1275→                      onClick={() => handlePagar(tipo)}
+  1276→                    >
+  1277→                      Pagar con Mercado Pago
+  1278→                      <ArrowRight className="w-4 h-4 ml-1" />
+  1279→                    </Button>
+  1280→                  )}
+  1281→                </CardContent>
+  1282→              </Card>
+  1283→            );
+  1284→          })}
+  1285→        </div>
+  1286→      </div>
+  1287→
+  1288→      {/* Transferencia bancaria */}
+  1289→      <div>
+  1290→        <button
+  1291→          type="button"
+  1292→          onClick={() => setShowTransfer(!showTransfer)}
+  1293→          className="flex items-center gap-3 group w-full text-left"
+  1294→        >
+  1295→          <div className="w-9 h-9 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center shrink-0">
+  1296→            <Building2 className="w-4 h-4 text-sky-300" />
+  1297→          </div>
+  1298→          <div className="flex-1">
+  1299→            <h3 className="text-sm font-semibold group-hover:text-primary transition-colors">
+  1300→              Pago por transferencia bancaria
+  1301→            </h3>
+  1302→            <p className="text-xs text-muted-foreground">
+  1303→              Realizá la transferencia y enviá el comprobante
+  1304→            </p>
+  1305→          </div>
+  1306→          <ArrowRight className={`w-4 h-4 text-muted-foreground transition-transform ${showTransfer ? 'rotate-90' : ''}`} />
+  1307→        </button>
+  1308→
+  1309→        {showTransfer && (
+  1310→          <Card className="mt-3">
+  1311→            <CardContent className="p-4 space-y-3">
+  1312→              <div className="flex items-start gap-2 p-2.5 bg-[#3B82F6]/5 rounded-lg">
+  1313→                <Info className="w-3.5 h-3.5 text-[#3B82F6] shrink-0 mt-0.5" />
+  1314→                <p className="text-xs text-muted-foreground leading-relaxed">
+  1315→                  Luego de realizar la transferencia, enviá el comprobante por email a <strong>soporte@hospeda.com</strong> con tu nombre de hotel y el plan elegido.
+  1316→                </p>
+  1317→              </div>
+  1318→              {[
+  1319→                { label: 'Banco', value: TRANSFERENCIA_DATA.banco },
+  1320→                { label: 'Titular', value: TRANSFERENCIA_DATA.titular },
+  1321→                { label: 'CBU', value: TRANSFERENCIA_DATA.cbu, copyable: true },
+  1322→                { label: 'Alias', value: TRANSFERENCIA_DATA.alias, copyable: true },
+  1323→                { label: 'CUIT', value: TRANSFERENCIA_DATA.cuit },
+  1324→                { label: 'Cuenta', value: TRANSFERENCIA_DATA.cuenta },
+  1325→              ].map(item => (
+  1326→                <div key={item.label} className="flex items-center justify-between py-1">
+  1327→                  <span className="text-xs text-muted-foreground">{item.label}</span>
+  1328→                  <div className="flex items-center gap-2">
+  1329→                    <span className="text-xs font-medium font-mono">{item.value}</span>
+  1330→                    {item.copyable && (
+  1331→                      <button
+  1332→                        type="button"
+  1333→                        onClick={() => copyToClipboard(item.value, item.label)}
+  1334→                        className="p-1 rounded hover:bg-accent transition-colors"
+  1335→                      >
+  1336→                        {copiedField === item.label
+  1337→                          ? <Check className="w-3 h-3 text-primary" />
+  1338→                          : <Copy className="w-3 h-3 text-muted-foreground" />}
+  1339→                      </button>
+  1340→                    )}
+  1341→                  </div>
+  1342→                </div>
+  1343→              ))}
+  1344→            </CardContent>
+  1345→          </Card>
+  1346→        )}
+  1347→      </div>
+  1348→
+  1349→      {/* Checkout Dialog (Mercado Pago) */}
+  1350→      <CheckoutDialog
+  1351→        open={checkoutOpen}
+  1352→        onOpenChange={setCheckoutOpen}
+  1353→        selectedPlan={selectedPlan}
+  1354→      />
+  1355→    </div>
+  1356→  );
+  1357→}
+  1358→
+  1359→// ═══════════════════════════════════════════
+  1360→// 7. SOPORTE
+  1361→// ═══════════════════════════════════════════
+  1362→function SoporteSection() {
+  1363→  const [asunto, setAsunto] = useState('');
+  1364→  const [mensaje, setMensaje] = useState('');
+  1365→  const [sending, setSending] = useState(false);
+  1366→
+  1367→  const handleSend = async () => {
+  1368→    if (!asunto.trim() || !mensaje.trim()) { toast.error('Completá asunto y mensaje'); return; }
+  1369→    setSending(true);
+  1370→    await new Promise(r => setTimeout(r, 1000));
+  1371→    toast.success('Mensaje enviado. Te responderemos a la brevedad.');
+  1372→    setAsunto(''); setMensaje('');
+  1373→    setSending(false);
+  1374→  };
+  1375→
+  1376→  return (
+  1377→    <div className="space-y-6">
+  1378→      <Card>
+  1379→        <CardHeader>
+  1380→          <CardTitle className="text-lg">Información del sistema</CardTitle>
+  1381→        </CardHeader>
+  1382→        <CardContent>
+  1383→          <div className="grid grid-cols-2 gap-4 text-sm">
+  1384→            <div>
+  1385→              <span className="text-muted-foreground">Versión</span>
+  1386→              <p className="font-medium">Hospedá v2.0</p>
+  1387→            </div>
+  1388→            <div>
+  1389→              <span className="text-muted-foreground">Plan</span>
+  1390→              <p className="font-medium capitalize">{useHotelStore.getState().planActual}</p>
+  1391→            </div>
+  1392→          </div>
+  1393→        </CardContent>
+  1394→      </Card>
+  1395→
+  1396→      <Card>
+  1397→        <CardHeader>
+  1398→          <CardTitle className="text-lg">Contactar soporte</CardTitle>
+  1399→          <CardDescription>Envianos tu consulta y te responderemos a la brevedad</CardDescription>
+  1400→        </CardHeader>
+  1401→        <CardContent className="space-y-4 max-w-lg">
+  1402→          <div className="space-y-1.5">
+  1403→            <Label className="text-sm">Asunto</Label>
+  1404→            <Input value={asunto} onChange={e => setAsunto(e.target.value)} placeholder="¿En qué podemos ayudarte?" disabled={sending} />
+  1405→          </div>
+  1406→          <div className="space-y-1.5">
+  1407→            <Label className="text-sm">Mensaje</Label>
+  1408→            <Textarea value={mensaje} onChange={e => setMensaje(e.target.value)} placeholder="Describí tu consulta o problema..." rows={5} disabled={sending} />
+  1409→          </div>
+  1410→          <Button onClick={handleSend} disabled={sending} style={{ backgroundColor: forest }}>
+  1411→            {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Headphones className="w-4 h-4 mr-2" />}
+  1412→            Enviar mensaje
+  1413→          </Button>
+  1414→        </CardContent>
+  1415→      </Card>
+  1416→    </div>
+  1417→  );
+  1418→}
+  1419→
