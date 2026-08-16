@@ -1,0 +1,472 @@
+  1340→                      </TableCell>
+  1341→                    </TableRow>
+  1342→                  );
+  1343→                })}
+  1344→              </TableBody>
+  1345→            </Table>
+  1346→          </Card>
+  1347→        </TabsContent>
+  1348→      </Tabs>
+  1349→
+  1350→      {/* ==================== MODAL: TARIFA (CREAR/EDITAR — WIZARD) ==================== */}
+  1351→      <Dialog open={modalTarifa} onOpenChange={setModalTarifa}>
+  1352→        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto p-6">
+  1353→          <DialogHeader>
+  1354→            <DialogTitle className="text-xl flex items-center gap-2">
+  1355→              {editandoTarifa ? <><Pencil className="w-5 h-5" />Editar - {editandoTarifa}</> : <><Sparkles className="w-5 h-5 text-primary" />Nueva Tarifa</>}
+  1356→            </DialogTitle>
+  1357→          </DialogHeader>
+  1358→
+  1359→          {/* Wizard stepper */}
+  1360→          <WizardStepper current={wizardStep} onSelect={setWizardStep} />
+  1361→
+  1362→          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 mt-2">
+  1363→            {/* ═══ MAIN: Step content ═══ */}
+  1364→            <div className="space-y-5">
+  1365→              {/* STEP 1: Basic info */}
+  1366→              {wizardStep === 1 && (
+  1367→                <div className="space-y-5 animate-fade-in">
+  1368→                  <div className="space-y-1.5">
+  1369→                    <Label>Nombre de la tarifa *</Label>
+  1370→                    <Input
+  1371→                      value={tarifaForm.nombre}
+  1372→                      onChange={e => setTarifaForm({ ...tarifaForm, nombre: e.target.value })}
+  1373→                      placeholder="Ej: Corporativo, Promoción fin de semana..."
+  1374→                      autoFocus
+  1375→                    />
+  1376→                    {tarifaForm.nombre.trim().length === 0 && (
+  1377→                      <p className="text-[11px] text-primary flex items-center gap-1">
+  1378→                        <Info className="w-3 h-3" />El nombre es obligatorio
+  1379→                      </p>
+  1380→                    )}
+  1381→                  </div>
+  1382→
+  1383→                  <div className="space-y-1.5">
+  1384→                    <Label>Modo de cobro *</Label>
+  1385→                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+  1386→                      {MODO_OPTIONS.map(opt => {
+  1387→                        const Icon = opt.icon;
+  1388→                        const selected = tarifaForm.modoCobro === opt.value;
+  1389→                        return (
+  1390→                          <button
+  1391→                            key={opt.value}
+  1392→                            type="button"
+  1393→                            onClick={() => handleModoCobroChange(opt.value)}
+  1394→                            className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all text-center ${
+  1395→                              selected
+  1396→                                ? 'border-primary bg-primary/10 text-primary shadow-sm'
+  1397→                                : 'border-border hover:border-primary/30 text-muted-foreground'
+  1398→                            }`}
+  1399→                          >
+  1400→                            <Icon className="w-5 h-5" />
+  1401→                            <span className="text-xs font-semibold">{opt.label}</span>
+  1402→                          </button>
+  1403→                        );
+  1404→                      })}
+  1405→                    </div>
+  1406→                    <div className="flex items-start gap-2 p-2 rounded-lg bg-primary/5 border border-primary/30 text-primary">
+  1407→                      <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+  1408→                      <p className="text-[11px]">{MODO_OPTIONS.find(o => o.value === tarifaForm.modoCobro)?.description}</p>
+  1409→                    </div>
+  1410→                  </div>
+  1411→                </div>
+  1412→              )}
+  1413→
+  1414→              {/* STEP 2: Price ranges */}
+  1415→              {wizardStep === 2 && (
+  1416→                <div className="space-y-4 animate-fade-in">
+  1417→                  <div>
+  1418→                    <Label className="text-sm font-medium">
+  1419→                      Precios por rango
+  1420→                      {tarifaForm.modoCobro === 'porHabitacion' && <span className="text-muted-foreground font-normal"> (precio por habitación)</span>}
+  1421→                      {tarifaForm.modoCobro === 'porCama' && <span className="text-muted-foreground font-normal"> (precio por cama/noche)</span>}
+  1422→                    </Label>
+  1423→
+  1424→                    {/* Visual range builder — interactive tiered view */}
+  1425→                    {tarifaForm.modoCobro !== 'porHabitacion' && tarifaForm.modoCobro !== 'porCama' && (
+  1426→                      <div className="mt-3 mb-4 p-3 rounded-lg bg-muted/30 border border-border">
+  1427→                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
+  1428→                          <Users className="w-3 h-3" />Vista por escalones
+  1429→                        </p>
+  1430→                        <div className="flex items-end gap-1 h-20">
+  1431→                          {tarifaForm.rangos.map((r, i) => {
+  1432→                            const max = Math.max(...tarifaForm.rangos.map(rr => rr.precio), 1);
+  1433→                            const heightPct = Math.max((r.precio / max) * 100, 8);
+  1434→                            return (
+  1435→                              <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
+  1436→                                <span className="text-[10px] font-bold text-primary tabular-nums">{formatMoney(r.precio)}</span>
+  1437→                                <div
+  1438→                                  className="w-full rounded-t bg-gradient-to-t from-primary to-primary transition-all duration-300"
+  1439→                                  style={{ height: `${heightPct}%` }}
+  1440→                                  title={`${formatoRango(r)} pers. — ${formatMoney(r.precio)}`}
+  1441→                                />
+  1442→                                <span className="text-[10px] text-muted-foreground font-mono">{formatoRango(r)}</span>
+  1443→                              </div>
+  1444→                            );
+  1445→                          })}
+  1446→                        </div>
+  1447→                      </div>
+  1448→                    )}
+  1449→
+  1450→                    <div className="space-y-2 mt-2">
+  1451→                      {tarifaForm.rangos.map((r, i) => (
+  1452→                        <RangoFila
+  1453→                          key={i}
+  1454→                          rango={r}
+  1455→                          index={i}
+  1456→                          modoCobro={tarifaForm.modoCobro}
+  1457→                          totalRangos={tarifaForm.rangos.length}
+  1458→                          onRemove={() => removeRango(i)}
+  1459→                          onUpdate={r => updateRango(i, r)}
+  1460→                        />
+  1461→                      ))}
+  1462→                    </div>
+  1463→                    {tarifaForm.modoCobro !== 'porHabitacion' && tarifaForm.modoCobro !== 'porCama' && (
+  1464→                      <Button size="sm" variant="outline" className="mt-2" onClick={addRango}>
+  1465→                        <Plus className="w-3.5 h-3.5 mr-1" />Agregar rango
+  1466→                      </Button>
+  1467→                    )}
+  1468→                    {tarifaForm.rangos.length === 0 && (
+  1469→                      <p className="text-[11px] text-primary flex items-center gap-1 mt-2">
+  1470→                        <Info className="w-3 h-3" />Agregá al menos un rango de precios
+  1471→                      </p>
+  1472→                    )}
+  1473→                  </div>
+  1474→                </div>
+  1475→              )}
+  1476→
+  1477→              {/* STEP 3: Promotions + custom fields */}
+  1478→              {wizardStep === 3 && (
+  1479→                <div className="space-y-5 animate-fade-in">
+  1480→                  <div className="space-y-5 border rounded-xl p-4 bg-muted/20">
+  1481→                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-primary" />Promociones</h3>
+  1482→
+  1483→                    {/* 1. Acompañante sin cargo */}
+  1484→                    <div className="space-y-2">
+  1485→                      <div className="flex items-center gap-2">
+  1486→                        <Checkbox
+  1487→                          id="acompanante-check"
+  1488→                          checked={promos?.acompananteSinCargo?.activo || false}
+  1489→                          onCheckedChange={v => {
+  1490→                            if (v) {
+  1491→                              updatePromocion({ acompananteSinCargo: { activo: true, etiqueta: promos?.acompananteSinCargo?.etiqueta || '', cantidad: promos?.acompananteSinCargo?.cantidad || 1, personasHospedan: promos?.acompananteSinCargo?.personasHospedan } });
+  1492→                            } else {
+  1493→                              updatePromocion({ acompananteSinCargo: undefined });
+  1494→                            }
+  1495→                          }}
+  1496→                        />
+  1497→                        <Label htmlFor="acompanante-check" className="text-sm font-medium flex items-center gap-1.5">
+  1498→                          <Star className="w-3.5 h-3.5 text-primary" />Acompañante sin cargo
+  1499→                        </Label>
+  1500→                      </div>
+  1501→                      {promos?.acompananteSinCargo?.activo && (
+  1502→                        <div className="ml-6 space-y-2 border-l-26 border-primary/30 pl-3">
+  1503→                          <div className="space-y-1.5">
+  1504→                            <Label className="text-xs">Etiqueta (nombre del beneficio)</Label>
+  1505→                            <Input
+  1506→                              placeholder="Ej: Chofer de cortesía, Guía turístico..."
+  1507→                              value={promos.acompananteSinCargo.etiqueta || ''}
+  1508→                              onChange={e => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, etiqueta: e.target.value } })}
+  1509→                              className="h-8 text-sm"
+  1510→                            />
+  1511→                          </div>
+  1512→                          <div className="grid grid-cols-2 gap-2">
+  1513→                            <div className="space-y-1.5">
+  1514→                              <Label className="text-xs">Cantidad</Label>
+  1515→                              <Input
+  1516→                                type="number"
+  1517→                                min={1}
+  1518→                                max={10}
+  1519→                                value={promos.acompananteSinCargo.cantidad ?? 1}
+  1520→                                onChange={e => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, cantidad: Math.max(1, parseInt(e.target.value) || 1) } })}
+  1521→                                className="h-8 text-sm"
+  1522→                              />
+  1523→                              <p className="text-[10px] text-muted-foreground">Acompañantes sin cargo</p>
+  1524→                            </div>
+  1525→                            <div className="space-y-1.5">
+  1526→                              <Label className="text-xs">Personas que hospedan (opcional)</Label>
+  1527→                              <Input
+  1528→                                type="number"
+  1529→                                min={1}
+  1530→                                placeholder="Ej: 4"
+  1531→                                value={promos.acompananteSinCargo.personasHospedan ?? ''}
+  1532→                                onChange={e => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, personasHospedan: parseInt(e.target.value) || undefined } })}
+  1533→                                className="h-8 text-sm"
+  1534→                              />
+  1535→                              <p className="text-[10px] text-muted-foreground">Valida la búsqueda</p>
+  1536→                            </div>
+  1537→                          </div>
+  1538→                          <div className="flex items-center gap-2">
+  1539→                            <Checkbox
+  1540→                              id="acom-hab-check"
+  1541→                              checked={!!promos!.acompananteSinCargo!.habitacionAsignada}
+  1542→                              onCheckedChange={v => updatePromocion({ acompananteSinCargo: { ...promos!.acompananteSinCargo!, habitacionAsignada: v ? (promos!.acompananteSinCargo!.habitacionAsignada || todasHabitaciones[0]?.[0] || '') : undefined } })}
+  1543→                            />
+  1544→                            <Label htmlFor="acom-hab-check" className="text-xs">Asignar habitación gratis</Label>
+  1545→                          </div>
+  1546→                          {promos.acompananteSinCargo.habitacionAsignada && (
+  1547→                            <Select
+  1548→                              value={promos.acompananteSinCargo.habitacionAsignada}
+  1549→                              onValueChange={v => updatePromocion({ acompananteSinCargo: { ...promos.acompananteSinCargo!, habitacionAsignada: v } })}
+  1550→                            >
+  1551→                              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="-- Seleccione --" /></SelectTrigger>
+  1552→                              <SelectContent>
+  1553→                                {todasHabitaciones.map(([num, hab]) => (
+  1554→                                  <SelectItem key={num} value={num}>{num} ({hab.tipo} - {hab.capacidad} pers.)</SelectItem>
+  1555→                                ))}
+  1556→                              </SelectContent>
+  1557→                            </Select>
+  1558→                          )}
+  1559→                        </div>
+  1560→                      )}
+  1561→                    </div>
+  1562→
+  1563→                    <hr className="border-muted" />
+  1564→
+  1565→                    {/* 2. Niños con precio diferenciado */}
+  1566→                    <div className="space-y-2">
+  1567→                      <div className="flex items-center gap-2">
+  1568→                        <Checkbox
+  1569→                          id="ninos-check"
+  1570→                          checked={promos?.ninosDiferenciado?.activo || false}
+  1571→                          onCheckedChange={v => {
+  1572→                            if (v) {
+  1573→                              updatePromocion({ ninosDiferenciado: { activo: true, precioNino: promos?.ninosDiferenciado?.precioNino || 0 } });
+  1574→                            } else {
+  1575→                              updatePromocion({ ninosDiferenciado: undefined });
+  1576→                            }
+  1577→                          }}
+  1578→                        />
+  1579→                        <Label htmlFor="ninos-check" className="text-sm font-medium flex items-center gap-1.5">
+  1580→                          <Baby className="w-3.5 h-3.5 text-primary" />Niños con precio diferenciado
+  1581→                        </Label>
+  1582→                      </div>
+  1583→                      {promos?.ninosDiferenciado?.activo && (
+  1584→                        <div className="ml-6 space-y-2 border-l-26 border-primary/30 pl-3">
+  1585→                          <div className="grid grid-cols-2 gap-2">
+  1586→                            <div className="space-y-1.5">
+  1587→                              <Label className="text-xs">Precio por niño / noche</Label>
+  1588→                              <Input
+  1589→                                type="number"
+  1590→                                min={0}
+  1591→                                value={promos.ninosDiferenciado.precioNino || 0}
+  1592→                                onChange={e => updatePromocion({ ninosDiferenciado: { ...promos.ninosDiferenciado!, precioNino: parseFloat(e.target.value) || 0 } })}
+  1593→                                className="h-8 text-sm"
+  1594→                              />
+  1595→                            </div>
+  1596→                            <div className="space-y-1.5">
+  1597→                              <Label className="text-xs">Edad máxima (informativo)</Label>
+  1598→                              <Input
+  1599→                                type="number"
+  1600→                                min={0}
+  1601→                                placeholder="Ej: 12"
+  1602→                                value={promos.ninosDiferenciado.edadMaxima ?? ''}
+  1603→                                onChange={e => updatePromocion({ ninosDiferenciado: { ...promos.ninosDiferenciado!, edadMaxima: parseInt(e.target.value) || undefined } })}
+  1604→                                className="h-8 text-sm"
+  1605→                              />
+  1606→                            </div>
+  1607→                          </div>
+  1608→                        </div>
+  1609→                      )}
+  1610→                    </div>
+  1611→
+  1612→                    <hr className="border-muted" />
+  1613→
+  1614→                    {/* 3. Noches de cortesía */}
+  1615→                    <div className="space-y-2">
+  1616→                      <div className="flex items-center gap-2">
+  1617→                        <Checkbox
+  1618→                          id="noches-check"
+  1619→                          checked={promos?.nochesCortesia?.activo || false}
+  1620→                          onCheckedChange={v => {
+  1621→                            if (v) {
+  1622→                              updatePromocion({ nochesCortesia: { activo: true, modalidad: promos?.nochesCortesia?.modalidad || { tipo: 'cadaX', cada: 3 } } });
+  1623→                            } else {
+  1624→                              updatePromocion({ nochesCortesia: undefined });
+  1625→                            }
+  1626→                          }}
+  1627→                        />
+  1628→                        <Label htmlFor="noches-check" className="text-sm font-medium flex items-center gap-1.5">
+  1629→                          <Zap className="w-3.5 h-3.5 text-primary" />Noches de cortesía
+  1630→                        </Label>
+  1631→                      </div>
+  1632→                      {promos?.nochesCortesia?.activo && (
+  1633→                        <div className="ml-6 space-y-2 border-l-26 border-primary/30 pl-3">
+  1634→                          <Select
+  1635→                            value={promos.nochesCortesia.modalidad.tipo}
+  1636→                            onValueChange={v => {
+  1637→                              let mod: ModalidadNochesCortesia;
+  1638→                              if (v === 'cadaX') mod = { tipo: 'cadaX', cada: 3 };
+  1639→                              else if (v === 'aPartirDe') mod = { tipo: 'aPartirDe', minNoches: 5, nochesGratis: 1 };
+  1640→                              else mod = { tipo: 'diaSemana', dia: 3 };
+  1641→                              updatePromocion({ nochesCortesia: { ...promos.nochesCortesia!, modalidad: mod } });
+  1642→                            }}
+  1643→                          >
+  1644→                            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+  1645→                            <SelectContent>
+  1646→                              <SelectItem value="cadaX">Cada X noches, 1 gratis</SelectItem>
+  1647→                              <SelectItem value="aPartirDe">A partir de X noches, Y gratis</SelectItem>
+  1648→                              <SelectItem value="diaSemana">Día de la semana gratis</SelectItem>
+  1649→                            </SelectContent>
+  1650→                          </Select>
+  1651→
+  1652→                          {promos.nochesCortesia.modalidad.tipo === 'cadaX' && (
+  1653→                            <div className="space-y-1.5">
+  1654→                              <Label className="text-xs">Cada cuántas noches</Label>
+  1655→                              <Input
+  1656→                                type="number"
+  1657→                                min={2}
+  1658→                                value={promos.nochesCortesia.modalidad.cada}
+  1659→                                onChange={e => updatePromocion({ nochesCortesia: { ...promos.nochesCortesia!, modalidad: { tipo: 'cadaX', cada: parseInt(e.target.value) || 3 } } })}
+  1660→                                className="h-8 text-sm"
+  1661→                              />
+  1662→                            </div>
+  1663→                          )}
+  1664→
+  1665→                          {promos.nochesCortesia.modalidad.tipo === 'aPartirDe' && (
+  1666→                            (() => {
+  1667→                              const mod = promos.nochesCortesia.modalidad as Extract<ModalidadNochesCortesia, { tipo: 'aPartirDe' }>;
+  1668→                              return (
+  1669→                              <div className="grid grid-cols-2 gap-2">
+  1670→                                <div className="space-y-1.5">
+  1671→                                  <Label className="text-xs">Mínimo de noches</Label>
+  1672→                                  <Input
+  1673→                                    type="number"
+  1674→                                    min={2}
+  1675→                                    value={mod.minNoches}
+  1676→                                    onChange={e => updatePromocion({ nochesCortesia: { ...promos!.nochesCortesia!, modalidad: { tipo: 'aPartirDe', minNoches: parseInt(e.target.value) || 5, nochesGratis: mod.nochesGratis } } })}
+  1677→                                    className="h-8 text-sm"
+  1678→                                  />
+  1679→                                </div>
+  1680→                                <div className="space-y-1.5">
+  1681→                                  <Label className="text-xs">Noches gratis</Label>
+  1682→                                  <Input
+  1683→                                    type="number"
+  1684→                                    min={1}
+  1685→                                    value={mod.nochesGratis}
+  1686→                                    onChange={e => updatePromocion({ nochesCortesia: { ...promos!.nochesCortesia!, modalidad: { tipo: 'aPartirDe', minNoches: mod.minNoches, nochesGratis: parseInt(e.target.value) || 1 } } })}
+  1687→                                    className="h-8 text-sm"
+  1688→                                  />
+  1689→                                </div>
+  1690→                              </div>
+  1691→                              );
+  1692→                            })()
+  1693→                          )}
+  1694→
+  1695→                          {promos.nochesCortesia.modalidad.tipo === 'diaSemana' && (
+  1696→                            <div className="space-y-1.5">
+  1697→                              <Label className="text-xs">Día de la semana gratis</Label>
+  1698→                              <Select
+  1699→                                value={String(promos.nochesCortesia.modalidad.dia)}
+  1700→                                onValueChange={v => updatePromocion({ nochesCortesia: { ...promos.nochesCortesia!, modalidad: { tipo: 'diaSemana', dia: parseInt(v) } } })}
+  1701→                              >
+  1702→                                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+  1703→                                <SelectContent>
+  1704→                                  {DIAS_SEMANA.map((dia, i) => (
+  1705→                                    <SelectItem key={i} value={String(i)}>{dia}</SelectItem>
+  1706→                                  ))}
+  1707→                                </SelectContent>
+  1708→                              </Select>
+  1709→                            </div>
+  1710→                          )}
+  1711→                        </div>
+  1712→                      )}
+  1713→                    </div>
+  1714→
+  1715→                    <hr className="border-muted" />
+  1716→
+  1717→                    {/* Campos adicionales */}
+  1718→                    <div>
+  1719→                      <p className="text-sm font-medium mb-1 flex items-center gap-1.5">
+  1720→                        <Info className="w-3.5 h-3.5 text-primary/60" />Campos adicionales
+  1721→                      </p>
+  1722→                      <p className="text-xs text-muted-foreground mb-2">Se pedirán al elegir esta tarifa en la reserva.</p>
+  1723→                      <div className="space-y-2">
+  1724→                        {tarifaForm.camposPersonalizados.length === 0 && (
+  1725→                          <p className="text-xs text-muted-foreground">Sin campos definidos.</p>
+  1726→                        )}
+  1727→                        {tarifaForm.camposPersonalizados.map((c, i) => (
+  1728→                          <CampoFila
+  1729→                            key={i}
+  1730→                            campo={c}
+  1731→                            onRemove={() => setTarifaForm({ ...tarifaForm, camposPersonalizados: tarifaForm.camposPersonalizados.filter((_, j) => j !== i) })}
+  1732→                            onUpdate={nuevo => {
+  1733→                              const nuevos = [...tarifaForm.camposPersonalizados];
+  1734→                              nuevos[i] = nuevo;
+  1735→                              setTarifaForm({ ...tarifaForm, camposPersonalizados: nuevos });
+  1736→                            }}
+  1737→                          />
+  1738→                        ))}
+  1739→                      </div>
+  1740→                      <Button size="sm" variant="outline" className="mt-2" onClick={() => setTarifaForm({ ...tarifaForm, camposPersonalizados: [...tarifaForm.camposPersonalizados, { nombre: '', tipo: 'texto', requerido: false }] })}>
+  1741→                        <Plus className="w-3.5 h-3.5 mr-1" />Agregar campo
+  1742→                      </Button>
+  1743→                    </div>
+  1744→                  </div>
+  1745→                </div>
+  1746→              )}
+  1747→            </div>
+  1748→
+  1749→            {/* ═══ RIGHT: Live preview ═══ */}
+  1750→            <div className="lg:sticky lg:top-0 lg:self-start">
+  1751→              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+  1752→                <Sparkles className="w-3.5 h-3.5 text-primary" />Vista previa en vivo
+  1753→              </p>
+  1754→              <TariffMiniPreview
+  1755→                nombre={tarifaForm.nombre}
+  1756→                modoCobro={tarifaForm.modoCobro}
+  1757→                rangos={tarifaForm.rangos}
+  1758→                promociones={tarifaForm.promociones}
+  1759→                camposCount={tarifaForm.camposPersonalizados.length}
+  1760→              />
+  1761→              <p className="text-[11px] text-muted-foreground mt-2 text-center">
+  1762→                Así se verá tu tarifa en el listado.
+  1763→              </p>
+  1764→            </div>
+  1765→          </div>
+  1766→
+  1767→          <DialogFooter className="flex flex-wrap justify-between sm:justify-between gap-2 mt-2">
+  1768→            <div className="flex gap-2">
+  1769→              {editandoTarifa && (
+  1770→                <Button variant="destructive" onClick={() => handleEliminarTarifa(editandoTarifa)}>
+  1771→                  <Trash2 className="w-4 h-4 mr-1" />Eliminar
+  1772→                </Button>
+  1773→              )}
+  1774→              {wizardStep > 1 && (
+  1775→                <Button variant="outline" onClick={handlePrevStep}>
+  1776→                  <ChevronLeft className="w-4 h-4 mr-1" />Atrás
+  1777→                </Button>
+  1778→              )}
+  1779→            </div>
+  1780→            <div className="flex gap-2 ml-auto">
+  1781→              <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+  1782→              {wizardStep < 3 ? (
+  1783→                <Button onClick={handleNextStep}>
+  1784→                  Siguiente<ChevronRight className="w-4 h-4 ml-1" />
+  1785→                </Button>
+  1786→              ) : (
+  1787→                <Button onClick={handleGuardarTarifa}>
+  1788→                  {editandoTarifa ? <><Pencil className="w-4 h-4 mr-1" />Guardar Cambios</> : <><Sparkles className="w-4 h-4 mr-1" />Crear Tarifa</>}
+  1789→                </Button>
+  1790→              )}
+  1791→            </div>
+  1792→          </DialogFooter>
+  1793→        </DialogContent>
+  1794→      </Dialog>
+  1795→
+  1796→      {/* ==================== MODAL: COMPARACIÓN ==================== */}
+  1797→      <Dialog open={showComparison} onOpenChange={setShowComparison}>
+  1798→        {selectedForCompare.length >= 2 ? (
+  1799→          <ComparisonModal
+  1800→            tariffs={selectedForCompare.map(tipo => ({ tipo, t: tarifas[tipo] })).filter(x => x.t) as { tipo: string; t: TarifaPrecios }[]}
+  1801→            onClose={() => setShowComparison(false)}
+  1802→          />
+  1803→        ) : (
+  1804→          <DialogContent className="sm:max-w-md">
+  1805→            <DialogHeader>
+  1806→              <DialogTitle>Comparación de tarifas</DialogTitle>
+  1807→            </DialogHeader>
+  1808→            <p className="text-sm text-muted-foreground">Seleccioná al menos 2 tarifas para comparar.</p>
+  1809→            <DialogFooter>
+
+[showing lines 1340-1809 of 1910; use offset=1810 with limit to continue reading]
