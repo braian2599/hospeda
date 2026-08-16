@@ -194,7 +194,7 @@ export interface CajaState {
   historial: TurnoCaja[];
 }
 
-export type ModoCobro = 'porGrupo' | 'porPersona' | 'porHabitacion' | 'porCama';
+export type ModoCobro = 'porGrupo' | 'porHabitacion' | 'porCama';
 
 export interface RangoPrecio {
   minPersonas: number;

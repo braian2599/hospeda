@@ -260,9 +260,6 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
       return `${d.personasACobrar} adulto${d.personasACobrar > 1 ? 's' : ''} × ${formatMoney(d.precioRango)}/cama/noche`;
     }
     if (modo === 'porHabitacion') return 'Habitación';
-    if (modo === 'porPersona') {
-      return `${d.personasACobrar} adulto${d.personasACobrar > 1 ? 's' : ''} × ${formatMoney(d.precioRango)}/noche`;
-    }
     // porGrupo
     return `${d.personasACobrar} adulto${d.personasACobrar > 1 ? 's' : ''}`;
   };
@@ -578,9 +575,8 @@ export default function ReservasModule() {
  totalAdultos = nC * adultos * precioRango;
  } else if (modoCobro === 'porHabitacion') {
  totalAdultos = nC * precioRango;
- } else if (modoCobro === 'porPersona') {
- totalAdultos = nC * adultos * precioRango;
  } else {
+ // porGrupo: el precio es el total del grupo
  totalAdultos = nC * precioRango;
  }
  if (cantNinos > 0 && ninosDifLocal?.activo) {

@@ -300,15 +300,6 @@ function calcularTotalSegunTarifa(
   const rango = encontrarRango(tarifa.rangos, adultos);
   if (!rango) return 0;
 
-  if (modo === 'porPersona') {
-    let total = nochesCobrables * adultos * rango.precio;
-    // Sumar niños
-    if (cantNinos > 0 && ninosDif?.activo) {
-      total += cantNinos * (ninosDif.precioNino || 0) * nochesCobrables;
-    }
-    return total;
-  }
-
   // porGrupo (default): el precio es el total del grupo
   let total = nochesCobrables * rango.precio;
   // Sumar niños

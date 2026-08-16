@@ -1498,3 +1498,35 @@ Work Log:
   - Wrench icon: text-red-500 → text-destructive
   - problema span: text-red-600 → text-destructive
 - Verified: zero hardcoded color patterns remain
+
+---
+Task ID: 1
+Agent: main
+Task: Eliminar modo de cobro "Por persona" del módulo de tarifas
+
+Work Log:
+- Leído y analizado exhaustivamente todo el código relacionado con tarifas, ModoCobro y porPersona
+- Verificado que la DB tiene 0 tarifas existentes (no se necesita migración de datos)
+- Confirmado que modoCobro vive dentro del campo JSON `precios`, no en una columna dedicada
+- Identificado que porPersona y porCama son matemáticamente idénticos (ambos: noches × adultos × precio)
+- Eliminado 'porPersona' del tipo ModoCobro en src/lib/types.ts (línea 197)
+- Eliminada rama `if (modo === 'porPersona')` del motor de cálculo en src/lib/store.ts (líneas 303-310)
+- Eliminada opción porPersona de MODO_OPTIONS en TarifasModule.tsx (línea 144)
+- Eliminado import de UserRound (solo se usaba en la opción porPersona) en TarifasModule.tsx
+- Simplificada condición de label "Precio c/u": solo porCama en TarifasModule.tsx (línea 119)
+- Eliminado sufijo "c/u" para porPersona en TarifasModule.tsx (línea 1187)
+- Eliminada anotación "(precio por persona)" en wizard step 2 en TarifasModule.tsx (línea 1422)
+- Eliminada rama de display `if (modo === 'porPersona')` en adultoLinea() en ReservasModule.tsx (línea 263)
+- Eliminada rama de cálculo `else if (modoCobro === 'porPersona')` en ReservasModule.tsx (línea 581)
+- Verificado: 0 referencias a porPersona en src/ tras los cambios
+- Verificado: lint pasa sin errores
+- Verificado: servidor compila correctamente sin errores TypeScript
+- Verificado: página principal carga correctamente via agent-browser
+
+Stage Summary:
+- ModoCobro ahora tiene 3 valores: 'porGrupo' | 'porHabitacion' | 'porCama'
+- No se requieren cambios en prisma/schema.prisma (modoCobro está en JSON)
+- No se requiere migración de datos (0 tarifas existentes en DB)
+- porCama permanece restringido a habitaciones "Compartidas" (Opción A)
+- Los módulos de Facturación, CheckIn, Dashboard y Pagos no se vieron afectados
+- Icono UserRound eliminado del import (ya no se usa)

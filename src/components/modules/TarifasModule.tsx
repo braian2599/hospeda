@@ -22,7 +22,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import {
-  Tags, Plus, Trash2, CreditCard, ListChecks, Users, Pencil, Info, Home, UserRound, UsersRound,
+  Tags, Plus, Trash2, CreditCard, ListChecks, Users, Pencil, Info, Home, UsersRound,
   Star, Zap, Sparkles, Baby, Copy, Download, MoreVertical, ChevronRight, ChevronLeft,
   Check, GitCompareArrows, X, Crown,
 } from 'lucide-react';
@@ -116,7 +116,7 @@ function RangoFila({ rango, index, onRemove, onUpdate, modoCobro, totalRangos }:
       </div>
       <div className="space-y-0.5 flex-1">
         <Label className="text-[10px] text-muted-foreground">
-          {modoCobro === 'porPersona' || modoCobro === 'porCama' ? 'Precio c/u' : 'Precio'}
+          {modoCobro === 'porCama' ? 'Precio c/u' : 'Precio'}
         </Label>
         <Input
           type="number" min={0} step="0.01"
@@ -141,7 +141,6 @@ function RangoFila({ rango, index, onRemove, onUpdate, modoCobro, totalRangos }:
 
 const MODO_OPTIONS: { value: ModoCobro; label: string; description: string; icon: typeof Home }[] = [
   { value: 'porGrupo', label: 'Por grupo', description: 'El precio es el total del grupo por noche', icon: UsersRound },
-  { value: 'porPersona', label: 'Por persona', description: 'El precio es por cada persona por noche', icon: UserRound },
   { value: 'porHabitacion', label: 'Por habitación', description: 'Precio fijo por habitación, sin importar la cantidad de personas', icon: Home },
   { value: 'porCama', label: 'Por cama', description: 'Cada persona paga un precio fijo por noche (ideal para compartidas)', icon: Users },
 ];
@@ -1184,7 +1183,6 @@ export default function TarifasModule() {
                           </span>
                           <span className="font-bold text-primary tabular-nums text-xs">
                             {formatMoney(r.precio)}
-                            {modo === 'porPersona' && <span className="text-[10px] font-normal text-muted-foreground"> c/u</span>}
                             {modo === 'porCama' && <span className="text-[10px] font-normal text-muted-foreground"> c/cama</span>}
                           </span>
                         </div>
@@ -1419,7 +1417,6 @@ export default function TarifasModule() {
                   <div>
                     <Label className="text-sm font-medium">
                       Precios por rango
-                      {tarifaForm.modoCobro === 'porPersona' && <span className="text-muted-foreground font-normal"> (precio por persona)</span>}
                       {tarifaForm.modoCobro === 'porHabitacion' && <span className="text-muted-foreground font-normal"> (precio por habitación)</span>}
                       {tarifaForm.modoCobro === 'porCama' && <span className="text-muted-foreground font-normal"> (precio por cama/noche)</span>}
                     </Label>
