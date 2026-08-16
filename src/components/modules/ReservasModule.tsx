@@ -703,25 +703,7 @@ export default function ReservasModule() {
  }, [realizarCheckOut]);
 
  // ==================== STATUS COLOR HELPERS ====================
- const getStatusBorderColor = (estado: string) => {
- switch (estado) {
-   case 'Confirmada': return 'border-l-status-available';
-   case 'Check-In realizado': return 'border-l-status-reserved';
-   case 'Check-Out realizado': return 'border-l-status-cleaning';
-   case 'Cancelada': return 'border-l-status-occupied';
-   default: return 'border-l-status-finalized';
- }
- };
-
- const getStatusDotColor = (estado: string) => {
- switch (estado) {
-   case 'Confirmada': return 'bg-primary';
-   case 'Check-In realizado': return 'bg-status-reserved';
-   case 'Check-Out realizado': return 'bg-status-cleaning';
-   case 'Cancelada': return 'bg-destructive';
-   default: return 'bg-status-finalized';
- }
- };
+ // Status color indicator functions removed — not functional nor necessary per UX decision
 
  const getPaymentProgress = useCallback((r: Reserva) => {
  const total = calcularTotalReserva(r.id);
@@ -1358,7 +1340,7 @@ export default function ReservasModule() {
  {filteredReservas.length === 0 ? (
  <div className="text-center py-10 text-muted-foreground">No se encontraron reservas.</div>
  ) : (
- <div className="divide-y divide-slate-700/60">
+ <div className="divide-y divide-border">
  {pagedReservas.map(r => {
  const saldo = getSaldo(r);
  const payProgress = getPaymentProgress(r);
@@ -1371,9 +1353,8 @@ export default function ReservasModule() {
  onClick={() => openDetalle(r)}
  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetalle(r); } }}
  className={cn(
-   'w-full text-left p-4 border-l-4 transition-all duration-200 cursor-pointer',
-   'hover:-translate-y-0.5 hover:shadow-md active:bg-muted/50',
-   getStatusBorderColor(r.estado)
+   'w-full text-left p-4 transition-all duration-200 cursor-pointer',
+   'hover:-translate-y-0.5 hover:shadow-md active:bg-muted/50'
  )}
  >
  {/* Row 1: Guest + Room Badge */}
@@ -1481,7 +1462,7 @@ export default function ReservasModule() {
      <Button
        size="sm"
        variant="ghost"
-       className="h-7 text-xs px-2 text-violet-700 hover:bg-violet-100/30"
+       className="h-7 text-xs px-2 text-chart-5 hover:bg-chart-5/15"
        onClick={() => openEdit(r)}
      >
        <CreditCard className="w-3 h-3 mr-1" />Pago
@@ -1500,8 +1481,7 @@ export default function ReservasModule() {
  <Table>
  <TableHeader>
  <TableRow className="bg-muted/30">
-   <TableHead className="w-1 p-0" />
-   <TableHead>Huésped</TableHead>
+   <TableHead className="text-center">Huésped</TableHead>
    <TableHead>Habitación</TableHead>
    <TableHead>Check-in</TableHead>
    <TableHead>Check-out</TableHead>
@@ -1509,13 +1489,13 @@ export default function ReservasModule() {
    <TableHead>Pago</TableHead>
    <TableHead className="hidden lg:table-cell">Progreso</TableHead>
    <TableHead className="hidden md:table-cell">Saldo</TableHead>
-   <TableHead className="text-right">Acciones</TableHead>
+   <TableHead className="text-center">Acciones</TableHead>
  </TableRow>
  </TableHeader>
  <TableBody>
  {filteredReservas.length === 0 ? (
  <TableRow>
-   <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+   <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
      No se encontraron reservas.
    </TableCell>
  </TableRow>
@@ -1526,13 +1506,9 @@ export default function ReservasModule() {
    const isActionLoading = quickActionLoading === r.id;
    return (
      <TableRow key={r.id} className="group transition-all duration-150 hover:bg-primary/10 hover:-translate-y-px hover:shadow-sm">
-       {/* Status color indicator */}
-       <TableCell className="w-1 p-0">
-         <div className={cn('w-1 h-full min-h-[20px] rounded-full', getStatusDotColor(r.estado))} />
-       </TableCell>
-       <TableCell className="font-medium">
+       <TableCell className="font-medium text-center">
          <button
-           className="group-hover:text-primary transition-colors text-left cursor-pointer"
+           className="group-hover:text-primary transition-colors cursor-pointer"
            onClick={() => openDetalle(r)}
          >
            <div>{r.huesped}</div>
@@ -1596,8 +1572,8 @@ export default function ReservasModule() {
            </span>
          </div>
        </TableCell>
-       <TableCell className="text-right">
-         <div className="flex justify-end gap-1 flex-wrap">
+       <TableCell className="text-center">
+         <div className="flex justify-center gap-1 flex-wrap">
            {r.estado === 'Confirmada' && (
              <>
                <Button
@@ -1642,7 +1618,7 @@ export default function ReservasModule() {
              <Button
                size="sm"
                variant="ghost"
-               className="h-7 text-xs px-2 text-violet-700 hover:bg-violet-100/30 opacity-0 group-hover:opacity-100 transition-opacity"
+               className="h-7 text-xs px-2 text-chart-5 hover:bg-chart-5/15 opacity-0 group-hover:opacity-100 transition-opacity"
                onClick={() => openEdit(r)}
              >
                <CreditCard className="w-3 h-3 mr-1" />Pago
@@ -2111,7 +2087,7 @@ export default function ReservasModule() {
  {computed.desglose && (
  <>
  {computed.desglose.ninosCount > 0 && (
- <div className="flex justify-between text-xs text-violet-700">
+ <div className="flex justify-between text-xs text-chart-5">
  <span>{computed.desglose.ninosCount} niño{computed.desglose.ninosCount > 1 ? 's' : ''} × {computed.desglose.nochesCobrables} noche{computed.desglose.nochesCobrables > 1 ? 's' : ''}</span>
  <span>{formatMoney(computed.desglose.ninosCount * computed.desglose.precioNino * computed.desglose.nochesCobrables)}</span>
  </div>

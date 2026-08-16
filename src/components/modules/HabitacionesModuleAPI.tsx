@@ -19,7 +19,7 @@ const estados: Record<string, string> = {
   Ocupada: 'bg-destructive/15 text-destructive',
   Limpieza: 'bg-warning/15 text-warning',
   Mantenamiento: 'bg-muted/30 text-muted-foreground',
-  Reservada: 'bg-violet-100/40 text-violet-700',
+  Reservada: 'bg-chart-5/15 text-chart-5',
 };
 
 const TIPOS_HABITACION: { tipo: TipoHabitacion; label: string; descripcion: string; personas: string }[] = [

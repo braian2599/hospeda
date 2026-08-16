@@ -1471,11 +1471,11 @@
   0%   { background-color: color-mix(in oklch, var(--primary) 15%, transparent); }
   100% { background-color: transparent; }
 }
-.table-row-click {
+.table-row-click > tbody > tr {
   cursor: pointer;
   transition: background-color 150ms ease;
 }
-.table-row-click:active {
+.table-row-click > tbody > tr:active {
   animation: rowClickFlash 400ms ease-out;
 }
 

@@ -123,7 +123,7 @@ export default function SuperAdminPlanes() {
     trial: 'bg-warning',
     basico: 'bg-success',
     profesional: 'bg-info',
-    premium: 'bg-violet-500',
+    premium: 'bg-chart-5',
   };
 
   if (loading) {

@@ -1,6 +1,26 @@
 # Hospedá — Worklog
 
 ---
+Task ID: 4
+Agent: general-purpose
+Task: Fix ALL hardcoded `violet-*` Tailwind color classes in src/ to use theme CSS variable equivalents (chart-5)
+
+Work Log:
+- SuperAdminPlanes.tsx: 1 replacement — `bg-violet-500` → `bg-chart-5` (plan type color map)
+- HabitacionesModuleAPI.tsx: 1 replacement — `bg-violet-100/40 text-violet-700` → `bg-chart-5/15 text-chart-5` (Reservada status)
+- UsuariosModule.tsx: 4 replacements — `bg-violet-100 text-violet-800 border-violet-300` → `bg-chart-5/15 text-chart-5 border-chart-5/40`, `border-l-violet-400` → `border-l-chart-5`, `from-violet-400 to-violet-600` → `from-chart-5 to-chart-5`, `text-violet-700` → `text-chart-5`
+- CheckInModule.tsx: 4 replacements — `bg-violet-100/40 text-violet-700 border-violet-300/40` → `bg-chart-5/15 text-chart-5 border-chart-5/40` (×2), `text-violet-700` → `text-chart-5` (Baby icon + niño span)
+- ReservasModule.tsx: 3 replacements — `text-violet-700 hover:bg-violet-100/30` → `text-chart-5 hover:bg-chart-5/15` (×2: visible + hover-opacity), `text-violet-700` → `text-chart-5` (niños desglose)
+- DashboardModule.tsx: 2 replacements — `text-violet-600` → `text-chart-5` (storm weather icon), `bg-violet-100/40 text-violet-700 border-violet-300/40` → `bg-chart-5/15 text-chart-5 border-chart-5/40` (menores badge)
+- TodaySummary.tsx: 7 replacements — `text-violet-600` → `text-chart-5`, `bg-violet-500/20` → `bg-chart-5/20`, `border-l-violet-500` → `border-l-chart-5`, `bg-violet-50` → `bg-chart-5/10`, `text-violet-800` → `text-chart-5`, `text-violet-600/50` → `text-chart-5/50` (ocupación stat)
+- CajaModule.tsx: 3 replacements — `var(--violet-500)` → `var(--chart-5)`, `bg-violet-100/40` → `bg-chart-5/15`, `text-violet-700` → `text-chart-5` (Retiros category)
+- FacturacionModule.tsx: 7 replacements — `border-l-violet-500 bg-violet-50/20` → `border-l-chart-5 bg-chart-5/10`, `text-violet-600` → `text-chart-5` (label + icon), `text-violet-800` → `text-chart-5` (value), `bg-violet-500/20` → `bg-chart-5/20`, `text-violet-600/70 text-violet-600/50` → `text-chart-5/70 text-chart-5/50`, `bg-violet-100/30 text-violet-600` → `bg-chart-5/15 text-chart-5` (bank colorMap)
+- ReportesModule.tsx: 8 replacements — KPI_COLORS key `violet` → `chart5` with all internal classes replaced: `border-l-violet-500` → `border-l-chart-5`, `bg-violet-50/40` → `bg-chart-5/10`, `bg-violet-50/20` → `bg-chart-5/10`, `text-violet-600` → `text-chart-5`, `text-violet-800` → `text-chart-5`, `text-violet-600/50` → `text-chart-5/50`, `bg-violet-500/20` → `bg-chart-5/20`; 4× `colorFamily="violet"` → `colorFamily="chart5"`
+- empty-state.tsx: 1 replacement — `text-violet-500 bg-violet-900/30` → `text-chart-5 bg-chart-5/15` (facturacion variant)
+
+Total: 41 replacements across 12 files. Zero remaining `violet-*` Tailwind classes in src/ (only a code comment in RoomTypeDistribution.tsx remains, which is not a class).
+
+---
 Task ID: 6
 Agent: general-purpose
 Task: Fix ALL hardcoded colors in remaining 9 files to use theme CSS variable system

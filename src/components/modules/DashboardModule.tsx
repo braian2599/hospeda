@@ -145,7 +145,7 @@ function WeatherIcon({ code }: { code: number }) {
   if (code >= 61 && code <= 67) return <CloudRain className="w-5 h-5 text-info" />;
   if (code >= 71 && code <= 77) return <CloudSnow className="w-5 h-5 text-info" />;
   if (code >= 80 && code <= 82) return <CloudLightning className="w-5 h-5 text-warning" />;
-  if (code >= 95) return <CloudLightning className="w-5 h-5 text-violet-600" />;
+  if (code >= 95) return <CloudLightning className="w-5 h-5 text-chart-5" />;
   return <Thermometer className="w-5 h-5 text-muted-foreground" />;
 }
 
@@ -1037,7 +1037,7 @@ export default function DashboardModule() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold truncate">{r.huesped}</p>
-                        {(r.ninos || 0) > 0 && <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-violet-100/40 text-violet-700 border-violet-300/40">{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}</Badge>}
+                        {(r.ninos || 0) > 0 && <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-chart-5/15 text-chart-5 border-chart-5/40">{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}</Badge>}
                       </div>
                       <p className="text-xs text-muted-foreground">Hab. {r.habitacion} · DNI: {r.dni}</p>
                     </div>

@@ -323,7 +323,7 @@ export default function CheckInModule() {
                           <span className="font-semibold text-sm group-hover:text-primary transition-colors">{r.huesped}</span>
                           <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                           {(r.ninos || 0) > 0 && (
-                            <Badge variant="outline" className="bg-violet-100/40 text-violet-700 border-violet-300/40">
+                            <Badge variant="outline" className="bg-chart-5/15 text-chart-5 border-chart-5/40">
                               <Baby className="w-3 h-3 mr-1" />{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}
                             </Badge>
                           )}
@@ -373,7 +373,7 @@ export default function CheckInModule() {
                           <span className="font-semibold text-sm group-hover:text-primary transition-colors">{r.huesped}</span>
                           <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                           {r.menores && r.menores.length > 0 && (
-                            <Badge variant="outline" className="bg-violet-100/40 text-violet-700 border-violet-300/40">
+                            <Badge variant="outline" className="bg-chart-5/15 text-chart-5 border-chart-5/40">
                               <Baby className="w-3 h-3 mr-1" />{r.menores.length} menor{r.menores.length > 1 ? 'es' : ''}
                             </Badge>
                           )}
@@ -417,7 +417,7 @@ export default function CheckInModule() {
               {requiereMenores && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <Baby className="w-5 h-5 text-violet-700" />
+                    <Baby className="w-5 h-5 text-chart-5" />
                     <h4 className="font-semibold text-sm">
                       Datos de menores ({selReserva.ninos}) — <span className="text-destructive">Obligatorio</span>
                     </h4>
@@ -1058,7 +1058,7 @@ function CheckInAccountStatus({ reserva }: { reserva: Reserva }) {
       </div>
       <div className="text-xs text-muted-foreground">
         {reserva.personas} adulto{s(reserva.personas)}
-        {cantNinos > 0 ? <span className="text-violet-700 font-medium"> + {cantNinos} niño{s(cantNinos)}</span> : null}
+        {cantNinos > 0 ? <span className="text-chart-5 font-medium"> + {cantNinos} niño{s(cantNinos)}</span> : null}
         {' · '}{noches} noche{s(noches)} · {reserva.tipoTarifa || 'Normal'}
       </div>
     </div>

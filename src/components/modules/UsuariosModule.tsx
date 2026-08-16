@@ -138,9 +138,9 @@ const ROLES: RoleInfo[] = [
     description: 'Tareas de limpieza y mantenimiento',
     icon: Shield,
     colorHex: '#8B5CF6',
-    badgeClass: 'bg-violet-100 text-violet-800 border-violet-300',
-    borderClass: 'border-l-violet-400',
-    avatarGradient: 'from-violet-400 to-violet-600',
+    badgeClass: 'bg-chart-5/15 text-chart-5 border-chart-5/40',
+    borderClass: 'border-l-chart-5',
+    avatarGradient: 'from-chart-5 to-chart-5',
   },
 ];
 
@@ -544,7 +544,7 @@ export default function UsuariosModule() {
                   <span className="text-info flex items-center gap-0.5">
                     <UserCog className="w-2.5 h-2.5" />{stats.porRol.recepcion}
                   </span>
-                  <span className="text-violet-700 flex items-center gap-0.5">
+                  <span className="text-chart-5 flex items-center gap-0.5">
                     <Shield className="w-2.5 h-2.5" />{stats.porRol.limpieza}
                   </span>
                 </div>

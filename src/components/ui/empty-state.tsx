@@ -10,7 +10,7 @@ const variants: Record<string, { icon: React.ComponentType<{ className?: string 
   reportes: { icon: BarChart3, color: 'text-warning bg-warning/15', title: 'Sin datos', description: 'No hay datos suficientes para generar el reporte.' },
   generic: { icon: FileText, color: 'text-muted-foreground bg-muted', title: 'Sin resultados', description: 'No se encontraron resultados.' },
   search: { icon: FileText, color: 'text-muted-foreground bg-muted', title: 'Sin resultados', description: 'No se encontraron resultados para la búsqueda.' },
-  facturacion: { icon: Wallet, color: 'text-violet-500 bg-violet-900/30', title: 'Sin facturas', description: 'No hay facturas pendientes ni registradas.' },
+  facturacion: { icon: Wallet, color: 'text-chart-5 bg-chart-5/15', title: 'Sin facturas', description: 'No hay facturas pendientes ni registradas.' },
   combo: { icon: Package, color: 'text-info bg-info/15', title: 'Sin combinaciones', description: 'No hay habitaciones combinadas disponibles.' },
 };
 

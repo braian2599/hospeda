@@ -294,17 +294,17 @@ export default function FacturacionModule() {
         </div>
 
         {/* Promedio por Reserva */}
-        <div className="relative rounded-xl border-l-[3px] border-l-violet-500 bg-violet-50/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <div className="relative rounded-xl border-l-[3px] border-l-chart-5 bg-chart-5/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-violet-600">Promedio por Reserva</p>
-              <AnimatedNumber value={analytics.promedio} className="text-xl font-bold text-violet-800" />
+              <p className="text-xs font-medium text-chart-5">Promedio por Reserva</p>
+              <AnimatedNumber value={analytics.promedio} className="text-xl font-bold text-chart-5" />
             </div>
-            <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-violet-600" />
+            <div className="w-10 h-10 rounded-full bg-chart-5/20 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-chart-5" />
             </div>
           </div>
-          <p className="text-violet-600/70 text-violet-600/50 mt-2">{pagos.length} pago{pagos.length !== 1 ? 's' : ''} en total</p>
+          <p className="text-chart-5/70 text-chart-5/50 mt-2">{pagos.length} pago{pagos.length !== 1 ? 's' : ''} en total</p>
         </div>
       </div>
 
@@ -815,7 +815,7 @@ function MetodoIconBadge({ type, name }: { type: 'credit' | 'bank' | 'wallet' | 
   };
   const colorMap = {
     credit: 'bg-info/15 text-info',
-    bank: 'bg-violet-100/30 text-violet-600',
+    bank: 'bg-chart-5/15 text-chart-5',
     wallet: 'bg-warning/15 text-warning',
     cash: 'bg-primary/10 text-primary',
   };

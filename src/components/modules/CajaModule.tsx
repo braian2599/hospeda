@@ -121,7 +121,7 @@ const CATEGORY_CONFIG: Record<MovementCategory, CategoryConfig> = {
   'Gastos':           { label: 'Gastos',          color: 'var(--destructive)', badgeBg: 'bg-destructive/15', badgeText: 'text-destructive', icon: ShoppingCart },
   'Mantenimiento':    { label: 'Mantenimiento',   color: 'var(--brand-amber)', badgeBg: 'bg-warning/15', badgeText: 'text-warning', icon: Wrench },
   'Ingresos varios':  { label: 'Ingresos varios', color: 'var(--brand-emerald)', badgeBg: 'bg-primary/20', badgeText: 'text-primary', icon: ArrowUpRight },
-  'Retiros':          { label: 'Retiros',         color: 'var(--violet-500)', badgeBg: 'bg-violet-100/40', badgeText: 'text-violet-700', icon: PiggyBank },
+  'Retiros':          { label: 'Retiros',         color: 'var(--chart-5)', badgeBg: 'bg-chart-5/15', badgeText: 'text-chart-5', icon: PiggyBank },
   'Otros':            { label: 'Otros',           color: 'var(--status-maintenance)', badgeBg: 'bg-slate-100/40', badgeText: 'text-slate-400', icon: Tag },
 };
 

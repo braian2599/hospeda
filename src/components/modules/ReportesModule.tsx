@@ -68,7 +68,7 @@ const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; 
   green: { borderL: 'border-l-success', bg: 'bg-success/10', darkBg: 'bg-success/5', label: 'text-success', value: 'text-success', sub: 'text-success/50', iconBg: 'bg-success/20', iconColor: 'text-success' },
   red: { borderL: 'border-l-destructive', bg: 'bg-destructive/10', darkBg: 'bg-destructive/5', label: 'text-destructive', value: 'text-destructive', sub: 'text-destructive/50', iconBg: 'bg-destructive/20', iconColor: 'text-destructive' },
   amber: { borderL: 'border-l-warning', bg: 'bg-warning/10', darkBg: 'bg-warning/5', label: 'text-warning', value: 'text-warning', sub: 'text-warning/50', iconBg: 'bg-warning/20', iconColor: 'text-warning' },
-  violet: { borderL: 'border-l-violet-500', bg: 'bg-violet-50/40', darkBg: 'bg-violet-50/20', label: 'text-violet-600', value: 'text-violet-800', sub: 'text-violet-600/50', iconBg: 'bg-violet-500/20', iconColor: 'text-violet-600' },
+  chart5: { borderL: 'border-l-chart-5', bg: 'bg-chart-5/10', darkBg: 'bg-chart-5/10', label: 'text-chart-5', value: 'text-chart-5', sub: 'text-chart-5/50', iconBg: 'bg-chart-5/20', iconColor: 'text-chart-5' },
   teal: { borderL: 'border-l-teal-500', bg: 'bg-teal-50/40', darkBg: 'bg-teal-50/20', label: 'text-teal-600', value: 'text-teal-800', sub: 'text-teal-600/50', iconBg: 'bg-teal-500/20', iconColor: 'text-teal-600' },
   blue: { borderL: 'border-l-info', bg: 'bg-info/10', darkBg: 'bg-info/5', label: 'text-info', value: 'text-info', sub: 'text-info/50', iconBg: 'bg-info/20', iconColor: 'text-info' },
   sky: { borderL: 'border-l-info', bg: 'bg-info/10', darkBg: 'bg-info/5', label: 'text-info', value: 'text-info', sub: 'text-info/50', iconBg: 'bg-info/20', iconColor: 'text-info' },
@@ -1057,7 +1057,7 @@ export default function ReportesModule() {
           label="Ocupación"
           value={`${tasaOcupacion}%`}
           icon={<Percent className="w-5 h-5" />}
-          colorFamily="violet"
+          colorFamily="chart5"
           tooltip={`${nochesVendidas} noches vendidas de ${nochesDisponibles} disponibles (${diasPeriodo} días × ${totalHabs} hab.)`}
           subtext={`${nochesVendidas} de ${nochesDisponibles} noches`}
           onClick={() => setActiveTab('habitaciones')}
@@ -1529,7 +1529,7 @@ export default function ReportesModule() {
               label="Pagos Registrados"
               value={auditoriaEnPeriodo.filter(a => a.tipo === 'Pago').length}
               icon={<DollarSign className="w-5 h-5" />}
-              colorFamily="violet"
+              colorFamily="chart5"
             />
           </KpiRow>
 
@@ -1674,7 +1674,7 @@ export default function ReportesModule() {
               label="Total Movimientos"
               value={cajaTurnosAMostrar.reduce((s, t) => s + t.movimientos.length, 0)}
               icon={<BarChart3 className="w-5 h-5" />}
-              colorFamily="violet"
+              colorFamily="chart5"
             />
           </KpiRow>
 
@@ -1983,7 +1983,7 @@ export default function ReportesModule() {
                   : 0
               )}
               icon={<Receipt className="w-5 h-5" />}
-              colorFamily="violet"
+              colorFamily="chart5"
               tooltip="Gasto promedio por cliente que ya se hospedó"
             />
           </KpiRow>
