@@ -105,7 +105,7 @@ const ROLES: RoleInfo[] = [
     description: 'Acceso total al sistema',
     icon: Crown,
     colorHex: '#F59E0B',
-    badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
+    badgeClass: 'bg-warning/15 text-warning border-warning/40',
     borderClass: 'border-l-amber-500',
     avatarGradient: 'from-amber-400 to-amber-600',
   },
@@ -127,7 +127,7 @@ const ROLES: RoleInfo[] = [
     description: 'Habitaciones, reservas, check-in y clientes',
     icon: UserCog,
     colorHex: '#0EA5E9',
-    badgeClass: 'bg-sky-100 text-sky-800 border-sky-300',
+    badgeClass: 'bg-info/15 text-info border-info/40',
     borderClass: 'border-l-sky-400',
     avatarGradient: 'from-sky-400 to-sky-600',
   },
@@ -529,19 +529,19 @@ export default function UsuariosModule() {
         </Card>
 
         {/* Por Rol */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-sky-500 bg-sky-50/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-info bg-info/10 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1 min-w-0 flex-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Por Rol</p>
                 <div className="flex items-center gap-2 text-xs font-semibold mt-1 flex-wrap">
-                  <span className="text-amber-700 flex items-center gap-0.5">
+                  <span className="text-warning flex items-center gap-0.5">
                     <Crown className="w-2.5 h-2.5" />{stats.porRol.owner}
                   </span>
                   <span className="text-primary flex items-center gap-0.5">
                     <ShieldCheck className="w-2.5 h-2.5" />{stats.porRol.admin}
                   </span>
-                  <span className="text-sky-700 flex items-center gap-0.5">
+                  <span className="text-info flex items-center gap-0.5">
                     <UserCog className="w-2.5 h-2.5" />{stats.porRol.recepcion}
                   </span>
                   <span className="text-violet-700 flex items-center gap-0.5">
@@ -549,24 +549,24 @@ export default function UsuariosModule() {
                   </span>
                 </div>
               </div>
-              <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
-                <Shield className="w-5 h-5 text-sky-600" />
+              <div className="w-10 h-10 rounded-full bg-info/15 flex items-center justify-center shrink-0">
+                <Shield className="w-5 h-5 text-info" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Invitaciones Pendientes */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-amber-500 bg-amber-50/20 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-warning bg-warning/10 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Invitaciones Pendientes</p>
-                <AnimatedNumber value={pendingInvites} format={n => String(Math.round(n))} className="text-2xl font-bold text-amber-700" />
+                <AnimatedNumber value={pendingInvites} format={n => String(Math.round(n))} className="text-2xl font-bold text-warning" />
                 <p className="text-[10px] text-muted-foreground">En esta sesión</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                <Mail className="w-5 h-5 text-amber-600" />
+              <div className="w-10 h-10 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+                <Mail className="w-5 h-5 text-warning" />
               </div>
             </div>
           </CardContent>
@@ -603,7 +603,7 @@ export default function UsuariosModule() {
             return (
               <Card
                 key={u.id}
-                className={`relative overflow-hidden border-l-[3px] ${roleInfo.borderClass} hover:shadow-md transition-all duration-200 ${isOwner ? 'bg-amber-50/30' : ''}`}
+                className={`relative overflow-hidden border-l-[3px] ${roleInfo.borderClass} hover:shadow-md transition-all duration-200 ${isOwner ? 'bg-warning/10' : ''}`}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
@@ -612,7 +612,7 @@ export default function UsuariosModule() {
                       {initials}
                       {/* Online/Offline indicator — based on real-time heartbeat */}
                       <span
-                        className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card ${isOnline ? 'bg-emerald-500' : u.activo ? 'bg-gray-400' : 'bg-gray-300'} ${isOnline ? 'animate-pulse' : ''}`}
+                        className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card ${isOnline ? 'bg-success' : u.activo ? 'bg-muted-foreground' : 'bg-muted'} ${isOnline ? 'animate-pulse' : ''}`}
                         title={isOnline ? 'En línea' : u.activo ? 'Desconectado' : 'Inactivo'}
                       />
                     </div>
@@ -624,7 +624,7 @@ export default function UsuariosModule() {
                           <p className="font-medium text-sm truncate">
                             {name}
                             {isSelf(u) && <span className="text-muted-foreground font-normal ml-1.5 text-xs">(vos)</span>}
-                            {isOnline && <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-500">● en línea</span>}
+                            {isOnline && <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-medium text-success">● en línea</span>}
                           </p>
                           {email && (
                             <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
@@ -676,7 +676,7 @@ export default function UsuariosModule() {
                       {/* Online status + Last login */}
                       <div className="mt-1.5">
                         {isOnline ? (
-                          <p className="text-[10px] text-emerald-500 font-medium flex items-center gap-1">
+                          <p className="text-[10px] text-success font-medium flex items-center gap-1">
                             <Wifi className="w-2.5 h-2.5" />
                             En línea ahora
                           </p>
@@ -958,9 +958,9 @@ export default function UsuariosModule() {
                     return (
                       <div key={m.id} className="flex items-center gap-1.5 text-xs">
                         {has ? (
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                          <CheckCircle2 className="w-3 h-3 text-success shrink-0" />
                         ) : (
-                          <X className="w-3 h-3 text-gray-400 shrink-0" />
+                          <X className="w-3 h-3 text-muted-foreground shrink-0" />
                         )}
                         <span className={has ? 'text-foreground' : 'text-muted-foreground line-through'}>
                           {m.label}

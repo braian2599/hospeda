@@ -80,7 +80,7 @@ const showcaseFeatures = [
     desc: 'Tu centro de operaciones. Visualizá el estado del hotel de un vistazo: ocupación del día, reservas entrantes, tareas pendientes y más. Todo lo que necesitás saber al abrir la app, sin navegar entre pantallas.',
     screenshots: ['/screenshots/dashboard.png', '/screenshots/calendario.png'],
     badge: 'Módulo principal',
-    accent: 'from-blue-500/20 to-indigo-500/10',
+    accent: 'from-info/20 to-info/10',
   },
   {
     icon: CalendarCheck,
@@ -88,7 +88,7 @@ const showcaseFeatures = [
     desc: 'Calendario visual con colores por estado, control de disponibilidad en tiempo real y prevención automática de overbooking. Gestiona check-ins y check-outs con un solo clic. El calendario del dashboard te muestra la ocupación completa del mes.',
     screenshots: ['/screenshots/reservas.png', '/screenshots/reservas2.png'],
     badge: 'Módulo principal',
-    accent: 'from-emerald-500/20 to-teal-500/10',
+    accent: 'from-primary/20 to-brand-teal/10',
   },
   {
     icon: Building2,
@@ -96,7 +96,7 @@ const showcaseFeatures = [
     desc: 'Vista de tablero con estados visuales de cada habitación: disponible, ocupada, en limpieza o en mantenimiento. Definí tipos de habitación, numeración y configurá tarifas diferenciadas por tipo y temporada.',
     screenshots: ['/screenshots/habitaciones.png', '/screenshots/tarifas.png'],
     badge: 'Módulo principal',
-    accent: 'from-violet-500/20 to-purple-500/10',
+    accent: 'from-secondary/20 to-secondary/10',
   },
   {
     icon: CreditCard,
@@ -104,7 +104,7 @@ const showcaseFeatures = [
     desc: 'Emite comprobantes, registra pagos en múltiples medios y lleva el control financiero total. Movimientos de caja diarios, cierres y conciliación automática. Historial completo de cada transacción.',
     screenshots: ['/screenshots/facturacion.png', '/screenshots/caja.png'],
     badge: 'Plan Profesional',
-    accent: 'from-amber-500/20 to-orange-500/10',
+    accent: 'from-warning/20 to-warning/10',
   },
   {
     icon: BarChart3,
@@ -112,7 +112,7 @@ const showcaseFeatures = [
     desc: 'Dashboards con métricas clave: ocupación promedio, ingresos por período, tasa de cancelación y más. Gráficos interactivos para tomar decisiones basadas en datos reales de tu hotel.',
     screenshots: ['/screenshots/reportes.png'],
     badge: 'Plan Profesional',
-    accent: 'from-rose-500/20 to-pink-500/10',
+    accent: 'from-destructive/20 to-destructive/10',
   },
 ];
 
@@ -122,21 +122,21 @@ const gridFeatures = [
     title: 'Huéspedes',
     desc: 'Ficha completa con historial de estadías, documentos y preferencias.',
     screenshot: '/screenshots/clientes.png',
-    accent: 'from-cyan-500/15 to-sky-500/5',
+    accent: 'from-info/15 to-info/5',
   },
   {
     icon: Shield,
     title: 'Usuarios y Permisos',
     desc: 'Roles granulares, datos aislados por hotel y encriptación de punta a punta.',
     screenshot: '/screenshots/usuarios.png',
-    accent: 'from-lime-500/15 to-green-500/5',
+    accent: 'from-success/15 to-success/5',
   },
   {
     icon: Wrench,
     title: 'Limpieza',
     desc: 'Asignación de tareas y seguimiento de estados para el equipo de housekeeping.',
     screenshot: '/screenshots/limpieza.png',
-    accent: 'from-fuchsia-500/15 to-pink-500/5',
+    accent: 'from-destructive/15 to-destructive/5',
   },
 ];
 
@@ -251,7 +251,7 @@ const testimonials = [
     nombre: 'Laura Martínez',
     rol: 'Administradora, Cabañas del Lago',
     avatar: 'LM',
-    avatarColor: 'bg-orange-600',
+    avatarColor: 'bg-warning',
     texto: 'El soporte es excelente y siempre están dispuestos a ayudar. La interfaz es intuitiva, nuestro staff aprendió a usarla en minutos.',
     rating: 5,
   },
@@ -492,7 +492,7 @@ function Hero() {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" className="cta-premium w-full sm:w-auto text-base px-8 h-12 bg-white/50 backdrop-blur-sm" onClick={() => scrollTo('como-funciona')}>
+            <Button variant="outline" size="lg" className="cta-premium w-full sm:w-auto text-base px-8 h-12 bg-background/50 backdrop-blur-sm" onClick={() => scrollTo('como-funciona')}>
               Cómo funciona
               <ChevronDown className="w-4 h-4 ml-1" />
             </Button>
@@ -533,7 +533,7 @@ function StatsSection() {
   const { ref, inView } = useInView(0.25);
 
   return (
-    <section className="py-16 sm:py-20 bg-gradient-to-b from-white to-emerald-50/40 relative overflow-hidden">
+    <section className="py-16 sm:py-20 bg-gradient-to-b from-background to-primary/5 relative overflow-hidden">
       {/* Subtle decorative pattern */}
       <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
 
@@ -553,11 +553,11 @@ function StatsSection() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s, i) => (
             <FadeIn key={s.label} delay={i * 100}>
-              <div className="group relative p-6 text-center bg-gradient-to-br from-emerald-50/60 to-white border border-emerald-200/40 rounded-2xl hover:shadow-xl hover:shadow-brand-emerald/10 hover:-translate-y-1 transition-all duration-300 h-full overflow-hidden">
+              <div className="group relative p-6 text-center bg-gradient-to-br from-primary/5 to-background border border-primary/20 rounded-2xl hover:shadow-xl hover:shadow-brand-emerald/10 hover:-translate-y-1 transition-all duration-300 h-full overflow-hidden">
                 {/* Decorative gradient ring around icon */}
                 <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-gradient-to-br from-brand-emerald/15 to-transparent opacity-50 group-hover:opacity-80 group-hover:scale-110 transition-all duration-500" />
 
-                <div className={`stat-icon-pulse w-14 h-14 rounded-2xl ${s.iconColor} flex items-center justify-center mx-auto mb-4 shadow-sm ring-4 ring-slate-800/60`}>
+                <div className={`stat-icon-pulse w-14 h-14 rounded-2xl ${s.iconColor} flex items-center justify-center mx-auto mb-4 shadow-sm ring-4 ring-foreground/20`}>
                   <s.icon className="w-7 h-7" />
                 </div>
                 <div className="text-4xl sm:text-5xl font-extrabold text-brand-deep tabular-nums">
@@ -579,7 +579,7 @@ function StatsSection() {
             {trustBadges.map((b) => (
               <div
                 key={b.label}
-                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-emerald-200/50 text-emerald-800 text-sm font-medium shadow-sm hover:shadow-md hover:border-brand-emerald/40 transition-all duration-200 snap-start shrink-0"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background/70 border border-primary/25 text-primary text-sm font-medium shadow-sm hover:shadow-md hover:border-brand-emerald/40 transition-all duration-200 snap-start shrink-0"
               >
                 <b.icon className="w-4 h-4 text-brand-emerald group-hover:scale-110 transition-transform" />
                 {b.label}
@@ -600,9 +600,9 @@ function ScreenshotFrame({ src, alt, priority, className = '' }: {
     <div className={`relative rounded-xl overflow-hidden border border-border/80 bg-muted/30 shadow-xl shadow-black/[0.07] ${className}`}>
       {/* Browser dots */}
       <div className="flex items-center gap-1.5 px-3 py-2.5 bg-muted/60 border-b border-border/60">
-        <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
-        <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/80" />
-        <span className="w-2.5 h-2.5 rounded-full bg-green-400/80" />
+        <span className="w-2.5 h-2.5 rounded-full bg-destructive/80" />
+        <span className="w-2.5 h-2.5 rounded-full bg-warning/80" />
+        <span className="w-2.5 h-2.5 rounded-full bg-success/80" />
         <span className="ml-3 text-[10px] text-muted-foreground/60 font-mono">hospeda.app</span>
       </div>
       <Image
@@ -726,9 +726,9 @@ function Features() {
                     {/* Mini screenshot preview */}
                     <div className="mb-4 rounded-lg overflow-hidden border border-border/60 shadow-md">
                       <div className="flex items-center gap-1 px-2 py-1.5 bg-muted/50 border-b border-border/40">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-400/60" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400/60" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-400/60" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-warning/60" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-success/60" />
                       </div>
                       <Image
                         src={f.screenshot}
@@ -771,7 +771,7 @@ function TestimonialsSection() {
   }, [isHovered]);
 
   return (
-    <section className="py-24 sm:py-32 bg-gradient-to-b from-emerald-50/30 via-white to-white relative overflow-hidden">
+    <section className="py-24 sm:py-32 bg-gradient-to-b from-primary/5 via-background to-background relative overflow-hidden">
       {/* Decorative gradient orbs */}
       <div className="absolute top-10 left-10 w-72 h-72 bg-brand-emerald/6 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-80 h-80 bg-brand-deep/5 rounded-full blur-3xl pointer-events-none" />
@@ -804,7 +804,7 @@ function TestimonialsSection() {
               <div
                 key={t.nombre}
                 className={`
-                  feature-grid-item relative p-7 bg-white border border-border rounded-2xl shadow-sm h-full flex flex-col overflow-hidden
+                  feature-grid-item relative p-7 bg-card border border-border rounded-2xl shadow-sm h-full flex flex-col overflow-hidden
                   transition-all duration-300
                   md:opacity-100 md:translate-x-0 md:scale-100
                   ${isMobileActive ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-8 scale-95 pointer-events-none absolute'}
@@ -834,7 +834,7 @@ function TestimonialsSection() {
                 <div className="my-5 border-t border-border/80" />
 
                 <div className="flex items-center gap-3 relative z-10">
-                  <div className={`w-12 h-12 rounded-full ${t.avatarColor} text-white flex items-center justify-center font-semibold text-sm shrink-0 shadow-md ring-2 ring-white`}>
+                  <div className={`w-12 h-12 rounded-full ${t.avatarColor} text-white flex items-center justify-center font-semibold text-sm shrink-0 shadow-md ring-2 ring-background`}>
                     {t.avatar}
                   </div>
                   <div className="min-w-0">
@@ -1022,8 +1022,8 @@ const demoTabs = [
       subtitle: 'Visualizá y gestioná todas tus reservas en un solo lugar',
       rows: [
         { habitacion: '101 - Doble', huesped: 'María González', checkin: '15 Mar', checkout: '18 Mar', estado: 'Confirmada', estadoColor: 'bg-brand-emerald/15 text-brand-emerald' },
-        { habitacion: '205 - Suite', huesped: 'Carlos Rodríguez', checkin: '16 Mar', checkout: '20 Mar', estado: 'Check-In', estadoColor: 'bg-blue-500/15 text-blue-600' },
-        { habitacion: '310 - Simple', huesped: 'Ana López', checkin: '17 Mar', checkout: '19 Mar', estado: 'Pendiente', estadoColor: 'bg-amber-500/15 text-amber-600' },
+        { habitacion: '205 - Suite', huesped: 'Carlos Rodríguez', checkin: '16 Mar', checkout: '20 Mar', estado: 'Check-In', estadoColor: 'bg-info/15 text-info' },
+        { habitacion: '310 - Simple', huesped: 'Ana López', checkin: '17 Mar', checkout: '19 Mar', estado: 'Pendiente', estadoColor: 'bg-warning/15 text-warning' },
       ],
     },
   },
@@ -1036,8 +1036,8 @@ const demoTabs = [
       subtitle: 'Controlá los pagos y la facturación de tu hotel',
       rows: [
         { habitacion: 'Factura #1247', huesped: 'María González', checkin: '$45.000', checkout: 'Pagado', estado: 'Completo', estadoColor: 'bg-brand-emerald/15 text-brand-emerald' },
-        { habitacion: 'Factura #1248', huesped: 'Laura Martínez', checkin: '$78.500', checkout: 'Parcial', estado: '$32.000 pagado', estadoColor: 'bg-amber-500/15 text-amber-600' },
-        { habitacion: 'Factura #1249', huesped: 'Roberto Díaz', checkin: '$23.000', checkout: 'Pendiente', estado: 'Sin pago', estadoColor: 'bg-red-500/15 text-red-600' },
+        { habitacion: 'Factura #1248', huesped: 'Laura Martínez', checkin: '$78.500', checkout: 'Parcial', estado: '$32.000 pagado', estadoColor: 'bg-warning/15 text-warning' },
+        { habitacion: 'Factura #1249', huesped: 'Roberto Díaz', checkin: '$23.000', checkout: 'Pendiente', estado: 'Sin pago', estadoColor: 'bg-destructive/15 text-destructive' },
       ],
     },
   },
@@ -1106,9 +1106,9 @@ function DemoPreview() {
           <div className="relative rounded-2xl border border-border bg-muted/20 overflow-hidden shadow-xl shadow-black/[0.06]">
             {/* Browser chrome header */}
             <div className="flex items-center gap-1.5 px-4 py-3 bg-muted/50 border-b border-border/60">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/80" />
-              <span className="w-2.5 h-2.5 rounded-full bg-green-400/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-destructive/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-warning/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-success/80" />
               <span className="ml-3 text-[11px] text-muted-foreground/60 font-mono">hospeda.app/{activeTab}</span>
             </div>
 
@@ -1141,7 +1141,7 @@ function DemoPreview() {
                 {activeDemo.content.rows.map((row, i) => (
                   <div
                     key={i}
-                    className="grid grid-cols-4 gap-3 px-4 py-3 rounded-lg bg-white/60 border border-border/40 items-center"
+                    className="grid grid-cols-4 gap-3 px-4 py-3 rounded-lg bg-card/60 border border-border/40 items-center"
                   >
                     <span className="text-sm font-medium text-foreground/70 truncate">{row.habitacion}</span>
                     <span className="text-sm text-muted-foreground/60 truncate">{row.huesped}</span>
@@ -1278,14 +1278,14 @@ function CtaSection() {
           <div className="relative rounded-3xl bg-primary text-primary-foreground overflow-hidden px-6 py-16 sm:px-12 sm:py-20 text-center">
             {/* Decorative elements */}
             <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white/10 blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/5" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full border border-white/5" />
+              <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-background/10 blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full bg-background/5 blur-3xl" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-background/5" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full border border-background/5" />
             </div>
 
             <div className="relative z-10 max-w-2xl mx-auto">
-              <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 text-sm mb-6 backdrop-blur-sm">
+              <div className="inline-flex items-center gap-2 bg-background/10 rounded-full px-4 py-1.5 text-sm mb-6 backdrop-blur-sm">
                 <Clock className="w-4 h-4" />
                 30 días sin compromiso
               </div>
@@ -1309,7 +1309,7 @@ function CtaSection() {
                 <Button
                   size="lg"
                   variant="ghost"
-                  className="text-base px-8 h-12 text-primary-foreground hover:text-primary-foreground/80 hover:bg-white/10"
+                  className="text-base px-8 h-12 text-primary-foreground hover:text-primary-foreground/80 hover:bg-background/10"
                   onClick={() => scrollTo('planes')}
                 >
                   Ver planes

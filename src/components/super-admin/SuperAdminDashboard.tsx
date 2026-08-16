@@ -102,13 +102,13 @@ function getShortMonth(mesKey: string) {
 
 function estadoBadge(estado: string) {
   const variants: Record<string, string> = {
-    pendiente: 'bg-amber-100/30 text-amber-700',
-    pagado: 'bg-emerald-100/30 text-emerald-700',
-    fallido: 'bg-red-100/30 text-red-700',
-    devuelto: 'bg-gray-100/30 text-gray-600',
+    pendiente: 'bg-warning/15 text-warning',
+    pagado: 'bg-success/15 text-success',
+    fallido: 'bg-destructive/10 text-destructive',
+    devuelto: 'bg-muted text-muted-foreground',
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-gray-100/60 text-gray-800'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-muted text-foreground'}`}>
       {estado.charAt(0).toUpperCase() + estado.slice(1)}
     </span>
   );
@@ -116,14 +116,14 @@ function estadoBadge(estado: string) {
 
 function subEstadoBadge(estado: string) {
   const variants: Record<string, string> = {
-    trial: 'bg-amber-100/30 text-amber-700',
-    activa: 'bg-emerald-100/30 text-emerald-700',
-    vencida: 'bg-red-100/30 text-red-700',
-    cancelada: 'bg-gray-100/30 text-gray-600',
-    suspensa: 'bg-orange-100/30 text-orange-700',
+    trial: 'bg-warning/15 text-warning',
+    activa: 'bg-success/15 text-success',
+    vencida: 'bg-destructive/10 text-destructive',
+    cancelada: 'bg-muted text-muted-foreground',
+    suspensa: 'bg-warning/15 text-warning',
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-gray-100/60 text-gray-800'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-muted text-foreground'}`}>
       {estado.charAt(0).toUpperCase() + estado.slice(1)}
     </span>
   );
@@ -282,7 +282,7 @@ export default function SuperAdminDashboard() {
           value={data?.ingresos.pagosPendientes?.toString() ?? '—'}
           subtitle={`${data?.ingresos.pagosMesActual ?? 0} pagos este mes`}
           icon={AlertTriangle}
-          iconColor="bg-amber-100/30 text-amber-700"
+          iconColor="bg-warning/15 text-warning"
           loading={loading}
         />
       </div>
@@ -301,7 +301,7 @@ export default function SuperAdminDashboard() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-500" />
+            <Clock className="w-4 h-4 text-warning" />
             <CardTitle className="text-base">Próximos a vencer</CardTitle>
             <Badge variant="secondary" className="ml-auto">
               {data?.alertas.proximasAVencer.length ?? 0}

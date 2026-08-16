@@ -82,7 +82,7 @@ export default function LoginForm() {
       {/* ── Right: Login card panel ── */}
       <div className="flex-1 flex items-center justify-center relative z-10 p-4 sm:p-6">
         <Card
-          className="w-full max-w-sm rounded-2xl shadow-2xl border border-white/10 bg-slate-900/90 backdrop-blur-xl"
+          className="w-full max-w-sm rounded-2xl shadow-2xl border border-background/10 bg-foreground/90 backdrop-blur-xl"
           style={{ animation: 'fadeUp 0.5s ease-out both' }}
         >
           <CardHeader className="text-center pb-2">
@@ -139,7 +139,7 @@ export default function LoginForm() {
 
               {/* Error message */}
               {error && (
-                <p className="text-sm text-red-400 font-medium">
+                <p className="text-sm text-destructive font-medium">
                   {error}
                 </p>
               )}

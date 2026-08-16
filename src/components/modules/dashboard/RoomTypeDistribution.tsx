@@ -130,7 +130,7 @@ export default function RoomTypeDistribution() {
             <div key={entry.type} className="group">
               {/* Label row */}
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
+                <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
                   <span
                     className="w-2 h-2 rounded-sm shrink-0"
                     style={{ backgroundColor: entry.color }}
@@ -138,13 +138,13 @@ export default function RoomTypeDistribution() {
                   {entry.type}
                 </span>
                 <span className="text-[10px] tabular-nums text-muted-foreground">
-                  <span className="font-semibold text-slate-700">{entry.count}</span>
+                  <span className="font-semibold text-foreground">{entry.count}</span>
                   {' '}({entry.percentage}%)
                 </span>
               </div>
 
               {/* Bar */}
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
                   className={cn(
                     'h-full rounded-full transition-all duration-700 ease-out',

@@ -208,25 +208,25 @@ export const CATEGORY_LABELS: Record<NotificationCategory, string> = {
 };
 
 export const CATEGORY_COLORS: Record<NotificationCategory, string> = {
-  reserva: 'text-blue-500',
-  pago: 'text-emerald-500',
-  checkin: 'text-orange-500',
-  habitacion: 'text-purple-500',
-  sistema: 'text-gray-500',
-  limpieza: 'text-yellow-500',
+  reserva: 'text-info',
+  pago: 'text-success',
+  checkin: 'text-warning',
+  habitacion: 'text-chart-5',
+  sistema: 'text-muted-foreground',
+  limpieza: 'text-warning',
 };
 
 export const CATEGORY_BG: Record<NotificationCategory, string> = {
-  reserva: 'bg-blue-950/30 border-l-blue-400',
-  pago: 'bg-emerald-950/30 border-l-emerald-400',
-  checkin: 'bg-orange-950/30 border-l-orange-400',
-  habitacion: 'bg-purple-950/30 border-l-purple-400',
-  sistema: 'bg-gray-950/30 border-l-gray-400',
-  limpieza: 'bg-yellow-950/30 border-l-yellow-400',
+  reserva: 'bg-info/10 border-l-info',
+  pago: 'bg-success/10 border-l-success',
+  checkin: 'bg-warning/10 border-l-warning',
+  habitacion: 'bg-chart-5/10 border-l-chart-5',
+  sistema: 'bg-muted border-l-muted-foreground',
+  limpieza: 'bg-warning/10 border-l-warning',
 };
 
 export const PRIORITY_INDICATOR: Record<NotificationPriority, string> = {
   info: '',
-  warning: 'border-amber-400',
-  urgent: 'border-red-500',
+  warning: 'border-warning',
+  urgent: 'border-destructive',
 };

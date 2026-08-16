@@ -42,8 +42,8 @@ export default function PlanIndicator() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors text-left">
-            <span className="w-7 h-7 rounded-md bg-amber-500/10 flex items-center justify-center shrink-0">
-              <Crown className="w-3.5 h-3.5 text-amber-500" />
+            <span className="w-7 h-7 rounded-md bg-warning/10 flex items-center justify-center shrink-0">
+              <Crown className="w-3.5 h-3.5 text-warning" />
             </span>
             <span className="flex-1 min-w-0">
               <span className="text-xs font-medium text-muted-foreground block">Plan</span>
@@ -85,7 +85,7 @@ export default function PlanIndicator() {
                 onClick={() => handleSelectPlan('premium')}
                 className="flex items-center gap-3 py-2.5 cursor-pointer"
               >
-                <Crown className="w-4 h-4 text-amber-500" />
+                <Crown className="w-4 h-4 text-warning" />
                 <div className="flex-1">
                   <p className="text-sm font-medium">Upgrade a Premium</p>
                   <p className="text-xs text-muted-foreground">{plans.premium.precioDisplay}/mes</p>

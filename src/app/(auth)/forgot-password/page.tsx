@@ -67,8 +67,8 @@ export default function ForgotPasswordPage() {
           style={{ animation: 'cardEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) both' }}
         >
           <div className="p-8 md:p-10 text-center">
-            <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-6">
-              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
+              <CheckCircle2 className="w-8 h-8 text-primary" />
             </div>
             <h2 className="text-xl font-bold text-foreground mb-2">Email enviado</h2>
             <p className="text-sm text-muted-foreground mb-1">

@@ -30,9 +30,9 @@ import { formatMoney, formatFecha, todayLocal, daysAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 const estadoPagoBadge: Record<string, string> = {
-  Pendiente: 'bg-amber-100/60 text-amber-700 border-amber-300/40',
-  Parcial: 'bg-orange-100/60 text-orange-700 border-orange-300/40',
-  Pagado: 'bg-emerald-100/60 text-emerald-700 border-primary/40',
+  Pendiente: 'bg-warning/15 text-warning border-warning/40',
+  Parcial: 'bg-warning/15 text-warning border-warning/40',
+  Pagado: 'bg-success/15 text-success border-primary/40',
 };
 
 const PARENTESCO_OPTIONS = [
@@ -346,16 +346,16 @@ export default function CheckInModule() {
           </Card>
 
           {/* Pendientes Check-Out */}
-          <Card className="border-orange-300/40 bg-amber-50">
+          <Card className="border-warning/40 bg-warning/10">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
-                <LogOut className="w-5 h-5 text-orange-600" />
+                <LogOut className="w-5 h-5 text-warning" />
                 Check-Outs Pendientes
-                {pendientesCheckOut.length > 0 && <PulsingDot color="bg-orange-500" />}
+                {pendientesCheckOut.length > 0 && <PulsingDot color="bg-warning" />}
                 <Badge
                   key={`cout-${pendientesCheckOut.length}`}
                   variant="secondary"
-                  className="ml-auto count-pop bg-orange-100/40 text-orange-700 border-orange-300/40 hover:bg-orange-100/60"
+                  className="ml-auto count-pop bg-warning/15 text-warning border-warning/40 hover:bg-warning/20"
                 >
                   {pendientesCheckOut.length}
                 </Badge>
@@ -367,7 +367,7 @@ export default function CheckInModule() {
               ) : (
                 <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
                   {pendientesCheckOut.map(r => (
-                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-amber-100/40 transition-colors duration-200 group">
+                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-warning/15 transition-colors duration-200 group">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-sm group-hover:text-primary transition-colors">{r.huesped}</span>
@@ -428,9 +428,9 @@ export default function CheckInModule() {
                   </p>
 
                   {menoresErrors.length > 0 && (
-                    <div className="rounded-lg border border-red-300/40 bg-red-100/30 p-3 space-y-1">
+                    <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 space-y-1">
                       {menoresErrors.map((err, i) => (
-                        <p key={i} className="text-xs text-red-700">{err}</p>
+                        <p key={i} className="text-xs text-destructive">{err}</p>
                       ))}
                     </div>
                   )}
@@ -440,7 +440,7 @@ export default function CheckInModule() {
                       <div key={idx} className="rounded-lg border p-4 space-y-3 bg-muted/30">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-semibold flex items-center gap-1.5">
-                            <Baby className="w-4 h-4 text-purple-600" />
+                            <Baby className="w-4 h-4 text-chart-5" />
                             Menor {idx + 1}
                           </span>
                         </div>
@@ -718,14 +718,14 @@ export default function CheckInModule() {
                     <Separator />
                     <div className="flex justify-between text-sm font-bold">
                       <span>Saldo</span>
-                      <span className={saldo > 0 ? 'text-red-700' : 'text-primary'}>
+                      <span className={saldo > 0 ? 'text-destructive' : 'text-primary'}>
                         {formatMoney(saldo)}
                       </span>
                     </div>
                   </div>
 
                   {saldo > 0 && (
-                    <div className="flex items-center gap-2 text-amber-700 text-sm">
+                    <div className="flex items-center gap-2 text-warning text-sm">
                       <CreditCard className="w-4 h-4" />
                       <span>El huésped tiene un saldo pendiente de {formatMoney(saldo)}.</span>
                     </div>
@@ -880,12 +880,12 @@ const KPI_COLORS: Record<string, {
   },
   amber: {
     border: 'border-l-amber-500',
-    bg: 'bg-amber-50',
-    label: 'text-amber-600',
-    value: 'text-amber-800',
-    sub: 'text-amber-600/50',
-    iconBg: 'bg-amber-500/20',
-    icon: 'text-amber-600',
+    bg: 'bg-warning/10',
+    label: 'text-warning',
+    value: 'text-warning',
+    sub: 'text-warning/50',
+    iconBg: 'bg-warning/20',
+    icon: 'text-warning',
   },
   teal: {
     border: 'border-l-teal-500',
@@ -1051,7 +1051,7 @@ function CheckInAccountStatus({ reserva }: { reserva: Reserva }) {
         </div>
         <div>
           <span className="text-muted-foreground text-xs block">Saldo</span>
-          <span className={`font-bold text-base ${saldo > 0 ? 'text-red-700' : 'text-primary'}`}>
+          <span className={`font-bold text-base ${saldo > 0 ? 'text-destructive' : 'text-primary'}`}>
             {formatMoney(saldo)}
           </span>
         </div>

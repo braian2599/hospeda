@@ -14,10 +14,10 @@ interface ProfileWelcomeProps {
 }
 
 const ROL_INFO: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
-  owner: { label: 'Administrador Principal', icon: ShieldCheck, color: 'bg-amber-100/30 text-amber-700' },
-  admin: { label: 'Admin', icon: Shield, color: 'bg-purple-100/30 text-purple-700' },
-  recepcion: { label: 'Recepcion', icon: UserCog, color: 'bg-blue-100/30 text-blue-700' },
-  limpieza: { label: 'Limpieza', icon: Sparkles, color: 'bg-green-100/30 text-green-700' },
+  owner: { label: 'Administrador Principal', icon: ShieldCheck, color: 'bg-warning/15 text-warning' },
+  admin: { label: 'Admin', icon: Shield, color: 'bg-chart-5/15 text-chart-5' },
+  recepcion: { label: 'Recepcion', icon: UserCog, color: 'bg-info/15 text-info' },
+  limpieza: { label: 'Limpieza', icon: Sparkles, color: 'bg-success/15 text-success' },
 };
 
 export default function ProfileWelcome({ profileName, email, rol, hotelNombre, onComplete }: ProfileWelcomeProps) {

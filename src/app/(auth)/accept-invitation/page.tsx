@@ -30,7 +30,7 @@ function AcceptInvitationForm() {
         <div className="flex-1 flex items-center justify-center relative z-10 p-4 sm:p-6">
           <Card className="w-full max-w-sm rounded-2xl shadow-2xl border border-border bg-card shadow-xl text-center">
             <CardContent className="pt-8 pb-6 space-y-4">
-              <h2 className="text-xl font-bold text-red-600">Enlace invalido</h2>
+              <h2 className="text-xl font-bold text-destructive">Enlace invalido</h2>
               <p className="text-sm text-muted-foreground">
                 Faltan parametros. Pedí una nueva invitación.
               </p>
@@ -52,8 +52,8 @@ function AcceptInvitationForm() {
         <div className="flex-1 flex items-center justify-center relative z-10 p-4 sm:p-6">
           <Card className="w-full max-w-sm rounded-2xl shadow-2xl border border-border bg-card shadow-xl text-center">
             <CardContent className="pt-8 pb-6 space-y-4">
-              <div className="mx-auto w-16 h-16 rounded-full bg-emerald-900/30 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+              <div className="mx-auto w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-primary" />
               </div>
               <h2 className="text-xl font-bold">Contraseña creada</h2>
               <p className="text-sm text-muted-foreground">

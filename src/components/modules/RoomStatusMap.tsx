@@ -41,7 +41,7 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
     key: 'Ocupada',
     label: 'Ocupada',
     color: 'var(--brand-amber)',
-    bgColor: 'bg-amber-600/8',
+    bgColor: 'bg-warning/8',
     icon: UserCheck,
     needsAttention: false,
   },
@@ -57,7 +57,7 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
     key: 'Limpieza',
     label: 'Limpieza',
     color: 'var(--warning)',
-    bgColor: 'bg-yellow-500/8',
+    bgColor: 'bg-warning/8',
     icon: SprayCan,
     needsAttention: true,
   },
@@ -65,7 +65,7 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
     key: 'Mantenimiento',
     label: 'Mantenimiento',
     color: 'var(--destructive)',
-    bgColor: 'bg-red-600/8',
+    bgColor: 'bg-destructive/8',
     icon: Wrench,
     needsAttention: true,
   },
@@ -73,7 +73,7 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
     key: 'Fuera de servicio',
     label: 'Fuera de servicio',
     color: 'var(--status-finalized)',
-    bgColor: 'bg-slate-400/8',
+    bgColor: 'bg-muted-foreground/8',
     icon: Ban,
     needsAttention: false,
   },
@@ -355,7 +355,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
 
                 {/* Guest info */}
                 {detailHuesped && (
-                  <div className="rounded-lg border-l-[3px] p-3 bg-amber-600/5" style={{ borderLeftColor: 'var(--brand-amber)' }}>
+                  <div className="rounded-lg border-l-[3px] p-3 bg-warning/5" style={{ borderLeftColor: 'var(--brand-amber)' }}>
                     <div className="text-xs font-semibold text-muted-foreground mb-1">Huésped actual</div>
                     <div className="text-sm font-semibold text-foreground">{detailHuesped.huesped}</div>
                     <div className="text-xs text-muted-foreground">
@@ -366,7 +366,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
 
                 {/* Problem note */}
                 {detailHab.problema && (
-                  <div className="rounded-lg border-l-[3px] p-3 bg-red-600/5" style={{ borderLeftColor: 'var(--destructive)' }}>
+                  <div className="rounded-lg border-l-[3px] p-3 bg-destructive/5" style={{ borderLeftColor: 'var(--destructive)' }}>
                     <div className="text-xs font-semibold text-muted-foreground mb-1">Problema reportado</div>
                     <div className="text-sm text-foreground">{detailHab.problema}</div>
                   </div>

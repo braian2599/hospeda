@@ -132,7 +132,7 @@ export default function GuestTimeline() {
         ) : (
           <div className="relative space-y-0 max-h-64 overflow-y-auto">
             {/* Timeline line */}
-            <div className="absolute left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-status-available/30 via-slate-400/20 to-status-cleaning/30" />
+            <div className="absolute left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-status-available/30 via-muted-foreground/20 to-status-cleaning/30" />
 
             {events.map(evt => (
               <div key={evt.id} className="relative flex items-center gap-3 py-1.5 pl-1">
@@ -158,7 +158,7 @@ export default function GuestTimeline() {
                   ) : (
                     <LogOut className="w-3 h-3 text-status-cleaning shrink-0" />
                   )}
-                  <span className="text-xs font-medium text-slate-700 truncate">{evt.guestName}</span>
+                  <span className="text-xs font-medium text-foreground truncate">{evt.guestName}</span>
                   <span className="text-[10px] text-muted-foreground shrink-0">
                     Hab. {evt.roomNumber}
                   </span>
@@ -170,7 +170,7 @@ export default function GuestTimeline() {
 
         {/* Summary footer */}
         {totalCount > 0 && (
-          <div className="flex items-center gap-3 mt-3 pt-2 border-t border-slate-100 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-3 mt-3 pt-2 border-t border-border text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-primary" />
               {arrivals.length} llegada{arrivals.length !== 1 ? 's' : ''}

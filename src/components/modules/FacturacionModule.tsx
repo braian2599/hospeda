@@ -34,9 +34,9 @@ import { AnimatedNumber } from '@/components/ui/animated-number';
 // formatFecha, formatMoney, formatFechaHora, todayLocal imported from @/lib/format
 
 const estadoPagoBadge: Record<string, string> = {
-  Pendiente: 'bg-amber-100/60 text-amber-700 border-amber-300/40 shadow-sm',
-  Parcial: 'bg-orange-100/40 text-orange-700 border-orange-300/40 shadow-sm',
-  Pagado: 'bg-emerald-100/60 text-emerald-700 border-primary/40 shadow-sm',
+  Pendiente: 'bg-warning/15 text-warning border-warning/40 shadow-sm',
+  Parcial: 'bg-warning/15 text-warning border-warning/40 shadow-sm',
+  Pagado: 'bg-success/15 text-success border-primary/40 shadow-sm',
 };
 
 /** Get initials from a name string (up to 2 chars) */
@@ -252,17 +252,17 @@ export default function FacturacionModule() {
       {/* ══════════════════ PAYMENT ANALYTICS SUMMARY ══════════════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
         {/* Total Pendiente */}
-        <div className="relative rounded-xl border-l-[3px] border-l-amber-500 bg-amber-50/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <div className="relative rounded-xl border-l-[3px] border-l-warning bg-warning/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-amber-600">Total Pendiente</p>
-              <AnimatedNumber value={analytics.totalPendiente} className="text-xl font-bold text-amber-800" />
+              <p className="text-xs font-medium text-warning">Total Pendiente</p>
+              <AnimatedNumber value={analytics.totalPendiente} className="text-xl font-bold text-warning" />
             </div>
-            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
+            <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-warning" />
             </div>
           </div>
-          <p className="text-amber-600/70 text-amber-600/50 mt-2">{pendientes.length} reserva{pendientes.length !== 1 ? 's' : ''} pendiente{pendientes.length !== 1 ? 's' : ''}</p>
+          <p className="text-warning/70 text-warning/50 mt-2">{pendientes.length} reserva{pendientes.length !== 1 ? 's' : ''} pendiente{pendientes.length !== 1 ? 's' : ''}</p>
         </div>
 
         {/* Total Cobrado Hoy */}
@@ -280,17 +280,17 @@ export default function FacturacionModule() {
         </div>
 
         {/* Cobros este Mes */}
-        <div className="relative rounded-xl border-l-[3px] border-l-sky-500 bg-sky-50/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <div className="relative rounded-xl border-l-[3px] border-l-info bg-info/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-sky-600">Cobros este Mes</p>
-              <AnimatedNumber value={analytics.cobrosMes} className="text-xl font-bold text-sky-800" />
+              <p className="text-xs font-medium text-info">Cobros este Mes</p>
+              <AnimatedNumber value={analytics.cobrosMes} className="text-xl font-bold text-info" />
             </div>
-            <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center">
-              <CalendarDays className="w-5 h-5 text-sky-600" />
+            <div className="w-10 h-10 rounded-full bg-info/20 flex items-center justify-center">
+              <CalendarDays className="w-5 h-5 text-info" />
             </div>
           </div>
-          <p className="text-sky-600/70 text-sky-600/50 mt-2">Acumulado mensual</p>
+          <p className="text-info/70 text-info/50 mt-2">Acumulado mensual</p>
         </div>
 
         {/* Promedio por Reserva */}
@@ -339,7 +339,7 @@ export default function FacturacionModule() {
                       const pagado = calcularTotalPagado(r.id);
                       const saldo = total - pagado;
                       const pct = total > 0 ? Math.min(100, (pagado / total) * 100) : 0;
-                      const borderColor = r.estadoPago === 'Parcial' ? 'border-l-amber-500' : 'border-l-red-500';
+                      const borderColor = r.estadoPago === 'Parcial' ? 'border-l-warning' : 'border-l-destructive';
                       const dSince = daysSince(r.checkin);
                       return (
                         <div key={r.id} className={`border-l-[3px] ${borderColor} p-4 space-y-2.5 hover:bg-muted/20 transition-all duration-150`}>
@@ -392,7 +392,7 @@ export default function FacturacionModule() {
                             </div>
                             <div>
                               <p className="text-[10px] text-muted-foreground leading-tight">Saldo</p>
-                              <p className="text-sm font-bold text-red-700">{formatMoney(saldo)}</p>
+                              <p className="text-sm font-bold text-destructive">{formatMoney(saldo)}</p>
                             </div>
                           </div>
                           {/* Actions */}
@@ -450,7 +450,7 @@ export default function FacturacionModule() {
                         const pagado = calcularTotalPagado(r.id);
                         const saldo = total - pagado;
                         const pct = total > 0 ? Math.min(100, (pagado / total) * 100) : 0;
-                        const borderColor = r.estadoPago === 'Parcial' ? 'border-l-amber-500' : 'border-l-red-500';
+                        const borderColor = r.estadoPago === 'Parcial' ? 'border-l-warning' : 'border-l-destructive';
                         const dSince = daysSince(r.checkin);
                         return (
                           <TableRow key={r.id} className={`group border-l-[3px] ${borderColor} hover:bg-primary/10 hover:-translate-y-px transition-all duration-150`}>
@@ -479,7 +479,7 @@ export default function FacturacionModule() {
                             <TableCell className="hidden md:table-cell">{formatFecha(r.checkout)}</TableCell>
                             <TableCell className="text-right font-bold text-primary">{formatMoney(total)}</TableCell>
                             <TableCell className="text-right font-semibold text-primary">{formatMoney(pagado)}</TableCell>
-                            <TableCell className="text-right text-red-700 font-bold">{formatMoney(saldo)}</TableCell>
+                            <TableCell className="text-right text-destructive font-bold">{formatMoney(saldo)}</TableCell>
                             <TableCell>
                               <div className="space-y-1 min-w-[80px]">
                                 <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -601,7 +601,7 @@ export default function FacturacionModule() {
                           {reserva && (
                             <div className="flex justify-between text-xs text-muted-foreground">
                               <span>Total: {formatMoney(totalR)}</span>
-                              <span className={saldoR <= 0 ? 'text-primary font-medium' : 'text-red-700'}>{saldoR <= 0 ? 'Pagado' : `Saldo: ${formatMoney(saldoR)}`}</span>
+                              <span className={saldoR <= 0 ? 'text-primary font-medium' : 'text-destructive'}>{saldoR <= 0 ? 'Pagado' : `Saldo: ${formatMoney(saldoR)}`}</span>
                             </div>
                           )}
                           {/* Receipt button */}
@@ -673,7 +673,7 @@ export default function FacturacionModule() {
                             <TableCell className="hidden md:table-cell text-right text-sm">
                               {formatMoney(totalR)}
                             </TableCell>
-                            <TableCell className={`hidden md:table-cell text-right text-sm font-medium ${saldoR <= 0 ? 'text-primary' : 'text-red-700'}`}>
+                            <TableCell className={`hidden md:table-cell text-right text-sm font-medium ${saldoR <= 0 ? 'text-primary' : 'text-destructive'}`}>
                               {saldoR <= 0 ? 'Pagado' : formatMoney(saldoR)}
                             </TableCell>
                             <TableCell className="hidden lg:table-cell text-muted-foreground text-sm max-w-[200px] truncate">
@@ -733,7 +733,7 @@ export default function FacturacionModule() {
                 <Separator />
                 <div className="flex justify-between font-bold text-sm">
                   <span>Saldo pendiente</span>
-                  <span className="text-red-700">
+                  <span className="text-destructive">
                     {formatMoney(calcularTotalReserva(pagoReserva.id) - calcularTotalPagado(pagoReserva.id))}
                   </span>
                 </div>
@@ -814,9 +814,9 @@ function MetodoIconBadge({ type, name }: { type: 'credit' | 'bank' | 'wallet' | 
     cash: <CircleDollarSign className="w-3 h-3" />,
   };
   const colorMap = {
-    credit: 'bg-sky-100/30 text-sky-600',
+    credit: 'bg-info/15 text-info',
     bank: 'bg-violet-100/30 text-violet-600',
-    wallet: 'bg-amber-100/30 text-amber-600',
+    wallet: 'bg-warning/15 text-warning',
     cash: 'bg-primary/10 text-primary',
   };
   return (
@@ -987,7 +987,7 @@ function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: st
         {saldo > 0 && (
           <div className="flex justify-between text-sm font-bold">
             <span>Saldo pendiente</span>
-            <span className="text-red-700">{formatMoney(saldo)}</span>
+            <span className="text-destructive">{formatMoney(saldo)}</span>
           </div>
         )}
         {saldo <= 0 && (

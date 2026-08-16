@@ -121,7 +121,7 @@ export default function SuperAdminConfig() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <CreditCard className="w-5 h-5 text-sky-500" />
+              <CreditCard className="w-5 h-5 text-info" />
               Mercado Pago
             </CardTitle>
           </CardHeader>

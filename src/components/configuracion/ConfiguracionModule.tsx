@@ -113,7 +113,7 @@ function getPasswordStrength(pw: string): { level: StrengthLevel; label: string;
   if (len >= 6 && hasLetters && hasNumbers) {
     return { level: 'medium', label: 'Media', pct: 60, color: 'bg-brand-amber', textColor: 'text-brand-amber' };
   }
-  return { level: 'weak', label: 'Débil', pct: 25, color: 'bg-red-500', textColor: 'text-red-500' };
+  return { level: 'weak', label: 'Débil', pct: 25, color: 'bg-destructive', textColor: 'text-destructive' };
 }
 
 function formatBytes(bytes: number): string {
@@ -295,7 +295,7 @@ function HotelSection() {
               onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
             />
           ) : null}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-foreground/20 to-transparent" />
         </div>
         <CardContent className="p-4 md:p-6 -mt-12 relative">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4">
@@ -531,7 +531,7 @@ function FiscalSection() {
                 value={form.cuit}
                 onChange={e => setForm({ ...form, cuit: e.target.value })}
                 placeholder="20-12345678-9"
-                className={cuitDigits.length >= 11 ? (cuitValido ? 'border-primary focus-visible:ring-brand-emerald/30' : 'border-red-500 focus-visible:ring-red-500/30') : ''}
+                className={cuitDigits.length >= 11 ? (cuitValido ? 'border-primary focus-visible:ring-brand-emerald/30' : 'border-destructive focus-visible:ring-destructive/30') : ''}
               />
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Dígito verificador esperado:</span>
@@ -540,11 +540,11 @@ function FiscalSection() {
                     <span className="text-muted-foreground">—</span>
                   ) : (
                     <>
-                      <span className={cuitValido ? 'text-primary' : 'text-red-500'}>{computedDigit}</span>
+                      <span className={cuitValido ? 'text-primary' : 'text-destructive'}>{computedDigit}</span>
                       {cuitDigits.length >= 11 && (
                         cuitValido
                           ? <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                          : <XCircle className="w-3.5 h-3.5 text-red-500" />
+                          : <XCircle className="w-3.5 h-3.5 text-destructive" />
                       )}
                     </>
                   )}
@@ -619,30 +619,30 @@ function FiscalSection() {
         </CardHeader>
         <CardContent>
           <div className="mx-auto max-w-sm bg-card border border-border rounded-md shadow-sm p-5 text-foreground font-mono text-xs space-y-2">
-            <div className="flex justify-between items-start border-b border-dashed border-gray-300 pb-2">
+            <div className="flex justify-between items-start border-b border-dashed border-border pb-2">
               <div>
                 <p className="font-bold text-sm">{form.ciudad || 'Ciudad'}</p>
-                <p className="text-gray-600">{form.direccionFiscal || 'Dirección fiscal'}</p>
+                <p className="text-muted-foreground">{form.direccionFiscal || 'Dirección fiscal'}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] uppercase tracking-wide text-gray-500">{form.iva || 'Condición IVA'}</p>
-                <p className="text-[10px] text-gray-600">CUIT: {form.cuit || '—'}</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{form.iva || 'Condición IVA'}</p>
+                <p className="text-[10px] text-muted-foreground">CUIT: {form.cuit || '—'}</p>
               </div>
             </div>
             <div className="flex justify-between items-center">
               <div>
                 <p className="font-bold uppercase">Comprobante</p>
-                <p className="text-gray-500 text-[10px]">Punto de venta: {String(form.puntoVenta || 1).padStart(4, '0')}</p>
+                <p className="text-muted-foreground text-[10px]">Punto de venta: {String(form.puntoVenta || 1).padStart(4, '0')}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] text-gray-500">N°</p>
+                <p className="text-[10px] text-muted-foreground">N°</p>
                 <p className="font-bold">{invoicePreview}</p>
               </div>
             </div>
-            <div className="border-t border-dashed border-gray-300 pt-2 space-y-1 text-[11px]">
-              <div className="flex justify-between"><span className="text-gray-600">Fecha</span><span>{new Date().toLocaleDateString('es-AR')}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Cliente</span><span>Consumidor Final</span></div>
-              <div className="flex justify-between border-t border-dashed border-gray-300 pt-1 mt-1"><span className="font-bold">TOTAL</span><span className="font-bold">$ 0,00</span></div>
+            <div className="border-t border-dashed border-border pt-2 space-y-1 text-[11px]">
+              <div className="flex justify-between"><span className="text-muted-foreground">Fecha</span><span>{new Date().toLocaleDateString('es-AR')}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span>Consumidor Final</span></div>
+              <div className="flex justify-between border-t border-dashed border-border pt-1 mt-1"><span className="font-bold">TOTAL</span><span className="font-bold">$ 0,00</span></div>
             </div>
           </div>
         </CardContent>
@@ -875,7 +875,7 @@ function CuentaSection() {
                 value={confirmPass}
                 onChange={e => setConfirmPass(e.target.value)}
                 placeholder="Repetí la nueva contraseña"
-                className={`pr-10 ${passwordsMismatch ? 'border-red-500 focus-visible:ring-red-500/30' : passwordsMatch ? 'border-primary focus-visible:ring-brand-emerald/30' : ''}`}
+                className={`pr-10 ${passwordsMismatch ? 'border-destructive focus-visible:ring-destructive/30' : passwordsMatch ? 'border-primary focus-visible:ring-brand-emerald/30' : ''}`}
               />
               <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showConfirm ? 'Ocultar' : 'Mostrar'}>
                 {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -884,12 +884,12 @@ function CuentaSection() {
                 <span className="absolute right-10 top-1/2 -translate-y-1/2">
                   {passwordsMatch
                     ? <CheckCircle2 className="w-4 h-4 text-primary" />
-                    : <XCircle className="w-4 h-4 text-red-500" />}
+                    : <XCircle className="w-4 h-4 text-destructive" />}
                 </span>
               )}
             </div>
             {passwordsMismatch && (
-              <p className="text-xs text-red-500 flex items-center gap-1">
+              <p className="text-xs text-destructive flex items-center gap-1">
                 <XCircle className="w-3 h-3" />
                 Las contraseñas no coinciden
               </p>
@@ -1173,8 +1173,8 @@ function SuscripcionSection() {
         {isTrial && diasTrial <= 7 && (
           <CardContent className="pt-0">
             <div className="flex items-center gap-2 p-3 rounded-lg bg-brand-amber/10 border border-brand-amber/20">
-              <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0" />
-              <p className="text-sm text-amber-700">
+              <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+              <p className="text-sm text-warning">
                 Tu prueba vence en {diasTrial} días. Seleccioná un plan para no perder acceso.
               </p>
             </div>
@@ -1293,7 +1293,7 @@ function SuscripcionSection() {
           className="flex items-center gap-3 group w-full text-left"
         >
           <div className="w-9 h-9 rounded-xl bg-info/10 flex items-center justify-center shrink-0">
-            <Building2 className="w-4 h-4 text-sky-700" />
+            <Building2 className="w-4 h-4 text-info" />
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-semibold group-hover:text-primary transition-colors">

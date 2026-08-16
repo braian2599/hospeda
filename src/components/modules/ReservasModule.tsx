@@ -230,16 +230,16 @@ const s = (n: number) => n !== 1 ? 's' : '';
 // formatFecha and formatMoney imported from @/lib/format
 
 const estadoReservaBadge: Record<string, string> = {
- Confirmada: 'bg-emerald-100/60 text-emerald-700 border-primary/40',
- Cancelada: 'bg-red-100/60 text-red-700 border-red-300/40',
- 'Check-In realizado': 'bg-sky-100/60 text-sky-700 border-sky-300/40',
- 'Check-Out realizado': 'bg-slate-200/60 text-slate-600 border-slate-400/40',
+ Confirmada: 'bg-success/15 text-success border-primary/40',
+ Cancelada: 'bg-destructive/15 text-destructive border-destructive/40',
+ 'Check-In realizado': 'bg-info/15 text-info border-info/40',
+ 'Check-Out realizado': 'bg-muted text-muted-foreground border-border',
 };
 
 const estadoPagoBadge: Record<string, string> = {
- Pendiente: 'bg-amber-100/60 text-amber-700 border-amber-300/40',
- Parcial: 'bg-orange-100/60 text-orange-700 border-orange-300/40',
- Pagado: 'bg-emerald-100/60 text-emerald-700 border-primary/40',
+ Pendiente: 'bg-warning/15 text-warning border-warning/40',
+ Parcial: 'bg-warning/15 text-warning border-warning/40',
+ Pagado: 'bg-success/15 text-success border-primary/40',
 };
 
 const estadosReserva = ['Confirmada', 'Cancelada', 'Check-In realizado', 'Check-Out realizado'];
@@ -270,7 +270,7 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
   const renderLines = (sub: number, dLocal: any) => {
     if (!dLocal) return (
       <div className="space-y-1">
-        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-slate-400">Subtotal</span><span className="font-semibold text-foreground">{formatMoney(sub)}</span></div>
+        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-muted-foreground">Subtotal</span><span className="font-semibold text-foreground">{formatMoney(sub)}</span></div>
       </div>
     );
 
@@ -304,16 +304,16 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
 
     return (
       <div className="space-y-1">
-        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-slate-400">Tarifa</span><span className="font-semibold text-foreground capitalize">{form.tipoTarifa}</span></div>
-        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-slate-400">Noches</span><span className="font-semibold text-foreground">{computed.noches}{dLocal?.nochesGratis > 0 ? ` (${dLocal.nochesCobrables} cobrables)` : ''}</span></div>
+        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-muted-foreground">Tarifa</span><span className="font-semibold text-foreground capitalize">{form.tipoTarifa}</span></div>
+        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-muted-foreground">Noches</span><span className="font-semibold text-foreground">{computed.noches}{dLocal?.nochesGratis > 0 ? ` (${dLocal.nochesCobrables} cobrables)` : ''}</span></div>
         {lines.map(l => (
           <div key={l.key} className="flex justify-between items-center py-1 text-[13px]">
-            <span className={l.dim ? 'text-slate-400 line-through' : 'text-slate-400'}>{l.label}</span>
-            <span className={l.dim ? 'font-medium text-slate-400' : 'font-semibold text-foreground'}>{l.value}</span>
+            <span className={l.dim ? 'text-muted-foreground line-through' : 'text-muted-foreground'}>{l.label}</span>
+            <span className={l.dim ? 'font-medium text-muted-foreground' : 'font-semibold text-foreground'}>{l.value}</span>
           </div>
         ))}
         <div className="flex justify-between items-center py-1.5 mt-1 border-t border-border text-[13px]">
-          <span className="font-medium text-slate-600">Subtotal</span>
+          <span className="font-medium text-muted-foreground">Subtotal</span>
           <span className="font-bold text-foreground">{formatMoney(sub)}</span>
         </div>
       </div>
@@ -324,11 +324,11 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
     <>
       {form.reservaMultiple ? (
         <>
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Habitación {form.habitacion}</p>
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Habitación {form.habitacion}</p>
           {renderLines(computed.subtotal, d)}
           {computed.subtotal2 > 0 && (
             <>
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider pt-2">Habitación {form.habitacion2}</p>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-2">Habitación {form.habitacion2}</p>
               {renderLines(computed.subtotal2, null)}
             </>
           )}
@@ -1261,25 +1261,25 @@ export default function ReservasModule() {
        </div>
      </div>
    </div>
-   <div className="relative rounded-xl border-l-[3px] border-l-amber-500 bg-amber-50 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   <div className="relative rounded-xl border-l-[3px] border-l-warning bg-warning/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
      <div className="flex items-start justify-between">
        <div className="space-y-1">
-         <p className="text-xs font-medium text-amber-600">Check-outs hoy</p>
-         <p className="text-xl font-bold text-amber-800">{todayActivity.checkoutsHoy}</p>
+         <p className="text-xs font-medium text-warning">Check-outs hoy</p>
+         <p className="text-xl font-bold text-warning">{todayActivity.checkoutsHoy}</p>
        </div>
-       <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-         <TrendingDown className="w-5 h-5 text-amber-600" />
+       <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center shrink-0">
+         <TrendingDown className="w-5 h-5 text-warning" />
        </div>
      </div>
    </div>
-   <div className="relative rounded-xl border-l-[3px] border-l-green-500 bg-green-50 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   <div className="relative rounded-xl border-l-[3px] border-l-success bg-success/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
      <div className="flex items-start justify-between">
        <div className="space-y-1">
-         <p className="text-xs font-medium text-green-600">En alojamiento</p>
-         <p className="text-xl font-bold text-green-800">{todayActivity.inHouse}</p>
+         <p className="text-xs font-medium text-success">En alojamiento</p>
+         <p className="text-xl font-bold text-success">{todayActivity.inHouse}</p>
        </div>
-       <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
-         <Bed className="w-5 h-5 text-green-600" />
+       <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center shrink-0">
+         <Bed className="w-5 h-5 text-success" />
        </div>
      </div>
    </div>
@@ -1428,7 +1428,7 @@ export default function ReservasModule() {
  )}
  {/* Row 5: Saldo */}
  {saldo > 0 && (
-   <div className="flex items-center gap-1 mt-1.5 text-xs text-red-700 font-medium">
+   <div className="flex items-center gap-1 mt-1.5 text-xs text-destructive font-medium">
      <AlertTriangle className="w-3 h-3" />
      Saldo: {formatMoney(saldo)}
    </div>
@@ -1449,7 +1449,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-amber-700 hover:bg-amber-100/30"
+         className="h-7 text-xs px-2 text-warning hover:bg-warning/15"
          onClick={() => openEdit(r)}
        >
          <Pencil className="w-3 h-3 mr-1" />Editar
@@ -1457,7 +1457,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-red-700 hover:bg-red-100/30"
+         className="h-7 text-xs px-2 text-destructive hover:bg-destructive/15"
          onClick={() => openCancel(r.id)}
        >
          <XCircle className="w-3 h-3 mr-1" />Cancelar
@@ -1469,7 +1469,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-orange-600 hover:bg-orange-100/30"
+         className="h-7 text-xs px-2 text-warning hover:bg-warning/15"
          disabled={isActionLoading}
          onClick={() => handleQuickCheckOut(r)}
        >
@@ -1538,7 +1538,7 @@ export default function ReservasModule() {
            <div>{r.huesped}</div>
            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
              <span>{r.dni}</span>
-             <span className="text-slate-400">·</span>
+             <span className="text-muted-foreground">·</span>
              <User className="w-3 h-3" />
              <span>{r.personas}</span>
            </div>
@@ -1591,7 +1591,7 @@ export default function ReservasModule() {
        <TableCell className="hidden md:table-cell">
          <div className="flex items-center gap-1">
            {saldo > 0 && <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />}
-           <span className={saldo > 0 ? 'text-red-700 font-medium' : 'text-muted-foreground'}>
+           <span className={saldo > 0 ? 'text-destructive font-medium' : 'text-muted-foreground'}>
              {formatMoney(saldo)}
            </span>
          </div>
@@ -1612,7 +1612,7 @@ export default function ReservasModule() {
                <Button
                  size="sm"
                  variant="outline"
-                 className="border-amber-300/40 text-amber-700 hover:bg-amber-100/30 h-7 text-xs px-2"
+                 className="border-warning/40 text-warning hover:bg-warning/15 h-7 text-xs px-2"
                  onClick={() => openEdit(r)}
                >
                  <Pencil className="w-3 h-3 mr-1" />Editar
@@ -1620,7 +1620,7 @@ export default function ReservasModule() {
                <Button
                  size="sm"
                  variant="outline"
-                 className="border-red-300/40 text-red-700 hover:bg-red-100/30 h-7 text-xs px-2"
+                 className="border-destructive/40 text-destructive hover:bg-destructive/15 h-7 text-xs px-2"
                  onClick={() => openCancel(r.id)}
                >
                  <XCircle className="w-3 h-3 mr-1" />Cancelar
@@ -1631,7 +1631,7 @@ export default function ReservasModule() {
              <Button
                size="sm"
                variant="ghost"
-               className="h-7 text-xs px-2 text-orange-600 hover:bg-orange-100/30 opacity-0 group-hover:opacity-100 transition-opacity"
+               className="h-7 text-xs px-2 text-warning hover:bg-warning/15 opacity-0 group-hover:opacity-100 transition-opacity"
                disabled={isActionLoading}
                onClick={() => handleQuickCheckOut(r)}
              >
@@ -1763,13 +1763,13 @@ export default function ReservasModule() {
  <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">Total reserva</p>
  <p className="font-bold text-lg text-primary">{formatMoney(calcularTotalReserva(detalleReserva.id))}</p>
  </div>
- <div className="rounded-xl border-2 border-sky-300/40 bg-sky-100/30 p-3 text-center">
- <p className="text-xs font-medium text-sky-700 uppercase tracking-wide mb-1">Pagado</p>
- <p className="font-bold text-lg text-sky-700">{formatMoney(calcularTotalPagado(detalleReserva.id))}</p>
+ <div className="rounded-xl border-2 border-info/40 bg-info/10 p-3 text-center">
+ <p className="text-xs font-medium text-info uppercase tracking-wide mb-1">Pagado</p>
+ <p className="font-bold text-lg text-info">{formatMoney(calcularTotalPagado(detalleReserva.id))}</p>
  </div>
- <div className={`rounded-xl border-2 p-3 text-center ${getSaldo(detalleReserva) > 0 ? 'border-red-300/40 bg-red-100/30' : 'border-border bg-muted/30'}`}> 
- <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${getSaldo(detalleReserva) > 0 ? 'text-red-700' : 'text-slate-400'}`}>Saldo</p>
- <p className={`font-bold text-lg ${getSaldo(detalleReserva) > 0 ? 'text-red-700' : 'text-foreground'}`}>
+ <div className={`rounded-xl border-2 p-3 text-center ${getSaldo(detalleReserva) > 0 ? 'border-destructive/40 bg-destructive/15' : 'border-border bg-muted/30'}`}> 
+ <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${getSaldo(detalleReserva) > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>Saldo</p>
+ <p className={`font-bold text-lg ${getSaldo(detalleReserva) > 0 ? 'text-destructive' : 'text-foreground'}`}>
  {formatMoney(getSaldo(detalleReserva))}
  </p>
  </div>
@@ -1800,9 +1800,9 @@ export default function ReservasModule() {
  </DialogHeader>
 
  {errors.length > 0 && (
- <div className="rounded-lg border border-red-300/40 bg-red-100/30 p-3 space-y-1">
+ <div className="rounded-lg border border-destructive/40 bg-destructive/15 p-3 space-y-1">
  {errors.map((err, i) => (
- <p key={i} className="text-sm text-red-700 flex items-center gap-1">
+ <p key={i} className="text-sm text-destructive flex items-center gap-1">
  <AlertTriangle className="w-3.5 h-3.5" /> {err}
  </p>
  ))}
@@ -2124,7 +2124,7 @@ export default function ReservasModule() {
  </div>
  )}
  {computed.desglose.nochesGratis > 0 && (
- <div className="flex justify-between text-xs text-amber-700">
+ <div className="flex justify-between text-xs text-warning">
  <span>{computed.desglose.nochesGratis} noche{computed.desglose.nochesGratis > 1 ? 's' : ''} de cortesía</span>
  <span className="line-through opacity-60">-noches gratis-</span>
  </div>
@@ -2155,7 +2155,7 @@ export default function ReservasModule() {
  {computed.recargo > 0 && (
  <div className="flex justify-between text-sm mt-1">
  <span className="text-muted-foreground">Recargo por cuotas</span>
- <span className="text-amber-700">{formatMoney(computed.recargo)}</span>
+ <span className="text-warning">{formatMoney(computed.recargo)}</span>
  </div>
  )}
  <div className="flex justify-between text-sm mt-1 pt-1 border-t">
@@ -2249,7 +2249,7 @@ export default function ReservasModule() {
      {/* Recargo por cuotas */}
      {computed.recargo > 0 && (
        <div className="flex justify-between items-center py-1 text-[13px]">
-         <span className="text-slate-400">Recargo por cuotas</span>
+         <span className="text-muted-foreground">Recargo por cuotas</span>
          <span className="font-semibold text-primary">+ {formatMoney(computed.recargo)}</span>
        </div>
      )}
@@ -2275,7 +2275,7 @@ export default function ReservasModule() {
              'flex-1 py-2 text-center text-[12px] font-medium rounded-md transition-all cursor-pointer',
              form.pagoTipo === tipo
                ? 'bg-muted text-foreground font-semibold shadow-sm'
-               : 'text-slate-400 hover:text-slate-600'
+               : 'text-muted-foreground hover:text-muted-foreground'
            )}
          >
            {tipo === 'ninguno' ? 'Sin pago' : tipo === 'parcial' ? 'Parcial' : 'Total'}
@@ -2288,9 +2288,9 @@ export default function ReservasModule() {
        <div className="space-y-3">
          {form.pagoTipo === 'parcial' && (
            <div className="space-y-1.5">
-             <Label className="text-[11px] font-semibold text-slate-400">Monto del pago</Label>
+             <Label className="text-[11px] font-semibold text-muted-foreground">Monto del pago</Label>
              <div className="relative">
-               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-slate-400">$</span>
+               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-muted-foreground">$</span>
                <Input
                  type="number"
                  min={pagoMinimo}
@@ -2301,13 +2301,13 @@ export default function ReservasModule() {
                  className="pl-7 text-[13px] font-semibold h-9 border-border focus-visible:ring-primary"
                />
              </div>
-             <div className="flex justify-between text-[11px] text-slate-400">
-               <span>Mínimo 30%: <strong className="text-slate-400">{formatMoney(pagoMinimo)}</strong></span>
-               <span>Máximo: <strong className="text-slate-400">{formatMoney(totalAPagar)}</strong></span>
+             <div className="flex justify-between text-[11px] text-muted-foreground">
+               <span>Mínimo 30%: <strong className="text-muted-foreground">{formatMoney(pagoMinimo)}</strong></span>
+               <span>Máximo: <strong className="text-muted-foreground">{formatMoney(totalAPagar)}</strong></span>
              </div>
              {form.pagoMonto && (parseFloat(form.pagoMonto) || 0) > 0 && (
                <div className="flex justify-between items-center py-1 text-[13px]">
-                 <span className="text-slate-400">Saldo restante</span>
+                 <span className="text-muted-foreground">Saldo restante</span>
                  <span className="font-semibold text-foreground">
                    {formatMoney(Math.max(0, totalAPagar - (parseFloat(form.pagoMonto) || 0)))}
                  </span>
@@ -2317,13 +2317,13 @@ export default function ReservasModule() {
          )}
          {form.pagoTipo === 'total' && (
            <div className="flex justify-between items-center py-1 text-[13px]">
-             <span className="text-slate-400">Monto a cobrar</span>
+             <span className="text-muted-foreground">Monto a cobrar</span>
              <span className="font-semibold text-foreground">{formatMoney(totalAPagar)}</span>
            </div>
          )}
          <div className="flex gap-2.5">
            <div className="flex-1 space-y-1.5">
-             <Label className="text-[11px] font-semibold text-slate-400">Método de pago</Label>
+             <Label className="text-[11px] font-semibold text-muted-foreground">Método de pago</Label>
              <Select value={form.pagoMetodo} onValueChange={v => {
                const metodo = metodosPago.find(m => m.id === v);
                const tieneCuotas = metodo?.recargo && metodo.cuotas.length > 0;
@@ -2344,7 +2344,7 @@ export default function ReservasModule() {
            </div>
            {selectedMetodo && selectedMetodo.recargo && selectedMetodo.cuotas.length > 0 && (
              <div className="flex-1 space-y-1.5">
-               <Label className="text-[11px] font-semibold text-slate-400">Cuotas</Label>
+               <Label className="text-[11px] font-semibold text-muted-foreground">Cuotas</Label>
                <Select value={form.pagoCuotas} onValueChange={v => updateForm({ pagoCuotas: v })}>
                  <SelectTrigger className="h-9 text-[13px] border-border focus-visible:ring-primary">
                    <SelectValue />
@@ -2400,7 +2400,7 @@ export default function ReservasModule() {
  <p className="text-sm text-muted-foreground">
  Habitación {cancelReserva.habitacion} · {formatFecha(cancelReserva.checkin)} → {formatFecha(cancelReserva.checkout)}
  </p>
- <p className="text-sm text-red-700">Esta acción no se puede deshacer.</p>
+ <p className="text-sm text-destructive">Esta acción no se puede deshacer.</p>
  </div>
  )}
  <DialogFooter>

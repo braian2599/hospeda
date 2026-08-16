@@ -96,7 +96,7 @@ function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, borderC
   const trendUp = trend && trend.value > 0;
   const trendDown = trend && trend.value < 0;
   const trendIcon = trendUp ? '\u2191' : trendDown ? '\u2193' : '';
-  const trendColor = trendUp ? 'text-primary' : trendDown ? 'text-red-500' : 'text-muted-foreground';
+  const trendColor = trendUp ? 'text-primary' : trendDown ? 'text-destructive' : 'text-muted-foreground';
 
   return (
     <div
@@ -138,15 +138,15 @@ function KPIAnimated({ icon: Icon, label, value, sub, color, bgGradient, borderC
 
 function WeatherIcon({ code }: { code: number }) {
   if (code === 0) return <Sun className="w-5 h-5 text-brand-amber" />;
-  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-slate-400" />;
-  if (code >= 45 && code <= 48) return <CloudFog className="w-5 h-5 text-slate-400" />;
+  if (code >= 1 && code <= 3) return <CloudSun className="w-5 h-5 text-muted-foreground" />;
+  if (code >= 45 && code <= 48) return <CloudFog className="w-5 h-5 text-muted-foreground" />;
   if (code >= 51 && code <= 55) return <CloudDrizzle className="w-5 h-5 text-info" />;
   if (code >= 56 && code <= 57) return <CloudDrizzle className="w-5 h-5 text-info" />;
   if (code >= 61 && code <= 67) return <CloudRain className="w-5 h-5 text-info" />;
   if (code >= 71 && code <= 77) return <CloudSnow className="w-5 h-5 text-info" />;
-  if (code >= 80 && code <= 82) return <CloudLightning className="w-5 h-5 text-amber-600" />;
+  if (code >= 80 && code <= 82) return <CloudLightning className="w-5 h-5 text-warning" />;
   if (code >= 95) return <CloudLightning className="w-5 h-5 text-violet-600" />;
-  return <Thermometer className="w-5 h-5 text-slate-400" />;
+  return <Thermometer className="w-5 h-5 text-muted-foreground" />;
 }
 
 // ==================== LIVE CLOCK + WEATHER ====================
@@ -187,7 +187,7 @@ function LiveClockWeather() {
           <span className="font-semibold">{weather.temp}°C</span>
         </div>
       )}
-      <div className="font-mono text-lg font-semibold tabular-nums tracking-wide text-slate-700">
+      <div className="font-mono text-lg font-semibold tabular-nums tracking-wide text-foreground">
         {time}
       </div>
     </div>
@@ -230,15 +230,15 @@ function GanttPopover({ data, position, onClose }: {
     Reservada: <CalendarCheck className="w-3.5 h-3.5 text-status-reserved" />,
     Ocupada: <Bed className="w-3.5 h-3.5 text-status-occupied" />,
     Limpieza: <SprayCan className="w-3.5 h-3.5 text-status-cleaning" />,
-    Mantenimiento: <Wrench className="w-3.5 h-3.5 text-slate-400" />,
+    Mantenimiento: <Wrench className="w-3.5 h-3.5 text-muted-foreground" />,
   };
   const icono = iconoMap[data.estado] || <CheckCircle className="w-3.5 h-3.5 text-status-available" />;
 
   const estadoColors: Record<string, string> = {
-    Reservada: 'bg-sky-100/30 text-sky-700',
-    Ocupada: 'bg-emerald-100/60 text-emerald-700',
-    Limpieza: 'bg-amber-100/60 text-amber-700',
-    Mantenimiento: 'bg-muted/30 text-slate-400',
+    Reservada: 'bg-info/15 text-info',
+    Ocupada: 'bg-success/15 text-success',
+    Limpieza: 'bg-warning/15 text-warning',
+    Mantenimiento: 'bg-muted/30 text-muted-foreground',
   };
 
   return createPortal(
@@ -250,7 +250,7 @@ function GanttPopover({ data, position, onClose }: {
       <div className="flex items-center gap-2 mb-2">
         {icono}
         <span className="font-bold">Hab. {data.habitacion}</span>
-        <span className={`ml-auto text-[11px] px-1.5 py-0.5 rounded font-medium ${estadoColors[data.estado] || 'bg-muted/30 text-slate-400'}`}>
+        <span className={`ml-auto text-[11px] px-1.5 py-0.5 rounded font-medium ${estadoColors[data.estado] || 'bg-muted/30 text-muted-foreground'}`}>
           {data.estado}
         </span>
       </div>
@@ -260,9 +260,9 @@ function GanttPopover({ data, position, onClose }: {
       )}
 
       {data.checkin && data.checkout && (
-        <div className="flex gap-3 text-[11px] text-slate-400 mb-2">
+        <div className="flex gap-3 text-[11px] text-muted-foreground mb-2">
           <span className="flex items-center gap-1">
-            <LogIn className="w-3 h-3 text-sky-500" />
+            <LogIn className="w-3 h-3 text-info" />
             {formatearFecha(data.checkin)} 14:00
           </span>
           <span>→</span>
@@ -275,41 +275,41 @@ function GanttPopover({ data, position, onClose }: {
 
       {/* Extra info: tarifa, monto, estado pago */}
       {(data.tarifa || data.monto !== undefined || data.estadoPago) && (
-        <div className="border-t border-slate-100 pt-1.5 mt-1 space-y-0.5">
+        <div className="border-t border-border pt-1.5 mt-1 space-y-0.5">
           {data.tarifa && (
             <div className="flex justify-between text-[11px]">
-              <span className="text-slate-400">Tarifa</span>
+              <span className="text-muted-foreground">Tarifa</span>
               <span className="font-medium capitalize">{data.tarifa}</span>
             </div>
           )}
           {data.monto !== undefined && data.monto > 0 && (
             <div className="flex justify-between text-[11px]">
-              <span className="text-slate-400">Total</span>
+              <span className="text-muted-foreground">Total</span>
               <span className="font-bold text-primary">{formatMoney(data.monto)}</span>
             </div>
           )}
           {data.estadoPago && (
             <div className="flex justify-between text-[11px]">
-              <span className="text-slate-400">Pago</span>
-              <span className={`font-medium ${data.estadoPago === 'Pagado' ? 'text-primary' : data.estadoPago === 'Parcial' ? 'text-orange-600' : 'text-status-occupied'}`}>
+              <span className="text-muted-foreground">Pago</span>
+              <span className={`font-medium ${data.estadoPago === 'Pagado' ? 'text-primary' : data.estadoPago === 'Parcial' ? 'text-warning' : 'text-status-occupied'}`}>
                 {data.estadoPago}
               </span>
             </div>
           )}
           {data.ninos && data.ninos > 0 && (
             <div className="flex justify-between text-[11px]">
-              <span className="text-slate-400">Menores</span>
-              <span className="font-medium text-purple-600">{data.ninos} niño{data.ninos > 1 ? 's' : ''}</span>
+              <span className="text-muted-foreground">Menores</span>
+              <span className="font-medium text-chart-5">{data.ninos} niño{data.ninos > 1 ? 's' : ''}</span>
             </div>
           )}
         </div>
       )}
 
       {data.estado === 'Limpieza' && (
-        <p className="text-amber-700 text-xs flex items-center gap-1 mt-1"><SprayCan className="w-3 h-3" /> Pendiente de limpieza</p>
+        <p className="text-warning text-xs flex items-center gap-1 mt-1"><SprayCan className="w-3 h-3" /> Pendiente de limpieza</p>
       )}
       {data.estado === 'Mantenimiento' && (
-        <p className="text-slate-400 text-xs flex items-center gap-1 mt-1"><Wrench className="w-3 h-3" /> {data.problema || 'En mantenimiento'}</p>
+        <p className="text-muted-foreground text-xs flex items-center gap-1 mt-1"><Wrench className="w-3 h-3" /> {data.problema || 'En mantenimiento'}</p>
       )}
       {data.estado === 'Disponible' && (
         <p className="text-primary text-xs flex items-center gap-1 mt-1"><CheckCircle className="w-3 h-3" /> Disponible</p>
@@ -327,7 +327,7 @@ function Tooltip({ children, text }: { children: React.ReactNode; text: string }
     <div className="relative" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
       {children}
       {show && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-slate-800 text-white text-[11px] rounded-lg whitespace-nowrap z-50 shadow-lg pointer-events-none animate-in fade-in-0 zoom-in-95 duration-100">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-foreground text-background text-[11px] rounded-lg whitespace-nowrap z-50 shadow-lg pointer-events-none animate-in fade-in-0 zoom-in-95 duration-100">
           {text}
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
         </div>
@@ -460,7 +460,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
           const d = new Date(col + 'T12:00:00');
           const esFS = d.getDay() === 0 || d.getDay() === 6;
           const isHoy = col === hoyStr;
-          return <div key={ci} className={`flex-1 h-full border-l-2 border-border box-border ${esFS ? 'bg-red-100/20' : ''} ${isHoy ? 'bg-sky-100/15' : ''}`} style={{ height: FILA_H }} />;
+          return <div key={ci} className={`flex-1 h-full border-l-2 border-border box-border ${esFS ? 'bg-destructive/10' : ''} ${isHoy ? 'bg-info/10' : ''}`} style={{ height: FILA_H }} />;
         });
 
         const barras = reservasActivas.map((res, idx) => {
@@ -485,7 +485,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
           <div key={num} className={`flex items-stretch border-b-2 border-border last:border-b-0 hover:bg-primary/5 transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-card/80' : ''}`} style={{ height: FILA_H }}>
             <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-border bg-card z-[5]" style={{ height: FILA_H }}>
               <span className="text-[12px] font-bold text-foreground leading-tight">{num}</span>
-              <span className="text-[10px] text-slate-400 font-medium mt-0.5">{hab.tipo}</span>
+              <span className="text-[10px] text-muted-foreground font-medium mt-0.5">{hab.tipo}</span>
             </div>
             <div className="flex-1 relative overflow-hidden min-w-0">
               <div className="absolute top-0 left-0 w-full h-full flex pointer-events-none">{bgCells}</div>
@@ -501,7 +501,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         const d = new Date(col + 'T12:00:00');
         const esFS = d.getDay() === 0 || d.getDay() === 6;
         const isHoy = col === hoyStr;
-        return <div key={ci} className={`flex-1 h-full border-l-2 border-border box-border ${esFS ? 'bg-red-100/20' : ''} ${isHoy ? 'bg-sky-100/15' : ''}`} />;
+        return <div key={ci} className={`flex-1 h-full border-l-2 border-border box-border ${esFS ? 'bg-destructive/10' : ''} ${isHoy ? 'bg-info/10' : ''}`} />;
       });
 
       const barras = reservasHab.map((res, idx) => {
@@ -525,7 +525,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         <div key={num} className={`flex items-stretch border-b-2 border-border last:border-b-0 hover:bg-primary/5 transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-card/80' : ''}`} style={{ height: ROW_H }}>
           <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-border bg-card z-[5]" style={{ height: ROW_H }}>
             <span className="text-[12px] font-bold text-foreground leading-tight">{num}</span>
-            <span className="text-[10px] text-slate-400 font-medium mt-0.5">{hab.tipo}</span>
+            <span className="text-[10px] text-muted-foreground font-medium mt-0.5">{hab.tipo}</span>
           </div>
           <div className="flex-1 relative overflow-hidden min-w-0">
             <div className="absolute top-0 left-0 w-full h-full flex pointer-events-none">{bgCells}</div>
@@ -544,8 +544,8 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       const esFS = d.getDay() === 0 || d.getDay() === 6;
       const isHoy = col === hoyStr;
       return (
-        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-border min-w-0 transition-colors duration-150 ${esFS ? 'bg-red-100/30' : ''} ${isHoy ? 'bg-primary/5' : ''}`}>
-          <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-rose-500' : 'text-slate-400'} ${isHoy ? '!text-primary' : ''}`}>
+        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-border min-w-0 transition-colors duration-150 ${esFS ? 'bg-destructive/10' : ''} ${isHoy ? 'bg-primary/5' : ''}`}>
+          <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-rose-500' : 'text-muted-foreground'} ${isHoy ? '!text-primary' : ''}`}>
             {NOMBRES_DIAS[d.getDay()]}
           </span>
           <span className={`text-[15px] font-bold leading-none mt-0.5 ${esFS ? 'text-rose-500' : 'text-foreground'} ${isHoy ? '!text-primary underline decoration-2 underline-offset-2 decoration-primary' : ''}`}>
@@ -557,7 +557,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
   }, [columnas, hoyStr]);
 
   const legendItems = [
-    { label: 'Disponible', color: 'bg-slate-600/40 border border-slate-600/40' },
+    { label: 'Disponible', color: 'bg-muted-foreground/40 border border-muted-foreground/40' },
     { label: 'Reservada', color: 'bg-status-reserved' },
     { label: 'Ocupada', color: 'bg-status-available' },
     ...(mostrarHistorial ? [{ label: 'Finalizada', color: 'bg-status-finalized opacity-50' }] : []),
@@ -587,7 +587,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
               {offset !== 0 && (
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setOffset(0)}>Hoy</Button>
               )}
-              <div className="w-px h-5 bg-slate-600/40 mx-0.5" />
+              <div className="w-px h-5 bg-muted-foreground/40 mx-0.5" />
               <Button
                 variant={ganttDays === 14 ? 'default' : 'outline'}
                 size="sm"
@@ -604,11 +604,11 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
               >
                 1 mes
               </Button>
-              <div className="w-px h-5 bg-slate-600/40 mx-0.5" />
+              <div className="w-px h-5 bg-muted-foreground/40 mx-0.5" />
               <Button
                 variant={mostrarHistorial ? 'default' : 'outline'}
                 size="sm"
-                className={cn('h-7 text-xs gap-1.5', mostrarHistorial && 'bg-slate-600 hover:bg-slate-700')}
+                className={cn('h-7 text-xs gap-1.5', mostrarHistorial && 'bg-muted-foreground hover:bg-muted-foreground/80')}
                 onClick={() => setMostrarHistorial(v => !v)}
               >
                 <History className="w-3.5 h-3.5" />
@@ -626,7 +626,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
             <div className="overflow-x-auto">{rows}</div>
             <div className="flex gap-4 flex-wrap px-3.5 py-2.5 border-t-2 border-border">
               {legendItems.map(item => (
-                <span key={item.label} className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+                <span key={item.label} className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
                   <span className={`inline-block w-3.5 h-2.5 rounded-sm ${item.color}`} />
                   {item.label}
                 </span>
@@ -697,10 +697,10 @@ function RoomHeatmap({ habitaciones, reservas }: {
   }, [reservas, hoyStr]);
 
   const colors: Record<string, string> = {
-    Disponible: 'bg-emerald-100/60 text-emerald-700',
-    Ocupada: 'bg-red-100/60 text-red-700',
-    Limpieza: 'bg-amber-100/60 text-amber-700',
-    Mantenimiento: 'bg-muted/30 text-slate-400',
+    Disponible: 'bg-success/15 text-success',
+    Ocupada: 'bg-destructive/15 text-destructive',
+    Limpieza: 'bg-warning/15 text-warning',
+    Mantenimiento: 'bg-muted/30 text-muted-foreground',
     Reservada: 'bg-indigo-100/40 text-indigo-700',
   };
   const dots: Record<string, string> = {
@@ -865,7 +865,7 @@ export default function DashboardModule() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
         <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-primary" borderColor="border-l-primary" bgGradient="bg-primary/5" iconBg="bg-primary/20" labelColor="text-primary" valueColor="text-primary" subColor="text-primary/50" numericValue={tasaOcupacion} suffix="%" sparkData={sparkOccupancy} sparkColor="#059669" />
         <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-primary" borderColor="border-l-primary" bgGradient="bg-primary/5" iconBg="bg-primary/20" labelColor="text-primary" valueColor="text-primary" subColor="text-primary/50" numericValue={checkinsHoy.length} sparkData={sparkCheckins} sparkColor="#059669" />
-        <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-amber-600" borderColor="border-l-amber-500" bgGradient="bg-amber-50" iconBg="bg-amber-500/20" labelColor="text-amber-600" valueColor="text-amber-800" subColor="text-amber-600/50" numericValue={checkoutsHoy.length} sparkData={sparkCheckouts} sparkColor="#F59E0B" />
+        <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-warning" borderColor="border-l-warning" bgGradient="bg-warning/10" iconBg="bg-warning/20" labelColor="text-warning" valueColor="text-warning" subColor="text-warning/50" numericValue={checkoutsHoy.length} sparkData={sparkCheckouts} sparkColor="#F59E0B" />
         <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-teal-600" borderColor="border-l-teal-500" bgGradient="bg-teal-50" iconBg="bg-teal-500/20" labelColor="text-teal-600" valueColor="text-teal-800" subColor="text-teal-600/50" numericValue={reservadas} sparkData={sparkRevenue} sparkColor="#059669" />
       </div>
 
@@ -908,18 +908,18 @@ export default function DashboardModule() {
         <Card className="md:col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-1.5">
-              <SprayCan className="w-3.5 h-3.5 text-slate-400" />
-              <Wrench className="w-3.5 h-3.5 text-slate-400" />
+              <SprayCan className="w-3.5 h-3.5 text-muted-foreground" />
+              <Wrench className="w-3.5 h-3.5 text-muted-foreground" />
               Estado General
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-100/60 border-amber-300/40">
-              <span className="text-xs font-medium text-amber-700">Para limpiar</span>
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-warning/15 border-warning/40">
+              <span className="text-xs font-medium text-warning">Para limpiar</span>
               <span className="bg-status-cleaning text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enLimpieza}</span>
             </div>
             <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border-border">
-              <span className="text-xs font-medium text-slate-400">En mantenimiento</span>
+              <span className="text-xs font-medium text-muted-foreground">En mantenimiento</span>
               <span className="bg-status-maintenance text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{enMantenimiento}</span>
             </div>
             {enLimpieza === 0 && enMantenimiento === 0 && (
@@ -950,9 +950,9 @@ export default function DashboardModule() {
             )}
 
             {enLimpieza > 0 && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-100/60 border-amber-300/40 hover:bg-muted/50 transition-colors">
-                <span className="flex items-center gap-2 text-sm text-amber-700">
-                  <SprayCan className="w-4 h-4 text-amber-700" />
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-warning/15 border-warning/40 hover:bg-muted/50 transition-colors">
+                <span className="flex items-center gap-2 text-sm text-warning">
+                  <SprayCan className="w-4 h-4 text-warning" />
                   {enLimpieza} habitación(es) pendientes de limpieza
                 </span>
                 <div className="flex items-center gap-2">
@@ -965,9 +965,9 @@ export default function DashboardModule() {
             )}
 
             {checkinsHoy.length > 0 && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-sky-100/30 border-sky-300/40 hover:bg-sky-100/50 transition-colors">
-                <span className="flex items-center gap-2 text-sm text-sky-700">
-                  <LogIn className="w-4 h-4 text-sky-700" />
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-info/15 border-info/40 hover:bg-info/20 transition-colors">
+                <span className="flex items-center gap-2 text-sm text-info">
+                  <LogIn className="w-4 h-4 text-info" />
                   {checkinsHoy.length} check-in(s) pendiente(s) hoy
                 </span>
                 <div className="flex items-center gap-2">
@@ -980,9 +980,9 @@ export default function DashboardModule() {
             )}
 
             {checkoutsHoy.length > 0 && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-orange-100/40 border-orange-300/40 hover:bg-orange-100/50 transition-colors">
-                <span className="flex items-center gap-2 text-sm text-orange-700">
-                  <LogOut className="w-4 h-4 text-orange-600" />
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-warning/15 border-warning/40 hover:bg-warning/20 transition-colors">
+                <span className="flex items-center gap-2 text-sm text-warning">
+                  <LogOut className="w-4 h-4 text-warning" />
                   {checkoutsHoy.length} check-out(s) pendiente(s) hoy
                 </span>
                 <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('checkin')}>Ver todos</Button>
@@ -990,9 +990,9 @@ export default function DashboardModule() {
             )}
 
             {cajaAbiertaHoras >= 8 && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-red-100/60 border-red-300/40">
-                <span className="flex items-center gap-2 text-sm text-red-700">
-                  <LockOpen className="w-4 h-4 text-red-700" />
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-destructive/15 border-destructive/40">
+                <span className="flex items-center gap-2 text-sm text-destructive">
+                  <LockOpen className="w-4 h-4 text-destructive" />
                   Caja abierta hace {cajaAbiertaHoras} horas ({caja.apertura?.empleado})
                 </span>
                 <span className="bg-status-occupied text-white text-xs font-bold px-2 py-0.5 rounded">Atención</span>
@@ -1001,8 +1001,8 @@ export default function DashboardModule() {
 
             {enMantenimiento > 0 && (
               <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border-border hover:bg-muted/50 transition-colors">
-                <span className="flex items-center gap-2 text-sm text-slate-400">
-                  <Wrench className="w-4 h-4 text-slate-400" />
+                <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Wrench className="w-4 h-4 text-muted-foreground" />
                   {enMantenimiento} habitación(es) en mantenimiento
                 </span>
                 <div className="flex items-center gap-2">
@@ -1033,7 +1033,7 @@ export default function DashboardModule() {
             ) : (
               <div className="space-y-2">
                 {checkinsHoy.map(r => (
-                  <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border-sky-300/40 bg-sky-100/20 hover:bg-sky-100/40 transition-colors">
+                  <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border-info/40 bg-info/10 hover:bg-info/15 transition-colors">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold truncate">{r.huesped}</p>
@@ -1058,9 +1058,9 @@ export default function DashboardModule() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <LogOut className="w-4 h-4 text-orange-500" />
+              <LogOut className="w-4 h-4 text-warning" />
               Check-outs de hoy
-              {checkoutsHoy.length > 0 && <Badge className="bg-orange-500 ml-auto">{checkoutsHoy.length}</Badge>}
+              {checkoutsHoy.length > 0 && <Badge className="bg-warning ml-auto">{checkoutsHoy.length}</Badge>}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1071,7 +1071,7 @@ export default function DashboardModule() {
                 {checkoutsHoy.map(r => {
                   const saldo = calcularTotalReserva(r.id) - calcularTotalPagado(r.id);
                   return (
-                    <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border-orange-300/40 bg-orange-100/20 hover:bg-orange-100/30 transition-colors">
+                    <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border-warning/40 bg-warning/10 hover:bg-warning/15 transition-colors">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate">{r.huesped}</p>
                         <p className="text-xs text-muted-foreground">Hab. {r.habitacion} · 09:00</p>

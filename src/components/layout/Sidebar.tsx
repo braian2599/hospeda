@@ -238,7 +238,7 @@ export default function Sidebar() {
           {!isExpanded && <NotificationCenter />}
         </div>
 
-        <Button variant="ghost" size="icon" onClick={handleLogout} className={`text-sidebar-foreground/70 hover:text-red-400 transition-colors ${isExpanded ? 'w-full justify-start gap-3 px-3 h-9' : 'w-full'}`}>
+        <Button variant="ghost" size="icon" onClick={handleLogout} className={`text-sidebar-foreground/70 hover:text-destructive transition-colors ${isExpanded ? 'w-full justify-start gap-3 px-3 h-9' : 'w-full'}`}>
           <LogOut className="w-4 h-4 shrink-0" />
           {isExpanded && <span className="text-[13px]">Cerrar sesión</span>}
         </Button>
@@ -320,7 +320,7 @@ export default function Sidebar() {
           <div className="flex items-center gap-1">
             <NotificationCenter />
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-red-400">
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-destructive">
             <LogOut className="w-4 h-4" /><span className="text-[13px]">Cerrar sesión</span>
           </Button>
         </div>

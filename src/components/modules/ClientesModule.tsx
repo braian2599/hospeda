@@ -65,20 +65,20 @@ const getLoyaltyInfo = (stayCount: number): LoyaltyInfo => {
   };
   if (stayCount >= 4) return {
     level: 'Frecuente',
-    color: 'bg-amber-100',
-    textColor: 'text-amber-700',
+    color: 'bg-warning/15',
+    textColor: 'text-warning',
     borderColor: 'border-l-amber-400',
   };
   if (stayCount >= 2) return {
     level: 'Habitual',
-    color: 'bg-sky-100',
-    textColor: 'text-sky-700',
-    borderColor: 'border-l-sky-400',
+    color: 'bg-info/15',
+    textColor: 'text-info',
+    borderColor: 'border-l-info',
   };
   return {
     level: 'Nuevo',
-    color: 'bg-gray-100',
-    textColor: 'text-gray-600',
+    color: 'bg-muted',
+    textColor: 'text-muted-foreground',
     borderColor: 'border-l-gray-300',
   };
 };
@@ -251,15 +251,15 @@ export default function ClientesModule() {
         </Card>
 
         {/* Clientes Recurrentes */}
-        <Card className="rounded-xl border-l-[3px] border-l-amber-500 bg-amber-50/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-warning bg-warning/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-amber-600">Recurrentes</p>
-                <AnimatedNumber value={stats.recurrentes} format={n => String(Math.round(n))} className="text-xl font-bold text-amber-800" />
+                <p className="text-xs font-medium text-warning">Recurrentes</p>
+                <AnimatedNumber value={stats.recurrentes} format={n => String(Math.round(n))} className="text-xl font-bold text-warning" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                <Star className="w-5 h-5 text-amber-600" />
+              <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center">
+                <Star className="w-5 h-5 text-warning" />
               </div>
             </div>
           </CardContent>
@@ -281,15 +281,15 @@ export default function ClientesModule() {
         </Card>
 
         {/* Ocupación Promedio */}
-        <Card className="rounded-xl border-l-[3px] border-l-sky-500 bg-sky-50/20 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-info bg-info/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-sky-600">Estadías/Cliente</p>
-                <AnimatedNumber value={stats.avgStays} format={n => n.toFixed(1)} className="text-xl font-bold text-sky-800" />
+                <p className="text-xs font-medium text-info">Estadías/Cliente</p>
+                <AnimatedNumber value={stats.avgStays} format={n => n.toFixed(1)} className="text-xl font-bold text-info" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-sky-600" />
+              <div className="w-10 h-10 rounded-full bg-info/20 flex items-center justify-center">
+                <BarChart3 className="w-5 h-5 text-info" />
               </div>
             </div>
           </CardContent>
@@ -558,16 +558,16 @@ export default function ClientesModule() {
                       </div>
                       <AnimatedNumber value={totalGastado} className="font-bold text-lg text-primary mt-1" />
                     </Card>
-                    <Card className="p-3 bg-primary/5 border-primary/30 border-l-[3px] border-l-amber-400">
+                    <Card className="p-3 bg-primary/5 border-primary/30 border-l-[3px] border-l-warning">
                       <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-amber-600" />
+                        <TrendingUp className="w-4 h-4 text-warning" />
                         <span className="text-xs text-muted-foreground">Promedio/estadía</span>
                       </div>
                       <AnimatedNumber value={promedioPorEstadia} className="font-bold text-lg text-primary mt-1" />
                     </Card>
-                    <Card className="p-3 bg-primary/5 border-primary/30 border-l-[3px] border-l-sky-400">
+                    <Card className="p-3 bg-primary/5 border-primary/30 border-l-[3px] border-l-info">
                       <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-sky-600" />
+                        <Clock className="w-4 h-4 text-info" />
                         <span className="text-xs text-muted-foreground">Duración prom.</span>
                       </div>
                       <div className="font-bold text-lg text-primary mt-1">

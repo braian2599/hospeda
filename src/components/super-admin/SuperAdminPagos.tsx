@@ -74,10 +74,10 @@ function formatDateInput(iso: string) {
 
 function estadoBadge(estado: string) {
   const map: Record<string, string> = {
-    pendiente: 'bg-amber-100/30 text-amber-700 border-amber-300',
-    pagado: 'bg-emerald-100/30 text-emerald-700 border-primary',
-    fallido: 'bg-red-100/30 text-red-700 border-red-300',
-    devuelto: 'bg-gray-100/30 text-gray-600 border-gray-300',
+    pendiente: 'bg-warning/15 text-warning border-warning/40',
+    pagado: 'bg-success/15 text-success border-primary',
+    fallido: 'bg-destructive/10 text-destructive border-destructive/30',
+    devuelto: 'bg-muted text-muted-foreground border-border',
   };
   return (
     <Badge variant="outline" className={map[estado] || ''}>

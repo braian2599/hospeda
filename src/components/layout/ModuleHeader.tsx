@@ -23,7 +23,7 @@ export default function ModuleHeader({ icon: Icon, title, subtitle, iconBg, icon
         </div>
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground">{title}</h2>
-          {subtitle && <p className="text-sm text-slate-300 mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
       </div>
       {children}

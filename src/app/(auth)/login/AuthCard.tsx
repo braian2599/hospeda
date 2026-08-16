@@ -117,7 +117,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
           <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full opacity-15 blur-[120px]" style={{ background: 'radial-gradient(circle, #0d9488, transparent 70%)', animation: 'float2 20s ease-in-out infinite' }} />
         </div>
         <div className="relative z-10 w-full max-w-[440px] mx-4 rounded-3xl overflow-hidden shadow-xl border border-border p-8 md:p-10 text-center bg-card" style={{ animation: 'cardEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) both' }}>
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-6"><CheckCircle2 className="w-8 h-8 text-emerald-500" /></div>
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6"><CheckCircle2 className="w-8 h-8 text-primary" /></div>
           <h2 className="text-xl font-bold text-foreground mb-2">Cuenta creada</h2>
           <p className="text-sm text-muted-foreground mb-6">Te enviamos un email a <strong className="text-foreground/80">{regEmail}</strong> con un enlace para verificar tu cuenta.</p>
           <p className="text-xs text-foreground/30 mb-6">El enlace expira en 24 horas. Revisá también la carpeta de spam.</p>
@@ -327,7 +327,7 @@ function Badge({ children }: { children: React.ReactNode }) {
 }
 
 function Alert({ variant, children }: { variant: 'success' | 'error'; children: React.ReactNode }) {
-  const cls = variant === 'success' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600' : 'border-red-500/30 bg-red-500/10 text-red-600';
+  const cls = variant === 'success' ? 'border-primary/30 bg-primary/10 text-primary' : 'border-destructive/30 bg-destructive/10 text-destructive';
   return (
     <div className={`mb-5 rounded-xl border ${cls} p-3 text-sm flex items-center gap-2`}>
       {variant === 'success' && <CheckCircle2 className="w-4 h-4 shrink-0" />}

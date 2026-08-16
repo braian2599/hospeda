@@ -262,15 +262,15 @@ export default function LimpiezaModule() {
 
       {/* ── Maintenance alert banner ── */}
       {enMantenimiento.length > 0 && (
-        <Card className="border-red-300/40 bg-red-50/20 overflow-hidden">
+        <Card className="border-destructive/40 bg-destructive/10 overflow-hidden">
           <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="relative w-10 h-10 rounded-full bg-red-100/60 flex items-center justify-center shrink-0">
+              <div className="relative w-10 h-10 rounded-full bg-destructive/15 flex items-center justify-center shrink-0">
                 <span className="absolute inset-0 rounded-full bg-destructive/20 animate-ping" />
-                <AlertTriangle className="relative w-5 h-5 text-red-700 animate-pulse-subtle" />
+                <AlertTriangle className="relative w-5 h-5 text-destructive animate-pulse-subtle" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-red-700">
+                <p className="text-sm font-semibold text-destructive">
                   {enMantenimiento.length} habitación{enMantenimiento.length !== 1 ? 'es' : ''} en mantenimiento
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
@@ -281,7 +281,7 @@ export default function LimpiezaModule() {
             <Button
               size="sm"
               variant="outline"
-              className="border-red-300/40 text-red-700 hover:bg-red-100/30 hover:text-red-700 shrink-0"
+              className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
               onClick={() => setModulo('habitaciones' as ModuloId)}
             >
               <DoorOpen className="w-3.5 h-3.5 mr-1.5" />Ir a Habitaciones
@@ -294,11 +294,11 @@ export default function LimpiezaModule() {
       {/* ── Cleaning Queue + En Mantenimiento (2-col grid) ── */}
       <div className="grid md:grid-cols-2 gap-4">
         {/* Cleaning Queue */}
-        <Card className="border-amber-300/40">
+        <Card className="border-warning/40">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <SprayCan className="w-4 h-4 text-amber-700" />
+                <SprayCan className="w-4 h-4 text-warning" />
                 Cola de limpieza
                 {porLimpiar.length > 0 && (
                   <span className="relative flex h-2 w-2 ml-1">
@@ -307,7 +307,7 @@ export default function LimpiezaModule() {
                   </span>
                 )}
               </CardTitle>
-              <Badge variant="secondary" className="bg-amber-100/60 text-amber-700 shadow-sm font-semibold">
+              <Badge variant="secondary" className="bg-warning/15 text-warning shadow-sm font-semibold">
                 {porLimpiar.length}
               </Badge>
             </div>
@@ -341,25 +341,25 @@ export default function LimpiezaModule() {
                     <div className="flex items-start gap-2.5 min-w-0 flex-1">
                       <div className={cn(
                         'w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm',
-                        isHighPriority ? 'bg-red-100/60' : sinceCheckoutMs > 0 && (sinceCheckoutMs / 3_600_000) >= 1 ? 'bg-amber-100/60' : 'bg-sky-100/20'
+                        isHighPriority ? 'bg-destructive/15' : sinceCheckoutMs > 0 && (sinceCheckoutMs / 3_600_000) >= 1 ? 'bg-warning/15' : 'bg-info/10'
                       )}>
                         <BedDouble className={cn(
                           'w-4 h-4',
-                          isHighPriority ? 'text-red-700' : sinceCheckoutMs > 0 && (sinceCheckoutMs / 3_600_000) >= 1 ? 'text-amber-700' : 'text-sky-700'
+                          isHighPriority ? 'text-destructive' : sinceCheckoutMs > 0 && (sinceCheckoutMs / 3_600_000) >= 1 ? 'text-warning' : 'text-info'
                         )} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="text-sm font-bold text-primary">Hab. {num}</p>
                           {isHighPriority && (
-                            <Badge className="text-[10px] bg-red-100/60 text-red-700 shadow-sm font-semibold">Urgente</Badge>
+                            <Badge className="text-[10px] bg-destructive/15 text-destructive shadow-sm font-semibold">Urgente</Badge>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {h.tipo} · {h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}
                         </p>
                         {lastCheckoutMs > 0 && sinceCheckoutMs > 0 && (
-                          <span className={cn('inline-flex items-center gap-1 text-[10px] mt-1', isHighPriority ? 'text-red-700 font-semibold' : 'text-muted-foreground')}>
+                          <span className={cn('inline-flex items-center gap-1 text-[10px] mt-1', isHighPriority ? 'text-destructive font-semibold' : 'text-muted-foreground')}>
                             <Clock className="w-2.5 h-2.5" />
                             Checkout: {formatTimeSince(lastCheckoutMs)}
                           </span>
@@ -383,11 +383,11 @@ export default function LimpiezaModule() {
         </Card>
 
         {/* En mantenimiento */}
-        <Card className="border-red-300/40">
+        <Card className="border-destructive/40">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-red-700" />
+                <Wrench className="w-4 h-4 text-destructive" />
                 En mantenimiento
                 {enMantenimiento.length > 0 && (
                   <span className="relative flex h-2 w-2 ml-1">
@@ -396,7 +396,7 @@ export default function LimpiezaModule() {
                   </span>
                 )}
               </CardTitle>
-              <Badge variant="secondary" className="bg-red-100/40 text-red-700 shadow-sm font-semibold">
+              <Badge variant="secondary" className="bg-destructive/10 text-destructive shadow-sm font-semibold">
                 {enMantenimiento.length}
               </Badge>
             </div>
@@ -405,7 +405,7 @@ export default function LimpiezaModule() {
             {enMantenimiento.length === 0 ? (
               <div className="text-center py-8">
                 <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-muted/30 flex items-center justify-center shadow-sm">
-                  <CheckCircle className="w-7 h-7 text-slate-400" />
+                  <CheckCircle className="w-7 h-7 text-muted-foreground" />
                 </div>
                 <p className="text-sm font-medium">Sin problemas activos</p>
                 <p className="text-xs text-muted-foreground mt-0.5">Todo funciona correctamente.</p>
@@ -418,12 +418,12 @@ export default function LimpiezaModule() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                    <div className="w-9 h-9 rounded-full bg-red-100/60 flex items-center justify-center shrink-0 shadow-sm">
-                      <Wrench className="w-4 h-4 text-red-700" />
+                    <div className="w-9 h-9 rounded-full bg-destructive/15 flex items-center justify-center shrink-0 shadow-sm">
+                      <Wrench className="w-4 h-4 text-destructive" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-primary">Hab. {num}</p>
-                      <p className="text-xs text-red-700 font-medium truncate">{h.problema || 'Sin descripción'}</p>
+                      <p className="text-xs text-destructive font-medium truncate">{h.problema || 'Sin descripción'}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{h.tipo}</p>
                     </div>
                   </div>
@@ -443,11 +443,11 @@ export default function LimpiezaModule() {
       </div>
 
       {/* ── Reportar mantenimiento ── */}
-      <Card className={showReportForm ? 'border-amber-300/40' : ''}>
+      <Card className={showReportForm ? 'border-warning/40' : ''}>
         <CardHeader className="pb-3 cursor-pointer" onClick={() => setShowReportForm(!showReportForm)}>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-amber-700" /> Reportar mantenimiento
+              <Wrench className="w-4 h-4 text-warning" /> Reportar mantenimiento
             </CardTitle>
             <Button variant="ghost" size="sm">{showReportForm ? 'Cancelar' : 'Abrir formulario'}</Button>
           </div>
@@ -455,7 +455,7 @@ export default function LimpiezaModule() {
         {showReportForm && (
           <CardContent className="space-y-3">
             {repConfirm && reservasAfectadas > 0 && (
-              <div className="flex items-center gap-2 p-2.5 bg-amber-100/60 rounded-lg text-amber-700 text-sm">
+              <div className="flex items-center gap-2 p-2.5 bg-warning/15 rounded-lg text-warning text-sm">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>Esta habitación tiene <strong>{reservasAfectadas}</strong> reserva{reservasAfectadas !== 1 ? 's' : ''} activa{reservasAfectadas !== 1 ? 's' : ''} que serán canceladas.</span>
                 <Button size="sm" variant="ghost" className="h-6 w-6 p-0 ml-auto" onClick={() => setRepConfirm(false)}>
@@ -544,7 +544,7 @@ export default function LimpiezaModule() {
                       <TableCell className="font-medium">{item.habitacion}</TableCell>
                       <TableCell className="max-w-[200px] truncate">{item.problema}</TableCell>
                       <TableCell className="hidden md:table-cell max-w-[200px] truncate">{item.reparacion}</TableCell>
-                      <TableCell className={cn('text-right font-medium', item.monto > 0 ? 'text-red-700' : 'text-muted-foreground')}>
+                      <TableCell className={cn('text-right font-medium', item.monto > 0 ? 'text-destructive' : 'text-muted-foreground')}>
                         {formatMoney(item.monto)}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">{item.empleado}</TableCell>
@@ -572,8 +572,8 @@ export default function LimpiezaModule() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             {modalResolver && habitaciones[modalResolver] && (
-              <div className="bg-red-100/60 rounded-lg p-2.5">
-                <p className="text-sm text-red-700">
+              <div className="bg-destructive/15 rounded-lg p-2.5">
+                <p className="text-sm text-destructive">
                   <strong>Problema reportado:</strong> {habitaciones[modalResolver].problema || 'Sin descripción'}
                 </p>
               </div>
@@ -620,16 +620,16 @@ export default function LimpiezaModule() {
                     onClick={() => setSacarDeCaja(false)}
                     className={cn(
                       'flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all',
-                      !sacarDeCaja ? 'border-sky-300/40 bg-sky-100/30' : 'border-muted hover:border-muted-foreground/30'
+                      !sacarDeCaja ? 'border-info/40 bg-info/15' : 'border-muted hover:border-muted-foreground/30'
                     )}
                   >
-                    <Banknote className={cn('w-5 h-5', !sacarDeCaja ? 'text-sky-700' : 'text-muted-foreground')} />
-                    <span className={cn('text-xs font-medium', !sacarDeCaja ? 'text-sky-700' : 'text-muted-foreground')}>Pago aparte</span>
+                    <Banknote className={cn('w-5 h-5', !sacarDeCaja ? 'text-info' : 'text-muted-foreground')} />
+                    <span className={cn('text-xs font-medium', !sacarDeCaja ? 'text-info' : 'text-muted-foreground')}>Pago aparte</span>
                     <span className="text-[10px] text-muted-foreground">Gerente / dinero propio</span>
                   </button>
                 </div>
                 {sacarDeCaja && (
-                  <p className="text-xs text-amber-700 flex items-center gap-1">
+                  <p className="text-xs text-warning flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" />Se registrará un egreso en la caja activa
                   </p>
                 )}

@@ -90,11 +90,11 @@ interface PlanOption {
 // ─── Helpers ───
 function subEstadoBadge(estado: string) {
   const map: Record<string, string> = {
-    trial: 'bg-amber-100/30 text-amber-700 border-amber-300',
-    activa: 'bg-emerald-100/30 text-emerald-700 border-primary',
-    vencida: 'bg-red-100/30 text-red-700 border-red-300',
-    cancelada: 'bg-gray-100/30 text-gray-600 border-gray-300',
-    suspensa: 'bg-orange-100/30 text-orange-700 border-orange-300',
+    trial: 'bg-warning/15 text-warning border-warning/40',
+    activa: 'bg-success/15 text-success border-primary',
+    vencida: 'bg-destructive/10 text-destructive border-destructive/30',
+    cancelada: 'bg-muted text-muted-foreground border-border',
+    suspensa: 'bg-warning/15 text-warning border-warning/40',
   };
   return (
     <Badge variant="outline" className={map[estado] || ''}>
@@ -396,7 +396,7 @@ export default function SuperAdminCuentas() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={t.suscripcion && t.suscripcion.diasRestantes <= 7 ? 'text-red-600 font-medium' : ''}>
+                          <span className={t.suscripcion && t.suscripcion.diasRestantes <= 7 ? 'text-destructive font-medium' : ''}>
                             {t.suscripcion?.diasRestantes ?? '—'}
                           </span>
                         </TableCell>
@@ -429,7 +429,7 @@ export default function SuperAdminCuentas() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className={`h-8 w-8 ${t.activo ? 'text-red-500 hover:text-red-600' : 'text-emerald-500 hover:text-emerald-600'}`}
+                              className={`h-8 w-8 ${t.activo ? 'text-destructive hover:text-destructive/80' : 'text-success hover:text-success/80'}`}
                               title={t.activo ? 'Desactivar' : 'Activar'}
                               onClick={() => handleToggleActive(t)}
                             >

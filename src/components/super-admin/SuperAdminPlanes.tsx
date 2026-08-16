@@ -120,9 +120,9 @@ export default function SuperAdminPlanes() {
   };
 
   const planTypeColors: Record<string, string> = {
-    trial: 'bg-amber-500',
-    basico: 'bg-emerald-500',
-    profesional: 'bg-sky-500',
+    trial: 'bg-warning',
+    basico: 'bg-success',
+    profesional: 'bg-info',
     premium: 'bg-violet-500',
   };
 
@@ -169,7 +169,7 @@ export default function SuperAdminPlanes() {
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${planTypeColors[plan.type] || 'bg-gray-500'}`} />
+                  <div className={`w-3 h-3 rounded-full ${planTypeColors[plan.type] || 'bg-muted-foreground'}`} />
                   <div>
                     <CardTitle className="text-lg">{plan.nombre}</CardTitle>
                     <p className="text-xs text-muted-foreground capitalize mt-0.5">{plan.type}</p>
@@ -177,11 +177,11 @@ export default function SuperAdminPlanes() {
                 </div>
                 <div className="flex items-center gap-2">
                   {plan.activo ? (
-                    <Badge variant="outline" className="text-emerald-600 border-primary">
+                    <Badge variant="outline" className="text-success border-primary">
                       <Check className="w-3 h-3 mr-1" /> Activo
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="text-gray-500">
+                    <Badge variant="outline" className="text-muted-foreground">
                       <X className="w-3 h-3 mr-1" /> Inactivo
                     </Badge>
                   )}

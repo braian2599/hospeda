@@ -39,12 +39,12 @@ import RoomStatusMap from './RoomStatusMap';
 // ═══════════════════════════════════════════════════════════
 
 const estados: Record<EstadoHabitacion, string> = {
-  Disponible: 'bg-emerald-100/60 text-emerald-700',
-  Ocupada: 'bg-amber-100/60 text-amber-700',
-  Limpieza: 'bg-amber-100/50 text-amber-700',
-  Mantenimiento: 'bg-muted/30 text-slate-400',
-  Reservada: 'bg-sky-100/20 text-sky-700',
-  'Fuera de servicio': 'bg-red-100/60 text-red-700',
+  Disponible: 'bg-success/15 text-success',
+  Ocupada: 'bg-warning/15 text-warning',
+  Limpieza: 'bg-warning/15 text-warning',
+  Mantenimiento: 'bg-muted/30 text-muted-foreground',
+  Reservada: 'bg-info/10 text-info',
+  'Fuera de servicio': 'bg-destructive/15 text-destructive',
 };
 
 // Status color palette for backgrounds, borders, icons
@@ -66,35 +66,35 @@ const STATUS_VISUAL: Record<EstadoHabitacion, StatusVisual> = {
   },
   Ocupada: {
     color: 'var(--brand-amber)',
-    bgTint: 'bg-amber-50/60',
+    bgTint: 'bg-warning/10',
     borderClass: 'border-l-[3px] border-l-amber-400',
     icon: UserCheck,
     needsAttention: false,
   },
   Limpieza: {
     color: 'var(--warning)',
-    bgTint: 'bg-yellow-50/60',
+    bgTint: 'bg-warning/10',
     borderClass: 'border-l-[3px] border-l-yellow-400',
     icon: SprayCan,
     needsAttention: true,
   },
   Mantenimiento: {
     color: 'var(--status-finalized)',
-    bgTint: 'bg-slate-50/60',
+    bgTint: 'bg-muted/60',
     borderClass: 'border-l-[3px] border-l-slate-400',
     icon: Wrench,
     needsAttention: true,
   },
   Reservada: {
     color: 'var(--info)',
-    bgTint: 'bg-sky-50/60',
+    bgTint: 'bg-info/10',
     borderClass: 'border-l-[3px] border-l-sky-400',
     icon: CalendarCheck,
     needsAttention: false,
   },
   'Fuera de servicio': {
     color: 'var(--destructive)',
-    bgTint: 'bg-red-50/60',
+    bgTint: 'bg-destructive/10',
     borderClass: 'border-l-[3px] border-l-red-400',
     icon: Ban,
     needsAttention: false,
@@ -527,7 +527,7 @@ function EnhancedRoomCard({
         )}
         {huesped ? (
           <div className="flex items-center gap-1 min-w-0">
-            <UserCheck className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+            <UserCheck className="w-2.5 h-2.5 text-warning shrink-0" />
             <span className="text-[10px] font-semibold text-foreground truncate" title={huesped.huesped}>
               {huesped.huesped}
             </span>
@@ -535,8 +535,8 @@ function EnhancedRoomCard({
           </div>
         ) : hab.problema ? (
           <div className="flex items-center gap-1 min-w-0">
-            <Wrench className="w-2.5 h-2.5 text-red-500 shrink-0" />
-            <span className="text-[9px] text-red-600 truncate" title={hab.problema}>{hab.problema}</span>
+            <Wrench className="w-2.5 h-2.5 text-destructive shrink-0" />
+            <span className="text-[9px] text-destructive truncate" title={hab.problema}>{hab.problema}</span>
           </div>
         ) : null}
 
