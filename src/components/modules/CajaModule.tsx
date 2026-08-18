@@ -1154,7 +1154,7 @@ export default function CajaModule() {
                 </div>
               ) : (
                 <div className="divide-y">
-                  {reversedPagedMovimientos.map((m) => (
+                  {pagedMovimientos.map((m) => (
                     <MovementCard
                       key={m.id}
                       movimiento={m}
