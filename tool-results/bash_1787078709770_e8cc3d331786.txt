@@ -1,0 +1,2050 @@
+DATABASE_URL after dotenv override: file:/home/z/my-project/db/custom.db
+userPresence in prisma: true
+typeof userPresence: object
+userPresence value: {
+  findUnique: [Function (anonymous)],
+  findUniqueOrThrow: [Function (anonymous)],
+  findFirst: [Function (anonymous)],
+  findFirstOrThrow: [Function (anonymous)],
+  findMany: [Function (anonymous)],
+  create: [Function (anonymous)],
+  createMany: [Function (anonymous)],
+  createManyAndReturn: [Function (anonymous)],
+  update: [Function (anonymous)],
+  updateMany: [Function (anonymous)],
+  updateManyAndReturn: [Function (anonymous)],
+  upsert: [Function (anonymous)],
+  delete: [Function (anonymous)],
+  deleteMany: [Function (anonymous)],
+  groupBy: [Function (anonymous)],
+  count: [Function (anonymous)],
+  aggregate: [Function (anonymous)],
+  findRaw: [Function (anonymous)],
+  aggregateRaw: [Function (anonymous)],
+  fields: {},
+  name: 'UserPresence',
+  '$name': 'UserPresence',
+  '$parent': {
+    _originalClient: {
+      _originalClient: [Object],
+      _runtimeDataModel: [Object],
+      _requestHandler: [ei [RequestHandler]],
+      _connectionPromise: undefined,
+      _disconnectionPromise: undefined,
+      _engineConfig: [Object],
+      _accelerateEngineConfig: [Object],
+      _clientVersion: '6.19.2',
+      _errorFormat: 'colorless',
+      _tracingHelper: Ao {},
+      _previewFeatures: [],
+      _activeProvider: 'postgresql',
+      _globalOmit: undefined,
+      _extensions: [e],
+      _engine: [Qr],
+      _appliedParent: [Object],
+      _createPrismaPromise: [Function (anonymous)],
+      '$metrics': [Lr],
+      '$extends': [Function: Wa]
+    },
+    _runtimeDataModel: { models: [Object], enums: [Object], types: {} },
+    _requestHandler: ei [RequestHandler] {
+      client: [Object],
+      dataloader: [Zn [DataLoader]],
+      logEmitter: [EventEmitter]
+    },
+    _connectionPromise: undefined,
+    _disconnectionPromise: undefined,
+    _engineConfig: {
+      cwd: '/home/z/my-project/prisma',
+      dirname: '/home/z/my-project/node_modules/.prisma/client',
+      enableDebugLogs: false,
+      allowTriggerPanic: undefined,
+      prismaPath: undefined,
+      engineEndpoint: undefined,
+      generator: [Object],
+      showColors: false,
+      logLevel: undefined,
+      logQueries: true,
+      env: [Object],
+      flags: [],
+      engineWasm: undefined,
+      compilerWasm: undefined,
+      clientVersion: '6.19.2',
+      engineVersion: 'c2990dca591cba766e3b7ef5d9e8a84796e47ab7',
+      previewFeatures: [],
+      activeProvider: 'postgresql',
+      inlineSchema: '// ==================== HOSPEDÁ — SCHEMA MULTI-TENANT ====================\n' +
+        '// Cada tabla tiene tenantId para aislar datos por hotel/empresa.\n' +
+        '// Sincronizado desde Neon PostgreSQL con enums y relaciones correctas.\n' +
+        '\n' +
+        'generator client {\n' +
+        '  provider = "prisma-client-js"\n' +
+        '}\n' +
+        '\n' +
+        'datasource db {\n' +
+        '  provider = "postgresql"\n' +
+        '  url      = env("DATABASE_URL")\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// TENANT & AUTH\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Tenant {\n' +
+        '  id        String   @id @default(cuid())\n' +
+        '  nombre    String\n' +
+        '  slug      String   @unique\n' +
+        '  email     String\n' +
+        '  telefono  String?\n' +
+        '  direccion String?\n' +
+        '  pais      String   @default("Argentina")\n' +
+        '  moneda    String   @default("ARS")\n' +
+        '  timezone  String   @default("America/Argentina/Buenos_Aires")\n' +
+        '  logoUrl   String?\n' +
+        '  activo    Boolean  @default(true)\n' +
+        '  createdAt DateTime @default(now())\n' +
+        '  updatedAt DateTime @updatedAt\n' +
+        '\n' +
+        '  // Relaciones\n' +
+        '  subscription     Subscription?\n' +
+        '  users            TenantUser[]\n' +
+        '  habitaciones     Habitacion[]\n' +
+        '  clientes         Cliente[]\n' +
+        '  reservas         Reserva[]\n' +
+        '  pagos            Pago[]\n' +
+        '  tarifas          Tarifa[]\n' +
+        '  metodosPago      MetodoPago[]\n' +
+        '  gastos           Gasto[]\n' +
+        '  categoriasGasto  CategoriaGasto[]\n' +
+        '  movimientosCaja  MovimientoCaja[]\n' +
+        '  turnosCaja       TurnoCaja[]\n' +
+        '  mantenimientos   Mantenimiento[]\n' +
+        '  auditoria        Auditoria[]\n' +
+        '  tareasLimpieza   TareaLimpieza[]\n' +
+        '  configuracion    TenantConfig?\n' +
+        '  platformPayments PlatformPayment[]\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// PLANES & SUSCRIPCIONES\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Plan {\n' +
+        '  id              String   @id @default(cuid())\n' +
+        '  type            PlanType @unique\n' +
+        '  nombre          String\n' +
+        '  precioMensual   Int\n' +
+        '  moneda          String   @default("ARS")\n' +
+        '  maxHabitaciones Int\n' +
+        '  maxUsuarios     Int\n' +
+        '  maxTarifas      Int\n' +
+        '  maxReservasMes  Int\n' +
+        '  modulos         Json\n' +
+        '  activo          Boolean  @default(true)\n' +
+        '  createdAt       DateTime @default(now())\n' +
+        '  updatedAt       DateTime @updatedAt\n' +
+        '\n' +
+        '  subscriptions Subscription[]\n' +
+        '}\n' +
+        '\n' +
+        'model Subscription {\n' +
+        '  id                String    @id @default(cuid())\n' +
+        '  tenantId          String    @unique\n' +
+        '  planId            String\n' +
+        '  estado            String    @default("trial")\n' +
+        '  fechaInicio       DateTime  @default(now())\n' +
+        '  fechaVencimiento  DateTime\n' +
+        '  trialUsado        Boolean   @default(false)\n' +
+        '  paymentProviderId String?\n' +
+        '  canceladaAt       DateTime?\n' +
+        '  esRecurrente      Boolean   @default(false)\n' +
+        '  mpPlanId          String?\n' +
+        '  mpPreapprovalId   String?   @unique\n' +
+        '  proximoCobro      DateTime?\n' +
+        '  createdAt         DateTime  @default(now())\n' +
+        '  updatedAt         DateTime  @updatedAt\n' +
+        '\n' +
+        '  plan   Plan   @relation(fields: [planId], references: [id])\n' +
+        '  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// USUARIOS & AUTH\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Account {\n' +
+        '  id                String  @id @default(cuid())\n' +
+        '  userId            String\n' +
+        '  type              String\n' +
+        '  provider          String\n' +
+        '  providerAccountId String\n' +
+        '  refresh_token     String?\n' +
+        '  access_token      String?\n' +
+        '  expires_at        Int?\n' +
+        '  token_type        String?\n' +
+        '  scope             String?\n' +
+        '  id_token          String?\n' +
+        '  session_state     String?\n' +
+        '\n' +
+        '  user User @relation(fields: [userId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@unique([provider, providerAccountId])\n' +
+        '}\n' +
+        '\n' +
+        'model Session {\n' +
+        '  id           String   @id @default(cuid())\n' +
+        '  sessionToken String   @unique\n' +
+        '  userId       String\n' +
+        '  expires      DateTime\n' +
+        '  tenantId     String   @default("")\n' +
+        '\n' +
+        '  user User @relation(fields: [userId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        'model VerificationToken {\n' +
+        '  identifier String\n' +
+        '  token      String   @unique\n' +
+        '  expires    DateTime\n' +
+        '\n' +
+        '  @@unique([identifier, token])\n' +
+        '}\n' +
+        '\n' +
+        'model User {\n' +
+        '  id            String    @id @default(cuid())\n' +
+        '  email         String    @unique\n' +
+        '  emailVerified DateTime?\n' +
+        '  password      String?\n' +
+        '  phone         String?   @unique\n' +
+        '  phoneVerified DateTime?\n' +
+        '  name          String?\n' +
+        '  image         String?\n' +
+        '  createdAt     DateTime  @default(now())\n' +
+        '  updatedAt     DateTime  @updatedAt\n' +
+        '\n' +
+        '  accounts Account[]\n' +
+        '  sessions Session[]\n' +
+        '  tenants  TenantUser[]\n' +
+        '}\n' +
+        '\n' +
+        'model TenantUser {\n' +
+        '  id             String    @id @default(cuid())\n' +
+        '  tenantId       String\n' +
+        '  userId         String\n' +
+        '  rol            RolTenant @default(recepcion)\n' +
+        '  nombreCompleto String?\n' +
+        '  permisos       String[]\n' +
+        '  activo         Boolean   @default(true)\n' +
+        '  createdAt      DateTime  @default(now())\n' +
+        '  updatedAt      DateTime  @updatedAt\n' +
+        '  password       String?\n' +
+        '\n' +
+        '  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// HABITACIONES\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Habitacion {\n' +
+        '  id                 String           @id @default(cuid())\n' +
+        '  tenantId           String\n' +
+        '  numero             String\n' +
+        '  tipo               String\n' +
+        '  capacidad          Int\n' +
+        '  camasMatrimoniales Int\n' +
+        '  camasSimples       Int\n' +
+        '  estado             EstadoHabitacion @default(Disponible)\n' +
+        '  problema           String?\n' +
+        '  precioPorCama      Int?\n' +
+        '  piso               Int?\n' +
+        '  orden              Int              @default(0)\n' +
+        '  createdAt          DateTime         @default(now())\n' +
+        '  updatedAt          DateTime         @updatedAt\n' +
+        '\n' +
+        '  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@unique([tenantId, numero])\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// CLIENTES\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Cliente {\n' +
+        '  id              String    @id @default(cuid())\n' +
+        '  tenantId        String\n' +
+        '  nombre          String\n' +
+        '  dni             String\n' +
+        '  telefono        String\n' +
+        '  email           String?\n' +
+        '  fechaNacimiento DateTime?\n' +
+        '  nacionalidad    String?\n' +
+        '  preferencias    String    @default("")\n' +
+        '  domicilio       String?\n' +
+        '  createdAt       DateTime  @default(now())\n' +
+        '  updatedAt       DateTime  @updatedAt\n' +
+        '\n' +
+        '  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '  estadias Estadia[]\n' +
+        '  reservas Reserva[]\n' +
+        '\n' +
+        '  @@unique([tenantId, dni])\n' +
+        '}\n' +
+        '\n' +
+        'model Estadia {\n' +
+        '  id            String   @id @default(cuid())\n' +
+        '  tenantId      String\n' +
+        '  clienteId     String\n' +
+        '  fechaCheckin  DateTime\n' +
+        '  fechaCheckout DateTime\n' +
+        '  habitacion    String\n' +
+        '  gastoTotal    Int\n' +
+        '  createdAt     DateTime @default(now())\n' +
+        '\n' +
+        '  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// RESERVAS\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Reserva {\n' +
+        '  id                       String        @id @default(cuid())\n' +
+        '  tenantId                 String\n' +
+        '  clienteId                String?\n' +
+        '  huesped                  String\n' +
+        '  dni                      String\n' +
+        '  telefono                 String\n' +
+        '  email                    String?\n' +
+        '  domicilio                String?\n' +
+        '  habitacion               String\n' +
+        '  checkin                  DateTime\n' +
+        '  checkout                 DateTime\n' +
+        '  personas                 Int\n' +
+        '  estadoPago               EstadoPago    @default(Pendiente)\n' +
+        '  estado                   EstadoReserva @default(Confirmada)\n' +
+        '  tipoTarifa               String?\n' +
+        '  metodoPagoId             String?\n' +
+        '  cuotas                   Int?\n' +
+        '  recargoPorcentaje        Int?\n' +
+        '  notas                    String        @default("")\n' +
+        '  observacionesHuesped     String?\n' +
+        '  agenciaNombre            String?\n' +
+        '  agenciaConvenio          String?\n' +
+        '  agenciaVendedor          String?\n' +
+        '  contactoEmergenciaNombre String?\n' +
+        '  contactoEmergenciaTel    String?\n' +
+        '  llaveEntregada           String?\n' +
+        '  documentoVerificado      Boolean       @default(false)\n' +
+        '  firmaConformidad         Boolean       @default(false)\n' +
+        '  horaCheckin              String?\n' +
+        '  horaCheckout             String?\n' +
+        '  ninos                    Int?\n' +
+        '  total                    Int?\n' +
+        '  datosAdicionales         Json?\n' +
+        '  createdAt                DateTime      @default(now())\n' +
+        '  updatedAt                DateTime      @updatedAt\n' +
+        '\n' +
+        '  acompanantes Acompanante[]\n' +
+        '  menores      Menor[]\n' +
+        '  pagos        Pago[]\n' +
+        '  cliente      Cliente?      @relation(fields: [clienteId], references: [id])\n' +
+        '  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@index([tenantId, estado])\n' +
+        '  @@index([tenantId, habitacion, checkin, checkout])\n' +
+        '}\n' +
+        '\n' +
+        'model Acompanante {\n' +
+        '  id        String  @id @default(cuid())\n' +
+        '  reservaId String\n' +
+        '  nombre    String\n' +
+        '  dni       String\n' +
+        '  celular   String?\n' +
+        '\n' +
+        '  reserva Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        'model Menor {\n' +
+        '  id         String @id @default(cuid())\n' +
+        '  reservaId  String\n' +
+        '  nombre     String\n' +
+        '  documento  String\n' +
+        '  edad       Int\n' +
+        '  parentesco String\n' +
+        '\n' +
+        '  reserva Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@index([reservaId])\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// PAGOS\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Pago {\n' +
+        '  id        String   @id @default(cuid())\n' +
+        '  tenantId  String\n' +
+        '  reservaId String\n' +
+        '  monto     Int\n' +
+        '  metodo    String\n' +
+        '  nota      String   @default("")\n' +
+        '  fecha     DateTime @default(now())\n' +
+        '  createdAt DateTime @default(now())\n' +
+        '\n' +
+        '  reserva Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)\n' +
+        '  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@index([tenantId, reservaId])\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// TARIFAS\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Tarifa {\n' +
+        '  id                   String   @id @default(cuid())\n' +
+        '  tenantId             String\n' +
+        '  nombre               String\n' +
+        '  precios              Json\n' +
+        '  camposPersonalizados Json?\n' +
+        '  choferCortesia       Boolean  @default(false)\n' +
+        '  habitacionChofer     String?\n' +
+        '  activa               Boolean  @'... 8445 more characters,
+      overrideDatasources: {},
+      inlineDatasources: [Object],
+      inlineSchemaHash: 'ab1474ddf1a43525a9e4f27e2e69feddc0f0c485f2a9bf26c8f715b360fbac07',
+      tracingHelper: Ao {},
+      transactionOptions: [Object],
+      logEmitter: [EventEmitter],
+      isBundled: undefined,
+      adapter: undefined
+    },
+    _accelerateEngineConfig: {
+      cwd: '/home/z/my-project/prisma',
+      dirname: '/home/z/my-project/node_modules/.prisma/client',
+      enableDebugLogs: false,
+      allowTriggerPanic: undefined,
+      prismaPath: undefined,
+      engineEndpoint: undefined,
+      generator: [Object],
+      showColors: false,
+      logLevel: undefined,
+      logQueries: true,
+      env: [Object],
+      flags: [],
+      engineWasm: undefined,
+      compilerWasm: undefined,
+      clientVersion: '6.19.2',
+      engineVersion: 'c2990dca591cba766e3b7ef5d9e8a84796e47ab7',
+      previewFeatures: [],
+      activeProvider: 'postgresql',
+      inlineSchema: '// ==================== HOSPEDÁ — SCHEMA MULTI-TENANT ====================\n' +
+        '// Cada tabla tiene tenantId para aislar datos por hotel/empresa.\n' +
+        '// Sincronizado desde Neon PostgreSQL con enums y relaciones correctas.\n' +
+        '\n' +
+        'generator client {\n' +
+        '  provider = "prisma-client-js"\n' +
+        '}\n' +
+        '\n' +
+        'datasource db {\n' +
+        '  provider = "postgresql"\n' +
+        '  url      = env("DATABASE_URL")\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// TENANT & AUTH\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Tenant {\n' +
+        '  id        String   @id @default(cuid())\n' +
+        '  nombre    String\n' +
+        '  slug      String   @unique\n' +
+        '  email     String\n' +
+        '  telefono  String?\n' +
+        '  direccion String?\n' +
+        '  pais      String   @default("Argentina")\n' +
+        '  moneda    String   @default("ARS")\n' +
+        '  timezone  String   @default("America/Argentina/Buenos_Aires")\n' +
+        '  logoUrl   String?\n' +
+        '  activo    Boolean  @default(true)\n' +
+        '  createdAt DateTime @default(now())\n' +
+        '  updatedAt DateTime @updatedAt\n' +
+        '\n' +
+        '  // Relaciones\n' +
+        '  subscription     Subscription?\n' +
+        '  users            TenantUser[]\n' +
+        '  habitaciones     Habitacion[]\n' +
+        '  clientes         Cliente[]\n' +
+        '  reservas         Reserva[]\n' +
+        '  pagos            Pago[]\n' +
+        '  tarifas          Tarifa[]\n' +
+        '  metodosPago      MetodoPago[]\n' +
+        '  gastos           Gasto[]\n' +
+        '  categoriasGasto  CategoriaGasto[]\n' +
+        '  movimientosCaja  MovimientoCaja[]\n' +
+        '  turnosCaja       TurnoCaja[]\n' +
+        '  mantenimientos   Mantenimiento[]\n' +
+        '  auditoria        Auditoria[]\n' +
+        '  tareasLimpieza   TareaLimpieza[]\n' +
+        '  configuracion    TenantConfig?\n' +
+        '  platformPayments PlatformPayment[]\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// PLANES & SUSCRIPCIONES\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Plan {\n' +
+        '  id              String   @id @default(cuid())\n' +
+        '  type            PlanType @unique\n' +
+        '  nombre          String\n' +
+        '  precioMensual   Int\n' +
+        '  moneda          String   @default("ARS")\n' +
+        '  maxHabitaciones Int\n' +
+        '  maxUsuarios     Int\n' +
+        '  maxTarifas      Int\n' +
+        '  maxReservasMes  Int\n' +
+        '  modulos         Json\n' +
+        '  activo          Boolean  @default(true)\n' +
+        '  createdAt       DateTime @default(now())\n' +
+        '  updatedAt       DateTime @updatedAt\n' +
+        '\n' +
+        '  subscriptions Subscription[]\n' +
+        '}\n' +
+        '\n' +
+        'model Subscription {\n' +
+        '  id                String    @id @default(cuid())\n' +
+        '  tenantId          String    @unique\n' +
+        '  planId            String\n' +
+        '  estado            String    @default("trial")\n' +
+        '  fechaInicio       DateTime  @default(now())\n' +
+        '  fechaVencimiento  DateTime\n' +
+        '  trialUsado        Boolean   @default(false)\n' +
+        '  paymentProviderId String?\n' +
+        '  canceladaAt       DateTime?\n' +
+        '  esRecurrente      Boolean   @default(false)\n' +
+        '  mpPlanId          String?\n' +
+        '  mpPreapprovalId   String?   @unique\n' +
+        '  proximoCobro      DateTime?\n' +
+        '  createdAt         DateTime  @default(now())\n' +
+        '  updatedAt         DateTime  @updatedAt\n' +
+        '\n' +
+        '  plan   Plan   @relation(fields: [planId], references: [id])\n' +
+        '  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// USUARIOS & AUTH\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Account {\n' +
+        '  id                String  @id @default(cuid())\n' +
+        '  userId            String\n' +
+        '  type              String\n' +
+        '  provider          String\n' +
+        '  providerAccountId String\n' +
+        '  refresh_token     String?\n' +
+        '  access_token      String?\n' +
+        '  expires_at        Int?\n' +
+        '  token_type        String?\n' +
+        '  scope             String?\n' +
+        '  id_token          String?\n' +
+        '  session_state     String?\n' +
+        '\n' +
+        '  user User @relation(fields: [userId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@unique([provider, providerAccountId])\n' +
+        '}\n' +
+        '\n' +
+        'model Session {\n' +
+        '  id           String   @id @default(cuid())\n' +
+        '  sessionToken String   @unique\n' +
+        '  userId       String\n' +
+        '  expires      DateTime\n' +
+        '  tenantId     String   @default("")\n' +
+        '\n' +
+        '  user User @relation(fields: [userId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        'model VerificationToken {\n' +
+        '  identifier String\n' +
+        '  token      String   @unique\n' +
+        '  expires    DateTime\n' +
+        '\n' +
+        '  @@unique([identifier, token])\n' +
+        '}\n' +
+        '\n' +
+        'model User {\n' +
+        '  id            String    @id @default(cuid())\n' +
+        '  email         String    @unique\n' +
+        '  emailVerified DateTime?\n' +
+        '  password      String?\n' +
+        '  phone         String?   @unique\n' +
+        '  phoneVerified DateTime?\n' +
+        '  name          String?\n' +
+        '  image         String?\n' +
+        '  createdAt     DateTime  @default(now())\n' +
+        '  updatedAt     DateTime  @updatedAt\n' +
+        '\n' +
+        '  accounts Account[]\n' +
+        '  sessions Session[]\n' +
+        '  tenants  TenantUser[]\n' +
+        '}\n' +
+        '\n' +
+        'model TenantUser {\n' +
+        '  id             String    @id @default(cuid())\n' +
+        '  tenantId       String\n' +
+        '  userId         String\n' +
+        '  rol            RolTenant @default(recepcion)\n' +
+        '  nombreCompleto String?\n' +
+        '  permisos       String[]\n' +
+        '  activo         Boolean   @default(true)\n' +
+        '  createdAt      DateTime  @default(now())\n' +
+        '  updatedAt      DateTime  @updatedAt\n' +
+        '  password       String?\n' +
+        '\n' +
+        '  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// HABITACIONES\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Habitacion {\n' +
+        '  id                 String           @id @default(cuid())\n' +
+        '  tenantId           String\n' +
+        '  numero             String\n' +
+        '  tipo               String\n' +
+        '  capacidad          Int\n' +
+        '  camasMatrimoniales Int\n' +
+        '  camasSimples       Int\n' +
+        '  estado             EstadoHabitacion @default(Disponible)\n' +
+        '  problema           String?\n' +
+        '  precioPorCama      Int?\n' +
+        '  piso               Int?\n' +
+        '  orden              Int              @default(0)\n' +
+        '  createdAt          DateTime         @default(now())\n' +
+        '  updatedAt          DateTime         @updatedAt\n' +
+        '\n' +
+        '  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@unique([tenantId, numero])\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// CLIENTES\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Cliente {\n' +
+        '  id              String    @id @default(cuid())\n' +
+        '  tenantId        String\n' +
+        '  nombre          String\n' +
+        '  dni             String\n' +
+        '  telefono        String\n' +
+        '  email           String?\n' +
+        '  fechaNacimiento DateTime?\n' +
+        '  nacionalidad    String?\n' +
+        '  preferencias    String    @default("")\n' +
+        '  domicilio       String?\n' +
+        '  createdAt       DateTime  @default(now())\n' +
+        '  updatedAt       DateTime  @updatedAt\n' +
+        '\n' +
+        '  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '  estadias Estadia[]\n' +
+        '  reservas Reserva[]\n' +
+        '\n' +
+        '  @@unique([tenantId, dni])\n' +
+        '}\n' +
+        '\n' +
+        'model Estadia {\n' +
+        '  id            String   @id @default(cuid())\n' +
+        '  tenantId      String\n' +
+        '  clienteId     String\n' +
+        '  fechaCheckin  DateTime\n' +
+        '  fechaCheckout DateTime\n' +
+        '  habitacion    String\n' +
+        '  gastoTotal    Int\n' +
+        '  createdAt     DateTime @default(now())\n' +
+        '\n' +
+        '  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// RESERVAS\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Reserva {\n' +
+        '  id                       String        @id @default(cuid())\n' +
+        '  tenantId                 String\n' +
+        '  clienteId                String?\n' +
+        '  huesped                  String\n' +
+        '  dni                      String\n' +
+        '  telefono                 String\n' +
+        '  email                    String?\n' +
+        '  domicilio                String?\n' +
+        '  habitacion               String\n' +
+        '  checkin                  DateTime\n' +
+        '  checkout                 DateTime\n' +
+        '  personas                 Int\n' +
+        '  estadoPago               EstadoPago    @default(Pendiente)\n' +
+        '  estado                   EstadoReserva @default(Confirmada)\n' +
+        '  tipoTarifa               String?\n' +
+        '  metodoPagoId             String?\n' +
+        '  cuotas                   Int?\n' +
+        '  recargoPorcentaje        Int?\n' +
+        '  notas                    String        @default("")\n' +
+        '  observacionesHuesped     String?\n' +
+        '  agenciaNombre            String?\n' +
+        '  agenciaConvenio          String?\n' +
+        '  agenciaVendedor          String?\n' +
+        '  contactoEmergenciaNombre String?\n' +
+        '  contactoEmergenciaTel    String?\n' +
+        '  llaveEntregada           String?\n' +
+        '  documentoVerificado      Boolean       @default(false)\n' +
+        '  firmaConformidad         Boolean       @default(false)\n' +
+        '  horaCheckin              String?\n' +
+        '  horaCheckout             String?\n' +
+        '  ninos                    Int?\n' +
+        '  total                    Int?\n' +
+        '  datosAdicionales         Json?\n' +
+        '  createdAt                DateTime      @default(now())\n' +
+        '  updatedAt                DateTime      @updatedAt\n' +
+        '\n' +
+        '  acompanantes Acompanante[]\n' +
+        '  menores      Menor[]\n' +
+        '  pagos        Pago[]\n' +
+        '  cliente      Cliente?      @relation(fields: [clienteId], references: [id])\n' +
+        '  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@index([tenantId, estado])\n' +
+        '  @@index([tenantId, habitacion, checkin, checkout])\n' +
+        '}\n' +
+        '\n' +
+        'model Acompanante {\n' +
+        '  id        String  @id @default(cuid())\n' +
+        '  reservaId String\n' +
+        '  nombre    String\n' +
+        '  dni       String\n' +
+        '  celular   String?\n' +
+        '\n' +
+        '  reserva Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        'model Menor {\n' +
+        '  id         String @id @default(cuid())\n' +
+        '  reservaId  String\n' +
+        '  nombre     String\n' +
+        '  documento  String\n' +
+        '  edad       Int\n' +
+        '  parentesco String\n' +
+        '\n' +
+        '  reserva Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@index([reservaId])\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// PAGOS\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Pago {\n' +
+        '  id        String   @id @default(cuid())\n' +
+        '  tenantId  String\n' +
+        '  reservaId String\n' +
+        '  monto     Int\n' +
+        '  metodo    String\n' +
+        '  nota      String   @default("")\n' +
+        '  fecha     DateTime @default(now())\n' +
+        '  createdAt DateTime @default(now())\n' +
+        '\n' +
+        '  reserva Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)\n' +
+        '  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@index([tenantId, reservaId])\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// TARIFAS\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Tarifa {\n' +
+        '  id                   String   @id @default(cuid())\n' +
+        '  tenantId             String\n' +
+        '  nombre               String\n' +
+        '  precios              Json\n' +
+        '  camposPersonalizados Json?\n' +
+        '  choferCortesia       Boolean  @default(false)\n' +
+        '  habitacionChofer     String?\n' +
+        '  activa               Boolean  @'... 8445 more characters,
+      overrideDatasources: {},
+      inlineDatasources: [Object],
+      inlineSchemaHash: 'ab1474ddf1a43525a9e4f27e2e69feddc0f0c485f2a9bf26c8f715b360fbac07',
+      tracingHelper: Ao {},
+      transactionOptions: [Object],
+      logEmitter: [EventEmitter],
+      isBundled: undefined,
+      adapter: undefined,
+      accelerateUtils: [Object]
+    },
+    _clientVersion: '6.19.2',
+    _errorFormat: 'colorless',
+    _tracingHelper: Ao {},
+    _previewFeatures: [],
+    _activeProvider: 'postgresql',
+    _globalOmit: undefined,
+    _extensions: e { head: undefined },
+    _engine: Qr {
+      name: 'LibraryEngine',
+      engine: undefined,
+      libraryInstantiationPromise: [Promise],
+      libraryStartingPromise: undefined,
+      libraryStoppingPromise: undefined,
+      libraryStarted: false,
+      executingQueryPromise: undefined,
+      config: [Object],
+      QueryEngineConstructor: undefined,
+      libraryLoader: [Object],
+      library: undefined,
+      logEmitter: [EventEmitter],
+      libQueryEnginePath: undefined,
+      binaryTarget: undefined,
+      datasourceOverrides: undefined,
+      datamodel: '// ==================== HOSPEDÁ — SCHEMA MULTI-TENANT ====================\n' +
+        '// Cada tabla tiene tenantId para aislar datos por hotel/empresa.\n' +
+        '// Sincronizado desde Neon PostgreSQL con enums y relaciones correctas.\n' +
+        '\n' +
+        'generator client {\n' +
+        '  provider = "prisma-client-js"\n' +
+        '}\n' +
+        '\n' +
+        'datasource db {\n' +
+        '  provider = "postgresql"\n' +
+        '  url      = env("DATABASE_URL")\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// TENANT & AUTH\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Tenant {\n' +
+        '  id        String   @id @default(cuid())\n' +
+        '  nombre    String\n' +
+        '  slug      String   @unique\n' +
+        '  email     String\n' +
+        '  telefono  String?\n' +
+        '  direccion String?\n' +
+        '  pais      String   @default("Argentina")\n' +
+        '  moneda    String   @default("ARS")\n' +
+        '  timezone  String   @default("America/Argentina/Buenos_Aires")\n' +
+        '  logoUrl   String?\n' +
+        '  activo    Boolean  @default(true)\n' +
+        '  createdAt DateTime @default(now())\n' +
+        '  updatedAt DateTime @updatedAt\n' +
+        '\n' +
+        '  // Relaciones\n' +
+        '  subscription     Subscription?\n' +
+        '  users            TenantUser[]\n' +
+        '  habitaciones     Habitacion[]\n' +
+        '  clientes         Cliente[]\n' +
+        '  reservas         Reserva[]\n' +
+        '  pagos            Pago[]\n' +
+        '  tarifas          Tarifa[]\n' +
+        '  metodosPago      MetodoPago[]\n' +
+        '  gastos           Gasto[]\n' +
+        '  categoriasGasto  CategoriaGasto[]\n' +
+        '  movimientosCaja  MovimientoCaja[]\n' +
+        '  turnosCaja       TurnoCaja[]\n' +
+        '  mantenimientos   Mantenimiento[]\n' +
+        '  auditoria        Auditoria[]\n' +
+        '  tareasLimpieza   TareaLimpieza[]\n' +
+        '  configuracion    TenantConfig?\n' +
+        '  platformPayments PlatformPayment[]\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// PLANES & SUSCRIPCIONES\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Plan {\n' +
+        '  id              String   @id @default(cuid())\n' +
+        '  type            PlanType @unique\n' +
+        '  nombre          String\n' +
+        '  precioMensual   Int\n' +
+        '  moneda          String   @default("ARS")\n' +
+        '  maxHabitaciones Int\n' +
+        '  maxUsuarios     Int\n' +
+        '  maxTarifas      Int\n' +
+        '  maxReservasMes  Int\n' +
+        '  modulos         Json\n' +
+        '  activo          Boolean  @default(true)\n' +
+        '  createdAt       DateTime @default(now())\n' +
+        '  updatedAt       DateTime @updatedAt\n' +
+        '\n' +
+        '  subscriptions Subscription[]\n' +
+        '}\n' +
+        '\n' +
+        'model Subscription {\n' +
+        '  id                String    @id @default(cuid())\n' +
+        '  tenantId          String    @unique\n' +
+        '  planId            String\n' +
+        '  estado            String    @default("trial")\n' +
+        '  fechaInicio       DateTime  @default(now())\n' +
+        '  fechaVencimiento  DateTime\n' +
+        '  trialUsado        Boolean   @default(false)\n' +
+        '  paymentProviderId String?\n' +
+        '  canceladaAt       DateTime?\n' +
+        '  esRecurrente      Boolean   @default(false)\n' +
+        '  mpPlanId          String?\n' +
+        '  mpPreapprovalId   String?   @unique\n' +
+        '  proximoCobro      DateTime?\n' +
+        '  createdAt         DateTime  @default(now())\n' +
+        '  updatedAt         DateTime  @updatedAt\n' +
+        '\n' +
+        '  plan   Plan   @relation(fields: [planId], references: [id])\n' +
+        '  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// USUARIOS & AUTH\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Account {\n' +
+        '  id                String  @id @default(cuid())\n' +
+        '  userId            String\n' +
+        '  type              String\n' +
+        '  provider          String\n' +
+        '  providerAccountId String\n' +
+        '  refresh_token     String?\n' +
+        '  access_token      String?\n' +
+        '  expires_at        Int?\n' +
+        '  token_type        String?\n' +
+        '  scope             String?\n' +
+        '  id_token          String?\n' +
+        '  session_state     String?\n' +
+        '\n' +
+        '  user User @relation(fields: [userId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@unique([provider, providerAccountId])\n' +
+        '}\n' +
+        '\n' +
+        'model Session {\n' +
+        '  id           String   @id @default(cuid())\n' +
+        '  sessionToken String   @unique\n' +
+        '  userId       String\n' +
+        '  expires      DateTime\n' +
+        '  tenantId     String   @default("")\n' +
+        '\n' +
+        '  user User @relation(fields: [userId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        'model VerificationToken {\n' +
+        '  identifier String\n' +
+        '  token      String   @unique\n' +
+        '  expires    DateTime\n' +
+        '\n' +
+        '  @@unique([identifier, token])\n' +
+        '}\n' +
+        '\n' +
+        'model User {\n' +
+        '  id            String    @id @default(cuid())\n' +
+        '  email         String    @unique\n' +
+        '  emailVerified DateTime?\n' +
+        '  password      String?\n' +
+        '  phone         String?   @unique\n' +
+        '  phoneVerified DateTime?\n' +
+        '  name          String?\n' +
+        '  image         String?\n' +
+        '  createdAt     DateTime  @default(now())\n' +
+        '  updatedAt     DateTime  @updatedAt\n' +
+        '\n' +
+        '  accounts Account[]\n' +
+        '  sessions Session[]\n' +
+        '  tenants  TenantUser[]\n' +
+        '}\n' +
+        '\n' +
+        'model TenantUser {\n' +
+        '  id             String    @id @default(cuid())\n' +
+        '  tenantId       String\n' +
+        '  userId         String\n' +
+        '  rol            RolTenant @default(recepcion)\n' +
+        '  nombreCompleto String?\n' +
+        '  permisos       String[]\n' +
+        '  activo         Boolean   @default(true)\n' +
+        '  createdAt      DateTime  @default(now())\n' +
+        '  updatedAt      DateTime  @updatedAt\n' +
+        '  password       String?\n' +
+        '\n' +
+        '  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// HABITACIONES\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Habitacion {\n' +
+        '  id                 String           @id @default(cuid())\n' +
+        '  tenantId           String\n' +
+        '  numero             String\n' +
+        '  tipo               String\n' +
+        '  capacidad          Int\n' +
+        '  camasMatrimoniales Int\n' +
+        '  camasSimples       Int\n' +
+        '  estado             EstadoHabitacion @default(Disponible)\n' +
+        '  problema           String?\n' +
+        '  precioPorCama      Int?\n' +
+        '  piso               Int?\n' +
+        '  orden              Int              @default(0)\n' +
+        '  createdAt          DateTime         @default(now())\n' +
+        '  updatedAt          DateTime         @updatedAt\n' +
+        '\n' +
+        '  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@unique([tenantId, numero])\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// CLIENTES\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Cliente {\n' +
+        '  id              String    @id @default(cuid())\n' +
+        '  tenantId        String\n' +
+        '  nombre          String\n' +
+        '  dni             String\n' +
+        '  telefono        String\n' +
+        '  email           String?\n' +
+        '  fechaNacimiento DateTime?\n' +
+        '  nacionalidad    String?\n' +
+        '  preferencias    String    @default("")\n' +
+        '  domicilio       String?\n' +
+        '  createdAt       DateTime  @default(now())\n' +
+        '  updatedAt       DateTime  @updatedAt\n' +
+        '\n' +
+        '  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '  estadias Estadia[]\n' +
+        '  reservas Reserva[]\n' +
+        '\n' +
+        '  @@unique([tenantId, dni])\n' +
+        '}\n' +
+        '\n' +
+        'model Estadia {\n' +
+        '  id            String   @id @default(cuid())\n' +
+        '  tenantId      String\n' +
+        '  clienteId     String\n' +
+        '  fechaCheckin  DateTime\n' +
+        '  fechaCheckout DateTime\n' +
+        '  habitacion    String\n' +
+        '  gastoTotal    Int\n' +
+        '  createdAt     DateTime @default(now())\n' +
+        '\n' +
+        '  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// RESERVAS\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Reserva {\n' +
+        '  id                       String        @id @default(cuid())\n' +
+        '  tenantId                 String\n' +
+        '  clienteId                String?\n' +
+        '  huesped                  String\n' +
+        '  dni                      String\n' +
+        '  telefono                 String\n' +
+        '  email                    String?\n' +
+        '  domicilio                String?\n' +
+        '  habitacion               String\n' +
+        '  checkin                  DateTime\n' +
+        '  checkout                 DateTime\n' +
+        '  personas                 Int\n' +
+        '  estadoPago               EstadoPago    @default(Pendiente)\n' +
+        '  estado                   EstadoReserva @default(Confirmada)\n' +
+        '  tipoTarifa               String?\n' +
+        '  metodoPagoId             String?\n' +
+        '  cuotas                   Int?\n' +
+        '  recargoPorcentaje        Int?\n' +
+        '  notas                    String        @default("")\n' +
+        '  observacionesHuesped     String?\n' +
+        '  agenciaNombre            String?\n' +
+        '  agenciaConvenio          String?\n' +
+        '  agenciaVendedor          String?\n' +
+        '  contactoEmergenciaNombre String?\n' +
+        '  contactoEmergenciaTel    String?\n' +
+        '  llaveEntregada           String?\n' +
+        '  documentoVerificado      Boolean       @default(false)\n' +
+        '  firmaConformidad         Boolean       @default(false)\n' +
+        '  horaCheckin              String?\n' +
+        '  horaCheckout             String?\n' +
+        '  ninos                    Int?\n' +
+        '  total                    Int?\n' +
+        '  datosAdicionales         Json?\n' +
+        '  createdAt                DateTime      @default(now())\n' +
+        '  updatedAt                DateTime      @updatedAt\n' +
+        '\n' +
+        '  acompanantes Acompanante[]\n' +
+        '  menores      Menor[]\n' +
+        '  pagos        Pago[]\n' +
+        '  cliente      Cliente?      @relation(fields: [clienteId], references: [id])\n' +
+        '  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@index([tenantId, estado])\n' +
+        '  @@index([tenantId, habitacion, checkin, checkout])\n' +
+        '}\n' +
+        '\n' +
+        'model Acompanante {\n' +
+        '  id        String  @id @default(cuid())\n' +
+        '  reservaId String\n' +
+        '  nombre    String\n' +
+        '  dni       String\n' +
+        '  celular   String?\n' +
+        '\n' +
+        '  reserva Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)\n' +
+        '}\n' +
+        '\n' +
+        'model Menor {\n' +
+        '  id         String @id @default(cuid())\n' +
+        '  reservaId  String\n' +
+        '  nombre     String\n' +
+        '  documento  String\n' +
+        '  edad       Int\n' +
+        '  parentesco String\n' +
+        '\n' +
+        '  reserva Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@index([reservaId])\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// PAGOS\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Pago {\n' +
+        '  id        String   @id @default(cuid())\n' +
+        '  tenantId  String\n' +
+        '  reservaId String\n' +
+        '  monto     Int\n' +
+        '  metodo    String\n' +
+        '  nota      String   @default("")\n' +
+        '  fecha     DateTime @default(now())\n' +
+        '  createdAt DateTime @default(now())\n' +
+        '\n' +
+        '  reserva Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)\n' +
+        '  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)\n' +
+        '\n' +
+        '  @@index([tenantId, reservaId])\n' +
+        '}\n' +
+        '\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '// TARIFAS\n' +
+        '// ═══════════════════════════════════════════════════════════\n' +
+        '\n' +
+        'model Tarifa {\n' +
+        '  id                   String   @id @default(cuid())\n' +
+        '  tenantId             String\n' +
+        '  nombre               String\n' +
+        '  precios              Json\n' +
+        '  camposPersonalizados Json?\n' +
+        '  choferCortesia       Boolean  @default(false)\n' +
+        '  habitacionChofer     String?\n' +
+        '  activa               Boolean  @'... 8445 more characters,
+      logQueries: true,
+      logLevel: 'error',
+      lastQuery: undefined,
+      loggerRustPanic: undefined,
+      tracingHelper: Ao {},
+      adapterPromise: undefined,
+      versionInfo: undefined
+    },
+    _appliedParent: {
+      _originalClient: [Object],
+      _runtimeDataModel: [Object],
+      _requestHandler: [ei [RequestHandler]],
+      _connectionPromise: undefined,
+      _disconnectionPromise: undefined,
+      _engineConfig: [Object],
+      _accelerateEngineConfig: [Object],
+      _clientVersion: '6.19.2',
+      _errorFormat: 'colorless',
+      _tracingHelper: Ao {},
+      _previewFeatures: [],
+      _activeProvider: 'postgresql',
+      _globalOmit: undefined,
+      _extensions: [e],
+      _engine: [Qr],
+      _appliedParent: [Object],
+      _createPrismaPromise: [Function (anonymous)],
+      '$metrics': [Lr],
+      '$extends': [Function: Wa],
+      constructor: [class r],
+      '$on': [Function: $on],
+      '$connect': [Function: $connect],
+      '$disconnect': [AsyncFunction: $disconnect],
+      '$executeRawInternal': [Function: $executeRawInternal],
+      '$executeRaw': [Function: $executeRaw],
+      '$executeRawUnsafe': [Function: $executeRawUnsafe],
+      '$runCommandRaw': [Function: $runCommandRaw],
+      '$queryRawInternal': [AsyncFunction: $queryRawInternal],
+      '$queryRaw': [Function: $queryRaw],
+      '$queryRawTyped': [Function: $queryRawTyped],
+      '$queryRawUnsafe': [Function: $queryRawUnsafe],
+      _transactionWithArray: [Function: _transactionWithArray],
+      _transactionWithCallback: [AsyncFunction: _transactionWithCallback],
+      _createItxClient: [Function: _createItxClient],
+      '$transaction': [Function: $transaction],
+      _request: [Function: _request],
+      _executeRequest: [AsyncFunction: _executeRequest],
+      _hasPreviewFlag: [Function: _hasPreviewFlag],
+      '$applyPendingMigrations': [Function: $applyPendingMigrations],
+      tenant: [Object],
+      plan: [Object],
+      subscription: [Object],
+      account: [Object],
+      session: [Object],
+      verificationToken: [Object],
+      user: [Object],
+      tenantUser: [Object],
+      habitacion: [Object],
+      cliente: [Object],
+      estadia: [Object],
+      reserva: [Object],
+      acompanante: [Object],
+      menor: [Object],
+      pago: [Object],
+      tarifa: [Object],
+      metodoPago: [Object],
+      turnoCaja: [Object],
+      movimientoCaja: [Object],
+      gasto: [Object],
+      categoriaGasto: [Object],
+      mantenimiento: [Object],
+      tareaLimpieza: [Object],
+      auditoria: [Object],
+      tenantConfig: [Object],
+      platformConfig: [Object],
+      platformPayment: [Object],
+      userPresence: [Object],
+      '$parent': [Object],
+      Symbol(): [Object]
+    },
+    _createPrismaPromise: [Function (anonymous)],
+    '$metrics': Lr { _client: [Object] },
+    '$extends': [Function: Wa],
+    constructor: [class r],
+    '$on': [Function: $on],
+    '$connect': [Function: $connect],
+    '$disconnect': [AsyncFunction: $disconnect],
+    '$executeRawInternal': [Function: $executeRawInternal],
+    '$executeRaw': [Function: $executeRaw],
+    '$executeRawUnsafe': [Function: $executeRawUnsafe],
+    '$runCommandRaw': [Function: $runCommandRaw],
+    '$queryRawInternal': [AsyncFunction: $queryRawInternal],
+    '$queryRaw': [Function: $queryRaw],
+    '$queryRawTyped': [Function: $queryRawTyped],
+    '$queryRawUnsafe': [Function: $queryRawUnsafe],
+    _transactionWithArray: [Function: _transactionWithArray],
+    _transactionWithCallback: [AsyncFunction: _transactionWithCallback],
+    _createItxClient: [Function: _createItxClient],
+    '$transaction': [Function: $transaction],
+    _request: [Function: _request],
+    _executeRequest: [AsyncFunction: _executeRequest],
+    _hasPreviewFlag: [Function: _hasPreviewFlag],
+    '$applyPendingMigrations': [Function: $applyPendingMigrations],
+    tenant: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Tenant',
+      '$name': 'Tenant',
+      '$parent': [Object]
+    },
+    plan: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Plan',
+      '$name': 'Plan',
+      '$parent': [Object]
+    },
+    subscription: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Subscription',
+      '$name': 'Subscription',
+      '$parent': [Object]
+    },
+    account: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Account',
+      '$name': 'Account',
+      '$parent': [Object]
+    },
+    session: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Session',
+      '$name': 'Session',
+      '$parent': [Object]
+    },
+    verificationToken: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'VerificationToken',
+      '$name': 'VerificationToken',
+      '$parent': [Object]
+    },
+    user: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'User',
+      '$name': 'User',
+      '$parent': [Object]
+    },
+    tenantUser: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'TenantUser',
+      '$name': 'TenantUser',
+      '$parent': [Object]
+    },
+    habitacion: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Habitacion',
+      '$name': 'Habitacion',
+      '$parent': [Object]
+    },
+    cliente: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Cliente',
+      '$name': 'Cliente',
+      '$parent': [Object]
+    },
+    estadia: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Estadia',
+      '$name': 'Estadia',
+      '$parent': [Object]
+    },
+    reserva: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Reserva',
+      '$name': 'Reserva',
+      '$parent': [Object]
+    },
+    acompanante: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Acompanante',
+      '$name': 'Acompanante',
+      '$parent': [Object]
+    },
+    menor: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Menor',
+      '$name': 'Menor',
+      '$parent': [Object]
+    },
+    pago: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Pago',
+      '$name': 'Pago',
+      '$parent': [Object]
+    },
+    tarifa: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Tarifa',
+      '$name': 'Tarifa',
+      '$parent': [Object]
+    },
+    metodoPago: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'MetodoPago',
+      '$name': 'MetodoPago',
+      '$parent': [Object]
+    },
+    turnoCaja: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'TurnoCaja',
+      '$name': 'TurnoCaja',
+      '$parent': [Object]
+    },
+    movimientoCaja: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'MovimientoCaja',
+      '$name': 'MovimientoCaja',
+      '$parent': [Object]
+    },
+    gasto: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Gasto',
+      '$name': 'Gasto',
+      '$parent': [Object]
+    },
+    categoriaGasto: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'CategoriaGasto',
+      '$name': 'CategoriaGasto',
+      '$parent': [Object]
+    },
+    mantenimiento: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Mantenimiento',
+      '$name': 'Mantenimiento',
+      '$parent': [Object]
+    },
+    tareaLimpieza: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'TareaLimpieza',
+      '$name': 'TareaLimpieza',
+      '$parent': [Object]
+    },
+    auditoria: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'Auditoria',
+      '$name': 'Auditoria',
+      '$parent': [Object]
+    },
+    tenantConfig: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'TenantConfig',
+      '$name': 'TenantConfig',
+      '$parent': [Object]
+    },
+    platformConfig: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'PlatformConfig',
+      '$name': 'PlatformConfig',
+      '$parent': [Object]
+    },
+    platformPayment: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'PlatformPayment',
+      '$name': 'PlatformPayment',
+      '$parent': [Object]
+    },
+    userPresence: {
+      findUnique: [Function (anonymous)],
+      findUniqueOrThrow: [Function (anonymous)],
+      findFirst: [Function (anonymous)],
+      findFirstOrThrow: [Function (anonymous)],
+      findMany: [Function (anonymous)],
+      create: [Function (anonymous)],
+      createMany: [Function (anonymous)],
+      createManyAndReturn: [Function (anonymous)],
+      update: [Function (anonymous)],
+      updateMany: [Function (anonymous)],
+      updateManyAndReturn: [Function (anonymous)],
+      upsert: [Function (anonymous)],
+      delete: [Function (anonymous)],
+      deleteMany: [Function (anonymous)],
+      groupBy: [Function (anonymous)],
+      count: [Function (anonymous)],
+      aggregate: [Function (anonymous)],
+      findRaw: [Function (anonymous)],
+      aggregateRaw: [Function (anonymous)],
+      fields: {},
+      name: 'UserPresence',
+      '$name': 'UserPresence',
+      '$parent': [Object]
+    },
+    '$parent': {
+      _originalClient: [Object],
+      _runtimeDataModel: [Object],
+      _requestHandler: [ei [RequestHandler]],
+      _connectionPromise: undefined,
+      _disconnectionPromise: undefined,
+      _engineConfig: [Object],
+      _accelerateEngineConfig: [Object],
+      _clientVersion: '6.19.2',
+      _errorFormat: 'colorless',
+      _tracingHelper: Ao {},
+      _previewFeatures: [],
+      _activeProvider: 'postgresql',
+      _globalOmit: undefined,
+      _extensions: [e],
+      _engine: [Qr],
+      _appliedParent: [Object],
+      _createPrismaPromise: [Function (anonymous)],
+      '$metrics': [Lr],
+      '$extends': [Function: Wa],
+      constructor: [class r],
+      '$on': [Function: $on],
+      '$connect': [Function: $connect],
+      '$disconnect': [AsyncFunction: $disconnect],
+      '$executeRawInternal': [Function: $executeRawInternal],
+      '$executeRaw': [Function: $executeRaw],
+      '$executeRawUnsafe': [Function: $executeRawUnsafe],
+      '$runCommandRaw': [Function: $runCommandRaw],
+      '$queryRawInternal': [AsyncFunction: $queryRawInternal],
+      '$queryRaw': [Function: $queryRaw],
+      '$queryRawTyped': [Function: $queryRawTyped],
+      '$queryRawUnsafe': [Function: $queryRawUnsafe],
+      _transactionWithArray: [Function: _transactionWithArray],
+      _transactionWithCallback: [AsyncFunction: _transactionWithCallback],
+      _createItxClient: [Function: _createItxClient],
+      '$transaction': [Function: $transaction],
+      _request: [Function: _request],
+      _executeRequest: [AsyncFunction: _executeRequest],
+      _hasPreviewFlag: [Function: _hasPreviewFlag],
+      '$applyPendingMigrations': [Function: $applyPendingMigrations],
+      tenant: [Object],
+      plan: [Object],
+      subscription: [Object],
+      account: [Object],
+      session: [Object],
+      verificationToken: [Object],
+      user: [Object],
+      tenantUser: [Object],
+      habitacion: [Object],
+      cliente: [Object],
+      estadia: [Object],
+      reserva: [Object],
+      acompanante: [Object],
+      menor: [Object],
+      pago: [Object],
+      tarifa: [Object],
+      metodoPago: [Object],
+      turnoCaja: [Object],
+      movimientoCaja: [Object],
+      gasto: [Object],
+      categoriaGasto: [Object],
+      mantenimiento: [Object],
+      tareaLimpieza: [Object],
+      auditoria: [Object],
+      tenantConfig: [Object],
+      platformConfig: [Object],
+      platformPayment: [Object],
+      userPresence: [Object],
+      '$parent': [Object],
+      Symbol(): [Object]
+    },
+    Symbol(): {
+      _originalClient: [Object],
+      _runtimeDataModel: [Object],
+      _requestHandler: [ei [RequestHandler]],
+      _connectionPromise: undefined,
+      _disconnectionPromise: undefined,
+      _engineConfig: [Object],
+      _accelerateEngineConfig: [Object],
+      _clientVersion: '6.19.2',
+      _errorFormat: 'colorless',
+      _tracingHelper: Ao {},
+      _previewFeatures: [],
+      _activeProvider: 'postgresql',
+      _globalOmit: undefined,
+      _extensions: [e],
+      _engine: [Qr],
+      _appliedParent: [Object],
+      _createPrismaPromise: [Function (anonymous)],
+      '$metrics': [Lr],
+      '$extends': [Function: Wa]
+    }
+  }
+}
+Models with findMany: 
