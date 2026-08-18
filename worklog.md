@@ -1530,3 +1530,35 @@ Stage Summary:
 - porCama permanece restringido a habitaciones "Compartidas" (Opción A)
 - Los módulos de Facturación, CheckIn, Dashboard y Pagos no se vieron afectados
 - Icono UserRound eliminado del import (ya no se usa)
+
+---
+Task ID: 2
+Agent: main
+Task: Reducir ancho del wizard de tarifas y compactar layout
+
+Work Log:
+- Analizado screenshot del wizard actual con VLM para identificar problemas de layout
+- Lectura exhaustiva de todo el layout del wizard (DialogContent, grid, steps, preview, footer)
+- Reducido ancho máximo del diálogo: sm:max-w-5xl (1024px) → sm:max-w-3xl (768px)
+- Reducido padding del diálogo: p-6 → p-5
+- Reducido ancho del preview: lg:grid-cols-[1fr_280px] → lg:grid-cols-[1fr_240px]
+- Reducido gap entre columnas: gap-6 → gap-4
+- Compactado Step 1: space-y-5 → space-y-4
+- Compactado Step 2: space-y-4 → space-y-3
+- Compactado Step 3: space-y-5 → space-y-4 (contenedor + promo card)
+- Grid de modos: grid-cols-2 sm:grid-cols-4 → grid-cols-3 (3 modos uniformes)
+- Modo buttons: gap-1.5 p-3 → gap-1 p-2.5 sm:p-3 (responsive compact)
+- Visual range builder: mt-3 mb-4 → mt-2 mb-3
+- Verificado: lint pasa sin errores
+- Verificado: compilación TypeScript sin errores
+- Verificado: dev server arranca y responde HTTP 200
+- Commit y push realizados
+
+Stage Summary:
+- Ancho del formulario: ~672px → ~472px (reducción de 30%)
+- Ancho del diálogo: 1024px → 768px (reducción de 25%)
+- Preview panel: 280px → 240px
+- Grid de modos ahora es 3 columnas uniformes (antes 4 con hueco)
+- Estructura de wizard de 3 pasos se mantiene intacta
+- Vista previa sticky se mantiene
+- Responsive breakpoints se mantienen
