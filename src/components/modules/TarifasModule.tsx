@@ -1349,7 +1349,7 @@ export default function TarifasModule() {
 
       {/* ==================== MODAL: TARIFA (CREAR/EDITAR — WIZARD) ==================== */}
       <Dialog open={modalTarifa} onOpenChange={setModalTarifa}>
-        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto p-6">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-5">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               {editandoTarifa ? <><Pencil className="w-5 h-5" />Editar - {editandoTarifa}</> : <><Sparkles className="w-5 h-5 text-primary" />Nueva Tarifa</>}
@@ -1359,12 +1359,12 @@ export default function TarifasModule() {
           {/* Wizard stepper */}
           <WizardStepper current={wizardStep} onSelect={setWizardStep} />
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 mt-2">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-4 mt-2">
             {/* ═══ MAIN: Step content ═══ */}
-            <div className="space-y-5">
+            <div className="space-y-4">
               {/* STEP 1: Basic info */}
               {wizardStep === 1 && (
-                <div className="space-y-5 animate-fade-in">
+                <div className="space-y-4 animate-fade-in">
                   <div className="space-y-1.5">
                     <Label>Nombre de la tarifa *</Label>
                     <Input
@@ -1382,7 +1382,7 @@ export default function TarifasModule() {
 
                   <div className="space-y-1.5">
                     <Label>Modo de cobro *</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
                       {MODO_OPTIONS.map(opt => {
                         const Icon = opt.icon;
                         const selected = tarifaForm.modoCobro === opt.value;
@@ -1391,7 +1391,7 @@ export default function TarifasModule() {
                             key={opt.value}
                             type="button"
                             onClick={() => handleModoCobroChange(opt.value)}
-                            className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all text-center ${
+                            className={`flex flex-col items-center gap-1 p-2.5 sm:p-3 rounded-lg border-2 transition-all text-center ${
                               selected
                                 ? 'border-primary bg-primary/10 text-primary shadow-sm'
                                 : 'border-border hover:border-primary/30 text-muted-foreground'
@@ -1413,7 +1413,7 @@ export default function TarifasModule() {
 
               {/* STEP 2: Price ranges */}
               {wizardStep === 2 && (
-                <div className="space-y-4 animate-fade-in">
+                <div className="space-y-3 animate-fade-in">
                   <div>
                     <Label className="text-sm font-medium">
                       Precios por rango
@@ -1423,7 +1423,7 @@ export default function TarifasModule() {
 
                     {/* Visual range builder — interactive tiered view */}
                     {tarifaForm.modoCobro !== 'porHabitacion' && tarifaForm.modoCobro !== 'porCama' && (
-                      <div className="mt-3 mb-4 p-3 rounded-lg bg-muted/30 border border-border">
+                      <div className="mt-2 mb-3 p-3 rounded-lg bg-muted/30 border border-border">
                         <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
                           <Users className="w-3 h-3" />Vista por escalones
                         </p>
@@ -1476,8 +1476,8 @@ export default function TarifasModule() {
 
               {/* STEP 3: Promotions + custom fields */}
               {wizardStep === 3 && (
-                <div className="space-y-5 animate-fade-in">
-                  <div className="space-y-5 border rounded-xl p-4 bg-muted/20">
+                <div className="space-y-4 animate-fade-in">
+                  <div className="space-y-4 border rounded-xl p-4 bg-muted/20">
                     <h3 className="text-sm font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-primary" />Promociones</h3>
 
                     {/* 1. Acompañante sin cargo */}
