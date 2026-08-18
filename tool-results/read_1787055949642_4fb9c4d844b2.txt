@@ -1,0 +1,2002 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useState, useMemo, useCallback, useEffect, type ComponentType } from 'react';
+     4→     4→import {
+     5→     5→  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+     6→     6→} from '@/components/ui/alert-dialog';
+     7→     7→import { useHotelStore } from '@/lib/store';
+     8→     8→import { formatFechaHora, formatMoney } from '@/lib/format';
+     9→     9→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+    10→    10→import { Button } from '@/components/ui/button';
+    11→    11→import { Input } from '@/components/ui/input';
+    12→    12→import { Label } from '@/components/ui/label';
+    13→    13→import { Badge } from '@/components/ui/badge';
+    14→    14→import {
+    15→    15→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    16→    16→} from '@/components/ui/dialog';
+    17→    17→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    18→    18→import {
+    19→    19→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    20→    20→} from '@/components/ui/select';
+    21→    21→import {
+    22→    22→  Popover, PopoverContent, PopoverTrigger,
+    23→    23→} from '@/components/ui/popover';
+    24→    24→import {
+    25→    25→  Wallet, Lock, Unlock, Plus, Minus, Loader2, Pencil, Trash2, AlertTriangle, Tag,
+    26→    26→  TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight, Activity, Receipt, Sparkles,
+    27→    27→  Download, Filter, X, Search, FileText, ChevronLeft, ChevronRight, Check, History,
+    28→    28→  Banknote, CreditCard, QrCode, ArrowRightLeft, PiggyBank, Wrench, ShoppingCart, Trash,
+    29→    29→  Sparkle, Info, CalendarDays, StickyNote, ClipboardCheck, Eye, ExternalLink,
+    30→    30→  Printer, Coins, CircleDot, Timer, Scale,
+    31→    31→} from 'lucide-react';
+    32→    32→import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+    33→    33→import ModuleHeader from '@/components/layout/ModuleHeader';
+    34→    34→import { toast } from 'sonner';
+    35→    35→import { DialogTrigger } from '@/components/ui/dialog';
+    36→    36→import { BILLETES } from '@/lib/types';
+    37→    37→
+    38→    38→/** Extended denominations including coins for the denomination breakdown panel */
+    39→    39→const DENOMINACIONES = [
+    40→    40→  { value: 20000, label: '$20.000', type: 'bill' as const },
+    41→    41→  { value: 10000, label: '$10.000', type: 'bill' as const },
+    42→    42→  { value: 2000, label: '$2.000', type: 'bill' as const },
+    43→    43→  { value: 1000, label: '$1.000', type: 'bill' as const },
+    44→    44→  { value: 500, label: '$500', type: 'bill' as const },
+    45→    45→  { value: 200, label: '$200', type: 'bill' as const },
+    46→    46→  { value: 100, label: '$100', type: 'bill' as const },
+    47→    47→  { value: 50, label: '$50', type: 'coin' as const },
+    48→    48→  { value: 20, label: '$20', type: 'coin' as const },
+    49→    49→  { value: 10, label: '$10', type: 'coin' as const },
+    50→    50→  { value: 5, label: '$5', type: 'coin' as const },
+    51→    51→  { value: 2, label: '$2', type: 'coin' as const },
+    52→    52→  { value: 1, label: '$1', type: 'coin' as const },
+    53→    53→];
+    54→    54→import PaginationBar from '@/components/ui/pagination-bar';
+    55→    55→import { AnimatedNumber } from '@/components/ui/animated-number';
+    56→    56→import { cn } from '@/lib/utils';
+    57→    57→import { exportToCSV } from '@/lib/csv-export';
+    58→    58→import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    59→    59→import { Separator } from '@/components/ui/separator';
+    60→    60→
+    61→    61→// formatFechaHora and formatMoney imported from @/lib/format
+    62→    62→
+    63→    63→const formatHora = (f: string) => {
+    64→    64→  const d = new Date(f);
+    65→    65→  return d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    66→    66→};
+    67→    67→
+    68→    68→/** Relative time since a date — "recién", "hace 5 min", "hace 2h 15min", "hace 3d" */
+    69→    69→function formatRelative(dateStr: string, now: number = Date.now()): string {
+    70→    70→  const t = new Date(dateStr).getTime();
+    71→    71→  if (isNaN(t)) return '';
+    72→    72→  const diff = Math.max(0, now - t);
+    73→    73→  const mins = Math.floor(diff / 60000);
+    74→    74→  if (mins < 1) return 'recién';
+    75→    75→  if (mins < 60) return `hace ${mins} min`;
+    76→    76→  const hours = Math.floor(mins / 60);
+    77→    77→  const restMins = mins % 60;
+    78→    78→  if (hours < 24) return restMins > 0 ? `hace ${hours}h ${restMins}min` : `hace ${hours}h`;
+    79→    79→  const days = Math.floor(hours / 24);
+    80→    80→  return `hace ${days}d`;
+    81→    81→}
+    82→    82→
+    83→    83→/** Time since caja was opened — "abierta hace 2h 15min" */
+    84→    84→function formatTimeSinceOpen(openedAt: string, now: number = Date.now()): string {
+    85→    85→  const t = new Date(openedAt).getTime();
+    86→    86→  if (isNaN(t)) return '';
+    87→    87→  const diff = Math.max(0, now - t);
+    88→    88→  const mins = Math.floor(diff / 60000);
+    89→    89→  if (mins < 1) return 'recién abierta';
+    90→    90→  if (mins < 60) return `abierta hace ${mins}min`;
+    91→    91→  const hours = Math.floor(mins / 60);
+    92→    92→  const restMins = mins % 60;
+    93→    93→  return restMins > 0 ? `abierta hace ${hours}h ${restMins}min` : `abierta hace ${hours}h`;
+    94→    94→}
+    95→    95→
+    96→    96→// formatMoney imported from @/lib/format (note: shared uses Intl.NumberFormat with currency style,
+    97→    97→// CajaModule previously used toLocaleString - the shared version is more consistent)
+    98→    98→
+    99→    99→const METODOS = ['Efectivo', 'Transferencia', 'Tarjeta de Credito', 'Tarjeta de Debito', 'Mercado Pago', 'Otro'];
+   100→   100→
+   101→   101→/* ═══════════════════════════════════════════════════════════
+   102→   102→   MOVEMENT CATEGORIES (for pie chart + auto-categorization)
+   103→   103→   ═══════════════════════════════════════════════════════════ */
+   104→   104→
+   105→   105→export type MovementCategory =
+   106→   106→  | 'Gastos'
+   107→   107→  | 'Mantenimiento'
+   108→   108→  | 'Ingresos varios'
+   109→   109→  | 'Retiros'
+   110→   110→  | 'Otros';
+   111→   111→
+   112→   112→interface CategoryConfig {
+   113→   113→  label: MovementCategory;
+   114→   114→  color: string;       // hex for recharts
+   115→   115→  badgeBg: string;     // tailwind bg
+   116→   116→  badgeText: string;   // tailwind text
+   117→   117→  icon: ComponentType<{ className?: string }>;
+   118→   118→}
+   119→   119→
+   120→   120→const CATEGORY_CONFIG: Record<MovementCategory, CategoryConfig> = {
+   121→   121→  'Gastos':           { label: 'Gastos',          color: 'var(--destructive)', badgeBg: 'bg-destructive/15', badgeText: 'text-destructive', icon: ShoppingCart },
+   122→   122→  'Mantenimiento':    { label: 'Mantenimiento',   color: 'var(--brand-amber)', badgeBg: 'bg-warning/15', badgeText: 'text-warning', icon: Wrench },
+   123→   123→  'Ingresos varios':  { label: 'Ingresos varios', color: 'var(--brand-emerald)', badgeBg: 'bg-primary/20', badgeText: 'text-primary', icon: ArrowUpRight },
+   124→   124→  'Retiros':          { label: 'Retiros',         color: 'var(--chart-5)', badgeBg: 'bg-chart-5/15', badgeText: 'text-chart-5', icon: PiggyBank },
+   125→   125→  'Otros':            { label: 'Otros',           color: 'var(--status-maintenance)', badgeBg: 'bg-slate-100/40', badgeText: 'text-slate-400', icon: Tag },
+   126→   126→};
+   127→   127→
+   128→   128→const CATEGORY_ORDER: MovementCategory[] = ['Ingresos varios', 'Gastos', 'Mantenimiento', 'Retiros', 'Otros'];
+   129→   129→
+   130→   130→/**
+   131→   131→ * Auto-categorization: keyword → suggested category.
+   132→   132→ * Used when user types a description in the egreso form.
+   133→   133→ */
+   134→   134→const CATEGORY_KEYWORDS: Array<{ keywords: string[]; category: MovementCategory }> = [
+   135→   135→  { keywords: ['mantenimiento', 'reparacion', 'reparación', 'arreglo', 'plomeria', 'plomería', 'electric', 'pintura', 'albañil', 'albanil'], category: 'Mantenimiento' },
+   136→   136→  { keywords: ['limpieza', 'detergente', 'desinfectante', 'lavandina', 'cloro', 'productos de limpieza'], category: 'Gastos' },
+   137→   137→  { keywords: ['compra', 'compras', 'compra de', 'insumos', 'mercaderia', 'mercadería', 'provision', 'provisión', 'super'], category: 'Gastos' },
+   138→   138→  { keywords: ['retiro', 'retiré', 'retiro de', 'extraccion', 'extracción', 'socio', 'dueño', 'retiro personal'], category: 'Retiros' },
+   139→   139→  { keywords: ['sueldo', 'salario', 'pago de personal', 'jornal', 'haberes'], category: 'Gastos' },
+   140→   140→  { keywords: ['servicio', 'luz', 'agua', 'gas', 'internet', 'telefono', 'teléfono', 'cable', 'impuesto', 'municipal', 'rentas', 'afip'], category: 'Gastos' },
+   141→   141→  { keywords: ['desayuno', 'cafe', 'café', 'leche', 'factura', 'pan', 'manteca', 'mermelada', 'almuerzo', 'comida'], category: 'Gastos' },
+   142→   142→  { keywords: ['ingreso', 'venta', 'cobro', 'pago recibido', 'deposito', 'depósito', 'transferencia recibida'], category: 'Ingresos varios' },
+   143→   143→];
+   144→   144→
+   145→   145→/**
+   146→   146→ * Suggest a category based on the description text.
+   147→   147→ * Returns null if no keyword matches.
+   148→   148→ */
+   149→   149→function suggestCategory(descripcion: string): MovementCategory | null {
+   150→   150→  const lower = descripcion.toLowerCase().trim();
+   151→   151→  if (!lower) return null;
+   152→   152→  for (const rule of CATEGORY_KEYWORDS) {
+   153→   153→    if (rule.keywords.some(kw => lower.includes(kw))) {
+   154→   154→      return rule.category;
+   155→   155→    }
+   156→   156→  }
+   157→   157→  return null;
+   158→   158→}
+   159→   159→
+   160→   160→/**
+   161→   161→ * Determine the category for a movement based on its fields:
+   162→   162→ * - ingresos → "Ingresos varios"
+   163→   163→ * - egresos with desc/gasto.tipo containing "mantenimiento" → "Mantenimiento"
+   164→   164→ * - egresos with desc containing "retiro" → "Retiros"
+   165→   165→ * - egresos with gastoId (linked gasto) → "Gastos"
+   166→   166→ * - otherwise → "Otros"
+   167→   167→ */
+   168→   168→function categorizeMovement(
+   169→   169→  mov: { tipo: 'ingreso' | 'egreso'; descripcion: string; gastoId?: string | null; categoria?: string },
+   170→   170→  gastoTipo?: string,
+   171→   171→): MovementCategory {
+   172→   172→  if (mov.tipo === 'ingreso') {
+   173→   173→    const suggested = suggestCategory(mov.descripcion);
+   174→   174→    return suggested === 'Ingresos varios' ? 'Ingresos varios' : 'Ingresos varios';
+   175→   175→  }
+   176→   176→  // egreso
+   177→   177→  const text = `${mov.descripcion} ${gastoTipo || ''} ${mov.categoria || ''}`.toLowerCase();
+   178→   178→  if (text.includes('retiro')) return 'Retiros';
+   179→   179→  if (text.includes('mantenim') || text.includes('reparac') || text.includes('arreglo')) return 'Mantenimiento';
+   180→   180→  if (mov.gastoId) return 'Gastos';
+   181→   181→  // Try suggestion from keywords
+   182→   182→  const suggested = suggestCategory(mov.descripcion);
+   183→   183→  if (suggested === 'Retiros' || suggested === 'Mantenimiento') return suggested;
+   184→   184→  if (suggested === 'Gastos') return 'Gastos';
+   185→   185→  return 'Otros';
+   186→   186→}
+   187→   187→
+   188→   188→/** Get the appropriate icon for a payment method */
+   189→   189→function getMetodoIcon(metodo: string): ComponentType<{ className?: string }> {
+   190→   190→  const lower = metodo.toLowerCase();
+   191→   191→  if (lower.includes('efectivo')) return Banknote;
+   192→   192→  if (lower.includes('tarjeta') && lower.includes('crédito')) return CreditCard;
+   193→   193→  if (lower.includes('tarjeta') && lower.includes('débito')) return CreditCard;
+   194→   194→  if (lower.includes('tarjeta')) return CreditCard;
+   195→   195→  if (lower.includes('transferencia')) return ArrowRightLeft;
+   196→   196→  if (lower.includes('mercado')) return QrCode;
+   197→   197→  return Wallet;
+   198→   198→}
+   199→   199→
+   200→   200→/* ═══════════════════════════════════════════════════════════
+   201→   201→   CASH FLOW TIMELINE — vertical timeline of day's cash movements
+   202→   202→   ═══════════════════════════════════════════════════════════ */
+   203→   203→
+   204→   204→interface TimelineEntry {
+   205→   205→  id: string;
+   206→   206→  fecha: string;
+   207→   207→  tipo: 'ingreso' | 'egreso';
+   208→   208→  monto: number;
+   209→   209→  descripcion: string;
+   210→   210→  metodo: string;
+   211→   211→  runningBalance: number;
+   212→   212→}
+   213→   213→
+   214→   214→function CashFlowTimeline({
+   215→   215→  movimientos, aperturaMonto, now,
+   216→   216→}: {
+   217→   217→  movimientos: Array<{ id: string; fecha: string; tipo: 'ingreso' | 'egreso'; monto: number; descripcion: string; metodo: string }>;
+   218→   218→  aperturaMonto: number;
+   219→   219→  now: number;
+   220→   220→}) {
+   221→   221→  // Build timeline entries with running balance
+   222→   222→  const entries: TimelineEntry[] = useMemo(() => {
+   223→   223→    // Sort chronologically (oldest first)
+   224→   224→    const sorted = [...movimientos].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+   225→   225→    return sorted.reduce<TimelineEntry[]>((acc, m) => {
+   226→   226→      const prevBalance = acc.length > 0 ? acc[acc.length - 1].runningBalance : aperturaMonto;
+   227→   227→      const newBalance = m.tipo === 'ingreso' ? prevBalance + m.monto : prevBalance - m.monto;
+   228→   228→      acc.push({
+   229→   229→        id: m.id,
+   230→   230→        fecha: m.fecha,
+   231→   231→        tipo: m.tipo,
+   232→   232→        monto: m.monto,
+   233→   233→        descripcion: m.descripcion,
+   234→   234→        metodo: m.metodo,
+   235→   235→        runningBalance: newBalance,
+   236→   236→      });
+   237→   237→      return acc;
+   238→   238→    }, []);
+   239→   239→  }, [movimientos, aperturaMonto]);
+   240→   240→
+   241→   241→  const [mounted, setMounted] = useState(false);
+   242→   242→  useEffect(() => { const t = setTimeout(() => setMounted(true), 50); return () => clearTimeout(t); }, []);
+   243→   243→
+   244→   244→  if (entries.length === 0) {
+   245→   245→    return (
+   246→   246→      <div className="text-center py-8 text-muted-foreground">
+   247→   247→        <Timer className="w-8 h-8 mx-auto mb-2 opacity-40" />
+   248→   248→        <p className="text-xs">Sin movimientos para mostrar en la línea de tiempo.</p>
+   249→   249→      </div>
+   250→   250→    );
+   251→   251→  }
+   252→   252→
+   253→   253→  return (
+   254→   254→    <div className="relative pl-6 space-y-0">
+   255→   255→      {/* Opening balance entry */}
+   256→   256→      <div className="relative pb-4 animate-slide-up" style={{ animationDelay: '0ms' }}>
+   257→   257→        {/* Dot */}
+   258→   258→        <div className="absolute -left-6 top-0 flex flex-col items-center">
+   259→   259→          <div className="w-3 h-3 rounded-full bg-primary ring-2 ring-white shadow-sm z-10" />
+   260→   260→          <div className="w-0.5 flex-1 bg-primary/20 min-h-[16px]" />
+   261→   261→        </div>
+   262→   262→        <div className="bg-primary/5 border border-primary/20 rounded-md px-3 py-2">
+   263→   263→          <div className="flex items-center justify-between gap-2">
+   264→   264→            <div className="flex items-center gap-1.5">
+   265→   265→              <Wallet className="w-3.5 h-3.5 text-primary" />
+   266→   266→              <span className="text-xs font-semibold text-primary">Apertura</span>
+   267→   267→            </div>
+   268→   268→            <span className="text-xs font-bold tabular-nums text-primary">{formatMoney(aperturaMonto)}</span>
+   269→   269→          </div>
+   270→   270→        </div>
+   271→   271→      </div>
+   272→   272→
+   273→   273→      {/* Movement entries */}
+   274→   274→      {entries.map((entry, idx) => {
+   275→   275→        const isIngreso = entry.tipo === 'ingreso';
+   276→   276→        const MetIcon = getMetodoIcon(entry.metodo);
+   277→   277→        const delay = (idx + 1) * 80;
+   278→   278→        return (
+   279→   279→          <div
+   280→   280→            key={entry.id}
+   281→   281→            className={cn(
+   282→   282→              'relative pb-4 transition-all duration-300',
+   283→   283→              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+   284→   284→            )}
+   285→   285→            style={{ transitionDelay: `${delay}ms` }}
+   286→   286→          >
+   287→   287→            {/* Connecting line + dot */}
+   288→   288→            <div className="absolute -left-6 top-0 flex flex-col items-center h-full">
+   289→   289→              <div className={cn(
+   290→   290→                'w-3 h-3 rounded-full ring-2 ring-white shadow-sm z-10',
+   291→   291→                isIngreso ? 'bg-primary' : 'bg-destructive'
+   292→   292→              )} />
+   293→   293→              {idx < entries.length - 1 && (
+   294→   294→                <div className="w-0.5 flex-1 bg-muted-foreground/15 min-h-[16px]" />
+   295→   295→              )}
+   296→   296→            </div>
+   297→   297→
+   298→   298→            {/* Entry card */}
+   299→   299→            <div className={cn(
+   300→   300→              'border rounded-md px-3 py-2.5 space-y-1.5 transition-all hover:shadow-sm',
+   301→   301→              isIngreso
+   302→   302→                ? 'border-primary/20 bg-primary/5 hover:border-primary/40'
+   303→   303→                : 'border-destructive/20 bg-destructive/10 hover:border-destructive/40'
+   304→   304→            )}>
+   305→   305→              <div className="flex items-start justify-between gap-2">
+   306→   306→                <div className="flex items-center gap-1.5 min-w-0">
+   307→   307→                  <span className={cn(
+   308→   308→                    'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
+   309→   309→                    isIngreso ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+   310→   310→                  )}>
+   311→   311→                    {isIngreso ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+   312→   312→                  </span>
+   313→   313→                  <div className="min-w-0">
+   314→   314→                    <span className={cn('text-[11px] font-semibold', isIngreso ? 'text-primary' : 'text-destructive')}>
+   315→   315→                      {isIngreso ? 'Ingreso' : 'Egreso'}
+   316→   316→                    </span>
+   317→   317→                    <p className="text-[10px] text-muted-foreground truncate leading-tight">{entry.descripcion}</p>
+   318→   318→                  </div>
+   319→   319→                </div>
+   320→   320→                <div className="text-right shrink-0">
+   321→   321→                  <p className={cn('text-xs font-bold tabular-nums', isIngreso ? 'text-primary' : 'text-destructive')}>
+   322→   322→                    {isIngreso ? '+' : '-'}{formatMoney(entry.monto)}
+   323→   323→                  </p>
+   324→   324→                </div>
+   325→   325→              </div>
+   326→   326→              <div className="flex items-center justify-between gap-2">
+   327→   327→                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+   328→   328→                  <MetIcon className="w-2.5 h-2.5" />
+   329→   329→                  <span className="truncate max-w-[80px]">{entry.metodo}</span>
+   330→   330→                  <span className="text-muted-foreground/40">·</span>
+   331→   331→                  <Clock className="w-2.5 h-2.5" />
+   332→   332→                  <span>{formatRelative(entry.fecha, now)}</span>
+   333→   333→                </div>
+   334→   334→                <div className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-muted/50">
+   335→   335→                  <Scale className="w-2.5 h-2.5 text-muted-foreground" />
+   336→   336→                  <span className="font-semibold tabular-nums">{formatMoney(entry.runningBalance)}</span>
+   337→   337→                </div>
+   338→   338→              </div>
+   339→   339→            </div>
+   340→   340→          </div>
+   341→   341→        );
+   342→   342→      })}
+   343→   343→
+   344→   344→      {/* Current balance entry */}
+   345→   345→      {entries.length > 0 && (
+   346→   346→        <div className="relative animate-slide-up" style={{ animationDelay: `${(entries.length + 1) * 80}ms` }}>
+   347→   347→          <div className="absolute -left-6 top-0 flex flex-col items-center">
+   348→   348→            <div className="w-3 h-3 rounded-full bg-primary ring-2 ring-white shadow-sm z-10" />
+   349→   349→          </div>
+   350→   350→          <div className="bg-primary/5 border border-primary/30 rounded-md px-3 py-2">
+   351→   351→            <div className="flex items-center justify-between gap-2">
+   352→   352→              <div className="flex items-center gap-1.5">
+   353→   353→                <CircleDot className="w-3.5 h-3.5 text-primary" />
+   354→   354→                <span className="text-xs font-semibold text-primary">Saldo actual</span>
+   355→   355→              </div>
+   356→   356→              <span className="text-sm font-bold tabular-nums text-primary">{formatMoney(entries[entries.length - 1].runningBalance)}</span>
+   357→   357→            </div>
+   358→   358→          </div>
+   359→   359→        </div>
+   360→   360→      )}
+   361→   361→    </div>
+   362→   362→  );
+   363→   363→}
+   364→   364→
+   365→   365→/* ═══════════════════════════════════════════════════════════
+   366→   366→   DENOMINATION BREAKDOWN PANEL — extended with coins
+   367→   367→   ═══════════════════════════════════════════════════════════ */
+   368→   368→
+   369→   369→function DenominationBreakdownPanel({
+   370→   370→  denominaciones, quantities, setQuantities, systemTotal, label,
+   371→   371→}: {
+   372→   372→  denominaciones: typeof DENOMINACIONES;
+   373→   373→  quantities: Record<number, number>;
+   374→   374→  setQuantities: (q: Record<number, number>) => void;
+   375→   375→  systemTotal: number;
+   376→   376→  label?: string;
+   377→   377→}) {
+   378→   378→  const totalContado = DENOMINACIONES.reduce((s, d) => s + d.value * (quantities[d.value] || 0), 0);
+   379→   379→  const diferencia = totalContado - systemTotal;
+   380→   380→
+   381→   381→  const bills = denominaciones.filter(d => d.type === 'bill');
+   382→   382→  const coins = denominaciones.filter(d => d.type === 'coin');
+   383→   383→
+   384→   384→  return (
+   385→   385→    <div className="space-y-3">
+   386→   386→      {label && <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>}
+   387→   387→
+   388→   388→      {/* Bills section */}
+   389→   389→      <div>
+   390→   390→        <div className="flex items-center gap-1.5 mb-1.5">
+   391→   391→          <Banknote className="w-3.5 h-3.5 text-primary" />
+   392→   392→          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Billetes</span>
+   393→   393→        </div>
+   394→   394→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+   395→   395→          {bills.map(d => (
+   396→   396→            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-success/10 transition-colors">
+   397→   397→              <Banknote className="w-3.5 h-3.5 text-primary shrink-0" />
+   398→   398→              <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
+   399→   399→              <Input
+   400→   400→                type="number"
+   401→   401→                min="0"
+   402→   402→                className="w-14 h-7 text-xs text-center"
+   403→   403→                value={quantities[d.value] || 0}
+   404→   404→                onChange={e => setQuantities({ ...quantities, [d.value]: parseInt(e.target.value) || 0 })}
+   405→   405→              />
+   406→   406→              <span className="text-xs text-muted-foreground flex-1 text-right tabular-nums">{formatMoney(d.value * (quantities[d.value] || 0))}</span>
+   407→   407→            </div>
+   408→   408→          ))}
+   409→   409→        </div>
+   410→   410→      </div>
+   411→   411→
+   412→   412→      {/* Coins section */}
+   413→   413→      <div>
+   414→   414→        <div className="flex items-center gap-1.5 mb-1.5">
+   415→   415→          <Coins className="w-3.5 h-3.5 text-warning" />
+   416→   416→          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Monedas</span>
+   417→   417→        </div>
+   418→   418→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+   419→   419→          {coins.map(d => (
+   420→   420→            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-warning/10 transition-colors">
+   421→   421→              <Coins className="w-3.5 h-3.5 text-warning shrink-0" />
+   422→   422→              <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
+   423→   423→              <Input
+   424→   424→                type="number"
+   425→   425→                min="0"
+   426→   426→                className="w-14 h-7 text-xs text-center"
+   427→   427→                value={quantities[d.value] || 0}
+   428→   428→                onChange={e => setQuantities({ ...quantities, [d.value]: parseInt(e.target.value) || 0 })}
+   429→   429→              />
+   430→   430→              <span className="text-xs text-muted-foreground flex-1 text-right tabular-nums">{formatMoney(d.value * (quantities[d.value] || 0))}</span>
+   431→   431→            </div>
+   432→   432→          ))}
+   433→   433→        </div>
+   434→   434→      </div>
+   435→   435→
+   436→   436→      {/* Totals */}
+   437→   437→      <div className="space-y-1.5 pt-2 border-t">
+   438→   438→        <div className="flex justify-between items-center p-2 rounded-md bg-muted/30">
+   439→   439→          <span className="text-xs font-medium">Total contado</span>
+   440→   440→          <span className="text-sm font-bold tabular-nums text-primary">{formatMoney(totalContado)}</span>
+   441→   441→        </div>
+   442→   442→        <div className="flex justify-between items-center p-2 rounded-md bg-muted/30">
+   443→   443→          <span className="text-xs font-medium">Total esperado (sistema)</span>
+   444→   444→          <span className="text-sm font-bold tabular-nums">{formatMoney(systemTotal)}</span>
+   445→   445→        </div>
+   446→   446→        <div className={cn(
+   447→   447→          'flex justify-between items-center p-2 rounded-md border',
+   448→   448→          diferencia === 0
+   449→   449→            ? 'bg-primary/20 border-primary/30'
+   450→   450→            : diferencia > 0
+   451→   451→            ? 'bg-warning/15 border-brand-amber/30'
+   452→   452→            : 'bg-destructive/15 border-destructive/30'
+   453→   453→        )}>
+   454→   454→          <span className="text-xs font-medium flex items-center gap-1.5">
+   455→   455→            {diferencia === 0
+   456→   456→              ? <Check className="w-3.5 h-3.5 text-primary" />
+   457→   457→              : <AlertTriangle className="w-3.5 h-3.5" />}
+   458→   458→            Diferencia
+   459→   459→          </span>
+   460→   460→          <span className={cn(
+   461→   461→            'text-sm font-bold tabular-nums',
+   462→   462→            diferencia === 0 ? 'text-primary' : diferencia > 0 ? 'text-warning' : 'text-destructive'
+   463→   463→          )}>
+   464→   464→            {diferencia === 0 ? '✓ Cuadra' : `${diferencia > 0 ? '+' : ''}${formatMoney(diferencia)}`}
+   465→   465→          </span>
+   466→   466→        </div>
+   467→   467→      </div>
+   468→   468→    </div>
+   469→   469→  );
+   470→   470→}
+   471→   471→
+   472→   472→export default function CajaModule() {
+   473→   473→  const caja = useHotelStore(s => s.caja);
+   474→   474→  const abrirCaja = useHotelStore(s => s.abrirCaja);
+   475→   475→  const registrarMovimientoCaja = useHotelStore(s => s.registrarMovimientoCaja);
+   476→   476→  const cerrarCaja = useHotelStore(s => s.cerrarCaja);
+   477→   477→  const saldoActualCaja = useHotelStore(s => s.saldoActualCaja);
+   478→   478→  const editarMovimientoCaja = useHotelStore(s => s.editarMovimientoCaja);
+   479→   479→  const eliminarMovimientoCaja = useHotelStore(s => s.eliminarMovimientoCaja);
+   480→   480→  const usuarioActual = useHotelStore(s => s.usuarioActual);
+   481→   481→  const metodosPago = useHotelStore(s => s.metodosPago);
+   482→   482→  const categoriasGastos = useHotelStore(s => s.categoriasGastos);
+   483→   483→  const gastos = useHotelStore(s => s.gastos);
+   484→   484→  const setModulo = useHotelStore(s => s.setModulo);
+   485→   485→
+   486→   486→  // Track dialog open count so wizard state resets on every open
+   487→   487→  const [cierreOpenCount, setCierreOpenCount] = useState(0);
+   488→   488→
+   489→   489→  // Loading states
+   490→   490→  const [loadingAbrir, setLoadingAbrir] = useState(false);
+   491→   491→  const [loadingMovimiento, setLoadingMovimiento] = useState(false);
+   492→   492→  const [loadingCerrar, setLoadingCerrar] = useState(false);
+   493→   493→
+   494→   494→  // Form states
+   495→   495→  const [montoInicial, setMontoInicial] = useState('');
+   496→   496→  const [showApertura, setShowApertura] = useState(false);
+   497→   497→  const [showMovForm, setShowMovForm] = useState<'ingreso' | 'egreso' | null>(null);
+   498→   498→  const [movMonto, setMovMonto] = useState('');
+   499→   499→  const [movDesc, setMovDesc] = useState('');
+   500→   500→  const [movMetodo, setMovMetodo] = useState('Efectivo');
+   501→   501→  const [movCategoria, setMovCategoria] = useState('');
+   502→   502→
+   503→   503→  // Close dialog — enhanced wizard
+   504→   504→  const [showCierre, setShowCierre] = useState(false);
+   505→   505→  const [billetes, setBilletes] = useState<Record<number, number>>(() => Object.fromEntries(BILLETES.map(b => [b, 0])));
+   506→   506→  // Extended denomination quantities for the DenominationBreakdownPanel (bills + coins)
+   507→   507→  const [denomQuantities, setDenomQuantities] = useState<Record<number, number>>(() => Object.fromEntries(DENOMINACIONES.map(d => [d.value, 0])));
+   508→   508→  const [closingStep, setClosingStep] = useState<1 | 2 | 3 | 4>(1);
+   509→   509→  // Other methods counted (editable, initialized from system totals)
+   510→   510→  const [otrosContados, setOtrosContados] = useState<Record<string, number>>({});
+   511→   511→  // Discrepancy explanation + notes
+   512→   512→  const [cierreNotes, setCierreNotes] = useState('');
+   513→   513→  const [discrepancyExplain, setDiscrepancyExplain] = useState('');
+   514→   514→
+   515→   515→  // Edit dialog
+   516→   516→  const [editingMov, setEditingMov] = useState<{ id: string; monto: number; descripcion: string } | null>(null);
+   517→   517→  const [editMonto, setEditMonto] = useState('');
+   518→   518→  const [editDesc, setEditDesc] = useState('');
+   519→   519→  const [loadingEdit, setLoadingEdit] = useState(false);
+   520→   520→  const [loadingDelete, setLoadingDelete] = useState(false);
+   521→   521→  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+   522→   522→
+   523→   523→  // Movement detail popover (per-row)
+   524→   524→  const [detailMovId, setDetailMovId] = useState<string | null>(null);
+   525→   525→
+   526→   526→  // Movement filters — only affect the list, NOT the totals
+   527→   527→  const [filterTipo, setFilterTipo] = useState<'todos' | 'ingreso' | 'egreso'>('todos');
+   528→   528→  const [filterMetodo, setFilterMetodo] = useState<string>('todos');
+   529→   529→  const [filterCategoria, setFilterCategoria] = useState<'todas' | MovementCategory>('todas');
+   530→   530→  const [filterFechaDesde, setFilterFechaDesde] = useState<string>('');
+   531→   531→  const [filterFechaHasta, setFilterFechaHasta] = useState<string>('');
+   532→   532→  const [filterSearch, setFilterSearch] = useState<string>('');
+   533→   533→  const [showFilters, setShowFilters] = useState(false);
+   534→   534→
+   535→   535→  // Pagination
+   536→   536→  const [page, setPage] = useState(1);
+   537→   537→  const PAGE_SIZE = 15;
+   538→   538→
+   539→   539→  // Ticking clock so "abierta hace X" + "hace Y min" stay live.
+   540→   540→  const [now, setNow] = useState(() => Date.now());
+   541→   541→  useEffect(() => {
+   542→   542→    const id = setInterval(() => setNow(Date.now()), 30_000); // 30s tick is enough for human reading
+   543→   543→    return () => clearInterval(id);
+   544→   544→  }, []);
+   545→   545→
+   546→   546→  const saldo = useMemo(() => {
+   547→   547→    if (caja.estado !== 'abierta' || !caja.apertura) return 0;
+   548→   548→    let s = caja.apertura.montoInicial;
+   549→   549→    (caja.movimientos || []).forEach(mov => {
+   550→   550→      if (mov.metodo === 'Efectivo') s += mov.tipo === 'ingreso' ? mov.monto : -mov.monto;
+   551→   551→    });
+   552→   552→    return s;
+   553→   553→  }, [caja, caja.movimientos]);
+   554→   554→  const movimientos = caja.movimientos || [];
+   555→   555→
+   556→   556→
+   557→   557→  // ── Filtered movements (for the list only — totals stay on `movimientos`) ──
+   558→   558→  const filteredMovimientos = useMemo(() => {
+   559→   559→    let list = movimientos;
+   560→   560→    if (filterTipo !== 'todos') list = list.filter(m => m.tipo === filterTipo);
+   561→   561→    if (filterMetodo !== 'todos') list = list.filter(m => m.metodo === filterMetodo);
+   562→   562→    if (filterCategoria !== 'todas') {
+   563→   563→      list = list.filter(m => {
+   564→   564→        const cat = categorizeMovement(m, m.gastoId ? gastos.find(g => g.id === m.gastoId)?.tipo : undefined);
+   565→   565→        return cat === filterCategoria;
+   566→   566→      });
+   567→   567→    }
+   568→   568→    if (filterFechaDesde) {
+   569→   569→      const from = new Date(filterFechaDesde + 'T00:00:00');
+   570→   570→      list = list.filter(m => new Date(m.fecha) >= from);
+   571→   571→    }
+   572→   572→    if (filterFechaHasta) {
+   573→   573→      const to = new Date(filterFechaHasta + 'T23:59:59');
+   574→   574→      list = list.filter(m => new Date(m.fecha) <= to);
+   575→   575→    }
+   576→   576→    if (filterSearch.trim()) {
+   577→   577→      const q = filterSearch.toLowerCase().trim();
+   578→   578→      list = list.filter(m => m.descripcion.toLowerCase().includes(q) || m.metodo.toLowerCase().includes(q));
+   579→   579→    }
+   580→   580→    return list;
+   581→   581→  }, [movimientos, filterTipo, filterMetodo, filterCategoria, filterFechaDesde, filterFechaHasta, filterSearch, gastos]);
+   582→   582→
+   583→   583→  const activeFiltersCount = [
+   584→   584→    filterTipo !== 'todos', filterMetodo !== 'todos', filterCategoria !== 'todas',
+   585→   585→    !!filterFechaDesde, !!filterFechaHasta, !!filterSearch.trim(),
+   586→   586→  ].filter(Boolean).length;
+   587→   587→
+   588→   588→  const clearFilters = () => {
+   589→   589→    setFilterTipo('todos'); setFilterMetodo('todos'); setFilterCategoria('todas');
+   590→   590→    setFilterFechaDesde(''); setFilterFechaHasta(''); setFilterSearch('');
+   591→   591→  };
+   592→   592→
+   593→   593→  // Pagination for movimientos — applies filtered list. `safePage` clamps when filters shrink the list.
+   594→   594→  const movTotalPages = Math.ceil(filteredMovimientos.length / PAGE_SIZE) || 1;
+   595→   595→  const safePage = Math.min(Math.max(1, page), movTotalPages);
+   596→   596→  const pagedMovimientos = filteredMovimientos.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+   597→   597→  const reversedPagedMovimientos = [...filteredMovimientos].reverse().slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+   598→   598→
+   599→   599→  // ── Category breakdown for pie chart ──
+   600→   600→  const categoriaBreakdown = useMemo(() => {
+   601→   601→    const totals: Record<MovementCategory, number> = {
+   602→   602→      'Gastos': 0, 'Mantenimiento': 0, 'Ingresos varios': 0, 'Retiros': 0, 'Otros': 0,
+   603→   603→    };
+   604→   604→    movimientos.forEach(m => {
+   605→   605→      const gastoTipo = m.gastoId ? gastos.find(g => g.id === m.gastoId)?.tipo : undefined;
+   606→   606→      const cat = categorizeMovement(m, gastoTipo);
+   607→   607→      totals[cat] += m.monto;
+   608→   608→    });
+   609→   609→    const total = Object.values(totals).reduce((a, b) => a + b, 0);
+   610→   610→    return CATEGORY_ORDER
+   611→   611→      .map(cat => ({
+   612→   612→        name: CATEGORY_CONFIG[cat].label,
+   613→   613→        value: totals[cat],
+   614→   614→        color: CATEGORY_CONFIG[cat].color,
+   615→   615→        percentage: total > 0 ? Math.round((totals[cat] / total) * 100) : 0,
+   616→   616→      }))
+   617→   617→      .filter(d => d.value > 0);
+   618→   618→  }, [movimientos, gastos]);
+   619→   619→
+   620→   620→  const isAdminOrOwner = usuarioActual?.rol === 'owner' || usuarioActual?.rol === 'admin';
+   621→   621→
+   622→   622→  // Summary calculations (totals — NOT affected by filters)
+   623→   623→  const resumenOtros = useMemo(() => {
+   624→   624→    const movs = caja.movimientos || [];
+   625→   625→    const res: Record<string, { ingresos: number; egresos: number }> = {};
+   626→   626→    movs.forEach(m => {
+   627→   627→      if (m.metodo !== 'Efectivo') {
+   628→   628→        if (!res[m.metodo]) res[m.metodo] = { ingresos: 0, egresos: 0 };
+   629→   629→        res[m.metodo][m.tipo === 'ingreso' ? 'ingresos' : 'egresos'] += m.monto;
+   630→   630→      }
+   631→   631→    });
+   632→   632→    return res;
+   633→   633→  }, [caja.movimientos]);
+   634→   634→
+   635→   635→  const totalIngresosPorMetodo = useMemo(() => {
+   636→   636→    const movs = caja.movimientos || [];
+   637→   637→    const res: Record<string, number> = {};
+   638→   638→    movs.forEach(m => {
+   639→   639→      if (m.tipo === 'ingreso') res[m.metodo] = (res[m.metodo] || 0) + m.monto;
+   640→   640→    });
+   641→   641→    return res;
+   642→   642→  }, [caja.movimientos]);
+   643→   643→
+   644→   644→  const totalOtros = Object.values(resumenOtros).reduce((s, v) => s + v.ingresos - v.egresos, 0);
+   645→   645→  const totalEfectivo = useMemo(() => BILLETES.reduce((s, b) => s + b * (billetes[b] || 0), 0), [billetes]);
+   646→   646→
+   647→   647→  // ── Initialize wizard state when dialog opens (via trigger onClick, not effect) ──
+   648→   648→  const initializeWizardState = useCallback(() => {
+   649→   649→    const initial: Record<string, number> = {};
+   650→   650→    Object.entries(resumenOtros).forEach(([metodo, data]) => {
+   651→   651→      initial[metodo] = data.ingresos - data.egresos;
+   652→   652→    });
+   653→   653→    setOtrosContados(initial);
+   654→   654→    setClosingStep(1);
+   655→   655→    setCierreNotes('');
+   656→   656→    setDiscrepancyExplain('');
+   657→   657→    setBilletes(Object.fromEntries(BILLETES.map(b => [b, 0])));
+   658→   658→    setDenomQuantities(Object.fromEntries(DENOMINACIONES.map(d => [d.value, 0])));
+   659→   659→    setCierreOpenCount(c => c + 1);
+   660→   660→  }, [resumenOtros]);
+   661→   661→
+   662→   662→  const otrosContadosTotal = useMemo(
+   663→   663→    () => Object.values(otrosContados).reduce((s, v) => s + (parseFloat(String(v)) || 0), 0),
+   664→   664→    [otrosContados],
+   665→   665→  );
+   666→   666→
+   667→   667→  // ── Saldo esperado efectivo (memoized) — moved up so it can be used by diferenciaEfectivo ──
+   668→   668→  const saldoEsperadoEfectivo = useMemo(() => {
+   669→   669→    if (!caja.apertura) return 0;
+   670→   670→    let s = caja.apertura.montoInicial;
+   671→   671→    (caja.movimientos || []).forEach(m => {
+   672→   672→      if (m.metodo === 'Efectivo') s += m.tipo === 'ingreso' ? m.monto : -m.monto;
+   673→   673→    });
+   674→   674→    return s;
+   675→   675→  }, [caja.apertura, caja.movimientos]);
+   676→   676→
+   677→   677→  // ── Expected vs counted (wizard step 3) ──
+   678→   678→  const totalContado = totalEfectivo + otrosContadosTotal;
+   679→   679→  // Expected = apertura + all cash income - all cash expense + total of other methods (system)
+   680→   680→  const expectedTotal = useMemo(() => {
+   681→   681→    if (!caja.apertura) return 0;
+   682→   682→    let cash = caja.apertura.montoInicial;
+   683→   683→    movimientos.forEach(m => {
+   684→   684→      if (m.metodo === 'Efectivo') cash += m.tipo === 'ingreso' ? m.monto : -m.monto;
+   685→   685→    });
+   686→   686→    return cash + totalOtros;
+   687→   687→  }, [caja.apertura, movimientos, totalOtros]);
+   688→   688→  const diferenciaTotal = totalContado - expectedTotal;
+   689→   689→  const diferenciaEfectivo = totalEfectivo - saldoEsperadoEfectivo;
+   690→   690→
+   691→   691→  // ── Yesterday's summary (when caja is closed) ──
+   692→   692→  const yesterdaySummary = useMemo(() => {
+   693→   693→    if (!caja.historial || caja.historial.length === 0) return null;
+   694→   694→    const last = caja.historial[caja.historial.length - 1];
+   695→   695→    const ingresosTurno = last.movimientos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+   696→   696→    const egresosTurno = last.movimientos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+   697→   697→    const movCount = last.movimientos.length;
+   698→   698→    const avgTicket = movCount > 0 ? ingresosTurno / movCount : 0;
+   699→   699→    return {
+   700→   700→      apertura: last.apertura.montoInicial,
+   701→   701→      ingresos: ingresosTurno,
+   702→   702→      egresos: egresosTurno,
+   703→   703→      cierre: last.cierre.saldoContado + last.cierre.totalOtrosMetodos,
+   704→   704→      fecha: last.cierre.fecha,
+   705→   705→      movCount,
+   706→   706→      avgTicket,
+   707→   707→      diferencia: last.cierre.diferencia,
+   708→   708→      empleado: last.cierre.empleado,
+   709→   709→    };
+   710→   710→  }, [caja.historial]);
+   711→   711→
+   712→   712→  // Handlers
+   713→   713→  const handleAbrir = async () => {
+   714→   714→    const m = parseFloat(montoInicial);
+   715→   715→    if (isNaN(m) || m < 0) return toast.error('Monto invalido');
+   716→   716→    setLoadingAbrir(true);
+   717→   717→    try {
+   718→   718→      const ok = await abrirCaja(m);
+   719→   719→      if (ok) {
+   720→   720→        toast.success('Caja abierta', { description: 'Turno iniciado' });
+   721→   721→        setShowApertura(false);
+   722→   722→        setMontoInicial('');
+   723→   723→      } else {
+   724→   724→        toast.error('Error al abrir la caja');
+   725→   725→      }
+   726→   726→    } catch (e) {
+   727→   727→      toast.error('Error al abrir la caja');
+   728→   728→    }
+   729→   729→    setLoadingAbrir(false);
+   730→   730→  };
+   731→   731→
+   732→   732→  const handleMovimiento = async () => {
+   733→   733→    if (!showMovForm) return;
+   734→   734→    const m = parseFloat(movMonto);
+   735→   735→    if (isNaN(m) || m <= 0) return toast.error('Monto invalido');
+   736→   736→    if (showMovForm === 'egreso' && !movCategoria) return toast.error('Selecciona una categoria de gasto');
+   737→   737→    const desc = movDesc.trim() || (showMovForm === 'ingreso' ? 'Ingreso manual' : `Egreso: ${movCategoria}`);
+   738→   738→    setLoadingMovimiento(true);
+   739→   739→    try {
+   740→   740→      const ok = await registrarMovimientoCaja(showMovForm, m, desc, movMetodo, showMovForm === 'egreso' ? movCategoria : undefined);
+   741→   741→      if (ok) {
+   742→   742→        toast.success(`${showMovForm === 'ingreso' ? 'Ingreso' : 'Egreso'} registrado`, { description: formatMoney(m) });
+   743→   743→        setShowMovForm(null);
+   744→   744→        setMovMonto('');
+   745→   745→        setMovDesc('');
+   746→   746→        setMovMetodo('Efectivo');
+   747→   747→        setMovCategoria('');
+   748→   748→      } else {
+   749→   749→        toast.error(`Error al registrar ${showMovForm}`);
+   750→   750→      }
+   751→   751→    } catch (e) {
+   752→   752→      toast.error(`Error al registrar ${showMovForm}`);
+   753→   753→    }
+   754→   754→    setLoadingMovimiento(false);
+   755→   755→  };
+   756→   756→
+   757→   757→  const handleCerrar = async () => {
+   758→   758→    setLoadingCerrar(true);
+   759→   759→    try {
+   760→   760→      const cierre = await cerrarCaja(billetes, totalOtros);
+   761→   761→      if (cierre) {
+   762→   762→        const msg = cierreNotes || discrepancyExplain
+   763→   763→          ? `Turno finalizado · Diferencia: ${formatMoney(cierre.diferencia)}`
+   764→   764→          : 'Turno finalizado';
+   765→   765→        toast.success('Caja cerrada', { description: msg });
+   766→   766→        setShowCierre(false);
+   767→   767→        setBilletes(Object.fromEntries(BILLETES.map(b => [b, 0])));
+   768→   768→        setClosingStep(1);
+   769→   769→        setCierreNotes('');
+   770→   770→        setDiscrepancyExplain('');
+   771→   771→        setOtrosContados({});
+   772→   772→      } else {
+   773→   773→        toast.error('Error al cerrar la caja');
+   774→   774→      }
+   775→   775→    } catch (e) {
+   776→   776→      toast.error('Error al cerrar la caja');
+   777→   777→    }
+   778→   778→    setLoadingCerrar(false);
+   779→   779→  };
+   780→   780→
+   781→   781→  const handleEditOpen = (mov: typeof movimientos[0]) => {
+   782→   782→    setEditingMov({ id: mov.id, monto: mov.monto, descripcion: mov.descripcion });
+   783→   783→    setEditMonto(String(mov.monto));
+   784→   784→    setEditDesc(mov.descripcion);
+   785→   785→  };
+   786→   786→
+   787→   787→  const handleEditSave = async () => {
+   788→   788→    if (!editingMov) return;
+   789→   789→    const m = parseFloat(editMonto);
+   790→   790→    if (isNaN(m) || m <= 0) return toast.error('Monto invalido');
+   791→   791→    if (!editDesc.trim()) return toast.error('Descripcion requerida');
+   792→   792→    setLoadingEdit(true);
+   793→   793→    try {
+   794→   794→      const ok = await editarMovimientoCaja(editingMov.id, { monto: m, descripcion: editDesc.trim() });
+   795→   795→      if (ok) {
+   796→   796→        toast.success('Movimiento actualizado');
+   797→   797→        setEditingMov(null);
+   798→   798→      } else {
+   799→   799→        toast.error('Error al editar');
+   800→   800→      }
+   801→   801→    } catch (e) {
+   802→   802→      toast.error('Error al editar movimiento');
+   803→   803→    }
+   804→   804→    setLoadingEdit(false);
+   805→   805→  };
+   806→   806→
+   807→   807→  const handleDelete = async (movId: string) => {
+   808→   808→    setDeleteConfirmId(movId);
+   809→   809→  };
+   810→   810→
+   811→   811→  const confirmDelete = async () => {
+   812→   812→    if (!deleteConfirmId) return;
+   813→   813→    setLoadingDelete(true);
+   814→   814→    try {
+   815→   815→      const ok = await eliminarMovimientoCaja(deleteConfirmId);
+   816→   816→      if (ok) {
+   817→   817→        toast.success('Movimiento eliminado');
+   818→   818→      } else {
+   819→   819→        toast.error('Error al eliminar');
+   820→   820→      }
+   821→   821→    } catch (e) {
+   822→   822→      toast.error('Error al eliminar movimiento');
+   823→   823→    }
+   824→   824→    setLoadingDelete(false);
+   825→   825→    setDeleteConfirmId(null);
+   826→   826→  };
+   827→   827→
+   828→   828→  // Saldo esperado (efectivo only) — declarado más arriba para uso en diferenciaEfectivo
+   829→   829→
+   830→   830→  const diferencia = totalEfectivo - saldoEsperadoEfectivo;
+   831→   831→
+   832→   832→  // ── Quick stats for open caja ──
+   833→   833→  const totalIngresos = useMemo(() => {
+   834→   834→    return (caja.movimientos || []).filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+   835→   835→  }, [caja.movimientos]);
+   836→   836→  const totalEgresos = useMemo(() => {
+   837→   837→    return (caja.movimientos || []).filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+   838→   838→  }, [caja.movimientos]);
+   839→   839→  // Trend = how much the cash balance grew vs the opening float (Efectivo only).
+   840→   840→  const aperturaMonto = caja.apertura?.montoInicial ?? 0;
+   841→   841→  const tendencia = saldo - aperturaMonto;
+   842→   842→
+   843→   843→  const cancelarForm = () => { setShowMovForm(null); setMovMonto(''); setMovDesc(''); setMovMetodo('Efectivo'); setMovCategoria(''); };
+   844→   844→
+   845→   845→  // Wizard validation per step
+   846→   846→  const discrepancyThreshold = 100;
+   847→   847→  const diffExceedsThreshold = Math.abs(diferenciaTotal) > discrepancyThreshold;
+   848→   848→  const canFinalizar = !diffExceedsThreshold || discrepancyExplain.trim().length >= 5;
+   849→   849→
+   850→   850→  const closeDialog = (
+   851→   851→    <DialogContent key={`cierre-${cierreOpenCount}`} className="sm:max-w-2xl max-h-[92vh] overflow-y-auto">
+   852→   852→      <ClosingWizard
+   853→   853→        step={closingStep}
+   854→   854→        setStep={setClosingStep}
+   855→   855→        saldoEsperadoEfectivo={saldoEsperadoEfectivo}
+   856→   856→        totalEfectivo={totalEfectivo}
+   857→   857→        diferenciaEfectivo={diferenciaEfectivo}
+   858→   858→        resumenOtros={resumenOtros}
+   859→   859→        otrosContados={otrosContados}
+   860→   860→        setOtrosContados={setOtrosContados}
+   861→   861→        otrosContadosTotal={otrosContadosTotal}
+   862→   862→        totalOtros={totalOtros}
+   863→   863→        expectedTotal={expectedTotal}
+   864→   864→        totalContado={totalContado}
+   865→   865→        diferenciaTotal={diferenciaTotal}
+   866→   866→        billetes={billetes}
+   867→   867→        setBilletes={setBilletes}
+   868→   868→        denomQuantities={denomQuantities}
+   869→   869→        setDenomQuantities={setDenomQuantities}
+   870→   870→        cierreNotes={cierreNotes}
+   871→   871→        setCierreNotes={setCierreNotes}
+   872→   872→        discrepancyExplain={discrepancyExplain}
+   873→   873→        setDiscrepancyExplain={setDiscrepancyExplain}
+   874→   874→        diffExceedsThreshold={diffExceedsThreshold}
+   875→   875→        canFinalizar={canFinalizar}
+   876→   876→        loadingCerrar={loadingCerrar}
+   877→   877→        onCerrar={handleCerrar}
+   878→   878→        onCancel={() => setShowCierre(false)}
+   879→   879→        daySummary={caja.apertura ? {
+   880→   880→          totalIngresos,
+   881→   881→          totalEgresos,
+   882→   882→          movCount: movimientos.length,
+   883→   883→          aperturaMonto: caja.apertura.montoInicial,
+   884→   884→          empleado: caja.apertura.empleado,
+   885→   885→        } : null}
+   886→   886→      />
+   887→   887→    </DialogContent>
+   888→   888→  );
+   889→   889→
+   890→   890→  return (
+   891→   891→    <div className="space-y-6">
+   892→   892→
+   893→   893→      <ModuleHeader icon={Wallet} title="Caja" subtitle="Controla los movimientos de dinero del dia">
+   894→   894→        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors" onClick={() => {
+   895→   895→          const headers = ['Fecha', 'Tipo', 'Monto', 'Descripción', 'Método'];
+   896→   896→          const rows = movimientos.map(m => [
+   897→   897→            m.fecha || '',
+   898→   898→            m.tipo || '',
+   899→   899→            m.monto,
+   900→   900→            m.descripcion || '',
+   901→   901→            m.metodo || '',
+   902→   902→          ]);
+   903→   903→          exportToCSV('caja_movimientos.csv', headers, rows);
+   904→   904→          toast.success('CSV exportado');
+   905→   905→        }}>
+   906→   906→          <Download className="w-3.5 h-3.5" />Exportar CSV
+   907→   907→        </Button>
+   908→   908→      </ModuleHeader>
+   909→   909→
+   910→   910→      {caja.estado === 'cerrada' ? (
+   911→   911→        /* ═══════ CAJA CERRADA — inviting empty state + daily summary ═══════ */
+   912→   912→        <div className="space-y-4">
+   913→   913→          <Card className="relative overflow-hidden border-2 border-dashed border-primary/30 celebrate-bg">
+   914→   914→            {/* Subtle radial accent in the background */}
+   915→   915→            <div className="pointer-events-none absolute inset-0 bg-primary/5" />
+   916→   916→            <CardContent className="relative text-center py-14 px-6 space-y-5 max-w-md mx-auto">
+   917→   917→              <div className="relative inline-flex">
+   918→   918→                {/* Pulsing halo around the icon */}
+   919→   919→                <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+   920→   920→                <div className="relative w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center shadow-lg ring-4 ring-primary/30">
+   921→   921→                  <Unlock className="w-9 h-9 text-primary" />
+   922→   922→                </div>
+   923→   923→              </div>
+   924→   924→              <div className="space-y-1.5">
+   925→   925→                <h3 className="text-2xl font-bold text-primary">Caja cerrada</h3>
+   926→   926→                <p className="text-sm text-muted-foreground">Abrí un nuevo turno para comenzar a registrar movimientos del día.</p>
+   927→   927→              </div>
+   928→   928→              {!showApertura ? (
+   929→   929→                <Button size="lg" onClick={() => setShowApertura(true)} className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
+   930→   930→                  <Unlock className="w-4 h-4 mr-2" />Abrir caja
+   931→   931→                </Button>
+   932→   932→              ) : (
+   933→   933→                <div className="max-w-xs mx-auto space-y-2 rounded-lg border border-primary/20 bg-card backdrop-blur p-4 shadow-sm">
+   934→   934→                  <Label className="text-sm text-muted-foreground">Monto inicial en efectivo</Label>
+   935→   935→                  <Input type="number" placeholder="0.00" step="0.01" min="0" value={montoInicial} onChange={e => setMontoInicial(e.target.value)} autoFocus />
+   936→   936→                  <div className="flex gap-2">
+   937→   937→                    <Button onClick={handleAbrir} className="flex-1 bg-primary hover:bg-primary/80 text-white" disabled={loadingAbrir}>
+   938→   938→                      {loadingAbrir ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Unlock className="w-4 h-4 mr-1" />}Confirmar apertura
+   939→   939→                    </Button>
+   940→   940→                    <Button variant="secondary" onClick={() => setShowApertura(false)} disabled={loadingAbrir}>Cancelar</Button>
+   941→   941→                  </div>
+   942→   942→                </div>
+   943→   943→              )}
+   944→   944→              {caja.historial && caja.historial.length > 0 && (
+   945→   945→                <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-full">
+   946→   946→                  <Clock className="w-3 h-3" />Último cierre: {formatFechaHora(caja.historial[caja.historial.length - 1].cierre.fecha)}
+   947→   947→                </p>
+   948→   948→              )}
+   949→   949→            </CardContent>
+   950→   950→          </Card>
+   951→   951→
+   952→   952→          {/* ═══════ DAILY SUMMARY CARD — yesterday's summary + quick stats ═══════ */}
+   953→   953→          {yesterdaySummary && (
+   954→   954→            <DailySummaryCard
+   955→   955→              summary={yesterdaySummary}
+   956→   956→              onViewHistorial={() => setModulo('reportes')}
+   957→   957→            />
+   958→   958→          )}
+   959→   959→        </div>
+   960→   960→      ) : (
+   961→   961→        /* ═══════ CAJA ABIERTA ═══════ */
+   962→   962→        <div className="space-y-4">
+   963→   963→          {/* ── Quick stats row (4 cards) — shown on all breakpoints ── */}
+   964→   964→          <QuickStatsRow
+   965→   965→            totalIngresos={totalIngresos}
+   966→   966→            totalEgresos={totalEgresos}
+   967→   967→            saldo={saldo}
+   968→   968→            saldoInicial={aperturaMonto}
+   969→   969→          />
+   970→   970→
+   971→   971→          {/* ── Mobile: compact status bar ── */}
+   972→   972→          <Card className="lg:hidden wave-border-hover">
+   973→   973→            <CardContent className="p-3 space-y-3">
+   974→   974→              <div className="flex items-center justify-between gap-2">
+   975→   975→                <div className="flex items-center gap-2 min-w-0">
+   976→   976→                  <span className="relative flex h-2.5 w-2.5 shrink-0">
+   977→   977→                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-mint opacity-75" />
+   978→   978→                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+   979→   979→                  </span>
+   980→   980→                  <div className="min-w-0">
+   981→   981→                    <h3 className="font-semibold text-sm text-primary truncate">Caja abierta</h3>
+   982→   982→                    {caja.apertura && (
+   983→   983→                      <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1 truncate">
+   984→   984→                        <Clock className="w-2.5 h-2.5 shrink-0" />
+   985→   985→                        <span className="truncate">{formatTimeSinceOpen(caja.apertura.fecha, now)}</span>
+   986→   986→                      </p>
+   987→   987→                    )}
+   988→   988→                  </div>
+   989→   989→                </div>
+   990→   990→                <Dialog open={showCierre} onOpenChange={setShowCierre}>
+   991→   991→                  <DialogTrigger asChild>
+   992→   992→                    <Button variant="destructive" size="sm" className="h-7 text-xs shrink-0" onClick={initializeWizardState}><Lock className="w-3.5 h-3.5 mr-1" />Cerrar</Button>
+   993→   993→                  </DialogTrigger>
+   994→   994→                  {closeDialog}
+   995→   995→                </Dialog>
+   996→   996→              </div>
+   997→   997→              {/* Balance display — animated + trend */}
+   998→   998→              <div className="rounded-lg border-2 border-primary/30 bg-success/10 p-3">
+   999→   999→                <div className="flex items-center justify-between gap-2">
+  1000→  1000→                  <div>
+  1001→  1001→                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo actual</p>
+  1002→  1002→                    <AnimatedNumber
+  1003→  1003→                      value={saldo}
+  1004→  1004→                      className="text-xl font-bold text-primary block"
+  1005→  1005→                    />
+  1006→  1006→                  </div>
+  1007→  1007→                  {caja.apertura && (
+  1008→  1008→                    <div className={cn(
+  1009→  1009→                      'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold shadow-sm',
+  1010→  1010→                      tendencia >= 0 ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+  1011→  1011→                    )}>
+  1012→  1012→                      {tendencia >= 0
+  1013→  1013→                        ? <ArrowUpRight className="w-3 h-3" />
+  1014→  1014→                        : <ArrowDownRight className="w-3 h-3" />}
+  1015→  1015→                      {tendencia >= 0 ? '+' : ''}{formatMoney(tendencia)}
+  1016→  1016→                    </div>
+  1017→  1017→                  )}
+  1018→  1018→                </div>
+  1019→  1019→              </div>
+  1020→  1020→              {/* Movimientos + Apertura info */}
+  1021→  1021→              <div className="grid grid-cols-2 gap-2 text-center rounded-lg border p-2.5 bg-muted/30">
+  1022→  1022→                <div>
+  1023→  1023→                  <p className="text-[10px] text-muted-foreground leading-tight">Movimientos</p>
+  1024→  1024→                  <p className="text-sm font-semibold">{movimientos.length}</p>
+  1025→  1025→                </div>
+  1026→  1026→                <div>
+  1027→  1027→                  <p className="text-[10px] text-muted-foreground leading-tight">Apertura</p>
+  1028→  1028→                  <p className="text-sm font-medium">{caja.apertura ? formatHora(caja.apertura.fecha) : '--'}</p>
+  1029→  1029→                </div>
+  1030→  1030→              </div>
+  1031→  1031→              {/* Action buttons */}
+  1032→  1032→              <div className="grid grid-cols-2 gap-2">
+  1033→  1033→                <Button variant="outline" className="h-9 text-sm border-primary/30 text-primary hover:bg-primary/20 hover:text-primary" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+  1034→  1034→                <Button variant="outline" className="h-9 text-sm border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+  1035→  1035→              </div>
+  1036→  1036→              {/* Movement form inline */}
+  1037→  1037→              {showMovForm && (
+  1038→  1038→                <MovFormInline
+  1039→  1039→                  tipo={showMovForm}
+  1040→  1040→                  movMonto={movMonto}
+  1041→  1041→                  setMovMonto={setMovMonto}
+  1042→  1042→                  movDesc={movDesc}
+  1043→  1043→                  setMovDesc={setMovDesc}
+  1044→  1044→                  movMetodo={movMetodo}
+  1045→  1045→                  setMovMetodo={setMovMetodo}
+  1046→  1046→                  movCategoria={movCategoria}
+  1047→  1047→                  setMovCategoria={setMovCategoria}
+  1048→  1048→                  loading={loadingMovimiento}
+  1049→  1049→                  onGuardar={handleMovimiento}
+  1050→  1050→                  onCancelar={cancelarForm}
+  1051→  1051→                  metodosPago={metodosPago}
+  1052→  1052→                  categoriasGastos={categoriasGastos}
+  1053→  1053→                />
+  1054→  1054→              )}
+  1055→  1055→
+  1056→  1056→              {/* Mobile: Pie chart */}
+  1057→  1057→              {categoriaBreakdown.length > 0 && (
+  1058→  1058→                <MovementCategoryPie data={categoriaBreakdown} compact />
+  1059→  1059→              )}
+  1060→  1060→            </CardContent>
+  1061→  1061→          </Card>
+  1062→  1062→
+  1063→  1063→          {/* ── Mobile: movement filters + cards ── */}
+  1064→  1064→          <Card className="lg:hidden">
+  1065→  1065→            <CardHeader className="pb-3">
+  1066→  1066→              <div className="flex items-center justify-between gap-2">
+  1067→  1067→                <CardTitle className="text-base">Movimientos del turno</CardTitle>
+  1068→  1068→                <Button
+  1069→  1069→                  size="sm"
+  1070→  1070→                  variant={showFilters || activeFiltersCount > 0 ? 'default' : 'outline'}
+  1071→  1071→                  className="h-7 text-xs"
+  1072→  1072→                  onClick={() => setShowFilters(v => !v)}
+  1073→  1073→                >
+  1074→  1074→                  <Filter className="w-3 h-3 mr-1" />
+  1075→  1075→                  Filtros
+  1076→  1076→                  {activeFiltersCount > 0 && (
+  1077→  1077→                    <Badge className="ml-1 bg-white/20 text-white h-4 px-1 text-[10px]">{activeFiltersCount}</Badge>
+  1078→  1078→                  )}
+  1079→  1079→                </Button>
+  1080→  1080→              </div>
+  1081→  1081→              {/* Quick filter tabs + search */}
+  1082→  1082→              <div className="flex items-center gap-2 mt-2">
+  1083→  1083→                <div className="inline-flex rounded-md border border-input overflow-hidden shrink-0">
+  1084→  1084→                  {([['todos', 'Todos'], ['ingreso', 'Ingresos'], ['egreso', 'Egresos']] as const).map(([val, label]) => (
+  1085→  1085→                    <button
+  1086→  1086→                      key={val}
+  1087→  1087→                      type="button"
+  1088→  1088→                      className={cn(
+  1089→  1089→                        'px-2.5 py-1 text-[11px] font-medium transition-colors',
+  1090→  1090→                        filterTipo === val
+  1091→  1091→                          ? 'bg-primary text-white'
+  1092→  1092→                          : 'bg-background text-muted-foreground hover:bg-muted/50'
+  1093→  1093→                      )}
+  1094→  1094→                      onClick={() => setFilterTipo(val)}
+  1095→  1095→                    >
+  1096→  1096→                      {label}
+  1097→  1097→                    </button>
+  1098→  1098→                  ))}
+  1099→  1099→                </div>
+  1100→  1100→                <div className="relative flex-1 min-w-0">
+  1101→  1101→                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+  1102→  1102→                  <Input
+  1103→  1103→                    placeholder="Buscar..."
+  1104→  1104→                    value={filterSearch}
+  1105→  1105→                    onChange={e => setFilterSearch(e.target.value)}
+  1106→  1106→                    className="h-7 pl-6 text-xs"
+  1107→  1107→                  />
+  1108→  1108→                </div>
+  1109→  1109→              </div>
+  1110→  1110→              {showFilters && (
+  1111→  1111→                <MovementFilters
+  1112→  1112→                  filterTipo={filterTipo} setFilterTipo={setFilterTipo}
+  1113→  1113→                  filterMetodo={filterMetodo} setFilterMetodo={setFilterMetodo}
+  1114→  1114→                  filterCategoria={filterCategoria} setFilterCategoria={setFilterCategoria}
+  1115→  1115→                  filterFechaDesde={filterFechaDesde} setFilterFechaDesde={setFilterFechaDesde}
+  1116→  1116→                  filterFechaHasta={filterFechaHasta} setFilterFechaHasta={setFilterFechaHasta}
+  1117→  1117→                  filterSearch={filterSearch} setFilterSearch={setFilterSearch}
+  1118→  1118→                  onClear={clearFilters}
+  1119→  1119→                  activeCount={activeFiltersCount}
+  1120→  1120→                  metodosDisponibles={Array.from(new Set(movimientos.map(m => m.metodo)))}
+  1121→  1121→                  resultCount={filteredMovimientos.length}
+  1122→  1122→                  totalCount={movimientos.length}
+  1123→  1123→                />
+  1124→  1124→              )}
+  1125→  1125→            </CardHeader>
+  1126→  1126→            <CardContent className="p-0">
+  1127→  1127→              {movimientos.length === 0 ? (
+  1128→  1128→                <div className="text-center py-10 text-muted-foreground">
+  1129→  1129→                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
+  1130→  1130→                    <Receipt className="w-6 h-6 text-muted-foreground/60" />
+  1131→  1131→                  </div>
+  1132→  1132→                  <p className="text-sm">Sin movimientos todavía.</p>
+  1133→  1133→                </div>
+  1134→  1134→              ) : filteredMovimientos.length === 0 ? (
+  1135→  1135→                <div className="text-center py-10 text-muted-foreground">
+  1136→  1136→                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
+  1137→  1137→                    <Search className="w-6 h-6 text-muted-foreground/60" />
+  1138→  1138→                  </div>
+  1139→  1139→                  <p className="text-sm">Sin resultados para los filtros aplicados.</p>
+  1140→  1140→                  <Button size="sm" variant="ghost" className="mt-2 text-xs" onClick={clearFilters}>Limpiar filtros</Button>
+  1141→  1141→                </div>
+  1142→  1142→              ) : (
+  1143→  1143→                <div className="divide-y">
+  1144→  1144→                  {reversedPagedMovimientos.map((m) => (
+  1145→  1145→                    <MovementCard
+  1146→  1146→                      key={m.id}
+  1147→  1147→                      movimiento={m}
+  1148→  1148→                      now={now}
+  1149→  1149→                      canEdit={isAdminOrOwner}
+  1150→  1150→                      onEdit={() => handleEditOpen(m)}
+  1151→  1151→                      onDelete={() => handleDelete(m.id)}
+  1152→  1152→                      loadingDelete={loadingDelete}
+  1153→  1153→                      gastoVinculado={m.gastoId ? gastos.find(g => g.id === m.gastoId) : undefined}
+  1154→  1154→                      categoria={categorizeMovement(m, m.gastoId ? gastos.find(g => g.id === m.gastoId)?.tipo : undefined)}
+  1155→  1155→                      isDetailOpen={detailMovId === m.id}
+  1156→  1156→                      onToggleDetail={() => setDetailMovId(detailMovId === m.id ? null : m.id)}
+  1157→  1157→                    />
+  1158→  1158→                  ))}
+  1159→  1159→                </div>
+  1160→  1160→              )}
+  1161→  1161→            </CardContent>
+  1162→  1162→            <PaginationBar page={safePage} totalPages={movTotalPages} onPageChange={setPage} totalItems={filteredMovimientos.length} pageSize={PAGE_SIZE} />
+  1163→  1163→          </Card>
+  1164→  1164→
+  1165→  1165→          {/* ── Mobile: Cash Flow Timeline ── */}
+  1166→  1166→          <Card className="lg:hidden overflow-hidden">
+  1167→  1167→            <CardHeader className="bg-primary/5 pb-3">
+  1168→  1168→              <CardTitle className="text-sm flex items-center gap-2">
+  1169→  1169→                <Timer className="w-4 h-4 text-primary" />
+  1170→  1170→                Línea de tiempo
+  1171→  1171→              </CardTitle>
+  1172→  1172→            </CardHeader>
+  1173→  1173→            <CardContent className="max-h-80 overflow-y-auto">
+  1174→  1174→              <CashFlowTimeline
+  1175→  1175→                movimientos={movimientos}
+  1176→  1176→                aperturaMonto={aperturaMonto}
+  1177→  1177→                now={now}
+  1178→  1178→              />
+  1179→  1179→            </CardContent>
+  1180→  1180→          </Card>
+  1181→  1181→
+  1182→  1182→          {/* ═══════ DESKTOP ═══════ */}
+  1183→  1183→          <div className="hidden lg:grid lg:grid-cols-3 gap-4">
+  1184→  1184→            <div className="lg:col-span-2 space-y-4">
+  1185→  1185→              {/* Status bar — enhanced with pulsing dot + time since opened + gradient border */}
+  1186→  1186→              <Card className="wave-border-hover overflow-hidden">
+  1187→  1187→                <CardContent className="flex items-center justify-between py-4 relative">
+  1188→  1188→                  <div className="flex items-center gap-3 min-w-0">
+  1189→  1189→                    <span className="relative flex h-3 w-3 shrink-0">
+  1190→  1190→                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-mint opacity-75" />
+  1191→  1191→                      <span className="relative inline-flex h-3 w-3 rounded-full bg-primary" />
+  1192→  1192→                    </span>
+  1193→  1193→                    <div className="min-w-0">
+  1194→  1194→                      <h3 className="font-semibold text-primary flex items-center gap-2">
+  1195→  1195→                        Caja abierta
+  1196→  1196→                        <Badge className="bg-primary/20 text-primary shadow-sm font-semibold">
+  1197→  1197→                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary mr-1 animate-pulse-subtle" />
+  1198→  1198→                          Activa
+  1199→  1199→                        </Badge>
+  1200→  1200→                      </h3>
+  1201→  1201→                      {caja.apertura && (
+  1202→  1202→                        <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 mt-0.5">
+  1203→  1203→                          <Clock className="w-3 h-3" />
+  1204→  1204→                          <span>{formatTimeSinceOpen(caja.apertura.fecha, now)}</span>
+  1205→  1205→                          <span className="text-muted-foreground/40">·</span>
+  1206→  1206→                          <span>Apertura: {formatHora(caja.apertura.fecha)} · Cajero: {caja.apertura.empleado}</span>
+  1207→  1207→                        </p>
+  1208→  1208→                      )}
+  1209→  1209→                    </div>
+  1210→  1210→                  </div>
+  1211→  1211→                  <Dialog open={showCierre} onOpenChange={setShowCierre}>
+  1212→  1212→                    <DialogTrigger asChild>
+  1213→  1213→                      <Button variant="destructive" disabled={loadingCerrar} className="shadow-sm" onClick={initializeWizardState}><Lock className="w-4 h-4 mr-1" />Cerrar caja</Button>
+  1214→  1214→                    </DialogTrigger>
+  1215→  1215→                    {closeDialog}
+  1216→  1216→                  </Dialog>
+  1217→  1217→                </CardContent>
+  1218→  1218→              </Card>
+  1219→  1219→
+  1220→  1220→              {/* Balance display — large animated number + trend indicator */}
+  1221→  1221→              <Card className="bg-success/10 border-2 border-primary/30 card-hover">
+  1222→  1222→                <CardContent className="py-4 flex items-center justify-between gap-4">
+  1223→  1223→                  <div className="flex items-center gap-4">
+  1224→  1224→                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shadow-sm">
+  1225→  1225→                      <Wallet className="w-6 h-6 text-primary" />
+  1226→  1226→                    </div>
+  1227→  1227→                    <div>
+  1228→  1228→                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Saldo actual (efectivo)</p>
+  1229→  1229→                      <AnimatedNumber
+  1230→  1230→                        value={saldo}
+  1231→  1231→                        className="text-3xl font-bold text-primary tabular-nums block leading-tight"
+  1232→  1232→                      />
+  1233→  1233→                    </div>
+  1234→  1234→                  </div>
+  1235→  1235→                  {caja.apertura && (
+  1236→  1236→                    <div className="text-right space-y-1">
+  1237→  1237→                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">vs. apertura</p>
+  1238→  1238→                      <div className={cn(
+  1239→  1239→                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm',
+  1240→  1240→                        tendencia >= 0 ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+  1241→  1241→                      )}>
+  1242→  1242→                        {tendencia >= 0
+  1243→  1243→                          ? <TrendingUp className="w-3.5 h-3.5" />
+  1244→  1244→                          : <TrendingDown className="w-3.5 h-3.5" />}
+  1245→  1245→                        {tendencia >= 0 ? '+' : ''}{formatMoney(tendencia)}
+  1246→  1246→                      </div>
+  1247→  1247→                      <p className="text-[10px] text-muted-foreground">Inicial: {formatMoney(aperturaMonto)}</p>
+  1248→  1248→                    </div>
+  1249→  1249→                  )}
+  1250→  1250→                </CardContent>
+  1251→  1251→              </Card>
+  1252→  1252→
+  1253→  1253→              {/* Movements table + filters */}
+  1254→  1254→              <Card>
+  1255→  1255→                <CardHeader className="pb-3">
+  1256→  1256→                  <div className="flex items-center justify-between gap-2">
+  1257→  1257→                    <CardTitle className="text-base flex items-center gap-2">
+  1258→  1258→                      <Activity className="w-4 h-4 text-primary" />
+  1259→  1259→                      Movimientos del turno
+  1260→  1260→                      {filteredMovimientos.length !== movimientos.length && (
+  1261→  1261→                        <Badge variant="secondary" className="text-[10px] shadow-sm">
+  1262→  1262→                          {filteredMovimientos.length}/{movimientos.length}
+  1263→  1263→                        </Badge>
+  1264→  1264→                      )}
+  1265→  1265→                    </CardTitle>
+  1266→  1266→                    <Button
+  1267→  1267→                      size="sm"
+  1268→  1268→                      variant={showFilters || activeFiltersCount > 0 ? 'default' : 'outline'}
+  1269→  1269→                      className="h-7 text-xs"
+  1270→  1270→                      onClick={() => setShowFilters(v => !v)}
+  1271→  1271→                    >
+  1272→  1272→                      <Filter className="w-3 h-3 mr-1" />
+  1273→  1273→                      Filtros
+  1274→  1274→                      {activeFiltersCount > 0 && (
+  1275→  1275→                        <Badge className="ml-1 bg-white/20 text-white h-4 px-1 text-[10px]">{activeFiltersCount}</Badge>
+  1276→  1276→                      )}
+  1277→  1277→                    </Button>
+  1278→  1278→                  </div>
+  1279→  1279→                  {/* Quick filter tabs + search for desktop */}
+  1280→  1280→                  <div className="flex items-center gap-2 mt-2">
+  1281→  1281→                    <div className="inline-flex rounded-md border border-input overflow-hidden shrink-0">
+  1282→  1282→                      {([['todos', 'Todos'], ['ingreso', 'Ingresos'], ['egreso', 'Egresos']] as const).map(([val, label]) => (
+  1283→  1283→                        <button
+  1284→  1284→                          key={val}
+  1285→  1285→                          type="button"
+  1286→  1286→                          className={cn(
+  1287→  1287→                            'px-3 py-1 text-xs font-medium transition-colors',
+  1288→  1288→                            filterTipo === val
+  1289→  1289→                              ? 'bg-primary text-white'
+  1290→  1290→                              : 'bg-background text-muted-foreground hover:bg-muted/50'
+  1291→  1291→                          )}
+  1292→  1292→                          onClick={() => setFilterTipo(val)}
+  1293→  1293→                        >
+  1294→  1294→                          {label}
+  1295→  1295→                        </button>
+  1296→  1296→                      ))}
+  1297→  1297→                    </div>
+  1298→  1298→                    <div className="relative flex-1 min-w-0 max-w-xs">
+  1299→  1299→                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+  1300→  1300→                      <Input
+  1301→  1301→                        placeholder="Buscar por descripción o método..."
+  1302→  1302→                        value={filterSearch}
+  1303→  1303→                        onChange={e => setFilterSearch(e.target.value)}
+  1304→  1304→                        className="h-7 pl-7 text-xs"
+  1305→  1305→                      />
+  1306→  1306→                    </div>
+  1307→  1307→                  </div>
+  1308→  1308→                  {showFilters && (
+  1309→  1309→                    <MovementFilters
+  1310→  1310→                      filterTipo={filterTipo} setFilterTipo={setFilterTipo}
+  1311→  1311→                      filterMetodo={filterMetodo} setFilterMetodo={setFilterMetodo}
+  1312→  1312→                      filterCategoria={filterCategoria} setFilterCategoria={setFilterCategoria}
+  1313→  1313→                      filterFechaDesde={filterFechaDesde} setFilterFechaDesde={setFilterFechaDesde}
+  1314→  1314→                      filterFechaHasta={filterFechaHasta} setFilterFechaHasta={setFilterFechaHasta}
+  1315→  1315→                      filterSearch={filterSearch} setFilterSearch={setFilterSearch}
+  1316→  1316→                      onClear={clearFilters}
+  1317→  1317→                      activeCount={activeFiltersCount}
+  1318→  1318→                      metodosDisponibles={Array.from(new Set(movimientos.map(m => m.metodo)))}
+  1319→  1319→                      resultCount={filteredMovimientos.length}
+  1320→  1320→                      totalCount={movimientos.length}
+  1321→  1321→                    />
+  1322→  1322→                  )}
+  1323→  1323→                </CardHeader>
+  1324→  1324→                <CardContent>
+  1325→  1325→                  {movimientos.length === 0 ? (
+  1326→  1326→                    <div className="text-center py-10">
+  1327→  1327→                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
+  1328→  1328→                        <Receipt className="w-6 h-6 text-muted-foreground/60" />
+  1329→  1329→                      </div>
+  1330→  1330→                      <p className="text-sm text-muted-foreground">Sin movimientos todavía. Registrá el primero arriba.</p>
+  1331→  1331→                    </div>
+  1332→  1332→                  ) : filteredMovimientos.length === 0 ? (
+  1333→  1333→                    <div className="text-center py-10 text-muted-foreground">
+  1334→  1334→                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
+  1335→  1335→                        <Search className="w-6 h-6 text-muted-foreground/60" />
+  1336→  1336→                      </div>
+  1337→  1337→                      <p className="text-sm">Sin resultados para los filtros aplicados.</p>
+  1338→  1338→                      <Button size="sm" variant="ghost" className="mt-2 text-xs" onClick={clearFilters}>Limpiar filtros</Button>
+  1339→  1339→                    </div>
+  1340→  1340→                  ) : (
+  1341→  1341→                    <div className="overflow-x-auto -mx-6 px-6">
+  1342→  1342→                      <Table>
+  1343→  1343→                        <TableHeader>
+  1344→  1344→                          <TableRow>
+  1345→  1345→                            <TableHead>Hora</TableHead>
+  1346→  1346→                            <TableHead>Tipo</TableHead>
+  1347→  1347→                            <TableHead>Monto</TableHead>
+  1348→  1348→                            <TableHead>Metodo</TableHead>
+  1349→  1349→                            <TableHead>Categoria</TableHead>
+  1350→  1350→                            <TableHead>Descripcion</TableHead>
+  1351→  1351→                            {isAdminOrOwner && <TableHead className="w-[120px]">Acciones</TableHead>}
+  1352→  1352→                          </TableRow>
+  1353→  1353→                        </TableHeader>
+  1354→  1354→                        <TableBody>
+  1355→  1355→                          {pagedMovimientos.map((m) => {
+  1356→  1356→                            const gasto = m.gastoId ? gastos.find(g => g.id === m.gastoId) : undefined;
+  1357→  1357→                            const cat = categorizeMovement(m, gasto?.tipo);
+  1358→  1358→                            const CatIcon = CATEGORY_CONFIG[cat].icon;
+  1359→  1359→                            return (
+  1360→  1360→                              <TableRow
+  1361→  1361→                                key={m.id}
+  1362→  1362→                                className={cn(
+  1363→  1363→                                  'group transition-colors border-l-2',
+  1364→  1364→                                  m.tipo === 'ingreso'
+  1365→  1365→                                    ? 'border-l-primary hover:bg-primary/10'
+  1366→  1366→                                    : 'border-l-destructive hover:bg-destructive/10'
+  1367→  1367→                                )}
+  1368→  1368→                              >
+  1369→  1369→                                <TableCell className="text-xs">
+  1370→  1370→                                  <div className="flex flex-col">
+  1371→  1371→                                    <span>{formatHora(m.fecha)}</span>
+  1372→  1372→                                    <span className="text-[10px] text-muted-foreground italic">{formatRelative(m.fecha, now)}</span>
+  1373→  1373→                                  </div>
+  1374→  1374→                                </TableCell>
+  1375→  1375→                                <TableCell>
+  1376→  1376→                                  <div className="flex items-center gap-2">
+  1377→  1377→                                    <span className={cn(
+  1378→  1378→                                      'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
+  1379→  1379→                                      m.tipo === 'ingreso' ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+  1380→  1380→                                    )}>
+  1381→  1381→                                      {m.tipo === 'ingreso'
+  1382→  1382→                                        ? <ArrowUpRight className="w-3.5 h-3.5" />
+  1383→  1383→                                        : <ArrowDownRight className="w-3.5 h-3.5" />}
+  1384→  1384→                                    </span>
+  1385→  1385→                                    <span className={cn(
+  1386→  1386→                                      'text-xs font-semibold',
+  1387→  1387→                                      m.tipo === 'ingreso' ? 'text-primary' : 'text-destructive'
+  1388→  1388→                                    )}>
+  1389→  1389→                                      {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
+  1390→  1390→                                    </span>
+  1391→  1391→                                    {m.gastoId && (
+  1392→  1392→                                      <span title="Movimiento vinculado a un gasto" className="inline-flex items-center justify-center w-5 h-5 rounded bg-warning/15 text-warning">
+  1393→  1393→                                        <FileText className="w-3 h-3" />
+  1394→  1394→                                      </span>
+  1395→  1395→                                    )}
+  1396→  1396→                                  </div>
+  1397→  1397→                                </TableCell>
+  1398→  1398→                                <TableCell className={cn(
+  1399→  1399→                                  'font-bold tabular-nums',
+  1400→  1400→                                  m.tipo === 'ingreso' ? 'text-primary' : 'text-destructive'
+  1401→  1401→                                )}>
+  1402→  1402→                                  {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
+  1403→  1403→                                </TableCell>
+  1404→  1404→                                <TableCell>
+  1405→  1405→                                  <div className="flex items-center gap-1.5">
+  1406→  1406→                                    {(() => { const MetIcon = getMetodoIcon(m.metodo); return <MetIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />; })()}
+  1407→  1407→                                    <Badge variant="secondary" className="shadow-sm">{m.metodo}</Badge>
+  1408→  1408→                                  </div>
+  1409→  1409→                                </TableCell>
+  1410→  1410→                                <TableCell>
+  1411→  1411→                                  <Badge className={cn('shadow-sm text-[10px] gap-1', CATEGORY_CONFIG[cat].badgeBg, CATEGORY_CONFIG[cat].badgeText)}>
+  1412→  1412→                                    <CatIcon className="w-2.5 h-2.5" />
+  1413→  1413→                                    {CATEGORY_CONFIG[cat].label}
+  1414→  1414→                                  </Badge>
+  1415→  1415→                                </TableCell>
+  1416→  1416→                                <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+  1417→  1417→                                  {m.descripcion}
+  1418→  1418→                                  {gasto && (
+  1419→  1419→                                    <div className="text-[10px] text-warning inline-flex items-center gap-1 mt-0.5">
+  1420→  1420→                                      <ExternalLink className="w-2.5 h-2.5" />Gasto: {gasto.tipo}
+  1421→  1421→                                    </div>
+  1422→  1422→                                  )}
+  1423→  1423→                                </TableCell>
+  1424→  1424→                                {isAdminOrOwner && (
+  1425→  1425→                                  <TableCell>
+  1426→  1426→                                    <div className="flex gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+  1427→  1427→                                      <Popover open={detailMovId === m.id} onOpenChange={(o) => setDetailMovId(o ? m.id : null)}>
+  1428→  1428→                                        <PopoverTrigger asChild>
+  1429→  1429→                                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Ver detalle">
+  1430→  1430→                                            <Eye className="w-3.5 h-3.5" />
+  1431→  1431→                                          </Button>
+  1432→  1432→                                        </PopoverTrigger>
+  1433→  1433→                                        <PopoverContent className="w-72 p-3" align="end">
+  1434→  1434→                                          <MovementDetailPopover
+  1435→  1435→                                            movimiento={m}
+  1436→  1436→                                            gasto={gasto}
+  1437→  1437→                                            categoria={cat}
+  1438→  1438→                                          />
+  1439→  1439→                                        </PopoverContent>
+  1440→  1440→                                      </Popover>
+  1441→  1441→                                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleEditOpen(m)} title="Editar"><Pencil className="w-3.5 h-3.5" /></Button>
+  1442→  1442→                                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDelete(m.id)} disabled={loadingDelete} title="Eliminar">
+  1443→  1443→                                        {loadingDelete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+  1444→  1444→                                      </Button>
+  1445→  1445→                                    </div>
+  1446→  1446→                                  </TableCell>
+  1447→  1447→                                )}
+  1448→  1448→                              </TableRow>
+  1449→  1449→                            );
+  1450→  1450→                          })}
+  1451→  1451→                        </TableBody>
+  1452→  1452→                      </Table>
+  1453→  1453→                    </div>
+  1454→  1454→                  )}
+  1455→  1455→                  <PaginationBar page={safePage} totalPages={movTotalPages} onPageChange={setPage} totalItems={filteredMovimientos.length} pageSize={PAGE_SIZE} />
+  1456→  1456→                </CardContent>
+  1457→  1457→              </Card>
+  1458→  1458→            </div>
+  1459→  1459→
+  1460→  1460→            {/* Info Panel */}
+  1461→  1461→            <div className="space-y-4">
+  1462→  1462→              <Card className="overflow-hidden">
+  1463→  1463→                <CardHeader className="bg-primary/5 pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary" />Información del turno</CardTitle></CardHeader>
+  1464→  1464→                <CardContent className="space-y-2 text-sm">
+  1465→  1465→                  {caja.apertura && (
+  1466→  1466→                    <>
+  1467→  1467→                      <div className="flex justify-between"><span className="text-muted-foreground">Cajero:</span><span className="font-medium">{caja.apertura.empleado}</span></div>
+  1468→  1468→                      <div className="flex justify-between"><span className="text-muted-foreground">Apertura:</span><span>{formatFechaHora(caja.apertura.fecha)}</span></div>
+  1469→  1469→                      <div className="flex justify-between"><span className="text-muted-foreground">Inicial:</span><span className="font-medium">{formatMoney(caja.apertura.montoInicial)}</span></div>
+  1470→  1470→                    </>
+  1471→  1471→                  )}
+  1472→  1472→                  <div className="flex justify-between items-center pt-1 border-t">
+  1473→  1473→                    <span className="text-muted-foreground">Saldo actual:</span>
+  1474→  1474→                    <AnimatedNumber
+  1475→  1475→                      value={saldo}
+  1476→  1476→                      className="font-bold text-lg text-primary tabular-nums"
+  1477→  1477→                    />
+  1478→  1478→                  </div>
+  1479→  1479→                  <div className="flex justify-between"><span className="text-muted-foreground">Movimientos:</span><span className="font-medium">{movimientos.length}</span></div>
+  1480→  1480→
+  1481→  1481→                  {/* Action buttons */}
+  1482→  1482→                  <div className="grid grid-cols-2 gap-2 pt-2">
+  1483→  1483→                    <Button variant="outline" className="w-full border-primary/30 text-primary hover:bg-primary/20 hover:text-primary" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+  1484→  1484→                    <Button variant="outline" className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+  1485→  1485→                  </div>
+  1486→  1486→
+  1487→  1487→                  {/* Movement form */}
+  1488→  1488→                  {showMovForm && (
+  1489→  1489→                    <MovFormInline
+  1490→  1490→                      tipo={showMovForm}
+  1491→  1491→                      movMonto={movMonto}
+  1492→  1492→                      setMovMonto={setMovMonto}
+  1493→  1493→                      movDesc={movDesc}
+  1494→  1494→                      setMovDesc={setMovDesc}
+  1495→  1495→                      movMetodo={movMetodo}
+  1496→  1496→                      setMovMetodo={setMovMetodo}
+  1497→  1497→                      movCategoria={movCategoria}
+  1498→  1498→                      setMovCategoria={setMovCategoria}
+  1499→  1499→                      loading={loadingMovimiento}
+  1500→  1500→                      onGuardar={handleMovimiento}
+  1501→  1501→                      onCancelar={cancelarForm}
+  1502→  1502→                      metodosPago={metodosPago}
+  1503→  1503→                      categoriasGastos={categoriasGastos}
+  1504→  1504→                    />
+  1505→  1505→                  )}
+  1506→  1506→                </CardContent>
+  1507→  1507→              </Card>
+  1508→  1508→
+  1509→  1509→              {/* Movement categories pie chart */}
+  1510→  1510→              {categoriaBreakdown.length > 0 && (
+  1511→  1511→                <MovementCategoryPie data={categoriaBreakdown} />
+  1512→  1512→              )}
+  1513→  1513→
+  1514→  1514→              {/* Cash Flow Timeline */}
+  1515→  1515→              <Card className="overflow-hidden">
+  1516→  1516→                <CardHeader className="bg-primary/5 pb-3">
+  1517→  1517→                  <CardTitle className="text-sm flex items-center gap-2">
+  1518→  1518→                    <Timer className="w-4 h-4 text-primary" />
+  1519→  1519→                    Línea de tiempo
+  1520→  1520→                  </CardTitle>
+  1521→  1521→                </CardHeader>
+  1522→  1522→                <CardContent className="max-h-96 overflow-y-auto">
+  1523→  1523→                  <CashFlowTimeline
+  1524→  1524→                    movimientos={movimientos}
+  1525→  1525→                    aperturaMonto={aperturaMonto}
+  1526→  1526→                    now={now}
+  1527→  1527→                  />
+  1528→  1528→                </CardContent>
+  1529→  1529→              </Card>
+  1530→  1530→            </div>
+  1531→  1531→          </div>
+  1532→  1532→        </div>
+  1533→  1533→      )}
+  1534→  1534→
+  1535→  1535→      {/* ═══════ DELETE CONFIRM DIALOG ═══════ */}
+  1536→  1536→      <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+  1537→  1537→        <AlertDialogContent>
+  1538→  1538→          <AlertDialogHeader>
+  1539→  1539→            <AlertDialogTitle>¿Eliminar movimiento?</AlertDialogTitle>
+  1540→  1540→            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+  1541→  1541→          </AlertDialogHeader>
+  1542→  1542→          <AlertDialogFooter>
+  1543→  1543→            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+  1544→  1544→            <AlertDialogAction onClick={confirmDelete}>Eliminar</AlertDialogAction>
+  1545→  1545→          </AlertDialogFooter>
+  1546→  1546→        </AlertDialogContent>
+  1547→  1547→      </AlertDialog>
+  1548→  1548→
+  1549→  1549→      {/* ═══════ EDIT MOVEMENT DIALOG ═══════ */}
+  1550→  1550→      <Dialog open={!!editingMov} onOpenChange={() => setEditingMov(null)}>
+  1551→  1551→        <DialogContent className="sm:max-w-md">
+  1552→  1552→          <DialogHeader>
+  1553→  1553→            <DialogTitle>Editar movimiento</DialogTitle>
+  1554→  1554→          </DialogHeader>
+  1555→  1555→          <div className="space-y-3">
+  1556→  1556→            <div>
+  1557→  1557→              <Label>Monto</Label>
+  1558→  1558→              <Input type="number" step="0.01" min="0.01" value={editMonto} onChange={e => setEditMonto(e.target.value)} />
+  1559→  1559→            </div>
+  1560→  1560→            <div>
+  1561→  1561→              <Label>Descripcion</Label>
+  1562→  1562→              <Input value={editDesc} onChange={e => setEditDesc(e.target.value)} />
+  1563→  1563→            </div>
+  1564→  1564→          </div>
+  1565→  1565→          <DialogFooter>
+  1566→  1566→            <Button variant="secondary" onClick={() => setEditingMov(null)} disabled={loadingEdit}>Cancelar</Button>
+  1567→  1567→            <Button onClick={handleEditSave} disabled={loadingEdit}>
+  1568→  1568→              {loadingEdit ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}Guardar
+  1569→  1569→            </Button>
+  1570→  1570→          </DialogFooter>
+  1571→  1571→        </DialogContent>
+  1572→  1572→      </Dialog>
+  1573→  1573→    </div>
+  1574→  1574→  );
+  1575→  1575→}
+  1576→  1576→
+  1577→  1577→/* ═══════════════════════════════════════════════════════════
+  1578→  1578→   CLOSING WIZARD — 4-step enhanced reconciliation flow
+  1579→  1579→   ═══════════════════════════════════════════════════════════ */
+  1580→  1580→
+  1581→  1581→interface ClosingWizardProps {
+  1582→  1582→  step: 1 | 2 | 3 | 4;
+  1583→  1583→  setStep: (s: 1 | 2 | 3 | 4) => void;
+  1584→  1584→  saldoEsperadoEfectivo: number;
+  1585→  1585→  totalEfectivo: number;
+  1586→  1586→  diferenciaEfectivo: number;
+  1587→  1587→  resumenOtros: Record<string, { ingresos: number; egresos: number }>;
+  1588→  1588→  otrosContados: Record<string, number>;
+  1589→  1589→  setOtrosContados: (v: Record<string, number>) => void;
+  1590→  1590→  otrosContadosTotal: number;
+  1591→  1591→  totalOtros: number;
+  1592→  1592→  expectedTotal: number;
+  1593→  1593→  totalContado: number;
+  1594→  1594→  diferenciaTotal: number;
+  1595→  1595→  billetes: Record<number, number>;
+  1596→  1596→  setBilletes: (b: Record<number, number>) => void;
+  1597→  1597→  denomQuantities: Record<number, number>;
+  1598→  1598→  setDenomQuantities: (q: Record<number, number>) => void;
+  1599→  1599→  cierreNotes: string;
+  1600→  1600→  setCierreNotes: (v: string) => void;
+  1601→  1601→  discrepancyExplain: string;
+  1602→  1602→  setDiscrepancyExplain: (v: string) => void;
+  1603→  1603→  diffExceedsThreshold: boolean;
+  1604→  1604→  canFinalizar: boolean;
+  1605→  1605→  loadingCerrar: boolean;
+  1606→  1606→  onCerrar: () => void;
+  1607→  1607→  onCancel: () => void;
+  1608→  1608→  // Day summary for the closing dialog
+  1609→  1609→  daySummary: {
+  1610→  1610→    totalIngresos: number;
+  1611→  1611→    totalEgresos: number;
+  1612→  1612→    movCount: number;
+  1613→  1613→    aperturaMonto: number;
+  1614→  1614→    empleado: string;
+  1615→  1615→  } | null;
+  1616→  1616→}
+  1617→  1617→
+  1618→  1618→function ClosingWizard(props: ClosingWizardProps) {
+  1619→  1619→  const fmt = (n: number) => formatMoney(n);
+  1620→  1620→  const steps = [
+  1621→  1621→    { n: 1, label: 'Denominaciones', icon: Banknote },
+  1622→  1622→    { n: 2, label: 'Otros métodos', icon: CreditCard },
+  1623→  1623→    { n: 3, label: 'Comparación', icon: ClipboardCheck },
+  1624→  1624→    { n: 4, label: 'Resumen y cierre', icon: StickyNote },
+  1625→  1625→  ] as const;
+  1626→  1626→
+  1627→  1627→  return (
+  1628→  1628→    <>
+  1629→  1629→      <DialogHeader>
+  1630→  1630→        <DialogTitle className="flex items-center gap-2"><Lock className="w-5 h-5 text-destructive" /> Cierre de caja</DialogTitle>
+  1631→  1631→      </DialogHeader>
+  1632→  1632→
+  1633→  1633→      {/* Stepper */}
+  1634→  1634→      <div className="flex items-center gap-1 mb-2">
+  1635→  1635→        {steps.map((s, idx) => {
+  1636→  1636→          const SIcon = s.icon;
+  1637→  1637→          const isActive = props.step === s.n;
+  1638→  1638→          const isDone = props.step > s.n;
+  1639→  1639→          return (
+  1640→  1640→            <div key={s.n} className="flex-1 flex items-center gap-1">
+  1641→  1641→              <button
+  1642→  1642→                type="button"
+  1643→  1643→                onClick={() => props.setStep(s.n)}
+  1644→  1644→                className={cn(
+  1645→  1645→                  'flex-1 flex flex-col items-center gap-1 py-1.5 px-1 rounded-md transition-all',
+  1646→  1646→                  isActive && 'bg-primary text-white shadow-sm',
+  1647→  1647→                  isDone && 'text-primary',
+  1648→  1648→                  !isActive && !isDone && 'text-muted-foreground hover:bg-muted/40'
+  1649→  1649→                )}
+  1650→  1650→              >
+  1651→  1651→                <span className={cn(
+  1652→  1652→                  'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border',
+  1653→  1653→                  isActive && 'bg-white text-primary border-white',
+  1654→  1654→                  isDone && 'bg-primary/20 text-primary border-primary',
+  1655→  1655→                  !isActive && !isDone && 'border-muted-foreground/40'
+  1656→  1656→                )}>
+  1657→  1657→                  {isDone ? <Check className="w-3 h-3" /> : <SIcon className="w-3 h-3" />}
+  1658→  1658→                </span>
+  1659→  1659→                <span className="text-[10px] font-medium leading-tight text-center">{s.label}</span>
+  1660→  1660→              </button>
+  1661→  1661→              {idx < steps.length - 1 && (
+  1662→  1662→                <div className={cn('h-0.5 w-4 rounded', props.step > s.n ? 'bg-primary' : 'bg-muted-foreground/20')} />
+  1663→  1663→              )}
+  1664→  1664→            </div>
+  1665→  1665→          );
+  1666→  1666→        })}
+  1667→  1667→      </div>
+  1668→  1668→
+  1669→  1669→      {/* Step 1: Denominations (bills + coins) */}
+  1670→  1670→      {props.step === 1 && (
+  1671→  1671→        <div className="space-y-3">
+  1672→  1672→          <div className="flex items-center justify-between">
+  1673→  1673→            <div>
+  1674→  1674→              <h4 className="font-semibold text-sm flex items-center gap-2"><Banknote className="w-4 h-4 text-primary" />Conteo de denominaciones</h4>
+  1675→  1675→              <p className="text-xs text-muted-foreground mt-0.5">Ingresá la cantidad de cada billete y moneda.</p>
+  1676→  1676→            </div>
+  1677→  1677→            <Badge className="bg-primary/20 text-primary shadow-sm">Esperado: {fmt(props.saldoEsperadoEfectivo)}</Badge>
+  1678→  1678→          </div>
+  1679→  1679→          <DenominationBreakdownPanel
+  1680→  1680→            denominaciones={DENOMINACIONES}
+  1681→  1681→            quantities={props.denomQuantities}
+  1682→  1682→            setQuantities={props.setDenomQuantities}
+  1683→  1683→            systemTotal={props.saldoEsperadoEfectivo}
+  1684→  1684→          />
+  1685→  1685→        </div>
+  1686→  1686→      )}
+  1687→  1687→
+  1688→  1688→      {/* Step 2: Other methods */}
+  1689→  1689→      {props.step === 2 && (
+  1690→  1690→        <div className="space-y-3">
+  1691→  1691→          <div>
+  1692→  1692→            <h4 className="font-semibold text-sm flex items-center gap-2"><CreditCard className="w-4 h-4 text-primary" />Otros métodos de pago</h4>
+  1693→  1693→            <p className="text-xs text-muted-foreground mt-0.5">Verificá los totales calculados por el sistema. Podés ajustarlos si es necesario.</p>
+  1694→  1694→          </div>
+  1695→  1695→          {Object.keys(props.resumenOtros).length === 0 ? (
+  1696→  1696→            <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+  1697→  1697→              <QrCode className="w-8 h-8 mx-auto mb-2 opacity-40" />
+  1698→  1698→              <p className="text-sm">No hubo movimientos en otros métodos durante este turno.</p>
+  1699→  1699→            </div>
+  1700→  1700→          ) : (
+  1701→  1701→            <div className="space-y-2">
+  1702→  1702→              {Object.entries(props.resumenOtros).map(([metodo, data]) => {
+  1703→  1703→                const systemTotal = data.ingresos - data.egresos;
+  1704→  1704→                const counted = props.otrosContados[metodo] ?? systemTotal;
+  1705→  1705→                const diff = (counted || 0) - systemTotal;
+  1706→  1706→                const MetodoIcon = metodo.toLowerCase().includes('tarjeta')
+  1707→  1707→                  ? CreditCard
+  1708→  1708→                  : metodo.toLowerCase().includes('transferencia')
+  1709→  1709→                  ? ArrowRightLeft
+  1710→  1710→                  : metodo.toLowerCase().includes('mercado')
+  1711→  1711→                  ? QrCode
+  1712→  1712→                  : Wallet;
+  1713→  1713→                return (
+  1714→  1714→                  <div key={metodo} className="border rounded-md p-2.5 space-y-1.5">
+  1715→  1715→                    <div className="flex items-center gap-2">
+  1716→  1716→                      <MetodoIcon className="w-4 h-4 text-primary shrink-0" />
+  1717→  1717→                      <span className="text-sm font-medium flex-1">{metodo}</span>
+  1718→  1718→                      <Badge variant="outline" className="text-[10px]">Sistema: {fmt(systemTotal)}</Badge>
+  1719→  1719→                    </div>
+  1720→  1720→                    <div className="flex items-center gap-2">
+  1721→  1721→                      <Label className="text-[10px] text-muted-foreground w-16">Contado:</Label>
+  1722→  1722→                      <Input
+  1723→  1723→                        type="number"
+  1724→  1724→                        step="0.01"
+  1725→  1725→                        className="h-8 text-sm flex-1 tabular-nums"
+  1726→  1726→                        value={counted}
+  1727→  1727→                        onChange={e => props.setOtrosContados({ ...props.otrosContados, [metodo]: parseFloat(e.target.value) || 0 })}
+  1728→  1728→                      />
+  1729→  1729→                      <span className={cn(
+  1730→  1730→                        'text-xs font-semibold w-20 text-right tabular-nums',
+  1731→  1731→                        diff === 0 ? 'text-primary' : diff > 0 ? 'text-warning' : 'text-destructive'
+  1732→  1732→                      )}>
+  1733→  1733→                        {diff === 0 ? '✓' : diff > 0 ? '+' : ''}{fmt(diff)}
+  1734→  1734→                      </span>
+  1735→  1735→                    </div>
+  1736→  1736→                  </div>
+  1737→  1737→                );
+  1738→  1738→              })}
+  1739→  1739→              <div className="flex justify-between font-bold pt-2 border-t bg-primary/5 rounded-md p-2 px-3">
+  1740→  1740→                <span>Total otros métodos</span><span className="text-primary tabular-nums">{fmt(props.otrosContadosTotal)}</span>
+  1741→  1741→              </div>
+  1742→  1742→            </div>
+  1743→  1743→          )}
+  1744→  1744→        </div>
+  1745→  1745→      )}
+  1746→  1746→
+  1747→  1747→      {/* Step 3: Comparison */}
+  1748→  1748→      {props.step === 3 && (
+  1749→  1749→        <div className="space-y-3">
+  1750→  1750→          <div>
+  1751→  1751→            <h4 className="font-semibold text-sm flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-primary" />Comparación vs sistema</h4>
+  1752→  1752→            <p className="text-xs text-muted-foreground mt-0.5">Revisá las diferencias antes de cerrar el turno.</p>
+  1753→  1753→          </div>
+  1754→  1754→          <div className="grid grid-cols-2 gap-2">
+  1755→  1755→            <ComparisonRow label="Esperado (sistema)" value={props.expectedTotal} variant="neutral" />
+  1756→  1756→            <ComparisonRow label="Contado (real)" value={props.totalContado} variant="neutral" />
+  1757→  1757→            <ComparisonRow
+  1758→  1758→              label="Diferencia total"
+  1759→  1759→              value={props.diferenciaTotal}
+  1760→  1760→              variant={props.diferenciaTotal === 0 ? 'success' : props.diferenciaTotal > 0 ? 'warning' : 'danger'}
+  1761→  1761→              showSign
+  1762→  1762→            />
+  1763→  1763→            <ComparisonRow
+  1764→  1764→              label="Diferencia efectivo"
+  1765→  1765→              value={props.diferenciaEfectivo}
+  1766→  1766→              variant={props.diferenciaEfectivo === 0 ? 'success' : props.diferenciaEfectivo > 0 ? 'warning' : 'danger'}
+  1767→  1767→              showSign
+  1768→  1768→            />
+  1769→  1769→          </div>
+  1770→  1770→
+  1771→  1771→          {/* Breakdown by method */}
+  1772→  1772→          <div className="border rounded-md p-3">
+  1773→  1773→            <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Detalle por método</h5>
+  1774→  1774→            <div className="space-y-1.5">
+  1775→  1775→              <div className="flex justify-between items-center text-sm py-1 border-b border-dashed">
+  1776→  1776→                <span className="flex items-center gap-2"><Banknote className="w-3.5 h-3.5 text-primary" />Efectivo</span>
+  1777→  1777→                <div className="flex items-center gap-3">
+  1778→  1778→                  <span className="text-xs text-muted-foreground">Esp: {fmt(props.saldoEsperadoEfectivo)}</span>
+  1779→  1779→                  <span className="text-xs font-semibold tabular-nums">Cont: {fmt(props.totalEfectivo)}</span>
+  1780→  1780→                  <span className={cn(
+  1781→  1781→                    'text-xs font-bold tabular-nums w-16 text-right',
+  1782→  1782→                    props.diferenciaEfectivo === 0 ? 'text-primary' : 'text-destructive'
+  1783→  1783→                  )}>
+  1784→  1784→                    {props.diferenciaEfectivo === 0 ? '✓' : `${props.diferenciaEfectivo > 0 ? '+' : ''}${fmt(props.diferenciaEfectivo)}`}
+  1785→  1785→                  </span>
+  1786→  1786→                </div>
+  1787→  1787→              </div>
+  1788→  1788→              {Object.entries(props.resumenOtros).map(([metodo, data]) => {
+  1789→  1789→                const systemTotal = data.ingresos - data.egresos;
+  1790→  1790→                const counted = props.otrosContados[metodo] ?? systemTotal;
+  1791→  1791→                const diff = (counted || 0) - systemTotal;
+  1792→  1792→                return (
+  1793→  1793→                  <div key={metodo} className="flex justify-between items-center text-sm py-1 border-b border-dashed last:border-0">
+  1794→  1794→                    <span>{metodo}</span>
+  1795→  1795→                    <div className="flex items-center gap-3">
+  1796→  1796→                      <span className="text-xs text-muted-foreground">Esp: {fmt(systemTotal)}</span>
+  1797→  1797→                      <span className="text-xs font-semibold tabular-nums">Cont: {fmt(counted || 0)}</span>
+  1798→  1798→                      <span className={cn(
+  1799→  1799→                        'text-xs font-bold tabular-nums w-16 text-right',
+  1800→  1800→                        diff === 0 ? 'text-primary' : 'text-destructive'
+  1801→  1801→                      )}>
+  1802→  1802→                        {diff === 0 ? '✓' : `${diff > 0 ? '+' : ''}${fmt(diff)}`}
+  1803→  1803→                      </span>
+  1804→  1804→                    </div>
+  1805→  1805→                  </div>
+  1806→  1806→                );
+  1807→  1807→              })}
+  1808→  1808→            </div>
+  1809→  1809→          </div>
+  1810→  1810→
+  1811→  1811→          {props.diferenciaTotal !== 0 && (
+  1812→  1812→            <div className={cn(
+  1813→  1813→              'flex items-center gap-2 p-2.5 rounded-md text-sm',
+  1814→  1814→              props.diferenciaTotal > 0 ? 'bg-warning/15 text-warning' : 'bg-destructive/15 text-destructive'
+  1815→  1815→            )}>
+  1816→  1816→              <AlertTriangle className="w-4 h-4 shrink-0" />
+  1817→  1817→              <span>
+  1818→  1818→                {props.diferenciaTotal > 0
+  1819→  1819→                  ? `Hay un sobrante de ${fmt(Math.abs(props.diferenciaTotal))}.`
+  1820→  1820→                  : `Hay un faltante de ${fmt(Math.abs(props.diferenciaTotal))}.`}
+  1821→  1821→                {' '}Explicalo en el siguiente paso.
+  1822→  1822→              </span>
+  1823→  1823→            </div>
+  1824→  1824→          )}
+  1825→  1825→        </div>
+  1826→  1826→      )}
+  1827→  1827→
+  1828→  1828→      {/* Step 4: Summary, Notes & close */}
+  1829→  1829→      {props.step === 4 && (
+  1830→  1830→        <div className="space-y-3">
+  1831→  1831→          <div>
+  1832→  1832→            <h4 className="font-semibold text-sm flex items-center gap-2"><StickyNote className="w-4 h-4 text-primary" />Resumen y cierre</h4>
+  1833→  1833→            <p className="text-xs text-muted-foreground mt-0.5">Revisá el resumen del turno antes de cerrar.</p>
+  1834→  1834→          </div>
+  1835→  1835→
+  1836→  1836→          {/* Day activity summary */}
+  1837→  1837→          {props.daySummary && (
+  1838→  1838→            <div className="border rounded-lg overflow-hidden">
+  1839→  1839→              <div className="bg-primary px-3 py-2">
+  1840→  1840→                <p className="text-xs font-semibold text-white flex items-center gap-1.5">
+  1841→  1841→                  <Activity className="w-3.5 h-3.5" />
+  1842→  1842→                  Resumen de la jornada
+  1843→  1843→                </p>
+  1844→  1844→              </div>
+  1845→  1845→              <div className="p-3 space-y-2">
+  1846→  1846→                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+  1847→  1847→                  <div className="p-1.5 rounded-md bg-primary/5 border border-primary/20">
+  1848→  1848→                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Apertura</p>
+  1849→  1849→                    <p className="text-xs font-bold tabular-nums text-primary">{fmt(props.daySummary.aperturaMonto)}</p>
+  1850→  1850→                  </div>
+  1851→  1851→                  <div className="p-1.5 rounded-md bg-primary/10 border border-primary/20">
+  1852→  1852→                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Ingresos</p>
+  1853→  1853→                    <p className="text-xs font-bold tabular-nums text-primary">{fmt(props.daySummary.totalIngresos)}</p>
+  1854→  1854→                  </div>
+  1855→  1855→                  <div className="p-1.5 rounded-md bg-destructive/10 border border-destructive/20">
+  1856→  1856→                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Egresos</p>
+  1857→  1857→                    <p className="text-xs font-bold tabular-nums text-destructive">{fmt(props.daySummary.totalEgresos)}</p>
+  1858→  1858→                  </div>
+  1859→  1859→                  <div className="p-1.5 rounded-md bg-muted/40 border">
+  1860→  1860→                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Movimientos</p>
+  1861→  1861→                    <p className="text-xs font-bold tabular-nums">{props.daySummary.movCount}</p>
+  1862→  1862→                  </div>
+  1863→  1863→                </div>
+  1864→  1864→                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-dashed">
+  1865→  1865→                  <span>Cajero: {props.daySummary.empleado}</span>
+  1866→  1866→                  <span>Neto: <span className={cn('font-bold', props.daySummary.totalIngresos - props.daySummary.totalEgresos >= 0 ? 'text-primary' : 'text-destructive')}>{fmt(props.daySummary.totalIngresos - props.daySummary.totalEgresos)}</span></span>
+  1867→  1867→                </div>
+  1868→  1868→              </div>
+  1869→  1869→            </div>
+  1870→  1870→          )}
+  1871→  1871→
+  1872→  1872→          {/* Final summary */}
+  1873→  1873→          <div className="grid grid-cols-2 gap-2 text-center">
+  1874→  1874→            <div className="p-2 rounded-md bg-muted/40">
+  1875→  1875→              <p className="text-[10px] text-muted-foreground">Contado total</p>
+  1876→  1876→              <p className="font-bold text-sm tabular-nums">{fmt(props.totalContado)}</p>
+  1877→  1877→            </div>
+  1878→  1878→            <div className={cn(
+  1879→  1879→              'p-2 rounded-md',
+  1880→  1880→              props.diferenciaTotal === 0 ? 'bg-primary/20' : props.diferenciaTotal > 0 ? 'bg-warning/15' : 'bg-destructive/15'
+  1881→  1881→            )}>
+  1882→  1882→              <p className="text-[10px] text-muted-foreground">Diferencia</p>
+  1883→  1883→              <p className={cn(
+  1884→  1884→                'font-bold text-sm tabular-nums',
+  1885→  1885→                props.diferenciaTotal === 0 ? 'text-primary' : props.diferenciaTotal > 0 ? 'text-warning' : 'text-destructive'
+  1886→  1886→              )}>
+  1887→  1887→                {props.diferenciaTotal === 0 ? '$0.00' : `${props.diferenciaTotal > 0 ? '+' : ''}${fmt(props.diferenciaTotal)}`}
+  1888→  1888→              </p>
+  1889→  1889→            </div>
+  1890→  1890→          </div>
+  1891→  1891→
+  1892→  1892→          {/* Difference alert */}
+  1893→  1893→          {props.diferenciaTotal !== 0 && (
+  1894→  1894→            <div className={cn(
+  1895→  1895→              'flex items-center gap-2 p-2.5 rounded-md text-xs border',
+  1896→  1896→              props.diferenciaTotal > 0 ? 'bg-warning/15 border-brand-amber/30 text-warning' : 'bg-destructive/15 border-destructive/30 text-destructive'
+  1897→  1897→            )}>
+  1898→  1898→              <AlertTriangle className="w-4 h-4 shrink-0" />
+  1899→  1899→              <span>
+  1900→  1900→                {props.diferenciaTotal > 0
+  1901→  1901→                  ? `Sobrante de ${fmt(Math.abs(props.diferenciaTotal))}. Verificá si hay movimientos sin registrar.`
+  1902→  1902→                  : `Faltante de ${fmt(Math.abs(props.diferenciaTotal))}. Puede ser un error de conteo o un egreso no registrado.`}
+  1903→  1903→              </span>
+  1904→  1904→            </div>
+  1905→  1905→          )}
+  1906→  1906→
+  1907→  1907→          {/* Discrepancy explanation — required if diff > $100 */}
+  1908→  1908→          {props.diffExceedsThreshold && (
+  1909→  1909→            <div className="space-y-1.5">
+  1910→  1910→              <Label className="text-sm font-medium flex items-center gap-1.5 text-warning">
+  1911→  1911→                <AlertTriangle className="w-3.5 h-3.5" />
+  1912→  1912→                Explicación de la discrepancia <span className="text-destructive">*</span>
+  1913→  1913→              </Label>
+  1914→  1914→              <p className="text-[11px] text-muted-foreground">La diferencia supera los $100. Es obligatorio explicar el motivo.</p>
+  1915→  1915→              <textarea
+  1916→  1916→                className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+  1917→  1917→                placeholder="Ej: Error al contar billetes, pago mal registrado, retiro sin registrar..."
+  1918→  1918→                value={props.discrepancyExplain}
+  1919→  1919→                onChange={e => props.setDiscrepancyExplain(e.target.value)}
+  1920→  1920→              />
+  1921→  1921→              {!props.canFinalizar && (
+  1922→  1922→                <p className="text-[11px] text-destructive">Requerido: mínimo 5 caracteres.</p>
+  1923→  1923→              )}
+  1924→  1924→            </div>
+  1925→  1925→          )}
+  1926→  1926→
+  1927→  1927→          {/* Notes (optional, always shown) */}
+  1928→  1928→          <div className="space-y-1.5">
+  1929→  1929→            <Label className="text-sm font-medium flex items-center gap-1.5">
+  1930→  1930→              <StickyNote className="w-3.5 h-3.5 text-muted-foreground" />
+  1931→  1931→              Notas del turno (opcional)
+  1932→  1932→            </Label>
+  1933→  1933→            <textarea
+  1934→  1934→              className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+  1935→  1935→              placeholder="Observaciones generales del turno..."
+  1936→  1936→              value={props.cierreNotes}
+  1937→  1937→              onChange={e => props.setCierreNotes(e.target.value)}
+  1938→  1938→            />
+  1939→  1939→          </div>
+  1940→  1940→        </div>
+  1941→  1941→      )}
+  1942→  1942→
+  1943→  1943→      {/* Footer with navigation + final close + print receipt */}
+  1944→  1944→      <div className="flex items-center justify-between gap-2 pt-3 border-t mt-2">
+  1945→  1945→        <div className="flex gap-2">
+  1946→  1946→          <DialogClose asChild>
+  1947→  1947→            <Button variant="secondary" size="sm" onClick={props.onCancel}>Cancelar</Button>
+  1948→  1948→          </DialogClose>
+  1949→  1949→          {props.step === 4 && (
+  1950→  1950→            <Button
+  1951→  1951→              variant="outline"
+  1952→  1952→              size="sm"
+  1953→  1953→              className="text-primary"
+  1954→  1954→              onClick={() => {
+  1955→  1955→                // Generate a simple receipt printout
+  1956→  1956→                const w = window.open('', '_blank', 'width=400,height=600');
+  1957→  1957→                if (!w) return;
+  1958→  1958→                const ds = props.daySummary;
+  1959→  1959→                w.document.write(`<!DOCTYPE html><html><head><title>Comprobante de Cierre</title><style>body{font-family:monospace;font-size:12px;padding:20px;max-width:300px;margin:0 auto}h2{text-align:center;border-bottom:1px dashed #000;padding-bottom:8px}.row{display:flex;justify-content:space-between;padding:2px 0}.sep{border-top:1px dashed #000;margin:8px 0;text-align:center}</style></head><body>`);
+  1960→  1960→                w.document.write(`<h2>CIERRE DE CAJA</h2>`);
+  1961→  1961→                w.document.write(`<p style="text-align:center;font-size:10px">${new Date().toLocaleString('es-AR')}</p>`);
+  1962→  1962→                if (ds) {
+  1963→  1963→                  w.document.write(`<div class="sep"></div>`);
+  1964→  1964→                  w.document.write(`<div class="row"><span>Apertura:</span><span>${formatMoney(ds.aperturaMonto)}</span></div>`);
+  1965→  1965→                  w.document.write(`<div class="row"><span>Ingresos:</span><span>${formatMoney(ds.totalIngresos)}</span></div>`);
+  1966→  1966→                  w.document.write(`<div class="row"><span>Egresos:</span><span>${formatMoney(ds.totalEgresos)}</span></div>`);
+  1967→  1967→                  w.document.write(`<div class="row"><span>Movimientos:</span><span>${ds.movCount}</span></div>`);
+  1968→  1968→                  w.document.write(`<div class="row"><span>Cajero:</span><span>${ds.empleado}</span></div>`);
+  1969→  1969→                }
+  1970→  1970→                w.document.write(`<div class="sep"></div>`);
+  1971→  1971→                w.document.write(`<div class="row"><span>Contado:</span><strong>${formatMoney(props.totalContado)}</strong></div>`);
+  1972→  1972→                w.document.write(`<div class="row"><span>Esperado:</span><strong>${formatMoney(props.expectedTotal)}</strong></div>`);
+  1973→  1973→                w.document.write(`<div class="row"><span>Diferencia:</span><strong style="color:${props.diferenciaTotal !== 0 ? 'red' : 'green'}">${formatMoney(props.diferenciaTotal)}</strong></div>`);
+  1974→  1974→                w.document.write(`<div class="sep"></div>`);
+  1975→  1975→                w.document.write(`<p style="text-align:center;font-size:10px">Hospeda — Sistema de Gestión Hotelera</p>`);
+  1976→  1976→                w.document.write(`</body></html>`);
+  1977→  1977→                w.document.close();
+  1978→  1978→                w.print();
+  1979→  1979→              }}
+  1980→  1980→            >
+  1981→  1981→              <Printer className="w-3.5 h-3.5 mr-1" />Imprimir
+  1982→  1982→            </Button>
+  1983→  1983→          )}
+  1984→  1984→        </div>
+  1985→  1985→        <div className="flex gap-2">
+  1986→  1986→          {props.step > 1 && (
+  1987→  1987→            <Button variant="outline" size="sm" onClick={() => props.setStep((props.step - 1) as 1 | 2 | 3 | 4)}>
+  1988→  1988→              <ChevronLeft className="w-4 h-4 mr-1" />Atrás
+  1989→  1989→            </Button>
+  1990→  1990→          )}
+  1991→  1991→          {props.step < 4 ? (
+  1992→  1992→            <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => props.setStep((props.step + 1) as 1 | 2 | 3 | 4)}>
+  1993→  1993→              Siguiente<ChevronRight className="w-4 h-4 ml-1" />
+  1994→  1994→            </Button>
+  1995→  1995→          ) : (
+  1996→  1996→            <Button
+  1997→  1997→              variant="destructive"
+  1998→  1998→              size="sm"
+  1999→  1999→              onClick={props.onCerrar}
+  2000→  2000→              disabled={props.loadingCerrar || !props.canFinalizar}
+
+[showing lines 1-2000 of 2002; use offset=2001 with limit to continue reading]
