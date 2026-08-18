@@ -3,15 +3,25 @@ import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 
 // POST /api/caja/cerrar — Cerrar el turno de caja actual
+// Body: { billetes: Record<number, number>, totalOtrosMetodos: number, notas?: string, discrepancyExplain?: string }
+// Las claves de `billetes` son denominaciones en PESOS (ej: 20000, 1000, 50, 1)
+// Los valores son cantidades (ej: { "20000": 2, "1000": 5, "50": 10 })
+// Todos los montos en la BD se guardan en CENTAVOS (enteros)
 export async function POST(req: NextRequest) {
   try {
     const tenantId = await requirePermission('caja');
     const body = await req.json();
     const { billetes, totalOtrosMetodos, notas, discrepancyExplain } = body;
 
-    // Validar billetes
-    if (!billetes || typeof billetes !== 'object' || Object.keys(billetes).length === 0) {
-      return NextResponse.json({ error: 'El conteo de billetes es obligatorio' }, { status: 400 });
+    // Validar billetes/denominaciones
+    if (!billetes || typeof billetes !== 'object' || Array.isArray(billetes)) {
+      return NextResponse.json({ error: 'El conteo de denominaciones es obligatorio' }, { status: 400 });
+    }
+
+    // Validar que al menos una denominación tenga cantidad > 0
+    const hasPositiveQuantity = Object.values(billetes as Record<string, number>).some(v => Number(v) > 0);
+    if (!hasPositiveQuantity) {
+      return NextResponse.json({ error: 'Debe ingresar al menos una denominación con cantidad mayor a 0' }, { status: 400 });
     }
 
     const totalOtrosNum = totalOtrosMetodos !== undefined && totalOtrosMetodos !== null
@@ -22,13 +32,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El total de otros métodos debe ser un número válido' }, { status: 400 });
     }
 
-    // Validar que los billetes sean válidos
+    // Validar que cada denominación sea válida
     for (const [denominacion, cantidad] of Object.entries(billetes)) {
       const denom = Number(denominacion);
       const cant = Number(cantidad);
-      if (isNaN(denom) || denom <= 0 || isNaN(cant) || cant < 0) {
+      if (isNaN(denom) || denom <= 0 || isNaN(cant) || cant < 0 || !Number.isInteger(cant)) {
         return NextResponse.json(
-          { error: `Billete inválido: denominación ${denominacion} x ${cantidad}` },
+          { error: `Denominación inválida: ${denominacion} x ${cantidad}. La denominación debe ser positiva y la cantidad un entero no negativo.` },
           { status: 400 }
         );
       }
@@ -47,13 +57,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No hay un turno de caja abierto' }, { status: 404 });
     }
 
-    // Calcular saldo contado SOLO de efectivo (billetes) — los otros métodos se guardan por separado
+    // Calcular saldo contado de efectivo (billetes + monedas) en CENTAVOS
+    // Las denominaciones vienen en pesos, multiplicamos por 100 para convertir a centavos
     const saldoContado = Object.entries(billetes).reduce(
-      (sum, [denominacion, cantidad]) => sum + Number(denominacion) * Number(cantidad) * 100,
+      (sum, [denominacion, cantidad]) => {
+        const denom = Number(denominacion);
+        const qty = Number(cantidad);
+        // Solo contar denominaciones con cantidad > 0
+        if (denom > 0 && qty > 0) {
+          return sum + denom * qty * 100; // pesos * cantidad * 100 = centavos
+        }
+        return sum;
+      },
       0
     );
 
-    // Calcular saldo esperado: montoInicial + ingresos(efectivo) - egresos(efectivo)
+    // Calcular saldo esperado: montoInicial + ingresos(efectivo) - egresos(efectivo) — todo en centavos
     const totalIngresos = turno.movimientos
       .filter((m) => m.tipo === 'ingreso' && m.metodo === 'Efectivo')
       .reduce((sum, m) => sum + m.monto, 0);
@@ -62,7 +81,7 @@ export async function POST(req: NextRequest) {
       .reduce((sum, m) => sum + m.monto, 0);
     const saldoEsperado = turno.montoInicial + totalIngresos - totalEgresos;
 
-    // Diferencia solo de efectivo (contado vs esperado)
+    // Diferencia solo de efectivo (contado vs esperado) — en centavos
     const diferencia = saldoContado - saldoEsperado;
 
     // Actualizar turno

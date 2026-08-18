@@ -1437,6 +1437,7 @@ export const useHotelStore = create<HotelStore>()(
         const { caja } = get();
         if (caja.estado !== 'abierta' || !caja.apertura) return null;
 
+        // Calcular saldo esperado (efectivo) en pesos
         let saldoEsperado = caja.apertura.montoInicial;
         caja.movimientos.forEach(mov => {
           if (mov.metodo === 'Efectivo') {
@@ -1444,9 +1445,15 @@ export const useHotelStore = create<HotelStore>()(
           }
         });
 
+        // Calcular saldo contado a partir de las denominaciones (billetes + monedas)
+        // Las claves son denominaciones en pesos (ej: 20000, 1000, 50, 1)
         let saldoContado = 0;
-        for (const [billete, cantidad] of Object.entries(billetes)) {
-          saldoContado += parseInt(billete) * (cantidad || 0);
+        for (const [denominacion, cantidad] of Object.entries(billetes)) {
+          const denom = Number(denominacion);
+          const qty = Number(cantidad) || 0;
+          if (denom > 0 && qty > 0) {
+            saldoContado += denom * qty;
+          }
         }
 
         const diferencia = saldoContado - saldoEsperado;

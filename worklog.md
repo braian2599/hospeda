@@ -1597,3 +1597,28 @@ Stage Summary:
 - Recharts rendering: hex colors replace CSS variables for proper SVG rendering
 - Audit trail: edit/delete movements now create auditoría entries
 - Code quality: dead code removed, date parsing uses safe utility, accent consistency fixed
+
+---
+Task ID: caja-billetes-fix
+Agent: main
+Task: Fix bug critico en cierre de caja - billetes no aparecen en resumen y caja no cuadra
+
+Work Log:
+- Investigacion exhaustiva de TODO el flujo de cierre de caja
+- Leidos: CajaModule.tsx, store.ts, api/caja/cerrar/route.ts, types.ts, api-client.ts, format.ts, prisma/schema.prisma
+- BUG RAIZ: totalEfectivo se calculaba de billetes (estado SIEMPRE vacio/0), pero el usuario ingresa en denomQuantities via DenominationBreakdownPanel. NUNCA sincronizados.
+- Fix A: totalEfectivo ahora calcula de denomQuantities y DENOMINACIONES
+- Fix A: handleCerrar ahora pasa denomQuantities (no billetes vacio)
+- Fix A: billetes convertido a useMemo derivado de denomQuantities
+- Fix A: Store cerrarCaja mejorado con Number() y filtro qty>0
+- Fix A: API cerrar/route.ts mejorado con validacion y comentarios claros
+- Fix B: Desglose de denominaciones en Step 4 (Resumen y cierre)
+- Fix C: Mini-desglose en Step 3 (Comparacion)
+- Fix D: yesterdaySummary incluye billetes del cierre + DailySummaryCard los muestra
+- Lint: 0 errores. App sirve correctamente.
+
+Stage Summary:
+- BUG RAIZ: billetes (vacio) y denomQuantities (donde el usuario ingresa) nunca conectados
+- Fix completo: denomQuantities es la UNICA fuente de verdad, billetes se deriva automaticamente
+- Visibilidad del desglose de billetes agregada en Steps 3, 4 y historial
+- Archivos modificados: CajaModule.tsx, store.ts, api/caja/cerrar/route.ts

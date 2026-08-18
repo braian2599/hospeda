@@ -501,9 +501,18 @@ export default function CajaModule() {
 
   // Close dialog — enhanced wizard
   const [showCierre, setShowCierre] = useState(false);
-  const [billetes, setBilletes] = useState<Record<number, number>>(() => Object.fromEntries(BILLETES.map(b => [b, 0])));
   // Extended denomination quantities for the DenominationBreakdownPanel (bills + coins)
+  // This is the SINGLE SOURCE OF TRUTH for what the user enters in the wizard.
   const [denomQuantities, setDenomQuantities] = useState<Record<number, number>>(() => Object.fromEntries(DENOMINACIONES.map(d => [d.value, 0])));
+  // billetes es un valor DERIVADO de denomQuantities (no un estado independiente).
+  // Se usa para pasar al store/API y para compatibilidad con ClosingWizard props.
+  const billetes = useMemo(() => {
+    const result: Record<number, number> = {};
+    for (const d of DENOMINACIONES) {
+      result[d.value] = denomQuantities[d.value] || 0;
+    }
+    return result;
+  }, [denomQuantities]);
   const [closingStep, setClosingStep] = useState<1 | 2 | 3 | 4>(1);
   // Other methods counted (editable, initialized from system totals)
   const [otrosContados, setOtrosContados] = useState<Record<string, number>>({});
@@ -640,7 +649,9 @@ export default function CajaModule() {
   }, [caja.movimientos]);
 
   const totalOtros = Object.values(resumenOtros).reduce((s, v) => s + v.ingresos - v.egresos, 0);
-  const totalEfectivo = useMemo(() => BILLETES.reduce((s, b) => s + b * (billetes[b] || 0), 0), [billetes]);
+  // totalEfectivo se calcula de denomQuantities (lo que el usuario ingresa en el wizard)
+  // NO de billetes (que es un estado legacy que no se sincroniza)
+  const totalEfectivo = useMemo(() => DENOMINACIONES.reduce((s, d) => s + d.value * (denomQuantities[d.value] || 0), 0), [denomQuantities]);
 
   // ── Initialize wizard state when dialog opens (via trigger onClick, not effect) ──
   const initializeWizardState = useCallback(() => {
@@ -652,7 +663,7 @@ export default function CajaModule() {
     setClosingStep(1);
     setCierreNotes('');
     setDiscrepancyExplain('');
-    setBilletes(Object.fromEntries(BILLETES.map(b => [b, 0])));
+    // Reset denomination quantities — billetes se deriva automáticamente vía useMemo
     setDenomQuantities(Object.fromEntries(DENOMINACIONES.map(d => [d.value, 0])));
     setCierreOpenCount(c => c + 1);
   }, [resumenOtros]);
@@ -700,11 +711,14 @@ export default function CajaModule() {
       ingresos: ingresosTurno,
       egresos: egresosTurno,
       cierre: last.cierre.saldoContado + last.cierre.totalOtrosMetodos,
+      saldoContado: last.cierre.saldoContado,
+      totalOtrosMetodos: last.cierre.totalOtrosMetodos,
       fecha: last.cierre.fecha,
       movCount,
       avgTicket,
       diferencia: last.cierre.diferencia,
       empleado: last.cierre.empleado,
+      billetes: last.cierre.billetes,
     };
   }, [caja.historial]);
 
@@ -756,14 +770,15 @@ export default function CajaModule() {
   const handleCerrar = async () => {
     setLoadingCerrar(true);
     try {
-      const cierre = await cerrarCaja(billetes, totalOtros, cierreNotes || undefined, discrepancyExplain || undefined);
+      const cierre = await cerrarCaja(denomQuantities, totalOtros, cierreNotes || undefined, discrepancyExplain || undefined);
       if (cierre) {
         const msg = cierreNotes || discrepancyExplain
           ? `Turno finalizado · Diferencia: ${formatMoney(cierre.diferencia)}`
           : 'Turno finalizado';
         toast.success('Caja cerrada', { description: msg });
         setShowCierre(false);
-        setBilletes(Object.fromEntries(BILLETES.map(b => [b, 0])));
+        // Reset denomination quantities after closing — billetes se deriva automáticamente
+        setDenomQuantities(Object.fromEntries(DENOMINACIONES.map(d => [d.value, 0])));
         setClosingStep(1);
         setCierreNotes('');
         setDiscrepancyExplain('');
@@ -863,7 +878,6 @@ export default function CajaModule() {
         totalContado={totalContado}
         diferenciaTotal={diferenciaTotal}
         billetes={billetes}
-        setBilletes={setBilletes}
         denomQuantities={denomQuantities}
         setDenomQuantities={setDenomQuantities}
         cierreNotes={cierreNotes}
@@ -1592,7 +1606,6 @@ interface ClosingWizardProps {
   totalContado: number;
   diferenciaTotal: number;
   billetes: Record<number, number>;
-  setBilletes: (b: Record<number, number>) => void;
   denomQuantities: Record<number, number>;
   setDenomQuantities: (q: Record<number, number>) => void;
   cierreNotes: string;
@@ -1784,6 +1797,17 @@ function ClosingWizard(props: ClosingWizardProps) {
                   </span>
                 </div>
               </div>
+              {/* Denomination mini-breakdown in comparison step */}
+              {props.totalEfectivo > 0 && (
+                <div className="pl-6 py-1 space-y-0.5">
+                  {DENOMINACIONES.filter(d => (props.denomQuantities[d.value] || 0) > 0).map(d => (
+                    <div key={d.value} className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>{d.label} × {props.denomQuantities[d.value]}</span>
+                      <span className="tabular-nums">{fmt(d.value * props.denomQuantities[d.value])}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {Object.entries(props.resumenOtros).map(([metodo, data]) => {
                 const systemTotal = data.ingresos - data.egresos;
                 const counted = props.otrosContados[metodo] ?? systemTotal;
@@ -1867,6 +1891,36 @@ function ClosingWizard(props: ClosingWizardProps) {
               </div>
             </div>
           )}
+
+          {/* Denomination breakdown summary */}
+          <div className="border rounded-md p-3">
+            <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Banknote className="w-3.5 h-3.5 text-primary" />
+              Conteo de efectivo
+            </h5>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+              {DENOMINACIONES.filter(d => (props.denomQuantities[d.value] || 0) > 0).map(d => (
+                <div key={d.value} className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-muted/30 text-xs">
+                  <span className="font-medium">{d.label}</span>
+                  <span className="text-muted-foreground">×{props.denomQuantities[d.value]}</span>
+                  <span className="font-semibold tabular-nums ml-auto">{fmt(d.value * (props.denomQuantities[d.value] || 0))}</span>
+                </div>
+              ))}
+              {DENOMINACIONES.filter(d => (props.denomQuantities[d.value] || 0) > 0).length === 0 && (
+                <p className="col-span-full text-xs text-muted-foreground text-center py-2">No se ingresaron denominaciones</p>
+              )}
+            </div>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-dashed text-sm">
+              <span className="font-medium flex items-center gap-1.5"><Banknote className="w-3.5 h-3.5 text-primary" />Total efectivo contado</span>
+              <span className="font-bold tabular-nums text-primary">{fmt(props.totalEfectivo)}</span>
+            </div>
+            {Object.keys(props.resumenOtros).length > 0 && (
+              <div className="flex items-center justify-between mt-1 text-sm">
+                <span className="font-medium flex items-center gap-1.5"><CreditCard className="w-3.5 h-3.5 text-muted-foreground" />Total otros métodos</span>
+                <span className="font-semibold tabular-nums">{fmt(props.otrosContadosTotal)}</span>
+              </div>
+            )}
+          </div>
 
           {/* Final summary */}
           <div className="grid grid-cols-2 gap-2 text-center">
@@ -2034,11 +2088,14 @@ interface DailySummaryData {
   ingresos: number;
   egresos: number;
   cierre: number;
+  saldoContado: number;
+  totalOtrosMetodos: number;
   fecha: string;
   movCount: number;
   avgTicket: number;
   diferencia: number;
   empleado: string;
+  billetes: Record<number, number>;
 }
 
 function DailySummaryCard({ summary, onViewHistorial }: {
@@ -2118,6 +2175,38 @@ function DailySummaryCard({ summary, onViewHistorial }: {
             <p className="text-sm font-semibold tabular-nums">{formatMoney(summary.avgTicket)}</p>
           </div>
         </div>
+
+        {/* Billete breakdown from the cierre */}
+        {summary.billetes && Object.keys(summary.billetes).length > 0 && (
+          <div className="border rounded-md p-3">
+            <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Banknote className="w-3.5 h-3.5 text-primary" />
+              Conteo de denominaciones al cierre
+            </h5>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+              {Object.entries(summary.billetes)
+                .filter(([, qty]) => Number(qty) > 0)
+                .sort(([a], [b]) => Number(b) - Number(a))
+                .map(([denom, qty]) => (
+                  <div key={denom} className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-muted/30 text-xs">
+                    <span className="font-medium">${Number(denom).toLocaleString('es-AR')}</span>
+                    <span className="text-muted-foreground">×{qty}</span>
+                    <span className="font-semibold tabular-nums ml-auto">{formatMoney(Number(denom) * Number(qty))}</span>
+                  </div>
+                ))}
+            </div>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-dashed text-sm">
+              <span className="font-medium">Efectivo contado</span>
+              <span className="font-bold tabular-nums text-primary">{formatMoney(summary.saldoContado)}</span>
+            </div>
+            {summary.totalOtrosMetodos > 0 && (
+              <div className="flex items-center justify-between mt-1 text-sm">
+                <span className="font-medium">Otros métodos</span>
+                <span className="font-semibold tabular-nums">{formatMoney(summary.totalOtrosMetodos)}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Quick stats row — Facturacion KPI style */}
         <div className="grid grid-cols-3 gap-3">
