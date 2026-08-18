@@ -1,14 +1,14 @@
 // ==================== HOSPEDÁ — SCHEMA MULTI-TENANT ====================
 // Cada tabla tiene tenantId para aislar datos por hotel/empresa.
-// Schema compatible con SQLite (desarrollo) y PostgreSQL (producción).
-// Nota: los enums se almacenan como strings en SQLite.
+// Schema para PostgreSQL (producción). En desarrollo/sandbox con SQLite
+// se usa @prisma/adapter-better-sqlite3 en db.ts.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -158,7 +158,7 @@ model TenantUser {
   userId         String
   rol            RolTenant @default(recepcion)
   nombreCompleto String?
-  permisos       Json          @default("[]")
+  permisos       String[]
   activo         Boolean   @default(true)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
