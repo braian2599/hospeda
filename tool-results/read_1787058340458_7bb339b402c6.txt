@@ -1,0 +1,502 @@
+  1000→                  <div>
+  1001→                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo actual</p>
+  1002→                    <AnimatedNumber
+  1003→                      value={saldo}
+  1004→                      className="text-xl font-bold text-primary block"
+  1005→                    />
+  1006→                  </div>
+  1007→                  {caja.apertura && (
+  1008→                    <div className={cn(
+  1009→                      'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold shadow-sm',
+  1010→                      tendencia >= 0 ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+  1011→                    )}>
+  1012→                      {tendencia >= 0
+  1013→                        ? <ArrowUpRight className="w-3 h-3" />
+  1014→                        : <ArrowDownRight className="w-3 h-3" />}
+  1015→                      {tendencia >= 0 ? '+' : ''}{formatMoney(tendencia)}
+  1016→                    </div>
+  1017→                  )}
+  1018→                </div>
+  1019→              </div>
+  1020→              {/* Movimientos + Apertura info */}
+  1021→              <div className="grid grid-cols-2 gap-2 text-center rounded-lg border p-2.5 bg-muted/30">
+  1022→                <div>
+  1023→                  <p className="text-[10px] text-muted-foreground leading-tight">Movimientos</p>
+  1024→                  <p className="text-sm font-semibold">{movimientos.length}</p>
+  1025→                </div>
+  1026→                <div>
+  1027→                  <p className="text-[10px] text-muted-foreground leading-tight">Apertura</p>
+  1028→                  <p className="text-sm font-medium">{caja.apertura ? formatHora(caja.apertura.fecha) : '--'}</p>
+  1029→                </div>
+  1030→              </div>
+  1031→              {/* Action buttons */}
+  1032→              <div className="grid grid-cols-2 gap-2">
+  1033→                <Button variant="outline" className="h-9 text-sm border-primary/30 text-primary hover:bg-primary/20 hover:text-primary" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+  1034→                <Button variant="outline" className="h-9 text-sm border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+  1035→              </div>
+  1036→              {/* Movement form inline */}
+  1037→              {showMovForm && (
+  1038→                <MovFormInline
+  1039→                  tipo={showMovForm}
+  1040→                  movMonto={movMonto}
+  1041→                  setMovMonto={setMovMonto}
+  1042→                  movDesc={movDesc}
+  1043→                  setMovDesc={setMovDesc}
+  1044→                  movMetodo={movMetodo}
+  1045→                  setMovMetodo={setMovMetodo}
+  1046→                  movCategoria={movCategoria}
+  1047→                  setMovCategoria={setMovCategoria}
+  1048→                  loading={loadingMovimiento}
+  1049→                  onGuardar={handleMovimiento}
+  1050→                  onCancelar={cancelarForm}
+  1051→                  metodosPago={metodosPago}
+  1052→                  categoriasGastos={categoriasGastos}
+  1053→                />
+  1054→              )}
+  1055→
+  1056→              {/* Mobile: Pie chart */}
+  1057→              {categoriaBreakdown.length > 0 && (
+  1058→                <MovementCategoryPie data={categoriaBreakdown} compact />
+  1059→              )}
+  1060→            </CardContent>
+  1061→          </Card>
+  1062→
+  1063→          {/* ── Mobile: movement filters + cards ── */}
+  1064→          <Card className="lg:hidden">
+  1065→            <CardHeader className="pb-3">
+  1066→              <div className="flex items-center justify-between gap-2">
+  1067→                <CardTitle className="text-base">Movimientos del turno</CardTitle>
+  1068→                <Button
+  1069→                  size="sm"
+  1070→                  variant={showFilters || activeFiltersCount > 0 ? 'default' : 'outline'}
+  1071→                  className="h-7 text-xs"
+  1072→                  onClick={() => setShowFilters(v => !v)}
+  1073→                >
+  1074→                  <Filter className="w-3 h-3 mr-1" />
+  1075→                  Filtros
+  1076→                  {activeFiltersCount > 0 && (
+  1077→                    <Badge className="ml-1 bg-white/20 text-white h-4 px-1 text-[10px]">{activeFiltersCount}</Badge>
+  1078→                  )}
+  1079→                </Button>
+  1080→              </div>
+  1081→              {/* Quick filter tabs + search */}
+  1082→              <div className="flex items-center gap-2 mt-2">
+  1083→                <div className="inline-flex rounded-md border border-input overflow-hidden shrink-0">
+  1084→                  {([['todos', 'Todos'], ['ingreso', 'Ingresos'], ['egreso', 'Egresos']] as const).map(([val, label]) => (
+  1085→                    <button
+  1086→                      key={val}
+  1087→                      type="button"
+  1088→                      className={cn(
+  1089→                        'px-2.5 py-1 text-[11px] font-medium transition-colors',
+  1090→                        filterTipo === val
+  1091→                          ? 'bg-primary text-white'
+  1092→                          : 'bg-background text-muted-foreground hover:bg-muted/50'
+  1093→                      )}
+  1094→                      onClick={() => setFilterTipo(val)}
+  1095→                    >
+  1096→                      {label}
+  1097→                    </button>
+  1098→                  ))}
+  1099→                </div>
+  1100→                <div className="relative flex-1 min-w-0">
+  1101→                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+  1102→                  <Input
+  1103→                    placeholder="Buscar..."
+  1104→                    value={filterSearch}
+  1105→                    onChange={e => setFilterSearch(e.target.value)}
+  1106→                    className="h-7 pl-6 text-xs"
+  1107→                  />
+  1108→                </div>
+  1109→              </div>
+  1110→              {showFilters && (
+  1111→                <MovementFilters
+  1112→                  filterTipo={filterTipo} setFilterTipo={setFilterTipo}
+  1113→                  filterMetodo={filterMetodo} setFilterMetodo={setFilterMetodo}
+  1114→                  filterCategoria={filterCategoria} setFilterCategoria={setFilterCategoria}
+  1115→                  filterFechaDesde={filterFechaDesde} setFilterFechaDesde={setFilterFechaDesde}
+  1116→                  filterFechaHasta={filterFechaHasta} setFilterFechaHasta={setFilterFechaHasta}
+  1117→                  filterSearch={filterSearch} setFilterSearch={setFilterSearch}
+  1118→                  onClear={clearFilters}
+  1119→                  activeCount={activeFiltersCount}
+  1120→                  metodosDisponibles={Array.from(new Set(movimientos.map(m => m.metodo)))}
+  1121→                  resultCount={filteredMovimientos.length}
+  1122→                  totalCount={movimientos.length}
+  1123→                />
+  1124→              )}
+  1125→            </CardHeader>
+  1126→            <CardContent className="p-0">
+  1127→              {movimientos.length === 0 ? (
+  1128→                <div className="text-center py-10 text-muted-foreground">
+  1129→                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
+  1130→                    <Receipt className="w-6 h-6 text-muted-foreground/60" />
+  1131→                  </div>
+  1132→                  <p className="text-sm">Sin movimientos todavía.</p>
+  1133→                </div>
+  1134→              ) : filteredMovimientos.length === 0 ? (
+  1135→                <div className="text-center py-10 text-muted-foreground">
+  1136→                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
+  1137→                    <Search className="w-6 h-6 text-muted-foreground/60" />
+  1138→                  </div>
+  1139→                  <p className="text-sm">Sin resultados para los filtros aplicados.</p>
+  1140→                  <Button size="sm" variant="ghost" className="mt-2 text-xs" onClick={clearFilters}>Limpiar filtros</Button>
+  1141→                </div>
+  1142→              ) : (
+  1143→                <div className="divide-y">
+  1144→                  {reversedPagedMovimientos.map((m) => (
+  1145→                    <MovementCard
+  1146→                      key={m.id}
+  1147→                      movimiento={m}
+  1148→                      now={now}
+  1149→                      canEdit={isAdminOrOwner}
+  1150→                      onEdit={() => handleEditOpen(m)}
+  1151→                      onDelete={() => handleDelete(m.id)}
+  1152→                      loadingDelete={loadingDelete}
+  1153→                      gastoVinculado={m.gastoId ? gastos.find(g => g.id === m.gastoId) : undefined}
+  1154→                      categoria={categorizeMovement(m, m.gastoId ? gastos.find(g => g.id === m.gastoId)?.tipo : undefined)}
+  1155→                      isDetailOpen={detailMovId === m.id}
+  1156→                      onToggleDetail={() => setDetailMovId(detailMovId === m.id ? null : m.id)}
+  1157→                    />
+  1158→                  ))}
+  1159→                </div>
+  1160→              )}
+  1161→            </CardContent>
+  1162→            <PaginationBar page={safePage} totalPages={movTotalPages} onPageChange={setPage} totalItems={filteredMovimientos.length} pageSize={PAGE_SIZE} />
+  1163→          </Card>
+  1164→
+  1165→          {/* ── Mobile: Cash Flow Timeline ── */}
+  1166→          <Card className="lg:hidden overflow-hidden">
+  1167→            <CardHeader className="bg-primary/5 pb-3">
+  1168→              <CardTitle className="text-sm flex items-center gap-2">
+  1169→                <Timer className="w-4 h-4 text-primary" />
+  1170→                Línea de tiempo
+  1171→              </CardTitle>
+  1172→            </CardHeader>
+  1173→            <CardContent className="max-h-80 overflow-y-auto">
+  1174→              <CashFlowTimeline
+  1175→                movimientos={movimientos}
+  1176→                aperturaMonto={aperturaMonto}
+  1177→                now={now}
+  1178→              />
+  1179→            </CardContent>
+  1180→          </Card>
+  1181→
+  1182→          {/* ═══════ DESKTOP ═══════ */}
+  1183→          <div className="hidden lg:grid lg:grid-cols-3 gap-4">
+  1184→            <div className="lg:col-span-2 space-y-4">
+  1185→              {/* Status bar — enhanced with pulsing dot + time since opened + gradient border */}
+  1186→              <Card className="wave-border-hover overflow-hidden">
+  1187→                <CardContent className="flex items-center justify-between py-4 relative">
+  1188→                  <div className="flex items-center gap-3 min-w-0">
+  1189→                    <span className="relative flex h-3 w-3 shrink-0">
+  1190→                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-mint opacity-75" />
+  1191→                      <span className="relative inline-flex h-3 w-3 rounded-full bg-primary" />
+  1192→                    </span>
+  1193→                    <div className="min-w-0">
+  1194→                      <h3 className="font-semibold text-primary flex items-center gap-2">
+  1195→                        Caja abierta
+  1196→                        <Badge className="bg-primary/20 text-primary shadow-sm font-semibold">
+  1197→                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary mr-1 animate-pulse-subtle" />
+  1198→                          Activa
+  1199→                        </Badge>
+  1200→                      </h3>
+  1201→                      {caja.apertura && (
+  1202→                        <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 mt-0.5">
+  1203→                          <Clock className="w-3 h-3" />
+  1204→                          <span>{formatTimeSinceOpen(caja.apertura.fecha, now)}</span>
+  1205→                          <span className="text-muted-foreground/40">·</span>
+  1206→                          <span>Apertura: {formatHora(caja.apertura.fecha)} · Cajero: {caja.apertura.empleado}</span>
+  1207→                        </p>
+  1208→                      )}
+  1209→                    </div>
+  1210→                  </div>
+  1211→                  <Dialog open={showCierre} onOpenChange={setShowCierre}>
+  1212→                    <DialogTrigger asChild>
+  1213→                      <Button variant="destructive" disabled={loadingCerrar} className="shadow-sm" onClick={initializeWizardState}><Lock className="w-4 h-4 mr-1" />Cerrar caja</Button>
+  1214→                    </DialogTrigger>
+  1215→                    {closeDialog}
+  1216→                  </Dialog>
+  1217→                </CardContent>
+  1218→              </Card>
+  1219→
+  1220→              {/* Balance display — large animated number + trend indicator */}
+  1221→              <Card className="bg-success/10 border-2 border-primary/30 card-hover">
+  1222→                <CardContent className="py-4 flex items-center justify-between gap-4">
+  1223→                  <div className="flex items-center gap-4">
+  1224→                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shadow-sm">
+  1225→                      <Wallet className="w-6 h-6 text-primary" />
+  1226→                    </div>
+  1227→                    <div>
+  1228→                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Saldo actual (efectivo)</p>
+  1229→                      <AnimatedNumber
+  1230→                        value={saldo}
+  1231→                        className="text-3xl font-bold text-primary tabular-nums block leading-tight"
+  1232→                      />
+  1233→                    </div>
+  1234→                  </div>
+  1235→                  {caja.apertura && (
+  1236→                    <div className="text-right space-y-1">
+  1237→                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">vs. apertura</p>
+  1238→                      <div className={cn(
+  1239→                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm',
+  1240→                        tendencia >= 0 ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+  1241→                      )}>
+  1242→                        {tendencia >= 0
+  1243→                          ? <TrendingUp className="w-3.5 h-3.5" />
+  1244→                          : <TrendingDown className="w-3.5 h-3.5" />}
+  1245→                        {tendencia >= 0 ? '+' : ''}{formatMoney(tendencia)}
+  1246→                      </div>
+  1247→                      <p className="text-[10px] text-muted-foreground">Inicial: {formatMoney(aperturaMonto)}</p>
+  1248→                    </div>
+  1249→                  )}
+  1250→                </CardContent>
+  1251→              </Card>
+  1252→
+  1253→              {/* Movements table + filters */}
+  1254→              <Card>
+  1255→                <CardHeader className="pb-3">
+  1256→                  <div className="flex items-center justify-between gap-2">
+  1257→                    <CardTitle className="text-base flex items-center gap-2">
+  1258→                      <Activity className="w-4 h-4 text-primary" />
+  1259→                      Movimientos del turno
+  1260→                      {filteredMovimientos.length !== movimientos.length && (
+  1261→                        <Badge variant="secondary" className="text-[10px] shadow-sm">
+  1262→                          {filteredMovimientos.length}/{movimientos.length}
+  1263→                        </Badge>
+  1264→                      )}
+  1265→                    </CardTitle>
+  1266→                    <Button
+  1267→                      size="sm"
+  1268→                      variant={showFilters || activeFiltersCount > 0 ? 'default' : 'outline'}
+  1269→                      className="h-7 text-xs"
+  1270→                      onClick={() => setShowFilters(v => !v)}
+  1271→                    >
+  1272→                      <Filter className="w-3 h-3 mr-1" />
+  1273→                      Filtros
+  1274→                      {activeFiltersCount > 0 && (
+  1275→                        <Badge className="ml-1 bg-white/20 text-white h-4 px-1 text-[10px]">{activeFiltersCount}</Badge>
+  1276→                      )}
+  1277→                    </Button>
+  1278→                  </div>
+  1279→                  {/* Quick filter tabs + search for desktop */}
+  1280→                  <div className="flex items-center gap-2 mt-2">
+  1281→                    <div className="inline-flex rounded-md border border-input overflow-hidden shrink-0">
+  1282→                      {([['todos', 'Todos'], ['ingreso', 'Ingresos'], ['egreso', 'Egresos']] as const).map(([val, label]) => (
+  1283→                        <button
+  1284→                          key={val}
+  1285→                          type="button"
+  1286→                          className={cn(
+  1287→                            'px-3 py-1 text-xs font-medium transition-colors',
+  1288→                            filterTipo === val
+  1289→                              ? 'bg-primary text-white'
+  1290→                              : 'bg-background text-muted-foreground hover:bg-muted/50'
+  1291→                          )}
+  1292→                          onClick={() => setFilterTipo(val)}
+  1293→                        >
+  1294→                          {label}
+  1295→                        </button>
+  1296→                      ))}
+  1297→                    </div>
+  1298→                    <div className="relative flex-1 min-w-0 max-w-xs">
+  1299→                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+  1300→                      <Input
+  1301→                        placeholder="Buscar por descripción o método..."
+  1302→                        value={filterSearch}
+  1303→                        onChange={e => setFilterSearch(e.target.value)}
+  1304→                        className="h-7 pl-7 text-xs"
+  1305→                      />
+  1306→                    </div>
+  1307→                  </div>
+  1308→                  {showFilters && (
+  1309→                    <MovementFilters
+  1310→                      filterTipo={filterTipo} setFilterTipo={setFilterTipo}
+  1311→                      filterMetodo={filterMetodo} setFilterMetodo={setFilterMetodo}
+  1312→                      filterCategoria={filterCategoria} setFilterCategoria={setFilterCategoria}
+  1313→                      filterFechaDesde={filterFechaDesde} setFilterFechaDesde={setFilterFechaDesde}
+  1314→                      filterFechaHasta={filterFechaHasta} setFilterFechaHasta={setFilterFechaHasta}
+  1315→                      filterSearch={filterSearch} setFilterSearch={setFilterSearch}
+  1316→                      onClear={clearFilters}
+  1317→                      activeCount={activeFiltersCount}
+  1318→                      metodosDisponibles={Array.from(new Set(movimientos.map(m => m.metodo)))}
+  1319→                      resultCount={filteredMovimientos.length}
+  1320→                      totalCount={movimientos.length}
+  1321→                    />
+  1322→                  )}
+  1323→                </CardHeader>
+  1324→                <CardContent>
+  1325→                  {movimientos.length === 0 ? (
+  1326→                    <div className="text-center py-10">
+  1327→                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
+  1328→                        <Receipt className="w-6 h-6 text-muted-foreground/60" />
+  1329→                      </div>
+  1330→                      <p className="text-sm text-muted-foreground">Sin movimientos todavía. Registrá el primero arriba.</p>
+  1331→                    </div>
+  1332→                  ) : filteredMovimientos.length === 0 ? (
+  1333→                    <div className="text-center py-10 text-muted-foreground">
+  1334→                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
+  1335→                        <Search className="w-6 h-6 text-muted-foreground/60" />
+  1336→                      </div>
+  1337→                      <p className="text-sm">Sin resultados para los filtros aplicados.</p>
+  1338→                      <Button size="sm" variant="ghost" className="mt-2 text-xs" onClick={clearFilters}>Limpiar filtros</Button>
+  1339→                    </div>
+  1340→                  ) : (
+  1341→                    <div className="overflow-x-auto -mx-6 px-6">
+  1342→                      <Table>
+  1343→                        <TableHeader>
+  1344→                          <TableRow>
+  1345→                            <TableHead>Hora</TableHead>
+  1346→                            <TableHead>Tipo</TableHead>
+  1347→                            <TableHead>Monto</TableHead>
+  1348→                            <TableHead>Metodo</TableHead>
+  1349→                            <TableHead>Categoria</TableHead>
+  1350→                            <TableHead>Descripcion</TableHead>
+  1351→                            {isAdminOrOwner && <TableHead className="w-[120px]">Acciones</TableHead>}
+  1352→                          </TableRow>
+  1353→                        </TableHeader>
+  1354→                        <TableBody>
+  1355→                          {pagedMovimientos.map((m) => {
+  1356→                            const gasto = m.gastoId ? gastos.find(g => g.id === m.gastoId) : undefined;
+  1357→                            const cat = categorizeMovement(m, gasto?.tipo);
+  1358→                            const CatIcon = CATEGORY_CONFIG[cat].icon;
+  1359→                            return (
+  1360→                              <TableRow
+  1361→                                key={m.id}
+  1362→                                className={cn(
+  1363→                                  'group transition-colors border-l-2',
+  1364→                                  m.tipo === 'ingreso'
+  1365→                                    ? 'border-l-primary hover:bg-primary/10'
+  1366→                                    : 'border-l-destructive hover:bg-destructive/10'
+  1367→                                )}
+  1368→                              >
+  1369→                                <TableCell className="text-xs">
+  1370→                                  <div className="flex flex-col">
+  1371→                                    <span>{formatHora(m.fecha)}</span>
+  1372→                                    <span className="text-[10px] text-muted-foreground italic">{formatRelative(m.fecha, now)}</span>
+  1373→                                  </div>
+  1374→                                </TableCell>
+  1375→                                <TableCell>
+  1376→                                  <div className="flex items-center gap-2">
+  1377→                                    <span className={cn(
+  1378→                                      'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
+  1379→                                      m.tipo === 'ingreso' ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+  1380→                                    )}>
+  1381→                                      {m.tipo === 'ingreso'
+  1382→                                        ? <ArrowUpRight className="w-3.5 h-3.5" />
+  1383→                                        : <ArrowDownRight className="w-3.5 h-3.5" />}
+  1384→                                    </span>
+  1385→                                    <span className={cn(
+  1386→                                      'text-xs font-semibold',
+  1387→                                      m.tipo === 'ingreso' ? 'text-primary' : 'text-destructive'
+  1388→                                    )}>
+  1389→                                      {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
+  1390→                                    </span>
+  1391→                                    {m.gastoId && (
+  1392→                                      <span title="Movimiento vinculado a un gasto" className="inline-flex items-center justify-center w-5 h-5 rounded bg-warning/15 text-warning">
+  1393→                                        <FileText className="w-3 h-3" />
+  1394→                                      </span>
+  1395→                                    )}
+  1396→                                  </div>
+  1397→                                </TableCell>
+  1398→                                <TableCell className={cn(
+  1399→                                  'font-bold tabular-nums',
+  1400→                                  m.tipo === 'ingreso' ? 'text-primary' : 'text-destructive'
+  1401→                                )}>
+  1402→                                  {m.tipo === 'ingreso' ? '+' : '-'}{formatMoney(m.monto)}
+  1403→                                </TableCell>
+  1404→                                <TableCell>
+  1405→                                  <div className="flex items-center gap-1.5">
+  1406→                                    {(() => { const MetIcon = getMetodoIcon(m.metodo); return <MetIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />; })()}
+  1407→                                    <Badge variant="secondary" className="shadow-sm">{m.metodo}</Badge>
+  1408→                                  </div>
+  1409→                                </TableCell>
+  1410→                                <TableCell>
+  1411→                                  <Badge className={cn('shadow-sm text-[10px] gap-1', CATEGORY_CONFIG[cat].badgeBg, CATEGORY_CONFIG[cat].badgeText)}>
+  1412→                                    <CatIcon className="w-2.5 h-2.5" />
+  1413→                                    {CATEGORY_CONFIG[cat].label}
+  1414→                                  </Badge>
+  1415→                                </TableCell>
+  1416→                                <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+  1417→                                  {m.descripcion}
+  1418→                                  {gasto && (
+  1419→                                    <div className="text-[10px] text-warning inline-flex items-center gap-1 mt-0.5">
+  1420→                                      <ExternalLink className="w-2.5 h-2.5" />Gasto: {gasto.tipo}
+  1421→                                    </div>
+  1422→                                  )}
+  1423→                                </TableCell>
+  1424→                                {isAdminOrOwner && (
+  1425→                                  <TableCell>
+  1426→                                    <div className="flex gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+  1427→                                      <Popover open={detailMovId === m.id} onOpenChange={(o) => setDetailMovId(o ? m.id : null)}>
+  1428→                                        <PopoverTrigger asChild>
+  1429→                                          <Button size="icon" variant="ghost" className="h-7 w-7" title="Ver detalle">
+  1430→                                            <Eye className="w-3.5 h-3.5" />
+  1431→                                          </Button>
+  1432→                                        </PopoverTrigger>
+  1433→                                        <PopoverContent className="w-72 p-3" align="end">
+  1434→                                          <MovementDetailPopover
+  1435→                                            movimiento={m}
+  1436→                                            gasto={gasto}
+  1437→                                            categoria={cat}
+  1438→                                          />
+  1439→                                        </PopoverContent>
+  1440→                                      </Popover>
+  1441→                                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleEditOpen(m)} title="Editar"><Pencil className="w-3.5 h-3.5" /></Button>
+  1442→                                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDelete(m.id)} disabled={loadingDelete} title="Eliminar">
+  1443→                                        {loadingDelete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+  1444→                                      </Button>
+  1445→                                    </div>
+  1446→                                  </TableCell>
+  1447→                                )}
+  1448→                              </TableRow>
+  1449→                            );
+  1450→                          })}
+  1451→                        </TableBody>
+  1452→                      </Table>
+  1453→                    </div>
+  1454→                  )}
+  1455→                  <PaginationBar page={safePage} totalPages={movTotalPages} onPageChange={setPage} totalItems={filteredMovimientos.length} pageSize={PAGE_SIZE} />
+  1456→                </CardContent>
+  1457→              </Card>
+  1458→            </div>
+  1459→
+  1460→            {/* Info Panel */}
+  1461→            <div className="space-y-4">
+  1462→              <Card className="overflow-hidden">
+  1463→                <CardHeader className="bg-primary/5 pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary" />Información del turno</CardTitle></CardHeader>
+  1464→                <CardContent className="space-y-2 text-sm">
+  1465→                  {caja.apertura && (
+  1466→                    <>
+  1467→                      <div className="flex justify-between"><span className="text-muted-foreground">Cajero:</span><span className="font-medium">{caja.apertura.empleado}</span></div>
+  1468→                      <div className="flex justify-between"><span className="text-muted-foreground">Apertura:</span><span>{formatFechaHora(caja.apertura.fecha)}</span></div>
+  1469→                      <div className="flex justify-between"><span className="text-muted-foreground">Inicial:</span><span className="font-medium">{formatMoney(caja.apertura.montoInicial)}</span></div>
+  1470→                    </>
+  1471→                  )}
+  1472→                  <div className="flex justify-between items-center pt-1 border-t">
+  1473→                    <span className="text-muted-foreground">Saldo actual:</span>
+  1474→                    <AnimatedNumber
+  1475→                      value={saldo}
+  1476→                      className="font-bold text-lg text-primary tabular-nums"
+  1477→                    />
+  1478→                  </div>
+  1479→                  <div className="flex justify-between"><span className="text-muted-foreground">Movimientos:</span><span className="font-medium">{movimientos.length}</span></div>
+  1480→
+  1481→                  {/* Action buttons */}
+  1482→                  <div className="grid grid-cols-2 gap-2 pt-2">
+  1483→                    <Button variant="outline" className="w-full border-primary/30 text-primary hover:bg-primary/20 hover:text-primary" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+  1484→                    <Button variant="outline" className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+  1485→                  </div>
+  1486→
+  1487→                  {/* Movement form */}
+  1488→                  {showMovForm && (
+  1489→                    <MovFormInline
+  1490→                      tipo={showMovForm}
+  1491→                      movMonto={movMonto}
+  1492→                      setMovMonto={setMovMonto}
+  1493→                      movDesc={movDesc}
+  1494→                      setMovDesc={setMovDesc}
+  1495→                      movMetodo={movMetodo}
+  1496→                      setMovMetodo={setMovMetodo}
+  1497→                      movCategoria={movCategoria}
+  1498→                      setMovCategoria={setMovCategoria}
+  1499→                      loading={loadingMovimiento}
+
+[showing lines 1000-1499 of 2858; use offset=1500 with limit to continue reading]

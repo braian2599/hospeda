@@ -5,7 +5,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useHotelStore } from '@/lib/store';
-import { formatFechaHora, formatMoney } from '@/lib/format';
+import { formatFechaHora, formatMoney, safeDate } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,13 +61,13 @@ import { Separator } from '@/components/ui/separator';
 // formatFechaHora and formatMoney imported from @/lib/format
 
 const formatHora = (f: string) => {
-  const d = new Date(f);
+  const d = safeDate(f);
   return d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 };
 
 /** Relative time since a date — "recién", "hace 5 min", "hace 2h 15min", "hace 3d" */
 function formatRelative(dateStr: string, now: number = Date.now()): string {
-  const t = new Date(dateStr).getTime();
+  const t = safeDate(dateStr).getTime();
   if (isNaN(t)) return '';
   const diff = Math.max(0, now - t);
   const mins = Math.floor(diff / 60000);
@@ -82,7 +82,7 @@ function formatRelative(dateStr: string, now: number = Date.now()): string {
 
 /** Time since caja was opened — "abierta hace 2h 15min" */
 function formatTimeSinceOpen(openedAt: string, now: number = Date.now()): string {
-  const t = new Date(openedAt).getTime();
+  const t = safeDate(openedAt).getTime();
   if (isNaN(t)) return '';
   const diff = Math.max(0, now - t);
   const mins = Math.floor(diff / 60000);
@@ -96,7 +96,7 @@ function formatTimeSinceOpen(openedAt: string, now: number = Date.now()): string
 // formatMoney imported from @/lib/format (note: shared uses Intl.NumberFormat with currency style,
 // CajaModule previously used toLocaleString - the shared version is more consistent)
 
-const METODOS = ['Efectivo', 'Transferencia', 'Tarjeta de Credito', 'Tarjeta de Debito', 'Mercado Pago', 'Otro'];
+const METODOS = ['Efectivo', 'Transferencia', 'Tarjeta de Crédito', 'Tarjeta de Débito', 'Mercado Pago', 'Otro'];
 
 /* ═══════════════════════════════════════════════════════════
    MOVEMENT CATEGORIES (for pie chart + auto-categorization)
@@ -118,11 +118,11 @@ interface CategoryConfig {
 }
 
 const CATEGORY_CONFIG: Record<MovementCategory, CategoryConfig> = {
-  'Gastos':           { label: 'Gastos',          color: 'var(--destructive)', badgeBg: 'bg-destructive/15', badgeText: 'text-destructive', icon: ShoppingCart },
-  'Mantenimiento':    { label: 'Mantenimiento',   color: 'var(--brand-amber)', badgeBg: 'bg-warning/15', badgeText: 'text-warning', icon: Wrench },
-  'Ingresos varios':  { label: 'Ingresos varios', color: 'var(--brand-emerald)', badgeBg: 'bg-primary/20', badgeText: 'text-primary', icon: ArrowUpRight },
-  'Retiros':          { label: 'Retiros',         color: 'var(--chart-5)', badgeBg: 'bg-chart-5/15', badgeText: 'text-chart-5', icon: PiggyBank },
-  'Otros':            { label: 'Otros',           color: 'var(--status-maintenance)', badgeBg: 'bg-slate-100/40', badgeText: 'text-slate-400', icon: Tag },
+  'Gastos':           { label: 'Gastos',          color: '#ef4444', badgeBg: 'bg-destructive/15', badgeText: 'text-destructive', icon: ShoppingCart },
+  'Mantenimiento':    { label: 'Mantenimiento',   color: '#f59e0b', badgeBg: 'bg-warning/15', badgeText: 'text-warning', icon: Wrench },
+  'Ingresos varios':  { label: 'Ingresos varios', color: '#22c55e', badgeBg: 'bg-primary/20', badgeText: 'text-primary', icon: ArrowUpRight },
+  'Retiros':          { label: 'Retiros',         color: '#a855f7', badgeBg: 'bg-chart-5/15', badgeText: 'text-chart-5', icon: PiggyBank },
+  'Otros':            { label: 'Otros',           color: '#94a3b8', badgeBg: 'bg-slate-100/40', badgeText: 'text-slate-400', icon: Tag },
 };
 
 const CATEGORY_ORDER: MovementCategory[] = ['Ingresos varios', 'Gastos', 'Mantenimiento', 'Retiros', 'Otros'];
@@ -170,18 +170,17 @@ function categorizeMovement(
   gastoTipo?: string,
 ): MovementCategory {
   if (mov.tipo === 'ingreso') {
-    const suggested = suggestCategory(mov.descripcion);
-    return suggested === 'Ingresos varios' ? 'Ingresos varios' : 'Ingresos varios';
+    // All ingresos fall under 'Ingresos varios'
+    return 'Ingresos varios';
   }
-  // egreso
+  // egreso — try to classify by keywords first
   const text = `${mov.descripcion} ${gastoTipo || ''} ${mov.categoria || ''}`.toLowerCase();
   if (text.includes('retiro')) return 'Retiros';
   if (text.includes('mantenim') || text.includes('reparac') || text.includes('arreglo')) return 'Mantenimiento';
   if (mov.gastoId) return 'Gastos';
-  // Try suggestion from keywords
+  // Try suggestion from keywords for more specific classification
   const suggested = suggestCategory(mov.descripcion);
-  if (suggested === 'Retiros' || suggested === 'Mantenimiento') return suggested;
-  if (suggested === 'Gastos') return 'Gastos';
+  if (suggested === 'Retiros' || suggested === 'Mantenimiento' || suggested === 'Gastos') return suggested;
   return 'Otros';
 }
 
@@ -594,7 +593,6 @@ export default function CajaModule() {
   const movTotalPages = Math.ceil(filteredMovimientos.length / PAGE_SIZE) || 1;
   const safePage = Math.min(Math.max(1, page), movTotalPages);
   const pagedMovimientos = filteredMovimientos.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const reversedPagedMovimientos = [...filteredMovimientos].reverse().slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   // ── Category breakdown for pie chart ──
   const categoriaBreakdown = useMemo(() => {
@@ -692,6 +690,7 @@ export default function CajaModule() {
   const yesterdaySummary = useMemo(() => {
     if (!caja.historial || caja.historial.length === 0) return null;
     const last = caja.historial[caja.historial.length - 1];
+    if (!last.cierre) return null; // Skip turns without a valid cierre
     const ingresosTurno = last.movimientos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
     const egresosTurno = last.movimientos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
     const movCount = last.movimientos.length;
@@ -757,7 +756,7 @@ export default function CajaModule() {
   const handleCerrar = async () => {
     setLoadingCerrar(true);
     try {
-      const cierre = await cerrarCaja(billetes, totalOtros);
+      const cierre = await cerrarCaja(billetes, totalOtros, cierreNotes || undefined, discrepancyExplain || undefined);
       if (cierre) {
         const msg = cierreNotes || discrepancyExplain
           ? `Turno finalizado · Diferencia: ${formatMoney(cierre.diferencia)}`
@@ -941,9 +940,9 @@ export default function CajaModule() {
                   </div>
                 </div>
               )}
-              {caja.historial && caja.historial.length > 0 && (
+              {caja.historial && caja.historial.length > 0 && caja.historial[caja.historial.length - 1].cierre && (
                 <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-full">
-                  <Clock className="w-3 h-3" />Último cierre: {formatFechaHora(caja.historial[caja.historial.length - 1].cierre.fecha)}
+                  <Clock className="w-3 h-3" />Último cierre: {formatFechaHora(caja.historial[caja.historial.length - 1].cierre!.fecha)}
                 </p>
               )}
             </CardContent>

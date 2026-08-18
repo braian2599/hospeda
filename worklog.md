@@ -1562,3 +1562,38 @@ Stage Summary:
 - Estructura de wizard de 3 pasos se mantiene intacta
 - Vista previa sticky se mantiene
 - Responsive breakpoints se mantienen
+
+---
+Task ID: caja-deep-fix
+Agent: main
+Task: Deep analysis and robust fixes for the Caja module — meticulous audit of every data flow
+
+Work Log:
+- Analyzed ALL caja-related files: CajaModule.tsx (2858 lines), 4 API routes, types.ts, store.ts, api-client.ts, schema.prisma
+- Fixed TurnoCaja type: `cierre` is now `CierreCaja | null` (was non-nullable, causing `null as any` hacks)
+- Added `reservaId` to MovimientoCaja type + mapping (was being dropped in mapDbCajaToStore)
+- Added `notas` and `discrepancyExplain` fields to CierreCaja type
+- Added `notas` and `discrepancyExplain` columns to TurnoCaja Prisma schema
+- Rewrote mapDbCajaToStore: extracted mapDbMovimiento() and mapDbTurnoToStore() helpers, eliminated `null as any` cast, preserves reservaId
+- Fixed pie chart colors: replaced CSS variables (var(--destructive) etc.) with actual hex colors (#ef4444, #f59e0b, #22c55e, #a855f7, #94a3b8) — recharts SVG doesn't support CSS variables
+- Fixed categorizeMovement(): removed redundant `suggestCategory` call for ingresos (both branches returned 'Ingresos varios')
+- Updated /api/caja/cerrar to accept and store notas + discrepancyExplain
+- Updated store cerrarCaja signature: now accepts (billetes, totalOtros, notas?, discrepancyExplain?) and passes them to API
+- Updated CajaModule handleCerrar to pass cierreNotes and discrepancyExplain to cerrarCaja
+- Fixed hardcoded METODOS array: "Tarjeta de Credito" → "Tarjeta de Crédito", "Tarjeta de Debito" → "Tarjeta de Débito"
+- Fixed formatHora, formatRelative, formatTimeSinceOpen to use safeDate() from format.ts instead of raw new Date()
+- Removed dead code: reversedPagedMovimientos (computed but never used)
+- Added null safety for yesterdaySummary: checks last.cierre !== null before accessing properties
+- Added null safety for "Último cierre" display in caja cerrada state
+- Added auditoría trail for editarMovimientoCaja and eliminarMovimientoCaja (was missing)
+- Added reservaId mapping in registrarMovimientoCaja optimistic update (maps API result.reservaId)
+- Lint passes cleanly
+
+Stage Summary:
+- 12 critical/medium bugs fixed in the Caja module
+- All type mismatches resolved (nullable cierre, missing reservaId, missing notas/discrepancyExplain)
+- Data integrity: notes and discrepancy explanations now persisted to DB on caja close
+- Runtime safety: null checks prevent crashes on historial entries with null cierre
+- Recharts rendering: hex colors replace CSS variables for proper SVG rendering
+- Audit trail: edit/delete movements now create auditoría entries
+- Code quality: dead code removed, date parsing uses safe utility, accent consistency fixed

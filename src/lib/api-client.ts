@@ -170,7 +170,7 @@ export const api = {
     },
     abrir: (montoInicial: number) =>
       apiFetch<DbTurnoCaja>('/caja/abrir', { method: 'POST', body: JSON.stringify({ montoInicial }) }),
-    cerrar: (data: { billetes: Record<number, number>; totalOtrosMetodos: number }) =>
+    cerrar: (data: { billetes: Record<number, number>; totalOtrosMetodos: number; notas?: string; discrepancyExplain?: string }) =>
       apiFetch<DbTurnoCaja>('/caja/cerrar', { method: 'POST', body: JSON.stringify(data) }),
     movimiento: (data: { tipo: string; monto: number; descripcion: string; metodo?: string; reservaId?: string; categoriaGastoNombre?: string }) =>
       apiFetch<DbMovimientoCaja>('/caja/movimiento', { method: 'POST', body: JSON.stringify(data) }),
@@ -373,6 +373,7 @@ export interface DbTurnoCaja {
   fechaCierre?: string | null; saldoEsperado?: number | null;
   saldoContado?: number | null; diferencia?: number | null;
   billetes?: Record<number, number> | null; totalOtrosMetodos?: number | null;
+  notas?: string | null; discrepancyExplain?: string | null;
   movimientos?: DbMovimientoCaja[];
 }
 export interface DbCajaState {

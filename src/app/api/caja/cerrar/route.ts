@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const tenantId = await requirePermission('caja');
     const body = await req.json();
-    const { billetes, totalOtrosMetodos } = body;
+    const { billetes, totalOtrosMetodos, notas, discrepancyExplain } = body;
 
     // Validar billetes
     if (!billetes || typeof billetes !== 'object' || Object.keys(billetes).length === 0) {
@@ -33,6 +33,10 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+
+    // Sanitize optional text fields
+    const notasStr = typeof notas === 'string' ? notas.trim() : null;
+    const discrepancyStr = typeof discrepancyExplain === 'string' ? discrepancyExplain.trim() : null;
 
     // Buscar turno abierto
     const turno = await db.turnoCaja.findFirst({
@@ -72,6 +76,8 @@ export async function POST(req: NextRequest) {
         diferencia,
         billetes,
         totalOtrosMetodos: totalOtrosNum,
+        notas: notasStr || null,
+        discrepancyExplain: discrepancyStr || null,
       },
     });
 

@@ -78,33 +78,56 @@ function mapDbReservaToStore(r: any, totalOverride?: number): Reserva {
   };
 }
 
+/** Map a single DB movimiento to store MovimientoCaja (cents → pesos) */
+function mapDbMovimiento(m: any): MovimientoCaja {
+  return {
+    id: m.id,
+    tipo: m.tipo as 'ingreso' | 'egreso',
+    monto: m.monto / 100,
+    descripcion: m.descripcion,
+    metodo: m.metodo,
+    empleado: m.empleadoNombre,
+    fecha: m.fecha,
+    gastoId: m.gastoId || null,
+    reservaId: m.reservaId || null,
+  };
+}
+
+/** Map a DB TurnoCaja row (from historial) to store TurnoCaja */
+function mapDbTurnoToStore(t: any): TurnoCaja {
+  return {
+    apertura: { montoInicial: t.montoInicial / 100, empleado: t.empleadoNombre, fecha: t.fechaApertura },
+    cierre: t.fechaCierre
+      ? {
+          empleado: t.empleadoNombre,
+          fecha: t.fechaCierre,
+          saldoEsperado: (t.saldoEsperado || 0) / 100,
+          saldoContado: (t.saldoContado || 0) / 100,
+          diferencia: (t.diferencia || 0) / 100,
+          billetes: t.billetes || {},
+          totalOtrosMetodos: (t.totalOtrosMetodos || 0) / 100,
+          notas: t.notas || undefined,
+          discrepancyExplain: t.discrepancyExplain || undefined,
+        }
+      : null,
+    movimientos: (t.movimientos || []).map(mapDbMovimiento),
+  };
+}
+
 function mapDbCajaToStore(dbCaja: any): CajaState {
   const turno = dbCaja.turnoActual;
   if (!turno) {
-    // Build historial from past turns
-    const historial: TurnoCaja[] = (dbCaja.historial || []).map((t: any) => ({
-      apertura: { montoInicial: t.montoInicial / 100, empleado: t.empleadoNombre, fecha: t.fechaApertura },
-      cierre: t.fechaCierre ? { empleado: t.empleadoNombre, fecha: t.fechaCierre, saldoEsperado: (t.saldoEsperado || 0) / 100, saldoContado: (t.saldoContado || 0) / 100, diferencia: (t.diferencia || 0) / 100, billetes: t.billetes || {}, totalOtrosMetodos: (t.totalOtrosMetodos || 0) / 100 } : null as any,
-      movimientos: (t.movimientos || []).map((m: any) => ({ id: m.id, tipo: m.tipo as 'ingreso' | 'egreso', monto: m.monto / 100, descripcion: m.descripcion, metodo: m.metodo, empleado: m.empleadoNombre, fecha: m.fecha, gastoId: m.gastoId || null })),
-    }));
+    const historial: TurnoCaja[] = (dbCaja.historial || []).map(mapDbTurnoToStore);
     return { estado: 'cerrada', apertura: null, movimientos: [], historial };
   }
 
-  const movimientos: MovimientoCaja[] = (turno.movimientos || []).map((m: any) => ({
-    id: m.id, tipo: m.tipo as 'ingreso' | 'egreso', monto: m.monto / 100,
-    descripcion: m.descripcion, metodo: m.metodo, empleado: m.empleadoNombre, fecha: m.fecha,
-    gastoId: m.gastoId || null,
-  }));
+  const movimientos: MovimientoCaja[] = (turno.movimientos || []).map(mapDbMovimiento);
 
   return {
     estado: 'abierta',
     apertura: { montoInicial: turno.montoInicial / 100, empleado: turno.empleadoNombre, fecha: turno.fechaApertura },
     movimientos,
-    historial: (dbCaja.historial || []).map((t: any) => ({
-      apertura: { montoInicial: t.montoInicial / 100, empleado: t.empleadoNombre, fecha: t.fechaApertura },
-      cierre: { empleado: t.empleadoNombre, fecha: t.fechaCierre || '', saldoEsperado: (t.saldoEsperado || 0) / 100, saldoContado: (t.saldoContado || 0) / 100, diferencia: (t.diferencia || 0) / 100, billetes: t.billetes || {}, totalOtrosMetodos: (t.totalOtrosMetodos || 0) / 100 },
-      movimientos: (t.movimientos || []).map((m: any) => ({ id: m.id, tipo: m.tipo as 'ingreso' | 'egreso', monto: m.monto / 100, descripcion: m.descripcion, metodo: m.metodo, empleado: m.empleadoNombre, fecha: m.fecha, gastoId: m.gastoId || null })),
-    })),
+    historial: (dbCaja.historial || []).map(mapDbTurnoToStore),
   };
 }
 
@@ -401,7 +424,7 @@ interface HotelStore {
   // Caja
   abrirCaja: (montoInicial: number) => Promise<boolean>;
   registrarMovimientoCaja: (tipo: 'ingreso' | 'egreso', monto: number, descripcion: string, metodo: string, categoriaGastoNombre?: string) => Promise<boolean>;
-  cerrarCaja: (billetes: Record<number, number>, totalOtros: number) => Promise<CierreCaja | null>;
+  cerrarCaja: (billetes: Record<number, number>, totalOtros: number, notas?: string, discrepancyExplain?: string) => Promise<CierreCaja | null>;
   saldoActualCaja: () => number;
   editarMovimientoCaja: (movimientoId: string, data: { monto?: number; descripcion?: string }) => Promise<boolean>;
   eliminarMovimientoCaja: (movimientoId: string) => Promise<boolean>;
@@ -1374,7 +1397,7 @@ export const useHotelStore = create<HotelStore>()(
         const empleado = get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema';
         const tempId = generarId();
         const montoNum = parseFloat(String(monto));
-        const mov: MovimientoCaja = { id: tempId, tipo, monto: montoNum, descripcion, metodo, empleado, fecha: new Date().toISOString() };
+        const mov: MovimientoCaja = { id: tempId, tipo, monto: montoNum, descripcion, metodo, empleado, fecha: new Date().toISOString(), reservaId: null };
 
         // Si es egreso con categoría, crear gasto optimista localmente también
         const esEgresoConCategoria = tipo === 'egreso' && categoriaGastoNombre;
@@ -1396,7 +1419,7 @@ export const useHotelStore = create<HotelStore>()(
           // Reemplazar IDs temporales con los reales de la BD
           const currentCaja = get().caja;
           set({
-            caja: { ...currentCaja, movimientos: currentCaja.movimientos.map(m => m.id === tempId ? { ...m, id: result.id, gastoId: result.gastoId || null } : m) },
+            caja: { ...currentCaja, movimientos: currentCaja.movimientos.map(m => m.id === tempId ? { ...m, id: result.id, gastoId: result.gastoId || null, reservaId: result.reservaId || null } : m) },
             ...(esEgresoConCategoria && tempGastoId ? {
               gastos: get().gastos.map(g => g.id === tempGastoId ? { ...g, id: result.gastoId || g.id } : g),
             } : {}),
@@ -1410,7 +1433,7 @@ export const useHotelStore = create<HotelStore>()(
         }
       },
 
-      cerrarCaja: async (billetes, totalOtros) => {
+      cerrarCaja: async (billetes, totalOtros, notas, discrepancyExplain) => {
         const { caja } = get();
         if (caja.estado !== 'abierta' || !caja.apertura) return null;
 
@@ -1428,7 +1451,11 @@ export const useHotelStore = create<HotelStore>()(
 
         const diferencia = saldoContado - saldoEsperado;
         const empleado = get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema';
-        const cierre: CierreCaja = { empleado, fecha: new Date().toISOString(), saldoEsperado, saldoContado, diferencia, billetes, totalOtrosMetodos: totalOtros };
+        const cierre: CierreCaja = {
+          empleado, fecha: new Date().toISOString(), saldoEsperado, saldoContado, diferencia, billetes, totalOtrosMetodos: totalOtros,
+          ...(notas ? { notas } : {}),
+          ...(discrepancyExplain ? { discrepancyExplain } : {}),
+        };
 
         const newCaja: CajaState = {
           estado: 'cerrada',
@@ -1440,7 +1467,12 @@ export const useHotelStore = create<HotelStore>()(
         set({ caja: newCaja });
         get()._registrarAuditoria('Caja', `Cierre - ${empleado} - Esperado: ${saldoEsperado} Contado: ${saldoContado} Dif: ${diferencia}`);
         try {
-          await api.caja.cerrar({ billetes, totalOtrosMetodos: Math.round(totalOtros * 100) });
+          await api.caja.cerrar({
+            billetes,
+            totalOtrosMetodos: Math.round(totalOtros * 100),
+            ...(notas ? { notas } : {}),
+            ...(discrepancyExplain ? { discrepancyExplain } : {}),
+          });
           pushNotif('info', 'Caja cerrada', `Diferencia: $${diferencia.toFixed(2)}`, 'sistema', diferencia !== 0 ? 'warning' : 'info');
           return cierre;
         } catch (err) {
@@ -1483,6 +1515,7 @@ export const useHotelStore = create<HotelStore>()(
             },
             gastos: nuevosGastos,
           });
+          get()._registrarAuditoria('Caja', `Edición movimiento ${movimientoId}: ${data.monto !== undefined ? `monto=${data.monto}` : ''} ${data.descripcion !== undefined ? `desc="${data.descripcion}"` : ''}`);
           return true;
         } catch (err) {
           console.error('editarMovimientoCaja error:', err);
@@ -1505,6 +1538,7 @@ export const useHotelStore = create<HotelStore>()(
             },
             ...(deletedGastoId ? { gastos: gastos.filter(g => g.id !== deletedGastoId) } : {}),
           });
+          get()._registrarAuditoria('Caja', `Eliminación movimiento ${movimientoId}: ${mov ? `${mov.tipo} ${mov.monto} en ${mov.metodo}` : ''}`);
           return true;
         } catch (err) {
           console.error('eliminarMovimientoCaja error:', err);

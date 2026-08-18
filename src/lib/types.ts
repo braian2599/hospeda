@@ -169,6 +169,7 @@ export interface MovimientoCaja {
   empleado: string;
   fecha: string;
   gastoId?: string | null;
+  reservaId?: string | null;
 }
 
 export interface CierreCaja {
@@ -179,11 +180,13 @@ export interface CierreCaja {
   diferencia: number;
   billetes: Record<number, number>;
   totalOtrosMetodos: number;
+  notas?: string;
+  discrepancyExplain?: string;
 }
 
 export interface TurnoCaja {
   apertura: AperturaCaja;
-  cierre: CierreCaja;
+  cierre: CierreCaja | null;
   movimientos: MovimientoCaja[];
 }
 
