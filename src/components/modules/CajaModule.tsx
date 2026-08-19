@@ -24,9 +24,9 @@ import {
 import {
   Wallet, Lock, Unlock, Plus, Minus, Loader2, Pencil, Trash2, AlertTriangle, Tag,
   TrendingUp, TrendingDown, Clock, ArrowUpRight, ArrowDownRight, Activity, Receipt, Sparkles,
-  Download, Filter, X, Search, FileText, ChevronLeft, ChevronRight, Check, History,
+  Download, Filter, X, Search, FileText, ChevronLeft, ChevronRight, Check,
   Banknote, CreditCard, QrCode, ArrowRightLeft, PiggyBank, Wrench, ShoppingCart, Trash,
-  Sparkle, Info, CalendarDays, StickyNote, ClipboardCheck, Eye, ExternalLink,
+  Sparkle, Info, StickyNote, ClipboardCheck, Eye, ExternalLink,
   Printer, Coins, CircleDot, Timer, Scale,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
@@ -697,31 +697,6 @@ export default function CajaModule() {
   const diferenciaTotal = totalContado - expectedTotal;
   const diferenciaEfectivo = totalEfectivo - saldoEsperadoEfectivo;
 
-  // ── Yesterday's summary (when caja is closed) ──
-  const yesterdaySummary = useMemo(() => {
-    if (!caja.historial || caja.historial.length === 0) return null;
-    const last = caja.historial[caja.historial.length - 1];
-    if (!last.cierre) return null; // Skip turns without a valid cierre
-    const ingresosTurno = last.movimientos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
-    const egresosTurno = last.movimientos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
-    const movCount = last.movimientos.length;
-    const avgTicket = movCount > 0 ? ingresosTurno / movCount : 0;
-    return {
-      apertura: last.apertura.montoInicial,
-      ingresos: ingresosTurno,
-      egresos: egresosTurno,
-      cierre: last.cierre.saldoContado + last.cierre.totalOtrosMetodos,
-      saldoContado: last.cierre.saldoContado,
-      totalOtrosMetodos: last.cierre.totalOtrosMetodos,
-      fecha: last.cierre.fecha,
-      movCount,
-      avgTicket,
-      diferencia: last.cierre.diferencia,
-      empleado: last.cierre.empleado,
-      billetes: last.cierre.billetes,
-    };
-  }, [caja.historial]);
-
   // Handlers
   const handleAbrir = async () => {
     const m = parseFloat(montoInicial);
@@ -961,14 +936,6 @@ export default function CajaModule() {
               )}
             </CardContent>
           </Card>
-
-          {/* ═══════ DAILY SUMMARY CARD — yesterday's summary + quick stats ═══════ */}
-          {yesterdaySummary && (
-            <DailySummaryCard
-              summary={yesterdaySummary}
-              onViewHistorial={() => setModulo('reportes')}
-            />
-          )}
         </div>
       ) : (
         /* ═══════ CAJA ABIERTA ═══════ */
@@ -2080,182 +2047,8 @@ function ComparisonRow({ label, value, variant, showSign }: {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   DAILY SUMMARY CARD — shown when caja is closed
+   KPI COLORS — shared color palette for stat cards
    ═══════════════════════════════════════════════════════════ */
-
-interface DailySummaryData {
-  apertura: number;
-  ingresos: number;
-  egresos: number;
-  cierre: number;
-  saldoContado: number;
-  totalOtrosMetodos: number;
-  fecha: string;
-  movCount: number;
-  avgTicket: number;
-  diferencia: number;
-  empleado: string;
-  billetes: Record<number, number>;
-}
-
-function DailySummaryCard({ summary, onViewHistorial }: {
-  summary: DailySummaryData;
-  onViewHistorial: () => void;
-}) {
-  const diff = summary.diferencia;
-  return (
-    <Card className="overflow-hidden border-2 border-primary/20">
-      <CardHeader className="bg-primary text-white pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2 text-white">
-            <History className="w-4 h-4" />
-            Resumen del último turno
-          </CardTitle>
-          <Badge className="bg-white/20 text-white border-white/20">
-            <CalendarDays className="w-3 h-3 mr-1" />
-            {formatFechaHora(summary.fecha)}
-          </Badge>
-        </div>
-        <p className="text-xs text-white/80 mt-1">Cerrado por {summary.empleado}</p>
-      </CardHeader>
-      <CardContent className="p-4 space-y-4">
-        {/* 4 KPI cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <SummaryStat
-            label="Apertura"
-            value={summary.apertura}
-            icon={Unlock}
-            colorFamily="primary"
-          />
-          <SummaryStat
-            label="Ingresos"
-            value={summary.ingresos}
-            icon={ArrowUpRight}
-            colorFamily="green"
-          />
-          <SummaryStat
-            label="Egresos"
-            value={summary.egresos}
-            icon={ArrowDownRight}
-            colorFamily="red"
-          />
-          <SummaryStat
-            label="Cierre"
-            value={summary.cierre}
-            icon={Lock}
-            colorFamily="primary"
-          />
-        </div>
-
-        {/* Difference highlight */}
-        <div className={cn(
-          'flex items-center justify-between p-3 rounded-md border',
-          diff === 0
-            ? 'bg-primary/5 border-primary/30'
-            : diff > 0
-            ? 'bg-warning/15 border-brand-amber/30'
-            : 'bg-destructive/10 border-destructive/30'
-        )}>
-          <div className="flex items-center gap-2">
-            {diff === 0
-              ? <Check className="w-5 h-5 text-primary" />
-              : <AlertTriangle className={cn('w-5 h-5', diff > 0 ? 'text-warning' : 'text-destructive')} />}
-            <div>
-              <p className="text-xs text-muted-foreground">Diferencia al cierre</p>
-              <p className={cn(
-                'font-bold text-sm tabular-nums',
-                diff === 0 ? 'text-primary' : diff > 0 ? 'text-warning' : 'text-destructive'
-              )}>
-                {diff === 0 ? 'Cuadra perfecto' : `${diff > 0 ? '+' : ''}${formatMoney(diff)}`}
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Promedio por movimiento</p>
-            <p className="text-sm font-semibold tabular-nums">{formatMoney(summary.avgTicket)}</p>
-          </div>
-        </div>
-
-        {/* Billete breakdown from the cierre */}
-        {summary.billetes && Object.keys(summary.billetes).length > 0 && (
-          <div className="border rounded-md p-3">
-            <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <Banknote className="w-3.5 h-3.5 text-primary" />
-              Conteo de denominaciones al cierre
-            </h5>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
-              {Object.entries(summary.billetes)
-                .filter(([, qty]) => Number(qty) > 0)
-                .sort(([a], [b]) => Number(b) - Number(a))
-                .map(([denom, qty]) => (
-                  <div key={denom} className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-muted/30 text-xs">
-                    <span className="font-medium">${Number(denom).toLocaleString('es-AR')}</span>
-                    <span className="text-muted-foreground">×{qty}</span>
-                    <span className="font-semibold tabular-nums ml-auto">{formatMoney(Number(denom) * Number(qty))}</span>
-                  </div>
-                ))}
-            </div>
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-dashed text-sm">
-              <span className="font-medium">Efectivo contado</span>
-              <span className="font-bold tabular-nums text-primary">{formatMoney(summary.saldoContado)}</span>
-            </div>
-            {summary.totalOtrosMetodos > 0 && (
-              <div className="flex items-center justify-between mt-1 text-sm">
-                <span className="font-medium">Otros métodos</span>
-                <span className="font-semibold tabular-nums">{formatMoney(summary.totalOtrosMetodos)}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Quick stats row — Facturacion KPI style */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-xl border-l-[3px] border-l-primary bg-primary/5 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-primary">Movimientos</p>
-                <p className="text-xl font-bold text-primary/70">{summary.movCount}</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                <Receipt className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-          <div className={cn('rounded-xl border-l-[3px] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive', summary.ingresos - summary.egresos >= 0 ? 'border-l-primary bg-primary/5' : 'border-l-destructive bg-destructive/10')}>
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className={cn('text-xs font-medium', summary.ingresos - summary.egresos >= 0 ? 'text-primary' : 'text-destructive')}>Balance neto</p>
-                <p className={cn('text-xl font-bold tabular-nums', summary.ingresos - summary.egresos >= 0 ? 'text-primary/70' : 'text-destructive')}>
-                  {formatMoney(summary.ingresos - summary.egresos)}
-                </p>
-              </div>
-              <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', summary.ingresos - summary.egresos >= 0 ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive')}>
-                <Wallet className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-          <div className="rounded-xl border-l-[3px] border-l-warning bg-warning/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-warning">% Egresos</p>
-                <p className="text-xl font-bold text-warning tabular-nums">
-                  {summary.ingresos > 0 ? Math.round((summary.egresos / summary.ingresos) * 100) : 0}%
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center text-warning">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Button variant="outline" className="w-full border-primary/40 text-primary hover:bg-primary hover:text-white" onClick={onViewHistorial}>
-          <History className="w-4 h-4 mr-2" />Ver historial completo
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
 
 const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; label: string; value: string; sub: string; iconBg: string; iconColor: string }> = {
   emerald: { borderL: 'border-l-primary', bg: 'bg-primary/10', darkBg: 'bg-primary/5', label: 'text-primary', value: 'text-primary/70', sub: 'text-primary/50', iconBg: 'bg-primary/20', iconColor: 'text-primary' },
@@ -2263,28 +2056,6 @@ const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; 
   red: { borderL: 'border-l-destructive', bg: 'bg-destructive/10', darkBg: 'bg-destructive/10', label: 'text-destructive', value: 'text-destructive', sub: 'text-destructive/50', iconBg: 'bg-destructive/20', iconColor: 'text-destructive' },
   amber: { borderL: 'border-l-warning', bg: 'bg-warning/10', darkBg: 'bg-warning/10', label: 'text-warning', value: 'text-warning', sub: 'text-warning/50', iconBg: 'bg-warning/20', iconColor: 'text-warning' },
 };
-
-function SummaryStat({ label, value, icon: Icon, colorFamily }: {
-  label: string; value: number; icon: ComponentType<{ className?: string }>; colorFamily: string;
-}) {
-  const c = KPI_COLORS[colorFamily] || KPI_COLORS.emerald;
-  return (
-    <div className={cn('rounded-xl border-l-[3px] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive', c.borderL, c.bg, c.darkBg)}>
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className={cn('text-xs font-medium', c.label)}>{label}</p>
-          <AnimatedNumber
-            value={value}
-            className={cn('text-xl font-bold tabular-nums block', c.value)}
-          />
-        </div>
-        <div className={cn('w-10 h-10 rounded-full flex items-center justify-center shrink-0', c.iconBg, c.iconColor)}>
-          <Icon className="w-5 h-5" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════
    MOVEMENT CATEGORY PIE CHART
