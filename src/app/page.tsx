@@ -340,10 +340,31 @@ function Navbar() {
 function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-      {/* Floating gradient orbs — premium depth */}
+      {/* ── Background: dashboard screenshot with teal overlay ── */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
-        {/* Subtle dot grid */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(0,0,0,0.06),transparent)]" />
+        {/* Dashboard screenshot as background — only on desktop */}
+        <div className="absolute inset-0 hidden md:block">
+          <Image
+            src="/screenshots/dashboard-new.png"
+            alt=""
+            fill
+            priority
+            className="object-cover object-center opacity-[0.15]"
+          />
+          {/* Teal gradient overlay on top of screenshot */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-background/90" />
+        </div>
+
+        {/* Mobile: keep the original gradient orbs */}
+        <div className="absolute inset-0 md:hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(0,0,0,0.06),transparent)]" />
+          <div className="hero-orb orb-1 w-[28rem] h-[28rem] bg-brand-emerald/12 top-[8%] left-[-8%]" />
+          <div className="hero-orb orb-2 w-[32rem] h-[32rem] bg-brand-deep/8 bottom-[5%] right-[-10%]" />
+          <div className="hero-orb orb-3 w-[20rem] h-[20rem] bg-brand-amber/10 top-[40%] right-[15%]" />
+        </div>
+
+        {/* Subtle dot grid — visible on all screens */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -351,17 +372,13 @@ function Hero() {
             backgroundSize: '32px 32px',
           }}
         />
-        {/* Floating orbs with smooth animation */}
-        <div className="hero-orb orb-1 w-[28rem] h-[28rem] bg-brand-emerald/12 top-[8%] left-[-8%]" />
-        <div className="hero-orb orb-2 w-[32rem] h-[32rem] bg-brand-deep/8 bottom-[5%] right-[-10%]" />
-        <div className="hero-orb orb-3 w-[20rem] h-[20rem] bg-brand-amber/10 top-[40%] right-[15%]" />
         {/* Subtle grid pattern overlay */}
         <div className="absolute inset-0 bg-grid-pattern opacity-50" />
         {/* Gradient fade at bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </div>
 
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 text-center relative">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 text-center relative z-10">
         <FadeIn>
           <div className="premium-badge mb-6">
             <Sparkles className="w-3.5 h-3.5 text-brand-emerald" />
@@ -426,22 +443,6 @@ function Hero() {
                 <Globe className="w-4 h-4 text-brand-amber" />
               </div>
               <span className="font-medium">Desde cualquier dispositivo</span>
-            </div>
-          </div>
-        </FadeIn>
-
-        <FadeIn delay={600}>
-          <div className="mt-16 max-w-4xl mx-auto hidden md:block">
-            <div className="relative">
-              {/* Glow behind screenshot */}
-              <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 via-brand-emerald/5 to-transparent rounded-3xl blur-2xl" />
-              {/* Dashboard screenshot in browser frame */}
-              <ScreenshotFrame
-                src="/screenshots/dashboard-new.png"
-                alt="Panel de control de Hospedá"
-                priority
-                className="relative z-10 shadow-2xl shadow-primary/10"
-              />
             </div>
           </div>
         </FadeIn>
