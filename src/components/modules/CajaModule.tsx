@@ -898,7 +898,7 @@ export default function CajaModule() {
       {caja.estado === 'cerrada' ? (
         /* ═══════ CAJA CERRADA — inviting empty state + daily summary ═══════ */
         <div className="space-y-4">
-          <Card className="relative overflow-hidden border-2 border-dashed border-primary/30 celebrate-bg">
+          <Card className="relative overflow-hidden border-2 border-dashed border-primary/30">
             {/* Subtle radial accent in the background */}
             <div className="pointer-events-none absolute inset-0 bg-primary/5" />
             <CardContent className="relative text-center py-14 px-6 space-y-5 max-w-md mx-auto">
