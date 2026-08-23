@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
 
     // ── Rate limiting: 10 intentos por 15 minutos por usuario ──
     // Previene fuerza bruta de contraseñas de perfiles
-    const rl = rateLimit(`auth-me:${session.user.email.toLowerCase()}`, 10, 15 * 60 * 1000);
+    const rl = await rateLimit(`auth-me:${session.user.email.toLowerCase()}`, 10, 15 * 60 * 1000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: `Demasiados intentos. Esperá ${rl.retryAfterSeconds} segundos.` },

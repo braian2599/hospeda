@@ -28,7 +28,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
     const rlKey = `pwd-change:${tenantId}:${session.user.id}`;
-    const rl = rateLimit(rlKey, 5, 15 * 60 * 1000);
+    const rl = await rateLimit(rlKey, 5, 15 * 60 * 1000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: `Demasiados intentos. Esperá ${rl.retryAfterSeconds} segundos.` },

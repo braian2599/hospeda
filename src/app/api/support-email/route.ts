@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   // Rate limit por IP — 20 requests por minuto
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'unknown';
-  const rl = rateLimit(`support-email:${ip}`, 20, 60 * 1000);
+  const rl = await rateLimit(`support-email:${ip}`, 20, 60 * 1000);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Demasiadas requests. Intentá de nuevo en un minuto.' },

@@ -1,8 +1,10 @@
 // ==================== PAYMENT PROVIDERS CONFIG ====================
 // Configuración centralizada para Mercado Pago y Stripe.
 // Prioridad: PlatformConfig (BD) > Environment variables.
+// Los valores sensibles se cifran en la BD con AES-256-GCM.
 
 import { db } from '@/lib/db';
+import { decrypt, isEncrypted } from '@/lib/crypto';
 
 // Cache simple para no consultar la BD en cada request
 let configCache: Record<string, string> | null = null;
@@ -19,7 +21,8 @@ async function getPlatformConfig(): Promise<Record<string, string>> {
     const configs = await db.platformConfig.findMany();
     const map: Record<string, string> = {};
     for (const c of configs) {
-      map[c.key] = c.value;
+      // Descifrar valores si están cifrados (empiezan con "enc:")
+      map[c.key] = isEncrypted(c.value) ? decrypt(c.value) : c.value;
     }
     configCache = map;
     configCacheTime = now;

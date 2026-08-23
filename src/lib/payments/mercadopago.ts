@@ -121,14 +121,18 @@ export { fetchWebhookSecret as getMPWebhookSecret };
 
 /**
  * Verifica la firma del webhook de Mercado Pago usando HMAC-SHA256.
+ * También valida que el timestamp no sea demasiado viejo (anti-replay).
+ * Un atacante que capture un webhook válido no puede reenviarlo después
+ * de MAX_WEBHOOK_AGE_SECONDS porque el timestamp expiró.
  */
+const MAX_WEBHOOK_AGE_SECONDS = 5 * 60; // 5 minutos — prevenir replay attacks
+
 export async function verifyMercadoPagoSignature(
   xSignature: string,
   xRequestId: string
 ): Promise<boolean> {
   const secret = await fetchWebhookSecret();
   if (!secret) {
-    // Sin secreto configurado, en dev permitir; en prod rechazar
     if (process.env.NODE_ENV === 'production') {
       console.warn('[MP Webhook] Webhook secret no configurada — rechazando webhook en producción');
       return false;
@@ -149,13 +153,37 @@ export async function verifyMercadoPagoSignature(
     }
     if (!ts || !hash) return false;
 
+    // ── Anti-replay: validar que el timestamp no sea demasiado viejo ──
+    // MP envía el timestamp en segundos. Si pasó más de MAX_WEBHOOK_AGE_SECONDS,
+    // rechazamos el webhook (puede ser un replay attack).
+    const webhookTime = parseInt(ts, 10);
+    if (isNaN(webhookTime)) {
+      console.error('[MP Webhook] Timestamp inválido en firma:', ts);
+      return false;
+    }
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const ageSeconds = nowSeconds - webhookTime;
+    if (ageSeconds > MAX_WEBHOOK_AGE_SECONDS) {
+      console.error(`[MP Webhook] Webhook rechazado — timestamp expirado: ${ageSeconds}s > ${MAX_WEBHOOK_AGE_SECONDS}s`);
+      return false;
+    }
+    // También rechazar timestamps del futuro (clock skew extremo = sospechoso)
+    if (ageSeconds < -60) {
+      console.error(`[MP Webhook] Webhook rechazado — timestamp del futuro: ${ageSeconds}s`);
+      return false;
+    }
+
     const manifest = `id:${xRequestId};request-ts:${ts};`;
     const expected = crypto
       .createHmac('sha256', secret)
       .update(manifest)
       .digest('hex');
 
-    return hash === expected;
+    // Usar timingSafeEqual para prevenir timing attacks
+    const expectedBuf = Buffer.from(expected, 'hex');
+    const hashBuf = Buffer.from(hash, 'hex');
+    if (expectedBuf.length !== hashBuf.length) return false;
+    return crypto.timingSafeEqual(expectedBuf, hashBuf);
   } catch {
     return false;
   }

@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireSuperAdmin } from '@/lib/super-admin/auth';
+import { encrypt, decrypt, isEncrypted } from '@/lib/crypto';
 
 // ─── Helpers ───
 
 // Campos que contienen credenciales sensibles.
-// Se enmascaran en el GET para no exponerlos en la red.
+// Se cifran en la BD con AES-256-GCM y se enmascaran en el GET.
 const SENSITIVE_KEYS = new Set(['mp_access_token', 'mp_webhook_secret']);
 
 // Enmascara un valor sensible: muestra solo los primeros y últimos 4 caracteres.
 // Ej: "APP_USR-1234567890-abcdef" → "APP_...cdef"
 // Si el valor es muy corto (< 8 chars), lo oculta completamente.
+// Acepta valores cifrados (los descifra antes de enmascarar).
 function maskSensitive(value: string): string {
   if (!value) return '';
-  if (value.length <= 8) return '••••';
-  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+  // Descifrar si está cifrado
+  const plaintext = isEncrypted(value) ? decrypt(value) : value;
+  if (plaintext.length <= 8) return '••••';
+  return `${plaintext.slice(0, 4)}...${plaintext.slice(-4)}`;
 }
 
 // GET /api/super-admin/config — Obtener toda la configuración de plataforma
@@ -92,30 +96,37 @@ export async function PUT(req: NextRequest) {
     }
 
     // Leer config actual para preservar valores sensibles no editados
+    // Descifrar valores existentes para comparar
     const existingConfigs = await db.platformConfig.findMany();
     const existingMap: Record<string, string> = {};
     for (const c of existingConfigs) {
-      existingMap[c.key] = c.value;
+      existingMap[c.key] = c.value; // puede estar cifrado o plaintext
     }
 
     // Upsert cada key
     for (const [key, rawValue] of Object.entries(config)) {
       let value = String(rawValue);
 
-      // Si es un campo sensible y el valor viene enmascarado (con "...")
-      // significa que el usuario NO lo editó → conservar el valor existente
-      if (SENSITIVE_KEYS.has(key) && value.includes('...')) {
-        // Si no hay valor previo y el usuario envió "••••" o vacío, skip
-        if (existingMap[key]) {
-          value = existingMap[key];
-        } else {
-          continue; // No crear entrada con valor enmascarado
+      // Si es un campo sensible:
+      // 1. Si viene enmascarado (con "...") → el usuario no lo editó, conservar el existente
+      // 2. Si viene vacío → conservar el existente
+      // 3. Si viene un valor nuevo → cifrarlo antes de guardar
+      if (SENSITIVE_KEYS.has(key)) {
+        if (value.includes('...')) {
+          // El usuario no lo editó → conservar valor existente (ya cifrado en BD)
+          if (existingMap[key]) {
+            continue; // No tocar el valor existente
+          } else {
+            continue; // No crear entrada con valor enmascarado
+          }
         }
-      }
-
-      // No guardar valores vacíos para campos sensibles si ya hay uno
-      if (SENSITIVE_KEYS.has(key) && !value && existingMap[key]) {
-        continue;
+        if (!value && existingMap[key]) {
+          continue; // No sobreescribir con vacío
+        }
+        // Cifrar el valor nuevo antes de guardar
+        if (value) {
+          value = encrypt(value);
+        }
       }
 
       await db.platformConfig.upsert({
