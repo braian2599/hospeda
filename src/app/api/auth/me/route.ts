@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/config';
 import { db } from '@/lib/db';
+import { rateLimit } from '@/lib/validation';
 import bcrypt from 'bcryptjs';
 
 // GET /api/auth/me
@@ -160,6 +161,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
+    // ── Rate limiting: 10 intentos por 15 minutos por usuario ──
+    // Previene fuerza bruta de contraseñas de perfiles
+    const rl = rateLimit(`auth-me:${session.user.email.toLowerCase()}`, 10, 15 * 60 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Demasiados intentos. Esperá ${rl.retryAfterSeconds} segundos.` },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const profileId = searchParams.get('profileId');
     if (!profileId) {
@@ -173,8 +184,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Obtener el perfil con su password
+    // Filtro: tenantUser activo Y tenant activo (previene selección de hoteles desactivados)
     const tenantUser = await db.tenantUser.findFirst({
-      where: { id: profileId, activo: true },
+      where: { id: profileId, activo: true, tenant: { activo: true } },
       include: {
         user: true,
         tenant: {

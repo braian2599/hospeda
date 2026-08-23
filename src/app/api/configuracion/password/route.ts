@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireOwner, AuthError } from '@/lib/auth/utils';
+import { requireOwner, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { validatePassword, rateLimit } from '@/lib/validation';
 import bcrypt from 'bcryptjs';
 
 // PUT /api/configuracion/password — Cambiar contraseña del perfil actual
@@ -12,15 +13,27 @@ export async function PUT(req: NextRequest) {
     if (!currentPassword || !newPassword) {
       return NextResponse.json({ error: 'Completá ambos campos' }, { status: 400 });
     }
-    if (newPassword.length < 6) {
-      return NextResponse.json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' }, { status: 400 });
+
+    // ── Validar política de contraseñas (igual que en registro) ──
+    // Mín 8 caracteres, 1 mayúscula, 1 número
+    const pwError = validatePassword(newPassword);
+    if (pwError) {
+      return NextResponse.json({ error: pwError }, { status: 400 });
     }
 
-    // Obtener sesión para saber qué TenantUser actualizar
-    const { getAuthSession } = await import('@/lib/auth/utils');
+    // ── Rate limiting: 5 intentos por 15 minutos por tenantId+user ──
+    // Previene fuerza bruta de currentPassword
     const session = await getAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+    const rlKey = `pwd-change:${tenantId}:${session.user.id}`;
+    const rl = rateLimit(rlKey, 5, 15 * 60 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Demasiados intentos. Esperá ${rl.retryAfterSeconds} segundos.` },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+      );
     }
 
     const tenantUser = await db.tenantUser.findFirst({
@@ -44,12 +57,25 @@ export async function PUT(req: NextRequest) {
 
     // Hashear y guardar nueva contraseña
     const hashed = await bcrypt.hash(newPassword, 12);
-    await db.tenantUser.update({
-      where: { id: tenantUser.id },
-      data: { password: hashed },
+
+    // Actualizar contraseña Y invalidar sesiones en una transacción
+    // para que un atacante con JWT robado sea deslogueado
+    await db.$transaction(async (tx) => {
+      await tx.tenantUser.update({
+        where: { id: tenantUser.id },
+        data: { password: hashed },
+      });
+
+      // Invalidar TODAS las sesiones del usuario (fuerza re-login)
+      await tx.session.deleteMany({
+        where: { userId: session.user.id },
+      });
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message: 'Contraseña actualizada. Todas tus sesiones fueron cerradas por seguridad.',
+    });
   } catch (error) {
     if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.statusCode });
     console.error('PUT /api/configuracion/password:', error);

@@ -2,6 +2,7 @@
 // Recibe notificaciones (IPN) de Mercado Pago.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { getMercadoPagoPayment, verifyMercadoPagoSignature } from '@/lib/payments/mercadopago';
 import { getMPSubscription } from '@/lib/payments/mp-subscriptions';
 import { validatePaymentAmount, validatePreapprovalAmount } from '@/lib/payments/validation';
@@ -81,9 +82,12 @@ export async function POST(request: NextRequest) {
     // Buscar el plan por tipo
     const plan = await db.plan.findFirst({ where: { type: planTipo as any } });
 
-    // Manejar según estado del pago
-    switch (status) {
-      case 'approved': {
+    // Manejar según estado del pago — wrapped en try/catch para manejar
+    // race conditions (dos webhooks simultáneos para el mismo paymentId).
+    // Si externalId ya existe (P2002 unique constraint), tratamos como duplicado.
+    try {
+      switch (status) {
+        case 'approved': {
         console.log(`[mp-webhook] Pago aprobado: tenant=${tenantId}, plan=${planTipo}, amount=${mpAmount}`);
 
         // ── VALIDACIÓN DE SEGURIDAD: verificar que el monto pagado coincida con el precio del plan ──
@@ -233,6 +237,16 @@ export async function POST(request: NextRequest) {
         // pero el pago ya existe de un flujo anterior
         break;
       }
+      }
+    } catch (error: unknown) {
+      // P2002 = unique constraint violation (externalId duplicado)
+      // Esto ocurre si dos webhooks simultáneos procesan el mismo paymentId.
+      // Tratamos como duplicado — no es un error.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        console.log(`[mp-webhook] Pago ${paymentId} ya procesado por otro webhook (P2002). Ignorando duplicado.`);
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+      throw error; // Re-lanzar otros errores
     }
 
     return NextResponse.json({ received: true });

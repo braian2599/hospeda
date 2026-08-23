@@ -567,7 +567,7 @@ model PlatformPayment {
   estado         String   @default("pendiente")
   periodoDesde   DateTime
   periodoHasta   DateTime
-  externalId     String?
+  externalId     String?  @unique
   nota           String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

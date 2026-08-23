@@ -52,6 +52,34 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 });
     }
 
+    // ── VALIDACIONES DE SEGURIDAD ──
+    // precioMensual: no se permite negativo. Solo el plan 'trial' puede tener precio 0.
+    // Esto previene que un super-admin (o sesión robada) setee el precio a 0 y bypass-e
+    // toda la validación de pagos (validatePaymentAmount compara contra plan.precioMensual).
+    if (data.precioMensual !== undefined) {
+      if (typeof data.precioMensual !== 'number' || isNaN(data.precioMensual)) {
+        return NextResponse.json({ error: 'precioMensual debe ser un número' }, { status: 400 });
+      }
+      if (data.precioMensual < 0) {
+        return NextResponse.json({ error: 'precioMensual no puede ser negativo' }, { status: 400 });
+      }
+      // Planes pagos no pueden tener precio 0 (solo trial)
+      if (data.precioMensual === 0 && planAnterior.type !== 'trial') {
+        return NextResponse.json(
+          { error: 'No se puede setear precio 0 a un plan pago. Solo el plan trial puede ser gratis.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validar que los límites sean no negativos
+    for (const field of ['maxHabitaciones', 'maxUsuarios', 'maxTarifas', 'maxReservasMes']) {
+      const val = data[field as keyof typeof data];
+      if (val !== undefined && (typeof val !== 'number' || val < 0)) {
+        return NextResponse.json({ error: `${field} debe ser un número no negativo` }, { status: 400 });
+      }
+    }
+
     const plan = await db.plan.update({
       where: { id },
       data: {
