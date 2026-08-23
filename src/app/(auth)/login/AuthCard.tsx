@@ -10,7 +10,6 @@ import {
   Eye, EyeOff, Loader2, CheckCircle2, Mail, Lock, Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import Link from 'next/link';
 import AuthShell from '../AuthShell';
 
 type Mode = 'login' | 'signup';
@@ -162,7 +161,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="login-password" className="text-xs text-slate-500">Contraseña</Label>
-              <Link href="/forgot-password" className="text-xs text-primary hover:text-primary/80 transition-colors">¿La olvidaste?</Link>
+              <span className="text-xs text-slate-400">¿Olvidaste tu contraseña? Contactá al administrador</span>
             </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

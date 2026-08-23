@@ -32,14 +32,14 @@ function ResetPasswordForm() {
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Enlace inválido</h2>
           <p className="text-sm text-slate-500 mb-6">
-            Faltan parámetros. Solicitá un nuevo enlace de recuperación.
+            Faltan parámetros o el enlace es inválido. Contactá al administrador para resetear tu contraseña.
           </p>
           <Button
             variant="outline"
             className="w-full h-11 rounded-xl border-slate-200"
-            onClick={() => router.push('/forgot-password')}
+            onClick={() => router.push('/login')}
           >
-            Solicitar nuevo enlace
+            Volver a iniciar sesión
           </Button>
         </div>
       </AuthShell>
