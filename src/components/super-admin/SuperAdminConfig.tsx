@@ -33,6 +33,7 @@ export default function SuperAdminConfig() {
   const [plataformaNombre, setPlataformaNombre] = useState('');
   const [plataformaEmail, setPlataformaEmail] = useState('');
   const [plataformaMoneda, setPlataformaMoneda] = useState('');
+  const [supportEmail, setSupportEmail] = useState('');
 
   // Datos bancarios (para transferencias de los hoteles)
   const [bankBanco, setBankBanco] = useState('');
@@ -61,6 +62,7 @@ export default function SuperAdminConfig() {
         setPlataformaNombre(plat.nombre || 'Hospeda');
         setPlataformaEmail(plat.emailContacto || '');
         setPlataformaMoneda(plat.moneda || 'ARS');
+        setSupportEmail(plat.supportEmail || '');
         // Datos bancarios
         setBankBanco(bank.banco || '');
         setBankTitular(bank.titular || '');
@@ -89,6 +91,7 @@ export default function SuperAdminConfig() {
         plataforma_nombre: plataformaNombre,
         plataforma_email: plataformaEmail,
         plataforma_moneda: plataformaMoneda,
+        support_email: supportEmail,
         // Datos bancarios
         bank_banco: bankBanco,
         bank_titular: bankTitular,
@@ -279,6 +282,23 @@ export default function SuperAdminConfig() {
                 onChange={(e) => setPlataformaEmail(e.target.value)}
                 placeholder="soporte@hospeda.com"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                Email de soporte para reset de contraseñas
+              </Label>
+              <Input
+                type="email"
+                value={supportEmail}
+                onChange={(e) => setSupportEmail(e.target.value)}
+                placeholder="braian9952@gmail.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                Este email se muestra a los usuarios en la pantalla de "¿Olvidaste tu contraseña?".
+                Los usuarios enviarán su pedido de reset a esta dirección.
+              </p>
             </div>
 
             <div className="space-y-2">

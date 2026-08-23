@@ -66,6 +66,7 @@ export async function GET() {
         nombre: configMap.plataforma_nombre || 'Hospeda',
         emailContacto: configMap.plataforma_email || '',
         moneda: configMap.plataforma_moneda || 'ARS',
+        supportEmail: configMap.support_email || '',
       },
     });
   } catch (error: unknown) {
