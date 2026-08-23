@@ -3,12 +3,22 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireOwner } from '@/lib/auth/utils';
+import { requireOwner, getAuthSession } from '@/lib/auth/utils';
+import { validateCsrfToken } from '@/lib/csrf';
 import { cancelMPSubscription } from '@/lib/payments/mp-subscriptions';
 
 export async function POST(request: NextRequest) {
   try {
     const authTenantId = await requireOwner();
+
+    // ── CSRF validation ──
+    const session = await getAuthSession();
+    if (session?.user?.id) {
+      const csrfValid = await validateCsrfToken(request.headers.get('X-CSRF-Token'), session.user.id);
+      if (!csrfValid) {
+        return NextResponse.json({ error: 'Token CSRF inválido. Recargá la página e intentá de nuevo.' }, { status: 403 });
+      }
+    }
 
     const sub = await db.subscription.findUnique({
       where: { tenantId: authTenantId },

@@ -76,9 +76,22 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
     setErrorMessage('');
 
     try {
+      // Obtener CSRF token
+      let csrfToken = '';
+      try {
+        const csrfRes = await fetch('/api/csrf-token');
+        if (csrfRes.ok) {
+          const csrfData = await csrfRes.json();
+          csrfToken = csrfData.csrfToken || '';
+        }
+      } catch {}
+
       const res = await fetch('/api/payments/create-subscription', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        },
         body: JSON.stringify({
           planTipo: selectedPlan,
           email: email.trim(),

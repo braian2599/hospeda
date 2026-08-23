@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, requireActiveSubscription, getAuthSession, AuthError } from '@/lib/auth/utils';
+import { validateCsrfToken } from '@/lib/csrf';
 import { Prisma } from '@prisma/client';
 import { createReservaSchema, formatZodError } from '@/lib/validation-schemas';
 
@@ -76,6 +77,15 @@ export async function POST(req: NextRequest) {
     const tenantId = await requirePermission('reservas');
     await requireActiveSubscription(tenantId);
     const session = await getAuthSession();
+
+    // ── CSRF validation ──
+    if (session?.user?.id) {
+      const csrfValid = await validateCsrfToken(req.headers.get('X-CSRF-Token'), session.user.id);
+      if (!csrfValid) {
+        return NextResponse.json({ error: 'Token CSRF inválido. Recargá la página e intentá de nuevo.' }, { status: 403 });
+      }
+    }
+
     const empleadoNombre = session?.user?.name || 'Sistema';
     const body = await req.json();
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, requireActiveSubscription, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { validateCsrfToken } from '@/lib/csrf';
 import { cajaMovimientoSchema, formatZodError } from '@/lib/validation-schemas';
 
 // POST /api/caja/movimiento — Registrar un movimiento (ingreso/egreso)
@@ -9,6 +10,16 @@ export async function POST(req: NextRequest) {
   try {
     const tenantId = await requirePermission('caja');
     await requireActiveSubscription(tenantId);
+
+    // ── CSRF validation ──
+    const session = await getAuthSession();
+    if (session?.user?.id) {
+      const csrfValid = await validateCsrfToken(req.headers.get('X-CSRF-Token'), session.user.id);
+      if (!csrfValid) {
+        return NextResponse.json({ error: 'Token CSRF inválido. Recargá la página e intentá de nuevo.' }, { status: 403 });
+      }
+    }
+
     const body = await req.json();
     const { tipo, monto, descripcion, metodo, reservaId, categoriaGastoNombre } = body;
 

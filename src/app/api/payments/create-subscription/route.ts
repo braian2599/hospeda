@@ -4,7 +4,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireOwner } from '@/lib/auth/utils';
+import { requireOwner, getAuthSession } from '@/lib/auth/utils';
+import { validateCsrfToken } from '@/lib/csrf';
 import { getServerPlan } from '@/lib/plan-server';
 import { getMPAccessToken } from '@/lib/payments/config';
 import { createMPSubscription } from '@/lib/payments/mp-subscriptions';
@@ -17,6 +18,16 @@ function validatePlan(planTipo: string): boolean {
 export async function POST(request: NextRequest) {
   try {
     const authTenantId = await requireOwner();
+
+    // ── CSRF validation ──
+    const session = await getAuthSession();
+    if (session?.user?.id) {
+      const csrfValid = await validateCsrfToken(request.headers.get('X-CSRF-Token'), session.user.id);
+      if (!csrfValid) {
+        return NextResponse.json({ error: 'Token CSRF inválido. Recargá la página e intentá de nuevo.' }, { status: 403 });
+      }
+    }
+
     const body = await request.json();
     const { planTipo, email } = body as { planTipo: string; email?: string };
 

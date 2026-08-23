@@ -1,6 +1,6 @@
 /**
  * Wrapper de fetch para llamar a la API del hotel.
- * Incluye manejo de errores y redirección a login si 401.
+ * Incluye manejo de errores, redirección a login si 401, y CSRF tokens.
  */
 
 class ApiError extends Error {
@@ -11,13 +11,75 @@ class ApiError extends Error {
   }
 }
 
+// ── CSRF token management (client-side) ──
+
+let _csrfToken: string | null = null;
+
+async function getCsrfToken(): Promise<string | null> {
+  if (_csrfToken) return _csrfToken;
+  try {
+    const res = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+    if (res.ok) {
+      const data = await res.json();
+      _csrfToken = data.csrfToken || null;
+    }
+  } catch {
+    // Si falla, no hay token — el request se enviará sin header
+    // El backend decidirá si rechazarlo
+  }
+  return _csrfToken;
+}
+
+const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `/api${path}`;
+  const method = options?.method || 'GET';
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options?.headers as Record<string, string>),
+  };
+
+  // ── Agregar CSRF token en mutations ──
+  if (MUTATION_METHODS.has(method.toUpperCase())) {
+    const token = await getCsrfToken();
+    if (token) {
+      headers['X-CSRF-Token'] = token;
+    }
+  }
+
   const res = await fetch(url, {
     credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers,
   });
+
+  // ── Si el CSRF token expiró (403), limpiar y reintentar una vez ──
+  if (res.status === 403 && method !== 'GET') {
+    _csrfToken = null;
+    const newToken = await getCsrfToken();
+    if (newToken) {
+      headers['X-CSRF-Token'] = newToken;
+      const retryRes = await fetch(url, {
+        credentials: 'same-origin',
+        ...options,
+        headers,
+      });
+      // Si el retry funciona, usar esa respuesta
+      if (retryRes.ok || retryRes.status !== 403) {
+        let retryData: any;
+        try { retryData = await retryRes.json(); } catch { retryData = {}; }
+        if (!retryRes.ok) {
+          const msg = retryData.error || `Error ${retryRes.status}`;
+          if (retryRes.status === 401) throw new ApiError(msg, 401);
+          throw new ApiError(msg, retryRes.status);
+        }
+        return retryData as T;
+      }
+    }
+  }
+
   // Intentar parsear JSON; si falla (ej. respuesta vacía), usar objeto vacío
   let data: any;
   try {
@@ -28,9 +90,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     const msg = data.error || `Error ${res.status}`;
     if (res.status === 401) {
-      // No redirigir automáticamente — dejar que el llamador decida.
-      // El SessionLoader ya maneja el estado unauthenticated.
-      console.error(`[apiFetch] 401 en ${options?.method || 'GET'} ${path}:`, msg);
+      console.error(`[apiFetch] 401 en ${method} ${path}:`, msg);
       throw new ApiError(msg, 401);
     }
     throw new ApiError(msg, res.status);

@@ -70,7 +70,20 @@ export default function SuscripcionModule() {
   const handleCancelSubscription = async () => {
     setCanceling(true);
     try {
-      const res = await fetch('/api/payments/cancel-subscription', { method: 'POST' });
+      // Obtener CSRF token
+      let csrfToken = '';
+      try {
+        const csrfRes = await fetch('/api/csrf-token');
+        if (csrfRes.ok) {
+          const csrfData = await csrfRes.json();
+          csrfToken = csrfData.csrfToken || '';
+        }
+      } catch {}
+
+      const res = await fetch('/api/payments/cancel-subscription', {
+        method: 'POST',
+        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast.success('Suscripción cancelada. Seguirás teniendo acceso hasta el vencimiento.');
