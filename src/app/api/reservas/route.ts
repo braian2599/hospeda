@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, requireActiveSubscription, getAuthSession, AuthError } from '@/lib/auth/utils';
 import { Prisma } from '@prisma/client';
+import { createReservaSchema, formatZodError } from '@/lib/validation-schemas';
 
 // ─────────────────────────────────────────────────────────
 // GET /api/reservas — Listar reservas con filtros
@@ -106,7 +107,16 @@ export async function POST(req: NextRequest) {
       datosAdicionales,
     } = body;
 
-    // ── Validaciones obligatorias ──
+    // ── Validación con Zod (campos críticos) ──
+    const zodResult = createReservaSchema.safeParse(body);
+    if (!zodResult.success) {
+      return NextResponse.json(
+        { error: formatZodError(zodResult.error) },
+        { status: 400 }
+      );
+    }
+
+    // ── Validaciones obligatorias (fallback manual) ──
     if (!huesped?.trim() || !dni?.trim()) {
       return NextResponse.json(
         { error: 'Faltan campos obligatorios: huesped, dni' },

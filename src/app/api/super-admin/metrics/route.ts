@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireSuperAdmin } from '@/lib/super-admin/auth';
+import { handleApiError } from '@/lib/api-error';
 
 // GET /api/super-admin/metrics — Métricas del dashboard del super admin
 export async function GET() {
@@ -190,8 +191,6 @@ export async function GET() {
       tenantsRecientes,
     });
   } catch (error: unknown) {
-    const err = error as Error;
-    console.error('[/api/super-admin/metrics] Error:', err.message);
-    return NextResponse.json({ error: `Error del servidor: ${err.message}` }, { status: 500 });
+    return handleApiError(error, '/api/super-admin/metrics GET');
   }
 }

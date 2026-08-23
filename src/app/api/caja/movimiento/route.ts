@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, requireActiveSubscription, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { cajaMovimientoSchema, formatZodError } from '@/lib/validation-schemas';
 
 // POST /api/caja/movimiento — Registrar un movimiento (ingreso/egreso)
 // Si es un egreso con categoriaGastoNombre, crea también un Gasto atómicamente.
@@ -11,7 +12,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { tipo, monto, descripcion, metodo, reservaId, categoriaGastoNombre } = body;
 
-    // Validaciones
+    // ── Validación con Zod (campos críticos) ──
+    const zodResult = cajaMovimientoSchema.safeParse(body);
+    if (!zodResult.success) {
+      return NextResponse.json(
+        { error: formatZodError(zodResult.error) },
+        { status: 400 }
+      );
+    }
+
+    // Validaciones manuales (fallback)
     if (!tipo || (tipo !== 'ingreso' && tipo !== 'egreso')) {
       return NextResponse.json(
         { error: 'El tipo debe ser "ingreso" o "egreso"' },

@@ -1622,3 +1622,144 @@ Stage Summary:
 - Fix completo: denomQuantities es la UNICA fuente de verdad, billetes se deriva automaticamente
 - Visibilidad del desglose de billetes agregada en Steps 3, 4 y historial
 - Archivos modificados: CajaModule.tsx, store.ts, api/caja/cerrar/route.ts
+
+---
+Task ID: SECURITY-BATCH-2
+Agent: general-purpose
+Task: Security improvements batch (#7-#12)
+
+Work Log:
+
+### Task 1 — Error messages genéricos (#7)
+- Created `src/lib/api-error.ts` with `handleApiError(error, operation)` helper:
+  - AuthError → returns its message + statusCode (user-facing)
+  - Other errors → returns generic "Error interno del servidor" with 500
+  - Dev (NODE_ENV !== 'production'): logs full error + stack
+  - Prod: logs only `error.message` (no stack, no internal props)
+- Updated `src/app/api/super-admin/metrics/route.ts`:
+  - Removed `Error del servidor: ${err.message}` (line 195)
+  - Replaced catch block with `return handleApiError(error, '/api/super-admin/metrics GET')`
+- Updated `src/app/api/payments/create-checkout/route.ts`:
+  - Replaced `error: any` with `error: unknown`
+  - Kept special-case branches (AuthError, "Mercado Pago no está configurado" → 503, MP API error log for dev)
+  - Final return now uses `handleApiError(error, 'create-checkout')`
+- Updated `src/app/api/payments/create-subscription/route.ts`:
+  - Replaced `error: any` with `error: unknown`
+  - Removed exposed `Error al crear la suscripción: ${error?.message}` (line 125)
+  - Kept special-case for "Mercado Pago no está configurado" → 503
+  - Final return now uses `handleApiError(error, 'create-subscription')`
+
+### Task 2 — Quitar stack trace log en create-checkout (#8)
+- Removed the dangerous `console.error('[create-checkout] Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))` line entirely
+- Replaced `console.error('[create-checkout] Error:', error?.message || error)` with safe version `console.error('[create-checkout] Error:', error instanceof Error ? error.message : 'Unknown error')` — never logs the full stack or internal properties
+
+### Task 3 — Eliminar auto-migrate.ts (#9)
+- Deleted `src/lib/auto-migrate.ts` entirely (auto-ran `DROP INDEX` + `ALTER TABLE` on every API request — bad practice)
+- Removed the unused `import { ensureMigrations } from '@/lib/auto-migrate'` line from `src/app/api/usuarios/route.ts` (the import was present but never actually called)
+- No replacement — migrations must be done with `prisma migrate deploy` going forward
+
+### Task 4 — Zod para validación de inputs (#10)
+- zod 4.3.5 already in dependencies (package.json) — no install needed
+- Created `src/lib/validation-schemas.ts` with 4 schemas:
+  - `registerSchema` — email, password (regex matches validatePassword rules: min 8, 1 mayúscula, 1 número), name, hotelNombre, optional phone
+  - `loginSchema` — email + password (presence only, no complexity check — login path)
+  - `createReservaSchema` — huesped, dni, habitacion, checkin, checkout + 18 optional fields (telefono, email, domicilio, personas, ninos, total, tipoTarifa, metodoPagoId, cuotas, recargoPorcentaje, notas, observacionesHuesped, agencia*, contactoEmergencia*, acompanantes array, datosAdicionales)
+  - `cajaMovimientoSchema` — tipo enum (ingreso/egreso), monto (number|string with positive refine), descripcion, optional metodo/reservaId/categoriaGastoNombre
+  - `formatZodError(error)` helper — returns first issue message for display
+- Updated 4 endpoints (all keep existing manual validations as fallback):
+  - `src/app/api/auth/register/route.ts` — Zod check first, then manual validations
+  - `src/lib/auth/config.ts` — `loginSchema.safeParse()` inside `CredentialsProvider.authorize`, throws `new Error(formatZodError(...))` on failure (NextAuth converts to CredentialsSignin)
+  - `src/app/api/reservas/route.ts` — `createReservaSchema.safeParse(body)` after destructuring, returns 400 on failure
+  - `src/app/api/caja/movimiento/route.ts` — `cajaMovimientoSchema.safeParse(body)` after destructuring, returns 400 on failure
+
+### Task 5 — CSRF tokens en mutations (#11)
+- Created `src/lib/csrf.ts`:
+  - `generateCsrfToken()` — uses `crypto.randomBytes(32).toString('hex')` (64 hex chars, 256 bits of entropy)
+  - `storeCsrfToken(sessionToken, token)` — stores token with TTL 1h
+  - `issueCsrfToken(sessionToken)` — convenience: generates + stores + returns
+  - `validateCsrfToken(token, sessionToken)` — looks up stored token, uses `crypto.timingSafeEqual` for constant-time comparison (prevents timing attacks)
+  - Storage: Redis (Upstash) if configured, else in-memory Map (with cleanup interval every 10 min)
+  - TTL: 1 hour (CSRF_TOKEN_TTL_SECONDS = 3600)
+- Created `src/app/api/csrf-token/route.ts` (GET endpoint):
+  - Requires auth (`getAuthSession` — returns 401 if unauthenticated)
+  - Rate limited: 30 req/min per user via `rateLimit('csrf-token:<userId>', 30, 60_000)`
+  - Returns `{ csrfToken, expiresIn, header: 'X-CSRF-Token' }`
+  - Uses `handleApiError`-style logging (dev: full error, prod: message only) for consistency
+- Note: infrastructure only — no mutations enforced yet. The token will be sent via `X-CSRF-Token` header.
+
+### Task 6 — Google OAuth config (#12)
+- `src/lib/auth/config.ts` was NOT touched (already reads `process.env.GOOGLE_CLIENT_ID` and `process.env.GOOGLE_CLIENT_SECRET` correctly)
+- `.env`: appended commented-out placeholders with step-by-step instructions:
+  ```
+  # ── Google OAuth (opcional — login con Google) ──
+  # 1. Ir a https://console.cloud.google.com/apis/credentials
+  # 2. Crear un proyecto → habilitar Google+ API
+  # 3. Crear credenciales → "OAuth client ID" → Web application
+  # 4. Authorized JavaScript origins: http://localhost:3000 + prod URL
+  # 5. Authorized redirect URIs: <url>/api/auth/callback/google
+  # 6. Copiar el Client ID y Client Secret aquí abajo (descomentar):
+  # GOOGLE_CLIENT_ID=tu-client-id.apps.googleusercontent.com
+  # GOOGLE_CLIENT_SECRET=tu-client-secret
+  ```
+- `.env.example`: replaced bare `GOOGLE_CLIENT_ID=tu-google-client-id` placeholders with the same step-by-step instructions + realistic placeholder format (`tu-google-client-id.apps.googleusercontent.com`)
+
+### Verification
+- ✅ `bun run lint` — passes clean, 0 errors
+- ✅ `bunx tsc --noEmit` — no TypeScript errors in any of the 8 touched files (pre-existing errors in ReportesModule, ReservasModule, store.ts, examples/, skills/ remain unchanged)
+- ✅ Dev server starts (port 3000 already in use from previous session, but hot-reload picked up all changes)
+- ✅ Probed endpoints:
+  - GET `/api/csrf-token` (no auth) → 401 `{"error":"No autenticado"}` ✓
+  - GET `/api/auth/me` (no auth) → 401 ✓
+  - GET `/api/super-admin/metrics` (no auth) → 401 ✓ (handleApiError path verified)
+  - POST `/api/auth/register` `{}` → 400 `{"error":"Email inválido"}` ✓ (Zod validation working)
+  - POST `/api/auth/register` valid shape → 201 Created ✓ (Zod passes, full flow still works)
+  - POST `/api/caja/movimiento` (no auth) → 401 ✓
+  - POST `/api/reservas` (no auth) → 401 ✓
+  - GET `/api/auth/providers` → 200 with both `google` and `credentials` providers ✓
+  - GET `/` → 200 home page ✓
+- ✅ CSRF module unit-tested standalone:
+  - Token is 64-hex-char string (256 bits entropy) ✓
+  - `validateCsrfToken(correctToken, correctSession)` → true ✓
+  - `validateCsrfToken(wrongToken, correctSession)` → false ✓
+  - `validateCsrfToken(correctToken, wrongSession)` → false ✓
+  - Re-issuing replaces old token (old token invalidated) ✓
+
+### Files Changed
+- NEW: `src/lib/api-error.ts` (handleApiError helper)
+- NEW: `src/lib/validation-schemas.ts` (4 Zod schemas + formatZodError)
+- NEW: `src/lib/csrf.ts` (CSRF infrastructure)
+- NEW: `src/app/api/csrf-token/route.ts` (GET endpoint)
+- MODIFIED: `src/app/api/super-admin/metrics/route.ts`
+- MODIFIED: `src/app/api/payments/create-checkout/route.ts`
+- MODIFIED: `src/app/api/payments/create-subscription/route.ts`
+- MODIFIED: `src/app/api/usuarios/route.ts` (removed auto-migrate import)
+- MODIFIED: `src/app/api/auth/register/route.ts` (added Zod)
+- MODIFIED: `src/app/api/reservas/route.ts` (added Zod)
+- MODIFIED: `src/app/api/caja/movimiento/route.ts` (added Zod)
+- MODIFIED: `src/lib/auth/config.ts` (added Zod to CredentialsProvider)
+- MODIFIED: `.env` (added Google OAuth commented placeholders with instructions)
+- MODIFIED: `.env.example` (improved Google OAuth instructions)
+- DELETED: `src/lib/auto-migrate.ts`
+
+### Manual Steps Required
+1. **Google OAuth** (optional): to enable login with Google, uncomment `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env` and fill in real credentials from Google Cloud Console.
+2. **Migrations**: `src/lib/auto-migrate.ts` was deleted. From now on, schema changes must be applied via `bun run db:migrate:deploy` (which runs `prisma migrate deploy`). The two previous auto-migration steps (dropping `TenantUser_tenantId_userId_key` index, adding `password` column to `TenantUser`) are already applied in the existing migrations directory.
+3. **CSRF enforcement**: infrastructure is ready but not enforced. To enable CSRF protection on a mutation, add at the top of the handler:
+   ```typescript
+   const csrfHeader = req.headers.get('X-CSRF-Token');
+   const session = await getAuthSession();
+   if (!session?.user?.id || !await validateCsrfToken(csrfHeader || '', session.user.id)) {
+     return NextResponse.json({ error: 'Token CSRF inválido' }, { status: 403 });
+   }
+   ```
+4. **Test user cleanup**: verification accidentally created `test@example.com` user in the dev Neon DB. Can be deleted with: `prisma` query `db.user.delete({ where: { email: 'test@example.com' } })`.
+
+Stage Summary:
+- 6 security improvements implemented without breaking existing functionality
+- All Zod schemas use safe defaults (string max lengths, enums with explicit messages, optional/nullable where appropriate)
+- All catch blocks now return generic messages to clients (no `error.message` leakage)
+- Stack traces no longer logged in production
+- Auto-migrations eliminated (security best practice — schema changes should be explicit)
+- CSRF infrastructure ready for incremental enforcement on mutations
+- Google OAuth remains opt-in via env vars (no code changes needed to enable)
+- Zero lint errors, zero new TypeScript errors

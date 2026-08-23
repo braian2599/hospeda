@@ -5,6 +5,7 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { rateLimit } from '@/lib/validation';
+import { loginSchema, formatZodError } from '@/lib/validation-schemas';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db),
@@ -29,6 +30,15 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        // ── Validación con Zod ──
+        const zodResult = loginSchema.safeParse({
+          email: credentials.email,
+          password: credentials.password,
+        });
+        if (!zodResult.success) {
+          throw new Error(formatZodError(zodResult.error));
+        }
 
         // Rate limit: 10 intentos por email cada 15 minutos
         const rl = await rateLimit(`login:${credentials.email.toLowerCase().trim()}`, 10, 15 * 60 * 1000);

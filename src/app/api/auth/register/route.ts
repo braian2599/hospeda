@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { validatePassword, rateLimit, checkBodySize } from '@/lib/validation';
+import { registerSchema, formatZodError } from '@/lib/validation-schemas';
 
 // POST /api/auth/register
 // Crea User + Tenant + TenantUser + Subscription (trial 30 días)
@@ -12,7 +13,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, password, name, hotelNombre, phone } = body;
 
-    // Validaciones
+    // ── Validación con Zod (campos críticos primero) ──
+    const zodResult = registerSchema.safeParse({ email, password, name, hotelNombre, phone });
+    if (!zodResult.success) {
+      return NextResponse.json(
+        { error: formatZodError(zodResult.error) },
+        { status: 400 }
+      );
+    }
+
+    // Validaciones manuales (fallback / adicionales)
     if (!email || !password || !name || !hotelNombre) {
       return NextResponse.json(
         { error: 'Faltan campos obligatorios: email, contraseña, nombre, nombre del hotel' },

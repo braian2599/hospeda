@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireOwner, requirePermission, AuthError } from '@/lib/auth/utils';
-import { ensureMigrations } from '@/lib/auto-migrate';
 import bcrypt from 'bcryptjs';
 import { validatePassword, rateLimit, checkBodySize } from '@/lib/validation';
 

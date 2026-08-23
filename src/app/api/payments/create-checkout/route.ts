@@ -10,6 +10,7 @@ import { getServerPlan } from '@/lib/plan-server';
 import { getMPAccessToken } from '@/lib/payments/config';
 import type { CreateCheckoutRequest, CheckoutResponse } from '@/lib/payments/types';
 import { createMercadoPagoCheckout } from '@/lib/payments/mercadopago';
+import { handleApiError } from '@/lib/api-error';
 
 // Validar que el plan sea pago (no trial)
 function validatePlan(planTipo: string): boolean {
@@ -62,26 +63,27 @@ export async function POST(request: NextRequest) {
       planNombre: plan.nombre,
       precioDisplay: plan.precioDisplay,
     });
-  } catch (error: any) {
-    console.error('[create-checkout] Error:', error?.message || error);
-    console.error('[create-checkout] Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+  } catch (error: unknown) {
+    // Log seguro: solo el mensaje, nunca el stack ni props internas
+    console.error('[create-checkout] Error:', error instanceof Error ? error.message : 'Unknown error');
 
-    if (error?.message?.includes('Mercado Pago no está configurado')) {
+    // Casos especiales con status/mensaje específicos (no exponen info sensible)
+    if (error instanceof AuthError) {
+      return handleApiError(error, 'create-checkout');
+    }
+    if (error instanceof Error && error.message.includes('Mercado Pago no está configurado')) {
       return NextResponse.json(
         { error: 'Mercado Pago no está configurado. El administrador de la plataforma debe ingresar las credenciales en Super Admin > Configuración > Mercado Pago.' },
         { status: 503 }
       );
     }
 
-    // Return MP API error details if available
-    const mpError = error?.cause?.response?.body || error?.response?.body;
+    // En dev, loguear la respuesta cruda de MP para debugging (sin exponer al cliente)
+    const mpError = (error as { cause?: { response?: { body?: unknown } }; response?: { body?: unknown } })?.cause?.response?.body || (error as { response?: { body?: unknown } })?.response?.body;
     if (mpError) {
       console.error('[create-checkout] MP API error:', JSON.stringify(mpError));
     }
 
-    return NextResponse.json(
-      { error: 'Error al crear la sesión de pago. Intentá de nuevo.' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'create-checkout');
   }
 }

@@ -8,6 +8,7 @@ import { requireOwner } from '@/lib/auth/utils';
 import { getServerPlan } from '@/lib/plan-server';
 import { getMPAccessToken } from '@/lib/payments/config';
 import { createMPSubscription } from '@/lib/payments/mp-subscriptions';
+import { handleApiError } from '@/lib/api-error';
 
 function validatePlan(planTipo: string): boolean {
   return ['basico', 'profesional', 'premium'].includes(planTipo);
@@ -111,19 +112,15 @@ export async function POST(request: NextRequest) {
       precioDisplay: plan.precioDisplay,
       message: 'Te redirigimos a Mercado Pago para autorizar el débito automático mensual.',
     });
-  } catch (error: any) {
-    console.error('[create-subscription] Error:', error?.message || error);
-
-    if (error?.message?.includes('Mercado Pago no está configurado')) {
+  } catch (error: unknown) {
+    // Casos especiales con status/mensaje específicos (no exponen info sensible)
+    if (error instanceof Error && error.message.includes('Mercado Pago no está configurado')) {
       return NextResponse.json(
         { error: 'Mercado Pago no está configurado.' },
         { status: 503 }
       );
     }
 
-    return NextResponse.json(
-      { error: `Error al crear la suscripción: ${error?.message || 'Intentá de nuevo.'}` },
-      { status: 500 }
-    );
+    return handleApiError(error, 'create-subscription');
   }
 }
