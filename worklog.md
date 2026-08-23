@@ -1763,3 +1763,37 @@ Stage Summary:
 - CSRF infrastructure ready for incremental enforcement on mutations
 - Google OAuth remains opt-in via env vars (no code changes needed to enable)
 - Zero lint errors, zero new TypeScript errors
+
+---
+Task ID: LANDING-CLEANUP
+Agent: general-purpose
+Task: Clean up landing page (src/app/page.tsx) — remove false/exaggerated info
+
+Work Log:
+- src/app/page.tsx (1438 -> 932 lines, ~506 lines removed):
+  - Imports: trimmed to only the icons still referenced. Removed `useCallback`, `AnimatedNumber` import, and lucide icons: Hotel, Receipt, Phone, Quote, Star, MapPin, FileCheck, MessageCircle, Server, Headphones, Linkedin, Twitter, Instagram, Database, Lock, Activity, PieChart, List, DollarSign, TrendingUp, Monitor, Search.
+  - navLinks: removed `{ label: 'Cómo funciona', id: 'como-funciona' }`.
+  - Removed 4 data arrays: `steps`, `stats`, `trustBadges`, `testimonials`.
+  - Removed 4 component functions: `StatsSection`, `TestimonialsSection`, `DemoPreview`, `HowItWorks`.
+  - Removed `demoTabs` const + `DemoTabKey` type alias.
+  - Removed 2 rows from `comparisonFeatures`: `API access` and `Multi-sede` (both were false advertising — feature isn't implemented).
+  - Updated FAQ answer for "¿Mis datos están seguros?": replaced "Usamos encriptación, conexiones seguras y backups automáticos." with "Cada hotel tiene sus datos completamente aislados de los demás. Usamos conexiones seguras (HTTPS) y encriptación de credenciales. Tu información nunca se comparte con terceros."
+  - Hero: secondary CTA button label changed from "Cómo funciona" -> "Ver características" and scroll target from `scrollTo('como-funciona')` -> `scrollTo('caracteristicas')` (preserves the second CTA without pointing to a removed anchor).
+  - Footer rewrite: removed `socialLinks` array (LinkedIn/Twitter/Instagram pointed to '#'), removed the entire social-icon row + divider + "Datos encriptados" Shield badge at the bottom (kept copyright only). Changed `mailto:hola@hospeda.com` -> `mailto:braian9952@gmail.com` in both the href and visible text. Removed "Cómo funciona" link from the Producto column (anchor no longer exists).
+  - LandingPage render order is now exactly: ScrollProgress, Navbar, Hero, Features, Plans, ComparisonTable, FAQ, CtaSection, Footer, BackToTop.
+
+- src/components/payments/PlanCard.tsx:
+  - PlanCard destacado badge text: "Más popular" -> "Recomendado" (the Star icon next to the text was preserved).
+  - Note: this is the only file across `src/` that contained the "Más popular" string. The existing small caption below the button — "Recomendado para la mayoría de los hoteles" — was already present and remains unchanged.
+
+Verification:
+- `bun run lint` -> exit code 0, zero warnings/errors.
+- `bun run tsc --noEmit` -> only pre-existing errors in unrelated files (api routes, ReportesModule, ReservasModule, lib/store, lib/validation, examples/, skills/); NO new errors introduced in page.tsx or PlanCard.tsx.
+- Dev server (already running on :3000) responds HTTP 200 on `/`, ~115 KB HTML.
+- HTML grep confirms: 0 occurrences of "Lo que dicen nuestros clientes", "Números que hablan", "Mirá cómo funciona", "En tres simples pasos", "María González", "Carlos Rodríguez", "API access", "Multi-sede", "hola@hospeda", "Datos encriptados", "Más popular", "Confianza comprobada".
+- HTML grep confirms: "Recomendado" (badge), "braian9952@gmail.com" (footer), "Ver características" (Hero secondary CTA) all present.
+
+Next actions (not in scope, optional follow-ups):
+- CSS classes left untouched per task rule: `.stat-icon-pulse`, `.stats-skeleton`, `.social-icon-hover`, `.premium-quote`, `.quote-fade-in`, `.scrollbar-thin`, `.feature-grid-item` remain defined in globals.css (now unused but harmless).
+- `useInView` hook still used by Features section — kept.
+- `TypewriterText`, `FadeIn`, `BackToTop`, `ScreenshotFrame` helpers all still used — kept.

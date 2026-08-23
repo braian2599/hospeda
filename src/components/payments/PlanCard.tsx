@@ -63,7 +63,7 @@ export default function PlanCard({ planTipo, destacado, onSelect, compact }: Pla
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <Badge className="px-3 py-1 gap-1">
             <Star className="w-3 h-3" />
-            Más popular
+            Recomendado
           </Badge>
         </div>
       )}

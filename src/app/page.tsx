@@ -1,21 +1,18 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Hotel, CalendarCheck, CreditCard, Users, BarChart3, Sparkles,
+  CalendarCheck, CreditCard, Users, BarChart3, Sparkles,
   ArrowRight, Check, Menu, X, Shield, Zap, Clock, Globe,
-  ChevronDown, ChevronUp, Building2, Receipt, Wrench, Mail, Phone,
-  Quote, Star, MapPin, FileCheck, MessageCircle, Server, Headphones,
-  ArrowUp, Linkedin, Twitter, Instagram,
-  Database, Lock, Activity, PieChart, List, DollarSign, TrendingUp, Monitor, Search
+  ChevronDown, ChevronUp, Building2, Wrench, Mail,
+  ArrowUp,
 } from 'lucide-react';
 import PlanCard from '@/components/payments/PlanCard';
 import CheckoutDialog from '@/components/payments/CheckoutDialog';
-import { AnimatedNumber } from '@/components/ui/animated-number';
 import type { PlanTipo } from '@/lib/plan-config';
 
 /* ─── Intersection Observer hook ─── */
@@ -69,7 +66,6 @@ function ScrollProgress() {
 const navLinks = [
   { label: 'Características', id: 'caracteristicas' },
   { label: 'Planes', id: 'planes' },
-  { label: 'Cómo funciona', id: 'como-funciona' },
   { label: 'FAQ', id: 'faq' },
 ];
 
@@ -140,27 +136,6 @@ const gridFeatures = [
   },
 ];
 
-const steps = [
-  {
-    num: '01',
-    title: 'Registra tu hotel',
-    desc: 'Creá tu cuenta en menos de 2 minutos. Solo necesitás el nombre del hotel, tu email y una contraseña.',
-    icon: Hotel,
-  },
-  {
-    num: '02',
-    title: 'Configurá tus habitaciones',
-    desc: 'Cargá tus tipos de habitación, numeración, tarifas por temporada y configurá las reglas de tu negocio.',
-    icon: Building2,
-  },
-  {
-    num: '03',
-    title: 'Comenzá a gestionar',
-    desc: 'Empezá a recibir reservas, gestionar huéspedes y llevar el control total de tu hotel desde cualquier dispositivo.',
-    icon: Sparkles,
-  },
-];
-
 const faqs = [
   {
     q: '¿Necesito tarjeta de crédito para probar?',
@@ -172,7 +147,7 @@ const faqs = [
   },
   {
     q: '¿Mis datos están seguros?',
-    a: 'Cada hotel tiene sus datos completamente aislados de los demás. Usamos encriptación, conexiones seguras y backups automáticos. Tu información nunca se comparte con terceros.',
+    a: 'Cada hotel tiene sus datos completamente aislados de los demás. Usamos conexiones seguras (HTTPS) y encriptación de credenciales. Tu información nunca se comparte con terceros.',
   },
   {
     q: '¿Funciona en el celular?',
@@ -185,75 +160,6 @@ const faqs = [
   {
     q: '¿Puedo usarlo para un hostel o solo para hoteles?',
     a: 'Hospedá funciona para cualquier tipo de alojamiento: hoteles, hostels, posadas, cabañas, departamentos turísticos y bed & breakfast. Los módulos se adaptan a tu negocio.',
-  },
-];
-
-const stats = [
-  {
-    icon: Building2,
-    value: 500,
-    format: (n: number) => `${Math.round(n)}+`,
-    label: 'hoteles confían en Hospedá',
-    iconColor: 'bg-brand-emerald/10 text-brand-emerald',
-  },
-  {
-    icon: CalendarCheck,
-    value: 50,
-    format: (n: number) => `${Math.round(n)}K+`,
-    label: 'reservas gestionadas',
-    iconColor: 'bg-brand-deep/10 text-brand-deep',
-  },
-  {
-    icon: Server,
-    value: 99.9,
-    format: (n: number) => `${n.toFixed(1)}%`,
-    label: 'uptime garantizado',
-    iconColor: 'bg-brand-emerald/10 text-brand-emerald',
-  },
-  {
-    icon: Headphones,
-    value: 24,
-    format: (n: number) => `${Math.round(n)}/7`,
-    label: 'soporte dedicado',
-    iconColor: 'bg-brand-deep/10 text-brand-deep',
-  },
-];
-
-const trustBadges = [
-  { icon: Shield, label: 'Datos encriptados' },
-  { icon: MapPin, label: 'Servidores en Argentina' },
-  { icon: FileCheck, label: 'Cumple Ley 25.326' },
-  { icon: MessageCircle, label: 'Soporte en español' },
-  { icon: Lock, label: 'SOC 2 Compliance' },
-  { icon: Activity, label: '99.9% Uptime SLA' },
-  { icon: Database, label: 'Backups diarios' },
-  { icon: FileCheck, label: 'RGPD / Ley 25.326' },
-];
-
-const testimonials = [
-  {
-    nombre: 'María González',
-    rol: 'Gerente, Hotel Sunset',
-    avatar: 'MG',
-    avatarColor: 'bg-brand-emerald',
-    texto: 'Hospedá transformó la forma en que gestionamos nuestro hotel. Antes nos llevaba horas hacer el check-in, ahora son segundos.',
-    rating: 5,
-  },
-  {
-    nombre: 'Carlos Rodríguez',
-    rol: 'Dueño, Hostel Centro',
-    avatar: 'CR',
-    avatarColor: 'bg-brand-deep',
-    texto: 'La facturación integrada con la caja nos ahorra un montón de tiempo. Los reportes son claros y útiles para tomar decisiones.',
-    rating: 5,
-  },
-  {
-    nombre: 'Laura Martínez',
-    rol: 'Administradora, Cabañas del Lago',
-    avatar: 'LM',
-    avatarColor: 'bg-warning',
-    texto: 'El soporte es excelente y siempre están dispuestos a ayudar. La interfaz es intuitiva, nuestro staff aprendió a usarla en minutos.',
-    rating: 5,
   },
 ];
 
@@ -492,8 +398,8 @@ function Hero() {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" className="cta-premium w-full sm:w-auto text-base px-8 h-12 bg-background/50 backdrop-blur-sm" onClick={() => scrollTo('como-funciona')}>
-              Cómo funciona
+            <Button variant="outline" size="lg" className="cta-premium w-full sm:w-auto text-base px-8 h-12 bg-background/50 backdrop-blur-sm" onClick={() => scrollTo('caracteristicas')}>
+              Ver características
               <ChevronDown className="w-4 h-4 ml-1" />
             </Button>
           </div>
@@ -521,70 +427,6 @@ function Hero() {
               </div>
               <span className="font-medium">Desde cualquier dispositivo</span>
             </div>
-          </div>
-        </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-/* ─── Stats Counter ─── */
-function StatsSection() {
-  const { ref, inView } = useInView(0.25);
-
-  return (
-    <section className="py-16 sm:py-20 bg-gradient-to-b from-background to-primary/5 relative overflow-hidden">
-      {/* Subtle decorative pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
-
-      <div ref={ref} className="mx-auto max-w-6xl px-4 sm:px-6 relative">
-        <FadeIn>
-          <div className="text-center mb-12">
-            <Badge variant="secondary" className="mb-3 gap-1.5">
-              <BarChart3 className="w-3.5 h-3.5" />
-              Confianza comprobada
-            </Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-brand-deep">
-              Números que hablan por sí solos
-            </h2>
-          </div>
-        </FadeIn>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((s, i) => (
-            <FadeIn key={s.label} delay={i * 100}>
-              <div className="group relative p-6 text-center bg-gradient-to-br from-primary/5 to-background border border-primary/20 rounded-2xl hover:shadow-xl hover:shadow-brand-emerald/10 hover:-translate-y-1 transition-all duration-300 h-full overflow-hidden">
-                {/* Decorative gradient ring around icon */}
-                <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-gradient-to-br from-brand-emerald/15 to-transparent opacity-50 group-hover:opacity-80 group-hover:scale-110 transition-all duration-500" />
-
-                <div className={`stat-icon-pulse w-14 h-14 rounded-2xl ${s.iconColor} flex items-center justify-center mx-auto mb-4 shadow-sm ring-4 ring-foreground/20`}>
-                  <s.icon className="w-7 h-7" />
-                </div>
-                <div className="text-4xl sm:text-5xl font-extrabold text-brand-deep tabular-nums">
-                  {inView ? (
-                    <AnimatedNumber value={s.value} duration={1500} format={s.format} />
-                  ) : (
-                    <span className="stats-skeleton">&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                  )}
-                </div>
-                <div className="text-sm text-muted-foreground mt-2 font-medium">{s.label}</div>
-              </div>
-            </FadeIn>
-          ))}
-        </div>
-
-        {/* Trust badges — horizontal scroll on mobile */}
-        <FadeIn delay={400}>
-          <div className="mt-12 flex items-center gap-3 overflow-x-auto pb-2 snap-x snap-mandatory sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0 scrollbar-thin">
-            {trustBadges.map((b) => (
-              <div
-                key={b.label}
-                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background/70 border border-primary/25 text-primary text-sm font-medium shadow-sm hover:shadow-md hover:border-brand-emerald/40 transition-all duration-200 snap-start shrink-0"
-              >
-                <b.icon className="w-4 h-4 text-brand-emerald group-hover:scale-110 transition-transform" />
-                {b.label}
-              </div>
-            ))}
           </div>
         </FadeIn>
       </div>
@@ -757,114 +599,6 @@ function Features() {
   );
 }
 
-/* ─── Testimonials ─── */
-function TestimonialsSection() {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-
-  useEffect(() => {
-    if (isHovered) return;
-    const timer = setInterval(() => {
-      setActiveIdx((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [isHovered]);
-
-  return (
-    <section className="py-24 sm:py-32 bg-gradient-to-b from-primary/5 via-background to-background relative overflow-hidden">
-      {/* Decorative gradient orbs */}
-      <div className="absolute top-10 left-10 w-72 h-72 bg-brand-emerald/6 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-80 h-80 bg-brand-deep/5 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 relative">
-        <FadeIn>
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <Badge variant="secondary" className="mb-4 gap-1.5">
-              <Quote className="w-3.5 h-3.5" />
-              Testimonios
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-              Lo que dicen nuestros clientes
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              Hoteles, hostels y cabañas de todo el país ya gestionan su operación con Hospedá.
-            </p>
-          </div>
-        </FadeIn>
-
-        {/* Desktop: all cards visible; Mobile: carousel */}
-        <div
-          className="grid md:grid-cols-3 gap-6"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          {testimonials.map((t, i) => {
-            const isMobileActive = i === activeIdx;
-            return (
-              <div
-                key={t.nombre}
-                className={`
-                  feature-grid-item relative p-7 bg-card border border-border rounded-2xl shadow-sm h-full flex flex-col overflow-hidden
-                  transition-all duration-300
-                  md:opacity-100 md:translate-x-0 md:scale-100
-                  ${isMobileActive ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-8 scale-95 pointer-events-none absolute'}
-                  md:!relative md:!pointer-events-auto
-                `}
-                style={{ animationDelay: `${i * 120}ms` }}
-              >
-                {/* Top-right accent gradient blob */}
-                <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-gradient-to-br from-brand-emerald/12 to-transparent blur-xl pointer-events-none" />
-
-                {/* Large premium quote mark with fade-in */}
-                <div className="absolute top-3 right-4 premium-quote quote-fade-in select-none pointer-events-none" aria-hidden="true">
-                  &ldquo;
-                </div>
-
-                {/* Star rating */}
-                <div className="flex gap-0.5 mb-4 relative z-10">
-                  {Array.from({ length: t.rating }, (_, idx) => (
-                    <Star key={idx} className="w-4 h-4 fill-brand-amber text-brand-amber" />
-                  ))}
-                </div>
-
-                <p className="italic text-foreground/85 leading-relaxed flex-1 relative z-10 text-[15px]">
-                  &ldquo;{t.texto}&rdquo;
-                </p>
-
-                <div className="my-5 border-t border-border/80" />
-
-                <div className="flex items-center gap-3 relative z-10">
-                  <div className={`w-12 h-12 rounded-full ${t.avatarColor} text-white flex items-center justify-center font-semibold text-sm shrink-0 shadow-md ring-2 ring-background`}>
-                    {t.avatar}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-semibold text-sm truncate">{t.nombre}</div>
-                    <div className="text-xs text-muted-foreground truncate">{t.rol}</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Mobile carousel dots */}
-        <div className="flex items-center justify-center gap-2 mt-6 md:hidden">
-          {testimonials.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveIdx(i)}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                i === activeIdx ? 'bg-brand-emerald w-6' : 'bg-brand-emerald/25'
-              }`}
-              aria-label={`Testimonio ${i + 1}`}
-            />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ─── Plans ─── */
 function Plans() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -951,8 +685,6 @@ const comparisonFeatures = [
   { feature: 'Clientes', basico: true, profesional: true, premium: true },
   { feature: 'Tarifas', basico: true, profesional: true, premium: true },
   { feature: 'Soporte prioritario', basico: false, profesional: true, premium: true },
-  { feature: 'API access', basico: false, profesional: false, premium: true },
-  { feature: 'Multi-sede', basico: false, profesional: false, premium: true },
 ];
 
 function ComparisonTable() {
@@ -1006,214 +738,6 @@ function ComparisonTable() {
             </table>
           </div>
         </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-/* ─── Interactive Demo Preview ─── */
-const demoTabs = [
-  {
-    key: 'reservas',
-    label: 'Reservas',
-    icon: CalendarCheck,
-    content: {
-      title: 'Gestión de Reservas',
-      subtitle: 'Visualizá y gestioná todas tus reservas en un solo lugar',
-      rows: [
-        { habitacion: '101 - Doble', huesped: 'María González', checkin: '15 Mar', checkout: '18 Mar', estado: 'Confirmada', estadoColor: 'bg-brand-emerald/15 text-brand-emerald' },
-        { habitacion: '205 - Suite', huesped: 'Carlos Rodríguez', checkin: '16 Mar', checkout: '20 Mar', estado: 'Check-In', estadoColor: 'bg-info/15 text-info' },
-        { habitacion: '310 - Simple', huesped: 'Ana López', checkin: '17 Mar', checkout: '19 Mar', estado: 'Pendiente', estadoColor: 'bg-warning/15 text-warning' },
-      ],
-    },
-  },
-  {
-    key: 'facturacion',
-    label: 'Facturación',
-    icon: Receipt,
-    content: {
-      title: 'Facturación y Pagos',
-      subtitle: 'Controlá los pagos y la facturación de tu hotel',
-      rows: [
-        { habitacion: 'Factura #1247', huesped: 'María González', checkin: '$45.000', checkout: 'Pagado', estado: 'Completo', estadoColor: 'bg-brand-emerald/15 text-brand-emerald' },
-        { habitacion: 'Factura #1248', huesped: 'Laura Martínez', checkin: '$78.500', checkout: 'Parcial', estado: '$32.000 pagado', estadoColor: 'bg-warning/15 text-warning' },
-        { habitacion: 'Factura #1249', huesped: 'Roberto Díaz', checkin: '$23.000', checkout: 'Pendiente', estado: 'Sin pago', estadoColor: 'bg-destructive/15 text-destructive' },
-      ],
-    },
-  },
-  {
-    key: 'reportes',
-    label: 'Reportes',
-    icon: BarChart3,
-    content: {
-      title: 'Reportes y Estadísticas',
-      subtitle: 'Métricas clave para tomar mejores decisiones',
-      rows: [
-        { habitacion: 'Ocupación mensual', huesped: '', checkin: '87.3%', checkout: '', estado: '↑ 5.2% vs mes anterior', estadoColor: 'bg-brand-emerald/15 text-brand-emerald' },
-        { habitacion: 'Ingresos del mes', huesped: '', checkin: '$1.245.000', checkout: '', estado: '↑ 12.8% vs mes anterior', estadoColor: 'bg-brand-emerald/15 text-brand-emerald' },
-        { habitacion: 'RevPAR', huesped: '', checkin: '$15.620', checkout: '', estado: '↑ 3.1% vs mes anterior', estadoColor: 'bg-brand-emerald/15 text-brand-emerald' },
-      ],
-    },
-  },
-] as const;
-
-type DemoTabKey = typeof demoTabs[number]['key'];
-
-function DemoPreview() {
-  const [activeTab, setActiveTab] = useState<DemoTabKey>('reservas');
-  const activeDemo = demoTabs.find((t) => t.key === activeTab)!;
-
-  return (
-    <section className="py-24 sm:py-32">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6">
-        <FadeIn>
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <Badge variant="secondary" className="mb-4">Demo interactiva</Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-              Mirá cómo funciona
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              Explorá las pantallas principales de Hospedá sin salir de esta página.
-            </p>
-          </div>
-        </FadeIn>
-
-        {/* Tab buttons */}
-        <FadeIn delay={80}>
-          <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
-            {demoTabs.map((tab) => {
-              const isActive = tab.key === activeTab;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                    isActive
-                      ? 'bg-brand-deep text-white shadow-md shadow-brand-deep/20'
-                      : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
-                >
-                  <tab.icon className="w-4 h-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </FadeIn>
-
-        {/* Mock UI preview card */}
-        <FadeIn delay={150}>
-          <div className="relative rounded-2xl border border-border bg-muted/20 overflow-hidden shadow-xl shadow-black/[0.06]">
-            {/* Browser chrome header */}
-            <div className="flex items-center gap-1.5 px-4 py-3 bg-muted/50 border-b border-border/60">
-              <span className="w-2.5 h-2.5 rounded-full bg-destructive/80" />
-              <span className="w-2.5 h-2.5 rounded-full bg-warning/80" />
-              <span className="w-2.5 h-2.5 rounded-full bg-success/80" />
-              <span className="ml-3 text-[11px] text-muted-foreground/60 font-mono">hospeda.app/{activeTab}</span>
-            </div>
-
-            {/* Content area */}
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground/70">{activeDemo.content.title}</h3>
-                  <p className="text-sm text-muted-foreground/60">{activeDemo.content.subtitle}</p>
-                </div>
-                <div className="hidden sm:flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
-                    <Search className="w-4 h-4 text-muted-foreground/50" />
-                  </div>
-                  <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
-                    <List className="w-4 h-4 text-muted-foreground/50" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Mock table rows */}
-              <div className="space-y-2">
-                {/* Table header */}
-                <div className="grid grid-cols-4 gap-3 px-4 py-2 text-xs font-medium text-muted-foreground/50 uppercase tracking-wider">
-                  <span>{activeTab === 'facturacion' ? 'Factura' : activeTab === 'reportes' ? 'Métrica' : 'Habitación'}</span>
-                  <span>{activeTab === 'reportes' ? '' : 'Huésped'}</span>
-                  <span>{activeTab === 'reservas' ? 'Check-In' : activeTab === 'facturacion' ? 'Monto' : 'Valor'}</span>
-                  <span className="text-right">Estado</span>
-                </div>
-                {activeDemo.content.rows.map((row, i) => (
-                  <div
-                    key={i}
-                    className="grid grid-cols-4 gap-3 px-4 py-3 rounded-lg bg-card/60 border border-border/40 items-center"
-                  >
-                    <span className="text-sm font-medium text-foreground/70 truncate">{row.habitacion}</span>
-                    <span className="text-sm text-muted-foreground/60 truncate">{row.huesped}</span>
-                    <span className="text-sm text-foreground/70">{row.checkin}</span>
-                    <div className="flex justify-end">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.estadoColor}`}>
-                        {row.estado}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* CTA */}
-              <div className="mt-8 text-center">
-                <Button
-                  asChild
-                  className="bg-brand-deep hover:bg-brand-deep/90 text-white px-8 h-11"
-                >
-                  <Link href="/register">
-                    Probá gratis
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-/* ─── How it works ─── */
-function HowItWorks() {
-  return (
-    <section id="como-funciona" className="py-24 sm:py-32">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <FadeIn>
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <Badge variant="secondary" className="mb-4">Cómo funciona</Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-              En tres simples pasos
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              Desde el registro hasta la primera reserva, en minutos.
-            </p>
-          </div>
-        </FadeIn>
-
-        <div className="grid md:grid-cols-3 gap-8 lg:gap-12 relative">
-          {/* Connecting line (desktop) */}
-          <div className="hidden md:block absolute top-12 left-[calc(16.67%+1.5rem)] right-[calc(16.67%+1.5rem)] h-px border-t-2 border-dashed border-primary/20" />
-
-          {steps.map((s, i) => (
-            <FadeIn key={s.num} delay={i * 150}>
-              <div className="relative text-center">
-                <div className="w-24 h-24 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center mx-auto mb-6 relative">
-                  <s.icon className="w-10 h-10 text-primary/70" />
-                  <div className="absolute -top-2.5 -right-2.5 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shadow-md">
-                    {s.num}
-                  </div>
-                </div>
-
-                <h3 className="font-semibold text-lg mb-2">{s.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
-                  {s.desc}
-                </p>
-              </div>
-            </FadeIn>
-          ))}
-        </div>
       </div>
     </section>
   );
@@ -1325,13 +849,6 @@ function CtaSection() {
 
 /* ─── Footer ─── */
 function Footer() {
-  const socialLinks = [
-    { icon: Linkedin, label: 'LinkedIn', href: '#' },
-    { icon: Twitter, label: 'Twitter', href: '#' },
-    { icon: Instagram, label: 'Instagram', href: '#' },
-    { icon: Mail, label: 'Email', href: 'mailto:hola@hospeda.com' },
-  ];
-
   return (
     <footer className="footer-wave-divider border-t border-border bg-secondary/20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16">
@@ -1355,7 +872,6 @@ function Footer() {
             <ul className="space-y-2.5">
               <li><button onClick={() => scrollTo('caracteristicas')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Características</button></li>
               <li><button onClick={() => scrollTo('planes')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Planes y precios</button></li>
-              <li><button onClick={() => scrollTo('como-funciona')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Cómo funciona</button></li>
               <li><button onClick={() => scrollTo('faq')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</button></li>
             </ul>
           </div>
@@ -1374,9 +890,9 @@ function Footer() {
             <h4 className="font-semibold text-sm mb-4">Contacto</h4>
             <ul className="space-y-2.5">
               <li>
-                <a href="mailto:hola@hospeda.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <a href="mailto:braian9952@gmail.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                   <Mail className="w-3.5 h-3.5" />
-                  hola@hospeda.com
+                  braian9952@gmail.com
                 </a>
               </li>
             </ul>
@@ -1387,24 +903,6 @@ function Footer() {
           <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} Hospedá. Todos los derechos reservados.
           </p>
-          <div className="flex items-center gap-3">
-            {/* Social media icons with hover animations */}
-            {socialLinks.map((s) => (
-              <a
-                key={s.label}
-                href={s.href}
-                className="social-icon-hover text-muted-foreground hover:text-brand-emerald"
-                aria-label={s.label}
-              >
-                <s.icon className="w-4 h-4" />
-              </a>
-            ))}
-            <div className="w-px h-3 bg-border mx-1" />
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Shield className="w-3 h-3" />
-              <span>Datos encriptados</span>
-            </div>
-          </div>
         </div>
       </div>
     </footer>
@@ -1421,13 +919,9 @@ export default function LandingPage() {
       <Navbar />
       <main className="flex-1">
         <Hero />
-        <StatsSection />
         <Features />
-        <DemoPreview />
-        <TestimonialsSection />
         <Plans />
         <ComparisonTable />
-        <HowItWorks />
         <FAQ />
         <CtaSection />
       </main>
