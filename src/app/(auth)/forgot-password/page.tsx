@@ -80,13 +80,6 @@ export default function ForgotPasswordPage() {
   // ── FORM ──
   return (
     <AuthShell maxWidth={440}>
-      {/* Logo */}
-      <div className="flex items-center justify-center gap-2.5 mb-6">
-        <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/30">
-          H
-        </div>
-      </div>
-
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">Recuperar contraseña</h1>
         <p className="text-sm text-slate-500">Te enviaremos un enlace para crear una nueva</p>

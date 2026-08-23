@@ -1,6 +1,7 @@
 'use client';
 
 import { type ReactNode } from 'react';
+import Image from 'next/image';
 
 /**
  * AuthShell — Fondo full-bleed teal con patrón de puntos + blobs + card flotante.
@@ -8,15 +9,19 @@ import { type ReactNode } from 'react';
  * para mantener consistencia visual en todas las pantallas de auth.
  *
  * Modo claro únicamente (según especificación del proyecto).
+ *
+ * Incluye el logo de Hospedá por defecto al inicio de la card.
  */
 
 interface AuthShellProps {
   children: ReactNode;
   /** Ancho máximo de la card flotante. Default: 460px */
   maxWidth?: number;
+  /** Mostrar el logo de Hospedá arriba de la card. Default: true */
+  showLogo?: boolean;
 }
 
-export default function AuthShell({ children, maxWidth = 460 }: AuthShellProps) {
+export default function AuthShell({ children, maxWidth = 460, showLogo = true }: AuthShellProps) {
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
       {/* ── Fondo teal full-bleed ── */}
@@ -58,6 +63,7 @@ export default function AuthShell({ children, maxWidth = 460 }: AuthShellProps) 
           animation: 'authCardEntry 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
         }}
       >
+        {showLogo && <AuthLogo />}
         {children}
       </div>
 
@@ -68,6 +74,27 @@ export default function AuthShell({ children, maxWidth = 460 }: AuthShellProps) 
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
+    </div>
+  );
+}
+
+/**
+ * Logo de Hospedá — contenedor circular blanco con sombra.
+ * Se muestra centrado arriba del contenido de la card.
+ */
+function AuthLogo() {
+  return (
+    <div className="flex items-center justify-center mb-6">
+      <div className="w-14 h-14 rounded-2xl bg-white shadow-lg shadow-primary/20 flex items-center justify-center overflow-hidden ring-1 ring-slate-100">
+        <Image
+          src="/logo.png"
+          alt="Hospedá"
+          width={40}
+          height={40}
+          className="object-contain"
+          priority
+        />
+      </div>
     </div>
   );
 }

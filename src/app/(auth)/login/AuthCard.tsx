@@ -122,8 +122,6 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
   if (mode === 'login') {
     return (
       <AuthShell>
-        <AuthLogo />
-
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-slate-900 mb-1">Bienvenido a Hospedá</h1>
           <p className="text-sm text-slate-500">Ingresá para gestionar tu hotel</p>
@@ -210,8 +208,6 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
   // ── SIGNUP MODE ──
   return (
     <AuthShell maxWidth={520}>
-      <AuthLogo />
-
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">Crear cuenta</h1>
         <p className="text-sm text-slate-500">30 días de prueba gratuita · Sin tarjeta de crédito</p>
@@ -300,16 +296,6 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
 }
 
 // ── SUB-COMPONENTS ──
-
-function AuthLogo() {
-  return (
-    <div className="flex items-center justify-center gap-2.5 mb-6">
-      <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/30">
-        H
-      </div>
-    </div>
-  );
-}
 
 function GoogleButton({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
