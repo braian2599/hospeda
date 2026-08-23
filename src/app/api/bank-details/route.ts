@@ -2,9 +2,11 @@
 // Devuelve los datos bancarios públicos para que los hoteles puedan transferir.
 // Es público (no requiere auth) — lo usa el módulo de Suscripción.
 // NO expone credenciales de Mercado Pago ni configuración sensible.
+// Tiene rate limiting por IP para prevenir scraping.
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { rateLimit } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +21,17 @@ const BANK_KEYS = [
   'bank_comprobante_telefono',
 ] as const;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Rate limit por IP — 30 requests por minuto
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'unknown';
+  const rl = rateLimit(`bank-details:${ip}`, 30, 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Demasiadas requests. Intentá de nuevo en un minuto.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const configs = await db.platformConfig.findMany({
       where: { key: { in: [...BANK_KEYS] } },

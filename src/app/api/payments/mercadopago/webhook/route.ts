@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMercadoPagoPayment, verifyMercadoPagoSignature } from '@/lib/payments/mercadopago';
 import { getMPSubscription } from '@/lib/payments/mp-subscriptions';
+import { validatePaymentAmount, validatePreapprovalAmount } from '@/lib/payments/validation';
 import { db } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
@@ -83,7 +84,36 @@ export async function POST(request: NextRequest) {
     // Manejar según estado del pago
     switch (status) {
       case 'approved': {
-        console.log(`[mp-webhook] Pago aprobado: tenant=${tenantId}, plan=${planTipo}`);
+        console.log(`[mp-webhook] Pago aprobado: tenant=${tenantId}, plan=${planTipo}, amount=${mpAmount}`);
+
+        // ── VALIDACIÓN DE SEGURIDAD: verificar que el monto pagado coincida con el precio del plan ──
+        // Esto previene que un atacante pague $1 y active un plan premium
+        const amountValidation = await validatePaymentAmount(planTipo, mpAmount);
+        if (!amountValidation.valid) {
+          console.error(`[mp-webhook] Pago RECHAZADO — monto inválido. Tenant: ${tenantId}, Plan: ${planTipo}, Monto: ${mpAmount}. Motivo: ${amountValidation.reason}`);
+
+          // Registrar el pago como fallido para tener auditoría del intento
+          await db.platformPayment.create({
+            data: {
+              tenantId,
+              subscriptionId: subscription.id,
+              monto: mpAmount,
+              moneda: 'ARS',
+              metodo: 'mercadopago',
+              estado: 'fallido',
+              periodoDesde: new Date(),
+              periodoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              externalId: String(paymentId),
+              nota: `PAGO RECHAZADO POR MONTO INSUFICIENTE — ${amountValidation.reason} — Plan solicitado: ${planTipo} — Método: ${mpPaymentMethod}`,
+            },
+          });
+
+          // NO activar la suscripción — salir
+          return NextResponse.json(
+            { received: true, rejected: true, reason: amountValidation.reason },
+            { status: 200 }
+          );
+        }
 
         // Si es suscripción recurrente, extender al día 10 del mes próximo
         let fechaVencimiento: Date;
@@ -113,12 +143,12 @@ export async function POST(request: NextRequest) {
           fechaVencimiento.setDate(fechaVencimiento.getDate() + 30);
         }
 
-        // Actualizar suscripción
+        // Actualizar suscripción — el planId solo se actualiza si el pago fue validado
         await db.subscription.update({
           where: { tenantId },
           data: {
             estado: 'activa',
-            planId: plan?.id || subscription.planId,
+            planId: amountValidation.plan?.id || plan?.id || subscription.planId,
             paymentProviderId: String(paymentId),
             trialUsado: true,
             fechaVencimiento,
@@ -244,8 +274,19 @@ async function handlePreapprovalEvent(preapprovalId: string | undefined) {
 
   switch (mpStatus) {
     case 'authorized': {
+      // ── VALIDACIÓN DE SEGURIDAD: verificar que el monto del preapproval coincida con el precio del plan ──
+      const transactionAmount = preapproval.auto_recurring?.transaction_amount || 0;
+      const amountValidation = await validatePreapprovalAmount(planTipo, transactionAmount);
+      if (!amountValidation.valid) {
+        console.error(`[mp-webhook] Preapproval RECHAZADO — monto inválido. Tenant: ${tenantId}, Plan: ${planTipo}, Amount: ${transactionAmount}. Motivo: ${amountValidation.reason}`);
+        // No actualizamos la suscripción a 'activa' — queda en 'pendiente_pago'
+        return NextResponse.json(
+          { received: true, rejected: true, reason: amountValidation.reason },
+          { status: 200 }
+        );
+      }
+
       // Suscripción autorizada — el usuario completó el flujo
-      const plan = await db.plan.findFirst({ where: { type: planTipo as any } });
       const now = new Date();
       const tenthOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10);
 
@@ -253,7 +294,7 @@ async function handlePreapprovalEvent(preapprovalId: string | undefined) {
         where: { mpPreapprovalId: preapprovalId },
         data: {
           estado: 'activa',
-          ...(plan ? { planId: plan.id } : {}),
+          ...(amountValidation.plan ? { planId: amountValidation.plan.id } : {}),
           trialUsado: true,
           esRecurrente: true,
           fechaVencimiento: tenthOfNextMonth,
@@ -299,21 +340,8 @@ async function handlePreapprovalEvent(preapprovalId: string | undefined) {
 }
 
 // GET para verificación de MP (a veces envían GET antes del POST)
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const topic = searchParams.get('topic');
-  const id = searchParams.get('id');
-
-  console.log(`[mp-webhook] GET verification: topic=${topic}, id=${id}`);
-
-  if (topic === 'payment' && id) {
-    try {
-      const payment = await getMercadoPagoPayment(id);
-      return NextResponse.json({ status: payment?.status });
-    } catch {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    }
-  }
-
+// POR SEGURIDAD: no devolvemos información de pagos sin validar firma.
+// MP usa el GET solo como ping de verificación, no necesita respuesta con datos.
+export async function GET() {
   return NextResponse.json({ received: true });
 }

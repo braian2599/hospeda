@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requirePermission, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { requirePermission, requireActiveSubscription, AuthError, getAuthSession } from '@/lib/auth/utils';
 
 // POST /api/caja/movimiento — Registrar un movimiento (ingreso/egreso)
 // Si es un egreso con categoriaGastoNombre, crea también un Gasto atómicamente.
 export async function POST(req: NextRequest) {
   try {
     const tenantId = await requirePermission('caja');
+    await requireActiveSubscription(tenantId);
     const body = await req.json();
     const { tipo, monto, descripcion, metodo, reservaId, categoriaGastoNombre } = body;
 

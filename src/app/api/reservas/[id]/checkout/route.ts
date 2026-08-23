@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requirePermission, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { requirePermission, requireActiveSubscription, AuthError, getAuthSession } from '@/lib/auth/utils';
 
 // ─────────────────────────────────────────────────────────
 // POST /api/reservas/[id]/checkout — Realizar check-out
@@ -11,6 +11,7 @@ export async function POST(
 ) {
   try {
     const tenantId = await requirePermission('checkin');
+    await requireActiveSubscription(tenantId);
     const session = await getAuthSession();
     const { id } = await params;
     const body = await req.json().catch(() => ({}));

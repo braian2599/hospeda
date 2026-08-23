@@ -46,7 +46,7 @@ export async function requireTenantId(): Promise<string> {
 
 /**
  * Requiere que el usuario sea owner del tenant actual.
- * Lanza AuthError(403) si no es owner.
+ * Lanza AuthError(403) si no es owner o si el tenant está desactivado.
  */
 export async function requireOwner(): Promise<string> {
   const session = await getAuthSession();
@@ -68,6 +68,16 @@ export async function requireOwner(): Promise<string> {
   if (!tenantUser) {
     throw new AuthError('Acceso denegado. Solo el propietario puede acceder.', 403);
   }
+
+  // Verificar que el tenant esté activo (previene acceso de usuarios de tenants desactivados)
+  const tenant = await db.tenant.findUnique({
+    where: { id: tenantId },
+    select: { activo: true },
+  });
+  if (!tenant?.activo) {
+    throw new AuthError('Esta cuenta está desactivada. Contactá al administrador de la plataforma.', 403);
+  }
+
   return tenantUser.tenantId;
 }
 
@@ -109,6 +119,15 @@ export async function requirePermission(permission: string | string[]): Promise<
     throw new AuthError('Acceso denegado', 403);
   }
 
+  // Verificar que el tenant esté activo (previene acceso de usuarios de tenants desactivados)
+  const tenant = await db.tenant.findUnique({
+    where: { id: tenantId },
+    select: { activo: true },
+  });
+  if (!tenant?.activo) {
+    throw new AuthError('Esta cuenta está desactivada. Contactá al administrador de la plataforma.', 403);
+  }
+
   // Owner y admin tienen acceso a todo
   if (tenantUser.rol === 'owner' || tenantUser.rol === 'admin') {
     return tenantId;
@@ -122,6 +141,37 @@ export async function requirePermission(permission: string | string[]): Promise<
   }
 
   return tenantId;
+}
+
+/**
+ * Requiere que la suscripción del tenant esté activa y vigente.
+ * Úsalo en operaciones críticas (crear reservas, check-in, pagos, etc.)
+ * para prevenir que tenants con suscripción vencida sigan operando.
+ *
+ * Debe llamarse DESPUÉS de requirePermission/requireOwner/requireTenantId.
+ * Lanza AuthError(403) si la suscripción está vencida o no activa.
+ */
+export async function requireActiveSubscription(tenantId: string): Promise<void> {
+  const { db } = await import('@/lib/db');
+
+  const subscription = await db.subscription.findUnique({
+    where: { tenantId },
+    select: { estado: true, fechaVencimiento: true },
+  });
+
+  if (!subscription) {
+    throw new AuthError('No hay suscripción activa. Contactá al administrador.', 403);
+  }
+
+  // Estados permitidos para operar: 'activa' y 'trial'
+  if (subscription.estado !== 'activa' && subscription.estado !== 'trial') {
+    throw new AuthError(`Tu suscripción está ${subscription.estado}. Regularizá tu pago para continuar.`, 403);
+  }
+
+  // Verificar que no esté vencida (fechaVencimiento en el pasado)
+  if (subscription.fechaVencimiento && subscription.fechaVencimiento < new Date()) {
+    throw new AuthError('Tu suscripción está vencida. Regularizá tu pago para continuar.', 403);
+  }
 }
 
 /**

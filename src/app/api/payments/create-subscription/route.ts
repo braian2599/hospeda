@@ -69,23 +69,25 @@ export async function POST(request: NextRequest) {
     });
 
     // Guardar el preapprovalId en la suscripción (aún pendiente de autorización)
+    // IMPORTANTE: NO cambiamos planId aquí — se actualiza solo cuando el webhook
+    // confirma el pago con monto válido. Esto previene que un usuario vea "Premium"
+    // antes de pagar (solo cambia el estado a pendiente_pago).
     const planRecord = await db.plan.findFirst({ where: { type: planTipo as any } });
+    if (!planRecord) {
+      return NextResponse.json({ error: 'Plan no encontrado. Intentá de nuevo.' }, { status: 400 });
+    }
+
     const now = new Date();
     const tenthOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10);
-
-    const effectivePlanId = planRecord?.id || existingSub?.planId;
-    if (!effectivePlanId) {
-      return NextResponse.json({ error: 'No se pudo determinar el plan. Intentá de nuevo.' }, { status: 400 });
-    }
 
     await db.subscription.upsert({
       where: { tenantId: authTenantId },
       create: {
         tenantId: authTenantId,
-        planId: effectivePlanId,
+        planId: existingSub?.planId || planRecord.id, // en create usamos el plan actual o el nuevo
         estado: 'pendiente_pago',
         fechaInicio: now,
-        fechaVencimiento: tenthOfNextMonth,
+        fechaVencimiento: existingSub?.fechaVencimiento || tenthOfNextMonth,
         trialUsado: true,
         mpPreapprovalId: result.preapprovalId,
         esRecurrente: true,
@@ -96,8 +98,7 @@ export async function POST(request: NextRequest) {
         mpPreapprovalId: result.preapprovalId,
         esRecurrente: true,
         proximoCobro: tenthOfNextMonth,
-        // Si cambiando de plan, actualizar también
-        ...(planRecord ? { planId: planRecord.id } : {}),
+        // NO actualizamos planId aquí — se cambia solo cuando el webhook valida el pago
       },
     });
 

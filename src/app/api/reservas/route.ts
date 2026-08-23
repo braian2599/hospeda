@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requirePermission, getAuthSession, AuthError } from '@/lib/auth/utils';
+import { requirePermission, requireActiveSubscription, getAuthSession, AuthError } from '@/lib/auth/utils';
 import { Prisma } from '@prisma/client';
 
 // ─────────────────────────────────────────────────────────
@@ -73,6 +73,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const tenantId = await requirePermission('reservas');
+    await requireActiveSubscription(tenantId);
     const session = await getAuthSession();
     const empleadoNombre = session?.user?.name || 'Sistema';
     const body = await req.json();
