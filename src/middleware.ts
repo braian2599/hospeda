@@ -1,15 +1,19 @@
 // ── Middleware global de seguridad ──
 //
-// Aplica rate limiting distribuido a TODAS las rutas /api/*
-// usando Upstash Redis (Edge-compatible).
+// Aplica rate limiting distribuido a las rutas /api/* usando Upstash Redis.
 //
-// Si Redis no está configurado, el middleware pasa directo
-// (los rate limits individuales de cada API route siguen funcionando).
+// EXCLUSIONES: Las rutas /api/auth/* están excluidas del rate limiting del
+// middleware porque NextAuth tiene su propia protección (CSRF tokens, cookies
+// firmadas). El flujo de OAuth de Google hace varios requests rápidos que
+// no deben ser bloqueados.
 //
-// Límites:
+// Las rutas /api/auth/login, /api/auth/me, /api/auth/forgot-password
+// ya tienen rate limiting individual dentro de cada API route.
+//
+// Límites del middleware:
 //   - Mutaciones (POST/PUT/PATCH/DELETE): 60 req/min por IP
 //   - Queries (GET): 120 req/min por IP
-//   - Endpoints públicos sin auth (/api/auth/*, /api/bank-details, etc.): 30 req/min por IP
+//   - Endpoints públicos sensibles: 30 req/min por IP
 
 import { NextRequest, NextResponse } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
@@ -34,10 +38,6 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 
 // Rutas que requieren límites más estrictos (públicas, sin auth)
 const STRICT_ROUTES = [
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/forgot-password',
-  '/api/auth/me',
   '/api/bank-details',
   '/api/support-email',
   '/api/plans',
@@ -46,13 +46,22 @@ const STRICT_ROUTES = [
 ];
 
 export async function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname;
+
   // Solo aplicar a /api/*
-  if (!req.nextUrl.pathname.startsWith('/api/')) {
+  if (!path.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
+  // ── EXCLUIR rutas de NextAuth ──
+  // NextAuth tiene su propia protección (CSRF, cookies firmadas).
+  // El flujo de OAuth hace varios requests rápidos que no deben bloquearse.
+  // Estas rutas ya tienen rate limiting individual dentro de cada route.
+  if (path.startsWith('/api/auth/')) {
     return NextResponse.next();
   }
 
   // Si Redis no está configurado, pasar directo
-  // (los rate limits individuales de cada route siguen funcionando)
   if (!ratelimiter) {
     return NextResponse.next();
   }
@@ -62,7 +71,6 @@ export async function middleware(req: NextRequest) {
     || req.headers.get('x-real-ip')
     || 'unknown';
 
-  const path = req.nextUrl.pathname;
   const method = req.method;
 
   // Determinar límite según tipo de ruta
@@ -78,7 +86,6 @@ export async function middleware(req: NextRequest) {
 
   try {
     const { success, reset } = await ratelimiter.limit(limitKey, {
-      // Límites diferentes según tipo
       rate: isStrict ? 30 : isMutation ? 60 : 120,
       period: 60, // 1 minuto
     });
@@ -98,7 +105,6 @@ export async function middleware(req: NextRequest) {
       );
     }
 
-    // Agregar headers informativos
     const response = NextResponse.next();
     response.headers.set('X-RateLimit-Policy', isStrict ? 'strict' : isMutation ? 'mutation' : 'query');
     return response;
@@ -110,5 +116,9 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/:path*'],
+  // Excluir /api/auth/* del matcher para que el middleware ni siquiera se ejecute
+  // en esas rutas (más eficiente que el check dentro del middleware)
+  matcher: [
+    '/api/((?!auth/).*)',
+  ],
 };
