@@ -5,10 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Eye, EyeOff, Loader2, CheckCircle2, ArrowLeft, Mail } from 'lucide-react';
+import { Eye, EyeOff, Loader2, CheckCircle2, ArrowLeft, Mail, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import AuthShell from '../AuthShell';
 
 function AcceptInvitationForm() {
   const router = useRouter();
@@ -22,50 +22,46 @@ function AcceptInvitationForm() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
+  // ── ERROR: faltan parámetros ──
   if (!token || !email) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/hotel-bg.png')" }} />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)', backdropFilter: 'blur(2px)' }} />
-        <div className="flex-1 flex items-center justify-center relative z-10 p-4 sm:p-6">
-          <Card className="w-full max-w-sm rounded-2xl shadow-2xl border border-border bg-card shadow-xl text-center">
-            <CardContent className="pt-8 pb-6 space-y-4">
-              <h2 className="text-xl font-bold text-destructive">Enlace invalido</h2>
-              <p className="text-sm text-muted-foreground">
-                Faltan parametros. Pedí una nueva invitación.
-              </p>
-              <Button variant="outline" className="w-full" onClick={() => router.push('/login')}>
-                Ir a iniciar sesion
-              </Button>
-            </CardContent>
-          </Card>
+      <AuthShell maxWidth={420}>
+        <div className="text-center">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center mb-6">
+            <AlertCircle className="w-8 h-8 text-destructive" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Enlace inválido</h2>
+          <p className="text-sm text-slate-500 mb-6">Faltan parámetros. Pedí una nueva invitación.</p>
+          <Button
+            variant="outline"
+            className="w-full h-11 rounded-xl border-slate-200"
+            onClick={() => router.push('/login')}
+          >
+            Ir a iniciar sesión
+          </Button>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
+  // ── SUCCESS ──
   if (done) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/hotel-bg.png')" }} />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)', backdropFilter: 'blur(2px)' }} />
-        <div className="flex-1 flex items-center justify-center relative z-10 p-4 sm:p-6">
-          <Card className="w-full max-w-sm rounded-2xl shadow-2xl border border-border bg-card shadow-xl text-center">
-            <CardContent className="pt-8 pb-6 space-y-4">
-              <div className="mx-auto w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-primary" />
-              </div>
-              <h2 className="text-xl font-bold">Contraseña creada</h2>
-              <p className="text-sm text-muted-foreground">
-                Ya podes iniciar sesion con tu email y la contraseña que creaste.
-              </p>
-              <Button className="w-full" onClick={() => router.push('/login')}>
-                Ir a iniciar sesion
-              </Button>
-            </CardContent>
-          </Card>
+      <AuthShell maxWidth={420}>
+        <div className="text-center">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
+            <CheckCircle2 className="w-8 h-8 text-primary" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Contraseña creada</h2>
+          <p className="text-sm text-slate-500 mb-6">Ya podés iniciar sesión con tu email y la contraseña que creaste.</p>
+          <Button
+            className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25"
+            onClick={() => router.push('/login')}
+          >
+            Ir a iniciar sesión
+          </Button>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
@@ -98,86 +94,103 @@ function AcceptInvitationForm() {
 
       setDone(true);
     } catch {
-      toast.error('Error de conexion. Intenta de nuevo.');
+      toast.error('Error de conexión. Intentá de nuevo.');
     }
     setLoading(false);
   };
 
+  // ── FORM ──
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/hotel-bg.png')" }} />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)', backdropFilter: 'blur(2px)' }} />
-
-      {/* Left branding (desktop) */}
-      <div className="hidden lg:flex flex-1 items-center justify-center relative z-10 p-12">
-        <div className="text-white max-w-md">
-          <div className="flex items-center gap-3 mb-6">
-            <img src="/logo.png" alt="Hospedá" className="w-14 h-14 rounded-2xl object-contain" />
-          </div>
-          <h1 className="text-5xl font-bold tracking-tight mb-3">Hospeda</h1>
-          <p className="text-lg text-white/70 mb-8">Sistema de Gestion Hotelera</p>
+    <AuthShell maxWidth={440}>
+      {/* Logo */}
+      <div className="flex items-center justify-center gap-2.5 mb-6">
+        <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/30">
+          H
         </div>
       </div>
 
-      {/* Right: Card */}
-      <div className="flex-1 flex items-center justify-center relative z-10 p-4 sm:p-6">
-        <Card className="w-full max-w-sm rounded-2xl shadow-2xl border border-border bg-card shadow-xl">
-          <CardHeader className="text-center pb-2">
-            <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3 lg:hidden" />
-            <div className="mx-auto w-12 h-12 rounded-full bg-indigo-900/30 flex items-center justify-center mb-2">
-              <Mail className="w-6 h-6 text-indigo-600" />
-            </div>
-            <CardTitle className="text-xl">Creá tu contraseña</CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">
-              Te invitaron a Hospeda con <strong className="text-foreground">{email}</strong>
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs">Contraseña</Label>
-                <div className="relative">
-                  <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="Minimo 8 caracteres" value={password} onChange={e => setPassword(e.target.value)} className="pr-10" autoComplete="new-password" disabled={loading} />
-                  <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="confirm" className="text-xs">Confirmar contraseña</Label>
-                <div className="relative">
-                  <Input id="confirm" type={showPassword ? 'text' : 'password'} placeholder="Repeti la contraseña" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pr-10" autoComplete="new-password" disabled={loading} />
-                  <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <Button type="submit" className="w-full h-10" disabled={loading}>
-                {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Creando...</> : 'Crear contraseña y entrar'}
-              </Button>
-            </form>
-
-            <div className="text-center">
-              <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-                <ArrowLeft className="w-3.5 h-3.5" /> Volver a iniciar sesion
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="text-center mb-6">
+        <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+          <Mail className="w-6 h-6 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold text-slate-900 mb-1">Creá tu contraseña</h1>
+        <p className="text-sm text-slate-500">
+          Te invitaron a Hospedá con <strong className="text-slate-700">{email}</strong>
+        </p>
       </div>
-    </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="password" className="text-xs text-slate-500">Contraseña</Label>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Mínimo 8 caracteres"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-primary/50 focus:ring-primary/20"
+              autoComplete="new-password"
+              disabled={loading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="confirm" className="text-xs text-slate-500">Confirmar contraseña</Label>
+          <div className="relative">
+            <Input
+              id="confirm"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Repetí la contraseña"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              className="pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-primary/50 focus:ring-primary/20"
+              autoComplete="new-password"
+              disabled={loading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25"
+          disabled={loading}
+        >
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Creando…</> : 'Crear contraseña y entrar'}
+        </Button>
+      </form>
+
+      <div className="text-center mt-5">
+        <Link href="/login" className="text-sm text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1">
+          <ArrowLeft className="w-3.5 h-3.5" /> Volver a iniciar sesión
+        </Link>
+      </div>
+    </AuthShell>
   );
 }
 
 export default function AcceptInvitationPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0F2B28 0%, #0F766E 35%, #0D9488 70%, #14B8A6 100%)' }}>
+        <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
       </div>
     }>
       <AcceptInvitationForm />

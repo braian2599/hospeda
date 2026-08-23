@@ -7,15 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Eye, EyeOff, Loader2, CheckCircle2, Mail, Lock,
-  ArrowRight, ArrowLeft, Building2,
+  Eye, EyeOff, Loader2, CheckCircle2, Mail, Lock, Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import AnimatedBackground from './AnimatedBackground';
+import AuthShell from '../AuthShell';
 
 type Mode = 'login' | 'signup';
-type VisibleFace = Mode | 'none';
 type Step = 'form' | 'success';
 
 interface AuthCardProps {
@@ -29,9 +27,6 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
   const errorParam = searchParams.get('error');
 
   const [mode, setMode] = useState<Mode>(defaultMode);
-  const [flipping, setFlipping] = useState(false);
-  const [flipAnim, setFlipAnim] = useState('');
-  const [visibleFace, setVisibleFace] = useState<VisibleFace>(defaultMode);
   const [step, setStep] = useState<Step>('form');
 
   // Login state
@@ -47,23 +42,6 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
   const [showRegPwd, setShowRegPwd] = useState(false);
   const [hotelNombre, setHotelNombre] = useState('');
   const [regLoading, setRegLoading] = useState(false);
-
-  const flip = (to: Mode) => {
-    if (flipping || to === mode) return;
-    setFlipping(true);
-    setFlipAnim(to === 'signup' ? 'authFlipRight' : 'authFlipLeft');
-    // Immediately hide current face (fades out in ~200ms = ~84° of rotation)
-    setVisibleFace('none');
-    // Show new face when card comes back around (~276° of rotation)
-    setTimeout(() => {
-      setMode(to);
-      setVisibleFace(to);
-    }, 660);
-    setTimeout(() => {
-      setFlipping(false);
-      setFlipAnim('');
-    }, 870);
-  };
 
   const getErrorMessage = (error: string | null) => {
     switch (error) {
@@ -98,7 +76,16 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
     if (regPassword.length < 8) { toast.error('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número'); return; }
     setRegLoading(true);
     try {
-      const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: regEmail.trim().toLowerCase(), password: regPassword, name: regName.trim(), hotelNombre: hotelNombre.trim() }) });
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: regEmail.trim().toLowerCase(),
+          password: regPassword,
+          name: regName.trim(),
+          hotelNombre: hotelNombre.trim(),
+        }),
+      });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Error al crear la cuenta'); setRegLoading(false); return; }
       setStep('success');
@@ -110,247 +97,236 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
   // ── SUCCESS ──
   if (step === 'success') {
     return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background">
-        <AnimatedBackground />
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full opacity-20 blur-[120px]" style={{ background: 'radial-gradient(circle, #0ea5e9, transparent 70%)', animation: 'float1 25s ease-in-out infinite' }} />
-          <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full opacity-15 blur-[120px]" style={{ background: 'radial-gradient(circle, #0d9488, transparent 70%)', animation: 'float2 20s ease-in-out infinite' }} />
-        </div>
-        <div className="relative z-10 w-full max-w-[440px] mx-4 rounded-3xl overflow-hidden shadow-xl border border-border p-8 md:p-10 text-center bg-card" style={{ animation: 'cardEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) both' }}>
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6"><CheckCircle2 className="w-8 h-8 text-primary" /></div>
+      <AuthShell maxWidth={440}>
+        <div className="text-center">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
+            <CheckCircle2 className="w-8 h-8 text-primary" />
+          </div>
           <h2 className="text-xl font-bold text-foreground mb-2">Cuenta creada</h2>
-          <p className="text-sm text-muted-foreground mb-6">Te enviamos un email a <strong className="text-foreground/80">{regEmail}</strong> con un enlace para verificar tu cuenta.</p>
-          <p className="text-xs text-foreground/30 mb-6">El enlace expira en 24 horas. Revisá también la carpeta de spam.</p>
-          <Button className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25" onClick={() => { setStep('form'); setMode('login'); setVisibleFace('login'); }}>Ir a iniciar sesión</Button>
+          <p className="text-sm text-muted-foreground mb-6">
+            Te enviamos un email a <strong className="text-foreground/80">{regEmail}</strong> con un enlace para verificar tu cuenta.
+          </p>
+          <p className="text-xs text-foreground/40 mb-6">El enlace expira en 24 horas. Revisá también la carpeta de spam.</p>
+          <Button
+            className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25"
+            onClick={() => { setStep('form'); setMode('login'); }}
+          >
+            Ir a iniciar sesión
+          </Button>
         </div>
-        <AuthKeyframes />
-      </div>
+      </AuthShell>
     );
   }
 
-  const showLogin = visibleFace === 'login';
-  const showSignup = visibleFace === 'signup';
+  // ── LOGIN MODE ──
+  if (mode === 'login') {
+    return (
+      <AuthShell>
+        <AuthLogo />
 
-  return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background">
-      <AnimatedBackground />
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full opacity-20 blur-[120px]" style={{ background: 'radial-gradient(circle, #0ea5e9, transparent 70%)', animation: 'float1 25s ease-in-out infinite' }} />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full opacity-15 blur-[120px]" style={{ background: 'radial-gradient(circle, #0d9488, transparent 70%)', animation: 'float2 20s ease-in-out infinite' }} />
-        <div className="absolute top-[40%] left-[50%] w-[300px] h-[300px] rounded-full opacity-10 blur-[100px]" style={{ background: 'radial-gradient(circle, #14b8a6, transparent 70%)', animation: 'float3 30s ease-in-out infinite' }} />
-      </div>
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-slate-900 mb-1">Bienvenido a Hospedá</h1>
+          <p className="text-sm text-slate-500">Ingresá para gestionar tu hotel</p>
+        </div>
 
-      <div className="relative z-10 w-full max-w-[900px] mx-4" style={{ perspective: '1200px', animation: 'cardEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) both' }}>
-        <div
-          className="relative w-full rounded-3xl overflow-hidden shadow-xl border border-border bg-card"
-          style={{
-            minHeight: '640px',
-            transformStyle: 'preserve-3d',
-            animation: flipAnim ? `${flipAnim} 0.86s cubic-bezier(0.4, 0, 0.2, 1) forwards` : undefined,
-          }}
-        >
-          {/* LOGIN FACE */}
-          <div
-            className="absolute inset-0 h-full"
-            style={{ opacity: showLogin ? 1 : 0, pointerEvents: showLogin ? 'auto' : 'none', transition: 'opacity 0.2s ease', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
-          >
-            <div className="flex flex-col md:flex-row h-full">
-              <div className="relative hidden md:flex flex-col justify-center items-start p-10 lg:p-12 w-[45%] overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c4a6e 0%, #0e7490 30%, #0891b2 60%, #0d9488 100%)' }}>
-                <DecoElements />
-                <div className="relative z-10 w-full"><Logo /></div>
-                <div className="relative z-10 mt-6">
-                  <Badge>Tu espacio de trabajo te espera</Badge>
-                  <h2 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-3">Gestioná tu hotel<br />de forma inteligente</h2>
-                  <p className="text-white/60 text-sm leading-relaxed max-w-[280px]">Reservas, check-ins, pagos y más. Todo en un solo lugar.</p>
-                </div>
-                <div className="relative z-10 mt-8">
-                  <button type="button" onClick={() => flip('signup')} className="group flex items-center gap-2 text-sm font-medium text-white/90 hover:text-white transition-colors">
-                    <span>Crear una cuenta</span><ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                  </button>
-                </div>
-              </div>
-              <div className="flex-1 flex flex-col justify-start md:justify-center p-8 md:p-10 lg:p-12 bg-muted/20 auth-scroll">
-                <div className="flex md:hidden items-center gap-2.5 mb-6"><MobileLogo /></div>
-                <div className="mb-6">
-                  <h1 className="text-2xl font-bold text-foreground mb-1.5">Bienvenido de nuevo</h1>
-                  <p className="text-sm text-muted-foreground">Ingresá a tu cuenta para continuar</p>
-                </div>
-                {verified && <Alert variant="success">Email verificado. Ya podés iniciar sesión.</Alert>}
-                {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
-                <GoogleButton onClick={handleGoogle}>Continuar con Google</GoogleButton>
-                <Divider />
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <InputField id="login-email" label="Email" icon={<Mail className="w-4 h-4 text-muted-foreground/50" />} type="email" placeholder="tu@email.com" value={loginEmail} onChange={setLoginEmail} autoComplete="email" disabled={loginLoading} />
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="login-password" className="text-xs text-muted-foreground">Contraseña</Label>
-                      <Link href="/forgot-password" className="text-[11px] text-primary hover:text-primary/80 transition-colors">¿La olvidaste?</Link>
-                    </div>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-                      <Input id="login-password" type={showLoginPwd ? 'text' : 'password'} placeholder="Tu contraseña" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="pl-10 pr-10 h-11 rounded-xl border-border bg-muted/30 text-foreground placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-primary/20" autoComplete="current-password" disabled={loginLoading} />
-                      <button type="button" onClick={() => setShowLoginPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground/70 transition-colors" tabIndex={-1}>
-                        {showLoginPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <Button type="submit" className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all duration-200 shadow-lg shadow-primary/25" disabled={loginLoading}>
-                    {loginLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Ingresando…</> : 'Ingresar'}
-                  </Button>
-                </form>
-                <div className="md:hidden mt-5 text-center">
-                  <button type="button" onClick={() => flip('signup')} className="text-sm text-primary hover:text-primary/80 transition-colors">Crear una cuenta nueva</button>
-                </div>
-                <p className="text-[10px] text-center text-foreground/20 mt-6">Hospedá · v2.1</p>
-              </div>
+        {verified && (
+          <div className="mb-5 rounded-xl border border-primary/30 bg-primary/10 text-primary p-3 text-sm flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            Email verificado. Ya podés iniciar sesión.
+          </div>
+        )}
+        {errorMessage && (
+          <div className="mb-5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive p-3 text-sm flex items-center gap-2">
+            <span className="w-4 h-4 shrink-0">⚠</span>
+            {errorMessage}
+          </div>
+        )}
+
+        <GoogleButton onClick={handleGoogle}>Continuar con Google</GoogleButton>
+
+        <div className="relative mb-4">
+          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200" /></div>
+          <div className="relative flex justify-center"><span className="bg-white px-3 text-xs text-slate-400">o con tu email</span></div>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <InputField
+            id="login-email"
+            label="Email"
+            icon={<Mail className="w-4 h-4 text-slate-400" />}
+            type="email"
+            placeholder="tu@email.com"
+            value={loginEmail}
+            onChange={setLoginEmail}
+            autoComplete="email"
+            disabled={loginLoading}
+          />
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="login-password" className="text-xs text-slate-500">Contraseña</Label>
+              <Link href="/forgot-password" className="text-xs text-primary hover:text-primary/80 transition-colors">¿La olvidaste?</Link>
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                id="login-password"
+                type={showLoginPwd ? 'text' : 'password'}
+                placeholder="Tu contraseña"
+                value={loginPassword}
+                onChange={e => setLoginPassword(e.target.value)}
+                className="pl-10 pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-primary/50 focus:ring-primary/20"
+                autoComplete="current-password"
+                disabled={loginLoading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowLoginPwd(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                tabIndex={-1}
+              >
+                {showLoginPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
-
-          {/* SIGNUP FACE */}
-          <div
-            className="absolute inset-0 h-full"
-            style={{ opacity: showSignup ? 1 : 0, pointerEvents: showSignup ? 'auto' : 'none', transition: 'opacity 0.2s ease', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+          <Button
+            type="submit"
+            className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all duration-200 shadow-lg shadow-primary/25"
+            disabled={loginLoading}
           >
-            <div className="flex flex-col md:flex-row h-full">
-              <div className="relative hidden md:flex flex-col justify-center items-start p-10 lg:p-12 w-[45%] overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c4a6e 0%, #0e7490 30%, #0891b2 60%, #0d9488 100%)' }}>
-                <DecoElements />
-                <div className="relative z-10 w-full"><Logo /></div>
-                <div className="relative z-10 mt-6">
-                  <Badge>30 días de prueba gratuita</Badge>
-                  <h2 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-3">Comenzá a gestionar<br />tu hotel hoy</h2>
-                  <p className="text-white/60 text-sm leading-relaxed max-w-[280px]">Creá tu cuenta en minutos y administrá todo desde cualquier lugar.</p>
-                </div>
-                <div className="relative z-10 mt-8">
-                  <button type="button" onClick={() => flip('login')} className="group flex items-center gap-2 text-sm font-medium text-white/90 hover:text-white transition-colors">
-                    <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /><span>Ya tengo cuenta</span>
-                  </button>
-                </div>
-              </div>
-              <div className="flex-1 flex flex-col justify-start md:justify-center p-6 md:p-8 lg:p-10 bg-muted/20 auth-scroll">
-                <div className="flex md:hidden items-center gap-2.5 mb-4"><MobileLogo /></div>
-                <div className="mb-4">
-                  <h1 className="text-2xl font-bold text-foreground mb-1">Crear cuenta</h1>
-                  <p className="text-sm text-muted-foreground">30 días de prueba gratuita</p>
-                </div>
-                <GoogleButton onClick={handleGoogle} disabled={regLoading}>Registrarse con Google</GoogleButton>
-                <Divider />
-                <form onSubmit={handleSignup} className="space-y-3">
-                  <InputField id="hotel" label="Nombre del hotel *" icon={<Building2 className="w-4 h-4 text-muted-foreground/50" />} placeholder="Mi Hotel" value={hotelNombre} onChange={setHotelNombre} disabled={regLoading} />
-                  <InputField id="reg-name" label="Tu nombre completo *" placeholder="Juan Pérez" value={regName} onChange={setRegName} disabled={regLoading} />
-                  <div className="space-y-1.5">
-                    <Label htmlFor="reg-email" className="text-xs text-muted-foreground flex items-center gap-1.5">Email *<Mail className="w-3 h-3 text-muted-foreground/50" /></Label>
-                    <Input id="reg-email" type="email" placeholder="tu@email.com" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="h-11 rounded-xl border-border bg-muted/30 text-foreground placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-primary/20" autoComplete="email" disabled={regLoading} />
-                    <p className="text-[10px] text-muted-foreground/50">Te enviaremos un código de verificación a este email.</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="reg-password" className="text-xs text-muted-foreground">Contraseña * <span className="text-foreground/30">(mín. 8)</span></Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-                      <Input id="reg-password" type={showRegPwd ? 'text' : 'password'} placeholder="Mínimo 8 caracteres" value={regPassword} onChange={e => setRegPassword(e.target.value)} className="pl-10 pr-10 h-11 rounded-xl border-border bg-muted/30 text-foreground placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-primary/20" autoComplete="new-password" disabled={regLoading} />
-                      <button type="button" onClick={() => setShowRegPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground/70 transition-colors" tabIndex={-1}>
-                        {showRegPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <Button type="submit" className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25" disabled={regLoading}>
-                    {regLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Creando cuenta…</> : 'Crear cuenta gratuita'}
-                  </Button>
-                </form>
-                <div className="md:hidden mt-4 text-center">
-                  <button type="button" onClick={() => flip('login')} className="text-sm text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1">
-                    <ArrowLeft className="w-3.5 h-3.5" /> Ya tengo cuenta
-                  </button>
-                </div>
-                <p className="text-[10px] text-center text-foreground/20 mt-3">Al registrarte aceptás nuestros términos de uso</p>
-              </div>
-            </div>
+            {loginLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Ingresando…</> : 'Ingresar'}
+          </Button>
+        </form>
+
+        <p className="text-center text-sm text-slate-500 mt-6">
+          ¿No tenés cuenta?{' '}
+          <button type="button" onClick={() => setMode('signup')} className="text-primary font-medium hover:underline">
+            Probá 30 días gratis
+          </button>
+        </p>
+      </AuthShell>
+    );
+  }
+
+  // ── SIGNUP MODE ──
+  return (
+    <AuthShell maxWidth={520}>
+      <AuthLogo />
+
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-slate-900 mb-1">Crear cuenta</h1>
+        <p className="text-sm text-slate-500">30 días de prueba gratuita · Sin tarjeta de crédito</p>
+      </div>
+
+      <GoogleButton onClick={handleGoogle} disabled={regLoading}>Registrarse con Google</GoogleButton>
+
+      <div className="relative mb-4">
+        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200" /></div>
+        <div className="relative flex justify-center"><span className="bg-white px-3 text-xs text-slate-400">o con tu email</span></div>
+      </div>
+
+      <form onSubmit={handleSignup} className="space-y-3">
+        <InputField
+          id="hotel"
+          label="Nombre del hotel *"
+          icon={<Building2 className="w-4 h-4 text-slate-400" />}
+          placeholder="Mi Hotel"
+          value={hotelNombre}
+          onChange={setHotelNombre}
+          disabled={regLoading}
+        />
+        <InputField
+          id="reg-name"
+          label="Tu nombre completo *"
+          placeholder="Juan Pérez"
+          value={regName}
+          onChange={setRegName}
+          disabled={regLoading}
+        />
+        <InputField
+          id="reg-email"
+          label="Email *"
+          icon={<Mail className="w-4 h-4 text-slate-400" />}
+          type="email"
+          placeholder="tu@email.com"
+          value={regEmail}
+          onChange={setRegEmail}
+          autoComplete="email"
+          disabled={regLoading}
+        />
+        <div className="space-y-1.5">
+          <Label htmlFor="reg-password" className="text-xs text-slate-500">
+            Contraseña * <span className="text-slate-400">(mín. 8, 1 mayúscula, 1 número)</span>
+          </Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              id="reg-password"
+              type={showRegPwd ? 'text' : 'password'}
+              placeholder="Mínimo 8 caracteres"
+              value={regPassword}
+              onChange={e => setRegPassword(e.target.value)}
+              className="pl-10 pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-primary/50 focus:ring-primary/20"
+              autoComplete="new-password"
+              disabled={regLoading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowRegPwd(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              tabIndex={-1}
+            >
+              {showRegPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
           </div>
         </div>
-      </div>
-      <AuthKeyframes />
-    </div>
+        <Button
+          type="submit"
+          className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25"
+          disabled={regLoading}
+        >
+          {regLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Creando cuenta…</> : 'Crear cuenta gratuita'}
+        </Button>
+      </form>
+
+      <p className="text-center text-sm text-slate-500 mt-5">
+        ¿Ya tenés cuenta?{' '}
+        <button type="button" onClick={() => setMode('login')} className="text-primary font-medium hover:underline">
+          Iniciar sesión
+        </button>
+      </p>
+      <p className="text-[10px] text-center text-slate-400 mt-4">Al registrarte aceptás nuestros términos de uso</p>
+    </AuthShell>
   );
 }
 
 // ── SUB-COMPONENTS ──
 
-function AuthKeyframes() {
+function AuthLogo() {
   return (
-    <style jsx global>{`
-      @keyframes cardEntry { from { opacity: 0; transform: translateY(30px) scale(0.96); filter: blur(8px); } to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
-      @keyframes authFlipRight { 0% { transform: rotateY(0deg) scale(1); } 50% { transform: rotateY(180deg) scale(0.92); } 100% { transform: rotateY(360deg) scale(1); } }
-      @keyframes authFlipLeft { 0% { transform: rotateY(0deg) scale(1); } 50% { transform: rotateY(-180deg) scale(0.92); } 100% { transform: rotateY(-360deg) scale(1); } }
-      @keyframes float1 { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(40px, -30px) scale(1.1); } 66% { transform: translate(-20px, 20px) scale(0.95); } }
-      @keyframes float2 { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(-30px, 20px) scale(1.05); } 66% { transform: translate(20px, -30px) scale(0.9); } }
-      @keyframes float3 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, -20px); } }
-      @keyframes dotPulse { 0%, 100% { opacity: 0.2; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.5); } }
-      .auth-scroll { overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
-      .auth-scroll::-webkit-scrollbar { display: none; }
-    `}</style>
-  );
-}
-
-function DecoElements() {
-  return (
-    <>
-      <div className="absolute top-20 right-10 w-2 h-2 rounded-full bg-white/30" style={{ animation: 'dotPulse 3s ease-in-out infinite' }} />
-      <div className="absolute top-32 right-20 w-1.5 h-1.5 rounded-full bg-white/20" style={{ animation: 'dotPulse 3s ease-in-out infinite 1s' }} />
-      <div className="absolute bottom-32 left-8 w-2 h-2 rounded-full bg-white/25" style={{ animation: 'dotPulse 3s ease-in-out infinite 0.5s' }} />
-    </>
-  );
-}
-
-function Logo() {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="w-11 h-11 rounded-xl bg-white/90 flex items-center justify-center p-1.5">
-        <img src="/logo.png" alt="Hospedá" className="w-full h-full object-contain" />
+    <div className="flex items-center justify-center gap-2.5 mb-6">
+      <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/30">
+        H
       </div>
-      <span className="text-white font-semibold text-lg tracking-tight">Hospedá</span>
-    </div>
-  );
-}
-
-function MobileLogo() {
-  return (
-    <>
-      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center p-1">
-        <img src="/logo.png" alt="Hospedá" className="w-full h-full object-contain" />
-      </div>
-      <span className="text-foreground font-semibold tracking-tight">Hospedá</span>
-    </>
-  );
-}
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return <div className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-white/70 font-medium mb-4">{children}</div>;
-}
-
-function Alert({ variant, children }: { variant: 'success' | 'error'; children: React.ReactNode }) {
-  const cls = variant === 'success' ? 'border-primary/30 bg-primary/10 text-primary' : 'border-destructive/30 bg-destructive/10 text-destructive';
-  return (
-    <div className={`mb-5 rounded-xl border ${cls} p-3 text-sm flex items-center gap-2`}>
-      {variant === 'success' && <CheckCircle2 className="w-4 h-4 shrink-0" />}
-      {children}
     </div>
   );
 }
 
 function GoogleButton({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className="w-full h-11 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 text-foreground text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2.5 mb-4">
-      <svg className="w-4 h-4" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.23-3.71 1.23-2.83 0-5.21-1.91-6.06-4.48H1.56v2.87C3.63 21.75 7.54 23 12 23z" fill="#34A853"/><path d="M5.94 14.52c-.46-1.38-.46-2.86 0-4.24V7.41H1.56c-1.52 2.98-1.52 6.2 0 9.18l4.38-2.07z" fill="#FBBC05"/><path d="M12 5.04c1.56 0 2.97.54 4.07 1.59l3.04-3.04C16.93 1.04 14.73 0 12 0 7.54 0 3.63 2.25 1.56 6.41l4.38 2.07c.85-2.57 3.23-4.48 6.06-4.44z" fill="#EA4335"/></svg>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-900 text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2.5 mb-4"
+    >
+      <svg className="w-4 h-4" viewBox="0 0 24 24">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.23-3.71 1.23-2.83 0-5.21-1.91-6.06-4.48H1.56v2.87C3.63 21.75 7.54 23 12 23z" fill="#34A853"/>
+        <path d="M5.94 14.52c-.46-1.38-.46-2.86 0-4.24V7.41H1.56c-1.52 2.98-1.52 6.2 0 9.18l4.38-2.07z" fill="#FBBC05"/>
+        <path d="M12 5.04c1.56 0 2.97.54 4.07 1.59l3.04-3.04C16.93 1.04 14.73 0 12 0 7.54 0 3.63 2.25 1.56 6.41l4.38 2.07c.85-2.57 3.23-4.48 6.06-4.44z" fill="#EA4335"/>
+      </svg>
       {children}
     </button>
-  );
-}
-
-function Divider() {
-  return (
-    <div className="relative mb-4">
-      <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-      <div className="relative flex justify-center text-xs"><span className="bg-card px-3 text-foreground/30">o</span></div>
-    </div>
   );
 }
 
@@ -359,10 +335,19 @@ function InputField({ id, label, icon, type = 'text', placeholder, value, onChan
 }) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-xs text-muted-foreground">{label}</Label>
+      <Label htmlFor={id} className="text-xs text-slate-500">{label}</Label>
       <div className="relative">
         {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2">{icon}</div>}
-        <Input id={id} type={type} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} className={`${icon ? 'pl-10 ' : ''}h-11 rounded-xl border-border bg-muted/30 text-foreground placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-primary/20`} autoComplete={autoComplete} disabled={disabled} />
+        <Input
+          id={id}
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className={`${icon ? 'pl-10 ' : ''}h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-primary/50 focus:ring-primary/20`}
+          autoComplete={autoComplete}
+          disabled={disabled}
+        />
       </div>
     </div>
   );
