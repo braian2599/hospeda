@@ -114,3 +114,13 @@ export const PAYMENT_CONFIG = {
 
 // Re-exportar función para obtener config de BD
 export { getMPAccessToken, getMPPublicKey, getMPWebhookSecret, getPlatformConfig };
+
+/**
+ * Invalidar el cache de configuración de pagos.
+ * Llamar después de que el super-admin actualice las credenciales en /api/super-admin/config.
+ * Sin esto, el sistema seguiría usando credenciales viejas por hasta 5 minutos.
+ */
+export function invalidatePaymentConfigCache() {
+  configCache = null;
+  configCacheTime = 0;
+}

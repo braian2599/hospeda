@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import AuthProvider from '@/components/providers/SessionProvider';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
 import {
   LayoutDashboard,
   Building2,
@@ -17,6 +18,7 @@ import {
   LogOut,
   ArrowLeft,
   Shield,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   SectionProvider,
@@ -67,24 +69,60 @@ function SidebarButton({
 }
 
 // ─── Protected Guard ───
-// Solo verifica autenticación. La autorización (SUPER_ADMIN_EMAILS)
-// la manejan las API routes con requireSuperAdmin().
+// Verifica autenticación Y autorización de super-admin.
+// El flag isSuperAdmin viene en el JWT (seteado en auth/config.ts).
+// Las API routes validan de nuevo con requireSuperAdmin() (server-side).
 function ProtectedGuard({ children }: { children: ReactNode }) {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
+
+  const isSuperAdmin = (session?.user as { isSuperAdmin?: boolean } | undefined)?.isSuperAdmin === true;
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
+      return;
     }
-  }, [status, router]);
+    // Si está autenticado pero NO es super-admin, redirigir a la app
+    if (status === 'authenticated' && !isSuperAdmin) {
+      toast.error('Acceso denegado', {
+        description: 'No tenés permisos de Super Admin.',
+      });
+      router.push('/app');
+    }
+  }, [status, isSuperAdmin, router]);
 
+  // Loading state (auth loading OR authenticated but not yet confirmed as super-admin)
   if (status === 'loading' || status === 'unauthenticated') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Autenticado pero no es super-admin — mostrar pantalla de acceso denegado
+  // mientras se ejecuta la redirección
+  if (!isSuperAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4 max-w-sm px-6">
+          <div className="w-14 h-14 mx-auto rounded-full bg-destructive/10 flex items-center justify-center">
+            <ShieldAlert className="w-7 h-7 text-destructive" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold">Acceso denegado</h2>
+            <p className="text-sm text-muted-foreground">
+              No tenés permisos de Super Admin para acceder a este panel.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => router.push('/app')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Volver al sistema
+          </Button>
         </div>
       </div>
     );

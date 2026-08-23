@@ -41,6 +41,8 @@ export default function SuperAdminConfig() {
         if (data.error) throw new Error(data.error);
         const mp = data.mercadopago || {};
         const plat = data.plataforma || {};
+        // Los campos sensibles vienen enmascarados (ej: "APP_...cdef")
+        // El usuario verá el valor enmascarado y solo lo enviará si lo edita.
         setMpAccessToken(mp.accessToken || '');
         setMpPublicKey(mp.publicKey || '');
         setMpWebhookUrl(mp.webhookUrl || '');
@@ -52,6 +54,9 @@ export default function SuperAdminConfig() {
       .catch(() => toast.error('Error al cargar configuración'))
       .finally(() => setLoading(false));
   }, []);
+
+  // Detecta si un valor está enmascarado (contiene "...")
+  const isMasked = (value: string) => value.includes('...');
 
   const handleSave = async () => {
     setSaving(true);
@@ -65,6 +70,7 @@ export default function SuperAdminConfig() {
         plataforma_email: plataformaEmail,
         plataforma_moneda: plataformaMoneda,
       };
+      // La API preserva el valor existente si un campo sensible viene enmascarado
 
       const res = await fetch('/api/super-admin/config', {
         method: 'PUT',
@@ -74,6 +80,15 @@ export default function SuperAdminConfig() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast.success('Configuración guardada correctamente');
+      // Recargar para mostrar los valores enmascarados actualizados
+      fetch('/api/super-admin/config')
+        .then((r) => r.json())
+        .then((d) => {
+          const mp = d.mercadopago || {};
+          setMpAccessToken(mp.accessToken || '');
+          setMpWebhookSecret(mp.webhookSecret || '');
+        })
+        .catch(() => {});
     } catch (err: unknown) {
       toast.error((err as Error).message || 'Error al guardar configuración');
     } finally {
@@ -150,7 +165,9 @@ export default function SuperAdminConfig() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Token de acceso para la API de Mercado Pago
+                {isMasked(mpAccessToken)
+                  ? '🔐 Credencial guardada (enmascarada). Borrala y escribí la nueva para actualizar.'
+                  : 'Token de acceso para la API de Mercado Pago'}
               </p>
             </div>
 
@@ -199,7 +216,9 @@ export default function SuperAdminConfig() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Se usa para verificar que las notificaciones vienen de Mercado Pago. Lo encontrás en la configuración de webhooks de MP.
+                {isMasked(mpWebhookSecret)
+                  ? '🔐 Credencial guardada (enmascarada). Borrala y escribí la nueva para actualizar.'
+                  : 'Se usa para verificar que las notificaciones vienen de Mercado Pago. Lo encontrás en la configuración de webhooks de MP.'}
               </p>
             </div>
           </CardContent>

@@ -134,6 +134,7 @@ export default function SuperAdminCuentas() {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [extendDays, setExtendDays] = useState('');
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
   const limit = 10;
@@ -645,27 +646,49 @@ export default function SuperAdminCuentas() {
         </DialogContent>
       </Dialog>
 
-      {/* ─── Alert: Eliminar Cuenta ─── */}
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      {/* ─── Alert: Eliminar Cuenta (con confirmación escrita) ─── */}
+      <AlertDialog open={deleteOpen} onOpenChange={(open) => { setDeleteOpen(open); if (!open) setDeleteConfirmName(''); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar cuenta</AlertDialogTitle>
             <AlertDialogDescription>
               Vas a eliminar permanentemente <strong>{selectedTenant?.nombre}</strong> y todos sus datos asociados:
               habitaciones, reservas, clientes, pagos, usuarios, configuración y auditoría.
-              Esta acción no se puede deshacer.
+              Esta acción no se puede deshacer. Se guardará un registro de la eliminación.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>
+              Para confirmar, escribí el nombre exacto del hotel:
+            </Label>
+            <Input
+              value={deleteConfirmName}
+              onChange={(e) => setDeleteConfirmName(e.target.value)}
+              placeholder={selectedTenant?.nombre || ''}
+              autoFocus
+            />
+            {deleteConfirmName && deleteConfirmName !== selectedTenant?.nombre && (
+              <p className="text-xs text-destructive">El nombre no coincide</p>
+            )}
+            {deleteConfirmName === selectedTenant?.nombre && (
+              <p className="text-xs text-destructive font-medium">⚠ El nombre coincide. Podés eliminar.</p>
+            )}
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={actionLoading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={actionLoading}
+              disabled={actionLoading || deleteConfirmName !== selectedTenant?.nombre}
               onClick={async () => {
                 if (!selectedTenant) return;
+                if (deleteConfirmName !== selectedTenant.nombre) return;
                 setActionLoading(true);
                 try {
-                  const res = await fetch(`/api/super-admin/tenants?tenantId=${selectedTenant.id}`, {
+                  const params = new URLSearchParams({
+                    tenantId: selectedTenant.id,
+                    confirmName: deleteConfirmName,
+                  });
+                  const res = await fetch(`/api/super-admin/tenants?${params}`, {
                     method: 'DELETE',
                   });
                   const data = await res.json();
@@ -673,6 +696,7 @@ export default function SuperAdminCuentas() {
                   toast.success(data.message);
                   setDeleteOpen(false);
                   setSelectedTenant(null);
+                  setDeleteConfirmName('');
                   fetchTenants();
                 } catch (err: unknown) {
                   toast.error((err as Error).message);
