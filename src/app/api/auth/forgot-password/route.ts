@@ -6,22 +6,15 @@ import { NextRequest, NextResponse } from 'next/server';
  * ⚠️ TEMPORALMENTE DESHABILITADO
  *
  * El reseteo de contraseña por email está deshabilitado hasta tener un dominio
- * propio configurado con un servicio de email profesional (Resend/SendGrid).
+ * propio configurado con Resend.
  *
  * Mientras tanto, el super-admin puede resetear contraseñas manualmente desde:
  *   Super Admin → Cuentas → Expandir tenant → Resetear contraseña
  *
- * Esto es más seguro porque:
- * 1. No genera tokens de reset que podrían ser abusados
- * 2. No envía emails desde una cuenta Gmail genérica (poco profesional)
- * 3. Cada reset requiere autenticación de super-admin (autorizado vía env var)
- * 4. Cada reset queda registrado en la auditoría del tenant con email del admin
- * 5. El super-admin invalida sesiones al resetear (commit c0ff4dd)
- *
  * Para reactivar cuando se tenga dominio + Resend:
  * 1. Descomentar el código de abajo
- * 2. Verificar que sendPasswordResetEmail() funcione con el servicio configurado
- * 3. Asegurar que SMTP_USER/SMTP_PASS estén configurados en producción
+ * 2. Verificar que sendPasswordResetEmail() funcione con Resend configurado
+ * 3. Asegurar que RESEND_API_KEY esté configurada en producción
  */
 export async function POST(_req: NextRequest) {
   return NextResponse.json(

@@ -1,58 +1,43 @@
-import nodemailer from 'nodemailer';
-
-/**
- * Servicio de emails usando Gmail SMTP.
- *
- * Configuración necesaria en .env:
- *   SMTP_USER=hospeda.notificaciones@gmail.com
- *   SMTP_PASS=<app-password-de-16-caracteres>
- *
- * Para obtener SMTP_PASS:
- *   1. Activar 2FA en la cuenta de Gmail
- *   2. Ir a https://myaccount.google.com/apppasswords
- *   3. Crear una "App password" para nodemailer
- *   4. Usar los 16 caracteres generados como SMTP_PASS (sin espacios)
- *
- * Límites de Gmail: 500 emails/día (suficiente para Hospedá)
- */
-
-let _transporter: nodemailer.Transporter | null = null;
-
-function getTransporter(): nodemailer.Transporter | null {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
-  if (!_transporter) {
-    _transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
-  return _transporter;
-}
-
-export function isEmailConfigured(): boolean {
-  return !!process.env.SMTP_USER && !!process.env.SMTP_PASS;
-}
+// ── Servicio de emails — Preparado para Resend ──
+//
+// Configuración futura (cuando tengas dominio propio):
+// 1. Crear cuenta en https://resend.com
+// 2. Verificar tu dominio en Resend (DNS: TXT, MX, DKIM, SPF)
+// 3. Agregar a .env:
+//    RESEND_API_KEY=re_xxxxxxxx
+//    RESEND_FROM_DOMAIN=tudominio.com
+// 4. Instalar el paquete: bun add resend
+//
+// Mientras tanto, todas las funciones devuelven { success: true, devUrl }
+// y loggean la URL a la consola (modo dev).
+// Nadie puede recibir emails hasta que Resend esté configurado,
+// pero el sistema no se rompe.
 
 const APP_NAME = 'Hospedá';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://hospeda.com';
-const FROM_EMAIL = process.env.SMTP_USER || 'noreply@hospeda.com';
 
+export function isEmailConfigured(): boolean {
+  return !!process.env.RESEND_API_KEY;
+}
+
+/**
+ * Envía un email de verificación de cuenta.
+ * Si Resend no está configurado, loggea la URL a la consola (dev mode).
+ */
 export async function sendVerificationEmail(email: string, token: string) {
-  const transporter = getTransporter();
-
   const verifyUrl = `${APP_URL}/api/auth/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
 
-  if (!transporter) {
-    console.log(`📧 [DEV] Verification email NOT sent (no SMTP_USER/SMTP_PASS). URL: ${verifyUrl}`);
+  if (!isEmailConfigured()) {
+    console.log(`📧 [DEV] Verification email NOT sent (no RESEND_API_KEY). URL: ${verifyUrl}`);
     return { success: true, devUrl: verifyUrl };
   }
 
   try {
-    await transporter.sendMail({
-      from: `${APP_NAME} <${FROM_EMAIL}>`,
+    const { Resend } = await import('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    await resend.emails.send({
+      from: `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'hospeda.com'}>`,
       to: email,
       subject: `Verificá tu email en ${APP_NAME}`,
       html: `
@@ -86,19 +71,24 @@ export async function sendVerificationEmail(email: string, token: string) {
   }
 }
 
+/**
+ * Envía un email de reseteo de contraseña.
+ * Si Resend no está configurado, loggea la URL a la consola (dev mode).
+ */
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const transporter = getTransporter();
-
   const resetUrl = `${APP_URL}/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
 
-  if (!transporter) {
-    console.log(`[DEV] Password reset email NOT sent (no SMTP_USER/SMTP_PASS). URL: ${resetUrl}`);
+  if (!isEmailConfigured()) {
+    console.log(`📧 [DEV] Password reset email NOT sent (no RESEND_API_KEY). URL: ${resetUrl}`);
     return { success: true, devUrl: resetUrl };
   }
 
   try {
-    await transporter.sendMail({
-      from: `${APP_NAME} <${FROM_EMAIL}>`,
+    const { Resend } = await import('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    await resend.emails.send({
+      from: `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'hospeda.com'}>`,
       to: email,
       subject: `Restablecé tu contraseña en ${APP_NAME}`,
       html: `
@@ -132,19 +122,24 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   }
 }
 
+/**
+ * Envía un email de invitación a un nuevo usuario.
+ * Si Resend no está configurado, loggea la URL a la consola (dev mode).
+ */
 export async function sendInvitationEmail(email: string, token: string, hotelNombre: string, inviterName: string) {
-  const transporter = getTransporter();
-
   const inviteUrl = `${APP_URL}/accept-invitation?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
 
-  if (!transporter) {
-    console.log(`[DEV] Invitation email NOT sent (no SMTP_USER/SMTP_PASS). URL: ${inviteUrl}`);
+  if (!isEmailConfigured()) {
+    console.log(`📧 [DEV] Invitation email NOT sent (no RESEND_API_KEY). URL: ${inviteUrl}`);
     return { success: true, devUrl: inviteUrl };
   }
 
   try {
-    await transporter.sendMail({
-      from: `${APP_NAME} <${FROM_EMAIL}>`,
+    const { Resend } = await import('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    await resend.emails.send({
+      from: `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'hospeda.com'}>`,
       to: email,
       subject: `${inviterName} te invitó a ${hotelNombre} en ${APP_NAME}`,
       html: `
