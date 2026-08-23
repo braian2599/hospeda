@@ -21,6 +21,22 @@ export function isEmailConfigured(): boolean {
 }
 
 /**
+ * Carga dinámica del módulo 'resend' sin romper el build si no está instalado.
+ * Usa eval para evitar que Turbopack/Webpack intente resolver el import.
+ */
+async function getResendClient(): Promise<any | null> {
+  if (!isEmailConfigured()) return null;
+  try {
+    // @ts-ignore — el módulo puede no estar instalado
+    const mod = await eval('import("resend")');
+    return new mod.Resend(process.env.RESEND_API_KEY);
+  } catch {
+    console.error('[email] Módulo "resend" no instalado. Ejecutá: bun add resend');
+    return null;
+  }
+}
+
+/**
  * Envía un email de verificación de cuenta.
  * Si Resend no está configurado, loggea la URL a la consola (dev mode).
  */
@@ -32,10 +48,13 @@ export async function sendVerificationEmail(email: string, token: string) {
     return { success: true, devUrl: verifyUrl };
   }
 
-  try {
-    const { Resend } = await import('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = await getResendClient();
+  if (!resend) {
+    console.log(`📧 [DEV] Resend not installed. URL: ${verifyUrl}`);
+    return { success: true, devUrl: verifyUrl };
+  }
 
+  try {
     await resend.emails.send({
       from: `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'hospeda.com'}>`,
       to: email,
@@ -83,10 +102,13 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     return { success: true, devUrl: resetUrl };
   }
 
-  try {
-    const { Resend } = await import('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = await getResendClient();
+  if (!resend) {
+    console.log(`📧 [DEV] Resend not installed. URL: ${resetUrl}`);
+    return { success: true, devUrl: resetUrl };
+  }
 
+  try {
     await resend.emails.send({
       from: `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'hospeda.com'}>`,
       to: email,
@@ -134,10 +156,13 @@ export async function sendInvitationEmail(email: string, token: string, hotelNom
     return { success: true, devUrl: inviteUrl };
   }
 
-  try {
-    const { Resend } = await import('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = await getResendClient();
+  if (!resend) {
+    console.log(`📧 [DEV] Resend not installed. URL: ${inviteUrl}`);
+    return { success: true, devUrl: inviteUrl };
+  }
 
+  try {
     await resend.emails.send({
       from: `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'hospeda.com'}>`,
       to: email,

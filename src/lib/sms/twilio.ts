@@ -136,8 +136,8 @@ export async function sendVerificationSms(phone: string, code: string): Promise<
 
   // Send via Twilio
   try {
-    const twilio = await import('twilio');
-    const client = twilio.default(config.accountSid, config.authToken);
+    const twilioMod = await eval('import("twilio")');
+    const client = twilioMod.default(config.accountSid, config.authToken);
 
     const message = await client.messages.create({
       body: `Hospeda - Tu codigo de verificacion es: ${code}. No lo compartas con nadie. Expira en 10 minutos.`,

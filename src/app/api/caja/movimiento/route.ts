@@ -76,8 +76,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Obtener datos del empleado
-    const session = await getAuthSession();
+    // Obtener datos del empleado (reutilizar session del CSRF check)
     const empleadoId = session?.user?.id || '';
     const empleadoNombre = session?.user?.name || 'Desconocido';
 
