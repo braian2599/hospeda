@@ -1797,3 +1797,48 @@ Next actions (not in scope, optional follow-ups):
 - CSS classes left untouched per task rule: `.stat-icon-pulse`, `.stats-skeleton`, `.social-icon-hover`, `.premium-quote`, `.quote-fade-in`, `.scrollbar-thin`, `.feature-grid-item` remain defined in globals.css (now unused but harmless).
 - `useInView` hook still used by Features section — kept.
 - `TypewriterText`, `FadeIn`, `BackToTop`, `ScreenshotFrame` helpers all still used — kept.
+
+---
+Task ID: LANDING-VISUAL-UPGRADE
+Agent: general-purpose
+Task: Visual upgrade of landing page (src/app/page.tsx) — new screenshots, dashboard hero bg, hover effects, TipoAlojamiento section, fuller Footer, CTA dot pattern
+
+Work Log:
+- src/app/page.tsx (932 -> 986 lines, +54 lines):
+  - Imports: added `Home, Coffee, DoorOpen` to the existing lucide-react import block (Building2 was already imported and reused for "Hoteles").
+  - showcaseFeatures screenshot path updates (5 entries, 9 paths):
+    - Panel de Control: `dashboard.png, calendario.png` -> `dashboard-new.png, dashboard-new.png` (calendar is now part of dashboard).
+    - Reservas y Calendario: `reservas.png, reservas2.png` -> `reservas-new.png, reservas-new.png`.
+    - Habitaciones y Tarifas: `habitaciones.png, tarifas.png` -> `habitaciones-new.png, tarifas-new.png`.
+    - Facturación y Caja: `facturacion.png, caja.png` -> `facturacion-new.png, caja-new.png`.
+    - Reportes y Analytics: `reportes.png` -> `reportes-new.png`.
+  - gridFeatures screenshot path updates (3 entries):
+    - Huéspedes: `clientes.png` -> `clientes-new.png`.
+    - Usuarios y Permisos: `usuarios.png` -> `usuarios-new.png`.
+    - Limpieza: `limpieza.png` -> `limpieza-new.png`.
+  - Hero (component): added a new `<FadeIn delay={600}>` block after the trust-indicators FadeIn, rendering a floating dashboard preview (`/screenshots/dashboard-new.png`) via the existing `ScreenshotFrame` component, with a soft `from-primary/10 via-brand-emerald/5 to-transparent` glow behind it (`absolute -inset-4 ... blur-2xl`), `hidden md:block` for mobile gating.
+  - Hero: added a scroll-down indicator `<div className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden md:block"><ChevronDown className="w-6 h-6 text-muted-foreground/40 animate-bounce" /></div>` positioned against the `relative` Hero section.
+  - gridFeatures card: changed outer card class from `hover:shadow-lg hover:shadow-black/[0.06]` to `hover:shadow-xl hover:shadow-primary/10 hover:border-primary/20 hover:-translate-y-1 transition-all duration-300` for a more pronounced lift effect.
+  - gridFeatures icon container: changed `transition-colors` -> `transition-all duration-300` and added `group-hover:scale-110` so the icon scales on hover (in addition to existing bg/text color shift).
+  - NEW component `TipoAlojamiento` + `alojamientos` const array (placed between `ScreenshotFrame` and `Features`): 5 items — Hoteles (Building2), Hostels (Home), Cabañas (Home), Posadas (DoorOpen), B&B (Coffee). Each renders a 12x12 rounded tile with `group-hover:bg-primary/10 group-hover:border-primary/30 group-hover:scale-110 transition-all duration-300` plus label below. Wrapped in a `py-16 border-y border-border/50 bg-secondary/20` section with `mx-auto max-w-4xl` content.
+  - LandingPage render order: added `<TipoAlojamiento />` between `<Hero />` and `<Features />` (now: ScrollProgress, Navbar, Hero, TipoAlojamiento, Features, Plans, ComparisonTable, FAQ, CtaSection, Footer, BackToTop).
+  - Footer rewrite: replaced the 4-column layout (Brand + Producto + Empresa + Contacto) with a 3-column layout (Producto + Cuenta + Contacto). The Brand column was removed (logo already in the fixed Navbar). "Empresa" column renamed "Cuenta" with link text "Crear cuenta gratis" / "Iniciar sesión". Contacto still uses `mailto:braian9952@gmail.com`. Bottom row now just a centered copyright `&copy; {year} Hospedá. Todos los derechos reservados.`. Padding `py-16 mb-12` -> `py-12 mb-8`, border-top spacing `pt-8` -> `pt-6`.
+  - CtaSection: added a dot-pattern overlay inside the existing decorative-elements div (`absolute inset-0 overflow-hidden`): `<div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />`. Placed after the existing 4 blurred orbs/circles.
+
+Verification:
+- `bun run lint` -> exit code 0, zero warnings/errors.
+- Dev server (already running on :3000) responds HTTP 200 on `/`.
+- HTML grep confirms new content is present in the rendered page:
+  - `dashboard-new` (10+ occurrences — Hero preview + all 5 showcase entries + grid features use new paths).
+  - `reservas-new`, `habitaciones-new`, `tarifas-new`, `facturacion-new`, `caja-new`, `reportes-new`, `clientes-new`, `usuarios-new`, `limpieza-new` — all 9 new screenshot paths reachable.
+  - `Hospedá funciona para cualquier tipo` — TipoAlojamiento section heading.
+  - `Crear cuenta gratis` + `braian9952@gmail.com` — new Footer text.
+  - `animate-bounce` — Hero scroll-down indicator.
+  - `hover:-translate-y-1` — card hover lift.
+  - `group-hover:scale-110` — icon & tile hover scale.
+  - `radial-gradient(circle, white 1px, transparent 1px)` — CTA dot pattern overlay.
+
+Next actions (not in scope, optional follow-ups):
+- The dot pattern uses literal `white` (not `currentColor` or a CSS var) so it always renders white regardless of theme. On light backgrounds the `opacity-10` keeps it subtle. If a dark variant is needed, swap `white` for a theme color or use a CSS variable.
+- The `Empresa` footer column heading was removed entirely; no orphaned styles reference it.
+- `TypewriterText`, `FadeIn`, `BackToTop`, `ScreenshotFrame`, `useInView`, `scrollTo` helpers all still used — kept.

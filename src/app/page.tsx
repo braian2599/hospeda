@@ -9,7 +9,7 @@ import {
   CalendarCheck, CreditCard, Users, BarChart3, Sparkles,
   ArrowRight, Check, Menu, X, Shield, Zap, Clock, Globe,
   ChevronDown, ChevronUp, Building2, Wrench, Mail,
-  ArrowUp,
+  ArrowUp, Home, Coffee, DoorOpen,
 } from 'lucide-react';
 import PlanCard from '@/components/payments/PlanCard';
 import CheckoutDialog from '@/components/payments/CheckoutDialog';
@@ -74,7 +74,7 @@ const showcaseFeatures = [
     icon: BarChart3,
     title: 'Panel de Control',
     desc: 'Tu centro de operaciones. Visualizá el estado del hotel de un vistazo: ocupación del día, reservas entrantes, tareas pendientes y más. Todo lo que necesitás saber al abrir la app, sin navegar entre pantallas.',
-    screenshots: ['/screenshots/dashboard.png', '/screenshots/calendario.png'],
+    screenshots: ['/screenshots/dashboard-new.png', '/screenshots/dashboard-new.png'],
     badge: 'Módulo principal',
     accent: 'from-info/20 to-info/10',
   },
@@ -82,7 +82,7 @@ const showcaseFeatures = [
     icon: CalendarCheck,
     title: 'Reservas y Calendario',
     desc: 'Calendario visual con colores por estado, control de disponibilidad en tiempo real y prevención automática de overbooking. Gestiona check-ins y check-outs con un solo clic. El calendario del dashboard te muestra la ocupación completa del mes.',
-    screenshots: ['/screenshots/reservas.png', '/screenshots/reservas2.png'],
+    screenshots: ['/screenshots/reservas-new.png', '/screenshots/reservas-new.png'],
     badge: 'Módulo principal',
     accent: 'from-primary/20 to-brand-teal/10',
   },
@@ -90,7 +90,7 @@ const showcaseFeatures = [
     icon: Building2,
     title: 'Habitaciones y Tarifas',
     desc: 'Vista de tablero con estados visuales de cada habitación: disponible, ocupada, en limpieza o en mantenimiento. Definí tipos de habitación, numeración y configurá tarifas diferenciadas por tipo y temporada.',
-    screenshots: ['/screenshots/habitaciones.png', '/screenshots/tarifas.png'],
+    screenshots: ['/screenshots/habitaciones-new.png', '/screenshots/tarifas-new.png'],
     badge: 'Módulo principal',
     accent: 'from-secondary/20 to-secondary/10',
   },
@@ -98,7 +98,7 @@ const showcaseFeatures = [
     icon: CreditCard,
     title: 'Facturación y Caja',
     desc: 'Emite comprobantes, registra pagos en múltiples medios y lleva el control financiero total. Movimientos de caja diarios, cierres y conciliación automática. Historial completo de cada transacción.',
-    screenshots: ['/screenshots/facturacion.png', '/screenshots/caja.png'],
+    screenshots: ['/screenshots/facturacion-new.png', '/screenshots/caja-new.png'],
     badge: 'Plan Profesional',
     accent: 'from-warning/20 to-warning/10',
   },
@@ -106,7 +106,7 @@ const showcaseFeatures = [
     icon: BarChart3,
     title: 'Reportes y Analytics',
     desc: 'Dashboards con métricas clave: ocupación promedio, ingresos por período, tasa de cancelación y más. Gráficos interactivos para tomar decisiones basadas en datos reales de tu hotel.',
-    screenshots: ['/screenshots/reportes.png'],
+    screenshots: ['/screenshots/reportes-new.png'],
     badge: 'Plan Profesional',
     accent: 'from-destructive/20 to-destructive/10',
   },
@@ -117,21 +117,21 @@ const gridFeatures = [
     icon: Users,
     title: 'Huéspedes',
     desc: 'Ficha completa con historial de estadías, documentos y preferencias.',
-    screenshot: '/screenshots/clientes.png',
+    screenshot: '/screenshots/clientes-new.png',
     accent: 'from-info/15 to-info/5',
   },
   {
     icon: Shield,
     title: 'Usuarios y Permisos',
     desc: 'Roles granulares, datos aislados por hotel y encriptación de punta a punta.',
-    screenshot: '/screenshots/usuarios.png',
+    screenshot: '/screenshots/usuarios-new.png',
     accent: 'from-success/15 to-success/5',
   },
   {
     icon: Wrench,
     title: 'Limpieza',
     desc: 'Asignación de tareas y seguimiento de estados para el equipo de housekeeping.',
-    screenshot: '/screenshots/limpieza.png',
+    screenshot: '/screenshots/limpieza-new.png',
     accent: 'from-destructive/15 to-destructive/5',
   },
 ];
@@ -429,6 +429,26 @@ function Hero() {
             </div>
           </div>
         </FadeIn>
+
+        <FadeIn delay={600}>
+          <div className="mt-16 max-w-4xl mx-auto hidden md:block">
+            <div className="relative">
+              {/* Glow behind screenshot */}
+              <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 via-brand-emerald/5 to-transparent rounded-3xl blur-2xl" />
+              {/* Dashboard screenshot in browser frame */}
+              <ScreenshotFrame
+                src="/screenshots/dashboard-new.png"
+                alt="Panel de control de Hospedá"
+                priority
+                className="relative z-10 shadow-2xl shadow-primary/10"
+              />
+            </div>
+          </div>
+        </FadeIn>
+      </div>
+
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden md:block">
+        <ChevronDown className="w-6 h-6 text-muted-foreground/40 animate-bounce" />
       </div>
     </section>
   );
@@ -456,6 +476,39 @@ function ScreenshotFrame({ src, alt, priority, className = '' }: {
         priority={priority}
       />
     </div>
+  );
+}
+
+/* ─── Para quién es Hospedá ─── */
+const alojamientos = [
+  { icon: Building2, label: 'Hoteles' },
+  { icon: Home, label: 'Hostels' },
+  { icon: Home, label: 'Cabañas' },
+  { icon: DoorOpen, label: 'Posadas' },
+  { icon: Coffee, label: 'B&B' },
+];
+
+function TipoAlojamiento() {
+  return (
+    <section className="py-16 border-y border-border/50 bg-secondary/20">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6">
+        <FadeIn>
+          <p className="text-center text-sm font-medium text-muted-foreground mb-8">
+            Hospedá funciona para cualquier tipo de alojamiento
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
+            {alojamientos.map((a) => (
+              <div key={a.label} className="group flex flex-col items-center gap-2 cursor-default">
+                <div className="w-12 h-12 rounded-xl bg-muted/60 border border-border flex items-center justify-center group-hover:bg-primary/10 group-hover:border-primary/30 group-hover:scale-110 transition-all duration-300">
+                  <a.icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">{a.label}</span>
+              </div>
+            ))}
+          </div>
+        </FadeIn>
+      </div>
+    </section>
   );
 }
 
@@ -550,7 +603,7 @@ function Features() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {gridFeatures.map((f, i) => (
               <FadeIn key={f.title} delay={i * 100}>
-                <div className="group relative h-full rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg hover:shadow-black/[0.06] transition-all duration-300">
+                <div className="group relative h-full rounded-2xl border border-border bg-card overflow-hidden hover:shadow-xl hover:shadow-primary/10 hover:border-primary/20 hover:-translate-y-1 transition-all duration-300">
                   {/* Screenshot background (blurred) */}
                   <div className="absolute inset-0 -z-0 overflow-hidden">
                     <Image
@@ -582,7 +635,7 @@ function Features() {
                     </div>
 
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="icon-shimmer-hover w-9 h-9 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors text-muted-foreground shrink-0">
+                      <div className="icon-shimmer-hover w-9 h-9 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary group-hover:scale-110 transition-all duration-300 text-muted-foreground shrink-0">
                         <f.icon className="w-4.5 h-4.5" />
                       </div>
                       <h4 className="font-semibold feature-connector">{f.title}</h4>
@@ -806,6 +859,8 @@ function CtaSection() {
               <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full bg-background/5 blur-3xl" />
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-background/5" />
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full border border-background/5" />
+              {/* Dot pattern */}
+              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
             </div>
 
             <div className="relative z-10 max-w-2xl mx-auto">
@@ -851,40 +906,25 @@ function CtaSection() {
 function Footer() {
   return (
     <footer className="footer-wave-divider border-t border-border bg-secondary/20">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-          {/* Brand */}
-          <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain" />
-              </div>
-              <span className="font-bold text-sm">Hospedá</span>
-            </Link>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              La plataforma de gestión hotelera simple para alojamientos en Argentina.
-            </p>
-          </div>
-
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-8">
           {/* Producto */}
           <div>
             <h4 className="font-semibold text-sm mb-4">Producto</h4>
             <ul className="space-y-2.5">
               <li><button onClick={() => scrollTo('caracteristicas')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Características</button></li>
               <li><button onClick={() => scrollTo('planes')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Planes y precios</button></li>
-              <li><button onClick={() => scrollTo('faq')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</button></li>
+              <li><button onClick={() => scrollTo('faq')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Preguntas frecuentes</button></li>
             </ul>
           </div>
-
-          {/* Empresa */}
+          {/* Cuenta */}
           <div>
-            <h4 className="font-semibold text-sm mb-4">Empresa</h4>
+            <h4 className="font-semibold text-sm mb-4">Cuenta</h4>
             <ul className="space-y-2.5">
-              <li><Link href="/register" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Registrarse</Link></li>
+              <li><Link href="/register" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Crear cuenta gratis</Link></li>
               <li><Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Iniciar sesión</Link></li>
             </ul>
           </div>
-
           {/* Contacto */}
           <div>
             <h4 className="font-semibold text-sm mb-4">Contacto</h4>
@@ -898,9 +938,8 @@ function Footer() {
             </ul>
           </div>
         </div>
-
-        <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">
+        <div className="pt-6 border-t border-border">
+          <p className="text-xs text-muted-foreground text-center">
             &copy; {new Date().getFullYear()} Hospedá. Todos los derechos reservados.
           </p>
         </div>
@@ -919,6 +958,7 @@ export default function LandingPage() {
       <Navbar />
       <main className="flex-1">
         <Hero />
+        <TipoAlojamiento />
         <Features />
         <Plans />
         <ComparisonTable />
