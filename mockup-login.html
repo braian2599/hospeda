@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es" class="">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hospedá — Mockup Login/Register (3 alternativas)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Geist', 'system-ui', 'sans-serif'] },
+          colors: {
+            // Paleta del sistema — TOMADA DE globals.css
+            primary: {
+              DEFAULT: '#0F766E',      // teal-700
+              foreground: '#FFFFFF',
+              50: '#F0FDFA', 100: '#CCFBF1', 200: '#99F6E4', 300: '#5EEAD4',
+              400: '#2DD4BF', 500: '#14B8A6', 600: '#0D9488', 700: '#0F766E',
+              800: '#115E59', 900: '#134E4A',
+            },
+            brand: {
+              deep: '#0F2B28',
+              emerald: '#059669',
+              mint: '#4ADE80',
+              teal: '#2D7A6E',
+              amber: '#F59E0B',
+            },
+            bg: { DEFAULT: '#F8FAFC', dark: '#0C1B19' },
+            card: { DEFAULT: '#FFFFFF', dark: '#132624' },
+            muted: { DEFAULT: '#F1F5F9', fg: '#64748B', dark: '#1A2F2C' },
+            border: { DEFAULT: '#E2E8F0', dark: 'rgba(255,255,255,0.08)' },
+            success: '#059669', warning: '#D97706', info: '#0284C7', danger: '#EF4444',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'Geist', system-ui, sans-serif; }
+    /* Toggle dark mode del botón flotante */
+    html.dark {
+      background: #0C1B19; color-scheme: dark;
+    }
+    html.dark .mockup-card { background: #132624 !important; border-color: rgba(255,255,255,0.08) !important; }
+    html.dark .mockup-muted { background: #1A2F2C !important; }
+    html.dark .mockup-text { color: #E2E8F0 !important; }
+    html.dark .mockup-text-muted { color: #94A3B8 !important; }
+    html.dark .mockup-border { border-color: rgba(255,255,255,0.08) !important; }
+    html.dark .mockup-input { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.10) !important; color: #E2E8F0 !important; }
+    html.dark .mockup-divider { background: rgba(255,255,255,0.08) !important; }
+
+    .alt-section { scroll-margin-top: 80px; }
+    .alt-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
+    .alt-card { transition: transform .3s ease, box-shadow .3s ease; }
+    .alt-card:hover { transform: translateY(-2px); box-shadow: 0 20px 40px -10px rgba(15,118,110,0.25); }
+
+    /* Shimmer para gradientes */
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .shimmer-bg {
+      background: linear-gradient(90deg, #0F766E 0%, #14B8A6 50%, #0F766E 100%);
+      background-size: 200% 100%;
+      animation: shimmer 8s linear infinite;
+    }
+
+    /* Sutil grano para el panel decorativo */
+    .grain { position: relative; }
+    .grain::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.08; mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* Tag "Actual" vs "Propuesta" */
+    .tag-actual { background: #FEE2E5; color: #B91C1C; }
+    .tag-propuesta { background: #D1FAE5; color: #065F46; }
+    html.dark .tag-actual { background: rgba(239,68,68,0.15); color: #FCA5A5; }
+    html.dark .tag-propuesta { background: rgba(16,185,129,0.15); color: #6EE7B7; }
+  </style>
+</head>
+<body class="bg-bg text-slate-900">
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER FLOTANTE — navegación entre alternativas + dark mode toggle
+     ═══════════════════════════════════════════════════════════ -->
+<div class="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#0C1B19]/80 backdrop-blur-lg border-b border-border dark:border-white/5">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-sm">H</div>
+      <span class="font-semibold text-sm">Hospedá · Mockup Auth</span>
+    </div>
+    <div class="hidden md:flex items-center gap-1 text-xs">
+      <a href="#actual" class="px-3 py-1.5 rounded-lg hover:bg-muted text-muted-fg transition">Actual</a>
+      <a href="#alt-a" class="px-3 py-1.5 rounded-lg hover:bg-muted text-muted-fg transition">Alternativa A</a>
+      <a href="#alt-b" class="px-3 py-1.5 rounded-lg hover:bg-muted text-muted-fg transition">Alternativa B</a>
+      <a href="#alt-c" class="px-3 py-1.5 rounded-lg hover:bg-muted text-muted-fg transition">Alternativa C</a>
+      <a href="#comparativa" class="px-3 py-1.5 rounded-lg hover:bg-muted text-muted-fg transition">Comparativa</a>
+    </div>
+    <button id="theme-toggle" class="px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/70 text-xs font-medium transition">
+      🌙 Dark
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     INTRO
+     ═══════════════════════════════════════════════════════════ -->
+<section class="pt-24 pb-12 px-4">
+  <div class="max-w-4xl mx-auto text-center">
+    <div class="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold mb-4">
+      <span>🎨</span> Propuesta de rediseño
+    </div>
+    <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+      Rediseño de Login / Registro
+    </h1>
+    <p class="text-muted-fg text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+      La pantalla actual usa colores cyan/sky (<code class="text-xs bg-muted px-1.5 py-0.5 rounded">#0ea5e9</code>)
+      que no coinciden con el teal del sistema (<code class="text-xs bg-muted px-1.5 py-0.5 rounded">#0F766E</code>).
+      Además, el fondo con canvas de partículas es pesado y el flip animation confunde.
+      Estas 3 alternativas alinean el auth con el resto del sistema.
+    </p>
+    <div class="mt-6 flex flex-wrap gap-2 justify-center text-xs">
+      <span class="bg-muted px-3 py-1.5 rounded-full">Paleta: teal-700 / emerald</span>
+      <span class="bg-muted px-3 py-1.5 rounded-full">Fuente: Geist Sans</span>
+      <span class="bg-muted px-3 py-1.5 rounded-full">Radius: 0.625rem (rounded-xl)</span>
+      <span class="bg-muted px-3 py-1.5 rounded-full">Inputs: h-11 / bg-muted/30</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ESTADO ACTUAL
+     ═══════════════════════════════════════════════════════════ -->
+<section id="actual" class="alt-section py-12 px-4">
+  <div class="max-w-5xl mx-auto">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="tag-actual text-xs px-2.5 py-1 rounded-full font-semibold">ACTUAL</span>
+      <h2 class="text-xl font-bold">Pantalla actual — problemas identificados</h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-6">
+      <!-- Mini preview del actual -->
+      <div class="rounded-2xl border border-border mockup-border overflow-hidden bg-card mockup-card">
+        <div class="grid grid-cols-5 min-h-[280px]">
+          <div class="col-span-2 relative" style="background: linear-gradient(135deg,#0c4a6e 0%,#0e7490 30%,#0891b2 60%,#0d9488 100%);">
+            <div class="p-6 text-white">
+              <div class="text-sm font-semibold mb-2">Hospedá</div>
+              <div class="text-lg font-bold leading-tight mb-2">Gestioná tu hotel de forma inteligente</div>
+              <div class="text-xs text-white/60">Reservas, check-ins, pagos...</div>
+            </div>
+          </div>
+          <div class="col-span-3 p-6 mockup-muted bg-muted/20">
+            <div class="text-base font-bold mb-1 mockup-text">Bienvenido de nuevo</div>
+            <div class="text-xs mockup-text-muted text-muted-fg mb-4">Ingresá a tu cuenta para continuar</div>
+            <button class="w-full h-9 rounded-xl border border-border mockup-border bg-muted/30 text-xs mb-3">Continuar con Google</button>
+            <div class="relative mb-3"><div class="border-t border-border mockup-divider"></div><span class="absolute inset-0 flex justify-center -mt-2"><span class="bg-card px-2 text-xs">o</span></span></div>
+            <input class="w-full h-9 rounded-xl border border-border mockup-border bg-muted/30 mb-2 px-3 text-xs" placeholder="Email">
+            <input class="w-full h-9 rounded-xl border border-border mockup-border bg-muted/30 mb-2 px-3 text-xs" placeholder="Contraseña">
+            <button class="w-full h-9 rounded-xl bg-[#0F766E] text-white text-xs font-medium">Ingresar</button>
+          </div>
+        </div>
+      </div>
+      <div class="space-y-3">
+        <div class="rounded-xl border border-danger/30 bg-danger/5 p-4">
+          <div class="flex items-start gap-2">
+            <span class="text-danger">✗</span>
+            <div>
+              <div class="text-sm font-semibold">Colores cyan/sky inconsistentes</div>
+              <div class="text-xs text-muted-fg mt-0.5">El gradiente usa <code>#0ea5e9</code>, <code>#0d9488</code>, <code>#0891b2</code> — ninguno es el teal del sistema <code>#0F766E</code>.</div>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-danger/30 bg-danger/5 p-4">
+          <div class="flex items-start gap-2">
+            <span class="text-danger">✗</span>
+            <div>
+              <div class="text-sm font-semibold">Canvas con partículas es pesado</div>
+              <div class="text-xs text-muted-fg mt-0.5">Animación de 80 partículas con mouse tracking en cada frame. Consume CPU, distrae del objetivo (loguearse).</div>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-danger/30 bg-danger/5 p-4">
+          <div class="flex items-start gap-2">
+            <span class="text-danger">✗</span>
+            <div>
+              <div class="text-sm font-semibold">Flip animation de 870ms</div>
+              <div class="text-xs text-muted-fg mt-0.5">El card rota 360° al cambiar login↔signup. Es lento, mareante, y oculta el contenido durante casi 1 segundo.</div>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-danger/30 bg-danger/5 p-4">
+          <div class="flex items-start gap-2">
+            <span class="text-danger">✗</span>
+            <div>
+              <div class="text-sm font-semibold">Panel izquierdo decorativo muy oscuro</div>
+              <div class="text-xs text-muted-fg mt-0.5">Usa un gradiente navy/cyan que se ve desconectado del resto de la app (que es teal/emerald claro).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="max-w-5xl mx-auto px-4"><div class="border-t border-border mockup-divider"></div></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ALTERNATIVA A — Minimalista centrado (sin panel decorativo)
+     ═══════════════════════════════════════════════════════════ -->
+<section id="alt-a" class="alt-section py-12 px-4">
+  <div class="max-w-5xl mx-auto">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="tag-propuesta text-xs px-2.5 py-1 rounded-full font-semibold">PROPUESTA A</span>
+      <h2 class="text-xl font-bold">Minimalista centrado</h2>
+    </div>
+    <p class="text-sm text-muted-fg mb-6 max-w-2xl">
+      Card única centrada, sin panel decorativo lateral. Fondo con degradado sutil teal.
+      Toggle login/signup con tabs (sin flip). Es la opción más limpia y rápida.
+    </p>
+
+    <!-- MOCKUP A -->
+    <div class="alt-card rounded-2xl border border-border mockup-border overflow-hidden bg-card mockup-card shadow-lg">
+      <div class="relative px-6 py-12 md:py-16" style="background: radial-gradient(ellipse at top, rgba(15,118,110,0.08), transparent 60%);">
+        <div class="max-w-md mx-auto">
+          <!-- Logo -->
+          <div class="flex items-center justify-center gap-2.5 mb-8">
+            <div class="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-primary/30">H</div>
+            <span class="text-xl font-bold tracking-tight mockup-text">Hospedá</span>
+          </div>
+
+          <!-- Tabs Login/Signup -->
+          <div class="grid grid-cols-2 gap-1 p-1 rounded-xl bg-muted mockup-muted mb-6">
+            <button class="py-2 rounded-lg bg-card mockup-card shadow-sm text-sm font-semibold mockup-text">Iniciar sesión</button>
+            <button class="py-2 rounded-lg text-muted-fg mockup-text-muted text-sm font-medium">Crear cuenta</button>
+          </div>
+
+          <!-- Heading -->
+          <div class="mb-6">
+            <h1 class="text-2xl font-bold mockup-text mb-1">Bienvenido de nuevo</h1>
+            <p class="text-sm text-muted-fg mockup-text-muted">Ingresá a tu cuenta para continuar</p>
+          </div>
+
+          <!-- Google -->
+          <button class="w-full h-11 rounded-xl border border-border mockup-border mockup-muted/50 hover:bg-muted text-sm font-medium mockup-text flex items-center justify-center gap-2.5 mb-4 transition">
+            <svg class="w-4 h-4" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.23-3.71 1.23-2.83 0-5.21-1.91-6.06-4.48H1.56v2.87C3.63 21.75 7.54 23 12 23z" fill="#34A853"/><path d="M5.94 14.52c-.46-1.38-.46-2.86 0-4.24V7.41H1.56c-1.52 2.98-1.52 6.2 0 9.18l4.38-2.07z" fill="#FBBC05"/><path d="M12 5.04c1.56 0 2.97.54 4.07 1.59l3.04-3.04C16.93 1.04 14.73 0 12 0 7.54 0 3.63 2.25 1.56 6.41l4.38 2.07c.85-2.57 3.23-4.48 6.06-4.44z" fill="#EA4335"/></svg>
+            Continuar con Google
+          </button>
+
+          <!-- Divider -->
+          <div class="relative mb-4">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-border mockup-divider"></div></div>
+            <div class="relative flex justify-center"><span class="bg-card mockup-card px-3 text-xs text-muted-fg">o con tu email</span></div>
+          </div>
+
+          <!-- Form -->
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-muted-fg mockup-text-muted mb-1.5">Email</label>
+              <input type="email" placeholder="tu@email.com" class="w-full h-11 rounded-xl border border-border mockup-border mockup-input bg-muted/30 px-3 text-sm focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition">
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-xs font-medium text-muted-fg mockup-text-muted">Contraseña</label>
+                <a class="text-xs text-primary hover:underline">¿La olvidaste?</a>
+              </div>
+              <input type="password" placeholder="Tu contraseña" class="w-full h-11 rounded-xl border border-border mockup-border mockup-input bg-muted/30 px-3 text-sm focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition">
+            </div>
+            <button class="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-semibold shadow-lg shadow-primary/25 transition">
+              Ingresar
+            </button>
+          </div>
+
+          <p class="text-center text-xs text-muted-fg mockup-text-muted mt-6">
+            ¿No tenés cuenta? <a class="text-primary font-medium hover:underline">Creá una gratis</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pros/Cons A -->
+    <div class="grid md:grid-cols-2 gap-4 mt-6">
+      <div class="rounded-xl border border-success/30 bg-success/5 p-4">
+        <div class="text-sm font-semibold mb-2 text-success">✓ Pros</div>
+        <ul class="text-xs text-muted-fg space-y-1 list-disc pl-4">
+          <li>Card única = más rápido de renderizar</li>
+          <li>Sin flip animation = UX más clara</li>
+          <li>Fondo sutil no distrae</li>
+          <li>Funciona perfecto en mobile (sin panel lateral que se oculta)</li>
+          <li>Toggle con tabs es estándar y conocido</li>
+        </ul>
+      </div>
+      <div class="rounded-xl border border-warning/30 bg-warning/5 p-4">
+        <div class="text-sm font-semibold mb-2 text-warning">⚠ Contras</div>
+        <ul class="text-xs text-muted-fg space-y-1 list-disc pl-4">
+          <li>Menos "wow visual" que un panel decorativo</li>
+          <li>No aprovecha el espacio horizontal en desktop</li>
+          <li>Puede sentirse simple si la marca busca impacto</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="max-w-5xl mx-auto px-4"><div class="border-t border-border mockup-divider"></div></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ALTERNATIVA B — Split con panel teal (mismo layout, colores corregidos)
+     ═══════════════════════════════════════════════════════════ -->
+<section id="alt-b" class="alt-section py-12 px-4">
+  <div class="max-w-5xl mx-auto">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="tag-propuesta text-xs px-2.5 py-1 rounded-full font-semibold">PROPUESTA B</span>
+      <h2 class="text-xl font-bold">Split con panel teal (colores corregidos)</h2>
+    </div>
+    <p class="text-sm text-muted-fg mb-6 max-w-2xl">
+      Mantiene el layout actual (panel izquierdo + form derecho) pero con la paleta correcta del sistema
+      (teal-700/emerald) y sin flip. Toggle entre login/signup con link de texto o tabs.
+    </p>
+
+    <!-- MOCKUP B -->
+    <div class="alt-card rounded-2xl border border-border mockup-border overflow-hidden bg-card mockup-card shadow-lg grid md:grid-cols-2 min-h-[560px]">
+      <!-- Panel izquierdo decorativo -->
+      <div class="relative hidden md:flex flex-col justify-between p-10 text-white grain" style="background: linear-gradient(135deg, #134E4A 0%, #0F766E 40%, #0D9488 100%);">
+        <!-- Top: Logo -->
+        <div class="relative z-10 flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-white/95 flex items-center justify-center text-primary font-bold text-lg shadow-lg">H</div>
+          <span class="text-lg font-bold tracking-tight">Hospedá</span>
+        </div>
+
+        <!-- Middle: Headline -->
+        <div class="relative z-10">
+          <div class="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-white/70 font-medium mb-4">
+            <span class="w-1.5 h-1.5 rounded-full bg-brand-mint"></span> Tu espacio de trabajo
+          </div>
+          <h2 class="text-3xl lg:text-4xl font-bold leading-tight mb-3">Gestioná tu hotel<br>de forma inteligente</h2>
+          <p class="text-white/70 text-sm leading-relaxed max-w-[280px]">Reservas, check-ins, pagos y más. Todo en un solo lugar, accesible desde cualquier dispositivo.</p>
+        </div>
+
+        <!-- Bottom: features mini -->
+        <div class="relative z-10 space-y-2.5">
+          <div class="flex items-center gap-2.5 text-white/80 text-xs">
+            <div class="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center"><span class="text-[10px]">✓</span></div>
+            <span>30 días de prueba gratuita</span>
+          </div>
+          <div class="flex items-center gap-2.5 text-white/80 text-xs">
+            <div class="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center"><span class="text-[10px]">✓</span></div>
+            <span>Sin tarjeta de crédito</span>
+          </div>
+          <div class="flex items-center gap-2.5 text-white/80 text-xs">
+            <div class="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center"><span class="text-[10px]">✓</span></div>
+            <span>Cancelá cuando quieras</span>
+          </div>
+        </div>
+
+        <!-- Decorative blobs -->
+        <div class="absolute top-[-20%] right-[-10%] w-[300px] h-[300px] rounded-full opacity-20 blur-3xl" style="background: radial-gradient(circle, #4ADE80, transparent 70%);"></div>
+        <div class="absolute bottom-[-15%] left-[-5%] w-[200px] h-[200px] rounded-full opacity-15 blur-3xl" style="background: radial-gradient(circle, #5EEAD4, transparent 70%);"></div>
+      </div>
+
+      <!-- Panel derecho: form -->
+      <div class="flex flex-col justify-center p-8 md:p-10 bg-muted/20 mockup-muted">
+        <!-- Mobile logo -->
+        <div class="flex md:hidden items-center gap-2.5 mb-6">
+          <div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold">H</div>
+          <span class="font-semibold mockup-text">Hospedá</span>
+        </div>
+
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold mockup-text mb-1">Bienvenido de nuevo</h1>
+          <p class="text-sm text-muted-fg mockup-text-muted">Ingresá a tu cuenta para continuar</p>
+        </div>
+
+        <button class="w-full h-11 rounded-xl border border-border mockup-border mockup-muted/50 hover:bg-muted text-sm font-medium mockup-text flex items-center justify-center gap-2.5 mb-4 transition">
+          <svg class="w-4 h-4" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.23-3.71 1.23-2.83 0-5.21-1.91-6.06-4.48H1.56v2.87C3.63 21.75 7.54 23 12 23z" fill="#34A853"/><path d="M5.94 14.52c-.46-1.38-.46-2.86 0-4.24V7.41H1.56c-1.52 2.98-1.52 6.2 0 9.18l4.38-2.07z" fill="#FBBC05"/><path d="M12 5.04c1.56 0 2.97.54 4.07 1.59l3.04-3.04C16.93 1.04 14.73 0 12 0 7.54 0 3.63 2.25 1.56 6.41l4.38 2.07c.85-2.57 3.23-4.48 6.06-4.44z" fill="#EA4335"/></svg>
+          Continuar con Google
+        </button>
+
+        <div class="relative mb-4">
+          <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-border mockup-divider"></div></div>
+          <div class="relative flex justify-center"><span class="bg-muted mockup-muted px-3 text-xs text-muted-fg mockup-text-muted">o</span></div>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-muted-fg mockup-text-muted mb-1.5">Email</label>
+            <input type="email" placeholder="tu@email.com" class="w-full h-11 rounded-xl border border-border mockup-border mockup-input bg-muted/30 px-3 text-sm mockup-text focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition">
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-medium text-muted-fg mockup-text-muted">Contraseña</label>
+              <a class="text-xs text-primary hover:underline">¿La olvidaste?</a>
+            </div>
+            <input type="password" placeholder="Tu contraseña" class="w-full h-11 rounded-xl border border-border mockup-border mockup-input bg-muted/30 px-3 text-sm mockup-text focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition">
+          </div>
+          <button class="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-semibold shadow-lg shadow-primary/25 transition">
+            Ingresar
+          </button>
+        </div>
+
+        <p class="text-center text-sm text-muted-fg mockup-text-muted mt-6">
+          ¿No tenés cuenta? <a class="text-primary font-medium hover:underline">Crear una cuenta</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Pros/Cons B -->
+    <div class="grid md:grid-cols-2 gap-4 mt-6">
+      <div class="rounded-xl border border-success/30 bg-success/5 p-4">
+        <div class="text-sm font-semibold mb-2 text-success">✓ Pros</div>
+        <ul class="text-xs text-muted-fg space-y-1 list-disc pl-4">
+          <li>Aprovecha el espacio desktop (mismo layout que antes = familiar)</li>
+          <li>Panel decorativo con paleta del sistema (teal-700 → teal-500)</li>
+          <li>Lista de features con checks mejora conversión</li>
+          <li>Sin flip animation, sin canvas de partículas = más liviano</li>
+          <li>Grano sutil en el panel da textura premium</li>
+        </ul>
+      </div>
+      <div class="rounded-xl border border-warning/30 bg-warning/5 p-4">
+        <div class="text-sm font-semibold mb-2 text-warning">⚠ Contras</div>
+        <ul class="text-xs text-muted-fg space-y-1 list-disc pl-4">
+          <li>En mobile el panel se oculta (no muestra features)</li>
+          <li>Requiere mantener dos layouts (desktop/mobile)</li>
+          <li>Más código que la alternativa A</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="max-w-5xl mx-auto px-4"><div class="border-t border-border mockup-divider"></div></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ALTERNATIVA C — Card flotante con fondo teal full-bleed
+     ═══════════════════════════════════════════════════════════ -->
+<section id="alt-c" class="alt-section py-12 px-4">
+  <div class="max-w-5xl mx-auto">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="tag-propuesta text-xs px-2.5 py-1 rounded-full font-semibold">PROPUESTA C</span>
+      <h2 class="text-xl font-bold">Card flotante con fondo teal full-bleed</h2>
+    </div>
+    <p class="text-sm text-muted-fg mb-6 max-w-2xl">
+      Fondo full-bleed con gradiente teal + patrón de puntos. Card flotante blanca centrada con shadow grande.
+      Es la opción con más "presencia de marca" — ideal si querés que el login sea memorable.
+    </p>
+
+    <!-- MOCKUP C -->
+    <div class="alt-card rounded-2xl overflow-hidden shadow-lg relative" style="min-height: 600px;">
+      <!-- Fondo teal full-bleed -->
+      <div class="absolute inset-0 grain" style="background: linear-gradient(135deg, #0F2B28 0%, #0F766E 35%, #0D9488 70%, #14B8A6 100%);"></div>
+
+      <!-- Patrón de puntos decorativo -->
+      <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px); background-size: 24px 24px;"></div>
+
+      <!-- Blobs -->
+      <div class="absolute top-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full opacity-25 blur-3xl" style="background: radial-gradient(circle, #4ADE80, transparent 70%);"></div>
+      <div class="absolute bottom-[-15%] right-[-5%] w-[350px] h-[350px] rounded-full opacity-20 blur-3xl" style="background: radial-gradient(circle, #5EEAD4, transparent 70%);"></div>
+
+      <!-- Card flotante -->
+      <div class="relative z-10 flex items-center justify-center min-h-[600px] p-6">
+        <div class="w-full max-w-md rounded-2xl bg-white dark:bg-[#132624] shadow-2xl p-8 md:p-10 mockup-card">
+          <!-- Logo -->
+          <div class="flex items-center justify-center gap-2.5 mb-6">
+            <div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/30">H</div>
+          </div>
+
+          <!-- Heading -->
+          <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold mockup-text mb-1">Bienvenido a Hospedá</h1>
+            <p class="text-sm text-muted-fg mockup-text-muted">Ingresá para gestionar tu hotel</p>
+          </div>
+
+          <!-- Google -->
+          <button class="w-full h-11 rounded-xl border border-border mockup-border mockup-muted/50 hover:bg-muted text-sm font-medium mockup-text flex items-center justify-center gap-2.5 mb-4 transition">
+            <svg class="w-4 h-4" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.23-3.71 1.23-2.83 0-5.21-1.91-6.06-4.48H1.56v2.87C3.63 21.75 7.54 23 12 23z" fill="#34A853"/><path d="M5.94 14.52c-.46-1.38-.46-2.86 0-4.24V7.41H1.56c-1.52 2.98-1.52 6.2 0 9.18l4.38-2.07z" fill="#FBBC05"/><path d="M12 5.04c1.56 0 2.97.54 4.07 1.59l3.04-3.04C16.93 1.04 14.73 0 12 0 7.54 0 3.63 2.25 1.56 6.41l4.38 2.07c.85-2.57 3.23-4.48 6.06-4.44z" fill="#EA4335"/></svg>
+            Continuar con Google
+          </button>
+
+          <!-- Divider -->
+          <div class="relative mb-4">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-border mockup-divider"></div></div>
+            <div class="relative flex justify-center"><span class="bg-card mockup-card px-3 text-xs text-muted-fg mockup-text-muted">o con tu email</span></div>
+          </div>
+
+          <!-- Form -->
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-muted-fg mockup-text-muted mb-1.5">Email</label>
+              <input type="email" placeholder="tu@email.com" class="w-full h-11 rounded-xl border border-border mockup-border mockup-input bg-muted/30 px-3 text-sm mockup-text focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition">
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-xs font-medium text-muted-fg mockup-text-muted">Contraseña</label>
+                <a class="text-xs text-primary hover:underline">¿La olvidaste?</a>
+              </div>
+              <input type="password" placeholder="Tu contraseña" class="w-full h-11 rounded-xl border border-border mockup-border mockup-input bg-muted/30 px-3 text-sm mockup-text focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition">
+            </div>
+            <button class="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-semibold shadow-lg shadow-primary/25 transition">
+              Ingresar
+            </button>
+          </div>
+
+          <p class="text-center text-sm text-muted-fg mockup-text-muted mt-6">
+            ¿No tenés cuenta? <a class="text-primary font-medium hover:underline">Probá 30 días gratis</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pros/Cons C -->
+    <div class="grid md:grid-cols-2 gap-4 mt-6">
+      <div class="rounded-xl border border-success/30 bg-success/5 p-4">
+        <div class="text-sm font-semibold mb-2 text-success">✓ Pros</div>
+        <ul class="text-xs text-muted-fg space-y-1 list-disc pl-4">
+          <li>Mayor impacto visual = memorable</li>
+          <li>El fondo teal full-bleed refuerza la identidad de marca</li>
+          <li>Patrón de puntos + blobs = textura sin peso de CPU</li>
+          <li>Card flotante con shadow grande = jerarquía clara</li>
+          <li>Funciona igual en mobile y desktop (sin layout split)</li>
+        </ul>
+      </div>
+      <div class="rounded-xl border border-warning/30 bg-warning/5 p-4">
+        <div class="text-sm font-semibold mb-2 text-warning">⚠ Contras</div>
+        <ul class="text-xs text-muted-fg space-y-1 list-disc pl-4">
+          <li>Fondo muy colorido puede no gustar a todos</li>
+          <li>En dark mode el contraste puede ser bajo</li>
+          <li>Ocupa toda la pantalla — menos "aire" que la A</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="max-w-5xl mx-auto px-4"><div class="border-t border-border mockup-divider"></div></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TABLA COMPARATIVA
+     ═══════════════════════════════════════════════════════════ -->
+<section id="comparativa" class="alt-section py-12 px-4">
+  <div class="max-w-5xl mx-auto">
+    <h2 class="text-xl font-bold mb-6">📊 Comparativa final</h2>
+
+    <div class="overflow-x-auto rounded-2xl border border-border mockup-border">
+      <table class="w-full text-sm">
+        <thead class="bg-muted mockup-muted">
+          <tr class="text-left">
+            <th class="p-4 font-semibold mockup-text">Criterio</th>
+            <th class="p-4 font-semibold text-danger">Actual</th>
+            <th class="p-4 font-semibold text-success">A · Minimalista</th>
+            <th class="p-4 font-semibold text-success">B · Split teal</th>
+            <th class="p-4 font-semibold text-success">C · Full-bleed</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border mockup-divider">
+          <tr>
+            <td class="p-4 font-medium mockup-text">Paleta del sistema</td>
+            <td class="p-4 text-danger">✗ cyan/sky</td>
+            <td class="p-4 text-success">✓ teal-700</td>
+            <td class="p-4 text-success">✓ teal-700</td>
+            <td class="p-4 text-success">✓ teal-700</td>
+          </tr>
+          <tr>
+            <td class="p-4 font-medium mockup-text">Performance</td>
+            <td class="p-4 text-danger">✗ canvas 80 partículas</td>
+            <td class="p-4 text-success">✓ sin animaciones</td>
+            <td class="p-4 text-success">✓ solo CSS</td>
+            <td class="p-4 text-success">✓ solo CSS</td>
+          </tr>
+          <tr>
+            <td class="p-4 font-medium mockup-text">UX toggle login/signup</td>
+            <td class="p-4 text-danger">✗ flip 870ms</td>
+            <td class="p-4 text-success">✓ tabs instantáneos</td>
+            <td class="p-4 text-success">✓ link de texto</td>
+            <td class="p-4 text-success">✓ link de texto</td>
+          </tr>
+          <tr>
+            <td class="p-4 font-medium mockup-text">Mobile UX</td>
+            <td class="p-4 text-warning">△ panel se oculta</td>
+            <td class="p-4 text-success">✓ card única centrada</td>
+            <td class="p-4 text-warning">△ panel se oculta</td>
+            <td class="p-4 text-success">✓ card única centrada</td>
+          </tr>
+          <tr>
+            <td class="p-4 font-medium mockup-text">Impacto visual</td>
+            <td class="p-4 text-warning">△ medio</td>
+            <td class="p-4 text-warning">△ bajo</td>
+            <td class="p-4 text-success">✓ medio-alto</td>
+            <td class="p-4 text-success">✓✓ alto</td>
+          </tr>
+          <tr>
+            <td class="p-4 font-medium mockup-text">Complejidad código</td>
+            <td class="p-4 text-danger">✗ alta (flip + canvas)</td>
+            <td class="p-4 text-success">✓ baja</td>
+            <td class="p-4 text-warning">△ media</td>
+            <td class="p-4 text-success">✓ baja</td>
+          </tr>
+          <tr>
+            <td class="p-4 font-medium mockup-text">Dark mode</td>
+            <td class="p-4 text-warning">△ gradiente fijo</td>
+            <td class="p-4 text-success">✓ adaptativo</td>
+            <td class="p-4 text-success">✓ adaptativo</td>
+            <td class="p-4 text-warning">△ necesita tuning</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Recomendación -->
+    <div class="mt-8 rounded-2xl border-2 border-primary/30 bg-primary/5 p-6">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shrink-0">💡</div>
+        <div>
+          <h3 class="font-bold mb-2 mockup-text">Recomendación</h3>
+          <p class="text-sm text-muted-fg mockup-text-muted mb-3">
+            La <strong>Alternativa B (Split con panel teal)</strong> es la mejor opción si querés mantener el layout actual
+            pero con la paleta correcta del sistema. Es familiar para usuarios existentes, mejora la conversión con la
+            lista de features, y respeta el diseño del resto de la app.
+          </p>
+          <p class="text-sm text-muted-fg mockup-text-muted">
+            Si preferís algo más minimalista y rápido, la <strong>Alternativa A</strong> es ideal.
+            La <strong>Alternativa C</strong> es para cuando quieras máximo impacto de marca.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paleta de colores de referencia -->
+    <div class="mt-8">
+      <h3 class="text-sm font-semibold mb-3 alt-label mockup-text">Paleta usada (del sistema)</h3>
+      <div class="grid grid-cols-3 md:grid-cols-6 gap-2">
+        <div class="rounded-lg overflow-hidden border border-border mockup-border">
+          <div class="h-12" style="background: #0F2B28;"></div>
+          <div class="p-2 text-[10px] font-mono">brand-deep<br>#0F2B28</div>
+        </div>
+        <div class="rounded-lg overflow-hidden border border-border mockup-border">
+          <div class="h-12" style="background: #134E4A;"></div>
+          <div class="p-2 text-[10px] font-mono">teal-900<br>#134E4A</div>
+        </div>
+        <div class="rounded-lg overflow-hidden border border-border mockup-border">
+          <div class="h-12" style="background: #0F766E;"></div>
+          <div class="p-2 text-[10px] font-mono">primary<br>#0F766E</div>
+        </div>
+        <div class="rounded-lg overflow-hidden border border-border mockup-border">
+          <div class="h-12" style="background: #0D9488;"></div>
+          <div class="p-2 text-[10px] font-mono">teal-600<br>#0D9488</div>
+        </div>
+        <div class="rounded-lg overflow-hidden border border-border mockup-border">
+          <div class="h-12" style="background: #14B8A6;"></div>
+          <div class="p-2 text-[10px] font-mono">teal-500<br>#14B8A6</div>
+        </div>
+        <div class="rounded-lg overflow-hidden border border-border mockup-border">
+          <div class="h-12" style="background: #4ADE80;"></div>
+          <div class="p-2 text-[10px] font-mono">brand-mint<br>#4ADE80</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="py-8 px-4 text-center text-xs text-muted-fg">
+  <p>Mockup de propuesta · Hospedá · Para revisión interna</p>
+</footer>
+
+<script>
+  // Dark mode toggle
+  const toggle = document.getElementById('theme-toggle');
+  const root = document.documentElement;
+  toggle.addEventListener('click', () => {
+    root.classList.toggle('dark');
+    toggle.textContent = root.classList.contains('dark') ? '☀️ Light' : '🌙 Dark';
+  });
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      const id = a.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
+    });
+  });
+</script>
+
+</body>
+</html>
