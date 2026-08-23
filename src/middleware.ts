@@ -2,18 +2,16 @@
 //
 // Aplica rate limiting distribuido a las rutas /api/* usando Upstash Redis.
 //
-// EXCLUSIONES: Las rutas /api/auth/* están excluidas del rate limiting del
-// middleware porque NextAuth tiene su propia protección (CSRF tokens, cookies
-// firmadas). El flujo de OAuth de Google hace varios requests rápidos que
-// no deben ser bloqueados.
-//
-// Las rutas /api/auth/login, /api/auth/me, /api/auth/forgot-password
-// ya tienen rate limiting individual dentro de cada API route.
+// EXCLUSIONES:
+// - /api/auth/* — NextAuth tiene su propia protección (CSRF, cookies firmadas)
+// - /api/super-admin/* — requiere autenticación de super-admin (requireSuperAdmin)
+//   que ya valida con SUPER_ADMIN_EMAILS. El dashboard hace múltiples requests
+//   simultáneos (metrics, tenants, plans, payments) que no deben bloquearse.
 //
 // Límites del middleware:
-//   - Mutaciones (POST/PUT/PATCH/DELETE): 60 req/min por IP
-//   - Queries (GET): 120 req/min por IP
-//   - Endpoints públicos sensibles: 30 req/min por IP
+//   - Mutaciones (POST/PUT/PATCH/DELETE): 100 req/min por IP
+//   - Queries (GET): 200 req/min por IP
+//   - Endpoints públicos sensibles: 40 req/min por IP
 
 import { NextRequest, NextResponse } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
@@ -30,7 +28,7 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 
   ratelimiter = new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(120, '1 m'),
+    limiter: Ratelimit.slidingWindow(200, '1 m'),
     prefix: 'hospeda:middleware',
     analytics: true,
   });
@@ -54,10 +52,15 @@ export async function middleware(req: NextRequest) {
   }
 
   // ── EXCLUIR rutas de NextAuth ──
-  // NextAuth tiene su propia protección (CSRF, cookies firmadas).
-  // El flujo de OAuth hace varios requests rápidos que no deben bloquearse.
-  // Estas rutas ya tienen rate limiting individual dentro de cada route.
   if (path.startsWith('/api/auth/')) {
+    return NextResponse.next();
+  }
+
+  // ── EXCLUIR rutas de super-admin ──
+  // Estas rutas requieren autenticación de super-admin (requireSuperAdmin)
+  // que valida contra SUPER_ADMIN_EMAILS. El dashboard hace múltiples
+  // requests simultáneos que no deben bloquearse.
+  if (path.startsWith('/api/super-admin/')) {
     return NextResponse.next();
   }
 
@@ -86,7 +89,7 @@ export async function middleware(req: NextRequest) {
 
   try {
     const { success, reset } = await ratelimiter.limit(limitKey, {
-      rate: isStrict ? 30 : isMutation ? 60 : 120,
+      rate: isStrict ? 40 : isMutation ? 100 : 200,
       period: 60, // 1 minuto
     });
 
@@ -98,7 +101,7 @@ export async function middleware(req: NextRequest) {
           status: 429,
           headers: {
             'Retry-After': String(retryAfter),
-            'X-RateLimit-Limit': String(isStrict ? 30 : isMutation ? 60 : 120),
+            'X-RateLimit-Limit': String(isStrict ? 40 : isMutation ? 100 : 200),
             'X-RateLimit-Remaining': '0',
           },
         }
@@ -109,16 +112,14 @@ export async function middleware(req: NextRequest) {
     response.headers.set('X-RateLimit-Policy', isStrict ? 'strict' : isMutation ? 'mutation' : 'query');
     return response;
   } catch (error) {
-    // Si Redis falla, no bloquear el request (fail-open)
     console.warn('[middleware] Rate limit check failed, allowing request:', error);
     return NextResponse.next();
   }
 }
 
 export const config = {
-  // Excluir /api/auth/* del matcher para que el middleware ni siquiera se ejecute
-  // en esas rutas (más eficiente que el check dentro del middleware)
+  // Excluir /api/auth/* y /api/super-admin/* del matcher
   matcher: [
-    '/api/((?!auth/).*)',
+    '/api/((?!auth/|super-admin/).*)',
   ],
 };
