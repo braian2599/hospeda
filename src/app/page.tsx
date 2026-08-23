@@ -340,8 +340,8 @@ function Navbar() {
 function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-      {/* ── Background: dashboard screenshot with teal overlay ── */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
+      {/* ── Background: dashboard screenshot visible behind text ── */}
+      <div className="absolute inset-0 overflow-hidden">
         {/* Dashboard screenshot as background — only on desktop */}
         <div className="absolute inset-0 hidden md:block">
           <Image
@@ -349,11 +349,12 @@ function Hero() {
             alt=""
             fill
             priority
-            className="object-cover object-center opacity-[0.15]"
+            className="object-cover object-top opacity-[0.35]"
           />
-          {/* Teal gradient overlay on top of screenshot */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-background/90" />
+          {/* Teal tint overlay — keeps dashboard visible but gives teal wash */}
+          <div className="absolute inset-0 bg-primary/20 mix-blend-multiply" />
+          {/* Dark gradient at top and bottom for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background" />
         </div>
 
         {/* Mobile: keep the original gradient orbs */}
@@ -364,7 +365,7 @@ function Hero() {
           <div className="hero-orb orb-3 w-[20rem] h-[20rem] bg-brand-amber/10 top-[40%] right-[15%]" />
         </div>
 
-        {/* Subtle dot grid — visible on all screens */}
+        {/* Subtle dot grid */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -372,22 +373,19 @@ function Hero() {
             backgroundSize: '32px 32px',
           }}
         />
-        {/* Subtle grid pattern overlay */}
-        <div className="absolute inset-0 bg-grid-pattern opacity-50" />
-        {/* Gradient fade at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </div>
 
       <div className="mx-auto max-w-4xl px-4 sm:px-6 text-center relative z-10">
+        {/* White text shadow for readability over dashboard */}
         <FadeIn>
-          <div className="premium-badge mb-6">
+          <div className="premium-badge mb-6" style={{ textShadow: '0 1px 3px rgba(255,255,255,0.8)' }}>
             <Sparkles className="w-3.5 h-3.5 text-brand-emerald" />
             30 días de prueba gratuita — sin tarjeta
           </div>
         </FadeIn>
 
         <FadeIn delay={100}>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] mb-6" style={{ textShadow: '0 2px 8px rgba(255,255,255,0.6)' }}>
             <TypewriterText text="Tu hotel," className="inline" />{' '}
             <span className="relative inline-block">
               <span className="relative z-10 hero-gradient-text">
@@ -401,7 +399,7 @@ function Hero() {
         </FadeIn>
 
         <FadeIn delay={200}>
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed" style={{ textShadow: '0 1px 4px rgba(255,255,255,0.7)' }}>
             La plataforma todo-en-uno para hoteles, hostels y alojamientos en Argentina.
             Reservas, facturación, caja y reportes en un solo lugar.
           </p>
@@ -415,7 +413,7 @@ function Hero() {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" className="cta-premium w-full sm:w-auto text-base px-8 h-12 bg-background/50 backdrop-blur-sm" onClick={() => scrollTo('caracteristicas')}>
+            <Button variant="outline" size="lg" className="cta-premium w-full sm:w-auto text-base px-8 h-12 bg-background/70 backdrop-blur-sm" onClick={() => scrollTo('caracteristicas')}>
               Ver características
               <ChevronDown className="w-4 h-4 ml-1" />
             </Button>
@@ -423,7 +421,7 @@ function Hero() {
         </FadeIn>
 
         <FadeIn delay={500}>
-          <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-muted-foreground">
+          <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-muted-foreground" style={{ textShadow: '0 1px 4px rgba(255,255,255,0.7)' }}>
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-lg bg-brand-emerald/10 flex items-center justify-center shadow-sm">
                 <Zap className="w-4 h-4 text-brand-emerald" />
