@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { NOMBRES_MODULOS, diasRestantesTrial, type PlanTipo } from '@/lib/plan-config';
 import { usePlans } from '@/hooks/usePlans';
+import { useBankDetails } from '@/hooks/useBankDetails';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,7 @@ import {
   Crown, Check, Loader2, Save, Eye, EyeOff, Star, ArrowRight,
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
   Settings, Copy, Info, Menu, BedDouble, KeyRound, Database, Receipt,
-  Users, History, CheckCircle2, XCircle, Lock, Printer,
+  Users, History, CheckCircle2, XCircle, Lock, Printer, MessageCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -1100,14 +1101,6 @@ function ExportarSection() {
 // ═══════════════════════════════════════════
 // 6. SUSCRIPCIÓN Y PLANES
 // ═══════════════════════════════════════════
-const TRANSFERENCIA_DATA = {
-  banco: 'Banco Nación',
-  titular: 'Hospedá S.A.',
-  cbu: '0110222255002233334444',
-  alias: 'hospeda.mp',
-  cuit: '20-12345678-9',
-  cuenta: 'Cuenta Corriente en Pesos',
-};
 
 function SuscripcionSection() {
   const { planActual, fechaVencimientoTrial } = useHotelStore();
@@ -1118,6 +1111,7 @@ function SuscripcionSection() {
   const [showTransfer, setShowTransfer] = useState(false);
   const [copiedField, setCopiedField] = useState('');
   const plans = usePlans();
+  const bankDetails = useBankDetails();
 
   const fetchUsage = useCallback(async () => {
     try {
@@ -1312,35 +1306,96 @@ function SuscripcionSection() {
               <div className="flex items-start gap-2 p-2.5 bg-info/5 rounded-lg">
                 <Info className="w-3.5 h-3.5 text-info shrink-0 mt-0.5" />
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Luego de realizar la transferencia, enviá el comprobante por email a <strong>soporte@hospeda.com</strong> con tu nombre de hotel y el plan elegido.
+                  Luego de realizar la transferencia, enviá el comprobante con tu nombre de hotel y el plan elegido. Un administrador activará tu suscripción una vez verificado el pago.
                 </p>
               </div>
-              {[
-                { label: 'Banco', value: TRANSFERENCIA_DATA.banco },
-                { label: 'Titular', value: TRANSFERENCIA_DATA.titular },
-                { label: 'CBU', value: TRANSFERENCIA_DATA.cbu, copyable: true },
-                { label: 'Alias', value: TRANSFERENCIA_DATA.alias, copyable: true },
-                { label: 'CUIT', value: TRANSFERENCIA_DATA.cuit },
-                { label: 'Cuenta', value: TRANSFERENCIA_DATA.cuenta },
-              ].map(item => (
-                <div key={item.label} className="flex items-center justify-between py-1">
-                  <span className="text-xs text-muted-foreground">{item.label}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium font-mono">{item.value}</span>
-                    {item.copyable && (
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(item.value, item.label)}
-                        className="p-1 rounded hover:bg-accent transition-colors"
-                      >
-                        {copiedField === item.label
-                          ? <Check className="w-3 h-3 text-primary" />
-                          : <Copy className="w-3 h-3 text-muted-foreground" />}
-                      </button>
-                    )}
-                  </div>
+
+              {bankDetails.loading ? (
+                <div className="space-y-2 py-2">
+                  <div className="h-4 bg-muted animate-pulse rounded" />
+                  <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
+                  <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
                 </div>
-              ))}
+              ) : !bankDetails.hasBankData ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Building2 className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-xs">
+                    Los datos bancarios aún no fueron configurados por el administrador.
+                    Contactate con soporte para obtener la información de transferencia.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {[
+                    { label: 'Banco', value: bankDetails.banco },
+                    { label: 'Titular', value: bankDetails.titular },
+                    { label: 'CBU', value: bankDetails.cbu, copyable: true },
+                    { label: 'Alias', value: bankDetails.alias, copyable: true },
+                    { label: 'CUIT', value: bankDetails.cuit },
+                  ].filter(item => item.value).map(item => (
+                    <div key={item.label} className="flex items-center justify-between py-1">
+                      <span className="text-xs text-muted-foreground">{item.label}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium font-mono">{item.value}</span>
+                        {item.copyable && (
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(item.value, item.label)}
+                            className="p-1 rounded hover:bg-accent transition-colors"
+                          >
+                            {copiedField === item.label
+                              ? <Check className="w-3 h-3 text-primary" />
+                              : <Copy className="w-3 h-3 text-muted-foreground" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Enviar comprobante */}
+                  {(bankDetails.comprobanteEmail ||
+                    bankDetails.comprobanteWhatsapp ||
+                    bankDetails.comprobanteTelefono) && (
+                    <div className="border-t pt-3 mt-3 space-y-2">
+                      <h4 className="text-xs font-semibold flex items-center gap-1.5">
+                        <MessageCircle className="w-3.5 h-3.5 text-primary" />
+                        Enviar comprobante
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {bankDetails.comprobanteWhatsapp && (
+                          <a
+                            href={`https://wa.me/${bankDetails.comprobanteWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, les envío el comprobante de transferencia para activar mi suscripción a Hospedá.')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success/15 text-success hover:bg-success/25 transition-colors text-xs font-medium"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            WhatsApp
+                          </a>
+                        )}
+                        {bankDetails.comprobanteEmail && (
+                          <a
+                            href={`mailto:${bankDetails.comprobanteEmail}?subject=${encodeURIComponent('Comprobante de transferencia - Hospedá')}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-info/15 text-info hover:bg-info/25 transition-colors text-xs font-medium"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                            {bankDetails.comprobanteEmail}
+                          </a>
+                        )}
+                        {bankDetails.comprobanteTelefono && (
+                          <a
+                            href={`tel:${bankDetails.comprobanteTelefono.replace(/[^0-9+]/g, '')}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground hover:bg-muted/70 transition-colors text-xs font-medium"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            {bankDetails.comprobanteTelefono}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         )}

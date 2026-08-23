@@ -40,7 +40,6 @@ export default function SuperAdminConfig() {
   const [bankCbu, setBankCbu] = useState('');
   const [bankAlias, setBankAlias] = useState('');
   const [bankCuit, setBankCuit] = useState('');
-  const [bankCuenta, setBankCuenta] = useState('');
   const [bankComprobanteEmail, setBankComprobanteEmail] = useState('');
   const [bankComprobanteWhatsapp, setBankComprobanteWhatsapp] = useState('');
   const [bankComprobanteTelefono, setBankComprobanteTelefono] = useState('');
@@ -68,7 +67,6 @@ export default function SuperAdminConfig() {
         setBankCbu(bank.cbu || '');
         setBankAlias(bank.alias || '');
         setBankCuit(bank.cuit || '');
-        setBankCuenta(bank.cuenta || '');
         setBankComprobanteEmail(bank.comprobanteEmail || '');
         setBankComprobanteWhatsapp(bank.comprobanteWhatsapp || '');
         setBankComprobanteTelefono(bank.comprobanteTelefono || '');
@@ -97,7 +95,6 @@ export default function SuperAdminConfig() {
         bank_cbu: bankCbu,
         bank_alias: bankAlias,
         bank_cuit: bankCuit,
-        bank_cuenta: bankCuenta,
         bank_comprobante_email: bankComprobanteEmail,
         bank_comprobante_whatsapp: bankComprobanteWhatsapp,
         bank_comprobante_telefono: bankComprobanteTelefono,
@@ -321,23 +318,13 @@ export default function SuperAdminConfig() {
               </span>
             </p>
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Banco</Label>
-                <Input
-                  value={bankBanco}
-                  onChange={(e) => setBankBanco(e.target.value)}
-                  placeholder="Ej: Banco Nación, Banco Galicia, etc."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Tipo de cuenta</Label>
-                <Input
-                  value={bankCuenta}
-                  onChange={(e) => setBankCuenta(e.target.value)}
-                  placeholder="Ej: Cuenta Corriente en Pesos"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Banco</Label>
+              <Input
+                value={bankBanco}
+                onChange={(e) => setBankBanco(e.target.value)}
+                placeholder="Ej: Banco Nación, Banco Galicia, etc."
+              />
             </div>
 
             <div className="space-y-2">

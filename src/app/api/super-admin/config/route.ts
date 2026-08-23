@@ -58,7 +58,6 @@ export async function GET() {
         cbu: configMap.bank_cbu || '',
         alias: configMap.bank_alias || '',
         cuit: configMap.bank_cuit || '',
-        cuenta: configMap.bank_cuenta || '',
         comprobanteEmail: configMap.bank_comprobante_email || '',
         comprobanteWhatsapp: configMap.bank_comprobante_whatsapp || '',
         comprobanteTelefono: configMap.bank_comprobante_telefono || '',
