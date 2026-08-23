@@ -52,6 +52,17 @@ export async function GET() {
         hasAccessToken: !!configMap.mp_access_token,
         hasWebhookSecret: !!configMap.mp_webhook_secret,
       },
+      banco: {
+        banco: configMap.bank_banco || '',
+        titular: configMap.bank_titular || '',
+        cbu: configMap.bank_cbu || '',
+        alias: configMap.bank_alias || '',
+        cuit: configMap.bank_cuit || '',
+        cuenta: configMap.bank_cuenta || '',
+        comprobanteEmail: configMap.bank_comprobante_email || '',
+        comprobanteWhatsapp: configMap.bank_comprobante_whatsapp || '',
+        comprobanteTelefono: configMap.bank_comprobante_telefono || '',
+      },
       plataforma: {
         nombre: configMap.plataforma_nombre || 'Hospeda',
         emailContacto: configMap.plataforma_email || '',

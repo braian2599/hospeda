@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   Crown, Calendar, CreditCard, Building2, Copy, Check,
   Clock, AlertTriangle, Shield, ArrowRight, Info,
-  RefreshCw, XCircle, Loader2,
+  RefreshCw, XCircle, Loader2, MessageCircle, Mail, Phone,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
@@ -23,14 +23,17 @@ const CheckoutDialog = dynamic(
   { ssr: false }
 );
 
-// ─── Transferencia bancaria info ───
-const TRANSFERENCIA_DATA = {
+// ─── Transferencia bancaria info (valores por defecto, se sobrescriben con datos de la BD) ───
+const DEFAULT_TRANSFERENCIA_DATA = {
   banco: 'Banco Nación',
   titular: 'Hospedá S.A.',
   cbu: '0110222255002233334444',
   alias: 'hospeda.mp',
   cuit: '20-12345678-9',
   cuenta: 'Cuenta Corriente en Pesos',
+  comprobanteEmail: '',
+  comprobanteWhatsapp: '',
+  comprobanteTelefono: '',
 };
 
 export default function SuscripcionModule() {
@@ -52,17 +55,40 @@ export default function SuscripcionModule() {
   const [canceling, setCanceling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  // Fetch subscription data
+  // Datos bancarios (se cargan desde /api/bank-details)
+  const [transferenciaData, setTransferenciaData] = useState(DEFAULT_TRANSFERENCIA_DATA);
+
+  // Fetch subscription data + bank details
   useEffect(() => {
     async function fetchData() {
       try {
-        const subRes = await fetch('/api/subscription');
+        const [subRes, bankRes] = await Promise.all([
+          fetch('/api/subscription'),
+          fetch('/api/bank-details'),
+        ]);
         const subData = await subRes.json();
         if (subRes.ok && subData.subscription) {
           setSubscriptionData(subData.subscription);
         }
+        // Cargar datos bancarios reales (si la API responde OK)
+        if (bankRes.ok) {
+          const bankData = await bankRes.json();
+          if (bankData && !bankData.error) {
+            setTransferenciaData({
+              banco: bankData.banco || DEFAULT_TRANSFERENCIA_DATA.banco,
+              titular: bankData.titular || DEFAULT_TRANSFERENCIA_DATA.titular,
+              cbu: bankData.cbu || DEFAULT_TRANSFERENCIA_DATA.cbu,
+              alias: bankData.alias || DEFAULT_TRANSFERENCIA_DATA.alias,
+              cuit: bankData.cuit || DEFAULT_TRANSFERENCIA_DATA.cuit,
+              cuenta: bankData.cuenta || DEFAULT_TRANSFERENCIA_DATA.cuenta,
+              comprobanteEmail: bankData.comprobanteEmail || '',
+              comprobanteWhatsapp: bankData.comprobanteWhatsapp || '',
+              comprobanteTelefono: bankData.comprobanteTelefono || '',
+            });
+          }
+        }
       } catch {
-        // Silently fail — use store data
+        // Silently fail — use store data + default bank data
       } finally {
         setLoading(false);
       }
@@ -378,40 +404,87 @@ export default function SuscripcionModule() {
               <div className="flex items-start gap-2 p-3 bg-info/10 rounded-lg">
                 <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Luego de realizar la transferencia, enviá el comprobante por email a <strong>soporte@hospeda.com</strong> con tu nombre de hotel y el plan elegido. Un administrador activará tu suscripción una vez verificado el pago.
+                  Luego de realizar la transferencia, enviá el comprobante con tu nombre de hotel y el plan elegido. Un administrador activará tu suscripción una vez verificado el pago.
                 </p>
               </div>
 
               <div className="space-y-3">
                 <TransferField
                   label="Banco"
-                  value={TRANSFERENCIA_DATA.banco}
+                  value={transferenciaData.banco}
                 />
                 <TransferField
                   label="Titular"
-                  value={TRANSFERENCIA_DATA.titular}
+                  value={transferenciaData.titular}
                 />
                 <TransferField
                   label="CBU"
-                  value={TRANSFERENCIA_DATA.cbu}
-                  onCopy={() => copyToClipboard(TRANSFERENCIA_DATA.cbu, 'cbu')}
+                  value={transferenciaData.cbu}
+                  onCopy={() => copyToClipboard(transferenciaData.cbu, 'cbu')}
                   copied={copiedField === 'cbu'}
                 />
                 <TransferField
                   label="Alias"
-                  value={TRANSFERENCIA_DATA.alias}
-                  onCopy={() => copyToClipboard(TRANSFERENCIA_DATA.alias, 'alias')}
+                  value={transferenciaData.alias}
+                  onCopy={() => copyToClipboard(transferenciaData.alias, 'alias')}
                   copied={copiedField === 'alias'}
                 />
                 <TransferField
                   label="CUIT"
-                  value={TRANSFERENCIA_DATA.cuit}
+                  value={transferenciaData.cuit}
                 />
                 <TransferField
                   label="Cuenta"
-                  value={TRANSFERENCIA_DATA.cuenta}
+                  value={transferenciaData.cuenta}
                 />
               </div>
+
+              {/* ── Enviar comprobante ── */}
+              {(transferenciaData.comprobanteEmail ||
+                transferenciaData.comprobanteWhatsapp ||
+                transferenciaData.comprobanteTelefono) && (
+                <div className="border-t pt-4 mt-4 space-y-3">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4 text-primary" />
+                    Enviar comprobante
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    Una vez realizada la transferencia, enviá la foto del comprobante por cualquiera de estos medios:
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {transferenciaData.comprobanteWhatsapp && (
+                      <a
+                        href={`https://wa.me/${transferenciaData.comprobanteWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, les envío el comprobante de transferencia para activar mi suscripción a Hospedá.')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-success/15 text-success hover:bg-success/25 transition-colors text-sm font-medium"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        WhatsApp
+                      </a>
+                    )}
+                    {transferenciaData.comprobanteEmail && (
+                      <a
+                        href={`mailto:${transferenciaData.comprobanteEmail}?subject=${encodeURIComponent('Comprobante de transferencia - Hospedá')}`}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-info/15 text-info hover:bg-info/25 transition-colors text-sm font-medium"
+                      >
+                        <Mail className="w-4 h-4" />
+                        {transferenciaData.comprobanteEmail}
+                      </a>
+                    )}
+                    {transferenciaData.comprobanteTelefono && (
+                      <a
+                        href={`tel:${transferenciaData.comprobanteTelefono.replace(/[^0-9+]/g, '')}`}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground hover:bg-muted/70 transition-colors text-sm font-medium"
+                      >
+                        <Phone className="w-4 h-4" />
+                        {transferenciaData.comprobanteTelefono}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

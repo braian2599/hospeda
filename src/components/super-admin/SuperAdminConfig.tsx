@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Save, Loader2, Eye, EyeOff, Settings, CreditCard, Globe } from 'lucide-react';
+import { Save, Loader2, Eye, EyeOff, Settings, CreditCard, Globe, Building2, MessageCircle, Phone, Mail, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ─── Main Component ───
@@ -34,6 +34,17 @@ export default function SuperAdminConfig() {
   const [plataformaEmail, setPlataformaEmail] = useState('');
   const [plataformaMoneda, setPlataformaMoneda] = useState('');
 
+  // Datos bancarios (para transferencias de los hoteles)
+  const [bankBanco, setBankBanco] = useState('');
+  const [bankTitular, setBankTitular] = useState('');
+  const [bankCbu, setBankCbu] = useState('');
+  const [bankAlias, setBankAlias] = useState('');
+  const [bankCuit, setBankCuit] = useState('');
+  const [bankCuenta, setBankCuenta] = useState('');
+  const [bankComprobanteEmail, setBankComprobanteEmail] = useState('');
+  const [bankComprobanteWhatsapp, setBankComprobanteWhatsapp] = useState('');
+  const [bankComprobanteTelefono, setBankComprobanteTelefono] = useState('');
+
   useEffect(() => {
     fetch('/api/super-admin/config')
       .then((res) => res.json())
@@ -41,6 +52,7 @@ export default function SuperAdminConfig() {
         if (data.error) throw new Error(data.error);
         const mp = data.mercadopago || {};
         const plat = data.plataforma || {};
+        const bank = data.banco || {};
         // Los campos sensibles vienen enmascarados (ej: "APP_...cdef")
         // El usuario verá el valor enmascarado y solo lo enviará si lo edita.
         setMpAccessToken(mp.accessToken || '');
@@ -50,6 +62,16 @@ export default function SuperAdminConfig() {
         setPlataformaNombre(plat.nombre || 'Hospeda');
         setPlataformaEmail(plat.emailContacto || '');
         setPlataformaMoneda(plat.moneda || 'ARS');
+        // Datos bancarios
+        setBankBanco(bank.banco || '');
+        setBankTitular(bank.titular || '');
+        setBankCbu(bank.cbu || '');
+        setBankAlias(bank.alias || '');
+        setBankCuit(bank.cuit || '');
+        setBankCuenta(bank.cuenta || '');
+        setBankComprobanteEmail(bank.comprobanteEmail || '');
+        setBankComprobanteWhatsapp(bank.comprobanteWhatsapp || '');
+        setBankComprobanteTelefono(bank.comprobanteTelefono || '');
       })
       .catch(() => toast.error('Error al cargar configuración'))
       .finally(() => setLoading(false));
@@ -69,6 +91,16 @@ export default function SuperAdminConfig() {
         plataforma_nombre: plataformaNombre,
         plataforma_email: plataformaEmail,
         plataforma_moneda: plataformaMoneda,
+        // Datos bancarios
+        bank_banco: bankBanco,
+        bank_titular: bankTitular,
+        bank_cbu: bankCbu,
+        bank_alias: bankAlias,
+        bank_cuit: bankCuit,
+        bank_cuenta: bankCuenta,
+        bank_comprobante_email: bankComprobanteEmail,
+        bank_comprobante_whatsapp: bankComprobanteWhatsapp,
+        bank_comprobante_telefono: bankComprobanteTelefono,
       };
       // La API preserva el valor existente si un campo sensible viene enmascarado
 
@@ -269,6 +301,138 @@ export default function SuperAdminConfig() {
                   <SelectItem value="UYU">UYU — Peso Uruguayo</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ─── Datos Bancarios ─── */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Building2 className="w-5 h-5 text-info" />
+              Datos bancarios para transferencias
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground bg-info/10 p-3 rounded-lg flex items-start gap-2">
+              <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
+              <span>
+                Estos datos se muestran a los hoteles en el módulo de Suscripción para que puedan transferir el pago de su plan. Completalos con los datos reales de la cuenta de Hospedá.
+              </span>
+            </p>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Banco</Label>
+                <Input
+                  value={bankBanco}
+                  onChange={(e) => setBankBanco(e.target.value)}
+                  placeholder="Ej: Banco Nación, Banco Galicia, etc."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo de cuenta</Label>
+                <Input
+                  value={bankCuenta}
+                  onChange={(e) => setBankCuenta(e.target.value)}
+                  placeholder="Ej: Cuenta Corriente en Pesos"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Titular de la cuenta</Label>
+              <Input
+                value={bankTitular}
+                onChange={(e) => setBankTitular(e.target.value)}
+                placeholder="Ej: Hospedá S.A."
+              />
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>CBU</Label>
+                <Input
+                  value={bankCbu}
+                  onChange={(e) => setBankCbu(e.target.value)}
+                  placeholder="22 dígitos"
+                  className="font-mono"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Alias</Label>
+                <Input
+                  value={bankAlias}
+                  onChange={(e) => setBankAlias(e.target.value)}
+                  placeholder="Ej: hospeda.pago.mp"
+                  className="font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>CUIT</Label>
+              <Input
+                value={bankCuit}
+                onChange={(e) => setBankCuit(e.target.value)}
+                placeholder="Ej: 30-12345678-9"
+                className="font-mono"
+              />
+            </div>
+
+            {/* ─── Datos para enviar comprobante ─── */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-primary" />
+                Datos para enviar comprobantes
+              </h4>
+              <p className="text-xs text-muted-foreground mb-3">
+                Los hoteles usarán estos datos para enviar el comprobante de transferencia. Completá al menos uno.
+              </p>
+
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                    Email para comprobantes
+                  </Label>
+                  <Input
+                    type="email"
+                    value={bankComprobanteEmail}
+                    onChange={(e) => setBankComprobanteEmail(e.target.value)}
+                    placeholder="Ej: pagos@hospeda.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <MessageCircle className="w-3.5 h-3.5 text-success" />
+                    WhatsApp para comprobantes
+                  </Label>
+                  <Input
+                    type="tel"
+                    value={bankComprobanteWhatsapp}
+                    onChange={(e) => setBankComprobanteWhatsapp(e.target.value)}
+                    placeholder="Ej: +54 11 1234-5678"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Se mostrará como link de WhatsApp directo para enviar la foto del comprobante.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                    Teléfono alternativo (opcional)
+                  </Label>
+                  <Input
+                    type="tel"
+                    value={bankComprobanteTelefono}
+                    onChange={(e) => setBankComprobanteTelefono(e.target.value)}
+                    placeholder="Ej: +54 11 1234-5678"
+                  />
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
