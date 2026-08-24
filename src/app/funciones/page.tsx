@@ -164,11 +164,11 @@ function MoreFeaturesCarousel() {
 
       {/* Carousel card */}
       <div
-        className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-lg"
+        className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-lg min-h-[420px]"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2">
+        <div className="grid h-full grid-cols-1 md:grid-cols-2">
           {/* Left: text */}
           <div className="flex flex-col justify-center p-8 md:p-10">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
@@ -179,8 +179,8 @@ function MoreFeaturesCarousel() {
           </div>
 
           {/* Right: screenshot */}
-          <div className="p-6 md:p-8">
-            <ScreenshotFrame src={current.screenshot} alt={`${current.title} — captura`} className="max-h-[480px] overflow-hidden" />
+          <div className="flex items-center p-6 md:p-8">
+            <ScreenshotFrame src={current.screenshot} alt={`${current.title} — captura`} />
           </div>
         </div>
 
