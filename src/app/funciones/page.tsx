@@ -39,7 +39,7 @@ const FEATURES = [
     desc: 'Gestión de ingresos y egresos de huéspedes con un solo clic.',
     long:
       'Registrá la entrada y salida de huéspedes en segundos. Cargá sus datos, asigná la habitación y dejá todo listo para la siguiente reserva sin papeleo manual.',
-    screenshot: '/screenshots/dashboard-new.png',
+    screenshot: '/screenshots/checkin-new.png',
   },
   {
     icon: BedDouble,
