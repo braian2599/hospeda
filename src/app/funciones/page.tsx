@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,10 +19,17 @@ import {
   ArrowRight,
   Sparkles,
   Clock,
+  Wallet,
+  UserCircle,
+  Tags,
+  Sparkle,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 /* ============================================================
- * Features (6) — each with icon, title, description & screenshot
+ * Features principales (6) — con screenshot grande
  * ========================================================== */
 
 const FEATURES = [
@@ -75,12 +83,128 @@ const FEATURES = [
   },
 ];
 
+/* ============================================================
+ * Features secundarios (5) — carrusel
+ * ========================================================== */
+
+const MORE_FEATURES = [
+  {
+    icon: Wallet,
+    title: 'Caja',
+    desc: 'Control de turnos de caja, movimientos de ingresos y egresos, y cierre con conteo de denominaciones.',
+    screenshot: '/screenshots/caja-new.png',
+  },
+  {
+    icon: UserCircle,
+    title: 'Clientes',
+    desc: 'Ficha completa con historial de estadías, documentos y preferencias de cada huésped.',
+    screenshot: '/screenshots/clientes-new.png',
+  },
+  {
+    icon: Tags,
+    title: 'Tarifas',
+    desc: 'Configurá tarifas por tipo de habitación y temporada. Precios diferenciados y flexibles.',
+    screenshot: '/screenshots/tarifas-new.png',
+  },
+  {
+    icon: Sparkle,
+    title: 'Limpieza y Mantenimiento',
+    desc: 'Asignación de tareas de housekeeping y reporte de problemas de mantenimiento.',
+    screenshot: '/screenshots/limpieza-new.png',
+  },
+  {
+    icon: Settings,
+    title: 'Configuración',
+    desc: 'Personalizá los datos de tu hotel, datos fiscales, precios y preferencias del sistema.',
+    screenshot: '/screenshots/configuracion-new.png',
+  },
+];
+
 const BENEFITS = [
   'Interfaz moderna y fácil de usar',
   'Acceso desde cualquier dispositivo',
   'Soporte cercano y en español',
   'Datos seguros y aislados por hotel',
 ];
+
+/* ============================================================
+ * Carousel component
+ * ========================================================== */
+
+function MoreFeaturesCarousel() {
+  const [index, setIndex] = useState(0);
+  const total = MORE_FEATURES.length;
+
+  const prev = () => setIndex(i => (i - 1 + total) % total);
+  const next = () => setIndex(i => (i + 1) % total);
+
+  const current = MORE_FEATURES[index];
+
+  return (
+    <div className="mx-auto max-w-4xl">
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <Badge variant="secondary" className="mb-3 gap-1">
+          <Sparkles className="h-3 w-3" />
+          Y mucho más
+        </Badge>
+        <h3 className="text-2xl font-bold text-foreground">Otros módulos disponibles</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Navegá con las flechas para ver cada módulo
+        </p>
+      </div>
+
+      {/* Carousel card */}
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-lg">
+        <div className="grid grid-cols-1 md:grid-cols-2">
+          {/* Left: text */}
+          <div className="flex flex-col justify-center p-8">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+              <current.icon className="h-6 w-6 text-primary" />
+            </div>
+            <h4 className="mt-4 text-xl font-semibold text-foreground">{current.title}</h4>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{current.desc}</p>
+          </div>
+
+          {/* Right: screenshot */}
+          <div className="p-6">
+            <ScreenshotFrame src={current.screenshot} alt={`${current.title} — captura`} />
+          </div>
+        </div>
+
+        {/* Nav buttons */}
+        <button
+          onClick={prev}
+          className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 shadow-md transition hover:bg-primary hover:text-primary-foreground"
+          aria-label="Anterior"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button
+          onClick={next}
+          className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 shadow-md transition hover:bg-primary hover:text-primary-foreground"
+          aria-label="Siguiente"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Dots */}
+      <div className="mt-5 flex justify-center gap-2">
+        {MORE_FEATURES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setIndex(i)}
+            className={`h-2 rounded-full transition-all duration-300 ${
+              i === index ? 'w-8 bg-primary' : 'w-2 bg-border hover:bg-muted-foreground'
+            }`}
+            aria-label={`Ir a slide ${i + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ============================================================
  * Page
@@ -136,8 +260,15 @@ export default function FuncionesPage() {
         </div>
       </section>
 
-      {/* ─── Split benefit section ─── */}
+      {/* ─── Carousel: more features ─── */}
       <section className="bg-secondary/30 py-24">
+        <FadeIn>
+          <MoreFeaturesCarousel />
+        </FadeIn>
+      </section>
+
+      {/* ─── Split benefit section ─── */}
+      <section className="bg-background py-24">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 sm:px-6 lg:grid-cols-2">
           <FadeIn>
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">
@@ -180,7 +311,7 @@ export default function FuncionesPage() {
       </section>
 
       {/* ─── Final CTA ─── */}
-      <section className="bg-background py-24">
+      <section className="bg-secondary/30 py-24">
         <FadeIn className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <Badge variant="secondary" className="mb-5 gap-1">
             <Clock className="h-3 w-3" />
