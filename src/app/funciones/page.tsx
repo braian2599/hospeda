@@ -91,31 +91,31 @@ const MORE_FEATURES = [
   {
     icon: Wallet,
     title: 'Caja',
-    desc: 'Control de turnos de caja, movimientos de ingresos y egresos, y cierre con conteo de denominaciones.',
+    desc: 'Control de turnos de caja con apertura y cierre, registro de movimientos de ingresos y egresos, y cierre con conteo de denominaciones de billetes y monedas.',
     screenshot: '/screenshots/caja-new.png',
   },
   {
     icon: UserCircle,
     title: 'Clientes',
-    desc: 'Ficha completa con historial de estadías, documentos y preferencias de cada huésped.',
+    desc: 'Ficha completa de cada huésped con historial de estadías, documentos, datos de contacto y preferencias. Llevá un registro detallado de cada cliente.',
     screenshot: '/screenshots/clientes-new.png',
   },
   {
     icon: Tags,
     title: 'Tarifas',
-    desc: 'Configurá tarifas por tipo de habitación y temporada. Precios diferenciados y flexibles.',
+    desc: 'Configurá tarifas por tipo de habitación y temporada. Precios diferenciados, campos personalizados y tarifas especiales para convenios.',
     screenshot: '/screenshots/tarifas-new.png',
   },
   {
     icon: Sparkle,
     title: 'Limpieza y Mantenimiento',
-    desc: 'Asignación de tareas de housekeeping y reporte de problemas de mantenimiento.',
+    desc: 'Asignación de tareas de housekeeping por habitación, seguimiento de estados y reporte de problemas de mantenimiento con prioridades.',
     screenshot: '/screenshots/limpieza-new.png',
   },
   {
     icon: Settings,
     title: 'Configuración',
-    desc: 'Personalizá los datos de tu hotel, datos fiscales, precios y preferencias del sistema.',
+    desc: 'Personalizá los datos de tu hotel, información fiscal, precios por cama, punto de venta, numeración de facturas y preferencias del sistema.',
     screenshot: '/screenshots/configuracion-new.png',
   },
 ];
@@ -164,13 +164,13 @@ function MoreFeaturesCarousel() {
 
       {/* Carousel card */}
       <div
-        className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-lg min-h-[420px]"
+        className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-lg min-h-[460px]"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
         <div className="grid h-full grid-cols-1 md:grid-cols-2">
-          {/* Left: text */}
-          <div className="flex flex-col justify-center p-8 md:p-10">
+          {/* Left: text — centered with padding to avoid button overlap */}
+          <div className="flex flex-col justify-center px-16 py-10 md:px-20">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
               <current.icon className="h-6 w-6 text-primary" />
             </div>
@@ -178,26 +178,26 @@ function MoreFeaturesCarousel() {
             <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{current.desc}</p>
           </div>
 
-          {/* Right: screenshot */}
-          <div className="flex items-center p-6 md:p-8">
+          {/* Right: screenshot — centered */}
+          <div className="flex items-center justify-center p-6 md:p-10">
             <ScreenshotFrame src={current.screenshot} alt={`${current.title} — captura`} />
           </div>
         </div>
 
-        {/* Nav buttons */}
+        {/* Nav buttons — positioned at edges, outside text area */}
         <button
           onClick={prev}
-          className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 shadow-md transition hover:bg-primary hover:text-primary-foreground"
+          className="absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 shadow-md transition hover:bg-primary hover:text-primary-foreground"
           aria-label="Anterior"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-4 w-4" />
         </button>
         <button
           onClick={next}
-          className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 shadow-md transition hover:bg-primary hover:text-primary-foreground"
+          className="absolute right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 shadow-md transition hover:bg-primary hover:text-primary-foreground"
           aria-label="Siguiente"
         >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight className="h-4 w-4" />
         </button>
       </div>
 
