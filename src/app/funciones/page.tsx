@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -133,15 +133,25 @@ const BENEFITS = [
 
 function MoreFeaturesCarousel() {
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
   const total = MORE_FEATURES.length;
 
   const prev = () => setIndex(i => (i - 1 + total) % total);
   const next = () => setIndex(i => (i + 1) % total);
 
+  // Auto-advance every 4 seconds (pausar al hover)
+  useEffect(() => {
+    if (paused) return;
+    const timer = setInterval(() => {
+      setIndex(i => (i + 1) % total);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [paused, total]);
+
   const current = MORE_FEATURES[index];
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-6xl px-4 sm:px-6">
       {/* Header */}
       <div className="mb-8 text-center">
         <Badge variant="secondary" className="mb-3 gap-1">
@@ -150,15 +160,19 @@ function MoreFeaturesCarousel() {
         </Badge>
         <h3 className="text-2xl font-bold text-foreground">Otros módulos disponibles</h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Navegá con las flechas para ver cada módulo
+          Cambia automáticamente cada 4 segundos · Pausá al pasar el mouse
         </p>
       </div>
 
       {/* Carousel card */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-lg">
+      <div
+        className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-lg"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2">
           {/* Left: text */}
-          <div className="flex flex-col justify-center p-8">
+          <div className="flex flex-col justify-center p-8 md:p-10">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
               <current.icon className="h-6 w-6 text-primary" />
             </div>
@@ -167,7 +181,7 @@ function MoreFeaturesCarousel() {
           </div>
 
           {/* Right: screenshot */}
-          <div className="p-6">
+          <div className="p-6 md:p-8">
             <ScreenshotFrame src={current.screenshot} alt={`${current.title} — captura`} />
           </div>
         </div>
