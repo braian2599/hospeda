@@ -2,6 +2,8 @@
 
 import { type ReactNode } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 /**
  * AuthShell — Fondo full-bleed teal con patrón de puntos + blobs + card flotante.
@@ -11,6 +13,7 @@ import Image from 'next/image';
  * Modo claro únicamente (según especificación del proyecto).
  *
  * Incluye el logo de Hospedá por defecto al inicio de la card.
+ * Incluye botón "Volver al inicio" arriba a la izquierda del fondo teal.
  */
 
 interface AuthShellProps {
@@ -19,9 +22,11 @@ interface AuthShellProps {
   maxWidth?: number;
   /** Mostrar el logo de Hospedá arriba de la card. Default: true */
   showLogo?: boolean;
+  /** Mostrar botón "Volver al inicio". Default: true */
+  showBackButton?: boolean;
 }
 
-export default function AuthShell({ children, maxWidth = 460, showLogo = true }: AuthShellProps) {
+export default function AuthShell({ children, maxWidth = 460, showLogo = true, showBackButton = true }: AuthShellProps) {
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
       {/* ── Fondo teal full-bleed ── */}
@@ -54,6 +59,17 @@ export default function AuthShell({ children, maxWidth = 460, showLogo = true }:
         style={{ background: 'radial-gradient(circle, #5EEAD4, transparent 70%)' }}
         aria-hidden
       />
+
+      {/* ── Botón "Volver al inicio" — fuera de la card, sobre el fondo teal ── */}
+      {showBackButton && (
+        <Link
+          href="/"
+          className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 text-sm text-white/90 backdrop-blur-sm transition hover:bg-white/20 hover:text-white"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Volver al inicio
+        </Link>
+      )}
 
       {/* ── Card flotante ── */}
       <div
