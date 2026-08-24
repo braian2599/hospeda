@@ -164,13 +164,13 @@ function MoreFeaturesCarousel() {
 
       {/* Carousel card */}
       <div
-        className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-lg min-h-[460px]"
+        className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-lg"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
-        <div className="grid h-full grid-cols-1 md:grid-cols-2">
-          {/* Left: text — centered with padding to avoid button overlap */}
-          <div className="flex flex-col justify-center px-16 py-10 md:px-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 md:h-[460px]">
+          {/* Left: text — centered vertically */}
+          <div className="flex flex-col items-center justify-center px-16 py-10 text-center md:px-20 md:text-left md:items-start">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
               <current.icon className="h-6 w-6 text-primary" />
             </div>
@@ -178,7 +178,7 @@ function MoreFeaturesCarousel() {
             <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{current.desc}</p>
           </div>
 
-          {/* Right: screenshot — centered */}
+          {/* Right: screenshot — centered vertically */}
           <div className="flex items-center justify-center p-6 md:p-10">
             <ScreenshotFrame src={current.screenshot} alt={`${current.title} — captura`} />
           </div>
