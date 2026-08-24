@@ -63,9 +63,9 @@ export default function HomePage() {
 
       {/* ─── Hero ─── */}
       <section className="bg-background py-20">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 sm:px-6 lg:grid-cols-5">
-          {/* Left 60% */}
-          <FadeIn className="lg:col-span-3">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 sm:px-6 lg:grid-cols-2">
+          {/* Left 50% */}
+          <FadeIn>
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">
               El sistema que tu hotel necesita
             </p>
@@ -100,8 +100,8 @@ export default function HomePage() {
             </p>
           </FadeIn>
 
-          {/* Right 40% */}
-          <FadeIn delay={150} className="hidden lg:col-span-2 lg:block">
+          {/* Right 50% — screenshot más grande */}
+          <FadeIn delay={150} className="hidden lg:block">
             <ScreenshotFrame
               src="/screenshots/dashboard-new.png"
               alt="Panel de control de Hospedá"
