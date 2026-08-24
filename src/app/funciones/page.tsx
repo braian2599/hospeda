@@ -159,9 +159,7 @@ function MoreFeaturesCarousel() {
           Y mucho más
         </Badge>
         <h3 className="text-2xl font-bold text-foreground">Otros módulos disponibles</h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Cambia automáticamente cada 4 segundos · Pausá al pasar el mouse
-        </p>
+
       </div>
 
       {/* Carousel card */}
@@ -182,7 +180,7 @@ function MoreFeaturesCarousel() {
 
           {/* Right: screenshot */}
           <div className="p-6 md:p-8">
-            <ScreenshotFrame src={current.screenshot} alt={`${current.title} — captura`} />
+            <ScreenshotFrame src={current.screenshot} alt={`${current.title} — captura`} className="max-h-[480px] overflow-hidden" />
           </div>
         </div>
 
