@@ -1,0 +1,92 @@
+import Link from 'next/link';
+import Image from 'next/image';
+import { Mail } from 'lucide-react';
+
+/**
+ * Public site footer — dark teal background, 4-column layout.
+ * Server component (no 'use client').
+ * Uses inline style for the brand-deep color to avoid any Tailwind
+ * resolution issues across builds.
+ */
+export default function PublicFooter() {
+  const year = new Date().getFullYear();
+  return (
+    <footer style={{ backgroundColor: '#0F2B28' }} className="text-white">
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Brand */}
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 overflow-hidden rounded-lg border border-white/20 bg-white/10">
+                <Image src="/logo.png" alt="Hospedá logo" width={36} height={36} className="h-full w-full object-cover" />
+              </div>
+              <span className="text-lg font-bold">Hospedá</span>
+            </div>
+            <p className="mt-4 text-sm text-white/70">
+              La plataforma de gestión hotelera simple para alojamientos en Argentina.
+            </p>
+          </div>
+
+          {/* Producto */}
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-white/80">Producto</h4>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li>
+                <Link href="/funciones" className="text-white/70 transition-colors hover:text-white">
+                  Funciones
+                </Link>
+              </li>
+              <li>
+                <Link href="/precios" className="text-white/70 transition-colors hover:text-white">
+                  Precios
+                </Link>
+              </li>
+              <li>
+                <Link href="/contacto" className="text-white/70 transition-colors hover:text-white">
+                  Contacto
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Cuenta */}
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-white/80">Cuenta</h4>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li>
+                <Link href="/register" className="text-white/70 transition-colors hover:text-white">
+                  Registrarse
+                </Link>
+              </li>
+              <li>
+                <Link href="/login" className="text-white/70 transition-colors hover:text-white">
+                  Iniciar sesión
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Contacto */}
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-white/80">Contacto</h4>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li>
+                <a
+                  href="mailto:braian9952@gmail.com"
+                  className="flex items-center gap-2 text-white/70 transition-colors hover:text-white"
+                >
+                  <Mail className="h-4 w-4" />
+                  braian9952@gmail.com
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-12 border-t border-white/10 pt-8 text-center">
+          <p className="text-sm text-white/70">© {year} Hospedá. Todos los derechos reservados.</p>
+        </div>
+      </div>
+    </footer>
+  );
+}

@@ -1873,3 +1873,80 @@ Work Log:
 - All design tokens use CSS variable-based Tailwind classes (bg-background, text-foreground, bg-primary, text-muted-foreground, bg-card, border-border, bg-secondary, text-brand-emerald, bg-brand-deep). NO indigo/blue. NO old styles (no hero-orb, premium-badge, cta-premium, hero-gradient-text, hero-underline, bg-grid-pattern, TypewriterText).
 - Verified: `bun run lint` passes clean (no errors, no warnings).
 - Added id="faq" to FAQ section so footer "FAQ" scroll button works.
+
+---
+Task ID: LANDING-MULTIPAGE
+Agent: general-purpose
+Task: Convert single-page landing into a MULTI-PAGE site (/, /funciones, /precios, /contacto) with shared PublicNavbar + PublicFooter components, no layout groups, no middleware.
+
+Work Log:
+- Created 4 new shared components under `src/components/public/`:
+  - `FadeIn.tsx` ('use client'): IntersectionObserver wrapper — opacity 0→1 + translateY 24px→0, accepts `delay` and `className` props. Hook `useInView` disconnects after first hit.
+  - `ScreenshotFrame.tsx` (server component): browser-style frame with 3 colored dots + fake `hospeda.app` URL bar above a `next/image` with aspect-[16/10]. Accepts optional `priority` prop.
+  - `PublicNavbar.tsx` ('use client'): sticky h-16, white/95 backdrop-blur, border-bottom. Logo (rounded container with `/logo.png` + "Hospedá" + "Gestor de Hoteles" subtitle) on the left, 3 next/link nav links centered-right (Funciones → /funciones, Precios → /precios, Contacto → /contacto) with `usePathname` active highlighting, ghost "Iniciar sesión" + primary "Probar gratis" CTAs on the right. Mobile hamburger reveals a slide-down panel.
+  - `PublicFooter.tsx` (server component): `style={{ backgroundColor: '#0F2B28' }}` for the dark teal background. 4-column grid: Brand (logo + desc), Producto (Funciones/Precios/Contacto), Cuenta (Registrarse/Iniciar sesión), Contacto (mailto:braian9952@gmail.com with Mail icon). Bottom bar: "© {year} Hospedá. Todos los derechos reservados."
+
+- Rewrote `src/app/page.tsx` as a SHORT home page (713 → ~210 lines):
+  - Imports PublicNavbar + PublicFooter + FadeIn + ScreenshotFrame.
+  - Sections (top→bottom): PublicNavbar, Hero (split 60/40 — text left + dashboard-new.png screenshot right, hidden on mobile), Social proof bar (5 accommodation types: Hoteles/Hostels/Cabañas/Posadas/B&B), Features preview (3 cards only: Reservas/Facturación/Reportes) + "Ver todas las funciones" button → /funciones, Final CTA "¿Listo para empezar?" + "Comenzar gratis" → /register + "Ver precios" → /precios, PublicFooter.
+  - NO pricing cards, NO FAQ, NO comparison table, NO testimonials — all moved to dedicated pages.
+  - Root wrapper uses `flex min-h-screen flex-col` so the footer sticks to the bottom and pushes down naturally on overflow.
+
+- Created `src/app/funciones/page.tsx`:
+  - 'use client' (uses FadeIn).
+  - Header: Sparkles badge "Funciones" + H1 "Todo lo que tu hotel necesita".
+  - 6 feature cards in a 2-col grid (md:grid-cols-2). Each card has an icon (CalendarCheck / LogIn / BedDouble / Receipt / BarChart3 / Users), title, short desc, longer description, and a ScreenshotFrame below. Screenshots: reservas-new.png (Reservas), dashboard-new.png (Check-In/Out), habitaciones-new.png (Habitaciones), facturacion-new.png (Facturación), reportes-new.png (Reportes), usuarios-new.png (Multiusuario).
+  - Split benefit section (bg-secondary/30, lg:grid-cols-2): "Hecho para tu negocio" label + h2 "Más tiempo para lo que realmente importa" + 4-item checklist (BENEFITS) + "Ver precios" button → /precios, plus a ScreenshotFrame with reservas-new.png.
+  - Final CTA: "¿Listo para empezar?" + "Comenzar gratis" → /register + "Ver precios" → /precios.
+  - Footer: PublicFooter.
+
+- Created `src/app/precios/page.tsx`:
+  - 'use client' (uses useState for FAQ accordion + CheckoutDialog state).
+  - Header: Sparkles badge "Planes" + H1 "Elegí el plan ideal para tu hotel" + 3 trust badges (Shield "Pago seguro con Mercado Pago", Clock "Cancelá cuando quieras", Check "30 días de prueba gratuita").
+  - 3 PlanCard components (basico / profesional destacado / premium) — onSelect wires to CheckoutDialog state. Note "Todos los planes incluyen 30 días de prueba gratuita" below.
+  - Comparison table (responsive):
+    - Desktop/tablet (`md:block`): full HTML <table> with 4 columns (Característica / Básico / Profesional highlighted / Premium). Sections: Límites (4 rows: Habitaciones, Usuarios, Tarifas, Reservas por mes), Módulos (11 rows from NOMBRES_MODULOS — dashboard/reservas/checkin/habitaciones/limpieza/clientes/tarifas on básico; +facturacion/caja/reportes on profesional; +usuarios on premium), Soporte (2 rows). Used `<Fragment key={section.title}>` to wrap the section header <tr> + rows <tr> so the `react/jsx-key` rule passes. Cells render Check (text-chart-2) for true, X (muted) for false, or a string.
+    - Mobile (`md:hidden`): stacked cards per section with a 3-col mini-grid (Básico / Pro / Premium) showing the same data.
+    - **Intentionally omitted rows**: "API access" and "Multi-sede" (per LANDING-CLEANUP — those features are not implemented and would be false advertising).
+  - FAQ accordion (same 6 questions as before): custom inline accordion with useState `openFaq`. Each item is a card with chevron rotation + grid-template-rows 0fr↔1fr smooth expand.
+  - Final CTA: "Comenzá gratis hoy" + "Comenzar gratis" → /register + "Hablar con nosotros" → /contacto.
+  - CheckoutDialog mounted once at the page root, controlled by `checkoutOpen` + `selectedPlan` state.
+
+- Created `src/app/contacto/page.tsx`:
+  - 'use client' (form state + mailto redirect).
+  - Header: Sparkles badge "Contacto" + H1 "¿Tenés preguntas?" + subtitle "Escribinos y te respondemos a la brevedad."
+  - 2-column layout (lg:grid-cols-5, 3/2 split):
+    - Left (3/5): Contact form card with Nombre (Input), Email (Input type=email), Mensaje (Textarea min-h-32), Submit button "Enviar mensaje" (Send icon). On submit: prevents default, builds a mailto: URL with prefilled subject (`Consulta de {name}`) and body (`Nombre: …\nEmail: …\n\n{message}`) targeting braian9952@gmail.com, then sets `window.location.href` to open the user's email client. After sending, shows a small confirmation panel with the support email as fallback.
+    - Right (2/5): 3 stacked cards — Email card (mailto link), "¿Preferís escribir desde la app?" card (Link to /register), Response time card (weekdays same-day, weekends next business day, Premium = priority).
+  - Footer: PublicFooter.
+
+Design / standards applied across all pages:
+- Background: `bg-background` (#F8FAFC), primary teal `#0F766E` via `bg-primary`/`text-primary`.
+- Root wrapper on every page: `<main className="flex min-h-screen flex-col bg-background">` so the footer sticks to the bottom and pushes down naturally on overflow.
+- Section spacing: `py-20` for headers, `py-24` for content sections, alternating `bg-background` / `bg-secondary/30` for visual rhythm.
+- Max width: `max-w-6xl mx-auto px-4 sm:px-6` (header sections use `max-w-3xl` for centered headings).
+- Cards: `rounded-2xl border border-border bg-card p-6 hover:shadow-lg hover:-translate-y-1 transition-all`.
+- All Button/Badge/Image/Label/Input/Textarea come from `@/components/ui/*`. All `Link` from `next/link`.
+- NO indigo, NO blue, NO old classes (hero-orb / premium-badge / cta-premium / hero-gradient-text / TypewriterText / ScrollProgress / BackToTop — all dropped). Kept FadeIn + ScreenshotFrame (now in their own component files).
+- Reused: PlanCard, CheckoutDialog, usePlans hook (indirectly via PlanCard). NOMBRES_MODULOS from `@/lib/plan-config`.
+
+Files:
+- NEW: src/components/public/FadeIn.tsx, ScreenshotFrame.tsx, PublicNavbar.tsx, PublicFooter.tsx
+- NEW: src/app/funciones/page.tsx, src/app/precios/page.tsx, src/app/contacto/page.tsx
+- REWRITTEN: src/app/page.tsx (713 → 210 lines)
+
+Verification:
+- `bun run lint` -> exit code 0, zero warnings/errors.
+- Dev server (already running on :3000) responds HTTP 200 on all 4 routes: `/` 200, `/funciones` 200, `/precios` 200, `/contacto` 200.
+- HTML content checks per route:
+  - Home: contains `Gestor de Hoteles` (navbar subtitle), `Ver todas las funciones`, `braian9952@gmail.com`, and `<a href>` to `/funciones`, `/precios`, `/contacto`, `/login`, `/register` (all real next/link anchors, no scrollTo buttons).
+  - Funciones: contains `Todo lo que tu hotel necesita`, all 6 feature titles, and all 6 screenshot paths (`reservas-new.png`, `dashboard-new.png`, `habitaciones-new.png`, `facturacion-new.png`, `reportes-new.png`, `usuarios-new.png`).
+  - Precios: contains `Elegí el plan ideal`, `Mercado Pago`, `Compará todos los planes`, `¿Tenés dudas?`, `Comenzá gratis hoy`.
+  - Contacto: contains `¿Tenés preguntas?`, `Escribinos y te respondemos`, `Envíanos un mensaje`, `Enviar mensaje`, `braian9952@gmail.com`.
+- Navbar appears at top of all 4 pages; footer appears at bottom of all 4 pages (shared components imported directly into each page — no layout groups, no middleware).
+
+Notes / intentional choices:
+- The `dev.log` shows a stale "EADDRINUSE :3000" entry from a previous failed start attempt, but the running dev server is alive (all routes return 200). Not a real error.
+- Used `style={{ backgroundColor: '#0F2B28' }}` for the footer instead of the `bg-brand-deep` class, per task spec — both resolve to the same color since `--brand-deep` is `#0F2B28` in globals.css.
+- The home page hero screenshot uses `priority` on the ScreenshotFrame so the LCP image is preloaded.
+- Removed all old in-file helpers (`scrollTo`, `ScrollProgress`, `BackToTop`) — page-to-page navigation is now real Next.js routing, not anchor scrolling.
