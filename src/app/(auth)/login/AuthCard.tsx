@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Eye, EyeOff, Loader2, CheckCircle2, Mail, Lock, Building2,
+  Eye, EyeOff, Loader2, CheckCircle2, Mail, Lock, Building2, ArrowLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -122,6 +122,12 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
   if (mode === 'login') {
     return (
       <AuthShell>
+        {/* Volver a la landing */}
+        <Link href="/" className="absolute top-6 left-6 inline-flex items-center gap-1.5 text-sm text-white/80 hover:text-white transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          Volver al inicio
+        </Link>
+
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-slate-900 mb-1">Bienvenido a Hospedá</h1>
           <p className="text-sm text-slate-500">Ingresá para gestionar tu hotel</p>
@@ -208,6 +214,12 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
   // ── SIGNUP MODE ──
   return (
     <AuthShell maxWidth={520}>
+      {/* Volver a la landing */}
+      <Link href="/" className="absolute top-6 left-6 inline-flex items-center gap-1.5 text-sm text-white/80 hover:text-white transition-colors">
+        <ArrowLeft className="w-4 h-4" />
+        Volver al inicio
+      </Link>
+
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">Crear cuenta</h1>
         <p className="text-sm text-slate-500">30 días de prueba gratuita · Sin tarjeta de crédito</p>
