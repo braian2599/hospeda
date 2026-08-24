@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 
 const NAV_LINKS = [
+  { href: '/', label: 'Inicio' },
   { href: '/funciones', label: 'Funciones' },
   { href: '/precios', label: 'Precios' },
   { href: '/contacto', label: 'Contacto' },
@@ -23,7 +24,7 @@ export default function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (href: string) =>
-    pathname === href || (href !== '/' && pathname?.startsWith(href));
+    href === '/' ? pathname === '/' : pathname?.startsWith(href);
 
   return (
     <header className="sticky top-0 z-50 h-16 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
