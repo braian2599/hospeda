@@ -1842,3 +1842,34 @@ Next actions (not in scope, optional follow-ups):
 - The dot pattern uses literal `white` (not `currentColor` or a CSS var) so it always renders white regardless of theme. On light backgrounds the `opacity-10` keeps it subtle. If a dark variant is needed, swap `white` for a theme color or use a CSS variable.
 - The `Empresa` footer column heading was removed entirely; no orphaned styles reference it.
 - `TypewriterText`, `FadeIn`, `BackToTop`, `ScreenshotFrame`, `useInView`, `scrollTo` helpers all still used — kept.
+
+---
+Task ID: LANDING-REBUILD
+Agent: general-purpose
+Task: Complete rewrite of src/app/page.tsx (landing page) from scratch — modern SaaS design (Cloudbeds/Lodgy style) with teal-700 primary, slate text, white bg, generous spacing, scroll animations.
+
+Work Log:
+- Read previous page.tsx, globals.css (brand color vars), PlanCard/CheckoutDialog/usePlans APIs, plan-config types.
+- Wrote brand-new src/app/page.tsx with `'use client'` directive.
+- Defined helper components inside the file:
+  - `scrollTo(id)` — smooth scroll helper via `document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })`
+  - `useInView` hook — IntersectionObserver wrapper (threshold 0.12, disconnect after first hit)
+  - `FadeIn` wrapper — opacity 0→1 + translateY 24px→0, accepts delay prop, uses inline style transitions
+  - `ScrollProgress` — fixed top 3px bar (bg-primary), tracks scroll % of doc height
+  - `BackToTop` — fixed bottom-right 11x11 round button (bg-primary), appears after scrollY > 600, uses ArrowRight rotated -90deg (ArrowUp not in allowed imports)
+  - `ScreenshotFrame` — browser-style frame with 3 colored dots + `hospeda.app` URL bar + aspect-[16/10] Next.js Image
+- Page sections (top→bottom):
+  1. NAVBAR — sticky h-16, white/95 backdrop-blur, logo (rounded container + "Hospedá"), desktop links (Funciones/Precios/Contacto as scrollTo buttons), ghost "Iniciar sesión" + primary "Probar gratis" (Link to /login & /register), mobile hamburger drawer
+  2. HERO — py-20, lg:grid-cols-5 (3/2 = 60/40 split). Left: teal uppercase label "EL SISTEMA QUE TU HOTEL NECESITA", h1 "Gestioná tu hotel." + break + "de forma inteligente." with inteligente in teal→brand-emerald gradient text (bg-clip-text text-transparent), subtitle, "Comenzar gratis" primary + "Ver funciones" outline (scrollTo funciones), trust line "30 días de prueba gratuita · Sin tarjeta de crédito". Right: ScreenshotFrame with /screenshots/dashboard-new.png, hidden on mobile (hidden lg:block)
+  3. SOCIAL PROOF BAR — py-12 bg-secondary/50 border-y, centered uppercase label "Diseñado para alojamientos en Argentina", 5 icon+label items (Hotel/Home/DoorOpen/Building2/Coffee) each in rounded-lg bg-muted, hover:scale-110 transition
+  4. FEATURES GRID (id="funciones") — py-24, centered header (Sparkles badge "Funciones" + h2 "Todo lo que tu hotel necesita" + subtitle), 3-col grid (sm:2 lg:3 gap-6), 6 cards with icon in rounded-xl bg-primary/10 w-12 h-12 text-primary, hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg transition-all duration-300
+  5. SPLIT BENEFIT — py-24 bg-secondary/30 lg:grid-cols-2. Left: teal label "HECHO PARA TU NEGOCIO", h2 "Más tiempo para lo que realmente importa", paragraph, 4-item checklist with Check icon in primary, "Conocer más funciones" button. Right: ScreenshotFrame with /screenshots/reservas-new.png
+  6. PRICING (id="precios") — py-24, centered header (badge "Planes" + h2 "Elegí el plan ideal para tu hotel" + subtitle "Comenzá con 30 días gratis..."), trust badges row (Shield "Pago seguro" + Clock "Cancelá cuando quieras" in brand-emerald), 3 PlanCard components (basico / profesional destacado / premium) with onSelect callback wiring to CheckoutDialog state, note "Todos los planes incluyen 30 días de prueba gratuita"
+  7. FAQ (id="faq") — py-24 bg-secondary/30, max-w-3xl, badge "Preguntas frecuentes" + h2 "¿Tenés dudas?", custom inline accordion (useState openFaq index), each item rounded-xl border bg-card, hover:border-primary/20, ChevronDown rotates 180 when open, grid-template-rows 0fr→1fr smooth expand animation
+  8. FINAL CTA — py-24, max-w-3xl centered, Clock badge "30 días de prueba gratuita · Sin tarjeta de crédito", h2 "¿Listo para llevar tu hotel al siguiente nivel?", paragraph, "Comenzar gratis" primary (Link /register) + "Ver planes" outline (scrollTo precios)
+  9. FOOTER (id="contacto") — bg-brand-deep text-white py-16, 4-col grid: Brand (logo + desc), Producto (Funciones/Precios/FAQ scroll buttons), Cuenta (Registrarse/Iniciar sesión Links), Contacto (mailto:braian9952@gmail.com with Mail icon). Bottom bar border-t border-white/10 pt-8 "© 2026 Hospedá. Todos los derechos reservados."
+- CheckoutDialog mounted once at root of page, controlled by `checkoutOpen` + `selectedPlan` state, opened by PlanCard onSelect.
+- Imports: all 19 lucide icons used (no unused). Badge, Button, Image, Link, PlanCard, CheckoutDialog, PlanTipo type.
+- All design tokens use CSS variable-based Tailwind classes (bg-background, text-foreground, bg-primary, text-muted-foreground, bg-card, border-border, bg-secondary, text-brand-emerald, bg-brand-deep). NO indigo/blue. NO old styles (no hero-orb, premium-badge, cta-premium, hero-gradient-text, hero-underline, bg-grid-pattern, TypewriterText).
+- Verified: `bun run lint` passes clean (no errors, no warnings).
+- Added id="faq" to FAQ section so footer "FAQ" scroll button works.
