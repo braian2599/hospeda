@@ -53,6 +53,7 @@ model Tenant {
   configuracion  TenantConfig?
   platformPayments PlatformPayment[]
   canalesExternos CanalExterno[]
+  mercadoPago    TenantMercadoPago?
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -577,6 +578,25 @@ model CanalExterno {
   tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, habitacion, canal])
+}
+
+// ═══════════════════════════════════════════════════════════
+// MERCADO PAGO CONNECT — cuenta propia de cada hotel (para
+// cobrar señas de reservas de la landing directo a su cuenta)
+// ═══════════════════════════════════════════════════════════
+
+model TenantMercadoPago {
+  id           String    @id @default(cuid())
+  tenantId     String    @unique
+  mpUserId     String?
+  accessToken  String    // cifrado (AES-256-GCM, ver lib/crypto.ts)
+  refreshToken String    // cifrado
+  publicKey    String?
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 // ═══════════════════════════════════════════════════════════

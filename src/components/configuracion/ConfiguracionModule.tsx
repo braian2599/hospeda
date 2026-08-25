@@ -769,6 +769,10 @@ function FotosSection() {
   const [servicios, setServicios] = useState<string[]>([]);
   const [nuevoServicio, setNuevoServicio] = useState('');
   const [savingServicios, setSavingServicios] = useState(false);
+  const [mpConectado, setMpConectado] = useState(false);
+  const [mpUserId, setMpUserId] = useState<string | null>(null);
+  const [mpLoading, setMpLoading] = useState(true);
+  const [mpDisconnecting, setMpDisconnecting] = useState(false);
   const [savingAgencias, setSavingAgencias] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploadingHotel, setUploadingHotel] = useState(false);
@@ -804,6 +808,33 @@ function FotosSection() {
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useEffect(() => {
+    fetch('/api/configuracion/mercadopago')
+      .then((r) => r.json())
+      .then((data) => {
+        setMpConectado(!!data.conectado);
+        setMpUserId(data.mpUserId || null);
+      })
+      .catch(() => {})
+      .finally(() => setMpLoading(false));
+  }, []);
+
+  const handleDesconectarMp = async () => {
+    setMpDisconnecting(true);
+    try {
+      const res = await fetch('/api/configuracion/mercadopago', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMpConectado(false);
+      setMpUserId(null);
+      toast.success('Mercado Pago desconectado');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al desconectar');
+    } finally {
+      setMpDisconnecting(false);
+    }
+  };
 
   const borrarDeR2 = (url: string) => {
     fetch('/api/uploads/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) }).catch(() => {});
@@ -1125,6 +1156,33 @@ function FotosSection() {
             {savingAgencias ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
             Guardar
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Cobro de seña (Mercado Pago)</CardTitle>
+          <CardDescription>Conectá tu propia cuenta de Mercado Pago para cobrar la seña de las reservas online directo a tu cuenta.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {mpLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          ) : mpConectado ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm">
+                <p className="font-medium text-success">Cuenta conectada</p>
+                {mpUserId && <p className="text-xs text-muted-foreground">ID de cuenta: {mpUserId}</p>}
+              </div>
+              <Button variant="outline" size="sm" onClick={handleDesconectarMp} disabled={mpDisconnecting}>
+                {mpDisconnecting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Desconectar
+              </Button>
+            </div>
+          ) : (
+            <Button asChild size="sm">
+              <a href="/api/configuracion/mercadopago/connect">Conectar Mercado Pago</a>
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
