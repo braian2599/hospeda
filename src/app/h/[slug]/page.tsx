@@ -168,15 +168,17 @@ export default async function HotelLandingPage(
           </div>
         )}
 
-        {/* Habitaciones (3/4) + Buscador de disponibilidad (1/4) */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="md:col-span-3 order-2 md:order-1 space-y-4">
-            <h2 className="text-xl font-semibold">Habitaciones</h2>
-            {tenant.habitaciones.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Todavía no hay habitaciones cargadas.</p>
-            ) : (
-              <div className="grid sm:grid-cols-2 gap-5">
-                {tenant.habitaciones.map((h) => {
+        {/* Buscador de disponibilidad */}
+        <HotelBookingWidget slug={slug} />
+
+        {/* Habitaciones */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Habitaciones</h2>
+          {tenant.habitaciones.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Todavía no hay habitaciones cargadas.</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+              {tenant.habitaciones.map((h) => {
                   const precioPublico = precioPublicoDeHabitacion(h.tipo, config?.tarifasPublicas, tenant.tarifas);
                   const camas = [
                     h.camasMatrimoniales > 0 ? `${h.camasMatrimoniales} matrimonial${h.camasMatrimoniales !== 1 ? 'es' : ''}` : null,
@@ -219,11 +221,6 @@ export default async function HotelLandingPage(
                 })}
               </div>
             )}
-          </div>
-
-          <div className="md:col-span-1 order-1 md:order-2 md:sticky md:top-4 md:self-start">
-            <HotelBookingWidget slug={slug} />
-          </div>
         </div>
 
         {/* Sección para agencias (B2B, sin precios) */}

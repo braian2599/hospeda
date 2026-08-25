@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import type { DateRange } from 'react-day-picker';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { Loader2, Search, CalendarDays, Users, CheckCircle2, Zap } from 'lucide-react';
 
 interface Resultado {
@@ -17,13 +20,17 @@ interface Confirmacion {
   noches: number;
 }
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+function toISO(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function formatCorto(d: Date): string {
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
 }
 
 export default function HotelBookingWidget({ slug }: { slug: string }) {
-  const [checkin, setCheckin] = useState('');
-  const [checkout, setCheckout] = useState('');
+  const [rango, setRango] = useState<DateRange | undefined>();
+  const [calendarioAbierto, setCalendarioAbierto] = useState(false);
   const [personas, setPersonas] = useState(2);
 
   const [buscando, setBuscando] = useState(false);
@@ -36,20 +43,29 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
   const [errorReserva, setErrorReserva] = useState('');
   const [confirmacion, setConfirmacion] = useState<Confirmacion | null>(null);
 
+  const handleSelectRango = (r: DateRange | undefined) => {
+    setRango(r);
+    if (r?.from && r?.to) setCalendarioAbierto(false);
+  };
+
   const buscar = async () => {
     setErrorBusqueda('');
     setResultados(null);
     setTipoSeleccionado(null);
     setConfirmacion(null);
 
-    if (!checkin || !checkout) {
+    if (!rango?.from || !rango?.to) {
       setErrorBusqueda('Elegí fecha de entrada y salida');
       return;
     }
 
     setBuscando(true);
     try {
-      const params = new URLSearchParams({ checkin, checkout, personas: String(personas) });
+      const params = new URLSearchParams({
+        checkin: toISO(rango.from),
+        checkout: toISO(rango.to),
+        personas: String(personas),
+      });
       const res = await fetch(`/api/public/${slug}/disponibilidad?${params}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al consultar disponibilidad');
@@ -62,7 +78,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
   };
 
   const confirmarReserva = async () => {
-    if (!tipoSeleccionado) return;
+    if (!tipoSeleccionado || !rango?.from || !rango?.to) return;
     setErrorReserva('');
     if (!form.huesped.trim() || !form.dni.trim() || !form.telefono.trim()) {
       setErrorReserva('Completá nombre, DNI y teléfono');
@@ -74,7 +90,9 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
       const res = await fetch(`/api/public/${slug}/reservar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo: tipoSeleccionado, checkin, checkout, personas, ...form }),
+        body: JSON.stringify({
+          tipo: tipoSeleccionado, checkin: toISO(rango.from), checkout: toISO(rango.to), personas, ...form,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al reservar');
@@ -99,44 +117,53 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
     );
   }
 
+  const etiquetaFechas = rango?.from
+    ? rango.to
+      ? `${formatCorto(rango.from)} — ${formatCorto(rango.to)}`
+      : `${formatCorto(rango.from)} — Elegí salida`
+    : 'Elegí las fechas';
+
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
       <h2 className="text-lg font-semibold flex items-center gap-2">
         <CalendarDays className="w-5 h-5 text-primary" /> Consultá disponibilidad y precio
       </h2>
 
-      <div className="flex flex-col gap-3">
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Check-in</label>
-          <input
-            type="date"
-            value={checkin}
-            min={todayISO()}
-            onChange={(e) => setCheckin(e.target.value)}
-            className="w-full rounded-md border px-2 py-1.5 text-sm bg-background"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Check-out</label>
-          <input
-            type="date"
-            value={checkout}
-            min={checkin || todayISO()}
-            onChange={(e) => setCheckout(e.target.value)}
-            className="w-full rounded-md border px-2 py-1.5 text-sm bg-background"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" /> Personas</label>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Popover open={calendarioAbierto} onOpenChange={setCalendarioAbierto}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="w-full flex items-center gap-2 rounded-md border px-3 py-2 text-sm bg-background text-left"
+            >
+              <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+              {etiquetaFechas}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={rango}
+              onSelect={handleSelectRango}
+              disabled={{ before: new Date() }}
+              numberOfMonths={2}
+            />
+          </PopoverContent>
+        </Popover>
+
+        <div className="flex items-center gap-2 rounded-md border px-3 py-2 bg-background">
+          <Users className="w-4 h-4 text-muted-foreground shrink-0" />
           <input
             type="number"
             min={1}
             max={20}
             value={personas}
             onChange={(e) => setPersonas(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-full rounded-md border px-2 py-1.5 text-sm bg-background"
+            className="w-full text-sm bg-transparent outline-none"
+            aria-label="Cantidad de personas"
           />
         </div>
+
         <button
           onClick={buscar}
           disabled={buscando}
@@ -156,10 +183,10 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
       {resultados && resultados.length > 0 && (
         <div className="space-y-3 pt-2">
           {resultados.map((r) => (
-            <div key={r.tipo} className="rounded-lg border p-3 space-y-2">
+            <div key={r.tipo} className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <p className="font-semibold text-sm">{r.tipo}</p>
-                <p className="text-xs text-muted-foreground">{r.disponibles} disponible{r.disponibles !== 1 ? 's' : ''}</p>
+                <p className="font-semibold">{r.tipo}</p>
+                <p className="text-sm text-muted-foreground">{r.disponibles} disponible{r.disponibles !== 1 ? 's' : ''}</p>
                 {r.badges.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-1">
                     {r.badges.map((b) => (
@@ -170,11 +197,11 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
                   </div>
                 )}
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-bold">${r.total.toLocaleString('es-AR')}</span>
+              <div className="flex items-center gap-3">
+                <span className="font-bold text-lg">${r.total.toLocaleString('es-AR')}</span>
                 <button
                   onClick={() => { setTipoSeleccionado(r.tipo); setErrorReserva(''); }}
-                  className="rounded-md bg-primary text-primary-foreground text-xs font-medium px-3 py-1.5 hover:opacity-90 transition-opacity"
+                  className="rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-1.5 hover:opacity-90 transition-opacity"
                 >
                   Reservar
                 </button>
@@ -187,7 +214,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
       {tipoSeleccionado && (
         <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
           <h3 className="text-sm font-semibold">Datos para la reserva — {tipoSeleccionado}</h3>
-          <div className="flex flex-col gap-3">
+          <div className="grid sm:grid-cols-2 gap-3">
             <input
               placeholder="Nombre completo"
               value={form.huesped}
