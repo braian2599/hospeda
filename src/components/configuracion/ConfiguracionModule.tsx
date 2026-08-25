@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { Switch } from '@/components/ui/switch';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import {
   CreditCard, Building2, FileText, Shield, Headphones, Download,
@@ -752,6 +753,7 @@ function PhotoGrid({
 }
 
 interface HabitacionFotoDTO { numero: string; tipo: string; fotos: string[]; }
+interface TarifaDTO { id: string; nombre: string; activa: boolean; }
 
 function FotosSection() {
   const [descripcion, setDescripcion] = useState('');
@@ -759,6 +761,12 @@ function FotosSection() {
   const [slug, setSlug] = useState('');
   const [habitacionesList, setHabitacionesList] = useState<HabitacionFotoDTO[]>([]);
   const [habitacionSeleccionada, setHabitacionSeleccionada] = useState('');
+  const [tarifasList, setTarifasList] = useState<TarifaDTO[]>([]);
+  const [tarifasPublicas, setTarifasPublicas] = useState<Record<string, string>>({});
+  const [savingTarifas, setSavingTarifas] = useState(false);
+  const [mostrarSeccionAgencias, setMostrarSeccionAgencias] = useState(false);
+  const [textoAgencias, setTextoAgencias] = useState('');
+  const [savingAgencias, setSavingAgencias] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploadingHotel, setUploadingHotel] = useState(false);
   const [uploadingHabitacion, setUploadingHabitacion] = useState(false);
@@ -767,18 +775,23 @@ function FotosSection() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [hotelData, habsData] = await Promise.all([
+      const [hotelData, habsData, tarifasData] = await Promise.all([
         fetch('/api/configuracion/hotel').then((r) => r.json()),
         fetch('/api/habitaciones').then((r) => r.json()),
+        fetch('/api/tarifas').then((r) => r.json()),
       ]);
       setDescripcion(hotelData.descripcion || '');
       setFotosHotel(hotelData.fotos || []);
       setSlug(hotelData.slug || '');
+      setTarifasPublicas(hotelData.tarifasPublicas || {});
+      setMostrarSeccionAgencias(!!hotelData.mostrarSeccionAgencias);
+      setTextoAgencias(hotelData.textoAgencias || '');
       const habs: HabitacionFotoDTO[] = Array.isArray(habsData)
         ? habsData.map((h: { numero: string; tipo: string; fotos?: string[] }) => ({ numero: h.numero, tipo: h.tipo, fotos: h.fotos || [] }))
         : [];
       setHabitacionesList(habs);
       setHabitacionSeleccionada((prev) => prev || habs[0]?.numero || '');
+      setTarifasList(Array.isArray(tarifasData) ? tarifasData.filter((t: TarifaDTO) => t.activa) : []);
     } catch {
       toast.error('Error al cargar fotos');
     } finally {
@@ -872,6 +885,36 @@ function FotosSection() {
     }
   };
 
+  const handleGuardarTarifasPublicas = async () => {
+    setSavingTarifas(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tarifasPublicas }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Precios públicos guardados');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingTarifas(false);
+    }
+  };
+
+  const handleGuardarAgencias = async () => {
+    setSavingAgencias(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mostrarSeccionAgencias, textoAgencias }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Sección de agencias guardada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingAgencias(false);
+    }
+  };
+
+  const tiposPresentes = Array.from(new Set(habitacionesList.map((h) => h.tipo)));
+
   if (loading) {
     return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
@@ -951,6 +994,69 @@ function FotosSection() {
               )}
             </>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Precios públicos por tipo de habitación</CardTitle>
+          <CardDescription>Elegí qué tarifa mostrar como precio en la landing, para cada tipo de habitación.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {tiposPresentes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay habitaciones cargadas todavía.</p>
+          ) : tarifasList.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay tarifas activas — creá una en Tarifas primero.</p>
+          ) : (
+            <>
+              {tiposPresentes.map((tipo) => (
+                <div key={tipo} className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium">{tipo}</span>
+                  <Select
+                    value={tarifasPublicas[tipo] || '__ninguna__'}
+                    onValueChange={(v) => setTarifasPublicas((prev) => ({ ...prev, [tipo]: v === '__ninguna__' ? '' : v }))}
+                  >
+                    <SelectTrigger className="w-56"><SelectValue placeholder="Sin precio público" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__ninguna__">Sin precio público</SelectItem>
+                      {tarifasList.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+              <Button onClick={handleGuardarTarifasPublicas} disabled={savingTarifas} size="sm">
+                {savingTarifas ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                Guardar
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Sección para agencias</CardTitle>
+          <CardDescription>Un bloque chico en la landing para captar convenios B2B, sin mostrar precios.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Mostrar sección de agencias</span>
+            <Switch checked={mostrarSeccionAgencias} onCheckedChange={setMostrarSeccionAgencias} />
+          </div>
+          {mostrarSeccionAgencias && (
+            <Textarea
+              value={textoAgencias}
+              onChange={(e) => setTextoAgencias(e.target.value)}
+              placeholder="Trabajamos con agencias de viajes. Contactanos para conocer nuestros convenios."
+              rows={3}
+            />
+          )}
+          <Button onClick={handleGuardarAgencias} disabled={savingAgencias} size="sm">
+            {savingAgencias ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            Guardar
+          </Button>
         </CardContent>
       </Card>
     </div>

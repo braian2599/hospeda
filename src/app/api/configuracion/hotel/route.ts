@@ -17,7 +17,7 @@ export async function GET() {
           select: {
             hotelNombre: true, hotelDireccion: true, hotelCiudad: true,
             hotelPais: true, hotelTelefono: true, hotelEmail: true, hotelLogoUrl: true,
-            featureFlags: true,
+            featureFlags: true, tarifasPublicas: true, mostrarSeccionAgencias: true, textoAgencias: true,
           },
         },
       },
@@ -45,6 +45,9 @@ export async function GET() {
       hotelTelefono: config.hotelTelefono || tenant.telefono || '',
       hotelEmail: config.hotelEmail || tenant.email,
       featureFlags: parseFeatureFlags(config.featureFlags),
+      tarifasPublicas: (config.tarifasPublicas && typeof config.tarifasPublicas === 'object') ? config.tarifasPublicas : {},
+      mostrarSeccionAgencias: !!config.mostrarSeccionAgencias,
+      textoAgencias: config.textoAgencias || '',
     });
   } catch (error) {
     if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.statusCode });
@@ -58,7 +61,10 @@ export async function PUT(req: NextRequest) {
   try {
     const tenantId = await requireOwner();
     const body = await req.json();
-    const { nombre, email, telefono, direccion, pais, moneda, timezone, logoUrl, descripcion, fotos } = body;
+    const {
+      nombre, email, telefono, direccion, pais, moneda, timezone, logoUrl, descripcion, fotos,
+      tarifasPublicas, mostrarSeccionAgencias, textoAgencias,
+    } = body;
 
     // Update Tenant
     const updateData: Record<string, unknown> = {};
@@ -75,6 +81,14 @@ export async function PUT(req: NextRequest) {
 
     await db.tenant.update({ where: { id: tenantId }, data: updateData });
 
+    // Campos opcionales de la landing (solo se tocan si vienen en el body)
+    const configExtra: Record<string, unknown> = {};
+    if (tarifasPublicas && typeof tarifasPublicas === 'object' && !Array.isArray(tarifasPublicas)) {
+      configExtra.tarifasPublicas = tarifasPublicas;
+    }
+    if (mostrarSeccionAgencias !== undefined) configExtra.mostrarSeccionAgencias = !!mostrarSeccionAgencias;
+    if (textoAgencias !== undefined) configExtra.textoAgencias = textoAgencias;
+
     // Upsert TenantConfig
     await db.tenantConfig.upsert({
       where: { tenantId },
@@ -86,6 +100,7 @@ export async function PUT(req: NextRequest) {
         hotelTelefono: telefono,
         hotelEmail: email?.trim().toLowerCase(),
         hotelLogoUrl: logoUrl,
+        ...configExtra,
       },
       update: {
         hotelNombre: nombre?.trim() || undefined,
@@ -94,6 +109,7 @@ export async function PUT(req: NextRequest) {
         hotelTelefono: telefono,
         hotelEmail: email?.trim().toLowerCase(),
         hotelLogoUrl: logoUrl,
+        ...configExtra,
       },
     });
 

@@ -547,6 +547,9 @@ model TenantConfig {
   puntoVenta          Int?
   numeroFactura       Int      @default(0)
   featureFlags        Json     @default("{}")
+  tarifasPublicas     Json     @default("{}")
+  mostrarSeccionAgencias Boolean @default(false)
+  textoAgencias       String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
