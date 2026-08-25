@@ -27,6 +27,8 @@ model Tenant {
   moneda         String            @default("ARS")
   timezone       String            @default("America/Argentina/Buenos_Aires")
   logoUrl        String?
+  descripcion    String?
+  fotos          String[]          @default([])
   activo         Boolean           @default(true)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
@@ -186,6 +188,7 @@ model Habitacion {
   precioPorCama      Int?
   piso               Int?
   orden              Int              @default(0)
+  fotos              String[]         @default([])
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 

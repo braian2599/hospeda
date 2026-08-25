@@ -22,6 +22,7 @@ import {
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
   Settings, Copy, Info, Menu, BedDouble, KeyRound, Database, Receipt,
   Users, History, CheckCircle2, XCircle, Lock, Printer, MessageCircle,
+  Image as ImageIcon, Upload, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -36,6 +37,7 @@ const SECTIONS = [
   { id: 'hotel', label: 'Hotel Info', icon: Building2 },
   { id: 'fiscal', label: 'Fiscal', icon: FileText },
   { id: 'habitaciones', label: 'Habitaciones', icon: BedDouble },
+  { id: 'fotos', label: 'Fotos', icon: ImageIcon },
   { id: 'integraciones', label: 'Integraciones', icon: Globe },
   { id: 'cuenta', label: 'Cuenta y Contraseña', icon: KeyRound },
   { id: 'exportar', label: 'Datos / Export', icon: Database },
@@ -134,6 +136,7 @@ export default function ConfiguracionModule() {
   const [activeSection, setActiveSection] = useState<SectionId>('hotel');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [integracionesHabilitadas, setIntegracionesHabilitadas] = useState(false);
+  const [fotosHabilitadas, setFotosHabilitadas] = useState(false);
   const { usuarioActual } = useHotelStore();
 
   useEffect(() => {
@@ -142,11 +145,16 @@ export default function ConfiguracionModule() {
       .then((data) => {
         const flags = data?.featureFlags;
         setIntegracionesHabilitadas(!!(flags?.bookingSync || flags?.airbnbSync));
+        setFotosHabilitadas(!!flags?.landingPage);
       })
       .catch(() => {});
   }, []);
 
-  const visibleSections = SECTIONS.filter((s) => s.id !== 'integraciones' || integracionesHabilitadas);
+  const visibleSections = SECTIONS.filter((s) => {
+    if (s.id === 'integraciones') return integracionesHabilitadas;
+    if (s.id === 'fotos') return fotosHabilitadas;
+    return true;
+  });
 
   if (!usuarioActual || usuarioActual.rol !== 'owner') {
     return (
@@ -225,6 +233,7 @@ export default function ConfiguracionModule() {
           {activeSection === 'hotel' && <HotelSection />}
           {activeSection === 'fiscal' && <FiscalSection />}
           {activeSection === 'habitaciones' && <HabitacionesSection />}
+          {activeSection === 'fotos' && <FotosSection />}
           {activeSection === 'integraciones' && <IntegracionesSection />}
           {activeSection === 'cuenta' && <CuentaSection />}
           {activeSection === 'exportar' && <ExportarSection />}
@@ -661,6 +670,274 @@ function FiscalSection() {
               <div className="flex justify-between border-t border-dashed border-border pt-1 mt-1"><span className="font-bold">TOTAL</span><span className="font-bold">$ 0,00</span></div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// FOTOS Y DESCRIPCIÓN (landing page pública)
+// ═══════════════════════════════════════════
+
+const MAX_FOTO_BYTES = 8 * 1024 * 1024;
+const ALLOWED_FOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+async function uploadFoto(file: File, tipo: 'hotel' | 'habitacion', habitacion?: string): Promise<string> {
+  if (!ALLOWED_FOTO_TYPES.has(file.type)) {
+    throw new Error('Formato no permitido (solo jpg, png, webp)');
+  }
+  if (file.size > MAX_FOTO_BYTES) {
+    throw new Error(`El archivo debe pesar menos de ${MAX_FOTO_BYTES / 1024 / 1024}MB`);
+  }
+
+  const presignRes = await fetch('/api/uploads/presign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tipo, habitacion, contentType: file.type, size: file.size }),
+  });
+  const presignData = await presignRes.json();
+  if (!presignRes.ok) throw new Error(presignData.error || 'Error al preparar la subida');
+
+  const putRes = await fetch(presignData.uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file,
+  });
+  if (!putRes.ok) throw new Error('Error al subir el archivo a R2');
+
+  return presignData.publicUrl as string;
+}
+
+function PhotoGrid({
+  fotos, onUpload, onDelete, uploading,
+}: {
+  fotos: string[];
+  onUpload: (file: File) => void;
+  onDelete: (url: string) => void;
+  uploading: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {fotos.map((url) => (
+        <div key={url} className="relative group aspect-video rounded-lg overflow-hidden border bg-muted">
+          <img src={url} alt="" className="w-full h-full object-cover" />
+          <button
+            type="button"
+            onClick={() => onDelete(url)}
+            className="absolute top-1 right-1 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Eliminar foto"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ))}
+      <label className="aspect-video rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+        {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+        <span className="text-xs">Subir foto</span>
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          disabled={uploading}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onUpload(file);
+            e.target.value = '';
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
+interface HabitacionFotoDTO { numero: string; tipo: string; fotos: string[]; }
+
+function FotosSection() {
+  const [descripcion, setDescripcion] = useState('');
+  const [fotosHotel, setFotosHotel] = useState<string[]>([]);
+  const [habitacionesList, setHabitacionesList] = useState<HabitacionFotoDTO[]>([]);
+  const [habitacionSeleccionada, setHabitacionSeleccionada] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [uploadingHotel, setUploadingHotel] = useState(false);
+  const [uploadingHabitacion, setUploadingHabitacion] = useState(false);
+  const [savingDescripcion, setSavingDescripcion] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [hotelData, habsData] = await Promise.all([
+        fetch('/api/configuracion/hotel').then((r) => r.json()),
+        fetch('/api/habitaciones').then((r) => r.json()),
+      ]);
+      setDescripcion(hotelData.descripcion || '');
+      setFotosHotel(hotelData.fotos || []);
+      const habs: HabitacionFotoDTO[] = Array.isArray(habsData)
+        ? habsData.map((h: { numero: string; tipo: string; fotos?: string[] }) => ({ numero: h.numero, tipo: h.tipo, fotos: h.fotos || [] }))
+        : [];
+      setHabitacionesList(habs);
+      setHabitacionSeleccionada((prev) => prev || habs[0]?.numero || '');
+    } catch {
+      toast.error('Error al cargar fotos');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const borrarDeR2 = (url: string) => {
+    fetch('/api/uploads/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) }).catch(() => {});
+  };
+
+  const handleUploadHotel = async (file: File) => {
+    setUploadingHotel(true);
+    try {
+      const url = await uploadFoto(file, 'hotel');
+      const next = [...fotosHotel, url];
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fotos: next }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setFotosHotel(next);
+      toast.success('Foto agregada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al subir la foto');
+    } finally {
+      setUploadingHotel(false);
+    }
+  };
+
+  const handleDeleteHotel = async (url: string) => {
+    const next = fotosHotel.filter((f) => f !== url);
+    try {
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fotos: next }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setFotosHotel(next);
+      borrarDeR2(url);
+      toast.success('Foto eliminada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al eliminar');
+    }
+  };
+
+  const habitacionActual = habitacionesList.find((h) => h.numero === habitacionSeleccionada);
+
+  const handleUploadHabitacion = async (file: File) => {
+    if (!habitacionActual) return;
+    setUploadingHabitacion(true);
+    try {
+      const url = await uploadFoto(file, 'habitacion', habitacionActual.numero);
+      const next = [...habitacionActual.fotos, url];
+      const res = await fetch(`/api/habitaciones/${encodeURIComponent(habitacionActual.numero)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fotos: next }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setHabitacionesList((prev) => prev.map((h) => (h.numero === habitacionActual.numero ? { ...h, fotos: next } : h)));
+      toast.success('Foto agregada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al subir la foto');
+    } finally {
+      setUploadingHabitacion(false);
+    }
+  };
+
+  const handleDeleteHabitacion = async (url: string) => {
+    if (!habitacionActual) return;
+    const next = habitacionActual.fotos.filter((f) => f !== url);
+    try {
+      const res = await fetch(`/api/habitaciones/${encodeURIComponent(habitacionActual.numero)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fotos: next }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setHabitacionesList((prev) => prev.map((h) => (h.numero === habitacionActual.numero ? { ...h, fotos: next } : h)));
+      borrarDeR2(url);
+      toast.success('Foto eliminada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al eliminar');
+    }
+  };
+
+  const handleGuardarDescripcion = async () => {
+    setSavingDescripcion(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ descripcion }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Descripción guardada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingDescripcion(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Fotos y descripción</h3>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Se van a mostrar en la landing page pública del hotel. Función en prueba.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Descripción del hotel</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Textarea
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            placeholder="Contales a tus huéspedes sobre tu hotel..."
+            rows={4}
+          />
+          <Button onClick={handleGuardarDescripcion} disabled={savingDescripcion} size="sm">
+            {savingDescripcion ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            Guardar
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Fotos del hotel</CardTitle>
+          <CardDescription>Portada y galería general</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PhotoGrid fotos={fotosHotel} onUpload={handleUploadHotel} onDelete={handleDeleteHotel} uploading={uploadingHotel} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Fotos por habitación</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {habitacionesList.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay habitaciones cargadas todavía.</p>
+          ) : (
+            <>
+              <Select value={habitacionSeleccionada} onValueChange={setHabitacionSeleccionada}>
+                <SelectTrigger className="w-full sm:w-64"><SelectValue placeholder="Elegir habitación" /></SelectTrigger>
+                <SelectContent>
+                  {habitacionesList.map((h) => (
+                    <SelectItem key={h.numero} value={h.numero}>Hab. {h.numero} — {h.tipo}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {habitacionActual && (
+                <PhotoGrid
+                  fotos={habitacionActual.fotos}
+                  onUpload={handleUploadHabitacion}
+                  onDelete={handleDeleteHabitacion}
+                  uploading={uploadingHabitacion}
+                />
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
