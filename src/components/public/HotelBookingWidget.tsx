@@ -105,7 +105,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
         <CalendarDays className="w-5 h-5 text-primary" /> Consultá disponibilidad y precio
       </h2>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="flex flex-col gap-3">
         <div className="space-y-1">
           <label className="text-xs text-muted-foreground">Check-in</label>
           <input
@@ -137,16 +137,14 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
             className="w-full rounded-md border px-2 py-1.5 text-sm bg-background"
           />
         </div>
-        <div className="flex items-end">
-          <button
-            onClick={buscar}
-            disabled={buscando}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-1.5 hover:opacity-90 transition-opacity disabled:opacity-60"
-          >
-            {buscando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-            Buscar
-          </button>
-        </div>
+        <button
+          onClick={buscar}
+          disabled={buscando}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+        >
+          {buscando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+          Buscar
+        </button>
       </div>
 
       {errorBusqueda && <p className="text-sm text-destructive">{errorBusqueda}</p>}
@@ -158,10 +156,10 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
       {resultados && resultados.length > 0 && (
         <div className="space-y-3 pt-2">
           {resultados.map((r) => (
-            <div key={r.tipo} className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div key={r.tipo} className="rounded-lg border p-3 space-y-2">
               <div>
-                <p className="font-semibold">{r.tipo}</p>
-                <p className="text-sm text-muted-foreground">{r.disponibles} disponible{r.disponibles !== 1 ? 's' : ''}</p>
+                <p className="font-semibold text-sm">{r.tipo}</p>
+                <p className="text-xs text-muted-foreground">{r.disponibles} disponible{r.disponibles !== 1 ? 's' : ''}</p>
                 {r.badges.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-1">
                     {r.badges.map((b) => (
@@ -172,11 +170,11 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-3">
-                <span className="font-bold text-lg">${r.total.toLocaleString('es-AR')}</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold">${r.total.toLocaleString('es-AR')}</span>
                 <button
                   onClick={() => { setTipoSeleccionado(r.tipo); setErrorReserva(''); }}
-                  className="rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-1.5 hover:opacity-90 transition-opacity"
+                  className="rounded-md bg-primary text-primary-foreground text-xs font-medium px-3 py-1.5 hover:opacity-90 transition-opacity"
                 >
                   Reservar
                 </button>
@@ -189,7 +187,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
       {tipoSeleccionado && (
         <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
           <h3 className="text-sm font-semibold">Datos para la reserva — {tipoSeleccionado}</h3>
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3">
             <input
               placeholder="Nombre completo"
               value={form.huesped}

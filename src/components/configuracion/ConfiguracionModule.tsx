@@ -38,7 +38,7 @@ const SECTIONS = [
   { id: 'hotel', label: 'Hotel Info', icon: Building2 },
   { id: 'fiscal', label: 'Fiscal', icon: FileText },
   { id: 'habitaciones', label: 'Habitaciones', icon: BedDouble },
-  { id: 'fotos', label: 'Fotos', icon: ImageIcon },
+  { id: 'fotos', label: 'Landing', icon: ImageIcon },
   { id: 'integraciones', label: 'Integraciones', icon: Globe },
   { id: 'cuenta', label: 'Cuenta y Contraseña', icon: KeyRound },
   { id: 'exportar', label: 'Datos / Export', icon: Database },
@@ -766,6 +766,9 @@ function FotosSection() {
   const [savingTarifas, setSavingTarifas] = useState(false);
   const [mostrarSeccionAgencias, setMostrarSeccionAgencias] = useState(false);
   const [textoAgencias, setTextoAgencias] = useState('');
+  const [servicios, setServicios] = useState<string[]>([]);
+  const [nuevoServicio, setNuevoServicio] = useState('');
+  const [savingServicios, setSavingServicios] = useState(false);
   const [savingAgencias, setSavingAgencias] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploadingHotel, setUploadingHotel] = useState(false);
@@ -786,6 +789,7 @@ function FotosSection() {
       setTarifasPublicas(hotelData.tarifasPublicas || {});
       setMostrarSeccionAgencias(!!hotelData.mostrarSeccionAgencias);
       setTextoAgencias(hotelData.textoAgencias || '');
+      setServicios(hotelData.servicios || []);
       const habs: HabitacionFotoDTO[] = Array.isArray(habsData)
         ? habsData.map((h: { numero: string; tipo: string; fotos?: string[] }) => ({ numero: h.numero, tipo: h.tipo, fotos: h.fotos || [] }))
         : [];
@@ -913,6 +917,35 @@ function FotosSection() {
     }
   };
 
+  const guardarServicios = async (next: string[]) => {
+    setSavingServicios(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ servicios: next }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setServicios(next);
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingServicios(false);
+    }
+  };
+
+  const handleAgregarServicio = () => {
+    const valor = nuevoServicio.trim();
+    if (!valor) return;
+    if (servicios.includes(valor)) {
+      toast.error('Ese servicio ya está agregado');
+      return;
+    }
+    setNuevoServicio('');
+    guardarServicios([...servicios, valor]);
+  };
+
+  const handleQuitarServicio = (valor: string) => {
+    guardarServicios(servicios.filter((s) => s !== valor));
+  };
+
   const tiposPresentes = Array.from(new Set(habitacionesList.map((h) => h.tipo)));
 
   if (loading) {
@@ -954,6 +987,41 @@ function FotosSection() {
             {savingDescripcion ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
             Guardar
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Servicios del hotel</CardTitle>
+          <CardDescription>Ej: Desayuno incluido, Wi-Fi, TV, Pileta, Estacionamiento.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              value={nuevoServicio}
+              onChange={(e) => setNuevoServicio(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAgregarServicio(); } }}
+              placeholder="Ej: Wi-Fi"
+            />
+            <Button onClick={handleAgregarServicio} disabled={savingServicios} size="sm">Agregar</Button>
+          </div>
+          {servicios.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {servicios.map((s) => (
+                <span key={s} className="inline-flex items-center gap-1.5 rounded-full bg-muted text-sm px-3 py-1">
+                  {s}
+                  <button
+                    type="button"
+                    onClick={() => handleQuitarServicio(s)}
+                    className="text-muted-foreground hover:text-destructive"
+                    title="Quitar"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

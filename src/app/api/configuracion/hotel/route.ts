@@ -12,7 +12,7 @@ export async function GET() {
       select: {
         nombre: true, slug: true, email: true, telefono: true,
         direccion: true, pais: true, moneda: true, timezone: true, logoUrl: true,
-        descripcion: true, fotos: true,
+        descripcion: true, fotos: true, servicios: true,
         configuracion: {
           select: {
             hotelNombre: true, hotelDireccion: true, hotelCiudad: true,
@@ -37,6 +37,7 @@ export async function GET() {
       logoUrl: tenant.logoUrl || config.hotelLogoUrl || '',
       descripcion: tenant.descripcion || '',
       fotos: tenant.fotos || [],
+      servicios: tenant.servicios || [],
       // Config overrides
       hotelNombre: config.hotelNombre || tenant.nombre,
       hotelDireccion: config.hotelDireccion || tenant.direccion || '',
@@ -62,7 +63,7 @@ export async function PUT(req: NextRequest) {
     const tenantId = await requireOwner();
     const body = await req.json();
     const {
-      nombre, email, telefono, direccion, pais, moneda, timezone, logoUrl, descripcion, fotos,
+      nombre, email, telefono, direccion, pais, moneda, timezone, logoUrl, descripcion, fotos, servicios,
       tarifasPublicas, mostrarSeccionAgencias, textoAgencias,
     } = body;
 
@@ -78,6 +79,7 @@ export async function PUT(req: NextRequest) {
     if (logoUrl !== undefined) updateData.logoUrl = logoUrl;
     if (descripcion !== undefined) updateData.descripcion = descripcion;
     if (Array.isArray(fotos)) updateData.fotos = fotos.filter((f: unknown) => typeof f === 'string');
+    if (Array.isArray(servicios)) updateData.servicios = servicios.filter((s: unknown) => typeof s === 'string' && s.trim()).map((s: string) => s.trim());
 
     await db.tenant.update({ where: { id: tenantId }, data: updateData });
 

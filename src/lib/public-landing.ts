@@ -17,6 +17,7 @@ export async function getPublicTenant(slug: string) {
       nombre: true,
       descripcion: true,
       fotos: true,
+      servicios: true,
       direccion: true,
       pais: true,
       telefono: true,
@@ -29,7 +30,10 @@ export async function getPublicTenant(slug: string) {
         },
       },
       habitaciones: {
-        select: { numero: true, tipo: true, capacidad: true, fotos: true, orden: true },
+        select: {
+          numero: true, tipo: true, capacidad: true, fotos: true, orden: true,
+          camasMatrimoniales: true, camasSimples: true,
+        },
         orderBy: { orden: 'asc' },
       },
       tarifas: {

@@ -4,7 +4,10 @@ import { getPublicTenant, badgesDestacados } from '@/lib/public-landing';
 import { parseTarifaPrecios } from '@/lib/tarifa-calc';
 import { precioDesde, promoBadgesPublicos } from '@/lib/tarifas-format';
 import HotelBookingWidget from '@/components/public/HotelBookingWidget';
-import { MapPin, Phone, Mail, Users, BedDouble, Building2, Zap } from 'lucide-react';
+import {
+  MapPin, Phone, Mail, Users, BedDouble, Building2, Zap,
+  Wifi, Coffee, Tv, Waves, Car, Wind, Check, Bed,
+} from 'lucide-react';
 
 function precioPublicoDeHabitacion(
   tipo: string,
@@ -25,6 +28,19 @@ function precioPublicoDeHabitacion(
   if (desde <= 0) return null;
 
   return { desde, badges: promoBadgesPublicos(precios) };
+}
+
+const SERVICIO_ICONOS: { match: RegExp; icon: typeof Check }[] = [
+  { match: /wi.?fi|internet/i, icon: Wifi },
+  { match: /desayuno/i, icon: Coffee },
+  { match: /tv|televisi/i, icon: Tv },
+  { match: /pileta|piscina/i, icon: Waves },
+  { match: /estacionamiento|cochera|parking/i, icon: Car },
+  { match: /aire|climatizaci/i, icon: Wind },
+];
+
+function iconoServicio(nombre: string): typeof Check {
+  return SERVICIO_ICONOS.find((s) => s.match.test(nombre))?.icon || Check;
 }
 
 export async function generateMetadata(
@@ -57,7 +73,7 @@ export default async function HotelLandingPage(
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
-      <div className="relative h-72 md:h-96 w-full bg-muted overflow-hidden">
+      <div className="relative h-64 md:h-80 w-full bg-muted overflow-hidden">
         {heroFoto ? (
           <img src={heroFoto} alt={tenant.nombre} className="h-full w-full object-cover" />
         ) : (
@@ -65,7 +81,7 @@ export default async function HotelLandingPage(
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
-          <div className="mx-auto max-w-5xl">
+          <div className="mx-auto max-w-6xl">
             <h1 className="text-3xl md:text-5xl font-bold text-white drop-shadow-sm">{tenant.nombre}</h1>
             {(tenant.direccion || tenant.pais) && (
               <p className="mt-2 flex items-center gap-1.5 text-white/90 text-sm md:text-base">
@@ -80,7 +96,7 @@ export default async function HotelLandingPage(
       {/* Franja de promociones destacadas — bien arriba, no al final */}
       {promosDestacadas.length > 0 && (
         <div className="bg-primary text-primary-foreground">
-          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm font-medium">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm font-medium">
             {promosDestacadas.map((b) => (
               <span key={b} className="inline-flex items-center gap-1.5">
                 <Zap className="w-4 h-4" /> {b}
@@ -90,11 +106,8 @@ export default async function HotelLandingPage(
         </div>
       )}
 
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10 space-y-12">
-        {/* Buscador de disponibilidad — arriba de todo, es la acción principal */}
-        <HotelBookingWidget slug={slug} />
-
-        {/* Descripción + contacto */}
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+        {/* Sobre el hotel + Contacto — arriba de todo */}
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-3">
             <h2 className="text-xl font-semibold">Sobre el hotel</h2>
@@ -138,44 +151,79 @@ export default async function HotelLandingPage(
           </div>
         )}
 
-        {/* Habitaciones */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Habitaciones</h2>
-          {tenant.habitaciones.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Todavía no hay habitaciones cargadas.</p>
-          ) : (
-            <div className="grid sm:grid-cols-2 gap-5">
-              {tenant.habitaciones.map((h) => {
-                const precioPublico = precioPublicoDeHabitacion(h.tipo, config?.tarifasPublicas, tenant.tarifas);
+        {/* Servicios */}
+        {tenant.servicios.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-xl font-semibold">Servicios</h2>
+            <div className="flex flex-wrap gap-3">
+              {tenant.servicios.map((s) => {
+                const Icono = iconoServicio(s);
                 return (
-                  <div key={h.numero} className="rounded-xl border overflow-hidden bg-card">
-                    {h.fotos[0] ? (
-                      <div className="aspect-video">
-                        <img src={h.fotos[0]} alt={h.tipo} className="w-full h-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="aspect-video bg-muted flex items-center justify-center">
-                        <BedDouble className="w-8 h-8 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold">{h.tipo}</h3>
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Users className="w-3.5 h-3.5" /> {h.capacidad}
-                        </span>
-                      </div>
-                      {precioPublico && (
-                        <p className="text-sm text-muted-foreground">
-                          Desde ${precioPublico.desde.toLocaleString('es-AR')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  <span key={s} className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
+                    <Icono className="w-4 h-4 text-primary shrink-0" /> {s}
+                  </span>
                 );
               })}
             </div>
-          )}
+          </div>
+        )}
+
+        {/* Habitaciones (3/4) + Buscador de disponibilidad (1/4) */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="md:col-span-3 order-2 md:order-1 space-y-4">
+            <h2 className="text-xl font-semibold">Habitaciones</h2>
+            {tenant.habitaciones.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Todavía no hay habitaciones cargadas.</p>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-5">
+                {tenant.habitaciones.map((h) => {
+                  const precioPublico = precioPublicoDeHabitacion(h.tipo, config?.tarifasPublicas, tenant.tarifas);
+                  const camas = [
+                    h.camasMatrimoniales > 0 ? `${h.camasMatrimoniales} matrimonial${h.camasMatrimoniales !== 1 ? 'es' : ''}` : null,
+                    h.camasSimples > 0 ? `${h.camasSimples} individual${h.camasSimples !== 1 ? 'es' : ''}` : null,
+                  ].filter(Boolean).join(' · ');
+                  return (
+                    <div key={h.numero} className="rounded-xl border overflow-hidden bg-card">
+                      {h.fotos[0] ? (
+                        <div className="aspect-video">
+                          <img src={h.fotos[0]} alt={h.tipo} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="aspect-video bg-muted flex items-center justify-center">
+                          <BedDouble className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold">{h.tipo}</h3>
+                            <p className="text-xs text-muted-foreground">Hab. {h.numero}</p>
+                          </div>
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                            <Users className="w-3.5 h-3.5" /> {h.capacidad}
+                          </span>
+                        </div>
+                        {camas && (
+                          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Bed className="w-3.5 h-3.5 shrink-0" /> {camas}
+                          </p>
+                        )}
+                        {precioPublico && (
+                          <p className="text-sm text-muted-foreground">
+                            Desde ${precioPublico.desde.toLocaleString('es-AR')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="md:col-span-1 order-1 md:order-2 md:sticky md:top-4 md:self-start">
+            <HotelBookingWidget slug={slug} />
+          </div>
         </div>
 
         {/* Sección para agencias (B2B, sin precios) */}

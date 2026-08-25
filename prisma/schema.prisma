@@ -29,6 +29,7 @@ model Tenant {
   logoUrl        String?
   descripcion    String?
   fotos          String[]          @default([])
+  servicios      String[]          @default([])
   activo         Boolean           @default(true)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
