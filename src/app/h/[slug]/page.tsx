@@ -1,50 +1,10 @@
-import { db } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { parseFeatureFlags } from '@/lib/feature-flags';
+import { getPublicTenant, badgesDestacados } from '@/lib/public-landing';
+import { parseTarifaPrecios } from '@/lib/tarifa-calc';
 import { precioDesde, promoBadgesPublicos } from '@/lib/tarifas-format';
-import type { TarifaPrecios } from '@/lib/types';
+import HotelBookingWidget from '@/components/public/HotelBookingWidget';
 import { MapPin, Phone, Mail, Users, BedDouble, Building2, Zap } from 'lucide-react';
-
-async function getHotelData(slug: string) {
-  const tenant = await db.tenant.findUnique({
-    where: { slug },
-    select: {
-      nombre: true,
-      descripcion: true,
-      fotos: true,
-      direccion: true,
-      pais: true,
-      telefono: true,
-      email: true,
-      activo: true,
-      configuracion: {
-        select: {
-          featureFlags: true, tarifasPublicas: true,
-          mostrarSeccionAgencias: true, textoAgencias: true,
-        },
-      },
-      habitaciones: {
-        select: {
-          numero: true, tipo: true, capacidad: true,
-          camasMatrimoniales: true, camasSimples: true,
-          fotos: true,
-        },
-        orderBy: { orden: 'asc' },
-      },
-      tarifas: {
-        where: { activa: true },
-        select: { id: true, nombre: true, precios: true },
-      },
-    },
-  });
-  if (!tenant || !tenant.activo) return null;
-
-  const flags = parseFeatureFlags(tenant.configuracion?.featureFlags);
-  if (!flags.landingPage) return null;
-
-  return tenant;
-}
 
 function precioPublicoDeHabitacion(
   tipo: string,
@@ -55,11 +15,11 @@ function precioPublicoDeHabitacion(
   const tarifaId = mapa[tipo];
   if (!tarifaId) return null;
 
-  const tarifa = tarifas.find((t) => t.id === tarifaId);
-  if (!tarifa || !tarifa.precios) return null;
+  const tarifaDb = tarifas.find((t) => t.id === tarifaId);
+  if (!tarifaDb) return null;
 
-  const precios = tarifa.precios as unknown as TarifaPrecios;
-  if (!precios.rangos || precios.rangos.length === 0) return null;
+  const precios = parseTarifaPrecios(tarifaDb.precios);
+  if (precios.rangos.length === 0) return null;
 
   const desde = precioDesde(precios.rangos);
   if (desde <= 0) return null;
@@ -71,7 +31,7 @@ export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
   const { slug } = await params;
-  const tenant = await getHotelData(slug);
+  const tenant = await getPublicTenant(slug);
   if (!tenant) return {};
 
   return {
@@ -87,11 +47,12 @@ export default async function HotelLandingPage(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const tenant = await getHotelData(slug);
+  const tenant = await getPublicTenant(slug);
   if (!tenant) notFound();
 
   const [heroFoto, ...galeria] = tenant.fotos;
   const config = tenant.configuracion;
+  const promosDestacadas = badgesDestacados(tenant);
 
   return (
     <div className="min-h-screen bg-background">
@@ -116,7 +77,23 @@ export default async function HotelLandingPage(
         </div>
       </div>
 
+      {/* Franja de promociones destacadas — bien arriba, no al final */}
+      {promosDestacadas.length > 0 && (
+        <div className="bg-primary text-primary-foreground">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm font-medium">
+            {promosDestacadas.map((b) => (
+              <span key={b} className="inline-flex items-center gap-1.5">
+                <Zap className="w-4 h-4" /> {b}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+        {/* Buscador de disponibilidad — arriba de todo, es la acción principal */}
+        <HotelBookingWidget slug={slug} />
+
         {/* Descripción + contacto */}
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-3">
@@ -189,23 +166,9 @@ export default async function HotelLandingPage(
                         </span>
                       </div>
                       {precioPublico && (
-                        <>
-                          <p className="text-sm text-muted-foreground">
-                            Desde ${precioPublico.desde.toLocaleString('es-AR')}
-                          </p>
-                          {precioPublico.badges.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {precioPublico.badges.map((b) => (
-                                <span
-                                  key={b}
-                                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[11px] px-2 py-0.5"
-                                >
-                                  <Zap className="w-3 h-3" /> {b}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </>
+                        <p className="text-sm text-muted-foreground">
+                          Desde ${precioPublico.desde.toLocaleString('es-AR')}
+                        </p>
                       )}
                     </div>
                   </div>
