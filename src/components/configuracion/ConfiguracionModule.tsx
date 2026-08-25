@@ -756,6 +756,7 @@ interface HabitacionFotoDTO { numero: string; tipo: string; fotos: string[]; }
 function FotosSection() {
   const [descripcion, setDescripcion] = useState('');
   const [fotosHotel, setFotosHotel] = useState<string[]>([]);
+  const [slug, setSlug] = useState('');
   const [habitacionesList, setHabitacionesList] = useState<HabitacionFotoDTO[]>([]);
   const [habitacionSeleccionada, setHabitacionSeleccionada] = useState('');
   const [loading, setLoading] = useState(true);
@@ -772,6 +773,7 @@ function FotosSection() {
       ]);
       setDescripcion(hotelData.descripcion || '');
       setFotosHotel(hotelData.fotos || []);
+      setSlug(hotelData.slug || '');
       const habs: HabitacionFotoDTO[] = Array.isArray(habsData)
         ? habsData.map((h: { numero: string; tipo: string; fotos?: string[] }) => ({ numero: h.numero, tipo: h.tipo, fotos: h.fotos || [] }))
         : [];
@@ -882,6 +884,17 @@ function FotosSection() {
           Se van a mostrar en la landing page pública del hotel. Función en prueba.
         </p>
       </div>
+
+      {slug && (
+        <a
+          href={`/h/${slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-sm text-primary hover:underline"
+        >
+          <Globe className="w-4 h-4" /> Ver mi página pública (/h/{slug})
+        </a>
+      )}
 
       <Card>
         <CardHeader>
