@@ -40,8 +40,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Search, ChevronDown, ChevronRight, RefreshCw, CreditCard, Clock, KeyRound, Power, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { FEATURE_FLAGS, type FeatureFlag } from '@/lib/feature-flags';
 
 // ─── Types ───
 interface TenantUser {
@@ -79,6 +81,7 @@ interface Tenant {
     reservas: number;
     usuariosActivos: number;
   };
+  featureFlags: Record<FeatureFlag, boolean>;
 }
 
 interface PlanOption {
@@ -136,6 +139,7 @@ export default function SuperAdminCuentas() {
   const [extendDays, setExtendDays] = useState('');
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [flagLoading, setFlagLoading] = useState<Set<string>>(new Set());
 
   const limit = 10;
 
@@ -258,6 +262,37 @@ export default function SuperAdminCuentas() {
       toast.error((err as Error).message || 'Error al extender suscripción');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleToggleFlag = async (tenant: Tenant, flag: FeatureFlag, enabled: boolean) => {
+    const key = `${tenant.id}:${flag}`;
+    setFlagLoading((prev) => new Set(prev).add(key));
+    try {
+      const res = await fetch('/api/super-admin/tenants', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId: tenant.id,
+          action: 'toggleFeatureFlag',
+          flag,
+          enabled,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setTenants((prev) =>
+        prev.map((t) => (t.id === tenant.id ? { ...t, featureFlags: data.featureFlags } : t))
+      );
+      toast.success(`${FEATURE_FLAGS[flag].label}: ${enabled ? 'activada' : 'desactivada'}`);
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al cambiar la funcionalidad');
+    } finally {
+      setFlagLoading((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
     }
   };
 
@@ -487,6 +522,31 @@ export default function SuperAdminCuentas() {
                               ) : (
                                 <p className="text-xs text-muted-foreground">No hay usuarios activos.</p>
                               )}
+
+                              <p className="text-xs font-medium text-muted-foreground mt-4 mb-2">
+                                Funcionalidades en prueba
+                              </p>
+                              <div className="space-y-2">
+                                {(Object.keys(FEATURE_FLAGS) as FeatureFlag[]).map((flag) => {
+                                  const loadingKey = `${t.id}:${flag}`;
+                                  return (
+                                    <div
+                                      key={flag}
+                                      className="flex items-center justify-between p-2 rounded-lg border bg-card"
+                                    >
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-medium">{FEATURE_FLAGS[flag].label}</p>
+                                        <p className="text-xs text-muted-foreground">{FEATURE_FLAGS[flag].description}</p>
+                                      </div>
+                                      <Switch
+                                        checked={t.featureFlags[flag]}
+                                        disabled={flagLoading.has(loadingKey)}
+                                        onCheckedChange={(checked) => handleToggleFlag(t, flag, checked)}
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </TableCell>
                         </TableRow>

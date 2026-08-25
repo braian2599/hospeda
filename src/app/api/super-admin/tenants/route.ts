@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireSuperAdmin } from '@/lib/super-admin/auth';
+import { FEATURE_FLAGS, parseFeatureFlags, type FeatureFlag } from '@/lib/feature-flags';
+import { setFeatureFlag } from '@/lib/feature-flags-server';
 import bcrypt from 'bcryptjs';
 
 // GET /api/super-admin/tenants — Listar todos los tenants con info de suscripción
@@ -28,6 +30,7 @@ export async function GET(req: NextRequest) {
       where: whereClause,
       include: {
         subscription: { include: { plan: true } },
+        configuracion: { select: { featureFlags: true } },
         users: {
           include: { user: { select: { id: true, email: true, name: true } } },
           where: { activo: true },
@@ -89,6 +92,7 @@ export async function GET(req: NextRequest) {
           reservas: t._count.reservas,
           usuariosActivos: t._count.users,
         },
+        featureFlags: parseFeatureFlags(t.configuracion?.featureFlags),
       };
     });
 
@@ -202,6 +206,31 @@ export async function PATCH(req: NextRequest) {
       });
 
       return NextResponse.json({ success: true, activo: updated.activo });
+    }
+
+    // ── Activar/Desactivar una feature flag ──
+    if (action === 'toggleFeatureFlag') {
+      const { flag, enabled } = data;
+      if (!flag || typeof enabled !== 'boolean' || !(flag in FEATURE_FLAGS)) {
+        return NextResponse.json({ error: 'Falta flag válida o enabled (boolean)' }, { status: 400 });
+      }
+
+      const tenant = await db.tenant.findUnique({ where: { id: tenantId }, select: { id: true } });
+      if (!tenant) return NextResponse.json({ error: 'Tenant no encontrado' }, { status: 404 });
+
+      const flags = await setFeatureFlag(tenantId, flag as FeatureFlag, enabled);
+
+      await db.auditoria.create({
+        data: {
+          tenantId,
+          tipo: 'Feature Flag',
+          detalle: `"${FEATURE_FLAGS[flag as FeatureFlag].label}" ${enabled ? 'activada' : 'desactivada'} por super-admin.`,
+          empleado: `Super Admin (${adminEmail})`,
+          empleadoId: null,
+        },
+      });
+
+      return NextResponse.json({ success: true, featureFlags: flags });
     }
 
     // ── Resetear contraseña de un perfil ──
