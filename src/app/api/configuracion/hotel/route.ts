@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireOwner, AuthError } from '@/lib/auth/utils';
+import { parseFeatureFlags } from '@/lib/feature-flags';
 
 // GET /api/configuracion/hotel (owner-only)
 export async function GET() {
@@ -15,6 +16,7 @@ export async function GET() {
           select: {
             hotelNombre: true, hotelDireccion: true, hotelCiudad: true,
             hotelPais: true, hotelTelefono: true, hotelEmail: true, hotelLogoUrl: true,
+            featureFlags: true,
           },
         },
       },
@@ -39,6 +41,7 @@ export async function GET() {
       hotelPais: config.hotelPais || tenant.pais || 'Argentina',
       hotelTelefono: config.hotelTelefono || tenant.telefono || '',
       hotelEmail: config.hotelEmail || tenant.email,
+      featureFlags: parseFeatureFlags(config.featureFlags),
     });
   } catch (error) {
     if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.statusCode });

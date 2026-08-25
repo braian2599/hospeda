@@ -36,6 +36,7 @@ const SECTIONS = [
   { id: 'hotel', label: 'Hotel Info', icon: Building2 },
   { id: 'fiscal', label: 'Fiscal', icon: FileText },
   { id: 'habitaciones', label: 'Habitaciones', icon: BedDouble },
+  { id: 'integraciones', label: 'Integraciones', icon: Globe },
   { id: 'cuenta', label: 'Cuenta y Contraseña', icon: KeyRound },
   { id: 'exportar', label: 'Datos / Export', icon: Database },
   { id: 'suscripcion', label: 'Suscripción', icon: CreditCard },
@@ -132,7 +133,20 @@ const forestAlpha = (alpha: number) => `color-mix(in srgb, var(--primary) ${alph
 export default function ConfiguracionModule() {
   const [activeSection, setActiveSection] = useState<SectionId>('hotel');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [integracionesHabilitadas, setIntegracionesHabilitadas] = useState(false);
   const { usuarioActual } = useHotelStore();
+
+  useEffect(() => {
+    fetch('/api/configuracion/hotel')
+      .then((r) => r.json())
+      .then((data) => {
+        const flags = data?.featureFlags;
+        setIntegracionesHabilitadas(!!(flags?.bookingSync || flags?.airbnbSync));
+      })
+      .catch(() => {});
+  }, []);
+
+  const visibleSections = SECTIONS.filter((s) => s.id !== 'integraciones' || integracionesHabilitadas);
 
   if (!usuarioActual || usuarioActual.rol !== 'owner') {
     return (
@@ -146,7 +160,7 @@ export default function ConfiguracionModule() {
 
   const sidebarNav = (
     <nav aria-label="Secciones de configuración" className="space-y-1">
-      {SECTIONS.map(s => {
+      {visibleSections.map(s => {
         const Icon = s.icon;
         const active = activeSection === s.id;
         return (
@@ -211,6 +225,7 @@ export default function ConfiguracionModule() {
           {activeSection === 'hotel' && <HotelSection />}
           {activeSection === 'fiscal' && <FiscalSection />}
           {activeSection === 'habitaciones' && <HabitacionesSection />}
+          {activeSection === 'integraciones' && <IntegracionesSection />}
           {activeSection === 'cuenta' && <CuentaSection />}
           {activeSection === 'exportar' && <ExportarSection />}
           {activeSection === 'suscripcion' && <SuscripcionSection />}
@@ -648,6 +663,224 @@ function FiscalSection() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// INTEGRACIONES (Booking.com / Airbnb — sync iCal)
+// ═══════════════════════════════════════════
+
+interface CanalExternoDTO {
+  id: string;
+  habitacion: string;
+  canal: 'booking' | 'airbnb';
+  activo: boolean;
+  importUrl: string | null;
+  exportUrl: string;
+  lastSyncAt: string | null;
+  lastSyncError: string | null;
+}
+
+const CANAL_LABEL: Record<string, string> = { booking: 'Booking.com', airbnb: 'Airbnb' };
+
+function IntegracionesSection() {
+  const { habitaciones } = useHotelStore();
+  const [canales, setCanales] = useState<CanalExternoDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [nuevaHabitacion, setNuevaHabitacion] = useState('');
+  const [nuevoCanal, setNuevoCanal] = useState<'booking' | 'airbnb'>('booking');
+  const [creando, setCreando] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [importDrafts, setImportDrafts] = useState<Record<string, string>>({});
+
+  const fetchCanales = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/integraciones/canales');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setCanales(data);
+      setImportDrafts(Object.fromEntries(data.map((c: CanalExternoDTO) => [c.id, c.importUrl || ''])));
+    } catch {
+      toast.error('Error al cargar integraciones');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchCanales(); }, [fetchCanales]);
+
+  const roomOptions = Object.values(habitaciones).map((h) => h.numero);
+
+  const handleCrear = async () => {
+    if (!nuevaHabitacion) {
+      toast.error('Elegí una habitación');
+      return;
+    }
+    setCreando(true);
+    try {
+      const res = await fetch('/api/integraciones/canales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ habitacion: nuevaHabitacion, canal: nuevoCanal }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Conexión creada');
+      setNuevaHabitacion('');
+      fetchCanales();
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al crear la conexión');
+    } finally {
+      setCreando(false);
+    }
+  };
+
+  const handleEliminar = async (id: string) => {
+    try {
+      const res = await fetch(`/api/integraciones/canales/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Conexión eliminada');
+      fetchCanales();
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al eliminar');
+    }
+  };
+
+  const handleGuardarUrl = async (id: string) => {
+    try {
+      const res = await fetch(`/api/integraciones/canales/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ importUrl: importDrafts[id] || '' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('URL guardada');
+      fetchCanales();
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    }
+  };
+
+  const handleSincronizar = async (id: string) => {
+    setSyncingId(id);
+    try {
+      const res = await fetch(`/api/integraciones/canales/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ importUrl: importDrafts[id] || '', sync: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(`Sincronizado: ${data.eventosImportados} evento(s)`);
+      fetchCanales();
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al sincronizar');
+    } finally {
+      setSyncingId(null);
+    }
+  };
+
+  const copiar = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copiado');
+  };
+
+  if (loading) {
+    return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold flex items-center gap-2"><Globe className="w-4 h-4" /> Integraciones</h3>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Sincronizá disponibilidad por habitación con Booking.com y Airbnb vía iCal. Función en prueba.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Nueva conexión</CardTitle>
+          <CardDescription>Elegí una habitación y un canal para generar el link de exportación.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col sm:flex-row gap-3">
+          <Select value={nuevaHabitacion} onValueChange={setNuevaHabitacion}>
+            <SelectTrigger className="sm:w-48"><SelectValue placeholder="Habitación" /></SelectTrigger>
+            <SelectContent>
+              {roomOptions.map((numero) => (
+                <SelectItem key={numero} value={numero}>Hab. {numero}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={nuevoCanal} onValueChange={(v) => setNuevoCanal(v as 'booking' | 'airbnb')}>
+            <SelectTrigger className="sm:w-48"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="booking">Booking.com</SelectItem>
+              <SelectItem value="airbnb">Airbnb</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={handleCrear} disabled={creando}>
+            {creando ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            Crear conexión
+          </Button>
+        </CardContent>
+      </Card>
+
+      {canales.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Todavía no creaste ninguna conexión.</p>
+      ) : (
+        <div className="space-y-4">
+          {canales.map((c) => (
+            <Card key={c.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Hab. {c.habitacion} — {CANAL_LABEL[c.canal]}</CardTitle>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleEliminar(c.id)} title="Eliminar">
+                    <XCircle className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ConfigField label="Link para exportar a este canal" icon={Download} hint="Pegá esta URL en la configuración de calendario de tu propiedad en Booking/Airbnb, para que ellos vean tu disponibilidad.">
+                  <div className="flex gap-2">
+                    <Input readOnly value={c.exportUrl} className="font-mono text-xs" />
+                    <Button variant="outline" size="icon" onClick={() => copiar(c.exportUrl)}><Copy className="w-4 h-4" /></Button>
+                  </div>
+                </ConfigField>
+
+                <ConfigField label={`Link de ${CANAL_LABEL[c.canal]} para importar`} icon={Globe} hint="Pegá acá la URL de exportación .ics que te da Booking/Airbnb, para bloquear estas fechas en Hospedá.">
+                  <div className="flex gap-2">
+                    <Input
+                      value={importDrafts[c.id] ?? ''}
+                      onChange={(e) => setImportDrafts((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                      placeholder="https://..."
+                      className="font-mono text-xs"
+                    />
+                    <Button variant="outline" onClick={() => handleGuardarUrl(c.id)}>Guardar</Button>
+                    <Button onClick={() => handleSincronizar(c.id)} disabled={syncingId === c.id || !importDrafts[c.id]}>
+                      {syncingId === c.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sincronizar ahora'}
+                    </Button>
+                  </div>
+                </ConfigField>
+
+                <div className="text-xs text-muted-foreground">
+                  {c.lastSyncError ? (
+                    <span className="text-destructive">Último intento falló: {c.lastSyncError}</span>
+                  ) : c.lastSyncAt ? (
+                    <span>Última sincronización: {new Date(c.lastSyncAt).toLocaleString('es-AR')}</span>
+                  ) : (
+                    <span>Todavía no se sincronizó</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

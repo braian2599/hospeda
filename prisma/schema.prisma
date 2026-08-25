@@ -49,6 +49,7 @@ model Tenant {
   tareasLimpieza TareaLimpieza[]
   configuracion  TenantConfig?
   platformPayments PlatformPayment[]
+  canalesExternos CanalExterno[]
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -269,6 +270,8 @@ model Reserva {
   ninos                    Int?
   total                    Int?
   datosAdicionales         Json?
+  origen                   String        @default("directo")
+  externalUid              String?
   createdAt                DateTime      @default(now())
   updatedAt                DateTime      @updatedAt
 
@@ -280,6 +283,7 @@ model Reserva {
 
   @@index([tenantId, estado])
   @@index([tenantId, habitacion, checkin, checkout])
+  @@unique([tenantId, externalUid])
 }
 
 model Acompanante {
@@ -544,6 +548,28 @@ model TenantConfig {
   updatedAt           DateTime @updatedAt
 
   tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// ═══════════════════════════════════════════════════════════
+// CANALES EXTERNOS (Booking.com / Airbnb) — sincronización iCal
+// ═══════════════════════════════════════════════════════════
+
+model CanalExterno {
+  id            String    @id @default(cuid())
+  tenantId      String
+  habitacion    String
+  canal         String    // 'booking' | 'airbnb'
+  exportToken   String    @unique @default(cuid())
+  importUrl     String?
+  activo        Boolean   @default(true)
+  lastSyncAt    DateTime?
+  lastSyncError String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, habitacion, canal])
 }
 
 // ═══════════════════════════════════════════════════════════
