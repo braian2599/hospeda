@@ -11,7 +11,7 @@ export async function PUT(
     const tenantId = await requirePermission('habitaciones');
     const { numero: numeroOriginal } = await params;
     const body = await req.json();
-    const { numero: numeroNuevo, tipo, capacidad, camasMatrimoniales, camasSimples, precioPorCama, piso, estado: nuevoEstado } = body;
+    const { numero: numeroNuevo, tipo, capacidad, camasMatrimoniales, camasSimples, precioPorCama, piso, estado: nuevoEstado, fotos } = body;
 
     // Buscar habitación actual
     const hab = await db.habitacion.findUnique({
@@ -79,6 +79,7 @@ export async function PUT(
         ...(precioPorCama !== undefined && { precioPorCama: precioPorCama ? parseInt(precioPorCama) : null }),
         ...(piso !== undefined && { piso: piso ? parseInt(piso) : null }),
         ...(nuevoEstado && { estado: nuevoEstado }),
+        ...(Array.isArray(fotos) && { fotos: fotos.filter((f: unknown) => typeof f === 'string') }),
       },
     });
 

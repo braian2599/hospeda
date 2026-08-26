@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { Switch } from '@/components/ui/switch';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import {
   CreditCard, Building2, FileText, Shield, Headphones, Download,
@@ -22,6 +23,7 @@ import {
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
   Settings, Copy, Info, Menu, BedDouble, KeyRound, Database, Receipt,
   Users, History, CheckCircle2, XCircle, Lock, Printer, MessageCircle,
+  Image as ImageIcon, Upload, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -36,6 +38,8 @@ const SECTIONS = [
   { id: 'hotel', label: 'Hotel Info', icon: Building2 },
   { id: 'fiscal', label: 'Fiscal', icon: FileText },
   { id: 'habitaciones', label: 'Habitaciones', icon: BedDouble },
+  { id: 'fotos', label: 'Landing', icon: ImageIcon },
+  { id: 'integraciones', label: 'Integraciones', icon: Globe },
   { id: 'cuenta', label: 'Cuenta y Contraseña', icon: KeyRound },
   { id: 'exportar', label: 'Datos / Export', icon: Database },
   { id: 'suscripcion', label: 'Suscripción', icon: CreditCard },
@@ -132,7 +136,26 @@ const forestAlpha = (alpha: number) => `color-mix(in srgb, var(--primary) ${alph
 export default function ConfiguracionModule() {
   const [activeSection, setActiveSection] = useState<SectionId>('hotel');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [integracionesHabilitadas, setIntegracionesHabilitadas] = useState(false);
+  const [fotosHabilitadas, setFotosHabilitadas] = useState(false);
   const { usuarioActual } = useHotelStore();
+
+  useEffect(() => {
+    fetch('/api/configuracion/hotel')
+      .then((r) => r.json())
+      .then((data) => {
+        const flags = data?.featureFlags;
+        setIntegracionesHabilitadas(!!(flags?.bookingSync || flags?.airbnbSync || flags?.landingPage));
+        setFotosHabilitadas(!!flags?.landingPage);
+      })
+      .catch(() => {});
+  }, []);
+
+  const visibleSections = SECTIONS.filter((s) => {
+    if (s.id === 'integraciones') return integracionesHabilitadas;
+    if (s.id === 'fotos') return fotosHabilitadas;
+    return true;
+  });
 
   if (!usuarioActual || usuarioActual.rol !== 'owner') {
     return (
@@ -146,7 +169,7 @@ export default function ConfiguracionModule() {
 
   const sidebarNav = (
     <nav aria-label="Secciones de configuración" className="space-y-1">
-      {SECTIONS.map(s => {
+      {visibleSections.map(s => {
         const Icon = s.icon;
         const active = activeSection === s.id;
         return (
@@ -211,6 +234,8 @@ export default function ConfiguracionModule() {
           {activeSection === 'hotel' && <HotelSection />}
           {activeSection === 'fiscal' && <FiscalSection />}
           {activeSection === 'habitaciones' && <HabitacionesSection />}
+          {activeSection === 'fotos' && <FotosSection />}
+          {activeSection === 'integraciones' && <IntegracionesSection />}
           {activeSection === 'cuenta' && <CuentaSection />}
           {activeSection === 'exportar' && <ExportarSection />}
           {activeSection === 'suscripcion' && <SuscripcionSection />}
@@ -648,6 +673,736 @@ function FiscalSection() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// FOTOS Y DESCRIPCIÓN (landing page pública)
+// ═══════════════════════════════════════════
+
+const MAX_FOTO_BYTES = 8 * 1024 * 1024;
+const ALLOWED_FOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+async function uploadFoto(file: File, tipo: 'hotel' | 'habitacion', habitacion?: string): Promise<string> {
+  if (!ALLOWED_FOTO_TYPES.has(file.type)) {
+    throw new Error('Formato no permitido (solo jpg, png, webp)');
+  }
+  if (file.size > MAX_FOTO_BYTES) {
+    throw new Error(`El archivo debe pesar menos de ${MAX_FOTO_BYTES / 1024 / 1024}MB`);
+  }
+
+  const presignRes = await fetch('/api/uploads/presign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tipo, habitacion, contentType: file.type, size: file.size }),
+  });
+  const presignData = await presignRes.json();
+  if (!presignRes.ok) throw new Error(presignData.error || 'Error al preparar la subida');
+
+  const putRes = await fetch(presignData.uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file,
+  });
+  if (!putRes.ok) throw new Error('Error al subir el archivo a R2');
+
+  return presignData.publicUrl as string;
+}
+
+function PhotoGrid({
+  fotos, onUpload, onDelete, uploading,
+}: {
+  fotos: string[];
+  onUpload: (file: File) => void;
+  onDelete: (url: string) => void;
+  uploading: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {fotos.map((url) => (
+        <div key={url} className="relative group aspect-video rounded-lg overflow-hidden border bg-muted">
+          <img src={url} alt="" className="w-full h-full object-cover" />
+          <button
+            type="button"
+            onClick={() => onDelete(url)}
+            className="absolute top-1 right-1 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Eliminar foto"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ))}
+      <label className="aspect-video rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+        {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+        <span className="text-xs">Subir foto</span>
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          disabled={uploading}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onUpload(file);
+            e.target.value = '';
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
+interface HabitacionFotoDTO { numero: string; tipo: string; fotos: string[]; }
+interface TarifaDTO { id: string; nombre: string; activa: boolean; }
+
+function FotosSection() {
+  const [descripcion, setDescripcion] = useState('');
+  const [fotosHotel, setFotosHotel] = useState<string[]>([]);
+  const [slug, setSlug] = useState('');
+  const [habitacionesList, setHabitacionesList] = useState<HabitacionFotoDTO[]>([]);
+  const [habitacionSeleccionada, setHabitacionSeleccionada] = useState('');
+  const [tarifasList, setTarifasList] = useState<TarifaDTO[]>([]);
+  const [tarifasPublicas, setTarifasPublicas] = useState<Record<string, string>>({});
+  const [savingTarifas, setSavingTarifas] = useState(false);
+  const [mostrarSeccionAgencias, setMostrarSeccionAgencias] = useState(false);
+  const [textoAgencias, setTextoAgencias] = useState('');
+  const [servicios, setServicios] = useState<string[]>([]);
+  const [nuevoServicio, setNuevoServicio] = useState('');
+  const [savingServicios, setSavingServicios] = useState(false);
+  const [savingAgencias, setSavingAgencias] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [uploadingHotel, setUploadingHotel] = useState(false);
+  const [uploadingHabitacion, setUploadingHabitacion] = useState(false);
+  const [savingDescripcion, setSavingDescripcion] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [hotelData, habsData, tarifasData] = await Promise.all([
+        fetch('/api/configuracion/hotel').then((r) => r.json()),
+        fetch('/api/habitaciones').then((r) => r.json()),
+        fetch('/api/tarifas').then((r) => r.json()),
+      ]);
+      setDescripcion(hotelData.descripcion || '');
+      setFotosHotel(hotelData.fotos || []);
+      setSlug(hotelData.slug || '');
+      setTarifasPublicas(hotelData.tarifasPublicas || {});
+      setMostrarSeccionAgencias(!!hotelData.mostrarSeccionAgencias);
+      setTextoAgencias(hotelData.textoAgencias || '');
+      setServicios(hotelData.servicios || []);
+      const habs: HabitacionFotoDTO[] = Array.isArray(habsData)
+        ? habsData.map((h: { numero: string; tipo: string; fotos?: string[] }) => ({ numero: h.numero, tipo: h.tipo, fotos: h.fotos || [] }))
+        : [];
+      setHabitacionesList(habs);
+      setHabitacionSeleccionada((prev) => prev || habs[0]?.numero || '');
+      setTarifasList(Array.isArray(tarifasData) ? tarifasData.filter((t: TarifaDTO) => t.activa) : []);
+    } catch {
+      toast.error('Error al cargar fotos');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const borrarDeR2 = (url: string) => {
+    fetch('/api/uploads/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) }).catch(() => {});
+  };
+
+  const handleUploadHotel = async (file: File) => {
+    setUploadingHotel(true);
+    try {
+      const url = await uploadFoto(file, 'hotel');
+      const next = [...fotosHotel, url];
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fotos: next }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setFotosHotel(next);
+      toast.success('Foto agregada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al subir la foto');
+    } finally {
+      setUploadingHotel(false);
+    }
+  };
+
+  const handleDeleteHotel = async (url: string) => {
+    const next = fotosHotel.filter((f) => f !== url);
+    try {
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fotos: next }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setFotosHotel(next);
+      borrarDeR2(url);
+      toast.success('Foto eliminada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al eliminar');
+    }
+  };
+
+  const habitacionActual = habitacionesList.find((h) => h.numero === habitacionSeleccionada);
+
+  const handleUploadHabitacion = async (file: File) => {
+    if (!habitacionActual) return;
+    setUploadingHabitacion(true);
+    try {
+      const url = await uploadFoto(file, 'habitacion', habitacionActual.numero);
+      const next = [...habitacionActual.fotos, url];
+      const res = await fetch(`/api/habitaciones/${encodeURIComponent(habitacionActual.numero)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fotos: next }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setHabitacionesList((prev) => prev.map((h) => (h.numero === habitacionActual.numero ? { ...h, fotos: next } : h)));
+      toast.success('Foto agregada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al subir la foto');
+    } finally {
+      setUploadingHabitacion(false);
+    }
+  };
+
+  const handleDeleteHabitacion = async (url: string) => {
+    if (!habitacionActual) return;
+    const next = habitacionActual.fotos.filter((f) => f !== url);
+    try {
+      const res = await fetch(`/api/habitaciones/${encodeURIComponent(habitacionActual.numero)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fotos: next }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setHabitacionesList((prev) => prev.map((h) => (h.numero === habitacionActual.numero ? { ...h, fotos: next } : h)));
+      borrarDeR2(url);
+      toast.success('Foto eliminada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al eliminar');
+    }
+  };
+
+  const handleGuardarDescripcion = async () => {
+    setSavingDescripcion(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ descripcion }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Descripción guardada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingDescripcion(false);
+    }
+  };
+
+  const handleGuardarTarifasPublicas = async () => {
+    setSavingTarifas(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tarifasPublicas }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Precios públicos guardados');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingTarifas(false);
+    }
+  };
+
+  const handleGuardarAgencias = async () => {
+    setSavingAgencias(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mostrarSeccionAgencias, textoAgencias }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Sección de agencias guardada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingAgencias(false);
+    }
+  };
+
+  const guardarServicios = async (next: string[]) => {
+    setSavingServicios(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ servicios: next }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setServicios(next);
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingServicios(false);
+    }
+  };
+
+  const handleAgregarServicio = () => {
+    const valor = nuevoServicio.trim();
+    if (!valor) return;
+    if (servicios.includes(valor)) {
+      toast.error('Ese servicio ya está agregado');
+      return;
+    }
+    setNuevoServicio('');
+    guardarServicios([...servicios, valor]);
+  };
+
+  const handleQuitarServicio = (valor: string) => {
+    guardarServicios(servicios.filter((s) => s !== valor));
+  };
+
+  const tiposPresentes = Array.from(new Set(habitacionesList.map((h) => h.tipo)));
+
+  if (loading) {
+    return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Fotos y descripción</h3>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Se van a mostrar en la landing page pública del hotel. Función en prueba.
+        </p>
+      </div>
+
+      {slug && (
+        <a
+          href={`/h/${slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-sm text-primary hover:underline"
+        >
+          <Globe className="w-4 h-4" /> Ver mi página pública (/h/{slug})
+        </a>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Descripción del hotel</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Textarea
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            placeholder="Contales a tus huéspedes sobre tu hotel..."
+            rows={4}
+          />
+          <Button onClick={handleGuardarDescripcion} disabled={savingDescripcion} size="sm">
+            {savingDescripcion ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            Guardar
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Servicios del hotel</CardTitle>
+          <CardDescription>Ej: Desayuno incluido, Wi-Fi, TV, Pileta, Estacionamiento.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              value={nuevoServicio}
+              onChange={(e) => setNuevoServicio(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAgregarServicio(); } }}
+              placeholder="Ej: Wi-Fi"
+            />
+            <Button onClick={handleAgregarServicio} disabled={savingServicios} size="sm">Agregar</Button>
+          </div>
+          {servicios.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {servicios.map((s) => (
+                <span key={s} className="inline-flex items-center gap-1.5 rounded-full bg-muted text-sm px-3 py-1">
+                  {s}
+                  <button
+                    type="button"
+                    onClick={() => handleQuitarServicio(s)}
+                    className="text-muted-foreground hover:text-destructive"
+                    title="Quitar"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Fotos del hotel</CardTitle>
+          <CardDescription>Portada y galería general</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PhotoGrid fotos={fotosHotel} onUpload={handleUploadHotel} onDelete={handleDeleteHotel} uploading={uploadingHotel} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Fotos por habitación</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {habitacionesList.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay habitaciones cargadas todavía.</p>
+          ) : (
+            <>
+              <Select value={habitacionSeleccionada} onValueChange={setHabitacionSeleccionada}>
+                <SelectTrigger className="w-full sm:w-64"><SelectValue placeholder="Elegir habitación" /></SelectTrigger>
+                <SelectContent>
+                  {habitacionesList.map((h) => (
+                    <SelectItem key={h.numero} value={h.numero}>Hab. {h.numero} — {h.tipo}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {habitacionActual && (
+                <PhotoGrid
+                  fotos={habitacionActual.fotos}
+                  onUpload={handleUploadHabitacion}
+                  onDelete={handleDeleteHabitacion}
+                  uploading={uploadingHabitacion}
+                />
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Precios públicos por tipo de habitación</CardTitle>
+          <CardDescription>Elegí qué tarifa mostrar como precio en la landing, para cada tipo de habitación.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {tiposPresentes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay habitaciones cargadas todavía.</p>
+          ) : tarifasList.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay tarifas activas — creá una en Tarifas primero.</p>
+          ) : (
+            <>
+              {tiposPresentes.map((tipo) => (
+                <div key={tipo} className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium">{tipo}</span>
+                  <Select
+                    value={tarifasPublicas[tipo] || '__ninguna__'}
+                    onValueChange={(v) => setTarifasPublicas((prev) => ({ ...prev, [tipo]: v === '__ninguna__' ? '' : v }))}
+                  >
+                    <SelectTrigger className="w-56"><SelectValue placeholder="Sin precio público" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__ninguna__">Sin precio público</SelectItem>
+                      {tarifasList.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+              <Button onClick={handleGuardarTarifasPublicas} disabled={savingTarifas} size="sm">
+                {savingTarifas ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                Guardar
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Sección para agencias</CardTitle>
+          <CardDescription>Un bloque chico en la landing para captar convenios B2B, sin mostrar precios.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Mostrar sección de agencias</span>
+            <Switch checked={mostrarSeccionAgencias} onCheckedChange={setMostrarSeccionAgencias} />
+          </div>
+          {mostrarSeccionAgencias && (
+            <Textarea
+              value={textoAgencias}
+              onChange={(e) => setTextoAgencias(e.target.value)}
+              placeholder="Trabajamos con agencias de viajes. Contactanos para conocer nuestros convenios."
+              rows={3}
+            />
+          )}
+          <Button onClick={handleGuardarAgencias} disabled={savingAgencias} size="sm">
+            {savingAgencias ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            Guardar
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// INTEGRACIONES (Booking.com / Airbnb — sync iCal)
+// ═══════════════════════════════════════════
+
+interface CanalExternoDTO {
+  id: string;
+  habitacion: string;
+  canal: 'booking' | 'airbnb';
+  activo: boolean;
+  importUrl: string | null;
+  exportUrl: string;
+  lastSyncAt: string | null;
+  lastSyncError: string | null;
+}
+
+const CANAL_LABEL: Record<string, string> = { booking: 'Booking.com', airbnb: 'Airbnb' };
+
+function IntegracionesSection() {
+  const { habitaciones } = useHotelStore();
+  const [canales, setCanales] = useState<CanalExternoDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [nuevaHabitacion, setNuevaHabitacion] = useState('');
+  const [nuevoCanal, setNuevoCanal] = useState<'booking' | 'airbnb'>('booking');
+  const [creando, setCreando] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [importDrafts, setImportDrafts] = useState<Record<string, string>>({});
+  const [mpConectado, setMpConectado] = useState(false);
+  const [mpUserId, setMpUserId] = useState<string | null>(null);
+  const [mpLoading, setMpLoading] = useState(true);
+  const [mpDisconnecting, setMpDisconnecting] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/configuracion/mercadopago')
+      .then((r) => r.json())
+      .then((data) => {
+        setMpConectado(!!data.conectado);
+        setMpUserId(data.mpUserId || null);
+      })
+      .catch(() => {})
+      .finally(() => setMpLoading(false));
+  }, []);
+
+  const handleDesconectarMp = async () => {
+    setMpDisconnecting(true);
+    try {
+      const res = await fetch('/api/configuracion/mercadopago', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMpConectado(false);
+      setMpUserId(null);
+      toast.success('Mercado Pago desconectado');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al desconectar');
+    } finally {
+      setMpDisconnecting(false);
+    }
+  };
+
+  const fetchCanales = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/integraciones/canales');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setCanales(data);
+      setImportDrafts(Object.fromEntries(data.map((c: CanalExternoDTO) => [c.id, c.importUrl || ''])));
+    } catch {
+      toast.error('Error al cargar integraciones');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchCanales(); }, [fetchCanales]);
+
+  const roomOptions = Object.values(habitaciones).map((h) => h.numero);
+
+  const handleCrear = async () => {
+    if (!nuevaHabitacion) {
+      toast.error('Elegí una habitación');
+      return;
+    }
+    setCreando(true);
+    try {
+      const res = await fetch('/api/integraciones/canales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ habitacion: nuevaHabitacion, canal: nuevoCanal }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Conexión creada');
+      setNuevaHabitacion('');
+      fetchCanales();
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al crear la conexión');
+    } finally {
+      setCreando(false);
+    }
+  };
+
+  const handleEliminar = async (id: string) => {
+    try {
+      const res = await fetch(`/api/integraciones/canales/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Conexión eliminada');
+      fetchCanales();
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al eliminar');
+    }
+  };
+
+  const handleGuardarUrl = async (id: string) => {
+    try {
+      const res = await fetch(`/api/integraciones/canales/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ importUrl: importDrafts[id] || '' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('URL guardada');
+      fetchCanales();
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    }
+  };
+
+  const handleSincronizar = async (id: string) => {
+    setSyncingId(id);
+    try {
+      const res = await fetch(`/api/integraciones/canales/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ importUrl: importDrafts[id] || '', sync: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(`Sincronizado: ${data.eventosImportados} evento(s)`);
+      fetchCanales();
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al sincronizar');
+    } finally {
+      setSyncingId(null);
+    }
+  };
+
+  const copiar = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copiado');
+  };
+
+  if (loading) {
+    return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold flex items-center gap-2"><Globe className="w-4 h-4" /> Integraciones</h3>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Sincronizá disponibilidad por habitación con Booking.com y Airbnb vía iCal. Función en prueba.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Cobro de seña (Mercado Pago)</CardTitle>
+          <CardDescription>Conectá tu propia cuenta de Mercado Pago para cobrar la seña de las reservas online directo a tu cuenta.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {mpLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          ) : mpConectado ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm">
+                <p className="font-medium text-success">Cuenta conectada</p>
+                {mpUserId && <p className="text-xs text-muted-foreground">ID de cuenta: {mpUserId}</p>}
+              </div>
+              <Button variant="outline" size="sm" onClick={handleDesconectarMp} disabled={mpDisconnecting}>
+                {mpDisconnecting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Desconectar
+              </Button>
+            </div>
+          ) : (
+            <Button asChild size="sm">
+              <a href="/api/configuracion/mercadopago/connect">Conectar Mercado Pago</a>
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Nueva conexión</CardTitle>
+          <CardDescription>Elegí una habitación y un canal para generar el link de exportación.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col sm:flex-row gap-3">
+          <Select value={nuevaHabitacion} onValueChange={setNuevaHabitacion}>
+            <SelectTrigger className="sm:w-48"><SelectValue placeholder="Habitación" /></SelectTrigger>
+            <SelectContent>
+              {roomOptions.map((numero) => (
+                <SelectItem key={numero} value={numero}>Hab. {numero}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={nuevoCanal} onValueChange={(v) => setNuevoCanal(v as 'booking' | 'airbnb')}>
+            <SelectTrigger className="sm:w-48"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="booking">Booking.com</SelectItem>
+              <SelectItem value="airbnb">Airbnb</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={handleCrear} disabled={creando}>
+            {creando ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            Crear conexión
+          </Button>
+        </CardContent>
+      </Card>
+
+      {canales.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Todavía no creaste ninguna conexión.</p>
+      ) : (
+        <div className="space-y-4">
+          {canales.map((c) => (
+            <Card key={c.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Hab. {c.habitacion} — {CANAL_LABEL[c.canal]}</CardTitle>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleEliminar(c.id)} title="Eliminar">
+                    <XCircle className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ConfigField label="Link para exportar a este canal" icon={Download} hint="Pegá esta URL en la configuración de calendario de tu propiedad en Booking/Airbnb, para que ellos vean tu disponibilidad.">
+                  <div className="flex gap-2">
+                    <Input readOnly value={c.exportUrl} className="font-mono text-xs" />
+                    <Button variant="outline" size="icon" onClick={() => copiar(c.exportUrl)}><Copy className="w-4 h-4" /></Button>
+                  </div>
+                </ConfigField>
+
+                <ConfigField label={`Link de ${CANAL_LABEL[c.canal]} para importar`} icon={Globe} hint="Pegá acá la URL de exportación .ics que te da Booking/Airbnb, para bloquear estas fechas en Hospedá.">
+                  <div className="flex gap-2">
+                    <Input
+                      value={importDrafts[c.id] ?? ''}
+                      onChange={(e) => setImportDrafts((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                      placeholder="https://..."
+                      className="font-mono text-xs"
+                    />
+                    <Button variant="outline" onClick={() => handleGuardarUrl(c.id)}>Guardar</Button>
+                    <Button onClick={() => handleSincronizar(c.id)} disabled={syncingId === c.id || !importDrafts[c.id]}>
+                      {syncingId === c.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sincronizar ahora'}
+                    </Button>
+                  </div>
+                </ConfigField>
+
+                <div className="text-xs text-muted-foreground">
+                  {c.lastSyncError ? (
+                    <span className="text-destructive">Último intento falló: {c.lastSyncError}</span>
+                  ) : c.lastSyncAt ? (
+                    <span>Última sincronización: {new Date(c.lastSyncAt).toLocaleString('es-AR')}</span>
+                  ) : (
+                    <span>Todavía no se sincronizó</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -11,6 +11,10 @@ import type {
 import { type PlanTipo, type PlanInfo, modulosEfectivos as calcModulosEfectivos, PLANES } from './plan-config';
 import { api } from './api-client';
 import { useNotificationStore, type NotificationCategory, type NotificationPriority } from './notification-store';
+import {
+  normalizarRangos, calcularTotalSegunTarifa,
+  type CalcTarifaOptions,
+} from './tarifa-calc';
 
 
 // ==================== NOTIFICATION HELPER ====================
@@ -173,164 +177,8 @@ function nochesEntre(checkin: string, checkout: string): number {
 }
 
 // ==================== TARIFA HELPERS ====================
-
-/** Busca el rango que corresponde a la cantidad de personas dada. */
-function encontrarRango(rangos: RangoPrecio[], personas: number): RangoPrecio | undefined {
-  // Buscar rango donde minPersonas <= personas <= maxPersonas
-  for (const r of rangos) {
-    if (personas >= r.minPersonas && (r.maxPersonas === null || personas <= r.maxPersonas)) {
-      return r;
-    }
-  }
-  // Fallback: usar el último rango (el que tiene maxPersonas null, o el de mayor cobertura)
-  return rangos.length > 0 ? rangos[rangos.length - 1] : undefined;
-}
-
-/**
- * Convierte datos de tarifa desde la BD (puede ser formato viejo o nuevo) a RangoPrecio[].
- * Formato viejo: { "1": 35000, "2": 30000, ... }
- * Formato nuevo: { "rangos": [{ minPersonas, maxPersonas, precio }] }
- */
-function normalizarRangos(preciosDb: any): RangoPrecio[] {
-  if (!preciosDb) return [];
-  // Nuevo formato: tiene la propiedad "rangos" como array
-  if (preciosDb.rangos && Array.isArray(preciosDb.rangos)) {
-    return preciosDb.rangos.map((r: any) => ({
-      minPersonas: Number(r.minPersonas) || 1,
-      maxPersonas: r.maxPersonas != null ? Number(r.maxPersonas) : null,
-      precio: Number(r.precio) || 0,
-    }));
-  }
-  // Formato viejo: keys numéricos { "1": 35000, "2": 30000, ... }
-  const keys = Object.keys(preciosDb).filter(k => !isNaN(Number(k)) && Number(k) >= 1);
-  if (keys.length > 0) {
-    return keys.map(k => ({
-      minPersonas: Number(k),
-      maxPersonas: Number(k),
-      precio: Number(preciosDb[k]) || 0,
-    }));
-  }
-  return [];
-}
-
-/**
- * Calcula las noches de cortesía según la modalidad.
- * Devuelve la cantidad de noches a descontar.
- */
-function calcularNochesGratis(promociones: PromocionesTarifa, noches: number, checkin?: string): number {
-  const nc = promociones.nochesCortesia;
-  if (!nc?.activo || !nc.modalidad) return 0;
-
-  const mod = nc.modalidad;
-  if (mod.tipo === 'cadaX') {
-    const cada = mod.cada || 999;
-    if (noches < cada) return 0;
-    return Math.floor(noches / cada);
-  }
-  if (mod.tipo === 'aPartirDe') {
-    if (noches < mod.minNoches) return 0;
-    return mod.nochesGratis || 0;
-  }
-  if (mod.tipo === 'diaSemana' && checkin) {
-    // Contar cuántas noches de la estadía caen en el día de la semana elegido
-    const fechaInicio = new Date(checkin + 'T12:00:00');
-    let count = 0;
-    for (let i = 0; i < noches; i++) {
-      const d = new Date(fechaInicio);
-      d.setDate(d.getDate() + i);
-      if (d.getDay() === mod.dia) count++;
-    }
-    return count;
-  }
-  return 0;
-}
-
-/**
- * Obtiene las promociones efectivas de una tarifa, migrando datos viejos (choferCortesia) si es necesario.
- */
-function getPromocionesEfectivas(tarifa: TarifaPrecios): PromocionesTarifa {
-  // Si tiene promociones nuevas, usar esas
-  if (tarifa.promociones) return tarifa.promociones;
-  // Migración: si tiene choferCortesia viejo, convertir a nuevo formato
-  if (tarifa.choferCortesia) {
-    return {
-      acompananteSinCargo: {
-        activo: true,
-        etiqueta: 'Chofer de cortesía',
-        habitacionAsignada: tarifa.habitacionChofer || undefined,
-        cantidad: 1,
-      },
-    };
-  }
-  return {};
-}
-
-export interface CalcTarifaOptions {
-  ninos?: number;
-  checkin?: string;
-}
-
-function calcularTotalSegunTarifa(
-  tarifas: Record<string, TarifaPrecios>,
-  tipoTarifa: string,
-  personas: number,
-  noches: number,
-  options?: CalcTarifaOptions
-): number {
-  // Buscar la tarifa (fallback a 'normal')
-  const tarifa = tarifas[tipoTarifa] || tarifas['normal'];
-  if (!tarifa || !tarifa.rangos || tarifa.rangos.length === 0) return 0;
-
-  const promociones = getPromocionesEfectivas(tarifa);
-  const modo: ModoCobro = tarifa.modoCobro || 'porGrupo';
-
-  // ─── Noches de cortesía ───
-  const nochesGratis = calcularNochesGratis(promociones, noches, options?.checkin);
-  const nochesCobrables = Math.max(0, noches - nochesGratis);
-
-  // ─── Niños diferenciado ───
-  const ninosDif = promociones.ninosDiferenciado;
-  const cantNinos = (options?.ninos && ninosDif?.activo) ? options.ninos : 0;
-  const adultos = Math.max(1, personas - cantNinos);
-
-  // ─── Acompañante sin cargo (no descuenta: el acompañante va a otra habitación) ───
-  // Ya NO se resta 1 adulto. Todos los adultos de esta reserva pagan.
-  // El acompañante se gestiona como una reserva separada con total=0.
-
-  // ─── Cálculo por modo ───
-  if (modo === 'porCama') {
-    // Modo porCama: el precio del rango es por persona por noche
-    const rango = encontrarRango(tarifa.rangos, adultos);
-    const precioCama = rango?.precio || tarifa.rangos[0]?.precio || 0;
-    let total = nochesCobrables * adultos * precioCama;
-    // Sumar niños
-    if (cantNinos > 0 && ninosDif?.activo) {
-      total += cantNinos * (ninosDif.precioNino || 0) * nochesCobrables;
-    }
-    return total;
-  }
-
-  if (modo === 'porHabitacion') {
-    const precio = tarifa.rangos[0]?.precio || 0;
-    let total = nochesCobrables * precio;
-    // Sumar niños si aplica
-    if (cantNinos > 0 && ninosDif?.activo) {
-      total += cantNinos * (ninosDif.precioNino || 0) * nochesCobrables;
-    }
-    return total;
-  }
-
-  const rango = encontrarRango(tarifa.rangos, adultos);
-  if (!rango) return 0;
-
-  // porGrupo (default): el precio es el total del grupo
-  let total = nochesCobrables * rango.precio;
-  // Sumar niños
-  if (cantNinos > 0 && ninosDif?.activo) {
-    total += cantNinos * (ninosDif.precioNino || 0) * nochesCobrables;
-  }
-  return total;
-}
+// Lógica pura extraída a @/lib/tarifa-calc (compartida con la API pública
+// de la landing, para que el precio sea idéntico en los dos lados).
 
 // ==================== STORE INTERFACE ====================
 

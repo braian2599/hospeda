@@ -27,6 +27,9 @@ model Tenant {
   moneda         String            @default("ARS")
   timezone       String            @default("America/Argentina/Buenos_Aires")
   logoUrl        String?
+  descripcion    String?
+  fotos          String[]          @default([])
+  servicios      String[]          @default([])
   activo         Boolean           @default(true)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
@@ -49,6 +52,8 @@ model Tenant {
   tareasLimpieza TareaLimpieza[]
   configuracion  TenantConfig?
   platformPayments PlatformPayment[]
+  canalesExternos CanalExterno[]
+  mercadoPago    TenantMercadoPago?
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -185,6 +190,7 @@ model Habitacion {
   precioPorCama      Int?
   piso               Int?
   orden              Int              @default(0)
+  fotos              String[]         @default([])
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
@@ -269,6 +275,8 @@ model Reserva {
   ninos                    Int?
   total                    Int?
   datosAdicionales         Json?
+  origen                   String        @default("directo")
+  externalUid              String?
   createdAt                DateTime      @default(now())
   updatedAt                DateTime      @updatedAt
 
@@ -280,6 +288,7 @@ model Reserva {
 
   @@index([tenantId, estado])
   @@index([tenantId, habitacion, checkin, checkout])
+  @@unique([tenantId, externalUid])
 }
 
 model Acompanante {
@@ -539,10 +548,55 @@ model TenantConfig {
   precioPorCamaGlobal Int?
   puntoVenta          Int?
   numeroFactura       Int      @default(0)
+  featureFlags        Json     @default("{}")
+  tarifasPublicas     Json     @default("{}")
+  mostrarSeccionAgencias Boolean @default(false)
+  textoAgencias       String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// ═══════════════════════════════════════════════════════════
+// CANALES EXTERNOS (Booking.com / Airbnb) — sincronización iCal
+// ═══════════════════════════════════════════════════════════
+
+model CanalExterno {
+  id            String    @id @default(cuid())
+  tenantId      String
+  habitacion    String
+  canal         String    // 'booking' | 'airbnb'
+  exportToken   String    @unique @default(cuid())
+  importUrl     String?
+  activo        Boolean   @default(true)
+  lastSyncAt    DateTime?
+  lastSyncError String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, habitacion, canal])
+}
+
+// ═══════════════════════════════════════════════════════════
+// MERCADO PAGO CONNECT — cuenta propia de cada hotel (para
+// cobrar señas de reservas de la landing directo a su cuenta)
+// ═══════════════════════════════════════════════════════════
+
+model TenantMercadoPago {
+  id           String    @id @default(cuid())
+  tenantId     String    @unique
+  mpUserId     String?
+  accessToken  String    // cifrado (AES-256-GCM, ver lib/crypto.ts)
+  refreshToken String    // cifrado
+  publicKey    String?
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 // ═══════════════════════════════════════════════════════════

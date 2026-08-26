@@ -29,6 +29,7 @@ import {
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatMoney } from '@/lib/format';
+import { precioDesde, describeNochesCortesia } from '@/lib/tarifas-format';
 import type {
   CampoPersonalizado, MetodoPago, Cuota, ModoCobro, RangoPrecio, PromocionesTarifa,
   AcompananteSinCargo, NinosDiferenciado, NochesCortesia, ModalidadNochesCortesia, TarifaPrecios,
@@ -185,20 +186,6 @@ function countPromos(promos?: PromocionesTarifa | null): number {
   if (promos.ninosDiferenciado?.activo) n++;
   if (promos.nochesCortesia?.activo) n++;
   return n;
-}
-
-// Compute "Desde" price (min positive price, fallback to first range)
-function precioDesde(rangos: RangoPrecio[]): number {
-  const preciosPositivos = rangos.map(r => r.precio).filter(p => p > 0);
-  return preciosPositivos.length > 0 ? Math.min(...preciosPositivos) : (rangos[0]?.precio || 0);
-}
-
-// Build a label describing a noches cortesía modalidad
-function describeNochesCortesia(mod: ModalidadNochesCortesia): string {
-  if (mod.tipo === 'cadaX') return `Cada ${mod.cada} noches, 1 gratis`;
-  if (mod.tipo === 'aPartirDe') return `Desde ${mod.minNoches} noches, ${mod.nochesGratis} gratis`;
-  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  return `${dias[mod.dia]} gratis`;
 }
 
 // Export a single tariff as CSV (client-side download)
