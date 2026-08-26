@@ -29,6 +29,63 @@ function getSigningSecret(): string {
   return secret;
 }
 
+const WEBHOOK_MAX_AGE_SECONDS = 5 * 60; // anti-replay
+
+/**
+ * Verifica la firma del webhook de la app de Mercado Pago Connect (OAuth).
+ * Es la app usada para conectar las cuentas de los hoteles — tiene su propio
+ * secreto de firma, distinto al de la app de cobro de suscripciones de la plataforma.
+ */
+export function verifyMpConnectWebhookSignature(xSignature: string, xRequestId: string): boolean {
+  const secret = process.env.MP_CONNECT_WEBHOOK_SECRET;
+  if (!secret) {
+    console.warn('[mp-connect webhook] MP_CONNECT_WEBHOOK_SECRET no configurado — rechazando webhook');
+    return false;
+  }
+
+  try {
+    const parts = xSignature.split(',');
+    let ts = '';
+    let hash = '';
+    for (const part of parts) {
+      const [key, value] = part.split('=');
+      if (key === 'ts') ts = value;
+      if (key === 'v1') hash = value;
+    }
+    if (!ts || !hash) return false;
+
+    const webhookTime = parseInt(ts, 10);
+    if (isNaN(webhookTime)) return false;
+    const ageSeconds = Math.floor(Date.now() / 1000) - webhookTime;
+    if (ageSeconds > WEBHOOK_MAX_AGE_SECONDS || ageSeconds < -60) return false;
+
+    const manifest = `id:${xRequestId};request-ts:${ts};`;
+    const expected = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+
+    const expectedBuf = Buffer.from(expected, 'hex');
+    const hashBuf = Buffer.from(hash, 'hex');
+    if (expectedBuf.length !== hashBuf.length) return false;
+    return crypto.timingSafeEqual(expectedBuf, hashBuf);
+  } catch {
+    return false;
+  }
+}
+
+export interface MpPayment {
+  status: string;
+  transaction_amount: number;
+  external_reference: string | null;
+}
+
+/** Obtiene el detalle de un pago desde la API de MP, autenticado con el access_token del HOTEL dueño del pago. */
+export async function getMpPayment(accessToken: string, paymentId: string): Promise<MpPayment | null> {
+  const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
 function getRedirectUri(): string {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
   return `${appUrl}/api/configuracion/mercadopago/callback`;
@@ -201,7 +258,7 @@ export async function createDepositCheckout(params: DepositCheckoutParams): Prom
         failure: `${appUrl}/h/${params.slug}?pago=error`,
       },
       auto_return: 'approved',
-      notification_url: `${appUrl}/api/public/mercadopago/webhook`,
+      notification_url: `${appUrl}/api/public/mercadopago/webhook?reservaId=${encodeURIComponent(params.reservaId)}`,
     },
   });
 
