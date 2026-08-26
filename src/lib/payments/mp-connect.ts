@@ -161,3 +161,53 @@ export async function getValidAccessToken(tenantId: string): Promise<string | nu
 export async function disconnectTenantMercadoPago(tenantId: string): Promise<void> {
   await db.tenantMercadoPago.deleteMany({ where: { tenantId } });
 }
+
+/** Porcentaje de seña sobre el total de la reserva. */
+export const PORCENTAJE_SENA = 0.30;
+
+interface DepositCheckoutParams {
+  accessToken: string; // del hotel, no de la plataforma
+  reservaId: string;
+  monto: number; // en la misma unidad que Reserva.total (pesos, no centavos)
+  moneda: string;
+  descripcion: string;
+  slug: string;
+}
+
+/** Crea el checkout de la seña en la cuenta del HOTEL (no la de la plataforma). */
+export async function createDepositCheckout(params: DepositCheckoutParams): Promise<{ checkoutUrl: string; preferenceId: string }> {
+  const { MercadoPagoConfig, Preference } = await import('mercadopago');
+  const client = new MercadoPagoConfig({ accessToken: params.accessToken });
+  const preference = new Preference(client);
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+
+  const result = await preference.create({
+    body: {
+      items: [
+        {
+          id: `sena-${params.reservaId}`,
+          title: `Seña de reserva — ${params.descripcion}`,
+          quantity: 1,
+          unit_price: params.monto,
+          currency_id: params.moneda || 'ARS',
+          category_id: 'services',
+        },
+      ],
+      external_reference: params.reservaId,
+      back_urls: {
+        success: `${appUrl}/h/${params.slug}?pago=exito`,
+        pending: `${appUrl}/h/${params.slug}?pago=pendiente`,
+        failure: `${appUrl}/h/${params.slug}?pago=error`,
+      },
+      auto_return: 'approved',
+      notification_url: `${appUrl}/api/public/mercadopago/webhook`,
+    },
+  });
+
+  if (!result.init_point || !result.id) {
+    throw new Error('Mercado Pago no devolvió una URL de checkout');
+  }
+
+  return { checkoutUrl: result.init_point, preferenceId: result.id };
+}

@@ -22,6 +22,7 @@ export async function getPublicTenant(slug: string) {
       pais: true,
       telefono: true,
       email: true,
+      moneda: true,
       activo: true,
       configuracion: {
         select: {

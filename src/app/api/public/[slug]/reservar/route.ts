@@ -3,40 +3,12 @@ import { db } from '@/lib/db';
 import { rateLimit } from '@/lib/validation';
 import {
   getPublicTenant, parseFechasConsulta, parsePersonasConsulta,
-  type PublicTenant, type FechasValidadas,
 } from '@/lib/public-landing';
 import { parseTarifaPrecios, calcularTotalSegunTarifa } from '@/lib/tarifa-calc';
+import { getValidAccessToken, createDepositCheckout, PORCENTAJE_SENA } from '@/lib/payments/mp-connect';
 
 function clientIp(req: NextRequest): string {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
-}
-
-/** Habitaciones libres de un tipo, con capacidad suficiente, en el rango pedido. */
-async function elegirHabitacionLibre(
-  tenant: PublicTenant,
-  tipo: string,
-  fechas: FechasValidadas,
-  personas: number
-): Promise<{ numero: string } | null> {
-  const habsDeTipo = tenant.habitaciones
-    .filter((h) => h.tipo === tipo && h.capacidad >= personas)
-    .sort((a, b) => a.orden - b.orden);
-  if (habsDeTipo.length === 0) return null;
-
-  const ocupadas = await db.reserva.findMany({
-    where: {
-      tenantId: tenant.id,
-      habitacion: { in: habsDeTipo.map((h) => h.numero) },
-      estado: { in: ['Confirmada', 'CheckIn_realizado'] },
-      checkin: { lt: fechas.checkout },
-      checkout: { gt: fechas.checkin },
-    },
-    select: { habitacion: true },
-  });
-  const ocupadasSet = new Set(ocupadas.map((r) => r.habitacion));
-
-  const libre = habsDeTipo.find((h) => !ocupadasSet.has(h.numero));
-  return libre ? { numero: libre.numero } : null;
 }
 
 // POST /api/public/[slug]/reservar
@@ -95,6 +67,16 @@ export async function POST(
     return NextResponse.json({ error: 'Ese tipo de habitación no está disponible para reservar online' }, { status: 400 });
   }
 
+  // El hotel tiene que tener Mercado Pago conectado — la seña es obligatoria para reservar.
+  const accessToken = await getValidAccessToken(tenant.id);
+  if (!accessToken) {
+    return NextResponse.json(
+      { error: 'Este hotel todavía no tiene el cobro de seña configurado. Contactalo directamente para reservar.' },
+      { status: 400 }
+    );
+  }
+
+  let reservaId: string | null = null;
   try {
     const reserva = await db.$transaction(async (tx) => {
       // Re-chequeo de disponibilidad dentro de la transacción, lo más cerca posible del create.
@@ -138,7 +120,7 @@ export async function POST(
           tipoTarifa: tarifaDb.nombre,
           total,
           origen: 'landing',
-          notas: 'Reserva creada desde la página pública del hotel.',
+          notas: 'Reserva creada desde la página pública del hotel — pendiente de pago de seña.',
         },
       });
 
@@ -146,7 +128,7 @@ export async function POST(
         data: {
           tenantId: tenant.id,
           tipo: 'Reserva',
-          detalle: `Nueva reserva desde la landing pública: ${huesped} — Hab. ${libre.numero} (${body.checkin} a ${body.checkout})`,
+          detalle: `Nueva reserva desde la landing pública: ${huesped} — Hab. ${libre.numero} (${body.checkin} a ${body.checkout}). Esperando pago de seña.`,
           empleado: 'Landing pública',
         },
       });
@@ -154,12 +136,26 @@ export async function POST(
       return nueva;
     });
 
+    reservaId = reserva.id;
+    const senaMonto = Math.round(reserva.total! * PORCENTAJE_SENA);
+
+    const checkout = await createDepositCheckout({
+      accessToken,
+      reservaId: reserva.id,
+      monto: senaMonto,
+      moneda: tenant.moneda,
+      descripcion: `${tipo} — Hab. ${reserva.habitacion}`,
+      slug,
+    });
+
     return NextResponse.json({
       success: true,
       reservaId: reserva.id,
       habitacion: reserva.habitacion,
       total: reserva.total,
+      senaMonto,
       noches: fechas.noches,
+      checkoutUrl: checkout.checkoutUrl,
     });
   } catch (err: unknown) {
     if (err instanceof Error && err.message === 'NO_DISPONIBLE') {
@@ -168,7 +164,13 @@ export async function POST(
         { status: 409 }
       );
     }
+
+    // Si la reserva ya se creó pero el checkout de MP falló, no la dejamos bloqueando la habitación sin forma de pagarla.
+    if (reservaId) {
+      await db.reserva.update({ where: { id: reservaId }, data: { estado: 'Cancelada' } }).catch(() => {});
+    }
+
     console.error('POST /api/public/[slug]/reservar:', err);
-    return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al generar el cobro de la seña. Intentá de nuevo.' }, { status: 500 });
   }
 }

@@ -6,8 +6,26 @@ import { precioDesde, promoBadgesPublicos } from '@/lib/tarifas-format';
 import HotelBookingWidget from '@/components/public/HotelBookingWidget';
 import {
   MapPin, Phone, Mail, Users, BedDouble, Building2, Zap,
-  Wifi, Coffee, Tv, Waves, Car, Wind, Check, Bed,
+  Wifi, Coffee, Tv, Waves, Car, Wind, Check, Bed, CheckCircle2, Clock, XCircle,
 } from 'lucide-react';
+
+const PAGO_BANNER: Record<string, { icon: typeof Check; text: string; className: string }> = {
+  exito: {
+    icon: CheckCircle2,
+    text: '¡Gracias! Recibimos tu pago. El hotel va a confirmar los detalles de tu reserva a la brevedad.',
+    className: 'bg-success/10 text-success border-success/30',
+  },
+  pendiente: {
+    icon: Clock,
+    text: 'Tu pago está pendiente de acreditación. Te vamos a avisar apenas se confirme.',
+    className: 'bg-warning/10 text-warning border-warning/30',
+  },
+  error: {
+    icon: XCircle,
+    text: 'El pago no se pudo completar. Podés intentar de nuevo o contactar al hotel directamente.',
+    className: 'bg-destructive/10 text-destructive border-destructive/30',
+  },
+};
 
 function precioPublicoDeHabitacion(
   tipo: string,
@@ -60,18 +78,26 @@ export async function generateMetadata(
 }
 
 export default async function HotelLandingPage(
-  { params }: { params: Promise<{ slug: string }> }
+  { params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ pago?: string }> }
 ) {
   const { slug } = await params;
+  const { pago } = await searchParams;
   const tenant = await getPublicTenant(slug);
   if (!tenant) notFound();
 
   const [heroFoto, ...galeria] = tenant.fotos;
   const config = tenant.configuracion;
   const promosDestacadas = badgesDestacados(tenant);
+  const pagoBanner = pago ? PAGO_BANNER[pago] : null;
 
   return (
     <div className="min-h-screen bg-background">
+      {pagoBanner && (
+        <div className={`border-b px-4 py-3 text-center text-sm font-medium flex items-center justify-center gap-2 ${pagoBanner.className}`}>
+          <pagoBanner.icon className="w-4 h-4 shrink-0" /> {pagoBanner.text}
+        </div>
+      )}
+
       {/* Hero */}
       <div className="relative h-64 md:h-80 w-full bg-muted overflow-hidden">
         {heroFoto ? (
