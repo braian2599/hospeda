@@ -277,6 +277,7 @@ model Reserva {
   datosAdicionales         Json?
   origen                   String        @default("directo")
   externalUid              String?
+  reservaVinculadaId       String?       @unique
   createdAt                DateTime      @default(now())
   updatedAt                DateTime      @updatedAt
 
@@ -285,6 +286,8 @@ model Reserva {
   pagos                    Pago[]
   cliente                  Cliente?      @relation(fields: [clienteId], references: [id])
   tenant                   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reservaVinculada         Reserva?      @relation("ReservaVinculada", fields: [reservaVinculadaId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  reservaVinculadaDe       Reserva?      @relation("ReservaVinculada")
 
   @@index([tenantId, estado])
   @@index([tenantId, habitacion, checkin, checkout])

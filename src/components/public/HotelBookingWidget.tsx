@@ -42,16 +42,24 @@ interface Combinacion {
   total: number;
 }
 
+interface SeleccionCombo {
+  tipo2: string;
+  personas2: number;
+  desglose2: Desglose;
+}
+
 interface Seleccion {
   tipo: string;
   numero: string | null; // null = el hotel elige cualquiera de este tipo (caso combinación)
   personas: number;
   desglose: Desglose;
+  combo: SeleccionCombo | null;
 }
 
 interface ReservaCreada {
   reservaId: string;
   habitacion: string;
+  habitacion2: string | null;
   total: number;
   senaMonto: number;
   noches: number;
@@ -155,12 +163,19 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
   };
 
   const seleccionarHabitacion = (r: Resultado) => {
-    setSeleccion({ tipo: r.tipo, numero: r.numero, personas, desglose: r.desglose });
+    setSeleccion({ tipo: r.tipo, numero: r.numero, personas, desglose: r.desglose, combo: null });
     setErrorReserva('');
   };
 
-  const seleccionarLegCombinacion = (leg: CombinacionLeg) => {
-    setSeleccion({ tipo: leg.tipo, numero: null, personas: leg.personas, desglose: leg.desglose });
+  const seleccionarCombinacion = (c: Combinacion) => {
+    const [leg1, leg2] = c.legs;
+    setSeleccion({
+      tipo: leg1.tipo,
+      numero: null,
+      personas: leg1.personas,
+      desglose: leg1.desglose,
+      combo: { tipo2: leg2.tipo, personas2: leg2.personas, desglose2: leg2.desglose },
+    });
     setErrorReserva('');
   };
 
@@ -199,6 +214,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
           checkin: toISO(rango.from),
           checkout: toISO(rango.to),
           personas: seleccion.personas,
+          ...(seleccion.combo ? { tipo2: seleccion.combo.tipo2, personas2: seleccion.combo.personas2 } : {}),
           ...form,
         }),
       });
@@ -285,7 +301,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
               <CheckCircle2 className="w-10 h-10 text-primary mx-auto" />
               <DialogTitle className="text-lg">¡Ya casi! Falta pagar la seña</DialogTitle>
               <p className="text-sm text-muted-foreground">
-                Habitación {reservaCreada.habitacion} · {reservaCreada.noches} noche{reservaCreada.noches !== 1 ? 's' : ''} · Total {formatMoney(reservaCreada.total)}
+                Habitación {reservaCreada.habitacion}{reservaCreada.habitacion2 ? ` + Habitación ${reservaCreada.habitacion2}` : ''} · {reservaCreada.noches} noche{reservaCreada.noches !== 1 ? 's' : ''} · Total {formatMoney(reservaCreada.total)}
               </p>
               <p className="text-sm font-medium">
                 Seña a pagar ahora: {formatMoney(reservaCreada.senaMonto)} (30%)
@@ -318,25 +334,26 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
               {!seleccion && resultados && resultados.length === 0 && combinaciones.length > 0 && (
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Ninguna habitación individual alcanza para {personas} persona{personas !== 1 ? 's' : ''}, pero podés reservar esta combinación de 2 habitaciones (cada una se reserva y se paga por separado):
+                    Ninguna habitación individual alcanza para {personas} persona{personas !== 1 ? 's' : ''}, pero podés reservar esta combinación de 2 habitaciones con una sola seña:
                   </p>
                   {combinaciones.map((c, i) => (
                     <div key={i} className="rounded-lg border p-4 space-y-3">
-                      <p className="text-sm text-muted-foreground">Hasta {c.capacidadTotal} personas en total · {formatMoney(c.total)}</p>
+                      <p className="text-sm text-muted-foreground">Hasta {c.capacidadTotal} personas en total</p>
                       {c.legs.map((leg, li) => (
-                        <div key={li} className="flex items-center justify-between gap-3 rounded-md bg-muted/30 px-3 py-2">
-                          <div>
-                            <p className="text-sm font-medium">{leg.tipo}</p>
-                            <p className="text-xs text-muted-foreground">{leg.personas} persona{leg.personas !== 1 ? 's' : ''} · {formatMoney(leg.subtotal)}</p>
-                          </div>
-                          <button
-                            onClick={() => seleccionarLegCombinacion(leg)}
-                            className="rounded-md bg-primary text-primary-foreground text-xs font-medium px-3 py-1.5 hover:opacity-90 transition-opacity shrink-0"
-                          >
-                            Reservar
-                          </button>
+                        <div key={li} className="rounded-md bg-muted/30 px-3 py-2">
+                          <p className="text-sm font-medium">{leg.tipo}</p>
+                          <p className="text-xs text-muted-foreground">{leg.personas} persona{leg.personas !== 1 ? 's' : ''} · {formatMoney(leg.subtotal)}</p>
                         </div>
                       ))}
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="font-bold text-lg">{formatMoney(c.total)}</span>
+                        <button
+                          onClick={() => seleccionarCombinacion(c)}
+                          className="rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-1.5 hover:opacity-90 transition-opacity shrink-0"
+                        >
+                          Reservar combinación
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -391,8 +408,23 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
                   <p className="text-sm text-muted-foreground">
                     {seleccion.tipo}{seleccion.numero ? ` (Hab. ${seleccion.numero})` : ''} · {seleccion.personas} persona{seleccion.personas !== 1 ? 's' : ''}
                   </p>
-
                   <DesgloseTotal d={seleccion.desglose} />
+
+                  {seleccion.combo && (
+                    <>
+                      <p className="text-sm text-muted-foreground pt-1">
+                        {seleccion.combo.tipo2} · {seleccion.combo.personas2} persona{seleccion.combo.personas2 !== 1 ? 's' : ''}
+                      </p>
+                      <DesgloseTotal d={seleccion.combo.desglose2} />
+                      <div className="flex justify-between items-center rounded-lg border bg-primary/5 p-3 text-sm font-semibold">
+                        <span>Total combinado</span>
+                        <span>{formatMoney(seleccion.desglose.total + seleccion.combo.desglose2.total)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground text-right">
+                        Seña a pagar ahora (30%): {formatMoney(Math.round((seleccion.desglose.total + seleccion.combo.desglose2.total) * 0.3))}
+                      </p>
+                    </>
+                  )}
 
                   <div className="grid sm:grid-cols-2 gap-3">
                     <input
