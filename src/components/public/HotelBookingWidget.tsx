@@ -13,6 +13,18 @@ interface Resultado {
   badges: string[];
 }
 
+interface CombinacionLeg {
+  tipo: string;
+  personas: number;
+  subtotal: number;
+}
+
+interface Combinacion {
+  legs: [CombinacionLeg, CombinacionLeg];
+  capacidadTotal: number;
+  total: number;
+}
+
 interface ReservaCreada {
   reservaId: string;
   habitacion: string;
@@ -38,8 +50,10 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
   const [buscando, setBuscando] = useState(false);
   const [errorBusqueda, setErrorBusqueda] = useState('');
   const [resultados, setResultados] = useState<Resultado[] | null>(null);
+  const [combinaciones, setCombinaciones] = useState<Combinacion[]>([]);
 
   const [tipoSeleccionado, setTipoSeleccionado] = useState<string | null>(null);
+  const [personasSeleccionadas, setPersonasSeleccionadas] = useState(2);
   const [form, setForm] = useState({ huesped: '', dni: '', telefono: '', email: '' });
   const [reservando, setReservando] = useState(false);
   const [errorReserva, setErrorReserva] = useState('');
@@ -54,6 +68,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
   const buscar = async () => {
     setErrorBusqueda('');
     setResultados(null);
+    setCombinaciones([]);
     setTipoSeleccionado(null);
     setReservaCreada(null);
 
@@ -73,11 +88,25 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al consultar disponibilidad');
       setResultados(data.resultados);
+      setCombinaciones(data.combinaciones || []);
     } catch (err: unknown) {
       setErrorBusqueda((err as Error).message || 'Error al consultar disponibilidad');
     } finally {
       setBuscando(false);
     }
+  };
+
+  const seleccionarTipo = (tipo: string, personasParaEsteTipo: number) => {
+    setTipoSeleccionado(tipo);
+    setPersonasSeleccionadas(personasParaEsteTipo);
+    setErrorReserva('');
+  };
+
+  const buscarDeNuevo = () => {
+    setReservaCreada(null);
+    setResultados(null);
+    setCombinaciones([]);
+    setTipoSeleccionado(null);
   };
 
   const confirmarReserva = async () => {
@@ -94,7 +123,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipo: tipoSeleccionado, checkin: toISO(rango.from), checkout: toISO(rango.to), personas, ...form,
+          tipo: tipoSeleccionado, checkin: toISO(rango.from), checkout: toISO(rango.to), personas: personasSeleccionadas, ...form,
         }),
       });
       const data = await res.json();
@@ -133,6 +162,9 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
           Pagar seña con Mercado Pago
         </button>
         <p className="text-xs text-muted-foreground">Tu habitación queda reservada mientras completás el pago.</p>
+        <button onClick={buscarDeNuevo} className="text-xs text-muted-foreground underline underline-offset-2">
+          Buscar y reservar otra habitación
+        </button>
       </div>
     );
   }
@@ -196,8 +228,35 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
 
       {errorBusqueda && <p className="text-sm text-destructive">{errorBusqueda}</p>}
 
-      {resultados && resultados.length === 0 && !errorBusqueda && (
+      {resultados && resultados.length === 0 && combinaciones.length === 0 && !errorBusqueda && (
         <p className="text-sm text-muted-foreground">No hay disponibilidad online para esas fechas. Escribinos por WhatsApp para consultar.</p>
+      )}
+
+      {resultados && resultados.length === 0 && combinaciones.length > 0 && (
+        <div className="space-y-3 pt-2">
+          <p className="text-sm text-muted-foreground">
+            Ninguna habitación individual alcanza para {personas} persona{personas !== 1 ? 's' : ''}, pero podés reservar esta combinación de 2 habitaciones (cada una se reserva y se paga por separado):
+          </p>
+          {combinaciones.map((c, i) => (
+            <div key={i} className="rounded-lg border p-4 space-y-3">
+              <p className="text-sm text-muted-foreground">Hasta {c.capacidadTotal} personas en total · ${c.total.toLocaleString('es-AR')}</p>
+              {c.legs.map((leg, li) => (
+                <div key={li} className="flex items-center justify-between gap-3 rounded-md bg-muted/30 px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium">{leg.tipo}</p>
+                    <p className="text-xs text-muted-foreground">{leg.personas} persona{leg.personas !== 1 ? 's' : ''} · ${leg.subtotal.toLocaleString('es-AR')}</p>
+                  </div>
+                  <button
+                    onClick={() => seleccionarTipo(leg.tipo, leg.personas)}
+                    className="rounded-md bg-primary text-primary-foreground text-xs font-medium px-3 py-1.5 hover:opacity-90 transition-opacity shrink-0"
+                  >
+                    Reservar
+                  </button>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       )}
 
       {resultados && resultados.length > 0 && (
@@ -220,7 +279,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
               <div className="flex items-center gap-3">
                 <span className="font-bold text-lg">${r.total.toLocaleString('es-AR')}</span>
                 <button
-                  onClick={() => { setTipoSeleccionado(r.tipo); setErrorReserva(''); }}
+                  onClick={() => seleccionarTipo(r.tipo, personas)}
                   className="rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-1.5 hover:opacity-90 transition-opacity"
                 >
                   Reservar
@@ -233,7 +292,9 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
 
       {tipoSeleccionado && (
         <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
-          <h3 className="text-sm font-semibold">Datos para la reserva — {tipoSeleccionado}</h3>
+          <h3 className="text-sm font-semibold">
+            Datos para la reserva — {tipoSeleccionado} ({personasSeleccionadas} persona{personasSeleccionadas !== 1 ? 's' : ''})
+          </h3>
           <div className="grid sm:grid-cols-2 gap-3">
             <input
               placeholder="Nombre completo"

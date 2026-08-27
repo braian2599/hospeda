@@ -30,7 +30,7 @@ export async function GET(
   const personas = parsePersonasConsulta(searchParams.get('personas') || '2');
   if (typeof personas !== 'number') return NextResponse.json({ error: personas.error }, { status: 400 });
 
-  const resultados = await buscarDisponibilidad(tenant, fechas, personas);
+  const { resultados, combinaciones } = await buscarDisponibilidad(tenant, fechas, personas);
 
   return NextResponse.json({
     checkin: searchParams.get('checkin'),
@@ -42,6 +42,11 @@ export async function GET(
       disponibles: r.disponibles,
       total: r.total,
       badges: r.badges,
+    })),
+    combinaciones: combinaciones.map((c) => ({
+      legs: c.legs,
+      capacidadTotal: c.capacidadTotal,
+      total: c.total,
     })),
   });
 }
