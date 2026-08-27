@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Search, CalendarDays, Users, Bed, CheckCircle2, Zap } from 'lucide-react';
 
 interface Desglose {
@@ -43,7 +44,7 @@ interface Combinacion {
 
 interface Seleccion {
   tipo: string;
-  numero: string | null; // null = reserva múltiple del hotel elige cualquiera de este tipo (caso combinación)
+  numero: string | null; // null = el hotel elige cualquiera de este tipo (caso combinación)
   personas: number;
   desglose: Desglose;
 }
@@ -107,6 +108,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
   const [errorBusqueda, setErrorBusqueda] = useState('');
   const [resultados, setResultados] = useState<Resultado[] | null>(null);
   const [combinaciones, setCombinaciones] = useState<Combinacion[]>([]);
+  const [dialogAbierto, setDialogAbierto] = useState(false);
 
   const [seleccion, setSeleccion] = useState<Seleccion | null>(null);
   const [form, setForm] = useState({ huesped: '', dni: '', telefono: '', email: '' });
@@ -118,14 +120,6 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
   const handleSelectRango = (r: DateRange | undefined) => {
     setRango(r);
     if (r?.from && r?.to) setCalendarioAbierto(false);
-  };
-
-  // Mientras el huésped ya eligió el check-in pero no el check-out, ignoramos cualquier
-  // intento de Radix de cerrar el popover (puede pasar por un cambio de foco entre los
-  // dos meses del calendario) — solo lo cerramos nosotros, cuando el rango queda completo.
-  const handleOpenChangeCalendario = (open: boolean) => {
-    if (!open && rango?.from && !rango?.to) return;
-    setCalendarioAbierto(open);
   };
 
   const buscar = async () => {
@@ -152,6 +146,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
       if (!res.ok) throw new Error(data.error || 'Error al consultar disponibilidad');
       setResultados(data.resultados);
       setCombinaciones(data.combinaciones || []);
+      setDialogAbierto(true);
     } catch (err: unknown) {
       setErrorBusqueda((err as Error).message || 'Error al consultar disponibilidad');
     } finally {
@@ -169,7 +164,16 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
     setErrorReserva('');
   };
 
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogAbierto(open);
+    if (!open) {
+      setSeleccion(null);
+      setErrorReserva('');
+    }
+  };
+
   const buscarDeNuevo = () => {
+    setDialogAbierto(false);
     setReservaCreada(null);
     setResultados(null);
     setCombinaciones([]);
@@ -214,33 +218,6 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
     window.location.href = reservaCreada.checkoutUrl;
   };
 
-  if (reservaCreada) {
-    return (
-      <div className="rounded-xl border bg-card p-6 text-center space-y-3">
-        <CheckCircle2 className="w-10 h-10 text-primary mx-auto" />
-        <h3 className="text-lg font-semibold">¡Ya casi! Falta pagar la seña</h3>
-        <p className="text-sm text-muted-foreground">
-          Habitación {reservaCreada.habitacion} · {reservaCreada.noches} noche{reservaCreada.noches !== 1 ? 's' : ''} · Total {formatMoney(reservaCreada.total)}
-        </p>
-        <p className="text-sm font-medium">
-          Seña a pagar ahora: {formatMoney(reservaCreada.senaMonto)} (30%)
-        </p>
-        <button
-          onClick={irAPagar}
-          disabled={redirigiendo}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
-        >
-          {redirigiendo ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          Pagar seña con Mercado Pago
-        </button>
-        <p className="text-xs text-muted-foreground">Tu habitación queda reservada mientras completás el pago.</p>
-        <button onClick={buscarDeNuevo} className="text-xs text-muted-foreground underline underline-offset-2">
-          Buscar y reservar otra habitación
-        </button>
-      </div>
-    );
-  }
-
   const etiquetaFechas = rango?.from
     ? rango.to
       ? `${formatCorto(rango.from)} — ${formatCorto(rango.to)}`
@@ -254,7 +231,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Popover open={calendarioAbierto} onOpenChange={handleOpenChangeCalendario}>
+        <Popover open={calendarioAbierto} onOpenChange={setCalendarioAbierto}>
           <PopoverTrigger asChild>
             <button
               type="button"
@@ -271,6 +248,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
               onSelect={handleSelectRango}
               disabled={{ before: new Date() }}
               numberOfMonths={2}
+              min={1}
             />
           </PopoverContent>
         </Popover>
@@ -300,126 +278,171 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
 
       {errorBusqueda && <p className="text-sm text-destructive">{errorBusqueda}</p>}
 
-      {resultados && resultados.length === 0 && combinaciones.length === 0 && !errorBusqueda && (
-        <p className="text-sm text-muted-foreground">No hay disponibilidad online para esas fechas. Escribinos por WhatsApp para consultar.</p>
-      )}
-
-      {resultados && resultados.length === 0 && combinaciones.length > 0 && (
-        <div className="space-y-3 pt-2">
-          <p className="text-sm text-muted-foreground">
-            Ninguna habitación individual alcanza para {personas} persona{personas !== 1 ? 's' : ''}, pero podés reservar esta combinación de 2 habitaciones (cada una se reserva y se paga por separado):
-          </p>
-          {combinaciones.map((c, i) => (
-            <div key={i} className="rounded-lg border p-4 space-y-3">
-              <p className="text-sm text-muted-foreground">Hasta {c.capacidadTotal} personas en total · {formatMoney(c.total)}</p>
-              {c.legs.map((leg, li) => (
-                <div key={li} className="flex items-center justify-between gap-3 rounded-md bg-muted/30 px-3 py-2">
-                  <div>
-                    <p className="text-sm font-medium">{leg.tipo}</p>
-                    <p className="text-xs text-muted-foreground">{leg.personas} persona{leg.personas !== 1 ? 's' : ''} · {formatMoney(leg.subtotal)}</p>
-                  </div>
-                  <button
-                    onClick={() => seleccionarLegCombinacion(leg)}
-                    className="rounded-md bg-primary text-primary-foreground text-xs font-medium px-3 py-1.5 hover:opacity-90 transition-opacity shrink-0"
-                  >
-                    Reservar
-                  </button>
-                </div>
-              ))}
+      <Dialog open={dialogAbierto} onOpenChange={handleDialogOpenChange}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          {reservaCreada ? (
+            <div className="text-center space-y-3 py-2">
+              <CheckCircle2 className="w-10 h-10 text-primary mx-auto" />
+              <DialogTitle className="text-lg">¡Ya casi! Falta pagar la seña</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Habitación {reservaCreada.habitacion} · {reservaCreada.noches} noche{reservaCreada.noches !== 1 ? 's' : ''} · Total {formatMoney(reservaCreada.total)}
+              </p>
+              <p className="text-sm font-medium">
+                Seña a pagar ahora: {formatMoney(reservaCreada.senaMonto)} (30%)
+              </p>
+              <button
+                onClick={irAPagar}
+                disabled={redirigiendo}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+              >
+                {redirigiendo ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Pagar seña con Mercado Pago
+              </button>
+              <p className="text-xs text-muted-foreground">Tu habitación queda reservada mientras completás el pago.</p>
+              <button onClick={buscarDeNuevo} className="text-xs text-muted-foreground underline underline-offset-2">
+                Buscar y reservar otra habitación
+              </button>
             </div>
-          ))}
-        </div>
-      )}
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  {seleccion ? 'Datos para la reserva' : 'Disponibilidad'}
+                </DialogTitle>
+              </DialogHeader>
 
-      {resultados && resultados.length > 0 && (
-        <div className="space-y-3 pt-2">
-          {resultados.map((r) => {
-            const camas = [
-              r.camasMatrimoniales > 0 ? `${r.camasMatrimoniales} matrimonial${r.camasMatrimoniales !== 1 ? 'es' : ''}` : null,
-              r.camasSimples > 0 ? `${r.camasSimples} individual${r.camasSimples !== 1 ? 'es' : ''}` : null,
-            ].filter(Boolean).join(' · ');
-            return (
-              <div key={r.numero} className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <p className="font-semibold">{r.tipo} — Hab. {r.numero}</p>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5" /> Hasta {r.capacidad} persona{r.capacidad !== 1 ? 's' : ''}
+              {!seleccion && resultados && resultados.length === 0 && combinaciones.length === 0 && (
+                <p className="text-sm text-muted-foreground">No hay disponibilidad online para esas fechas. Escribinos por WhatsApp para consultar.</p>
+              )}
+
+              {!seleccion && resultados && resultados.length === 0 && combinaciones.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Ninguna habitación individual alcanza para {personas} persona{personas !== 1 ? 's' : ''}, pero podés reservar esta combinación de 2 habitaciones (cada una se reserva y se paga por separado):
                   </p>
-                  {camas && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                      <Bed className="w-3.5 h-3.5" /> {camas}
-                    </p>
-                  )}
-                  {r.badges.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      {r.badges.map((b) => (
-                        <span key={b} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[11px] px-2 py-0.5">
-                          <Zap className="w-3 h-3" /> {b}
-                        </span>
+                  {combinaciones.map((c, i) => (
+                    <div key={i} className="rounded-lg border p-4 space-y-3">
+                      <p className="text-sm text-muted-foreground">Hasta {c.capacidadTotal} personas en total · {formatMoney(c.total)}</p>
+                      {c.legs.map((leg, li) => (
+                        <div key={li} className="flex items-center justify-between gap-3 rounded-md bg-muted/30 px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{leg.tipo}</p>
+                            <p className="text-xs text-muted-foreground">{leg.personas} persona{leg.personas !== 1 ? 's' : ''} · {formatMoney(leg.subtotal)}</p>
+                          </div>
+                          <button
+                            onClick={() => seleccionarLegCombinacion(leg)}
+                            className="rounded-md bg-primary text-primary-foreground text-xs font-medium px-3 py-1.5 hover:opacity-90 transition-opacity shrink-0"
+                          >
+                            Reservar
+                          </button>
+                        </div>
                       ))}
                     </div>
-                  )}
+                  ))}
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-lg">{formatMoney(r.total)}</span>
-                  <button
-                    onClick={() => seleccionarHabitacion(r)}
-                    className="rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-1.5 hover:opacity-90 transition-opacity"
-                  >
-                    Reservar
-                  </button>
+              )}
+
+              {!seleccion && resultados && resultados.length > 0 && (
+                <div className="space-y-3">
+                  {resultados.map((r) => {
+                    const camas = [
+                      r.camasMatrimoniales > 0 ? `${r.camasMatrimoniales} matrimonial${r.camasMatrimoniales !== 1 ? 'es' : ''}` : null,
+                      r.camasSimples > 0 ? `${r.camasSimples} individual${r.camasSimples !== 1 ? 'es' : ''}` : null,
+                    ].filter(Boolean).join(' · ');
+                    return (
+                      <div key={r.numero} className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">{r.tipo} — Hab. {r.numero}</p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                            <Users className="w-3.5 h-3.5" /> Hasta {r.capacidad} persona{r.capacidad !== 1 ? 's' : ''}
+                          </p>
+                          {camas && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                              <Bed className="w-3.5 h-3.5" /> {camas}
+                            </p>
+                          )}
+                          {r.badges.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {r.badges.map((b) => (
+                                <span key={b} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[11px] px-2 py-0.5">
+                                  <Zap className="w-3 h-3" /> {b}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-lg">{formatMoney(r.total)}</span>
+                          <button
+                            onClick={() => seleccionarHabitacion(r)}
+                            className="rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-1.5 hover:opacity-90 transition-opacity"
+                          >
+                            Reservar
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              )}
 
-      {seleccion && (
-        <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
-          <h3 className="text-sm font-semibold">
-            Datos para la reserva — {seleccion.tipo}{seleccion.numero ? ` (Hab. ${seleccion.numero})` : ''} · {seleccion.personas} persona{seleccion.personas !== 1 ? 's' : ''}
-          </h3>
+              {seleccion && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    {seleccion.tipo}{seleccion.numero ? ` (Hab. ${seleccion.numero})` : ''} · {seleccion.personas} persona{seleccion.personas !== 1 ? 's' : ''}
+                  </p>
 
-          <DesgloseTotal d={seleccion.desglose} />
+                  <DesgloseTotal d={seleccion.desglose} />
 
-          <div className="grid sm:grid-cols-2 gap-3">
-            <input
-              placeholder="Nombre completo"
-              value={form.huesped}
-              onChange={(e) => setForm((f) => ({ ...f, huesped: e.target.value }))}
-              className="rounded-md border px-2 py-1.5 text-sm bg-background"
-            />
-            <input
-              placeholder="DNI"
-              value={form.dni}
-              onChange={(e) => setForm((f) => ({ ...f, dni: e.target.value }))}
-              className="rounded-md border px-2 py-1.5 text-sm bg-background"
-            />
-            <input
-              placeholder="Teléfono"
-              value={form.telefono}
-              onChange={(e) => setForm((f) => ({ ...f, telefono: e.target.value }))}
-              className="rounded-md border px-2 py-1.5 text-sm bg-background"
-            />
-            <input
-              placeholder="Email (opcional)"
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              className="rounded-md border px-2 py-1.5 text-sm bg-background"
-            />
-          </div>
-          {errorReserva && <p className="text-sm text-destructive">{errorReserva}</p>}
-          <button
-            onClick={confirmarReserva}
-            disabled={reservando}
-            className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
-          >
-            {reservando ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            Confirmar reserva
-          </button>
-        </div>
-      )}
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <input
+                      placeholder="Nombre completo"
+                      value={form.huesped}
+                      onChange={(e) => setForm((f) => ({ ...f, huesped: e.target.value }))}
+                      className="rounded-md border px-2 py-1.5 text-sm bg-background"
+                    />
+                    <input
+                      placeholder="DNI"
+                      value={form.dni}
+                      onChange={(e) => setForm((f) => ({ ...f, dni: e.target.value }))}
+                      className="rounded-md border px-2 py-1.5 text-sm bg-background"
+                    />
+                    <input
+                      placeholder="Teléfono"
+                      value={form.telefono}
+                      onChange={(e) => setForm((f) => ({ ...f, telefono: e.target.value }))}
+                      className="rounded-md border px-2 py-1.5 text-sm bg-background"
+                    />
+                    <input
+                      placeholder="Email (opcional)"
+                      value={form.email}
+                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                      className="rounded-md border px-2 py-1.5 text-sm bg-background"
+                    />
+                  </div>
+                  {errorReserva && <p className="text-sm text-destructive">{errorReserva}</p>}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={confirmarReserva}
+                      disabled={reservando}
+                      className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+                    >
+                      {reservando ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                      Confirmar reserva
+                    </button>
+                    <button
+                      onClick={() => setSeleccion(null)}
+                      className="text-sm text-muted-foreground underline underline-offset-2"
+                    >
+                      Volver
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
