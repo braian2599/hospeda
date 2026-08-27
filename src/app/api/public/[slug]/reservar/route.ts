@@ -138,6 +138,8 @@ export async function POST(
         : habsDeTipo1.find((h) => !ocupadasSet1.has(h.numero));
       if (!libre1) throw new Error('NO_DISPONIBLE');
 
+      // Reserva.total se guarda en CENTAVOS en toda la base (igual que las reservas
+      // internas, ver store.ts crearReserva) — calcularTotalSegunTarifa devuelve pesos.
       const total1 = calcularTotalSegunTarifa({ [tipo]: tarifa1.precios }, tipo, personas, fechas.noches, {
         checkin: fechas.checkin.toISOString().slice(0, 10),
       });
@@ -156,7 +158,7 @@ export async function POST(
           estado: 'Confirmada',
           estadoPago: 'Pendiente',
           tipoTarifa: tarifa1.tarifaNombre,
-          total: total1,
+          total: Math.round(total1 * 100),
           origen: 'landing',
           notas: tipo2
             ? 'Reserva combinada (2 habitaciones) creada desde la página pública del hotel — pendiente de pago de seña.'
@@ -218,7 +220,7 @@ export async function POST(
             estado: 'Confirmada',
             estadoPago: 'Pendiente',
             tipoTarifa: tarifa2.tarifaNombre,
-            total: total2,
+            total: Math.round(total2 * 100),
             origen: 'landing',
             reservaVinculadaId: nueva1.id,
             notas: 'Reserva combinada (2 habitaciones) creada desde la página pública del hotel — pendiente de pago de seña.',
@@ -243,8 +245,10 @@ export async function POST(
     reservaId = r1.id;
     reservaId2 = r2?.id ?? null;
 
-    const totalCombinado = r1.total! + (r2?.total ?? 0);
-    const senaMonto = Math.round(totalCombinado * PORCENTAJE_SENA);
+    // r1.total/r2.total están en centavos (recién guardados así arriba) — todo lo que
+    // sigue (Mercado Pago, la respuesta al widget) trabaja en pesos.
+    const totalCombinadoPesos = (r1.total! + (r2?.total ?? 0)) / 100;
+    const senaMonto = Math.round(totalCombinadoPesos * PORCENTAJE_SENA);
 
     const descripcion = r2
       ? `${tipo} — Hab. ${r1.habitacion} + ${tipo2} — Hab. ${r2.habitacion}`
@@ -265,7 +269,7 @@ export async function POST(
       habitacion: r1.habitacion,
       reservaId2: r2?.id ?? null,
       habitacion2: r2?.habitacion ?? null,
-      total: totalCombinado,
+      total: totalCombinadoPesos,
       senaMonto,
       noches: fechas.noches,
       checkoutUrl: checkout.checkoutUrl,
