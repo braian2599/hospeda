@@ -130,9 +130,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, status: payment.status });
     }
 
+    // Reserva.total está en centavos (igual que en todo el resto del sistema) —
+    // payment.transaction_amount viene de MP en pesos.
+    const totalCombinadoCentavos = (reserva.total ?? 0) + (reservaVinculada?.total ?? 0);
+    const totalCombinadoPesos = totalCombinadoCentavos / 100;
+
     // Validar que el monto pagado sea el de la seña esperada (30% del total combinado), no un monto manipulado.
-    const totalCombinado = (reserva.total ?? 0) + (reservaVinculada?.total ?? 0);
-    const senaEsperada = totalCombinado > 0 ? Math.round(totalCombinado * PORCENTAJE_SENA) : null;
+    const senaEsperada = totalCombinadoPesos > 0 ? Math.round(totalCombinadoPesos * PORCENTAJE_SENA) : null;
     if (senaEsperada == null || Math.abs(payment.transaction_amount - senaEsperada) > MONTO_TOLERANCIA) {
       console.error(`[mp-connect webhook] Monto de seña inválido — reserva=${reservaId}, esperado=${senaEsperada}, recibido=${payment.transaction_amount}`);
       return NextResponse.json({ received: true, rejected: true, reason: 'monto_invalido' });
@@ -142,8 +146,9 @@ export async function POST(req: NextRequest) {
       if (reservaVinculada) {
         // Reparto proporcional del pago único entre las dos reservas, igual que el
         // sistema interno con reservaMultiple — el resto va a la segunda para que
-        // la suma cierre exacta pase lo que pase con el redondeo.
-        const prop1 = (reserva.total ?? 0) / totalCombinado;
+        // la suma cierre exacta pase lo que pase con el redondeo. La proporción es
+        // independiente de la unidad (centavos o pesos), por eso no hace falta convertir acá.
+        const prop1 = (reserva.total ?? 0) / totalCombinadoCentavos;
         const monto1 = Math.round(payment.transaction_amount * prop1 * 100) / 100;
         const monto2 = Math.round((payment.transaction_amount - monto1) * 100) / 100;
 
