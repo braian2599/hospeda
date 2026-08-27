@@ -5,7 +5,8 @@ import type { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Search, CalendarDays, Users, Bed, CheckCircle2, Zap } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Loader2, Search, CalendarDays, Users, Bed, BedDouble, Receipt, CheckCircle2, Zap } from 'lucide-react';
 
 interface Desglose {
   tarifa: string;
@@ -66,6 +67,8 @@ interface ReservaCreada {
   checkoutUrl: string;
 }
 
+type TabId = 'disponibilidad' | 'cliente' | 'reserva';
+
 function toISO(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
@@ -117,6 +120,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
   const [resultados, setResultados] = useState<Resultado[] | null>(null);
   const [combinaciones, setCombinaciones] = useState<Combinacion[]>([]);
   const [dialogAbierto, setDialogAbierto] = useState(false);
+  const [tab, setTab] = useState<TabId>('disponibilidad');
 
   const [seleccion, setSeleccion] = useState<Seleccion | null>(null);
   const [form, setForm] = useState({ huesped: '', dni: '', telefono: '', email: '' });
@@ -136,6 +140,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
     setCombinaciones([]);
     setSeleccion(null);
     setReservaCreada(null);
+    setTab('disponibilidad');
 
     if (!rango?.from || !rango?.to) {
       setErrorBusqueda('Elegí fecha de entrada y salida');
@@ -165,6 +170,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
   const seleccionarHabitacion = (r: Resultado) => {
     setSeleccion({ tipo: r.tipo, numero: r.numero, personas, desglose: r.desglose, combo: null });
     setErrorReserva('');
+    setTab('cliente');
   };
 
   const seleccionarCombinacion = (c: Combinacion) => {
@@ -177,6 +183,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
       combo: { tipo2: leg2.tipo, personas2: leg2.personas, desglose2: leg2.desglose },
     });
     setErrorReserva('');
+    setTab('cliente');
   };
 
   const handleDialogOpenChange = (open: boolean) => {
@@ -184,6 +191,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
     if (!open) {
       setSeleccion(null);
       setErrorReserva('');
+      setTab('disponibilidad');
     }
   };
 
@@ -193,6 +201,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
     setResultados(null);
     setCombinaciones([]);
     setSeleccion(null);
+    setTab('disponibilidad');
   };
 
   const confirmarReserva = async () => {
@@ -322,110 +331,110 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle>
-                  {seleccion ? 'Datos para la reserva' : 'Disponibilidad'}
-                </DialogTitle>
+                <DialogTitle>Reservá online</DialogTitle>
               </DialogHeader>
 
-              {!seleccion && resultados && resultados.length === 0 && combinaciones.length === 0 && (
-                <p className="text-sm text-muted-foreground">No hay disponibilidad online para esas fechas. Escribinos por WhatsApp para consultar.</p>
-              )}
+              <Tabs value={tab} onValueChange={(v) => setTab(v as TabId)}>
+                <TabsList className="w-full grid grid-cols-3">
+                  <TabsTrigger value="disponibilidad" className="flex-1">
+                    <BedDouble className="w-4 h-4 mr-1" /> Disponibilidad
+                  </TabsTrigger>
+                  <TabsTrigger value="cliente" className="flex-1" disabled={!seleccion}>
+                    <Users className="w-4 h-4 mr-1" /> Cliente
+                  </TabsTrigger>
+                  <TabsTrigger value="reserva" className="flex-1" disabled={!seleccion}>
+                    <Receipt className="w-4 h-4 mr-1" /> Reserva
+                  </TabsTrigger>
+                </TabsList>
 
-              {!seleccion && resultados && resultados.length === 0 && combinaciones.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Ninguna habitación individual alcanza para {personas} persona{personas !== 1 ? 's' : ''}, pero podés reservar esta combinación de 2 habitaciones con una sola seña:
-                  </p>
-                  {combinaciones.map((c, i) => (
-                    <div key={i} className="rounded-lg border p-4 space-y-3">
-                      <p className="text-sm text-muted-foreground">Hasta {c.capacidadTotal} personas en total</p>
-                      {c.legs.map((leg, li) => (
-                        <div key={li} className="rounded-md bg-muted/30 px-3 py-2">
-                          <p className="text-sm font-medium">{leg.tipo}</p>
-                          <p className="text-xs text-muted-foreground">{leg.personas} persona{leg.personas !== 1 ? 's' : ''} · {formatMoney(leg.subtotal)}</p>
-                        </div>
-                      ))}
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="font-bold text-lg">{formatMoney(c.total)}</span>
-                        <button
-                          onClick={() => seleccionarCombinacion(c)}
-                          className="rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-1.5 hover:opacity-90 transition-opacity shrink-0"
-                        >
-                          Reservar combinación
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {!seleccion && resultados && resultados.length > 0 && (
-                <div className="space-y-3">
-                  {resultados.map((r) => {
-                    const camas = [
-                      r.camasMatrimoniales > 0 ? `${r.camasMatrimoniales} matrimonial${r.camasMatrimoniales !== 1 ? 'es' : ''}` : null,
-                      r.camasSimples > 0 ? `${r.camasSimples} individual${r.camasSimples !== 1 ? 'es' : ''}` : null,
-                    ].filter(Boolean).join(' · ');
-                    return (
-                      <div key={r.numero} className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div>
-                          <p className="font-semibold">{r.tipo} — Hab. {r.numero}</p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                            <Users className="w-3.5 h-3.5" /> Hasta {r.capacidad} persona{r.capacidad !== 1 ? 's' : ''}
-                          </p>
-                          {camas && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                              <Bed className="w-3.5 h-3.5" /> {camas}
-                            </p>
-                          )}
-                          {r.badges.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-1">
-                              {r.badges.map((b) => (
-                                <span key={b} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[11px] px-2 py-0.5">
-                                  <Zap className="w-3 h-3" /> {b}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-lg">{formatMoney(r.total)}</span>
-                          <button
-                            onClick={() => seleccionarHabitacion(r)}
-                            className="rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-1.5 hover:opacity-90 transition-opacity"
-                          >
-                            Reservar
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {seleccion && (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    {seleccion.tipo}{seleccion.numero ? ` (Hab. ${seleccion.numero})` : ''} · {seleccion.personas} persona{seleccion.personas !== 1 ? 's' : ''}
-                  </p>
-                  <DesgloseTotal d={seleccion.desglose} />
-
-                  {seleccion.combo && (
-                    <>
-                      <p className="text-sm text-muted-foreground pt-1">
-                        {seleccion.combo.tipo2} · {seleccion.combo.personas2} persona{seleccion.combo.personas2 !== 1 ? 's' : ''}
-                      </p>
-                      <DesgloseTotal d={seleccion.combo.desglose2} />
-                      <div className="flex justify-between items-center rounded-lg border bg-primary/5 p-3 text-sm font-semibold">
-                        <span>Total combinado</span>
-                        <span>{formatMoney(seleccion.desglose.total + seleccion.combo.desglose2.total)}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground text-right">
-                        Seña a pagar ahora (30%): {formatMoney(Math.round((seleccion.desglose.total + seleccion.combo.desglose2.total) * 0.3))}
-                      </p>
-                    </>
+                {/* ==================== TAB: DISPONIBILIDAD ==================== */}
+                <TabsContent value="disponibilidad" className="space-y-3 mt-4">
+                  {resultados && resultados.length === 0 && combinaciones.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No hay disponibilidad online para esas fechas. Escribinos por WhatsApp para consultar.</p>
                   )}
 
+                  {resultados && resultados.length === 0 && combinaciones.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Ninguna habitación individual alcanza para {personas} persona{personas !== 1 ? 's' : ''}, pero podés reservar esta combinación de 2 habitaciones con una sola seña:
+                      </p>
+                      {combinaciones.map((c, i) => (
+                        <div key={i} className="rounded-lg border p-4 space-y-3">
+                          <p className="text-sm text-muted-foreground">Hasta {c.capacidadTotal} personas en total</p>
+                          {c.legs.map((leg, li) => (
+                            <div key={li} className="rounded-md bg-muted/30 px-3 py-2">
+                              <p className="text-sm font-medium">{leg.tipo}</p>
+                              <p className="text-xs text-muted-foreground">{leg.personas} persona{leg.personas !== 1 ? 's' : ''} · {formatMoney(leg.subtotal)}</p>
+                            </div>
+                          ))}
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="font-bold text-lg">{formatMoney(c.total)}</span>
+                            <button
+                              onClick={() => seleccionarCombinacion(c)}
+                              className="rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-1.5 hover:opacity-90 transition-opacity shrink-0"
+                            >
+                              Reservar combinación
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {resultados && resultados.length > 0 && (
+                    <div className="space-y-3">
+                      {resultados.map((r) => {
+                        const camas = [
+                          r.camasMatrimoniales > 0 ? `${r.camasMatrimoniales} matrimonial${r.camasMatrimoniales !== 1 ? 'es' : ''}` : null,
+                          r.camasSimples > 0 ? `${r.camasSimples} individual${r.camasSimples !== 1 ? 'es' : ''}` : null,
+                        ].filter(Boolean).join(' · ');
+                        const seleccionada = seleccion?.numero === r.numero;
+                        return (
+                          <div key={r.numero} className={`rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${seleccionada ? 'border-primary ring-1 ring-primary' : ''}`}>
+                            <div>
+                              <p className="font-semibold">{r.tipo} — Hab. {r.numero}</p>
+                              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5" /> Hasta {r.capacidad} persona{r.capacidad !== 1 ? 's' : ''}
+                              </p>
+                              {camas && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                                  <Bed className="w-3.5 h-3.5" /> {camas}
+                                </p>
+                              )}
+                              {r.badges.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-1">
+                                  {r.badges.map((b) => (
+                                    <span key={b} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[11px] px-2 py-0.5">
+                                      <Zap className="w-3 h-3" /> {b}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-bold text-lg">{formatMoney(r.total)}</span>
+                              <button
+                                onClick={() => seleccionarHabitacion(r)}
+                                className="rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-1.5 hover:opacity-90 transition-opacity"
+                              >
+                                {seleccionada ? 'Elegida' : 'Reservar'}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* ==================== TAB: CLIENTE ==================== */}
+                <TabsContent value="cliente" className="space-y-3 mt-4">
+                  {seleccion && (
+                    <p className="text-sm text-muted-foreground">
+                      {seleccion.tipo}{seleccion.numero ? ` (Hab. ${seleccion.numero})` : ''} · {seleccion.personas} persona{seleccion.personas !== 1 ? 's' : ''}
+                      {seleccion.combo && ` + ${seleccion.combo.tipo2} · ${seleccion.combo.personas2} persona${seleccion.combo.personas2 !== 1 ? 's' : ''}`}
+                    </p>
+                  )}
                   <div className="grid sm:grid-cols-2 gap-3">
                     <input
                       placeholder="Nombre completo"
@@ -452,25 +461,52 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
                       className="rounded-md border px-2 py-1.5 text-sm bg-background"
                     />
                   </div>
-                  {errorReserva && <p className="text-sm text-destructive">{errorReserva}</p>}
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={confirmarReserva}
-                      disabled={reservando}
-                      className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
-                    >
-                      {reservando ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                      Confirmar reserva
-                    </button>
-                    <button
-                      onClick={() => setSeleccion(null)}
-                      className="text-sm text-muted-foreground underline underline-offset-2"
-                    >
-                      Volver
-                    </button>
-                  </div>
-                </div>
-              )}
+                  <button
+                    onClick={() => setTab('reserva')}
+                    className="rounded-md bg-primary text-primary-foreground text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity"
+                  >
+                    Continuar
+                  </button>
+                </TabsContent>
+
+                {/* ==================== TAB: RESERVA ==================== */}
+                <TabsContent value="reserva" className="space-y-3 mt-4">
+                  {seleccion && (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        {seleccion.tipo}{seleccion.numero ? ` (Hab. ${seleccion.numero})` : ''} · {seleccion.personas} persona{seleccion.personas !== 1 ? 's' : ''}
+                      </p>
+                      <DesgloseTotal d={seleccion.desglose} />
+
+                      {seleccion.combo && (
+                        <>
+                          <p className="text-sm text-muted-foreground pt-1">
+                            {seleccion.combo.tipo2} · {seleccion.combo.personas2} persona{seleccion.combo.personas2 !== 1 ? 's' : ''}
+                          </p>
+                          <DesgloseTotal d={seleccion.combo.desglose2} />
+                          <div className="flex justify-between items-center rounded-lg border bg-primary/5 p-3 text-sm font-semibold">
+                            <span>Total combinado</span>
+                            <span>{formatMoney(seleccion.desglose.total + seleccion.combo.desglose2.total)}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground text-right">
+                            Seña a pagar ahora (30%): {formatMoney(Math.round((seleccion.desglose.total + seleccion.combo.desglose2.total) * 0.3))}
+                          </p>
+                        </>
+                      )}
+
+                      {errorReserva && <p className="text-sm text-destructive">{errorReserva}</p>}
+                      <button
+                        onClick={confirmarReserva}
+                        disabled={reservando}
+                        className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+                      >
+                        {reservando ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                        Confirmar reserva
+                      </button>
+                    </>
+                  )}
+                </TabsContent>
+              </Tabs>
             </>
           )}
         </DialogContent>
