@@ -38,10 +38,14 @@ export async function GET(
     noches: fechas.noches,
     personas,
     resultados: resultados.map((r) => ({
+      numero: r.numero,
       tipo: r.tipo,
-      disponibles: r.disponibles,
+      capacidad: r.capacidad,
+      camasMatrimoniales: r.camasMatrimoniales,
+      camasSimples: r.camasSimples,
       total: r.total,
       badges: r.badges,
+      desglose: r.desglose,
     })),
     combinaciones: combinaciones.map((c) => ({
       legs: c.legs,

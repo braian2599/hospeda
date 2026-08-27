@@ -110,16 +110,32 @@ export interface CalcTarifaOptions {
   checkin?: string;
 }
 
-/** Calcula el total a cobrar según la tarifa, cantidad de personas y noches. */
-export function calcularTotalSegunTarifa(
+export interface DesgloseTarifa {
+  tipoTarifa: string;
+  modoCobro: ModoCobro;
+  noches: number;
+  nochesCobrables: number;
+  nochesGratis: number;
+  adultos: number;
+  precioUnitario: number;
+  totalAdultos: number;
+  ninosCount: number;
+  precioNino: number;
+  totalNinos: number;
+  ahorroCortesia: number;
+  total: number;
+}
+
+/** Calcula el desglose completo del precio según la tarifa, personas y noches. Null si la tarifa no tiene rangos cargados. */
+export function calcularDesgloseTarifa(
   tarifas: Record<string, TarifaPrecios>,
   tipoTarifa: string,
   personas: number,
   noches: number,
   options?: CalcTarifaOptions
-): number {
+): DesgloseTarifa | null {
   const tarifa = tarifas[tipoTarifa] || tarifas['normal'];
-  if (!tarifa || !tarifa.rangos || tarifa.rangos.length === 0) return 0;
+  if (!tarifa || !tarifa.rangos || tarifa.rangos.length === 0) return null;
 
   const promociones = getPromocionesEfectivas(tarifa);
   const modo: ModoCobro = tarifa.modoCobro || 'porGrupo';
@@ -131,31 +147,42 @@ export function calcularTotalSegunTarifa(
   const cantNinos = (options?.ninos && ninosDif?.activo) ? options.ninos : 0;
   const adultos = Math.max(1, personas - cantNinos);
 
+  let precioUnitario: number;
+  let totalAdultos: number;
   if (modo === 'porCama') {
     const rango = encontrarRango(tarifa.rangos, adultos);
-    const precioCama = rango?.precio || tarifa.rangos[0]?.precio || 0;
-    let total = nochesCobrables * adultos * precioCama;
-    if (cantNinos > 0 && ninosDif?.activo) {
-      total += cantNinos * (ninosDif.precioNino || 0) * nochesCobrables;
-    }
-    return total;
+    precioUnitario = rango?.precio || tarifa.rangos[0]?.precio || 0;
+    totalAdultos = nochesCobrables * adultos * precioUnitario;
+  } else if (modo === 'porHabitacion') {
+    precioUnitario = tarifa.rangos[0]?.precio || 0;
+    totalAdultos = nochesCobrables * precioUnitario;
+  } else {
+    const rango = encontrarRango(tarifa.rangos, adultos);
+    if (!rango) return null;
+    precioUnitario = rango.precio;
+    totalAdultos = nochesCobrables * precioUnitario;
   }
 
-  if (modo === 'porHabitacion') {
-    const precio = tarifa.rangos[0]?.precio || 0;
-    let total = nochesCobrables * precio;
-    if (cantNinos > 0 && ninosDif?.activo) {
-      total += cantNinos * (ninosDif.precioNino || 0) * nochesCobrables;
-    }
-    return total;
-  }
+  const totalNinos = (cantNinos > 0 && ninosDif?.activo) ? cantNinos * (ninosDif.precioNino || 0) * nochesCobrables : 0;
+  const subtotalCobrable = totalAdultos + totalNinos;
+  const ahorroCortesia = (nochesGratis > 0 && nochesCobrables > 0)
+    ? Math.round(subtotalCobrable / nochesCobrables * nochesGratis)
+    : 0;
 
-  const rango = encontrarRango(tarifa.rangos, adultos);
-  if (!rango) return 0;
+  return {
+    tipoTarifa, modoCobro: modo, noches, nochesCobrables, nochesGratis, adultos,
+    precioUnitario, totalAdultos, ninosCount: cantNinos, precioNino: ninosDif?.precioNino || 0, totalNinos,
+    ahorroCortesia, total: subtotalCobrable,
+  };
+}
 
-  let total = nochesCobrables * rango.precio;
-  if (cantNinos > 0 && ninosDif?.activo) {
-    total += cantNinos * (ninosDif.precioNino || 0) * nochesCobrables;
-  }
-  return total;
+/** Calcula el total a cobrar según la tarifa, cantidad de personas y noches. */
+export function calcularTotalSegunTarifa(
+  tarifas: Record<string, TarifaPrecios>,
+  tipoTarifa: string,
+  personas: number,
+  noches: number,
+  options?: CalcTarifaOptions
+): number {
+  return calcularDesgloseTarifa(tarifas, tipoTarifa, personas, noches, options)?.total ?? 0;
 }

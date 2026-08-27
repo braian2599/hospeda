@@ -34,6 +34,7 @@ export async function POST(
   }
 
   const tipo = typeof body.tipo === 'string' ? body.tipo.trim() : '';
+  const habitacionSolicitada = typeof body.habitacion === 'string' ? body.habitacion.trim() : '';
   const huesped = typeof body.huesped === 'string' ? body.huesped.trim() : '';
   const dni = typeof body.dni === 'string' ? body.dni.trim() : '';
   const telefono = typeof body.telefono === 'string' ? body.telefono.trim() : '';
@@ -86,6 +87,12 @@ export async function POST(
       if (habsDeTipo.length === 0) {
         throw new Error('NO_DISPONIBLE');
       }
+
+      // Si el huésped eligió una habitación puntual (no solo el tipo), tiene que ser una de este tipo.
+      if (habitacionSolicitada && !habsDeTipo.some((h) => h.numero === habitacionSolicitada)) {
+        throw new Error('NO_DISPONIBLE');
+      }
+
       const ocupadas = await tx.reserva.findMany({
         where: {
           tenantId: tenant.id,
@@ -97,7 +104,9 @@ export async function POST(
         select: { habitacion: true },
       });
       const ocupadasSet = new Set(ocupadas.map((r) => r.habitacion));
-      const libre = habsDeTipo.find((h) => !ocupadasSet.has(h.numero));
+      const libre = habitacionSolicitada
+        ? habsDeTipo.find((h) => h.numero === habitacionSolicitada && !ocupadasSet.has(h.numero))
+        : habsDeTipo.find((h) => !ocupadasSet.has(h.numero));
       if (!libre) throw new Error('NO_DISPONIBLE');
 
       const total = calcularTotalSegunTarifa({ [tipo]: precios }, tipo, personas, fechas.noches, {
