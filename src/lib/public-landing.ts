@@ -3,7 +3,7 @@
 
 import { db } from '@/lib/db';
 import { parseFeatureFlags } from '@/lib/feature-flags';
-import { parseTarifaPrecios, calcularTotalSegunTarifa } from '@/lib/tarifa-calc';
+import { parseTarifaPrecios, calcularDesgloseTarifa, type DesgloseTarifa } from '@/lib/tarifa-calc';
 import { promoBadgesPublicos } from '@/lib/tarifas-format';
 
 const MAX_NOCHES_CONSULTA = 30;
@@ -88,18 +88,33 @@ export function parsePersonasConsulta(personasRaw: unknown): number | { error: s
   return personas;
 }
 
-export interface DisponibilidadTipo {
+export interface DesglosePublico {
+  tarifa: string;
+  noches: number;
+  nochesCobrables: number;
+  nochesGratis: number;
+  etiquetaUnitario: string;
+  montoUnitario: number;
+  ahorroCortesia: number;
+  total: number;
+}
+
+export interface HabitacionDisponiblePublica {
+  numero: string;
   tipo: string;
-  disponibles: number;
+  capacidad: number;
+  camasMatrimoniales: number;
+  camasSimples: number;
   total: number;
   badges: string[];
-  habitacionesLibres: string[];
+  desglose: DesglosePublico;
 }
 
 export interface CombinacionLeg {
   tipo: string;
   personas: number;
   subtotal: number;
+  desglose: DesglosePublico;
 }
 
 export interface CombinacionDisponible {
@@ -112,6 +127,8 @@ interface HabitacionLibre {
   numero: string;
   tipo: string;
   capacidad: number;
+  camasMatrimoniales: number;
+  camasSimples: number;
 }
 
 /** Todas las habitaciones libres del hotel (cualquier tipo) en el rango [checkin, checkout). */
@@ -128,17 +145,39 @@ async function habitacionesLibres(tenant: PublicTenant, checkin: Date, checkout:
   const ocupadasSet = new Set(ocupadas.map((r) => r.habitacion));
   return tenant.habitaciones
     .filter((h) => !ocupadasSet.has(h.numero))
-    .map((h) => ({ numero: h.numero, tipo: h.tipo, capacidad: h.capacidad }));
+    .map((h) => ({
+      numero: h.numero, tipo: h.tipo, capacidad: h.capacidad,
+      camasMatrimoniales: h.camasMatrimoniales, camasSimples: h.camasSimples,
+    }));
 }
 
-/** Precio del tipo dado para una cantidad de personas, o null si no tiene tarifa pública configurada. */
+function etiquetaUnitaria(d: DesgloseTarifa): string {
+  if (d.modoCobro === 'porCama') return `${d.adultos} persona${d.adultos !== 1 ? 's' : ''} × $${d.precioUnitario.toLocaleString('es-AR')}/cama/noche`;
+  if (d.modoCobro === 'porHabitacion') return `Habitación × $${d.precioUnitario.toLocaleString('es-AR')}/noche`;
+  return `${d.adultos} persona${d.adultos !== 1 ? 's' : ''} × $${d.precioUnitario.toLocaleString('es-AR')}/noche`;
+}
+
+function aDesglosePublico(d: DesgloseTarifa): DesglosePublico {
+  return {
+    tarifa: d.tipoTarifa,
+    noches: d.noches,
+    nochesCobrables: d.nochesCobrables,
+    nochesGratis: d.nochesGratis,
+    etiquetaUnitario: etiquetaUnitaria(d),
+    montoUnitario: d.totalAdultos,
+    ahorroCortesia: d.ahorroCortesia,
+    total: d.total,
+  };
+}
+
+/** Precio + desglose del tipo dado para una cantidad de personas, o null si no tiene tarifa pública configurada. */
 function precioDeTipo(
   tenant: PublicTenant,
   tarifasPublicas: Record<string, string>,
   tipo: string,
   personas: number,
   fechas: FechasValidadas
-): { total: number; badges: string[] } | null {
+): { total: number; badges: string[]; desglose: DesglosePublico } | null {
   const tarifaId = tarifasPublicas[tipo];
   if (!tarifaId) return null;
   const tarifaDb = tenant.tarifas.find((t) => t.id === tarifaId);
@@ -147,12 +186,12 @@ function precioDeTipo(
   const precios = parseTarifaPrecios(tarifaDb.precios);
   if (precios.rangos.length === 0) return null;
 
-  const total = calcularTotalSegunTarifa({ [tipo]: precios }, tipo, personas, fechas.noches, {
+  const desglose = calcularDesgloseTarifa({ [tipo]: precios }, tipo, personas, fechas.noches, {
     checkin: fechas.checkin.toISOString().slice(0, 10),
   });
-  if (total <= 0) return null;
+  if (!desglose || desglose.total <= 0) return null;
 
-  return { total, badges: promoBadgesPublicos(precios) };
+  return { total: desglose.total, badges: promoBadgesPublicos(precios), desglose: aDesglosePublico(desglose) };
 }
 
 /**
@@ -190,8 +229,8 @@ function buscarCombinaciones(
 
       resultados.push({
         legs: [
-          { tipo: a.tipo, personas: personasA, subtotal: precioA.total },
-          { tipo: b.tipo, personas: personasB, subtotal: precioB.total },
+          { tipo: a.tipo, personas: personasA, subtotal: precioA.total, desglose: precioA.desglose },
+          { tipo: b.tipo, personas: personasB, subtotal: precioB.total, desglose: precioB.desglose },
         ],
         capacidadTotal,
         total: precioA.total + precioB.total,
@@ -203,36 +242,43 @@ function buscarCombinaciones(
   return resultados;
 }
 
-/** Disponibilidad + precio por tipo de habitación, para los tipos con tarifa pública configurada. */
+/** Habitaciones individuales disponibles (con precio) + combinaciones, para los tipos con tarifa pública configurada. */
 export async function buscarDisponibilidad(
   tenant: PublicTenant,
   fechas: FechasValidadas,
   personas: number
-): Promise<{ resultados: DisponibilidadTipo[]; combinaciones: CombinacionDisponible[] }> {
+): Promise<{ resultados: HabitacionDisponiblePublica[]; combinaciones: CombinacionDisponible[] }> {
   const tarifasPublicas = (tenant.configuracion?.tarifasPublicas && typeof tenant.configuracion.tarifasPublicas === 'object')
     ? (tenant.configuracion.tarifasPublicas as Record<string, string>)
     : {};
 
   const libres = await habitacionesLibres(tenant, fechas.checkin, fechas.checkout);
-  const tipos = Array.from(new Set(tenant.habitaciones.map((h) => h.tipo)));
-  const resultados: DisponibilidadTipo[] = [];
 
-  for (const tipo of tipos) {
-    // Solo cuentan las habitaciones de este tipo que alcanzan para TODO el grupo.
-    const librresDelTipo = libres.filter((h) => h.tipo === tipo && h.capacidad >= personas);
-    if (librresDelTipo.length === 0) continue;
+  // Cachear precio por tipo — todas las habitaciones del mismo tipo comparten tarifa.
+  const precioPorTipo = new Map<string, ReturnType<typeof precioDeTipo>>();
+  const resultados: HabitacionDisponiblePublica[] = [];
 
-    const precio = precioDeTipo(tenant, tarifasPublicas, tipo, personas, fechas);
+  for (const h of libres) {
+    if (h.capacidad < personas) continue;
+
+    if (!precioPorTipo.has(h.tipo)) {
+      precioPorTipo.set(h.tipo, precioDeTipo(tenant, tarifasPublicas, h.tipo, personas, fechas));
+    }
+    const precio = precioPorTipo.get(h.tipo);
     if (!precio) continue;
 
     resultados.push({
-      tipo,
-      disponibles: librresDelTipo.length,
+      numero: h.numero,
+      tipo: h.tipo,
+      capacidad: h.capacidad,
+      camasMatrimoniales: h.camasMatrimoniales,
+      camasSimples: h.camasSimples,
       total: precio.total,
       badges: precio.badges,
-      habitacionesLibres: librresDelTipo.map((h) => h.numero),
+      desglose: precio.desglose,
     });
   }
+  resultados.sort((a, b) => a.tipo.localeCompare(b.tipo) || a.numero.localeCompare(b.numero));
 
   // Combinación de 2 habitaciones — solo tiene sentido ofrecerla cuando ninguna
   // habitación individual alcanza sola para el grupo completo.
