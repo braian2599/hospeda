@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireSuperAdmin } from '@/lib/super-admin/auth';
 import { invalidatePlansCache } from '@/lib/plan-server';
+import { parseFeatureFlags } from '@/lib/feature-flags';
 
 // GET /api/super-admin/plans — Listar todos los planes
 export async function GET() {
@@ -25,6 +26,7 @@ export async function GET() {
         maxTarifas: p.maxTarifas,
         maxReservasMes: p.maxReservasMes,
         modulos: p.modulos,
+        featureFlags: p.featureFlags,
         activo: p.activo,
       })),
     });
@@ -91,6 +93,7 @@ export async function PUT(req: NextRequest) {
         ...(data.maxTarifas !== undefined && { maxTarifas: data.maxTarifas }),
         ...(data.maxReservasMes !== undefined && { maxReservasMes: data.maxReservasMes }),
         ...(data.modulos !== undefined && { modulos: data.modulos }),
+        ...(data.featureFlags !== undefined && { featureFlags: parseFeatureFlags(data.featureFlags) }),
         ...(data.activo !== undefined && { activo: data.activo }),
       },
     });
@@ -120,6 +123,9 @@ export async function PUT(req: NextRequest) {
     }
     if (data.modulos !== undefined) {
       cambios.push(`módulos actualizados`);
+    }
+    if (data.featureFlags !== undefined) {
+      cambios.push(`integraciones actualizadas`);
     }
 
     // Auditar en TODOS los tenants que tienen este plan (para que quede registro en cada uno)

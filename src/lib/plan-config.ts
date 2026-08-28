@@ -8,7 +8,10 @@
 
 import type { ModuloId } from './types';
 
-export type PlanTipo = 'trial' | 'basico' | 'profesional' | 'premium';
+// 'basico' se mantiene en el tipo por compatibilidad con suscripciones viejas,
+// pero ya no se ofrece — ver Plan.activo. Los planes vendibles son
+// profesional (el más económico), premium y elite.
+export type PlanTipo = 'trial' | 'basico' | 'profesional' | 'premium' | 'elite';
 export type SubscriptionEstado = 'trial' | 'pendiente_pago' | 'activa' | 'cancelada' | 'vencida' | 'suspensa';
 
 export interface PlanInfo {
@@ -25,6 +28,7 @@ export interface PlanInfo {
 }
 
 // ─── Módulos por nivel ───
+// Fallback estático para 'basico' (retirado de la venta, ver Plan.activo).
 const MODULOS_BASICOS: ModuloId[] = [
   'dashboard',
   'habitaciones',
@@ -36,16 +40,26 @@ const MODULOS_BASICOS: ModuloId[] = [
 ];
 
 const MODULOS_PROFESIONAL: ModuloId[] = [
-  ...MODULOS_BASICOS,
+  'dashboard',
+  'habitaciones',
+  'reservas',
+  'checkin',
+  'limpieza',
+  'tarifas',
   'facturacion',
   'caja',
-  'reportes',
+  'usuarios',
 ];
 
 const MODULOS_PREMIUM: ModuloId[] = [
   ...MODULOS_PROFESIONAL,
-  'usuarios',
+  'clientes',
+  'reportes',
 ];
+
+// Elite incluye los mismos módulos que Premium — se diferencia por límites
+// (sin tope) y por las integraciones (ver FeatureFlag / Plan.featureFlags).
+const MODULOS_ELITE: ModuloId[] = MODULOS_PREMIUM;
 
 // ─── Planes estáticos (FALLBACK) ───
 // Se usan SOLAMENTE cuando la BD no responde o está vacía.
@@ -63,6 +77,8 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     modulos: MODULOS_PREMIUM,
     duracionDias: 30,
   },
+  // Retirado de la venta (Plan.activo = false en la BD) — se mantiene acá solo
+  // por compatibilidad de tipos, no se ofrece a hoteles nuevos.
   basico: {
     tipo: 'basico',
     nombre: 'Básico',
@@ -80,8 +96,8 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     nombre: 'Profesional',
     precio: 3500000,
     precioDisplay: '$35.000',
-    maxHabitaciones: 50,
-    maxUsuarios: 5,
+    maxHabitaciones: 20,
+    maxUsuarios: 3,
     maxTarifas: 10,
     maxReservasMes: 1000,
     modulos: MODULOS_PROFESIONAL,
@@ -92,11 +108,23 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     nombre: 'Premium',
     precio: 6500000,
     precioDisplay: '$65.000',
+    maxHabitaciones: 40,
+    maxUsuarios: 5,
+    maxTarifas: 0,
+    maxReservasMes: 0,
+    modulos: MODULOS_PREMIUM,
+    duracionDias: 30,
+  },
+  elite: {
+    tipo: 'elite',
+    nombre: 'Elite',
+    precio: 9000000,
+    precioDisplay: '$90.000',
     maxHabitaciones: 0,
     maxUsuarios: 0,
     maxTarifas: 0,
     maxReservasMes: 0,
-    modulos: MODULOS_PREMIUM,
+    modulos: MODULOS_ELITE,
     duracionDias: 30,
   },
 };
@@ -138,7 +166,7 @@ export function moduloDisponible(moduloId: ModuloId, planTipo: PlanTipo, plans?:
 /** Obtener el siguiente plan superior */
 export function proximoPlan(planTipo: PlanTipo, plans?: Record<string, PlanInfo>): PlanInfo | null {
   const source = plans || PLANES;
-  const orden: PlanTipo[] = ['trial', 'basico', 'profesional', 'premium'];
+  const orden: PlanTipo[] = ['trial', 'profesional', 'premium', 'elite'];
   const idx = orden.indexOf(planTipo);
   if (idx >= orden.length - 1) return null;
   return source[orden[idx + 1]] || PLANES[orden[idx + 1]];

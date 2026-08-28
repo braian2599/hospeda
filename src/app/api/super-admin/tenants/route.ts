@@ -92,7 +92,11 @@ export async function GET(req: NextRequest) {
           reservas: t._count.reservas,
           usuariosActivos: t._count.users,
         },
+        // featureFlags: la excepción manual cargada para este hotel (independiente del plan).
+        // featureFlagsPlan: lo que trae por defecto su plan actual — para mostrar en la UI
+        // cuál de las dos cosas está prendiendo cada integración.
         featureFlags: parseFeatureFlags(t.configuracion?.featureFlags),
+        featureFlagsPlan: parseFeatureFlags(sub?.plan?.featureFlags),
       };
     });
 
