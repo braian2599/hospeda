@@ -156,12 +156,16 @@ export async function POST(req: NextRequest) {
         estado = 'Parcial';
       }
 
+      // Reserva de seña manual (landing): el primer pago registrado confirma la
+      // reserva — recién ahí pasa a ocupar la habitación.
+      const nuevoEstadoReserva = reserva.estado === 'AConfirmar' ? 'Confirmada' : undefined;
+
       const updated = await tx.reserva.update({
         where: { id: reservaId },
-        data: { estadoPago: estado },
+        data: { estadoPago: estado, ...(nuevoEstadoReserva ? { estado: nuevoEstadoReserva } : {}) },
       });
 
-      return { pago, estadoPago: updated.estadoPago };
+      return { pago, estadoPago: updated.estadoPago, estado: updated.estado, confirmada: !!nuevoEstadoReserva };
     });
 
     // ── Auditoría (fuera de tx, no crítico) ──
@@ -169,12 +173,14 @@ export async function POST(req: NextRequest) {
       data: {
         tenantId,
         tipo: 'pago_registrado',
-        detalle: `Pago $${(montoInt / 100).toLocaleString('es-AR')} registrado para reserva ${reservaId} (${metodoResuelto})`,
+        detalle: result.confirmada
+          ? `Pago $${(montoInt / 100).toLocaleString('es-AR')} registrado para reserva ${reservaId} (${metodoResuelto}) — seña confirmada, la reserva pasa a Confirmada.`
+          : `Pago $${(montoInt / 100).toLocaleString('es-AR')} registrado para reserva ${reservaId} (${metodoResuelto})`,
         empleado: empleadoNombre,
       },
     }).catch(() => {});
 
-    return NextResponse.json({ success: true, estadoPago: result.estadoPago }, { status: 201 });
+    return NextResponse.json({ success: true, estadoPago: result.estadoPago, estado: result.estado }, { status: 201 });
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });

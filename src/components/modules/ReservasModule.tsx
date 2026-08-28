@@ -30,7 +30,7 @@ import {
  CalendarDays, Plus, Pencil, XCircle, Search, BedDouble, Users, Eye,
  AlertTriangle, ChevronDown, ChevronUp, Lightbulb,
  Download, LogIn, LogOut, CreditCard, Bed, TrendingUp, TrendingDown,
- ArrowRight, User,
+ ArrowRight, User, Loader2,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import TodaySummary from '@/components/modules/TodaySummary';
@@ -234,6 +234,7 @@ const estadoReservaBadge: Record<string, string> = {
  Cancelada: 'bg-destructive/15 text-destructive border-destructive/40',
  'Check-In realizado': 'bg-info/15 text-info border-info/40',
  'Check-Out realizado': 'bg-muted text-muted-foreground border-border',
+ 'A confirmar': 'bg-brand-amber/15 text-brand-amber border-brand-amber/40',
 };
 
 const estadoPagoBadge: Record<string, string> = {
@@ -242,7 +243,7 @@ const estadoPagoBadge: Record<string, string> = {
  Pagado: 'bg-success/15 text-success border-primary/40',
 };
 
-const estadosReserva = ['Confirmada', 'Cancelada', 'Check-In realizado', 'Check-Out realizado'];
+const estadosReserva = ['Confirmada', 'A confirmar', 'Cancelada', 'Check-In realizado', 'Check-Out realizado'];
 
 // ==================== DESGLOSE PRECIO COMPONENT ====================
 function DesglosePrecio({ form, computed, formatMoney, s }: {
@@ -447,6 +448,9 @@ export default function ReservasModule() {
  const [editingId, setEditingId] = useState<string | null>(null);
  const [cancelId, setCancelId] = useState<string | null>(null);
  const [detalleReserva, setDetalleReserva] = useState<Reserva | null>(null);
+ const [confirmarPagoReserva, setConfirmarPagoReserva] = useState<Reserva | null>(null);
+ const [confirmarPagoMetodo, setConfirmarPagoMetodo] = useState('');
+ const [confirmarPagoLoading, setConfirmarPagoLoading] = useState(false);
 
  // ==================== FORM STATE ====================
  const [form, setForm] = useState<NuevaReservaForm>(emptyForm);
@@ -875,6 +879,32 @@ export default function ReservasModule() {
  }
  setModalCancelOpen(false);
  setCancelId(null);
+ };
+
+ const abrirConfirmarPago = (r: Reserva) => {
+ setConfirmarPagoReserva(r);
+ setConfirmarPagoMetodo('');
+ };
+
+ const handleConfirmarPago = async () => {
+ if (!confirmarPagoReserva || !confirmarPagoMetodo) return;
+ if (caja.estado !== 'abierta') {
+ toast.error('Abrí la caja para confirmar el pago');
+ return;
+ }
+ setConfirmarPagoLoading(true);
+ try {
+ const senaMonto = Math.ceil(calcularTotalReserva(confirmarPagoReserva.id) * 0.3);
+ const pago = await registrarPago(confirmarPagoReserva.id, senaMonto, confirmarPagoMetodo, 'Seña confirmada manualmente');
+ if (pago) {
+ notifySuccess('Pago confirmado', `${confirmarPagoReserva.huesped} — la reserva pasa a Confirmada`);
+ setConfirmarPagoReserva(null);
+ } else {
+ toast.error('No se pudo confirmar el pago');
+ }
+ } finally {
+ setConfirmarPagoLoading(false);
+ }
  };
 
  // ==================== SAVE LOGIC ====================
@@ -1454,6 +1484,26 @@ export default function ReservasModule() {
        </Button>
      </>
    )}
+   {r.estado === 'A confirmar' && (
+     <>
+       <Button
+         size="sm"
+         variant="ghost"
+         className="h-7 text-xs px-2 text-primary hover:bg-primary/10 hover:text-primary"
+         onClick={() => abrirConfirmarPago(r)}
+       >
+         <CreditCard className="w-3 h-3 mr-1" />Confirmar pago
+       </Button>
+       <Button
+         size="sm"
+         variant="ghost"
+         className="h-7 text-xs px-2 text-destructive hover:bg-destructive/15"
+         onClick={() => openCancel(r.id)}
+       >
+         <XCircle className="w-3 h-3 mr-1" />Cancelar
+       </Button>
+     </>
+   )}
    {saldo > 0 && r.estado !== 'Cancelada' && (
      <Button
        size="sm"
@@ -1609,6 +1659,26 @@ export default function ReservasModule() {
              >
                <LogOut className="w-3 h-3 mr-1" />Check-out
              </Button>
+           )}
+           {r.estado === 'A confirmar' && (
+             <>
+               <Button
+                 size="sm"
+                 variant="outline"
+                 className="border-primary/40 text-primary hover:bg-primary/10 h-7 text-xs px-2"
+                 onClick={() => abrirConfirmarPago(r)}
+               >
+                 <CreditCard className="w-3 h-3 mr-1" />Confirmar pago
+               </Button>
+               <Button
+                 size="sm"
+                 variant="outline"
+                 className="border-destructive/40 text-destructive hover:bg-destructive/15 h-7 text-xs px-2"
+                 onClick={() => openCancel(r.id)}
+               >
+                 <XCircle className="w-3 h-3 mr-1" />Cancelar
+               </Button>
+             </>
            )}
            {saldo > 0 && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && (
              <Button
@@ -2378,6 +2448,45 @@ export default function ReservasModule() {
  <DialogFooter>
  <DialogClose asChild><Button variant="secondary">No cancelar</Button></DialogClose>
  <Button variant="destructive" onClick={handleCancel}>Sí, cancelar reserva</Button>
+ </DialogFooter>
+ </DialogContent>
+ </Dialog>
+
+ {/* ==================== MODAL CONFIRMAR PAGO (reserva "A confirmar") ==================== */}
+ <Dialog open={!!confirmarPagoReserva} onOpenChange={(open) => { if (!open) setConfirmarPagoReserva(null); }}>
+ <DialogContent className="sm:max-w-md">
+ <DialogHeader>
+ <DialogTitle>Confirmar pago de seña</DialogTitle>
+ </DialogHeader>
+ {confirmarPagoReserva && (
+ <div className="space-y-4">
+ <p className="text-sm text-muted-foreground">
+ {confirmarPagoReserva.huesped} — Hab. {confirmarPagoReserva.habitacion} · {formatFecha(confirmarPagoReserva.checkin)} → {formatFecha(confirmarPagoReserva.checkout)}
+ </p>
+ <div className="rounded-lg border bg-primary/5 p-3 text-center">
+ <p className="text-xs text-muted-foreground uppercase tracking-wide">Seña (30% del total)</p>
+ <p className="font-bold text-lg text-primary">{formatMoney(Math.ceil(calcularTotalReserva(confirmarPagoReserva.id) * 0.3))}</p>
+ </div>
+ <div className="grid gap-1.5">
+ <Label>¿Cómo se realizó el pago? *</Label>
+ <Select value={confirmarPagoMetodo} onValueChange={setConfirmarPagoMetodo}>
+ <SelectTrigger><SelectValue placeholder="Seleccionar método..." /></SelectTrigger>
+ <SelectContent>
+ {metodosPago.map(m => (
+ <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>
+ ))}
+ </SelectContent>
+ </Select>
+ </div>
+ <p className="text-xs text-muted-foreground">Al confirmar, la reserva pasa a &quot;Confirmada&quot; y ocupa la habitación.</p>
+ </div>
+ )}
+ <DialogFooter>
+ <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
+ <Button onClick={handleConfirmarPago} disabled={!confirmarPagoMetodo || confirmarPagoLoading}>
+ {confirmarPagoLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+ Confirmar pago
+ </Button>
  </DialogFooter>
  </DialogContent>
  </Dialog>

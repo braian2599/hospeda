@@ -28,6 +28,7 @@ export async function getPublicTenant(slug: string) {
         select: {
           featureFlags: true, tarifasPublicas: true,
           mostrarSeccionAgencias: true, textoAgencias: true,
+          modoCobroSena: true, senaWhatsapp: true, senaEmail: true, senaInstrucciones: true,
         },
       },
       habitaciones: {

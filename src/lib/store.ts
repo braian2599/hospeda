@@ -52,6 +52,7 @@ function mapDbReservaToStore(r: any, totalOverride?: number): Reserva {
   if (r.estado === 'CheckIn_realizado') estado = 'Check-In realizado';
   else if (r.estado === 'Checkout_realizado') estado = 'Check-Out realizado';
   else if (r.estado === 'Cancelada') estado = 'Cancelada';
+  else if (r.estado === 'AConfirmar') estado = 'A confirmar';
 
   return {
     id: r.id,
@@ -1032,6 +1033,12 @@ export const useHotelStore = create<HotelStore>()(
             pagos: currentPagos.map(p => p.id === tempId ? { ...p, id: dbPago.id } : p),
           });
           nuevoPago.id = (dbPago as any).id || dbPago;
+
+          // Reserva de seña manual: el primer pago la confirma (AConfirmar → Confirmada) —
+          // reflejar ese cambio en el store local para no necesitar refrescar la página.
+          if ((dbPago as any).estado === 'Confirmada' && reserva.estado === 'A confirmar') {
+            set({ reservas: get().reservas.map(r => r.id === idReserva ? { ...r, estado: 'Confirmada' } : r) });
+          }
 
           // Refrescar caja desde el server para traer el nuevo movimiento
           try {

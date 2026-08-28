@@ -1161,6 +1161,12 @@ function IntegracionesSection() {
   const [mpUserId, setMpUserId] = useState<string | null>(null);
   const [mpLoading, setMpLoading] = useState(true);
   const [mpDisconnecting, setMpDisconnecting] = useState(false);
+  const [modoCobroSena, setModoCobroSena] = useState<'mercadopago' | 'manual'>('mercadopago');
+  const [senaWhatsapp, setSenaWhatsapp] = useState('');
+  const [senaEmail, setSenaEmail] = useState('');
+  const [senaInstrucciones, setSenaInstrucciones] = useState('');
+  const [modoCobroLoading, setModoCobroLoading] = useState(true);
+  const [savingModoCobro, setSavingModoCobro] = useState(false);
 
   useEffect(() => {
     fetch('/api/configuracion/mercadopago')
@@ -1171,6 +1177,17 @@ function IntegracionesSection() {
       })
       .catch(() => {})
       .finally(() => setMpLoading(false));
+
+    fetch('/api/configuracion/hotel')
+      .then((r) => r.json())
+      .then((data) => {
+        setModoCobroSena(data.modoCobroSena === 'manual' ? 'manual' : 'mercadopago');
+        setSenaWhatsapp(data.senaWhatsapp || '');
+        setSenaEmail(data.senaEmail || '');
+        setSenaInstrucciones(data.senaInstrucciones || '');
+      })
+      .catch(() => {})
+      .finally(() => setModoCobroLoading(false));
   }, []);
 
   const handleDesconectarMp = async () => {
@@ -1186,6 +1203,24 @@ function IntegracionesSection() {
       toast.error((err as Error).message || 'Error al desconectar');
     } finally {
       setMpDisconnecting(false);
+    }
+  };
+
+  const handleGuardarModoCobro = async () => {
+    setSavingModoCobro(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modoCobroSena, senaWhatsapp, senaEmail, senaInstrucciones }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Modo de cobro guardado');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingModoCobro(false);
     }
   };
 
@@ -1299,27 +1334,85 @@ function IntegracionesSection() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Cobro de seña (Mercado Pago)</CardTitle>
-          <CardDescription>Conectá tu propia cuenta de Mercado Pago para cobrar la seña de las reservas online directo a tu cuenta.</CardDescription>
+          <CardTitle className="text-base">Cobro de seña</CardTitle>
+          <CardDescription>Elegí cómo se cobra la seña de las reservas hechas desde tu página pública.</CardDescription>
         </CardHeader>
-        <CardContent>
-          {mpLoading ? (
+        <CardContent className="space-y-4">
+          {modoCobroLoading ? (
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-          ) : mpConectado ? (
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm">
-                <p className="font-medium text-success">Cuenta conectada</p>
-                {mpUserId && <p className="text-xs text-muted-foreground">ID de cuenta: {mpUserId}</p>}
-              </div>
-              <Button variant="outline" size="sm" onClick={handleDesconectarMp} disabled={mpDisconnecting}>
-                {mpDisconnecting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Desconectar
-              </Button>
-            </div>
           ) : (
-            <Button asChild size="sm">
-              <a href="/api/configuracion/mercadopago/connect">Conectar Mercado Pago</a>
-            </Button>
+            <>
+              <div className="grid gap-1.5 max-w-xs">
+                <Label>Modo de cobro</Label>
+                <Select value={modoCobroSena} onValueChange={(v) => setModoCobroSena(v as 'mercadopago' | 'manual')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mercadopago">Mercado Pago (cobro automático)</SelectItem>
+                    <SelectItem value="manual">Contactar al hotel (cobro manual)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {modoCobroSena === 'mercadopago' ? (
+                mpLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                ) : mpConectado ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm">
+                      <p className="font-medium text-success">Cuenta conectada</p>
+                      {mpUserId && <p className="text-xs text-muted-foreground">ID de cuenta: {mpUserId}</p>}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={handleDesconectarMp} disabled={mpDisconnecting}>
+                      {mpDisconnecting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      Desconectar
+                    </Button>
+                  </div>
+                ) : (
+                  <Button asChild size="sm">
+                    <a href="/api/configuracion/mercadopago/connect">Conectar Mercado Pago</a>
+                  </Button>
+                )
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    El huésped va a ver estos datos para coordinar el pago de la seña con vos directamente — cargá al menos uno.
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="grid gap-1.5">
+                      <Label>WhatsApp</Label>
+                      <Input
+                        placeholder="+54 9 11 1234-5678"
+                        value={senaWhatsapp}
+                        onChange={(e) => setSenaWhatsapp(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label>Email</Label>
+                      <Input
+                        type="email"
+                        placeholder="reservas@tuhotel.com"
+                        value={senaEmail}
+                        onChange={(e) => setSenaEmail(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Instrucciones para el huésped (opcional)</Label>
+                    <Textarea
+                      placeholder="Ej: Transferí a alias hotel.mza o coordiná el medio de pago por WhatsApp."
+                      value={senaInstrucciones}
+                      onChange={(e) => setSenaInstrucciones(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <Button onClick={handleGuardarModoCobro} disabled={savingModoCobro} size="sm">
+                {savingModoCobro ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                Guardar
+              </Button>
+            </>
           )}
         </CardContent>
       </Card>

@@ -80,7 +80,7 @@ export interface Reserva {
   datosAdicionales?: Record<string, string>;
 }
 
-export type EstadoReserva = 'Confirmada' | 'Cancelada' | 'Check-In realizado' | 'Check-Out realizado';
+export type EstadoReserva = 'Confirmada' | 'Cancelada' | 'Check-In realizado' | 'Check-Out realizado' | 'A confirmar';
 
 export interface AgenciaData {
   nombre: string;
