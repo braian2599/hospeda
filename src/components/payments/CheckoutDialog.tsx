@@ -32,15 +32,15 @@ interface CheckoutDialogProps {
 
 // Descripciones de planes para el checkout
 const PLAN_DESC: Record<string, string> = {
-  basico: 'Ideal para alojamientos pequeños que están comenzando a digitalizar.',
-  profesional: 'Para hoteles en crecimiento que necesitan control financiero completo.',
-  premium: 'Sin límites. Para hoteles y cadenas que requieren el máximo control.',
+  profesional: 'Para arrancar a profesionalizar tu día a día.',
+  premium: 'Para tomar decisiones con datos y estar en regla con AFIP.',
+  elite: 'Para vender online, sin límites de habitaciones ni usuarios.',
 };
 
 const PLAN_MODULOS_EXTRA: Record<string, string[]> = {
-  basico: ['Dashboard', 'Habitaciones', 'Reservas', 'Check-In/Out', 'Limpieza', 'Clientes', 'Tarifas'],
-  profesional: ['Todo lo de Básico', 'Facturación', 'Caja / Arqueo', 'Reportes y Analytics'],
-  premium: ['Todo lo de Profesional', 'Gestión de usuarios avanzada', 'Soporte prioritario'],
+  profesional: ['Dashboard, Reservas y Check-In/Out', 'Habitaciones y Limpieza', 'Tarifas, Facturación y Caja', 'Gestión de usuarios (hasta el límite del plan)'],
+  premium: ['Todo lo de Profesional', 'Clientes y Reportes', 'Facturación electrónica con ARCA', 'Más habitaciones y usuarios'],
+  elite: ['Todo lo de Premium, sin límites', 'Landing page con reservas y pagos online', 'Sincronización con Booking y Airbnb', 'Soporte prioritario'],
 };
 
 export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: CheckoutDialogProps) {

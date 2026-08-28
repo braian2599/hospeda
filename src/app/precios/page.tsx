@@ -10,6 +10,9 @@ import FadeIn from '@/components/public/FadeIn';
 import PlanCard from '@/components/payments/PlanCard';
 import CheckoutDialog from '@/components/payments/CheckoutDialog';
 import type { PlanTipo } from '@/lib/plan-config';
+import { usePlans } from '@/hooks/usePlans';
+import { MODULOS_SISTEMA } from '@/lib/types';
+import { FEATURE_FLAGS, type FeatureFlag } from '@/lib/feature-flags';
 import {
   Check,
   X,
@@ -32,50 +35,22 @@ const TRUST_BADGES = [
 
 /* ============================================================
  * Comparison table — features per plan
+ * Se arma a partir de los planes en vivo (usePlans), no hay texto
+ * hardcodeado: si se edita un plan desde el super-admin, esta tabla
+ * se actualiza sola.
  * (API access & Multi-sede intentionally excluded — not implemented)
  * ========================================================== */
 
 type Row = {
   label: string;
-  basico: string | boolean;
   profesional: string | boolean;
   premium: string | boolean;
+  elite: string | boolean;
 };
 
-const COMPARISON_SECTIONS: { title: string; rows: Row[] }[] = [
-  {
-    title: 'Límites',
-    rows: [
-      { label: 'Habitaciones', basico: 'Hasta 10', profesional: 'Hasta 50', premium: 'Ilimitadas' },
-      { label: 'Usuarios', basico: 'Hasta 2', profesional: 'Hasta 5', premium: 'Ilimitados' },
-      { label: 'Tarifas', basico: 'Hasta 2', profesional: 'Hasta 10', premium: 'Ilimitadas' },
-      { label: 'Reservas por mes', basico: 'Hasta 100', profesional: 'Hasta 1.000', premium: 'Ilimitadas' },
-    ],
-  },
-  {
-    title: 'Módulos',
-    rows: [
-      { label: 'Dashboard', basico: true, profesional: true, premium: true },
-      { label: 'Reservas y Calendario', basico: true, profesional: true, premium: true },
-      { label: 'Check-In / Check-Out', basico: true, profesional: true, premium: true },
-      { label: 'Habitaciones', basico: true, profesional: true, premium: true },
-      { label: 'Limpieza y Mantenimiento', basico: true, profesional: true, premium: true },
-      { label: 'Clientes', basico: true, profesional: true, premium: true },
-      { label: 'Tarifas', basico: true, profesional: true, premium: true },
-      { label: 'Facturación', basico: false, profesional: true, premium: true },
-      { label: 'Caja', basico: false, profesional: true, premium: true },
-      { label: 'Reportes', basico: false, profesional: true, premium: true },
-      { label: 'Usuarios y Permisos', basico: false, profesional: false, premium: true },
-    ],
-  },
-  {
-    title: 'Soporte',
-    rows: [
-      { label: 'Soporte por email', basico: true, profesional: true, premium: true },
-      { label: 'Soporte prioritario', basico: false, profesional: false, premium: true },
-    ],
-  },
-];
+function limiteTexto(n: number): string {
+  return n === 0 ? 'Ilimitado' : `Hasta ${n}`;
+}
 
 function renderCell(value: string | boolean) {
   if (typeof value === 'boolean') {
@@ -127,11 +102,53 @@ export default function PreciosPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanTipo, 'trial'> | null>(null);
+  const plans = usePlans();
 
   const handlePlanSelect = (plan: Exclude<PlanTipo, 'trial'>) => {
     setSelectedPlan(plan);
     setCheckoutOpen(true);
   };
+
+  const p = plans.profesional;
+  const pr = plans.premium;
+  const e = plans.elite;
+
+  const comparisonSections: { title: string; rows: Row[] }[] = [
+    {
+      title: 'Límites',
+      rows: [
+        { label: 'Habitaciones', profesional: limiteTexto(p.maxHabitaciones), premium: limiteTexto(pr.maxHabitaciones), elite: limiteTexto(e.maxHabitaciones) },
+        { label: 'Usuarios', profesional: limiteTexto(p.maxUsuarios), premium: limiteTexto(pr.maxUsuarios), elite: limiteTexto(e.maxUsuarios) },
+        { label: 'Tarifas', profesional: limiteTexto(p.maxTarifas), premium: limiteTexto(pr.maxTarifas), elite: limiteTexto(e.maxTarifas) },
+        { label: 'Reservas por mes', profesional: limiteTexto(p.maxReservasMes), premium: limiteTexto(pr.maxReservasMes), elite: limiteTexto(e.maxReservasMes) },
+      ],
+    },
+    {
+      title: 'Módulos',
+      rows: MODULOS_SISTEMA.filter((m) => m.id !== 'configuracion').map((m) => ({
+        label: m.label,
+        profesional: p.modulos.includes(m.id),
+        premium: pr.modulos.includes(m.id),
+        elite: e.modulos.includes(m.id),
+      })),
+    },
+    {
+      title: 'Integraciones',
+      rows: (Object.keys(FEATURE_FLAGS) as FeatureFlag[]).map((f) => ({
+        label: FEATURE_FLAGS[f].label,
+        profesional: !!p.featureFlags[f],
+        premium: !!pr.featureFlags[f],
+        elite: !!e.featureFlags[f],
+      })),
+    },
+    {
+      title: 'Soporte',
+      rows: [
+        { label: 'Soporte por email', profesional: true, premium: true, elite: true },
+        { label: 'Soporte prioritario', profesional: false, premium: false, elite: true },
+      ],
+    },
+  ];
 
   return (
     <main className="flex min-h-screen flex-col bg-background">
@@ -170,13 +187,13 @@ export default function PreciosPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             <FadeIn>
-              <PlanCard planTipo="basico" onSelect={handlePlanSelect} />
+              <PlanCard planTipo="profesional" onSelect={handlePlanSelect} />
             </FadeIn>
             <FadeIn delay={100}>
-              <PlanCard planTipo="profesional" destacado onSelect={handlePlanSelect} />
+              <PlanCard planTipo="premium" destacado onSelect={handlePlanSelect} />
             </FadeIn>
             <FadeIn delay={200}>
-              <PlanCard planTipo="premium" onSelect={handlePlanSelect} />
+              <PlanCard planTipo="elite" onSelect={handlePlanSelect} />
             </FadeIn>
           </div>
           <p className="mt-8 text-center text-sm text-muted-foreground">
@@ -207,13 +224,13 @@ export default function PreciosPage() {
               <thead>
                 <tr className="border-b border-border bg-secondary/50">
                   <th className="p-4 text-left text-sm font-semibold text-foreground">Característica</th>
-                  <th className="p-4 text-center text-sm font-semibold text-foreground">Básico</th>
-                  <th className="bg-primary/5 p-4 text-center text-sm font-semibold text-primary">Profesional</th>
-                  <th className="p-4 text-center text-sm font-semibold text-foreground">Premium</th>
+                  <th className="p-4 text-center text-sm font-semibold text-foreground">Profesional</th>
+                  <th className="bg-primary/5 p-4 text-center text-sm font-semibold text-primary">Premium</th>
+                  <th className="p-4 text-center text-sm font-semibold text-foreground">Elite</th>
                 </tr>
               </thead>
               <tbody>
-                {COMPARISON_SECTIONS.map(section => (
+                {comparisonSections.map(section => (
                   <Fragment key={section.title}>
                     <tr className="border-b border-border bg-secondary/30">
                       <td colSpan={4} className="p-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -223,9 +240,9 @@ export default function PreciosPage() {
                     {section.rows.map(row => (
                       <tr key={row.label} className="border-b border-border last:border-0">
                         <td className="p-4 text-sm text-foreground">{row.label}</td>
-                        <td className="p-4 text-center">{renderCell(row.basico)}</td>
-                        <td className="bg-primary/5 p-4 text-center">{renderCell(row.profesional)}</td>
-                        <td className="p-4 text-center">{renderCell(row.premium)}</td>
+                        <td className="p-4 text-center">{renderCell(row.profesional)}</td>
+                        <td className="bg-primary/5 p-4 text-center">{renderCell(row.premium)}</td>
+                        <td className="p-4 text-center">{renderCell(row.elite)}</td>
                       </tr>
                     ))}
                   </Fragment>
@@ -236,7 +253,7 @@ export default function PreciosPage() {
 
           {/* Mobile stacked cards */}
           <div className="space-y-6 md:hidden">
-            {COMPARISON_SECTIONS.map(section => (
+            {comparisonSections.map(section => (
               <FadeIn key={section.title}>
                 <div className="rounded-2xl border border-border bg-card p-5">
                   <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -248,16 +265,16 @@ export default function PreciosPage() {
                         <p className="mb-2 text-sm font-medium text-foreground">{row.label}</p>
                         <div className="grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
                           <div>
-                            <p className="mb-1 font-semibold text-foreground/70">Básico</p>
-                            <div className="flex justify-center">{renderCell(row.basico)}</div>
-                          </div>
-                          <div className="rounded-md bg-primary/5 py-1">
-                            <p className="mb-1 font-semibold text-primary">Pro</p>
+                            <p className="mb-1 font-semibold text-foreground/70">Profesional</p>
                             <div className="flex justify-center">{renderCell(row.profesional)}</div>
                           </div>
-                          <div>
-                            <p className="mb-1 font-semibold text-foreground/70">Premium</p>
+                          <div className="rounded-md bg-primary/5 py-1">
+                            <p className="mb-1 font-semibold text-primary">Premium</p>
                             <div className="flex justify-center">{renderCell(row.premium)}</div>
+                          </div>
+                          <div>
+                            <p className="mb-1 font-semibold text-foreground/70">Elite</p>
+                            <div className="flex justify-center">{renderCell(row.elite)}</div>
                           </div>
                         </div>
                       </div>

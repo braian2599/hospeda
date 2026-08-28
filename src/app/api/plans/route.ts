@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { PLANES, type PlanTipo, type PlanInfo } from '@/lib/plan-config';
+import { parseFeatureFlags } from '@/lib/feature-flags';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ function dbPlanToPlanInfo(plan: {
   maxTarifas: number;
   maxReservasMes: number;
   modulos: any;
+  featureFlags: any;
 }): PlanInfo {
   return {
     tipo: plan.type as PlanTipo,
@@ -34,6 +36,7 @@ function dbPlanToPlanInfo(plan: {
     maxTarifas: plan.maxTarifas,
     maxReservasMes: plan.maxReservasMes,
     modulos: Array.isArray(plan.modulos) ? plan.modulos : [],
+    featureFlags: parseFeatureFlags(plan.featureFlags),
     duracionDias: 30,
   };
 }
