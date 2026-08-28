@@ -21,6 +21,7 @@ import { AnimatedNumber } from '@/components/ui/animated-number';
 
 import GuestTimeline from './dashboard/GuestTimeline';
 import RoomTypeDistribution from './dashboard/RoomTypeDistribution';
+import ReservasSenaKPI from './dashboard/ReservasSenaKPI';
 import {
   AreaChart, Area, ResponsiveContainer,
 } from 'recharts';
@@ -1016,6 +1017,9 @@ export default function DashboardModule() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Reservas online (landing): próximos check-ins o a confirmar según modo de cobro */}
+      <ReservasSenaKPI />
 
       {/* Próximos Check-ins / Check-outs con acciones inline */}
       <div className="grid md:grid-cols-2 gap-4">

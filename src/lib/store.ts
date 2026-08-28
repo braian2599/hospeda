@@ -80,6 +80,7 @@ function mapDbReservaToStore(r: any, totalOverride?: number): Reserva {
     horaCheckin: r.horaCheckin || undefined,
     horaCheckout: r.horaCheckout || undefined,
     datosAdicionales: (r.datosAdicionales as Record<string, string>) || undefined,
+    origen: r.origen || undefined,
   };
 }
 
