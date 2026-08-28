@@ -71,6 +71,7 @@ model Plan {
   maxTarifas      Int
   maxReservasMes  Int
   modulos         Json
+  featureFlags    Json           @default("{}")
   activo          Boolean        @default(true)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
@@ -676,6 +677,7 @@ enum PlanType {
   basico
   profesional
   premium
+  elite
   trial
 }
 

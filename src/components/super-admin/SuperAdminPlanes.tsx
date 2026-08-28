@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -17,6 +19,8 @@ import {
 import { Pencil, Save, Loader2, Check, X, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { NOMBRES_MODULOS } from '@/lib/plan-config';
+import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
+import { FEATURE_FLAGS, DEFAULT_FLAGS, type FeatureFlag } from '@/lib/feature-flags';
 
 // ─── Types ───
 interface Plan {
@@ -30,6 +34,7 @@ interface Plan {
   maxTarifas: number;
   maxReservasMes: number;
   modulos: string[];
+  featureFlags: Record<string, boolean>;
   activo: boolean;
 }
 
@@ -57,7 +62,10 @@ export default function SuperAdminPlanes() {
     maxUsuarios: '',
     maxTarifas: '',
     maxReservasMes: '',
+    activo: true,
   });
+  const [formModulos, setFormModulos] = useState<Set<ModuloId>>(new Set());
+  const [formFlags, setFormFlags] = useState<Record<FeatureFlag, boolean>>({ ...DEFAULT_FLAGS });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -80,8 +88,20 @@ export default function SuperAdminPlanes() {
       maxUsuarios: plan.maxUsuarios.toString(),
       maxTarifas: plan.maxTarifas.toString(),
       maxReservasMes: plan.maxReservasMes.toString(),
+      activo: plan.activo,
     });
+    setFormModulos(new Set(plan.modulos as ModuloId[]));
+    setFormFlags({ ...DEFAULT_FLAGS, ...plan.featureFlags } as Record<FeatureFlag, boolean>);
     setEditOpen(true);
+  };
+
+  const toggleModulo = (id: ModuloId, checked: boolean) => {
+    setFormModulos((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   };
 
   const handleSave = async () => {
@@ -96,6 +116,9 @@ export default function SuperAdminPlanes() {
         maxUsuarios: parseInt(formData.maxUsuarios) || 0,
         maxTarifas: parseInt(formData.maxTarifas) || 0,
         maxReservasMes: parseInt(formData.maxReservasMes) || 0,
+        activo: formData.activo,
+        modulos: Array.from(formModulos),
+        featureFlags: formFlags,
       };
 
       const res = await fetch('/api/super-admin/plans', {
@@ -121,9 +144,10 @@ export default function SuperAdminPlanes() {
 
   const planTypeColors: Record<string, string> = {
     trial: 'bg-warning',
-    basico: 'bg-success',
+    basico: 'bg-muted-foreground',
     profesional: 'bg-info',
     premium: 'bg-chart-5',
+    elite: 'bg-primary',
   };
 
   if (loading) {
@@ -231,6 +255,22 @@ export default function SuperAdminPlanes() {
                 </div>
               </div>
 
+              {/* Integrations */}
+              {Object.entries(plan.featureFlags || {}).some(([, v]) => v) && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2">Integraciones</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(Object.keys(FEATURE_FLAGS) as FeatureFlag[])
+                      .filter((flag) => plan.featureFlags?.[flag])
+                      .map((flag) => (
+                        <Badge key={flag} className="text-xs font-normal bg-primary/15 text-primary border-primary/30">
+                          {FEATURE_FLAGS[flag].label}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+              )}
+
               {/* Edit button */}
               <Button
                 variant="outline"
@@ -248,7 +288,7 @@ export default function SuperAdminPlanes() {
 
       {/* ─── Edit Dialog ─── */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
@@ -256,6 +296,16 @@ export default function SuperAdminPlanes() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+              <div>
+                <Label>Plan activo</Label>
+                <p className="text-xs text-muted-foreground">Si está apagado, no aparece como opción para nuevos hoteles.</p>
+              </div>
+              <Switch
+                checked={formData.activo}
+                onCheckedChange={(checked) => setFormData((f) => ({ ...f, activo: checked }))}
+              />
+            </div>
             <div className="space-y-2">
               <Label>Nombre</Label>
               <Input
@@ -317,6 +367,42 @@ export default function SuperAdminPlanes() {
                 />
                 <p className="text-xs text-muted-foreground">0 = ilimitado</p>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Módulos incluidos</Label>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 p-3 rounded-lg border bg-card">
+                {MODULOS_SISTEMA.map((mod) => (
+                  <label key={mod.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={formModulos.has(mod.id)}
+                      onCheckedChange={(checked) => toggleModulo(mod.id, checked === true)}
+                    />
+                    {mod.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Integraciones</Label>
+              <div className="space-y-2">
+                {(Object.keys(FEATURE_FLAGS) as FeatureFlag[]).map((flag) => (
+                  <div key={flag} className="flex items-center justify-between p-2 rounded-lg border bg-card">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{FEATURE_FLAGS[flag].label}</p>
+                      <p className="text-xs text-muted-foreground">{FEATURE_FLAGS[flag].description}</p>
+                    </div>
+                    <Switch
+                      checked={formFlags[flag]}
+                      onCheckedChange={(checked) => setFormFlags((f) => ({ ...f, [flag]: checked }))}
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Un hotel puede tener una integración activa igual sin que la traiga el plan — es una excepción puntual que se carga desde Cuentas.
+              </p>
             </div>
           </div>
           <DialogFooter>

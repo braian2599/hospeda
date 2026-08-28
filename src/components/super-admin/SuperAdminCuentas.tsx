@@ -82,6 +82,7 @@ interface Tenant {
     usuariosActivos: number;
   };
   featureFlags: Record<FeatureFlag, boolean>;
+  featureFlagsPlan: Record<FeatureFlag, boolean>;
 }
 
 interface PlanOption {
@@ -524,29 +525,44 @@ export default function SuperAdminCuentas() {
                               )}
 
                               <p className="text-xs font-medium text-muted-foreground mt-4 mb-2">
-                                Funcionalidades en prueba
+                                Integraciones
                               </p>
                               <div className="space-y-2">
                                 {(Object.keys(FEATURE_FLAGS) as FeatureFlag[]).map((flag) => {
                                   const loadingKey = `${t.id}:${flag}`;
+                                  const incluidaPorPlan = t.featureFlagsPlan?.[flag];
                                   return (
                                     <div
                                       key={flag}
                                       className="flex items-center justify-between p-2 rounded-lg border bg-card"
                                     >
                                       <div className="min-w-0">
-                                        <p className="text-sm font-medium">{FEATURE_FLAGS[flag].label}</p>
+                                        <p className="text-sm font-medium flex items-center gap-1.5">
+                                          {FEATURE_FLAGS[flag].label}
+                                          {incluidaPorPlan && (
+                                            <Badge variant="outline" className="text-[10px] font-normal text-primary border-primary/40">
+                                              Incluida en el plan
+                                            </Badge>
+                                          )}
+                                        </p>
                                         <p className="text-xs text-muted-foreground">{FEATURE_FLAGS[flag].description}</p>
                                       </div>
-                                      <Switch
-                                        checked={t.featureFlags[flag]}
-                                        disabled={flagLoading.has(loadingKey)}
-                                        onCheckedChange={(checked) => handleToggleFlag(t, flag, checked)}
-                                      />
+                                      {incluidaPorPlan ? (
+                                        <Switch checked disabled title="La trae el plan actual del hotel — se apaga cambiando el plan, no acá" />
+                                      ) : (
+                                        <Switch
+                                          checked={t.featureFlags[flag]}
+                                          disabled={flagLoading.has(loadingKey)}
+                                          onCheckedChange={(checked) => handleToggleFlag(t, flag, checked)}
+                                        />
+                                      )}
                                     </div>
                                   );
                                 })}
                               </div>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Lo tildado acá es una excepción puntual para este hotel, además de lo que ya trae su plan.
+                              </p>
                             </div>
                           </TableCell>
                         </TableRow>
