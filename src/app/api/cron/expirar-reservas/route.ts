@@ -23,14 +23,23 @@ export async function GET(req: NextRequest) {
   const limiteMp = new Date(Date.now() - EXPIRACION_MINUTOS_MP * 60 * 1000);
   const limiteManual = new Date(Date.now() - EXPIRACION_HORAS_MANUAL * 60 * 60 * 1000);
 
+  // Las reservas de Mercado Pago sin pagar ya habían pasado su habitación a
+  // 'Reservada' al crearse (quedan 'Confirmada' desde el inicio) — hay que
+  // liberarlas al cancelarlas. Las de modo manual nunca llegaron a tocar la
+  // habitación (siguen 'AConfirmar'), así que no necesitan liberación.
+  const expiradasMpRows = await db.reserva.findMany({
+    where: {
+      origen: 'landing',
+      estado: 'Confirmada',
+      estadoPago: 'Pendiente',
+      createdAt: { lt: limiteMp },
+    },
+    select: { id: true, tenantId: true, habitacion: true },
+  });
+
   const [expiradasMp, expiradasManual] = await Promise.all([
     db.reserva.updateMany({
-      where: {
-        origen: 'landing',
-        estado: 'Confirmada',
-        estadoPago: 'Pendiente',
-        createdAt: { lt: limiteMp },
-      },
+      where: { id: { in: expiradasMpRows.map((r) => r.id) } },
       data: { estado: 'Cancelada' },
     }),
     db.reserva.updateMany({
@@ -42,6 +51,25 @@ export async function GET(req: NextRequest) {
       data: { estado: 'Cancelada' },
     }),
   ]);
+
+  const habitacionesAfectadas = new Map<string, { tenantId: string; habitacion: string }>();
+  for (const r of expiradasMpRows) {
+    habitacionesAfectadas.set(`${r.tenantId}::${r.habitacion}`, { tenantId: r.tenantId, habitacion: r.habitacion });
+  }
+
+  await Promise.all(
+    Array.from(habitacionesAfectadas.values()).map(async ({ tenantId, habitacion }) => {
+      const otraActiva = await db.reserva.count({
+        where: { tenantId, habitacion, estado: { in: ['Confirmada', 'CheckIn_realizado'] } },
+      }).catch(() => 1);
+      if (otraActiva === 0) {
+        await db.habitacion.update({
+          where: { tenantId_numero: { tenantId, numero: habitacion } },
+          data: { estado: 'Disponible' },
+        }).catch(() => {});
+      }
+    })
+  );
 
   return NextResponse.json({ canceladas: expiradasMp.count + expiradasManual.count });
 }
