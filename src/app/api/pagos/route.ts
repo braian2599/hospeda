@@ -165,6 +165,15 @@ export async function POST(req: NextRequest) {
         data: { estadoPago: estado, ...(nuevoEstadoReserva ? { estado: nuevoEstadoReserva } : {}) },
       });
 
+      // La reserva pasa a 'Confirmada': igual que toda reserva confirmada del
+      // sistema, la habitación pasa a 'Reservada' recién ahora.
+      if (nuevoEstadoReserva) {
+        await tx.habitacion.update({
+          where: { tenantId_numero: { tenantId, numero: reserva.habitacion } },
+          data: { estado: 'Reservada' },
+        });
+      }
+
       return { pago, estadoPago: updated.estadoPago, estado: updated.estado, confirmada: !!nuevoEstadoReserva };
     });
 

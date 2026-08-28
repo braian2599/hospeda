@@ -126,6 +126,8 @@ export async function POST(
 
   let reservaId: string | null = null;
   let reservaId2: string | null = null;
+  let habitacionReservada1: string | null = null;
+  let habitacionReservada2: string | null = null;
   try {
     const { r1, r2 } = await db.$transaction(async (tx) => {
       // ── Leg 1: re-chequeo de disponibilidad dentro de la transacción ──
@@ -194,6 +196,17 @@ export async function POST(
         },
       });
 
+      // Modo Mercado Pago: la reserva queda 'Confirmada' desde ya (igual que toda
+      // reserva interna), así que la habitación pasa a 'Reservada' de inmediato. Modo
+      // manual: la reserva queda 'AConfirmar' y la habitación NO se toca todavía —
+      // recién se reserva cuando el personal confirme el pago de la seña.
+      if (modoCobroSena !== 'manual') {
+        await tx.habitacion.update({
+          where: { tenantId_numero: { tenantId: tenant.id, numero: libre1.numero } },
+          data: { estado: 'Reservada' },
+        });
+      }
+
       // ── Leg 2 (combinación) — misma lógica, excluyendo la habitación ya asignada al leg 1 ──
       let nueva2: typeof nueva1 | null = null;
       if (tipo2 && tarifa2 && personas2 !== null) {
@@ -260,6 +273,13 @@ export async function POST(
             empleado: 'Landing pública',
           },
         });
+
+        if (modoCobroSena !== 'manual') {
+          await tx.habitacion.update({
+            where: { tenantId_numero: { tenantId: tenant.id, numero: libre2.numero } },
+            data: { estado: 'Reservada' },
+          });
+        }
       }
 
       return { r1: nueva1, r2: nueva2 };
@@ -267,6 +287,10 @@ export async function POST(
 
     reservaId = r1.id;
     reservaId2 = r2?.id ?? null;
+    if (modoCobroSena !== 'manual') {
+      habitacionReservada1 = r1.habitacion;
+      habitacionReservada2 = r2?.habitacion ?? null;
+    }
 
     // r1.total/r2.total están en centavos (recién guardados así arriba) — todo lo que
     // sigue (Mercado Pago, la respuesta al widget) trabaja en pesos.
@@ -330,6 +354,22 @@ export async function POST(
     if (reservaId) {
       const ids = reservaId2 ? [reservaId, reservaId2] : [reservaId];
       await db.reserva.updateMany({ where: { id: { in: ids } }, data: { estado: 'Cancelada' } }).catch(() => {});
+
+      // Estas reservas habían quedado 'Confirmada' (modo Mercado Pago) y ya habían
+      // pasado su habitación a 'Reservada' — al cancelarlas por la falla del
+      // checkout, hay que liberarlas si ninguna otra reserva activa las ocupa.
+      const habsALiberar = [habitacionReservada1, habitacionReservada2].filter((h): h is string => !!h);
+      for (const numero of habsALiberar) {
+        const otraActiva = await db.reserva.count({
+          where: { tenantId: tenant.id, habitacion: numero, estado: { in: ['Confirmada', 'CheckIn_realizado'] } },
+        }).catch(() => 1);
+        if (otraActiva === 0) {
+          await db.habitacion.update({
+            where: { tenantId_numero: { tenantId: tenant.id, numero } },
+            data: { estado: 'Disponible' },
+          }).catch(() => {});
+        }
+      }
     }
 
     console.error('POST /api/public/[slug]/reservar:', err);
