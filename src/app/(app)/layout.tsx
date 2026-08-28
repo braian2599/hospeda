@@ -7,6 +7,7 @@ import AuthProvider from '@/components/providers/SessionProvider';
 import { useHotelStore } from '@/lib/store';
 import { usePlans } from '@/hooks/usePlans';
 import { usePresence } from '@/hooks/usePresence';
+import { useLandingEventsPolling } from '@/hooks/useLandingEventsPolling';
 import { Button } from '@/components/ui/button';
 import { LogOut, Hotel, ChevronRight, Loader2, KeyRound, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -200,6 +201,9 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
 
   // ── Real-time presence tracking (heartbeat + online users) ──
   usePresence();
+
+  // ── Polling liviano: avisa reservas y pagos de seña de la landing ──
+  useLandingEventsPolling();
 
   // Actualizar el JWT de NextAuth con el tenantId seleccionado
   const loginAndUpdateSession = useCallback(async (data: Record<string, any>) => {
