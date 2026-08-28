@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { syncCanalExterno } from '@/lib/ical-sync';
+import { isCronAuthorized, isCronConfigured } from '@/lib/cron-auth';
 
 // GET /api/cron/ical-sync?secret=... — Dispara la sync de TODOS los canales
 // externos con importUrl configurada. Pensado para un cron externo
 // (cron-job.org, Vercel Cron, etc.), no requiere sesión de usuario —
 // se protege con un secreto compartido en vez de auth de NextAuth.
 export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('secret') || req.headers.get('x-cron-secret');
-  const expected = process.env.CRON_SYNC_SECRET;
-
-  if (!expected) {
+  if (!isCronConfigured()) {
     return NextResponse.json({ error: 'CRON_SYNC_SECRET no configurado en el servidor' }, { status: 503 });
   }
-  if (secret !== expected) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 

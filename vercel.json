@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron/expirar-reservas", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/ical-sync", "schedule": "0 6 * * *" }
+  ]
+}
