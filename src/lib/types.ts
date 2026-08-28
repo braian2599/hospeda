@@ -78,6 +78,7 @@ export interface Reserva {
   horaCheckin?: string;
   horaCheckout?: string;
   datosAdicionales?: Record<string, string>;
+  origen?: string;
 }
 
 export type EstadoReserva = 'Confirmada' | 'Cancelada' | 'Check-In realizado' | 'Check-Out realizado' | 'A confirmar';
