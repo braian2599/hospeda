@@ -343,11 +343,11 @@ export default function SuscripcionModule() {
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
-          {(['basico', 'profesional', 'premium'] as const).map(tipo => (
+          {(['profesional', 'premium', 'elite'] as const).map(tipo => (
             <PlanCard
               key={tipo}
               planTipo={tipo}
-              destacado={tipo === 'profesional'}
+              destacado={tipo === 'premium'}
               onSelect={handleSelectPlan}
               compact
             />

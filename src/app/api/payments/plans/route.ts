@@ -7,14 +7,14 @@ import { getServerPlans } from '@/lib/plan-server';
 import type { PublicPlanInfo } from '@/lib/payments/types';
 
 const PLAN_DESCRIPTIONS: Record<string, string> = {
-  basico: 'Ideal para alojamientos pequeños que están comenzando a digitalizar su gestión.',
-  profesional: 'Para hoteles en crecimiento que necesitan control financiero y reportes avanzados.',
-  premium: 'Solución completa sin límites para hoteles y cadenas que requieren el máximo control.',
+  profesional: 'Para arrancar a profesionalizar tu día a día.',
+  premium: 'Para tomar decisiones con datos y estar en regla con AFIP.',
+  elite: 'Para vender online, sin límites de habitaciones ni usuarios.',
 };
 
 export async function GET() {
   const serverPlans = await getServerPlans();
-  const planes: PublicPlanInfo[] = (['basico', 'profesional', 'premium'] as const).map(tipo => {
+  const planes: PublicPlanInfo[] = (['profesional', 'premium', 'elite'] as const).map(tipo => {
     const plan = serverPlans[tipo];
     return {
       tipo,
@@ -23,7 +23,7 @@ export async function GET() {
       precioDisplay: plan.precioDisplay,
       moneda: plan.precio === 0 ? 'ARS' : 'ARS',
       modulos: plan.modulos,
-      destacado: tipo === 'profesional',
+      destacado: tipo === 'premium',
       descripcion: PLAN_DESCRIPTIONS[tipo] || '',
     };
   });

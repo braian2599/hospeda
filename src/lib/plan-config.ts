@@ -7,6 +7,7 @@
 //   - API: GET /api/plans
 
 import type { ModuloId } from './types';
+import { DEFAULT_FLAGS, type FeatureFlag } from './feature-flags';
 
 // 'basico' se mantiene en el tipo por compatibilidad con suscripciones viejas,
 // pero ya no se ofrece — ver Plan.activo. Los planes vendibles son
@@ -24,6 +25,7 @@ export interface PlanInfo {
   maxTarifas: number; // 0 = ilimitado
   maxReservasMes: number; // 0 = ilimitado
   modulos: ModuloId[];
+  featureFlags: Record<FeatureFlag, boolean>; // integraciones que trae el plan
   duracionDias: number; // duración del período, 0 = mensual
 }
 
@@ -75,6 +77,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     maxTarifas: 0,
     maxReservasMes: 0,
     modulos: MODULOS_PREMIUM,
+    featureFlags: { ...DEFAULT_FLAGS },
     duracionDias: 30,
   },
   // Retirado de la venta (Plan.activo = false en la BD) — se mantiene acá solo
@@ -89,6 +92,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     maxTarifas: 2,
     maxReservasMes: 100,
     modulos: MODULOS_BASICOS,
+    featureFlags: { ...DEFAULT_FLAGS },
     duracionDias: 30,
   },
   profesional: {
@@ -101,6 +105,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     maxTarifas: 10,
     maxReservasMes: 1000,
     modulos: MODULOS_PROFESIONAL,
+    featureFlags: { ...DEFAULT_FLAGS },
     duracionDias: 30,
   },
   premium: {
@@ -113,6 +118,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     maxTarifas: 0,
     maxReservasMes: 0,
     modulos: MODULOS_PREMIUM,
+    featureFlags: { ...DEFAULT_FLAGS, facturacionArca: true },
     duracionDias: 30,
   },
   elite: {
@@ -125,6 +131,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     maxTarifas: 0,
     maxReservasMes: 0,
     modulos: MODULOS_ELITE,
+    featureFlags: { landingPage: true, bookingSync: true, airbnbSync: true, facturacionArca: true },
     duracionDias: 30,
   },
 };

@@ -2063,7 +2063,7 @@ function SuscripcionSection() {
       <div>
         <h3 className="text-lg font-semibold mb-4">Planes disponibles</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {(['basico', 'profesional', 'premium'] as const).map(tipo => {
+          {(['profesional', 'premium', 'elite'] as const).map(tipo => {
             const plan = plans[tipo];
             if (!plan) return null;
             const isCurrent = planActual === tipo;

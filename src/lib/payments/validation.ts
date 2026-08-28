@@ -18,7 +18,7 @@ export interface PaymentValidationResult {
  * Permite una tolerancia del 1% para cubrir redondeos de conversión de moneda
  * (MP puede devolver el monto con decimales distintos a los centavos exactos).
  *
- * @param planTipo - Tipo de plan ('basico', 'profesional', 'premium')
+ * @param planTipo - Tipo de plan ('profesional', 'premium', 'elite')
  * @param amountPaidInCents - Monto pagado en CENTAVOS
  * @returns { valid, reason, plan }
  */
@@ -26,8 +26,8 @@ export async function validatePaymentAmount(
   planTipo: string,
   amountPaidInCents: number
 ): Promise<PaymentValidationResult> {
-  // Validar que el planTipo sea válido (no permitir 'trial')
-  const VALID_PLAN_TYPES: PlanTipo[] = ['basico', 'profesional', 'premium'];
+  // Validar que el planTipo sea válido (no permitir 'trial' ni 'basico', retirado de la venta)
+  const VALID_PLAN_TYPES: PlanTipo[] = ['profesional', 'premium', 'elite'];
   if (!VALID_PLAN_TYPES.includes(planTipo as PlanTipo)) {
     return { valid: false, reason: `Tipo de plan inválido: ${planTipo}` };
   }
@@ -72,7 +72,7 @@ export async function validatePaymentAmount(
  * Valida que un preapproval de Mercado Pago tenga el monto correcto del plan.
  * Usado en handlePreapprovalEvent para validar suscripciones recurrentes.
  *
- * @param planTipo - Tipo de plan ('basico', 'profesional', 'premium')
+ * @param planTipo - Tipo de plan ('profesional', 'premium', 'elite')
  * @param transactionAmount - Monto del auto_recurring.transaction_amount (en pesos, NO centavos)
  * @returns { valid, reason, plan }
  */

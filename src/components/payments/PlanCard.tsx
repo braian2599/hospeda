@@ -2,6 +2,7 @@
 
 import { type PlanTipo, NOMBRES_MODULOS } from '@/lib/plan-config';
 import { usePlans } from '@/hooks/usePlans';
+import { FEATURE_FLAGS, type FeatureFlag } from '@/lib/feature-flags';
 import { Check, ArrowRight, Star, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,22 +15,15 @@ interface PlanCardProps {
 }
 
 const PLAN_DESC: Record<string, string> = {
-  basico: 'Ideal para alojamientos pequeños que están comenzando a digitalizar su gestión.',
-  profesional: 'Para hoteles en crecimiento que necesitan control financiero y reportes avanzados.',
-  premium: 'Solución completa sin límites para hoteles y cadenas que requieren el máximo control.',
-};
-
-const LIMITS_LABEL: Record<string, { rooms: string; users: string }> = {
-  basico: { rooms: 'Hasta 10 habitaciones', users: 'Hasta 2 usuarios' },
-  profesional: { rooms: 'Hasta 50 habitaciones', users: 'Hasta 5 usuarios' },
-  premium: { rooms: 'Ilimitadas', users: 'Ilimitados' },
+  profesional: 'Para arrancar a profesionalizar tu día a día: reservas, check-in, caja y facturación en un solo lugar.',
+  premium: 'Para tomar decisiones con datos y estar en regla con AFIP: sumá reportes, gestión de huéspedes y facturación electrónica.',
+  elite: 'Para vender online: landing page con reservas y pagos, sincronización con Booking y Airbnb, y todo lo de Premium sin límites.',
 };
 
 export default function PlanCard({ planTipo, destacado, onSelect, compact }: PlanCardProps) {
   const plans = usePlans();
   const plan = plans[planTipo];
   const desc = PLAN_DESC[planTipo];
-  const limits = LIMITS_LABEL[planTipo];
 
   // Graceful loading state while plans load from DB
   if (!plan) {
@@ -46,6 +40,12 @@ export default function PlanCard({ planTipo, destacado, onSelect, compact }: Pla
       </div>
     );
   }
+
+  const limits = {
+    rooms: plan.maxHabitaciones === 0 ? 'Habitaciones ilimitadas' : `Hasta ${plan.maxHabitaciones} habitaciones`,
+    users: plan.maxUsuarios === 0 ? 'Usuarios ilimitados' : `Hasta ${plan.maxUsuarios} usuarios`,
+  };
+  const integraciones = (Object.keys(FEATURE_FLAGS) as FeatureFlag[]).filter((f) => plan.featureFlags?.[f]);
 
   return (
     <div
@@ -103,7 +103,19 @@ export default function PlanCard({ planTipo, destacado, onSelect, compact }: Pla
           </div>
         ))}
 
-        {planTipo === 'premium' && (
+        {integraciones.length > 0 && (
+          <>
+            <div className="border-t border-border my-2" />
+            {integraciones.map((f) => (
+              <div key={f} className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-chart-2 shrink-0" />
+                <span>{FEATURE_FLAGS[f].label}</span>
+              </div>
+            ))}
+          </>
+        )}
+
+        {planTipo === 'elite' && (
           <div className="flex items-center gap-2 text-sm">
             <Check className="w-4 h-4 text-chart-2 shrink-0" />
             <span>Soporte prioritario</span>

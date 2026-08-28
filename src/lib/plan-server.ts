@@ -5,6 +5,7 @@
 import { db } from '@/lib/db';
 import { PLANES, type PlanTipo, type PlanInfo } from '@/lib/plan-config';
 import type { ModuloId } from '@/lib/types';
+import { parseFeatureFlags } from '@/lib/feature-flags';
 
 let plansCache: Record<string, PlanInfo> | null = null;
 let plansCacheTime = 0;
@@ -43,6 +44,7 @@ export async function getServerPlans(): Promise<Record<PlanTipo, PlanInfo>> {
           maxTarifas: p.maxTarifas,
           maxReservasMes: p.maxReservasMes,
           modulos: (Array.isArray(p.modulos) ? p.modulos : []) as ModuloId[],
+          featureFlags: parseFeatureFlags(p.featureFlags),
           duracionDias: 30,
         };
       }

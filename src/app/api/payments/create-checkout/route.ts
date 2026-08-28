@@ -13,9 +13,9 @@ import type { CreateCheckoutRequest, CheckoutResponse } from '@/lib/payments/typ
 import { createMercadoPagoCheckout } from '@/lib/payments/mercadopago';
 import { handleApiError } from '@/lib/api-error';
 
-// Validar que el plan sea pago (no trial)
+// Validar que el plan sea pago y esté a la venta (no trial, no 'basico' retirado)
 function validatePlan(planTipo: string): boolean {
-  return ['basico', 'profesional', 'premium'].includes(planTipo);
+  return ['profesional', 'premium', 'elite'].includes(planTipo);
 }
 
 export async function POST(request: NextRequest) {
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     // --- Validaciones ---
     if (!planTipo || !validatePlan(planTipo)) {
       return NextResponse.json(
-        { error: 'Plan inválido. Elegí: basico, profesional o premium.' },
+        { error: 'Plan inválido. Elegí: profesional, premium o elite.' },
         { status: 400 }
       );
     }

@@ -12,7 +12,7 @@ import { createMPSubscription } from '@/lib/payments/mp-subscriptions';
 import { handleApiError } from '@/lib/api-error';
 
 function validatePlan(planTipo: string): boolean {
-  return ['basico', 'profesional', 'premium'].includes(planTipo);
+  return ['profesional', 'premium', 'elite'].includes(planTipo);
 }
 
 export async function POST(request: NextRequest) {
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     if (!planTipo || !validatePlan(planTipo)) {
       return NextResponse.json(
-        { error: 'Plan inválido. Elegí: basico, profesional o premium.' },
+        { error: 'Plan inválido. Elegí: profesional, premium o elite.' },
         { status: 400 }
       );
     }
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     // Crear suscripción en MP
     const result = await createMPSubscription({
-      planTipo: planTipo as 'basico' | 'profesional' | 'premium',
+      planTipo: planTipo as 'profesional' | 'premium' | 'elite',
       tenantId: authTenantId,
       userEmail: effectiveEmail,
       hotelNombre,

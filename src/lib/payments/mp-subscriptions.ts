@@ -44,7 +44,7 @@ function getTenthOfNextMonth(): string {
  * Devuelve la URL de autorización para que el usuario confirme.
  */
 export async function createMPSubscription(params: {
-  planTipo: 'basico' | 'profesional' | 'premium';
+  planTipo: 'profesional' | 'premium' | 'elite';
   tenantId: string;
   userEmail: string;
   hotelNombre: string;

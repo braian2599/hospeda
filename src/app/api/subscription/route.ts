@@ -57,9 +57,9 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { planTipo } = body as { planTipo?: string };
 
-    if (!planTipo || !['basico', 'profesional', 'premium'].includes(planTipo)) {
+    if (!planTipo || !['profesional', 'premium', 'elite'].includes(planTipo)) {
       return NextResponse.json(
-        { error: 'Plan inválido. Elegí: basico, profesional o premium.' },
+        { error: 'Plan inválido. Elegí: profesional, premium o elite.' },
         { status: 400 }
       );
     }
