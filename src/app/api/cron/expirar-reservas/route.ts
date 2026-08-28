@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { isCronAuthorized, isCronConfigured } from '@/lib/cron-auth';
 
 const EXPIRACION_MINUTOS_MP = 30;
 const EXPIRACION_HORAS_MANUAL = 24;
@@ -8,15 +9,15 @@ const EXPIRACION_HORAS_MANUAL = 24;
 // quedaron sin resolver:
 // - Mercado Pago (estado Confirmada, seña sin pagar): se cancelan a los 30 min.
 // - Cobro manual (estado AConfirmar, nadie confirmó el pago): se cancelan a las 24hs.
-// Mismo secreto compartido que el cron de iCal.
+//
+// Disparado por un cron externo frecuente (cron-job.org, cada ~15 min — la
+// ventana de 30 min de Mercado Pago lo necesita) y, como respaldo, por Vercel
+// Cron una vez al día (ver vercel.json — el plan Hobby no permite más frecuencia).
 export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('secret') || req.headers.get('x-cron-secret');
-  const expected = process.env.CRON_SYNC_SECRET;
-
-  if (!expected) {
+  if (!isCronConfigured()) {
     return NextResponse.json({ error: 'CRON_SYNC_SECRET no configurado en el servidor' }, { status: 503 });
   }
-  if (secret !== expected) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
