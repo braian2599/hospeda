@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Loader2, Search, CalendarDays, Users, Bed, BedDouble, Receipt, CheckCircle2, Zap } from 'lucide-react';
+import { Loader2, Search, CalendarDays, Users, Bed, BedDouble, Receipt, CheckCircle2, Zap, Phone, Mail } from 'lucide-react';
 
 interface Desglose {
   tarifa: string;
@@ -57,14 +57,22 @@ interface Seleccion {
   combo: SeleccionCombo | null;
 }
 
+interface ContactoSena {
+  whatsapp: string | null;
+  email: string | null;
+  instrucciones: string | null;
+}
+
 interface ReservaCreada {
+  modoPago: 'mercadopago' | 'manual';
   reservaId: string;
   habitacion: string;
   habitacion2: string | null;
   total: number;
   senaMonto: number;
   noches: number;
-  checkoutUrl: string;
+  checkoutUrl?: string;
+  contacto?: ContactoSena;
 }
 
 type TabId = 'disponibilidad' | 'cliente' | 'reserva';
@@ -238,7 +246,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
   };
 
   const irAPagar = () => {
-    if (!reservaCreada) return;
+    if (!reservaCreada?.checkoutUrl) return;
     setRedirigiendo(true);
     window.location.href = reservaCreada.checkoutUrl;
   };
@@ -308,22 +316,58 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
           {reservaCreada ? (
             <div className="text-center space-y-3 py-2">
               <CheckCircle2 className="w-10 h-10 text-primary mx-auto" />
-              <DialogTitle className="text-lg">¡Ya casi! Falta pagar la seña</DialogTitle>
-              <p className="text-sm text-muted-foreground">
-                Habitación {reservaCreada.habitacion}{reservaCreada.habitacion2 ? ` + Habitación ${reservaCreada.habitacion2}` : ''} · {reservaCreada.noches} noche{reservaCreada.noches !== 1 ? 's' : ''} · Total {formatMoney(reservaCreada.total)}
-              </p>
-              <p className="text-sm font-medium">
-                Seña a pagar ahora: {formatMoney(reservaCreada.senaMonto)} (30%)
-              </p>
-              <button
-                onClick={irAPagar}
-                disabled={redirigiendo}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
-              >
-                {redirigiendo ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Pagar seña con Mercado Pago
-              </button>
-              <p className="text-xs text-muted-foreground">Tu habitación queda reservada mientras completás el pago.</p>
+              {reservaCreada.modoPago === 'manual' ? (
+                <>
+                  <DialogTitle className="text-lg">¡Reserva registrada! Falta coordinar el pago</DialogTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Habitación {reservaCreada.habitacion}{reservaCreada.habitacion2 ? ` + Habitación ${reservaCreada.habitacion2}` : ''} · {reservaCreada.noches} noche{reservaCreada.noches !== 1 ? 's' : ''} · Total {formatMoney(reservaCreada.total)}
+                  </p>
+                  <p className="text-sm font-medium">
+                    Seña de referencia: {formatMoney(reservaCreada.senaMonto)} (30%)
+                  </p>
+                  <div className="rounded-lg border bg-muted/30 p-4 text-left space-y-2">
+                    <p className="text-sm font-medium">Contactá al hotel para coordinar el pago:</p>
+                    {reservaCreada.contacto?.whatsapp && (
+                      <a
+                        href={`https://wa.me/${reservaCreada.contacto.whatsapp.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      >
+                        <Phone className="w-4 h-4 shrink-0" /> {reservaCreada.contacto.whatsapp}
+                      </a>
+                    )}
+                    {reservaCreada.contacto?.email && (
+                      <a href={`mailto:${reservaCreada.contacto.email}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
+                        <Mail className="w-4 h-4 shrink-0" /> {reservaCreada.contacto.email}
+                      </a>
+                    )}
+                    {reservaCreada.contacto?.instrucciones && (
+                      <p className="text-sm text-muted-foreground whitespace-pre-line pt-1 border-t">{reservaCreada.contacto.instrucciones}</p>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Tu habitación queda a confirmar — el hotel la reserva en firme apenas coordinen el pago.</p>
+                </>
+              ) : (
+                <>
+                  <DialogTitle className="text-lg">¡Ya casi! Falta pagar la seña</DialogTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Habitación {reservaCreada.habitacion}{reservaCreada.habitacion2 ? ` + Habitación ${reservaCreada.habitacion2}` : ''} · {reservaCreada.noches} noche{reservaCreada.noches !== 1 ? 's' : ''} · Total {formatMoney(reservaCreada.total)}
+                  </p>
+                  <p className="text-sm font-medium">
+                    Seña a pagar ahora: {formatMoney(reservaCreada.senaMonto)} (30%)
+                  </p>
+                  <button
+                    onClick={irAPagar}
+                    disabled={redirigiendo}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+                  >
+                    {redirigiendo ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    Pagar seña con Mercado Pago
+                  </button>
+                  <p className="text-xs text-muted-foreground">Tu habitación queda reservada mientras completás el pago.</p>
+                </>
+              )}
               <button onClick={buscarDeNuevo} className="text-xs text-muted-foreground underline underline-offset-2">
                 Buscar y reservar otra habitación
               </button>

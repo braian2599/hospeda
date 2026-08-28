@@ -100,13 +100,28 @@ export async function POST(
     if (!tarifa2) return NextResponse.json({ error: 'La segunda habitación de la combinación no está disponible para reservar online' }, { status: 400 });
   }
 
-  // El hotel tiene que tener Mercado Pago conectado — la seña es obligatoria para reservar.
-  const accessToken = await getValidAccessToken(tenant.id);
-  if (!accessToken) {
-    return NextResponse.json(
-      { error: 'Este hotel todavía no tiene el cobro de seña configurado. Contactalo directamente para reservar.' },
-      { status: 400 }
-    );
+  const modoCobroSena = tenant.configuracion?.modoCobroSena === 'manual' ? 'manual' : 'mercadopago';
+
+  // Modo Mercado Pago: el hotel tiene que tener la cuenta conectada — la seña se cobra
+  // automáticamente al confirmar. Modo manual: no hay cobro automático, pero el hotel
+  // tiene que haber cargado al menos un medio de contacto para coordinar el pago.
+  let accessToken: string | null = null;
+  if (modoCobroSena === 'mercadopago') {
+    accessToken = await getValidAccessToken(tenant.id);
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'Este hotel todavía no tiene el cobro de seña configurado. Contactalo directamente para reservar.' },
+        { status: 400 }
+      );
+    }
+  } else {
+    const tieneContacto = !!(tenant.configuracion?.senaWhatsapp || tenant.configuracion?.senaEmail);
+    if (!tieneContacto) {
+      return NextResponse.json(
+        { error: 'Este hotel todavía no tiene el cobro de seña configurado. Contactalo directamente para reservar.' },
+        { status: 400 }
+      );
+    }
   }
 
   let reservaId: string | null = null;
@@ -155,14 +170,16 @@ export async function POST(
           checkin: fechas.checkin,
           checkout: fechas.checkout,
           personas,
-          estado: 'Confirmada',
+          estado: modoCobroSena === 'manual' ? 'AConfirmar' : 'Confirmada',
           estadoPago: 'Pendiente',
           tipoTarifa: tarifa1.tarifaNombre,
           total: Math.round(total1 * 100),
           origen: 'landing',
-          notas: tipo2
-            ? 'Reserva combinada (2 habitaciones) creada desde la página pública del hotel — pendiente de pago de seña.'
-            : 'Reserva creada desde la página pública del hotel — pendiente de pago de seña.',
+          notas: modoCobroSena === 'manual'
+            ? 'Reserva creada desde la página pública del hotel — pendiente de que el huésped coordine y el personal confirme el pago de la seña.'
+            : (tipo2
+              ? 'Reserva combinada (2 habitaciones) creada desde la página pública del hotel — pendiente de pago de seña.'
+              : 'Reserva creada desde la página pública del hotel — pendiente de pago de seña.'),
         },
       });
 
@@ -170,7 +187,9 @@ export async function POST(
         data: {
           tenantId: tenant.id,
           tipo: 'Reserva',
-          detalle: `Nueva reserva desde la landing pública: ${huesped} — Hab. ${libre1.numero} (${body.checkin} a ${body.checkout}). Esperando pago de seña.`,
+          detalle: modoCobroSena === 'manual'
+            ? `Nueva reserva (a confirmar) desde la landing pública: ${huesped} — Hab. ${libre1.numero} (${body.checkin} a ${body.checkout}). No ocupa la habitación hasta que el personal confirme el pago de la seña.`
+            : `Nueva reserva desde la landing pública: ${huesped} — Hab. ${libre1.numero} (${body.checkin} a ${body.checkout}). Esperando pago de seña.`,
           empleado: 'Landing pública',
         },
       });
@@ -217,13 +236,15 @@ export async function POST(
             checkin: fechas.checkin,
             checkout: fechas.checkout,
             personas: personas2,
-            estado: 'Confirmada',
+            estado: modoCobroSena === 'manual' ? 'AConfirmar' : 'Confirmada',
             estadoPago: 'Pendiente',
             tipoTarifa: tarifa2.tarifaNombre,
             total: Math.round(total2 * 100),
             origen: 'landing',
             reservaVinculadaId: nueva1.id,
-            notas: 'Reserva combinada (2 habitaciones) creada desde la página pública del hotel — pendiente de pago de seña.',
+            notas: modoCobroSena === 'manual'
+              ? 'Reserva combinada (2 habitaciones) creada desde la página pública del hotel — pendiente de que el huésped coordine y el personal confirme el pago de la seña.'
+              : 'Reserva combinada (2 habitaciones) creada desde la página pública del hotel — pendiente de pago de seña.',
           },
         });
 
@@ -233,7 +254,9 @@ export async function POST(
           data: {
             tenantId: tenant.id,
             tipo: 'Reserva',
-            detalle: `Nueva reserva (combinación) desde la landing pública: ${huesped} — Hab. ${libre2.numero} (${body.checkin} a ${body.checkout}), vinculada a la reserva de Hab. ${libre1.numero}. Esperando pago de seña.`,
+            detalle: modoCobroSena === 'manual'
+              ? `Nueva reserva (combinación, a confirmar) desde la landing pública: ${huesped} — Hab. ${libre2.numero} (${body.checkin} a ${body.checkout}), vinculada a la reserva de Hab. ${libre1.numero}. No ocupa la habitación hasta que el personal confirme el pago.`
+              : `Nueva reserva (combinación) desde la landing pública: ${huesped} — Hab. ${libre2.numero} (${body.checkin} a ${body.checkout}), vinculada a la reserva de Hab. ${libre1.numero}. Esperando pago de seña.`,
             empleado: 'Landing pública',
           },
         });
@@ -250,12 +273,31 @@ export async function POST(
     const totalCombinadoPesos = (r1.total! + (r2?.total ?? 0)) / 100;
     const senaMonto = Math.round(totalCombinadoPesos * PORCENTAJE_SENA);
 
+    if (modoCobroSena === 'manual') {
+      return NextResponse.json({
+        success: true,
+        modoPago: 'manual',
+        reservaId: r1.id,
+        habitacion: r1.habitacion,
+        reservaId2: r2?.id ?? null,
+        habitacion2: r2?.habitacion ?? null,
+        total: totalCombinadoPesos,
+        senaMonto,
+        noches: fechas.noches,
+        contacto: {
+          whatsapp: tenant.configuracion?.senaWhatsapp || null,
+          email: tenant.configuracion?.senaEmail || null,
+          instrucciones: tenant.configuracion?.senaInstrucciones || null,
+        },
+      });
+    }
+
     const descripcion = r2
       ? `${tipo} — Hab. ${r1.habitacion} + ${tipo2} — Hab. ${r2.habitacion}`
       : `${tipo} — Hab. ${r1.habitacion}`;
 
     const checkout = await createDepositCheckout({
-      accessToken,
+      accessToken: accessToken!,
       reservaId: r1.id,
       monto: senaMonto,
       moneda: tenant.moneda,
@@ -265,6 +307,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
+      modoPago: 'mercadopago',
       reservaId: r1.id,
       habitacion: r1.habitacion,
       reservaId2: r2?.id ?? null,

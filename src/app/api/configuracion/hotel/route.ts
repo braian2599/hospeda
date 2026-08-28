@@ -18,6 +18,7 @@ export async function GET() {
             hotelNombre: true, hotelDireccion: true, hotelCiudad: true,
             hotelPais: true, hotelTelefono: true, hotelEmail: true, hotelLogoUrl: true,
             featureFlags: true, tarifasPublicas: true, mostrarSeccionAgencias: true, textoAgencias: true,
+            modoCobroSena: true, senaWhatsapp: true, senaEmail: true, senaInstrucciones: true,
           },
         },
       },
@@ -49,6 +50,10 @@ export async function GET() {
       tarifasPublicas: (config.tarifasPublicas && typeof config.tarifasPublicas === 'object') ? config.tarifasPublicas : {},
       mostrarSeccionAgencias: !!config.mostrarSeccionAgencias,
       textoAgencias: config.textoAgencias || '',
+      modoCobroSena: (config.modoCobroSena as string) || 'mercadopago',
+      senaWhatsapp: config.senaWhatsapp || '',
+      senaEmail: config.senaEmail || '',
+      senaInstrucciones: config.senaInstrucciones || '',
     });
   } catch (error) {
     if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.statusCode });
@@ -65,7 +70,12 @@ export async function PUT(req: NextRequest) {
     const {
       nombre, email, telefono, direccion, pais, moneda, timezone, logoUrl, descripcion, fotos, servicios,
       tarifasPublicas, mostrarSeccionAgencias, textoAgencias,
+      modoCobroSena, senaWhatsapp, senaEmail, senaInstrucciones,
     } = body;
+
+    if (modoCobroSena !== undefined && modoCobroSena !== 'mercadopago' && modoCobroSena !== 'manual') {
+      return NextResponse.json({ error: 'Modo de cobro de seña inválido' }, { status: 400 });
+    }
 
     // Update Tenant
     const updateData: Record<string, unknown> = {};
@@ -90,6 +100,10 @@ export async function PUT(req: NextRequest) {
     }
     if (mostrarSeccionAgencias !== undefined) configExtra.mostrarSeccionAgencias = !!mostrarSeccionAgencias;
     if (textoAgencias !== undefined) configExtra.textoAgencias = textoAgencias;
+    if (modoCobroSena !== undefined) configExtra.modoCobroSena = modoCobroSena;
+    if (senaWhatsapp !== undefined) configExtra.senaWhatsapp = senaWhatsapp;
+    if (senaEmail !== undefined) configExtra.senaEmail = senaEmail;
+    if (senaInstrucciones !== undefined) configExtra.senaInstrucciones = senaInstrucciones;
 
     // Upsert TenantConfig
     await db.tenantConfig.upsert({

@@ -555,6 +555,10 @@ model TenantConfig {
   tarifasPublicas     Json     @default("{}")
   mostrarSeccionAgencias Boolean @default(false)
   textoAgencias       String?
+  modoCobroSena       String   @default("mercadopago")
+  senaWhatsapp        String?
+  senaEmail           String?
+  senaInstrucciones   String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -659,6 +663,7 @@ enum EstadoReserva {
   Cancelada
   CheckIn_realizado
   Checkout_realizado
+  AConfirmar
 }
 
 enum EstadoTareaLimpieza {
