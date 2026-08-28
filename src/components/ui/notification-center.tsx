@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetFooter, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { timeAgo } from '@/lib/format';
 import {
@@ -212,35 +212,22 @@ export function NotificationCenter({ open, onOpenChange }: NotificationCenterPro
       >
         <Bell className={`w-4 h-4 ${hasNew ? 'animate-bounce' : ''}`} />
         {unreadCount > 0 && (
-          <Badge className="absolute -top-1 -right-1 h-5 min-w-5 rounded-full p-0 flex items-center justify-center text-[10px] font-bold bg-destructive text-white border-0 animate-in zoom-in-50 duration-300">
+          <Badge className="absolute -top-0.5 -right-0.5 h-5 min-w-5 rounded-full p-0 flex items-center justify-center text-[10px] font-bold bg-destructive text-white border-0 animate-in fade-in zoom-in-75 duration-200">
             {unreadCount > 99 ? '99+' : unreadCount}
           </Badge>
         )}
       </Button>
 
-      {/* Sheet panel */}
+      {/* Sheet panel — flotante, separado de los bordes de la pantalla */}
       <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-        <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+        <SheetContent
+          side="right"
+          className="inset-y-4 right-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] sm:max-w-md rounded-2xl border shadow-2xl p-0 flex flex-col overflow-hidden"
+        >
           <SheetHeader className="px-4 pt-4 pb-0">
-            <div className="flex items-center justify-between">
-              <SheetTitle className="text-lg font-semibold">Notificaciones</SheetTitle>
-              <div className="flex items-center gap-1">
-                {unreadCount > 0 && (
-                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={markAllRead}>
-                    <CheckCheck className="w-3 h-3 mr-1" />
-                    Leer todo
-                  </Button>
-                )}
-                {notifications.length > 0 && (
-                  <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" onClick={clearAll}>
-                    <Trash2 className="w-3 h-3 mr-1" />
-                    Limpiar
-                  </Button>
-                )}
-              </div>
-            </div>
+            <SheetTitle className="text-lg font-semibold text-center">Notificaciones</SheetTitle>
             {unreadCount > 0 && (
-              <SheetDescription>{unreadCount} sin leer</SheetDescription>
+              <SheetDescription className="text-center">{unreadCount} sin leer</SheetDescription>
             )}
           </SheetHeader>
 
@@ -295,6 +282,24 @@ export function NotificationCenter({ open, onOpenChange }: NotificationCenterPro
               </ScrollArea>
             )}
           </div>
+
+          {/* Acciones al pie del panel */}
+          {(unreadCount > 0 || notifications.length > 0) && (
+            <SheetFooter className="flex-row justify-center gap-2 border-t p-3">
+              {unreadCount > 0 && (
+                <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={markAllRead}>
+                  <CheckCheck className="w-3.5 h-3.5 mr-1.5" />
+                  Leer todo
+                </Button>
+              )}
+              {notifications.length > 0 && (
+                <Button variant="outline" size="sm" className="flex-1 text-xs text-destructive hover:text-destructive" onClick={clearAll}>
+                  <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                  Limpiar
+                </Button>
+              )}
+            </SheetFooter>
+          )}
         </SheetContent>
       </Sheet>
     </>
@@ -328,7 +333,7 @@ export function NotificationBell({ onClick }: { onClick?: () => void }) {
     >
       <Bell className={`w-4 h-4 transition-transform ${hasNew ? 'animate-bounce' : ''}`} />
       {unreadCount > 0 && (
-        <Badge className="absolute -top-1 -right-1 h-5 min-w-5 rounded-full p-0 flex items-center justify-center text-[10px] font-bold bg-destructive text-white border-0 animate-in zoom-in-50 duration-300">
+        <Badge className="absolute -top-0.5 -right-0.5 h-5 min-w-5 rounded-full p-0 flex items-center justify-center text-[10px] font-bold bg-destructive text-white border-0 animate-in fade-in zoom-in-75 duration-200">
           {unreadCount > 99 ? '99+' : unreadCount}
         </Badge>
       )}
