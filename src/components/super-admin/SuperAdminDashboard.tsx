@@ -102,9 +102,9 @@ function getShortMonth(mesKey: string) {
 
 function estadoBadge(estado: string) {
   const variants: Record<string, string> = {
-    pendiente: 'bg-warning/15 text-warning',
-    pagado: 'bg-success/15 text-success',
-    fallido: 'bg-destructive/10 text-destructive',
+    pendiente: 'bg-[#D9770626] text-warning',
+    pagado: 'bg-[#05966926] text-success',
+    fallido: 'bg-[#EF44441A] text-destructive',
     devuelto: 'bg-muted text-muted-foreground',
   };
   return (
@@ -116,11 +116,11 @@ function estadoBadge(estado: string) {
 
 function subEstadoBadge(estado: string) {
   const variants: Record<string, string> = {
-    trial: 'bg-warning/15 text-warning',
-    activa: 'bg-success/15 text-success',
-    vencida: 'bg-destructive/10 text-destructive',
+    trial: 'bg-[#D9770626] text-warning',
+    activa: 'bg-[#05966926] text-success',
+    vencida: 'bg-[#EF44441A] text-destructive',
     cancelada: 'bg-muted text-muted-foreground',
-    suspensa: 'bg-warning/15 text-warning',
+    suspensa: 'bg-[#D9770626] text-warning',
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-muted text-foreground'}`}>
@@ -192,7 +192,7 @@ function BarChart({ data, loading }: { data: MetricsData['planes']['porMes']; lo
           <div key={d.mes} className="flex-1 flex flex-col items-center gap-1">
             <span className="text-xs font-medium">{d.total}</span>
             <div
-              className="w-full bg-primary/80 hover:bg-primary transition-colors rounded-t"
+              className="w-full bg-[#0F766ECC] hover:bg-primary transition-colors rounded-t"
               style={{ height: `${(d.total / maxVal) * 100}%`, minHeight: d.total > 0 ? 4 : 0 }}
             />
           </div>
@@ -254,7 +254,7 @@ export default function SuperAdminDashboard() {
           value={data?.generales.totalTenants?.toLocaleString('es-AR') ?? '—'}
           subtitle={`${data?.generales.tenantsActivos ?? 0} activos`}
           icon={Building2}
-          iconColor="bg-primary/10 text-primary"
+          iconColor="bg-[#0F766E1A] text-primary"
           loading={loading}
         />
         <StatCard
@@ -262,7 +262,7 @@ export default function SuperAdminDashboard() {
           value={data?.generales.tenantsActivos?.toLocaleString('es-AR') ?? '—'}
           subtitle={`${data?.generales.tenantsInactivos ?? 0} inactivos`}
           icon={Hotel}
-          iconColor="bg-primary/10 text-primary"
+          iconColor="bg-[#0F766E1A] text-primary"
           loading={loading}
         />
         <StatCard
@@ -274,7 +274,7 @@ export default function SuperAdminDashboard() {
               : undefined
           }
           icon={DollarSign}
-          iconColor="bg-primary/10 text-primary"
+          iconColor="bg-[#0F766E1A] text-primary"
           loading={loading}
         />
         <StatCard
@@ -282,7 +282,7 @@ export default function SuperAdminDashboard() {
           value={data?.ingresos.pagosPendientes?.toString() ?? '—'}
           subtitle={`${data?.ingresos.pagosMesActual ?? 0} pagos este mes`}
           icon={AlertTriangle}
-          iconColor="bg-warning/15 text-warning"
+          iconColor="bg-[#D9770626] text-warning"
           loading={loading}
         />
       </div>
@@ -434,10 +434,10 @@ export default function SuperAdminDashboard() {
               {data.tenantsRecientes.map((t) => (
                 <div
                   key={t.id}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-[#F1F5F980] transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-lg bg-[#0F766E1A] flex items-center justify-center shrink-0">
                       <Hotel className="w-4 h-4 text-primary" />
                     </div>
                     <div className="min-w-0">

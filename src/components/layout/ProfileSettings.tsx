@@ -139,7 +139,7 @@ export default function ProfileSettings({ open, onOpenChange }: ProfileSettingsP
               Barra lateral
             </h3>
             <div className="space-y-5">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-[#F1F5F966]">
                 <div>
                   <Label className="text-sm font-medium block">Mantener sidebar expandida</Label>
                   <p className="text-xs text-muted-foreground mt-0.5">La barra lateral no se colapsará al sacar el mouse</p>

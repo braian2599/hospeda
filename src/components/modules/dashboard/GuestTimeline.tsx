@@ -132,7 +132,7 @@ export default function GuestTimeline() {
         ) : (
           <div className="relative space-y-0 max-h-64 overflow-y-auto">
             {/* Timeline line */}
-            <div className="absolute left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-status-available/30 via-muted-foreground/20 to-status-cleaning/30" />
+            <div className="absolute left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-[#10B9814D] via-[#64748B33] to-[#F59E0B4D]" />
 
             {events.map(evt => (
               <div key={evt.id} className="relative flex items-center gap-3 py-1.5 pl-1">

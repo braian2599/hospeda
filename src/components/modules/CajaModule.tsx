@@ -118,11 +118,11 @@ interface CategoryConfig {
 }
 
 const CATEGORY_CONFIG: Record<MovementCategory, CategoryConfig> = {
-  'Gastos':           { label: 'Gastos',          color: '#ef4444', badgeBg: 'bg-destructive/15', badgeText: 'text-destructive', icon: ShoppingCart },
-  'Mantenimiento':    { label: 'Mantenimiento',   color: '#f59e0b', badgeBg: 'bg-warning/15', badgeText: 'text-warning', icon: Wrench },
-  'Ingresos varios':  { label: 'Ingresos varios', color: '#22c55e', badgeBg: 'bg-primary/20', badgeText: 'text-primary', icon: ArrowUpRight },
-  'Retiros':          { label: 'Retiros',         color: '#a855f7', badgeBg: 'bg-chart-5/15', badgeText: 'text-chart-5', icon: PiggyBank },
-  'Otros':            { label: 'Otros',           color: '#94a3b8', badgeBg: 'bg-slate-100/40', badgeText: 'text-slate-400', icon: Tag },
+  'Gastos':           { label: 'Gastos',          color: '#ef4444', badgeBg: 'bg-[#EF444426]', badgeText: 'text-destructive', icon: ShoppingCart },
+  'Mantenimiento':    { label: 'Mantenimiento',   color: '#f59e0b', badgeBg: 'bg-[#D9770626]', badgeText: 'text-warning', icon: Wrench },
+  'Ingresos varios':  { label: 'Ingresos varios', color: '#22c55e', badgeBg: 'bg-[#0F766E33]', badgeText: 'text-primary', icon: ArrowUpRight },
+  'Retiros':          { label: 'Retiros',         color: '#a855f7', badgeBg: 'bg-[#8B5CF626]', badgeText: 'text-chart-5', icon: PiggyBank },
+  'Otros':            { label: 'Otros',           color: '#94a3b8', badgeBg: 'bg-[#F1F5F966]', badgeText: 'text-slate-400', icon: Tag },
 };
 
 const CATEGORY_ORDER: MovementCategory[] = ['Ingresos varios', 'Gastos', 'Mantenimiento', 'Retiros', 'Otros'];
@@ -256,9 +256,9 @@ function CashFlowTimeline({
         {/* Dot */}
         <div className="absolute -left-6 top-0 flex flex-col items-center">
           <div className="w-3 h-3 rounded-full bg-primary ring-2 ring-white shadow-sm z-10" />
-          <div className="w-0.5 flex-1 bg-primary/20 min-h-[16px]" />
+          <div className="w-0.5 flex-1 bg-[#0F766E33] min-h-[16px]" />
         </div>
-        <div className="bg-primary/5 border border-primary/20 rounded-md px-3 py-2">
+        <div className="bg-[#0F766E0D] border border-[#0F766E33] rounded-md px-3 py-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <Wallet className="w-3.5 h-3.5 text-primary" />
@@ -290,7 +290,7 @@ function CashFlowTimeline({
                 isIngreso ? 'bg-primary' : 'bg-destructive'
               )} />
               {idx < entries.length - 1 && (
-                <div className="w-0.5 flex-1 bg-muted-foreground/15 min-h-[16px]" />
+                <div className="w-0.5 flex-1 bg-[#64748B26] min-h-[16px]" />
               )}
             </div>
 
@@ -298,14 +298,14 @@ function CashFlowTimeline({
             <div className={cn(
               'border rounded-md px-3 py-2.5 space-y-1.5 transition-all hover:shadow-sm',
               isIngreso
-                ? 'border-primary/20 bg-primary/5 hover:border-primary/40'
-                : 'border-destructive/20 bg-destructive/10 hover:border-destructive/40'
+                ? 'border-[#0F766E33] bg-[#0F766E0D] hover:border-[#0F766E66]'
+                : 'border-[#EF444433] bg-[#EF44441A] hover:border-[#EF444466]'
             )}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className={cn(
                     'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
-                    isIngreso ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+                    isIngreso ? 'bg-[#0F766E33] text-primary' : 'bg-[#EF444426] text-destructive'
                   )}>
                     {isIngreso ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                   </span>
@@ -326,11 +326,11 @@ function CashFlowTimeline({
                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                   <MetIcon className="w-2.5 h-2.5" />
                   <span className="truncate max-w-[80px]">{entry.metodo}</span>
-                  <span className="text-muted-foreground/40">·</span>
+                  <span className="text-[#64748B66]">·</span>
                   <Clock className="w-2.5 h-2.5" />
                   <span>{formatRelative(entry.fecha, now)}</span>
                 </div>
-                <div className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-muted/50">
+                <div className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-[#F1F5F980]">
                   <Scale className="w-2.5 h-2.5 text-muted-foreground" />
                   <span className="font-semibold tabular-nums">{formatMoney(entry.runningBalance)}</span>
                 </div>
@@ -346,7 +346,7 @@ function CashFlowTimeline({
           <div className="absolute -left-6 top-0 flex flex-col items-center">
             <div className="w-3 h-3 rounded-full bg-primary ring-2 ring-white shadow-sm z-10" />
           </div>
-          <div className="bg-primary/5 border border-primary/30 rounded-md px-3 py-2">
+          <div className="bg-[#0F766E0D] border border-[#0F766E4D] rounded-md px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <CircleDot className="w-3.5 h-3.5 text-primary" />
@@ -392,7 +392,7 @@ function DenominationBreakdownPanel({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {bills.map(d => (
-            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-success/10 transition-colors">
+            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-[#0596691A] transition-colors">
               <Banknote className="w-3.5 h-3.5 text-primary shrink-0" />
               <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
               <Input
@@ -416,7 +416,7 @@ function DenominationBreakdownPanel({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {coins.map(d => (
-            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-warning/10 transition-colors">
+            <div key={d.value} className="flex items-center gap-2 p-2 rounded-md border bg-[#D977061A] transition-colors">
               <Coins className="w-3.5 h-3.5 text-warning shrink-0" />
               <span className="w-14 text-xs font-semibold tabular-nums">{d.label}</span>
               <Input
@@ -434,21 +434,21 @@ function DenominationBreakdownPanel({
 
       {/* Totals */}
       <div className="space-y-1.5 pt-2 border-t">
-        <div className="flex justify-between items-center p-2 rounded-md bg-muted/30">
+        <div className="flex justify-between items-center p-2 rounded-md bg-[#F1F5F94D]">
           <span className="text-xs font-medium">Total contado</span>
           <span className="text-sm font-bold tabular-nums text-primary">{formatMoney(totalContado)}</span>
         </div>
-        <div className="flex justify-between items-center p-2 rounded-md bg-muted/30">
+        <div className="flex justify-between items-center p-2 rounded-md bg-[#F1F5F94D]">
           <span className="text-xs font-medium">Total esperado (sistema)</span>
           <span className="text-sm font-bold tabular-nums">{formatMoney(systemTotal)}</span>
         </div>
         <div className={cn(
           'flex justify-between items-center p-2 rounded-md border',
           diferencia === 0
-            ? 'bg-primary/20 border-primary/30'
+            ? 'bg-[#0F766E33] border-[#0F766E4D]'
             : diferencia > 0
-            ? 'bg-warning/15 border-brand-amber/30'
-            : 'bg-destructive/15 border-destructive/30'
+            ? 'bg-[#D9770626] border-[#F59E0B4D]'
+            : 'bg-[#EF444426] border-[#EF44444D]'
         )}>
           <span className="text-xs font-medium flex items-center gap-1.5">
             {diferencia === 0
@@ -898,14 +898,14 @@ export default function CajaModule() {
       {caja.estado === 'cerrada' ? (
         /* ═══════ CAJA CERRADA — inviting empty state + daily summary ═══════ */
         <div className="space-y-4">
-          <Card className="relative overflow-hidden border-2 border-dashed border-primary/30">
+          <Card className="relative overflow-hidden border-2 border-dashed border-[#0F766E4D]">
             {/* Subtle radial accent in the background */}
-            <div className="pointer-events-none absolute inset-0 bg-primary/5" />
+            <div className="pointer-events-none absolute inset-0 bg-[#0F766E0D]" />
             <CardContent className="relative text-center py-14 px-6 space-y-5 max-w-md mx-auto">
               <div className="relative inline-flex">
                 {/* Pulsing halo around the icon */}
-                <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-                <div className="relative w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center shadow-lg ring-4 ring-primary/30">
+                <span className="absolute inset-0 rounded-full bg-[#0F766E33] animate-ping" />
+                <div className="relative w-20 h-20 rounded-full bg-[#0F766E33] flex items-center justify-center shadow-lg ring-4 ring-[#0F766E4D]">
                   <Unlock className="w-9 h-9 text-primary" />
                 </div>
               </div>
@@ -914,15 +914,15 @@ export default function CajaModule() {
                 <p className="text-sm text-muted-foreground">Abrí un nuevo turno para comenzar a registrar movimientos del día.</p>
               </div>
               {!showApertura ? (
-                <Button size="lg" onClick={() => setShowApertura(true)} className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
+                <Button size="lg" onClick={() => setShowApertura(true)} className="bg-primary hover:bg-[#0F766EE6] text-white shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
                   <Unlock className="w-4 h-4 mr-2" />Abrir caja
                 </Button>
               ) : (
-                <div className="max-w-xs mx-auto space-y-2 rounded-lg border border-primary/20 bg-card backdrop-blur p-4 shadow-sm">
+                <div className="max-w-xs mx-auto space-y-2 rounded-lg border border-[#0F766E33] bg-card backdrop-blur p-4 shadow-sm">
                   <Label className="text-sm text-muted-foreground">Monto inicial en efectivo</Label>
                   <Input type="number" placeholder="0.00" step="0.01" min="0" value={montoInicial} onChange={e => setMontoInicial(e.target.value)} autoFocus />
                   <div className="flex gap-2">
-                    <Button onClick={handleAbrir} className="flex-1 bg-primary hover:bg-primary/80 text-white" disabled={loadingAbrir}>
+                    <Button onClick={handleAbrir} className="flex-1 bg-primary hover:bg-[#0F766ECC] text-white" disabled={loadingAbrir}>
                       {loadingAbrir ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Unlock className="w-4 h-4 mr-1" />}Confirmar apertura
                     </Button>
                     <Button variant="secondary" onClick={() => setShowApertura(false)} disabled={loadingAbrir}>Cancelar</Button>
@@ -930,7 +930,7 @@ export default function CajaModule() {
                 </div>
               )}
               {caja.historial && caja.historial.length > 0 && caja.historial[caja.historial.length - 1].cierre && (
-                <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 bg-muted/40 px-3 py-1.5 rounded-full">
+                <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 bg-[#F1F5F966] px-3 py-1.5 rounded-full">
                   <Clock className="w-3 h-3" />Último cierre: {formatFechaHora(caja.historial[caja.historial.length - 1].cierre!.fecha)}
                 </p>
               )}
@@ -975,7 +975,7 @@ export default function CajaModule() {
                 </Dialog>
               </div>
               {/* Balance display — animated + trend */}
-              <div className="rounded-lg border-2 border-primary/30 bg-success/10 p-3">
+              <div className="rounded-lg border-2 border-[#0F766E4D] bg-[#0596691A] p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo actual</p>
@@ -987,7 +987,7 @@ export default function CajaModule() {
                   {caja.apertura && (
                     <div className={cn(
                       'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold shadow-sm',
-                      tendencia >= 0 ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+                      tendencia >= 0 ? 'bg-[#0F766E33] text-primary' : 'bg-[#EF444426] text-destructive'
                     )}>
                       {tendencia >= 0
                         ? <ArrowUpRight className="w-3 h-3" />
@@ -998,7 +998,7 @@ export default function CajaModule() {
                 </div>
               </div>
               {/* Movimientos + Apertura info */}
-              <div className="grid grid-cols-2 gap-2 text-center rounded-lg border p-2.5 bg-muted/30">
+              <div className="grid grid-cols-2 gap-2 text-center rounded-lg border p-2.5 bg-[#F1F5F94D]">
                 <div>
                   <p className="text-[10px] text-muted-foreground leading-tight">Movimientos</p>
                   <p className="text-sm font-semibold">{movimientos.length}</p>
@@ -1010,8 +1010,8 @@ export default function CajaModule() {
               </div>
               {/* Action buttons */}
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="h-9 text-sm border-primary/30 text-primary hover:bg-primary/20 hover:text-primary" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
-                <Button variant="outline" className="h-9 text-sm border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+                <Button variant="outline" className="h-9 text-sm border-[#0F766E4D] text-primary hover:bg-[#0F766E33] hover:text-primary" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+                <Button variant="outline" className="h-9 text-sm border-[#EF444466] text-destructive hover:bg-[#EF44441A] hover:text-destructive" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
               </div>
               {/* Movement form inline */}
               {showMovForm && (
@@ -1054,7 +1054,7 @@ export default function CajaModule() {
                   <Filter className="w-3 h-3 mr-1" />
                   Filtros
                   {activeFiltersCount > 0 && (
-                    <Badge className="ml-1 bg-white/20 text-white h-4 px-1 text-[10px]">{activeFiltersCount}</Badge>
+                    <Badge className="ml-1 bg-[#FFFFFF33] text-white h-4 px-1 text-[10px]">{activeFiltersCount}</Badge>
                   )}
                 </Button>
               </div>
@@ -1069,7 +1069,7 @@ export default function CajaModule() {
                         'px-2.5 py-1 text-[11px] font-medium transition-colors',
                         filterTipo === val
                           ? 'bg-primary text-white'
-                          : 'bg-background text-muted-foreground hover:bg-muted/50'
+                          : 'bg-background text-muted-foreground hover:bg-[#F1F5F980]'
                       )}
                       onClick={() => setFilterTipo(val)}
                     >
@@ -1106,15 +1106,15 @@ export default function CajaModule() {
             <CardContent className="p-0">
               {movimientos.length === 0 ? (
                 <div className="text-center py-10 text-muted-foreground">
-                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
-                    <Receipt className="w-6 h-6 text-muted-foreground/60" />
+                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#F1F5F999] flex items-center justify-center">
+                    <Receipt className="w-6 h-6 text-[#64748B99]" />
                   </div>
                   <p className="text-sm">Sin movimientos todavía.</p>
                 </div>
               ) : filteredMovimientos.length === 0 ? (
                 <div className="text-center py-10 text-muted-foreground">
-                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
-                    <Search className="w-6 h-6 text-muted-foreground/60" />
+                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#F1F5F999] flex items-center justify-center">
+                    <Search className="w-6 h-6 text-[#64748B99]" />
                   </div>
                   <p className="text-sm">Sin resultados para los filtros aplicados.</p>
                   <Button size="sm" variant="ghost" className="mt-2 text-xs" onClick={clearFilters}>Limpiar filtros</Button>
@@ -1144,7 +1144,7 @@ export default function CajaModule() {
 
           {/* ── Mobile: Cash Flow Timeline ── */}
           <Card className="lg:hidden overflow-hidden">
-            <CardHeader className="bg-primary/5 pb-3">
+            <CardHeader className="bg-[#0F766E0D] pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Timer className="w-4 h-4 text-primary" />
                 Línea de tiempo
@@ -1173,7 +1173,7 @@ export default function CajaModule() {
                     <div className="min-w-0">
                       <h3 className="font-semibold text-primary flex items-center gap-2">
                         Caja abierta
-                        <Badge className="bg-primary/20 text-primary shadow-sm font-semibold">
+                        <Badge className="bg-[#0F766E33] text-primary shadow-sm font-semibold">
                           <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary mr-1 animate-pulse-subtle" />
                           Activa
                         </Badge>
@@ -1182,7 +1182,7 @@ export default function CajaModule() {
                         <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 mt-0.5">
                           <Clock className="w-3 h-3" />
                           <span>{formatTimeSinceOpen(caja.apertura.fecha, now)}</span>
-                          <span className="text-muted-foreground/40">·</span>
+                          <span className="text-[#64748B66]">·</span>
                           <span>Apertura: {formatHora(caja.apertura.fecha)} · Cajero: {caja.apertura.empleado}</span>
                         </p>
                       )}
@@ -1198,10 +1198,10 @@ export default function CajaModule() {
               </Card>
 
               {/* Balance display — large animated number + trend indicator */}
-              <Card className="bg-success/10 border-2 border-primary/30 card-hover">
+              <Card className="bg-[#0596691A] border-2 border-[#0F766E4D] card-hover">
                 <CardContent className="py-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-[#0F766E33] flex items-center justify-center shadow-sm">
                       <Wallet className="w-6 h-6 text-primary" />
                     </div>
                     <div>
@@ -1217,7 +1217,7 @@ export default function CajaModule() {
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">vs. apertura</p>
                       <div className={cn(
                         'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm',
-                        tendencia >= 0 ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+                        tendencia >= 0 ? 'bg-[#0F766E33] text-primary' : 'bg-[#EF444426] text-destructive'
                       )}>
                         {tendencia >= 0
                           ? <TrendingUp className="w-3.5 h-3.5" />
@@ -1252,7 +1252,7 @@ export default function CajaModule() {
                       <Filter className="w-3 h-3 mr-1" />
                       Filtros
                       {activeFiltersCount > 0 && (
-                        <Badge className="ml-1 bg-white/20 text-white h-4 px-1 text-[10px]">{activeFiltersCount}</Badge>
+                        <Badge className="ml-1 bg-[#FFFFFF33] text-white h-4 px-1 text-[10px]">{activeFiltersCount}</Badge>
                       )}
                     </Button>
                   </div>
@@ -1267,7 +1267,7 @@ export default function CajaModule() {
                             'px-3 py-1 text-xs font-medium transition-colors',
                             filterTipo === val
                               ? 'bg-primary text-white'
-                              : 'bg-background text-muted-foreground hover:bg-muted/50'
+                              : 'bg-background text-muted-foreground hover:bg-[#F1F5F980]'
                           )}
                           onClick={() => setFilterTipo(val)}
                         >
@@ -1304,15 +1304,15 @@ export default function CajaModule() {
                 <CardContent>
                   {movimientos.length === 0 ? (
                     <div className="text-center py-10">
-                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
-                        <Receipt className="w-6 h-6 text-muted-foreground/60" />
+                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#F1F5F999] flex items-center justify-center">
+                        <Receipt className="w-6 h-6 text-[#64748B99]" />
                       </div>
                       <p className="text-sm text-muted-foreground">Sin movimientos todavía. Registrá el primero arriba.</p>
                     </div>
                   ) : filteredMovimientos.length === 0 ? (
                     <div className="text-center py-10 text-muted-foreground">
-                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-muted/60 flex items-center justify-center">
-                        <Search className="w-6 h-6 text-muted-foreground/60" />
+                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#F1F5F999] flex items-center justify-center">
+                        <Search className="w-6 h-6 text-[#64748B99]" />
                       </div>
                       <p className="text-sm">Sin resultados para los filtros aplicados.</p>
                       <Button size="sm" variant="ghost" className="mt-2 text-xs" onClick={clearFilters}>Limpiar filtros</Button>
@@ -1342,8 +1342,8 @@ export default function CajaModule() {
                                 className={cn(
                                   'group transition-colors border-l-2',
                                   m.tipo === 'ingreso'
-                                    ? 'border-l-primary hover:bg-primary/10'
-                                    : 'border-l-destructive hover:bg-destructive/10'
+                                    ? 'border-l-primary hover:bg-[#0F766E1A]'
+                                    : 'border-l-destructive hover:bg-[#EF44441A]'
                                 )}
                               >
                                 <TableCell className="text-xs">
@@ -1356,7 +1356,7 @@ export default function CajaModule() {
                                   <div className="flex items-center gap-2">
                                     <span className={cn(
                                       'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
-                                      m.tipo === 'ingreso' ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+                                      m.tipo === 'ingreso' ? 'bg-[#0F766E33] text-primary' : 'bg-[#EF444426] text-destructive'
                                     )}>
                                       {m.tipo === 'ingreso'
                                         ? <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1369,7 +1369,7 @@ export default function CajaModule() {
                                       {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
                                     </span>
                                     {m.gastoId && (
-                                      <span title="Movimiento vinculado a un gasto" className="inline-flex items-center justify-center w-5 h-5 rounded bg-warning/15 text-warning">
+                                      <span title="Movimiento vinculado a un gasto" className="inline-flex items-center justify-center w-5 h-5 rounded bg-[#D9770626] text-warning">
                                         <FileText className="w-3 h-3" />
                                       </span>
                                     )}
@@ -1440,7 +1440,7 @@ export default function CajaModule() {
             {/* Info Panel */}
             <div className="space-y-4">
               <Card className="overflow-hidden">
-                <CardHeader className="bg-primary/5 pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary" />Información del turno</CardTitle></CardHeader>
+                <CardHeader className="bg-[#0F766E0D] pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary" />Información del turno</CardTitle></CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   {caja.apertura && (
                     <>
@@ -1460,8 +1460,8 @@ export default function CajaModule() {
 
                   {/* Action buttons */}
                   <div className="grid grid-cols-2 gap-2 pt-2">
-                    <Button variant="outline" className="w-full border-primary/30 text-primary hover:bg-primary/20 hover:text-primary" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
-                    <Button variant="outline" className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
+                    <Button variant="outline" className="w-full border-[#0F766E4D] text-primary hover:bg-[#0F766E33] hover:text-primary" onClick={() => setShowMovForm('ingreso')}><Plus className="w-4 h-4 mr-1" />Ingreso</Button>
+                    <Button variant="outline" className="w-full border-[#EF444466] text-destructive hover:bg-[#EF44441A] hover:text-destructive" onClick={() => setShowMovForm('egreso')}><Minus className="w-4 h-4 mr-1" />Egreso</Button>
                   </div>
 
                   {/* Movement form */}
@@ -1493,7 +1493,7 @@ export default function CajaModule() {
 
               {/* Cash Flow Timeline */}
               <Card className="overflow-hidden">
-                <CardHeader className="bg-primary/5 pb-3">
+                <CardHeader className="bg-[#0F766E0D] pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Timer className="w-4 h-4 text-primary" />
                     Línea de tiempo
@@ -1624,21 +1624,21 @@ function ClosingWizard(props: ClosingWizardProps) {
                   'flex-1 flex flex-col items-center gap-1 py-1.5 px-1 rounded-md transition-all',
                   isActive && 'bg-primary text-white shadow-sm',
                   isDone && 'text-primary',
-                  !isActive && !isDone && 'text-muted-foreground hover:bg-muted/40'
+                  !isActive && !isDone && 'text-muted-foreground hover:bg-[#F1F5F966]'
                 )}
               >
                 <span className={cn(
                   'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border',
                   isActive && 'bg-white text-primary border-white',
-                  isDone && 'bg-primary/20 text-primary border-primary',
-                  !isActive && !isDone && 'border-muted-foreground/40'
+                  isDone && 'bg-[#0F766E33] text-primary border-primary',
+                  !isActive && !isDone && 'border-[#64748B66]'
                 )}>
                   {isDone ? <Check className="w-3 h-3" /> : <SIcon className="w-3 h-3" />}
                 </span>
                 <span className="text-[10px] font-medium leading-tight text-center">{s.label}</span>
               </button>
               {idx < steps.length - 1 && (
-                <div className={cn('h-0.5 w-4 rounded', props.step > s.n ? 'bg-primary' : 'bg-muted-foreground/20')} />
+                <div className={cn('h-0.5 w-4 rounded', props.step > s.n ? 'bg-primary' : 'bg-[#64748B33]')} />
               )}
             </div>
           );
@@ -1653,7 +1653,7 @@ function ClosingWizard(props: ClosingWizardProps) {
               <h4 className="font-semibold text-sm flex items-center gap-2"><Banknote className="w-4 h-4 text-primary" />Conteo de denominaciones</h4>
               <p className="text-xs text-muted-foreground mt-0.5">Ingresá la cantidad de cada billete y moneda.</p>
             </div>
-            <Badge className="bg-primary/20 text-primary shadow-sm">Esperado: {fmt(props.saldoEsperadoEfectivo)}</Badge>
+            <Badge className="bg-[#0F766E33] text-primary shadow-sm">Esperado: {fmt(props.saldoEsperadoEfectivo)}</Badge>
           </div>
           <DenominationBreakdownPanel
             denominaciones={DENOMINACIONES}
@@ -1715,7 +1715,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                   </div>
                 );
               })}
-              <div className="flex justify-between font-bold pt-2 border-t bg-primary/5 rounded-md p-2 px-3">
+              <div className="flex justify-between font-bold pt-2 border-t bg-[#0F766E0D] rounded-md p-2 px-3">
                 <span>Total otros métodos</span><span className="text-primary tabular-nums">{fmt(props.otrosContadosTotal)}</span>
               </div>
             </div>
@@ -1801,7 +1801,7 @@ function ClosingWizard(props: ClosingWizardProps) {
           {props.diferenciaTotal !== 0 && (
             <div className={cn(
               'flex items-center gap-2 p-2.5 rounded-md text-sm',
-              props.diferenciaTotal > 0 ? 'bg-warning/15 text-warning' : 'bg-destructive/15 text-destructive'
+              props.diferenciaTotal > 0 ? 'bg-[#D9770626] text-warning' : 'bg-[#EF444426] text-destructive'
             )}>
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>
@@ -1834,19 +1834,19 @@ function ClosingWizard(props: ClosingWizardProps) {
               </div>
               <div className="p-3 space-y-2">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                  <div className="p-1.5 rounded-md bg-primary/5 border border-primary/20">
+                  <div className="p-1.5 rounded-md bg-[#0F766E0D] border border-[#0F766E33]">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Apertura</p>
                     <p className="text-xs font-bold tabular-nums text-primary">{fmt(props.daySummary.aperturaMonto)}</p>
                   </div>
-                  <div className="p-1.5 rounded-md bg-primary/10 border border-primary/20">
+                  <div className="p-1.5 rounded-md bg-[#0F766E1A] border border-[#0F766E33]">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Ingresos</p>
                     <p className="text-xs font-bold tabular-nums text-primary">{fmt(props.daySummary.totalIngresos)}</p>
                   </div>
-                  <div className="p-1.5 rounded-md bg-destructive/10 border border-destructive/20">
+                  <div className="p-1.5 rounded-md bg-[#EF44441A] border border-[#EF444433]">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Egresos</p>
                     <p className="text-xs font-bold tabular-nums text-destructive">{fmt(props.daySummary.totalEgresos)}</p>
                   </div>
-                  <div className="p-1.5 rounded-md bg-muted/40 border">
+                  <div className="p-1.5 rounded-md bg-[#F1F5F966] border">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Movimientos</p>
                     <p className="text-xs font-bold tabular-nums">{props.daySummary.movCount}</p>
                   </div>
@@ -1867,7 +1867,7 @@ function ClosingWizard(props: ClosingWizardProps) {
             </h5>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
               {DENOMINACIONES.filter(d => (props.denomQuantities[d.value] || 0) > 0).map(d => (
-                <div key={d.value} className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-muted/30 text-xs">
+                <div key={d.value} className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-[#F1F5F94D] text-xs">
                   <span className="font-medium">{d.label}</span>
                   <span className="text-muted-foreground">×{props.denomQuantities[d.value]}</span>
                   <span className="font-semibold tabular-nums ml-auto">{fmt(d.value * (props.denomQuantities[d.value] || 0))}</span>
@@ -1891,13 +1891,13 @@ function ClosingWizard(props: ClosingWizardProps) {
 
           {/* Final summary */}
           <div className="grid grid-cols-2 gap-2 text-center">
-            <div className="p-2 rounded-md bg-muted/40">
+            <div className="p-2 rounded-md bg-[#F1F5F966]">
               <p className="text-[10px] text-muted-foreground">Contado total</p>
               <p className="font-bold text-sm tabular-nums">{fmt(props.totalContado)}</p>
             </div>
             <div className={cn(
               'p-2 rounded-md',
-              props.diferenciaTotal === 0 ? 'bg-primary/20' : props.diferenciaTotal > 0 ? 'bg-warning/15' : 'bg-destructive/15'
+              props.diferenciaTotal === 0 ? 'bg-[#0F766E33]' : props.diferenciaTotal > 0 ? 'bg-[#D9770626]' : 'bg-[#EF444426]'
             )}>
               <p className="text-[10px] text-muted-foreground">Diferencia</p>
               <p className={cn(
@@ -1913,7 +1913,7 @@ function ClosingWizard(props: ClosingWizardProps) {
           {props.diferenciaTotal !== 0 && (
             <div className={cn(
               'flex items-center gap-2 p-2.5 rounded-md text-xs border',
-              props.diferenciaTotal > 0 ? 'bg-warning/15 border-brand-amber/30 text-warning' : 'bg-destructive/15 border-destructive/30 text-destructive'
+              props.diferenciaTotal > 0 ? 'bg-[#D9770626] border-[#F59E0B4D] text-warning' : 'bg-[#EF444426] border-[#EF44444D] text-destructive'
             )}>
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>
@@ -2009,7 +2009,7 @@ function ClosingWizard(props: ClosingWizardProps) {
             </Button>
           )}
           {props.step < 4 ? (
-            <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => props.setStep((props.step + 1) as 1 | 2 | 3 | 4)}>
+            <Button size="sm" className="bg-primary hover:bg-[#0F766EE6]" onClick={() => props.setStep((props.step + 1) as 1 | 2 | 3 | 4)}>
               Siguiente<ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
@@ -2034,7 +2034,7 @@ function ClosingWizard(props: ClosingWizardProps) {
 function ComparisonRow({ label, value, variant, showSign }: {
   label: string; value: number; variant: 'neutral' | 'success' | 'warning' | 'danger'; showSign?: boolean;
 }) {
-  const bg = variant === 'success' ? 'bg-primary/20' : variant === 'warning' ? 'bg-warning/15' : variant === 'danger' ? 'bg-destructive/15' : 'bg-muted/50';
+  const bg = variant === 'success' ? 'bg-[#0F766E33]' : variant === 'warning' ? 'bg-[#D9770626]' : variant === 'danger' ? 'bg-[#EF444426]' : 'bg-[#F1F5F980]';
   const txt = variant === 'success' ? 'text-primary' : variant === 'warning' ? 'text-warning' : variant === 'danger' ? 'text-destructive' : 'text-foreground';
   return (
     <div className={cn('p-2.5 rounded-md', bg)}>
@@ -2051,10 +2051,10 @@ function ComparisonRow({ label, value, variant, showSign }: {
    ═══════════════════════════════════════════════════════════ */
 
 const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; label: string; value: string; sub: string; iconBg: string; iconColor: string }> = {
-  emerald: { borderL: 'border-l-primary', bg: 'bg-primary/10', darkBg: 'bg-primary/5', label: 'text-primary', value: 'text-primary/70', sub: 'text-primary/50', iconBg: 'bg-primary/20', iconColor: 'text-primary' },
-  green: { borderL: 'border-l-success', bg: 'bg-success/10', darkBg: 'bg-success/10', label: 'text-success', value: 'text-success', sub: 'text-success/50', iconBg: 'bg-success/20', iconColor: 'text-success' },
-  red: { borderL: 'border-l-destructive', bg: 'bg-destructive/10', darkBg: 'bg-destructive/10', label: 'text-destructive', value: 'text-destructive', sub: 'text-destructive/50', iconBg: 'bg-destructive/20', iconColor: 'text-destructive' },
-  amber: { borderL: 'border-l-warning', bg: 'bg-warning/10', darkBg: 'bg-warning/10', label: 'text-warning', value: 'text-warning', sub: 'text-warning/50', iconBg: 'bg-warning/20', iconColor: 'text-warning' },
+  emerald: { borderL: 'border-l-primary', bg: 'bg-[#0F766E1A]', darkBg: 'bg-[#0F766E0D]', label: 'text-primary', value: 'text-[#0F766EB3]', sub: 'text-[#0F766E80]', iconBg: 'bg-[#0F766E33]', iconColor: 'text-primary' },
+  green: { borderL: 'border-l-success', bg: 'bg-[#0596691A]', darkBg: 'bg-[#0596691A]', label: 'text-success', value: 'text-success', sub: 'text-[#05966980]', iconBg: 'bg-[#05966933]', iconColor: 'text-success' },
+  red: { borderL: 'border-l-destructive', bg: 'bg-[#EF44441A]', darkBg: 'bg-[#EF44441A]', label: 'text-destructive', value: 'text-destructive', sub: 'text-[#EF444480]', iconBg: 'bg-[#EF444433]', iconColor: 'text-destructive' },
+  amber: { borderL: 'border-l-warning', bg: 'bg-[#D977061A]', darkBg: 'bg-[#D977061A]', label: 'text-warning', value: 'text-warning', sub: 'text-[#D9770680]', iconBg: 'bg-[#D9770633]', iconColor: 'text-warning' },
 };
 
 /* ═══════════════════════════════════════════════════════════
@@ -2078,7 +2078,7 @@ function MovementCategoryPie({ data, compact }: { data: PieDatum[]; compact?: bo
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="bg-primary/5 pb-2">
+      <CardHeader className="bg-[#0F766E0D] pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Sparkle className="w-4 h-4 text-primary" />
           Movimientos por categoría
@@ -2138,7 +2138,7 @@ function PieTooltip({ active, payload }: { active?: boolean; payload?: Array<{ p
   if (!active || !payload || !payload.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="bg-primary text-white px-3 py-2 rounded-lg shadow-xl text-xs border border-primary/30">
+    <div className="bg-primary text-white px-3 py-2 rounded-lg shadow-xl text-xs border border-[#0F766E4D]">
       <p className="font-semibold">{d.name}</p>
       <p className="tabular-nums">{formatMoney(d.value)} · {d.percentage}%</p>
     </div>
@@ -2171,7 +2171,7 @@ interface MovementFiltersProps {
 
 function MovementFilters(props: MovementFiltersProps) {
   return (
-    <div className="mt-3 p-3 rounded-md border bg-muted/20 space-y-2.5 animate-slide-up">
+    <div className="mt-3 p-3 rounded-md border bg-[#F1F5F933] space-y-2.5 animate-slide-up">
       {/* Search row */}
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
@@ -2278,7 +2278,7 @@ function MovementDetailPopover({ movimiento, gasto, categoria }: {
         <div className="flex items-center gap-2">
           <span className={cn(
             'w-7 h-7 rounded-full flex items-center justify-center',
-            isIngreso ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+            isIngreso ? 'bg-[#0F766E33] text-primary' : 'bg-[#EF444426] text-destructive'
           )}>
             {isIngreso ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
           </span>
@@ -2329,7 +2329,7 @@ function MovementDetailPopover({ movimiento, gasto, categoria }: {
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
             <FileText className="w-2.5 h-2.5" />Gasto vinculado
           </p>
-          <div className="bg-warning/10 border border-warning/20 rounded-md p-2 text-[11px] space-y-0.5">
+          <div className="bg-[#D977061A] border border-[#D9770633] rounded-md p-2 text-[11px] space-y-0.5">
             <div className="flex justify-between">
               <span className="text-warning">Tipo:</span>
               <span className="font-medium text-warning">{gasto.tipo}</span>
@@ -2425,7 +2425,7 @@ function MovFormInline({
             <button
               type="button"
               onClick={() => setMovCategoria(suggestedCategory!)}
-              className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-white transition-colors animate-slide-up"
+              className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full bg-[#0F766E1A] border border-[#0F766E4D] text-primary hover:bg-primary hover:text-white transition-colors animate-slide-up"
             >
               <Sparkle className="w-2.5 h-2.5" />
               Sugerencia: <strong className="font-semibold">{suggestedCategory}</strong>
@@ -2483,7 +2483,7 @@ const QUICK_STATS: QuickStatConfig[] = [
     icon: Wallet,
     colorFamily: 'emerald',
     prominent: true,
-    iconBgOverride: 'bg-primary/20',
+    iconBgOverride: 'bg-[#0F766E33]',
   },
 ];
 
@@ -2581,17 +2581,17 @@ function MovementCard({
   return (
     <div
       className={cn(
-        'group relative pl-3 pr-3.5 py-3 space-y-1.5 transition-all duration-300 hover:bg-muted/30 animate-slide-up',
+        'group relative pl-3 pr-3.5 py-3 space-y-1.5 transition-all duration-300 hover:bg-[#F1F5F94D] animate-slide-up',
         'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1',
         isIngreso ? 'before:bg-primary' : 'before:bg-destructive',
-        isDetailOpen && 'bg-muted/30'
+        isDetailOpen && 'bg-[#F1F5F94D]'
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className={cn(
             'w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm',
-            isIngreso ? 'bg-primary/20 text-primary' : 'bg-destructive/15 text-destructive'
+            isIngreso ? 'bg-[#0F766E33] text-primary' : 'bg-[#EF444426] text-destructive'
           )}>
             {isIngreso
               ? <ArrowUpRight className="w-3.5 h-3.5" />
@@ -2613,7 +2613,7 @@ function MovementCard({
               </Badge>
               {/* Receipt icon if linked gasto */}
               {m.gastoId && (
-                <span title="Gasto vinculado" className="inline-flex items-center justify-center w-4 h-4 rounded bg-warning/15 text-warning">
+                <span title="Gasto vinculado" className="inline-flex items-center justify-center w-4 h-4 rounded bg-[#D9770626] text-warning">
                   <FileText className="w-2.5 h-2.5" />
                 </span>
               )}
@@ -2640,7 +2640,7 @@ function MovementCard({
         <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
           <Clock className="w-2.5 h-2.5" />
           <span>{formatRelative(m.fecha, now)}</span>
-          <span className="text-muted-foreground/40">·</span>
+          <span className="text-[#64748B66]">·</span>
           <span>{formatHora(m.fecha)}</span>
         </p>
         <div className="flex gap-0.5">
@@ -2660,7 +2660,7 @@ function MovementCard({
 
       {/* Detail expandable section */}
       {isDetailOpen && (
-        <div className="mt-2 pt-2 border-t border-dashed bg-muted/30 rounded-md p-2.5 animate-slide-up space-y-1.5">
+        <div className="mt-2 pt-2 border-t border-dashed bg-[#F1F5F94D] rounded-md p-2.5 animate-slide-up space-y-1.5">
           <div className="grid grid-cols-2 gap-2 text-[11px]">
             <div>
               <p className="text-muted-foreground">Empleado:</p>
@@ -2693,7 +2693,7 @@ function MovementCard({
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
                 <FileText className="w-2.5 h-2.5" />Gasto vinculado
               </p>
-              <div className="bg-warning/10 border border-warning/20 rounded-md p-2 text-[11px] space-y-0.5">
+              <div className="bg-[#D977061A] border border-[#D9770633] rounded-md p-2 text-[11px] space-y-0.5">
                 <div className="flex justify-between">
                   <span className="text-warning">Tipo:</span>
                   <span className="font-medium text-warning">{gastoVinculado.tipo}</span>

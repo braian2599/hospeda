@@ -217,12 +217,12 @@ export const CATEGORY_COLORS: Record<NotificationCategory, string> = {
 };
 
 export const CATEGORY_BG: Record<NotificationCategory, string> = {
-  reserva: 'bg-info/10 border-l-info',
-  pago: 'bg-success/10 border-l-success',
-  checkin: 'bg-warning/10 border-l-warning',
-  habitacion: 'bg-chart-5/10 border-l-chart-5',
+  reserva: 'bg-[#0284C71A] border-l-info',
+  pago: 'bg-[#0596691A] border-l-success',
+  checkin: 'bg-[#D977061A] border-l-warning',
+  habitacion: 'bg-[#8B5CF61A] border-l-chart-5',
   sistema: 'bg-muted border-l-muted-foreground',
-  limpieza: 'bg-warning/10 border-l-warning',
+  limpieza: 'bg-[#D977061A] border-l-warning',
 };
 
 export const PRIORITY_INDICATOR: Record<NotificationPriority, string> = {

@@ -50,7 +50,7 @@ export function ModuleLoadingSkeleton({
           <Skeleton className="h-4 w-40" />
         </div>
         {/* Table header */}
-        <div className="grid gap-4 px-4 py-3 border-b bg-muted/30" style={{ gridTemplateColumns: `repeat(${tableCols}, 1fr)` }}>
+        <div className="grid gap-4 px-4 py-3 border-b bg-[#F1F5F94D]" style={{ gridTemplateColumns: `repeat(${tableCols}, 1fr)` }}>
           {Array.from({ length: tableCols }).map((_, i) => (
             <Skeleton key={i} className="h-3 w-full" />
           ))}

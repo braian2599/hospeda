@@ -187,14 +187,14 @@ function MoreFeaturesCarousel() {
         {/* Nav buttons — positioned at edges, outside text area */}
         <button
           onClick={prev}
-          className="absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 shadow-md transition hover:bg-primary hover:text-primary-foreground"
+          className="absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-[#F8FAFCE6] shadow-md transition hover:bg-primary hover:text-primary-foreground"
           aria-label="Anterior"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
         <button
           onClick={next}
-          className="absolute right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 shadow-md transition hover:bg-primary hover:text-primary-foreground"
+          className="absolute right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-[#F8FAFCE6] shadow-md transition hover:bg-primary hover:text-primary-foreground"
           aria-label="Siguiente"
         >
           <ChevronRight className="h-4 w-4" />
@@ -251,7 +251,7 @@ export default function FuncionesPage() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             {FEATURES.map(({ icon: Icon, title, desc, long, screenshot }, i) => (
               <FadeIn key={title} delay={(i % 2) * 100}>
-                <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg">
+                <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-[#0F766E33] hover:shadow-lg">
                   {/* Header */}
                   <div className="p-6">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F766E1A]">
@@ -259,7 +259,7 @@ export default function FuncionesPage() {
                     </div>
                     <h2 className="mt-5 text-xl font-semibold text-foreground">{title}</h2>
                     <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
-                    <p className="mt-3 text-sm text-foreground/80">{long}</p>
+                    <p className="mt-3 text-sm text-[#0F172ACC]">{long}</p>
                   </div>
                   {/* Screenshot */}
                   <div className="px-6 pb-6">
@@ -273,7 +273,7 @@ export default function FuncionesPage() {
       </section>
 
       {/* ─── Carousel: more features ─── */}
-      <section className="bg-secondary/30 py-24">
+      <section className="bg-[#F1F5F94D] py-24">
         <FadeIn>
           <MoreFeaturesCarousel />
         </FadeIn>
@@ -323,7 +323,7 @@ export default function FuncionesPage() {
       </section>
 
       {/* ─── Final CTA ─── */}
-      <section className="bg-secondary/30 py-24">
+      <section className="bg-[#F1F5F94D] py-24">
         <FadeIn className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <Badge variant="secondary" className="mb-5 gap-1">
             <Clock className="h-3 w-3" />

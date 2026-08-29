@@ -128,7 +128,7 @@ export function QuickStatsBar() {
           return (
             <div
               key={s.id}
-              className="flex-shrink-0 w-[120px] flex flex-col gap-0.5 rounded-md bg-background/60 border border-border/60 px-2.5 py-1.5"
+              className="flex-shrink-0 w-[120px] flex flex-col gap-0.5 rounded-md bg-[#F8FAFC99] border border-[#E2E8F099] px-2.5 py-1.5"
             >
               <div className="flex items-center gap-1">
                 <Icon className={`w-3.5 h-3.5 ${s.colorClass}`} />

@@ -105,7 +105,7 @@ const ROLES: RoleInfo[] = [
     description: 'Acceso total al sistema',
     icon: Crown,
     colorHex: '#F59E0B',
-    badgeClass: 'bg-warning/15 text-warning border-warning/40',
+    badgeClass: 'bg-[#D9770626] text-warning border-[#D9770666]',
     borderClass: 'border-l-amber-500',
     avatarGradient: 'from-amber-400 to-amber-600',
   },
@@ -116,7 +116,7 @@ const ROLES: RoleInfo[] = [
     description: 'Acceso completo a todos los módulos',
     icon: ShieldCheck,
     colorHex: '#0F2B28',
-    badgeClass: 'bg-primary/10 text-primary border-primary/30',
+    badgeClass: 'bg-[#0F766E1A] text-primary border-[#0F766E4D]',
     borderClass: 'border-l-primary',
     avatarGradient: 'from-brand-deep to-brand-teal',
   },
@@ -127,7 +127,7 @@ const ROLES: RoleInfo[] = [
     description: 'Habitaciones, reservas, check-in y clientes',
     icon: UserCog,
     colorHex: '#0EA5E9',
-    badgeClass: 'bg-info/15 text-info border-info/40',
+    badgeClass: 'bg-[#0284C726] text-info border-[#0284C766]',
     borderClass: 'border-l-sky-400',
     avatarGradient: 'from-sky-400 to-sky-600',
   },
@@ -138,7 +138,7 @@ const ROLES: RoleInfo[] = [
     description: 'Tareas de limpieza y mantenimiento',
     icon: Shield,
     colorHex: '#8B5CF6',
-    badgeClass: 'bg-chart-5/15 text-chart-5 border-chart-5/40',
+    badgeClass: 'bg-[#8B5CF626] text-chart-5 border-[#8B5CF666]',
     borderClass: 'border-l-chart-5',
     avatarGradient: 'from-chart-5 to-chart-5',
   },
@@ -493,14 +493,14 @@ export default function UsuariosModule() {
       {/* ═══════════ STATS SUMMARY ═══════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Total Usuarios */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-primary bg-primary/5 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-primary bg-[#0F766E0D] hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Usuarios</p>
                 <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-2xl font-bold text-primary" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-[#0F766E33] flex items-center justify-center shrink-0">
                 <Users className="w-5 h-5 text-primary" />
               </div>
             </div>
@@ -508,7 +508,7 @@ export default function UsuariosModule() {
         </Card>
 
         {/* En línea (real-time) */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-primary bg-primary/5 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-primary bg-[#0F766E0D] hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -521,7 +521,7 @@ export default function UsuariosModule() {
                   <p className="text-[10px] text-muted-foreground animate-pulse">Detectando...</p>
                 )}
               </div>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${onlineCount > 0 ? 'bg-primary/20' : 'bg-primary/10'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${onlineCount > 0 ? 'bg-[#0F766E33]' : 'bg-[#0F766E1A]'}`}>
                 <Activity className={`w-5 h-5 ${onlineCount > 0 ? 'text-primary' : 'text-primary'}`} />
               </div>
             </div>
@@ -529,7 +529,7 @@ export default function UsuariosModule() {
         </Card>
 
         {/* Por Rol */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-info bg-info/10 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-info bg-[#0284C71A] hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1 min-w-0 flex-1">
@@ -549,7 +549,7 @@ export default function UsuariosModule() {
                   </span>
                 </div>
               </div>
-              <div className="w-10 h-10 rounded-full bg-info/15 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-[#0284C726] flex items-center justify-center shrink-0">
                 <Shield className="w-5 h-5 text-info" />
               </div>
             </div>
@@ -557,7 +557,7 @@ export default function UsuariosModule() {
         </Card>
 
         {/* Invitaciones Pendientes */}
-        <Card className="relative overflow-hidden border-l-[3px] border-l-warning bg-warning/10 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <Card className="relative overflow-hidden border-l-[3px] border-l-warning bg-[#D977061A] hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -565,7 +565,7 @@ export default function UsuariosModule() {
                 <AnimatedNumber value={pendingInvites} format={n => String(Math.round(n))} className="text-2xl font-bold text-warning" />
                 <p className="text-[10px] text-muted-foreground">En esta sesión</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-[#D9770626] flex items-center justify-center shrink-0">
                 <Mail className="w-5 h-5 text-warning" />
               </div>
             </div>
@@ -603,7 +603,7 @@ export default function UsuariosModule() {
             return (
               <Card
                 key={u.id}
-                className={`relative overflow-hidden border-l-[3px] ${roleInfo.borderClass} hover:shadow-md transition-all duration-200 ${isOwner ? 'bg-warning/10' : ''}`}
+                className={`relative overflow-hidden border-l-[3px] ${roleInfo.borderClass} hover:shadow-md transition-all duration-200 ${isOwner ? 'bg-[#D977061A]' : ''}`}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
@@ -720,9 +720,9 @@ export default function UsuariosModule() {
               {recentActivity.map((a, idx) => (
                 <div key={a.id} className="flex items-start gap-3 text-xs">
                   <div className="flex flex-col items-center self-stretch">
-                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${idx === 0 ? 'bg-primary' : 'bg-primary/40'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${idx === 0 ? 'bg-primary' : 'bg-[#0F766E66]'}`} />
                     {idx < recentActivity.length - 1 && (
-                      <div className="w-px flex-1 bg-primary/20 mt-1" />
+                      <div className="w-px flex-1 bg-[#0F766E33] mt-1" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0 pb-1">
@@ -826,7 +826,7 @@ export default function UsuariosModule() {
                     {MODULOS_SISTEMA.map(mod => (
                       <label
                         key={mod.id}
-                        className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 cursor-pointer transition-colors"
+                        className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-[#F1F5F980] cursor-pointer transition-colors"
                       >
                         <Checkbox
                           checked={form.permisos.includes(mod.id)}
@@ -951,7 +951,7 @@ export default function UsuariosModule() {
             {/* Permissions preview */}
             <div className="space-y-1.5">
               <Label className="text-xs">Módulos a los que tendrá acceso ({(PERMISOS_POR_ROL[inviteForm.rol] || []).length}/{MODULOS_SISTEMA.length})</Label>
-              <div className="rounded-md border p-2.5 bg-muted/20 max-h-40 overflow-y-auto">
+              <div className="rounded-md border p-2.5 bg-[#F1F5F933] max-h-40 overflow-y-auto">
                 <div className="grid grid-cols-2 gap-1">
                   {MODULOS_SISTEMA.map(m => {
                     const has = (PERMISOS_POR_ROL[inviteForm.rol] || []).includes(m.id);

@@ -40,7 +40,7 @@ const NavItem = forwardRef<HTMLButtonElement, { m: (typeof MODULOS_SISTEMA)[numb
             ? 'opacity-50 hover:opacity-70'
             : isActive
               ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary sidebar-active-glow'
-              : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+              : 'text-[#475569B3] hover:bg-sidebar-accent hover:text-sidebar-foreground'
           }
         `}
         title={!expanded ? (locked ? `${m.label} (no disponible)` : m.label) : undefined}
@@ -51,13 +51,13 @@ const NavItem = forwardRef<HTMLButtonElement, { m: (typeof MODULOS_SISTEMA)[numb
           ${isActive && !locked
             ? 'text-sidebar-primary'
             : locked
-              ? 'text-sidebar-foreground/40'
-              : 'text-sidebar-foreground/50'
+              ? 'text-[#47556966]'
+              : 'text-[#47556980]'
           }
         `}>
           <Icon className={expanded ? 'w-4 h-4' : 'w-[18px] h-[18px]'} />
           {locked && (
-            <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-sidebar-foreground/60 flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#47556999] flex items-center justify-center">
               <Lock className="w-1.5 h-1.5 text-sidebar" />
             </span>
           )}
@@ -84,7 +84,7 @@ function GroupedNav({ modulos, expanded, efectivosSet, activeItemRef }: {
     if (grupo && grupo !== lastGroup && expanded) {
       elements.push(
         <div key={`label-${grupo}`} className="pt-3 pb-1 px-3 first:pt-1">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#47556966]">
             {GROUP_LABELS[grupo]}
           </span>
         </div>
@@ -172,13 +172,13 @@ export default function Sidebar() {
         <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain shrink-0" />
         <div className="overflow-hidden whitespace-nowrap transition-opacity duration-200 flex-1" style={{ opacity: isExpanded ? 1 : 0, width: isExpanded ? 'auto' : 0 }}>
           <h2 className="font-bold text-sm leading-tight text-sidebar-accent-foreground">Hospedá</h2>
-          <p className="text-[11px] text-sidebar-foreground/50">Gestión Hotelera</p>
+          <p className="text-[11px] text-[#47556980]">Gestión Hotelera</p>
         </div>
         {isExpanded && (
           <div className="flex items-center gap-0.5 shrink-0">
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('hospeda:open-command-palette'))}
-              className="p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+              className="p-1.5 rounded-md text-[#47556999] hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
               aria-label="Búsqueda rápida"
               title="Búsqueda rápida"
             >
@@ -206,11 +206,11 @@ export default function Sidebar() {
               ${isExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
               ${isActive('configuracion')
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary'
-                : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                : 'text-[#475569B3] hover:bg-sidebar-accent hover:text-sidebar-foreground'
               }`}
             title={!isExpanded ? 'Configuración' : undefined}
           >
-            <span className={`shrink-0 flex items-center justify-center rounded-md ${isExpanded ? 'w-7 h-7' : 'w-8 h-8'} ${isActive('configuracion') ? 'text-sidebar-primary' : 'text-sidebar-foreground/50'}`}>
+            <span className={`shrink-0 flex items-center justify-center rounded-md ${isExpanded ? 'w-7 h-7' : 'w-8 h-8'} ${isActive('configuracion') ? 'text-sidebar-primary' : 'text-[#47556980]'}`}>
               <Settings className={isExpanded ? 'w-4 h-4' : 'w-[18px] h-[18px]'} />
             </span>
             {isExpanded && <span className={`text-[13px] font-medium truncate ${isActive('configuracion') ? 'text-sidebar-accent-foreground' : ''}`}>Configuración</span>}
@@ -226,10 +226,10 @@ export default function Sidebar() {
             onClick={() => useHotelStore.getState().setPerfilOpen(true)}
             className={`w-full flex items-center rounded-lg transition-colors duration-200
               ${isExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
-              text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground`}
+              text-[#475569B3] hover:bg-sidebar-accent hover:text-sidebar-foreground`}
             title={!isExpanded ? userName : undefined}
           >
-            <span className="w-7 h-7 rounded-full bg-sidebar-accent/60 flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">
+            <span className="w-7 h-7 rounded-full bg-[#E2E8F099] flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">
               {userName?.charAt(0)?.toUpperCase() || 'A'}
             </span>
             {isExpanded && <span className="text-[13px] font-medium truncate text-sidebar-foreground">{userName}</span>}
@@ -238,7 +238,7 @@ export default function Sidebar() {
           {!isExpanded && <NotificationCenter />}
         </div>
 
-        <Button variant="ghost" size="icon" onClick={handleLogout} className={`text-sidebar-foreground/70 hover:text-destructive transition-colors ${isExpanded ? 'w-full justify-start gap-3 px-3 h-9' : 'w-full'}`}>
+        <Button variant="ghost" size="icon" onClick={handleLogout} className={`text-[#475569B3] hover:text-destructive transition-colors ${isExpanded ? 'w-full justify-start gap-3 px-3 h-9' : 'w-full'}`}>
           <LogOut className="w-4 h-4 shrink-0" />
           {isExpanded && <span className="text-[13px]">Cerrar sesión</span>}
         </Button>
@@ -249,20 +249,20 @@ export default function Sidebar() {
   /* ── Mobile sidebar ── */
   const mobileSidebar = sidebarOpen && (
     <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menú de navegación">
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+      <div className="fixed inset-0 bg-[#00000066] backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
       <aside className="fixed inset-y-0 left-0 w-72 z-50 bg-sidebar border-r border-sidebar-border shadow-xl flex flex-col">
-        <button onClick={() => setSidebarOpen(false)} className="absolute top-3 right-3 z-10 p-1.5 rounded-md hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors" aria-label="Cerrar menú">
+        <button onClick={() => setSidebarOpen(false)} className="absolute top-3 right-3 z-10 p-1.5 rounded-md hover:bg-sidebar-accent text-[#475569B3] hover:text-sidebar-foreground transition-colors" aria-label="Cerrar menú">
           <X className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-3 px-4 py-4">
           <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain shrink-0" />
           <div className="min-w-0 flex-1">
             <h2 className="font-bold text-sm leading-tight text-sidebar-accent-foreground">Hospedá</h2>
-            <p className="text-[11px] text-sidebar-foreground/50">Gestión Hotelera</p>
+            <p className="text-[11px] text-[#47556980]">Gestión Hotelera</p>
           </div>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('hospeda:open-command-palette'))}
-            className="p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+            className="p-1.5 rounded-md text-[#47556999] hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
             aria-label="Búsqueda rápida"
             title="Búsqueda rápida"
           >
@@ -283,20 +283,20 @@ export default function Sidebar() {
               <div key={m.id}>
                 {showLabel && (
                   <div className="pt-4 pb-1.5 px-3 first:pt-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">{GROUP_LABELS[grupo]}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#47556966]">{GROUP_LABELS[grupo]}</span>
                   </div>
                 )}
                 <button
                   onClick={() => setModulo(m.id)}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-200 text-left relative sidebar-nav-item
-                    ${locked ? 'opacity-50 hover:opacity-70' : active ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary sidebar-active-glow' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}
+                    ${locked ? 'opacity-50 hover:opacity-70' : active ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary sidebar-active-glow' : 'text-[#475569B3] hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}
                 >
-                  <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-md relative ${active && !locked ? 'text-sidebar-primary' : locked ? 'text-sidebar-foreground/40' : 'text-sidebar-foreground/50'}`}>
+                  <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-md relative ${active && !locked ? 'text-sidebar-primary' : locked ? 'text-[#47556966]' : 'text-[#47556980]'}`}>
                     <Icon className="w-4 h-4" />
-                    {locked && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-sidebar-foreground/60 flex items-center justify-center"><Lock className="w-1.5 h-1.5 text-sidebar" /></span>}
+                    {locked && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#47556999] flex items-center justify-center"><Lock className="w-1.5 h-1.5 text-sidebar" /></span>}
                   </span>
                   <span className={`flex-1 text-left ${active && !locked ? 'text-sidebar-accent-foreground' : ''}`}>{m.label}</span>
-                  {locked && <span className="text-[10px] text-sidebar-foreground/50">Upgrade</span>}
+                  {locked && <span className="text-[10px] text-[#47556980]">Upgrade</span>}
                 </button>
               </div>
             );
@@ -305,22 +305,22 @@ export default function Sidebar() {
         <div className="border-t border-sidebar-border" />
         {usuarioActual.rol === 'owner' && (
           <div className="px-2 py-1.5">
-            <button onClick={() => { setModulo('configuracion'); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-200 text-left relative ${isActive('configuracion') ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}>
-              <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-md ${isActive('configuracion') ? 'text-sidebar-primary' : 'text-sidebar-foreground/50'}`}><Settings className="w-4 h-4" /></span>
+            <button onClick={() => { setModulo('configuracion'); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-200 text-left relative ${isActive('configuracion') ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary' : 'text-[#475569B3] hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}>
+              <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-md ${isActive('configuracion') ? 'text-sidebar-primary' : 'text-[#47556980]'}`}><Settings className="w-4 h-4" /></span>
               <span className={`flex-1 ${isActive('configuracion') ? 'text-sidebar-accent-foreground' : ''}`}>Configuración</span>
             </button>
           </div>
         )}
         <div className="border-t border-sidebar-border" />
         <div className="p-3 space-y-1">
-          <button onClick={() => { useHotelStore.getState().setPerfilOpen(true); }} className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors">
-            <div className="w-7 h-7 rounded-full bg-sidebar-accent/60 flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">{userName?.charAt(0)?.toUpperCase() || 'A'}</div>
+          <button onClick={() => { useHotelStore.getState().setPerfilOpen(true); }} className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-[#475569B3] hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors">
+            <div className="w-7 h-7 rounded-full bg-[#E2E8F099] flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">{userName?.charAt(0)?.toUpperCase() || 'A'}</div>
             <span className="text-[13px] font-medium truncate text-sidebar-foreground">{userName}</span>
           </button>
           <div className="flex items-center gap-1">
             <NotificationCenter />
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-destructive">
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full justify-start gap-2 text-[#475569B3] hover:text-destructive">
             <LogOut className="w-4 h-4" /><span className="text-[13px]">Cerrar sesión</span>
           </Button>
         </div>

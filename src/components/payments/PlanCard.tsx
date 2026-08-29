@@ -52,8 +52,8 @@ export default function PlanCard({ planTipo, destacado, onSelect, compact }: Pla
       className={`
         relative h-full flex flex-col rounded-2xl border p-6 transition-all duration-300
         ${destacado
-          ? 'border-primary bg-card shadow-lg shadow-primary/5'
-          : 'border-border bg-card hover:border-primary/30'
+          ? 'border-primary bg-card shadow-lg shadow-[#0F766E0D]'
+          : 'border-border bg-card hover:border-[#0F766E4D]'
         }
         ${compact ? 'p-4 lg:p-5' : 'p-6 lg:p-8'}
       `}

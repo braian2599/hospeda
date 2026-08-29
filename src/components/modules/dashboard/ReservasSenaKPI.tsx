@@ -62,7 +62,7 @@ export default function ReservasSenaKPI() {
           {esManual ? <Clock3 className="w-4 h-4 text-brand-amber" /> : <CalendarCheck className="w-4 h-4 text-primary" />}
           {esManual ? 'Reservas a confirmar (landing)' : 'Próximos check-ins (landing)'}
           {esManual && items.length > 0 && (
-            <Badge className="bg-brand-amber/15 text-brand-amber border-brand-amber/40 ml-1">{items.length}</Badge>
+            <Badge className="bg-[#F59E0B26] text-brand-amber border-[#F59E0B66] ml-1">{items.length}</Badge>
           )}
         </CardTitle>
       </CardHeader>
@@ -79,7 +79,7 @@ export default function ReservasSenaKPI() {
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="w-full flex items-center justify-between gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+                  className="w-full flex items-center justify-between gap-3 p-2.5 rounded-lg bg-[#F1F5F94D] hover:bg-[#F1F5F980] transition-colors text-left"
                 >
                   <span className="flex items-center gap-2 text-sm min-w-0">
                     <Users className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -92,7 +92,7 @@ export default function ReservasSenaKPI() {
               <PopoverContent className="w-72 space-y-2" align="end">
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-sm">{r.huesped}</p>
-                  <Badge className={esManual ? 'bg-brand-amber/15 text-brand-amber border-brand-amber/40' : 'bg-success/15 text-success border-primary/40'}>
+                  <Badge className={esManual ? 'bg-[#F59E0B26] text-brand-amber border-[#F59E0B66]' : 'bg-[#05966926] text-success border-[#0F766E66]'}>
                     {r.estado}
                   </Badge>
                 </div>

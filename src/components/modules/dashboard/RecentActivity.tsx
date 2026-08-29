@@ -204,11 +204,11 @@ export default function RecentActivity() {
       <CardContent className="flex-1 min-h-0">
         {events.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in duration-500">
-            <div className="p-3 rounded-full bg-muted/50 mb-3">
+            <div className="p-3 rounded-full bg-[#F1F5F980] mb-3">
               <Activity className="w-8 h-8 text-muted-foreground" />
             </div>
             <p className="text-sm text-muted-foreground">Sin actividad reciente</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
+            <p className="text-xs text-[#64748BB3] mt-1">
               Las reservas, pagos y movimientos aparecerán aquí.
             </p>
           </div>

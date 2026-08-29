@@ -33,7 +33,7 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
     key: 'Disponible',
     label: 'Disponible',
     color: 'var(--brand-emerald)',
-    bgColor: 'bg-primary/8',
+    bgColor: 'bg-[#0F766E14]',
     icon: CheckCircle,
     needsAttention: false,
   },
@@ -41,7 +41,7 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
     key: 'Ocupada',
     label: 'Ocupada',
     color: 'var(--brand-amber)',
-    bgColor: 'bg-warning/8',
+    bgColor: 'bg-[#D9770614]',
     icon: UserCheck,
     needsAttention: false,
   },
@@ -49,7 +49,7 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
     key: 'Reservada',
     label: 'Reservada',
     color: 'var(--brand-teal)',
-    bgColor: 'bg-teal-600/8',
+    bgColor: 'bg-[#00948814]',
     icon: CalendarCheck,
     needsAttention: false,
   },
@@ -57,7 +57,7 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
     key: 'Limpieza',
     label: 'Limpieza',
     color: 'var(--warning)',
-    bgColor: 'bg-warning/8',
+    bgColor: 'bg-[#D9770614]',
     icon: SprayCan,
     needsAttention: true,
   },
@@ -65,7 +65,7 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
     key: 'Mantenimiento',
     label: 'Mantenimiento',
     color: 'var(--destructive)',
-    bgColor: 'bg-destructive/8',
+    bgColor: 'bg-[#EF444414]',
     icon: Wrench,
     needsAttention: true,
   },
@@ -73,7 +73,7 @@ const STATUS_MAP_CONFIG: StatusMapConfig[] = [
     key: 'Fuera de servicio',
     label: 'Fuera de servicio',
     color: 'var(--status-finalized)',
-    bgColor: 'bg-muted-foreground/8',
+    bgColor: 'bg-[#64748B14]',
     icon: Ban,
     needsAttention: false,
   },
@@ -156,8 +156,8 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
   // ── Empty state ──
   if (total === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center text-sm text-muted-foreground">
-        <DoorOpen className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+      <div className="rounded-xl border border-dashed border-[#64748B4D] bg-[#F1F5F933] p-8 text-center text-sm text-muted-foreground">
+        <DoorOpen className="w-10 h-10 mx-auto mb-3 text-[#64748B66]" />
         No hay habitaciones para mostrar en el mapa.
       </div>
     );
@@ -177,7 +177,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
         >
           {/* Floor header */}
           <div className="flex items-center gap-2 mb-2">
-            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/20 text-primary">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#0F766E33] text-primary">
               <Bed className="w-3.5 h-3.5" />
             </div>
             <span className="text-sm font-semibold text-foreground">
@@ -211,7 +211,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
                       className={`
                         group relative flex flex-col items-center text-center
                         rounded-xl border-l-[5px] ${config.bgColor}
-                        bg-card hover:bg-accent/30
+                        bg-card hover:bg-[#F1F5F94D]
                         p-4 py-3.5
                         shadow-sm
                         transition-all duration-200 ease-out
@@ -252,7 +252,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
                       </span>
 
                       {/* Capacity */}
-                      <span className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">
+                      <span className="text-[10px] text-[#64748BB3] leading-tight mt-0.5">
                         Cap. {hab.capacidad}
                       </span>
 
@@ -333,19 +333,19 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
 
                 {/* Room details */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg border p-3 bg-muted/20">
+                  <div className="rounded-lg border p-3 bg-[#F1F5F933]">
                     <div className="text-xs text-muted-foreground">Tipo</div>
                     <div className="text-sm font-semibold">{detailHab.tipo}</div>
                   </div>
-                  <div className="rounded-lg border p-3 bg-muted/20">
+                  <div className="rounded-lg border p-3 bg-[#F1F5F933]">
                     <div className="text-xs text-muted-foreground">Capacidad</div>
                     <div className="text-sm font-semibold">{detailHab.capacidad} personas</div>
                   </div>
-                  <div className="rounded-lg border p-3 bg-muted/20">
+                  <div className="rounded-lg border p-3 bg-[#F1F5F933]">
                     <div className="text-xs text-muted-foreground">Camas</div>
                     <div className="text-sm font-semibold">{camasText}</div>
                   </div>
-                  <div className="rounded-lg border p-3 bg-muted/20">
+                  <div className="rounded-lg border p-3 bg-[#F1F5F933]">
                     <div className="text-xs text-muted-foreground">Piso</div>
                     <div className="text-sm font-semibold">
                       {detailHab.piso ? `Piso ${detailHab.piso}` : '—'}
@@ -355,7 +355,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
 
                 {/* Guest info */}
                 {detailHuesped && (
-                  <div className="rounded-lg border-l-[3px] p-3 bg-warning/5" style={{ borderLeftColor: 'var(--brand-amber)' }}>
+                  <div className="rounded-lg border-l-[3px] p-3 bg-[#D977060D]" style={{ borderLeftColor: 'var(--brand-amber)' }}>
                     <div className="text-xs font-semibold text-muted-foreground mb-1">Huésped actual</div>
                     <div className="text-sm font-semibold text-foreground">{detailHuesped.huesped}</div>
                     <div className="text-xs text-muted-foreground">
@@ -366,7 +366,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
 
                 {/* Problem note */}
                 {detailHab.problema && (
-                  <div className="rounded-lg border-l-[3px] p-3 bg-destructive/5" style={{ borderLeftColor: 'var(--destructive)' }}>
+                  <div className="rounded-lg border-l-[3px] p-3 bg-[#EF44440D]" style={{ borderLeftColor: 'var(--destructive)' }}>
                     <div className="text-xs font-semibold text-muted-foreground mb-1">Problema reportado</div>
                     <div className="text-sm text-foreground">{detailHab.problema}</div>
                   </div>

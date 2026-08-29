@@ -385,7 +385,7 @@ export default function CommandPalette() {
               {grouped.map(([group, items]) => (
                 <div key={group} className="px-1.5">
                   <div className="px-3 py-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#64748BB3]">
                       {group}
                     </span>
                   </div>
@@ -402,11 +402,11 @@ export default function CommandPalette() {
                         onMouseEnter={() => setActiveIndex(idx)}
                         onClick={item.onSelect}
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left text-sm transition-colors ${
-                          isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
+                          isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-[#F1F5F980]'
                         }`}
                       >
                         <span className={`shrink-0 w-7 h-7 rounded-md flex items-center justify-center ${
-                          isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
+                          isActive ? 'bg-[#0F766E1A] text-primary' : 'text-muted-foreground'
                         }`}>
                           {Icon && <Icon className="w-4 h-4" />}
                         </span>
@@ -417,7 +417,7 @@ export default function CommandPalette() {
                               <Lock className="w-3 h-3 text-muted-foreground shrink-0" aria-label="Bloqueado" />
                             )}
                             {isCurrent && (
-                              <span className="text-[10px] px-1.5 py-0 rounded bg-primary/10 text-primary font-semibold shrink-0">
+                              <span className="text-[10px] px-1.5 py-0 rounded bg-[#0F766E1A] text-primary font-semibold shrink-0">
                                 ACTUAL
                               </span>
                             )}
@@ -463,7 +463,7 @@ export default function CommandPalette() {
         )}
 
         <div className="border-t px-3 py-2 flex items-center justify-end text-[10px] text-muted-foreground">
-          <span className="text-muted-foreground/70">{filtered.length} resultados</span>
+          <span className="text-[#64748BB3]">{filtered.length} resultados</span>
         </div>
       </DialogContent>
     </Dialog>

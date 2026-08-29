@@ -58,20 +58,20 @@ interface LoyaltyInfo {
 const getLoyaltyInfo = (stayCount: number): LoyaltyInfo => {
   if (stayCount >= 7) return {
     level: 'VIP',
-    color: 'bg-primary/10',
+    color: 'bg-[#0F766E1A]',
     textColor: 'text-primary',
     borderColor: 'border-l-primary',
     icon: <Star className="w-3 h-3 fill-primary text-primary" />,
   };
   if (stayCount >= 4) return {
     level: 'Frecuente',
-    color: 'bg-warning/15',
+    color: 'bg-[#D9770626]',
     textColor: 'text-warning',
     borderColor: 'border-l-amber-400',
   };
   if (stayCount >= 2) return {
     level: 'Habitual',
-    color: 'bg-info/15',
+    color: 'bg-[#0284C726]',
     textColor: 'text-info',
     borderColor: 'border-l-info',
   };
@@ -236,14 +236,14 @@ export default function ClientesModule() {
       {/* ═══════════ CLIENT STATS SUMMARY ═══════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
         {/* Total Clientes */}
-        <Card className="rounded-xl border-l-[3px] border-l-teal-500 bg-primary/5 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-teal-500 bg-[#0F766E0D] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-teal-600">Total Clientes</p>
                 <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-xl font-bold text-teal-800" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-[#00B9A633] flex items-center justify-center">
                 <Users className="w-5 h-5 text-teal-600" />
               </div>
             </div>
@@ -251,14 +251,14 @@ export default function ClientesModule() {
         </Card>
 
         {/* Clientes Recurrentes */}
-        <Card className="rounded-xl border-l-[3px] border-l-warning bg-warning/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-warning bg-[#D977061A] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-warning">Recurrentes</p>
                 <AnimatedNumber value={stats.recurrentes} format={n => String(Math.round(n))} className="text-xl font-bold text-warning" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-[#D9770633] flex items-center justify-center">
                 <Star className="w-5 h-5 text-warning" />
               </div>
             </div>
@@ -266,14 +266,14 @@ export default function ClientesModule() {
         </Card>
 
         {/* Nuevos este Mes */}
-        <Card className="rounded-xl border-l-[3px] border-l-primary bg-primary/5 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-primary bg-[#0F766E0D] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-primary">Nuevos este Mes</p>
                 <AnimatedNumber value={stats.thisMonth} format={n => String(Math.round(n))} className="text-xl font-bold text-primary" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-[#0F766E33] flex items-center justify-center">
                 <UserPlus className="w-5 h-5 text-primary" />
               </div>
             </div>
@@ -281,14 +281,14 @@ export default function ClientesModule() {
         </Card>
 
         {/* Ocupación Promedio */}
-        <Card className="rounded-xl border-l-[3px] border-l-info bg-info/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <Card className="rounded-xl border-l-[3px] border-l-info bg-[#0284C71A] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <CardContent className="p-0">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-info">Estadías/Cliente</p>
                 <AnimatedNumber value={stats.avgStays} format={n => n.toFixed(1)} className="text-xl font-bold text-info" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-info/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-[#0284C733] flex items-center justify-center">
                 <BarChart3 className="w-5 h-5 text-info" />
               </div>
             </div>
@@ -354,7 +354,7 @@ export default function ClientesModule() {
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       {/* Avatar */}
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-deep to-brand-deep/70 flex items-center justify-center shrink-0 shadow-sm">
+                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-deep to-[#0F2B28B3] flex items-center justify-center shrink-0 shadow-sm">
                         <span className="text-sm font-bold text-white">{initials}</span>
                       </div>
 
@@ -492,7 +492,7 @@ export default function ClientesModule() {
                 <div className="space-y-5 py-2">
                   {/* Client header with avatar + loyalty */}
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-deep to-brand-deep/70 flex items-center justify-center shrink-0 shadow-md">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-deep to-[#0F2B28B3] flex items-center justify-center shrink-0 shadow-md">
                       <span className="text-lg font-bold text-white">{selectedInitials}</span>
                     </div>
                     <div className="flex-1">
@@ -502,7 +502,7 @@ export default function ClientesModule() {
                           {selectedLoyalty.icon}{selectedLoyalty.level}
                         </Badge>
                       </div>
-                      <Badge variant="outline" className="bg-primary/5 border-primary/30 text-primary mt-1 text-xs">
+                      <Badge variant="outline" className="bg-[#0F766E0D] border-[#0F766E4D] text-primary mt-1 text-xs">
                         <Clock className="w-3 h-3 mr-1" /> Cliente desde: {formatFecha(selected.fechaCreacion)}
                       </Badge>
                     </div>
@@ -544,28 +544,28 @@ export default function ClientesModule() {
 
                   {/* Customer Stats Summary (enhanced) */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <Card className="p-3 bg-primary/5 border-primary/30 border-l-[3px] border-l-primary">
+                    <Card className="p-3 bg-[#0F766E0D] border-[#0F766E4D] border-l-[3px] border-l-primary">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-primary" />
                         <span className="text-xs text-muted-foreground">Total estadías</span>
                       </div>
                       <AnimatedNumber value={totalEstadias} format={n => String(Math.round(n))} className="font-bold text-lg text-primary mt-1" />
                     </Card>
-                    <Card className="p-3 bg-primary/5 border-primary/30 border-l-[3px] border-l-primary">
+                    <Card className="p-3 bg-[#0F766E0D] border-[#0F766E4D] border-l-[3px] border-l-primary">
                       <div className="flex items-center gap-2">
                         <DollarSign className="w-4 h-4 text-primary" />
                         <span className="text-xs text-muted-foreground">Total gastado</span>
                       </div>
                       <AnimatedNumber value={totalGastado} className="font-bold text-lg text-primary mt-1" />
                     </Card>
-                    <Card className="p-3 bg-primary/5 border-primary/30 border-l-[3px] border-l-warning">
+                    <Card className="p-3 bg-[#0F766E0D] border-[#0F766E4D] border-l-[3px] border-l-warning">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-warning" />
                         <span className="text-xs text-muted-foreground">Promedio/estadía</span>
                       </div>
                       <AnimatedNumber value={promedioPorEstadia} className="font-bold text-lg text-primary mt-1" />
                     </Card>
-                    <Card className="p-3 bg-primary/5 border-primary/30 border-l-[3px] border-l-info">
+                    <Card className="p-3 bg-[#0F766E0D] border-[#0F766E4D] border-l-[3px] border-l-info">
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-info" />
                         <span className="text-xs text-muted-foreground">Duración prom.</span>
@@ -591,8 +591,8 @@ export default function ClientesModule() {
                               <div key={i} className="flex gap-3">
                                 {/* Timeline line */}
                                 <div className="flex flex-col items-center shrink-0">
-                                  <div className={`w-3 h-3 rounded-full border-2 ${isLast ? 'bg-primary border-primary' : 'bg-white border-primary/40'} mt-1.5`} />
-                                  <div className={`w-0.5 flex-1 ${isLast ? 'bg-transparent' : 'bg-primary/15'}`} />
+                                  <div className={`w-3 h-3 rounded-full border-2 ${isLast ? 'bg-primary border-primary' : 'bg-white border-[#0F766E66]'} mt-1.5`} />
+                                  <div className={`w-0.5 flex-1 ${isLast ? 'bg-transparent' : 'bg-[#0F766E26]'}`} />
                                 </div>
                                 {/* Timeline content */}
                                 <div className={`flex-1 pb-3 ${isLast ? 'pb-0' : ''}`}>
@@ -608,7 +608,7 @@ export default function ClientesModule() {
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                       <Calendar className="w-3 h-3" />
                                       <span>{formatFecha(h.fechaCheckin)} → {formatFecha(h.fechaCheckout)}</span>
-                                      <span className="font-mono font-semibold text-foreground/70">({dias} {dias === 1 ? 'día' : 'días'})</span>
+                                      <span className="font-mono font-semibold text-[#0F172AB3]">({dias} {dias === 1 ? 'día' : 'días'})</span>
                                     </div>
                                   </div>
                                 </div>
@@ -617,13 +617,13 @@ export default function ClientesModule() {
                           })}
                       </div>
                       {/* Total row */}
-                      <div className="mt-3 pt-2 border-t border-primary/30 flex items-center justify-between text-sm">
+                      <div className="mt-3 pt-2 border-t border-[#0F766E4D] flex items-center justify-between text-sm">
                         <span className="font-semibold text-primary">Total gastado</span>
                         <span className="font-mono font-bold text-primary">{formatMoney(totalGastado)}</span>
                       </div>
                     </div>
                   ) : (
-                    <div className="p-6 text-center rounded-lg bg-muted/30 border border-dashed">
+                    <div className="p-6 text-center rounded-lg bg-[#F1F5F94D] border border-dashed">
                       <CalendarOff className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
                       <p className="text-sm text-muted-foreground">Sin estadías registradas</p>
                     </div>
@@ -641,7 +641,7 @@ export default function ClientesModule() {
                   <Button onClick={() => {
                     window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { type: 'new-reserva', clienteId: selected.id } }));
                     setModal(null);
-                  }} className="bg-primary hover:bg-primary/90">
+                  }} className="bg-primary hover:bg-[#0F766EE6]">
                     <Plus className="w-4 h-4 mr-1" /> Crear Reserva
                   </Button>
                   <Button variant="outline" onClick={() => { openEdit(selected.id); }}>Editar</Button>

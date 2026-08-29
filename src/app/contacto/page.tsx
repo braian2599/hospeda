@@ -166,7 +166,7 @@ export default function ContactoPage() {
               </div>
 
               {/* Response time card */}
-              <div className="rounded-2xl border border-border bg-secondary/40 p-6">
+              <div className="rounded-2xl border border-border bg-[#F1F5F966] p-6">
                 <h3 className="text-sm font-semibold text-foreground">Tiempos de respuesta</h3>
                 <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                   <li>• Lunes a viernes: respondemos en el día.</li>

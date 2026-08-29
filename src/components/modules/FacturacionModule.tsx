@@ -34,9 +34,9 @@ import { AnimatedNumber } from '@/components/ui/animated-number';
 // formatFecha, formatMoney, formatFechaHora, todayLocal imported from @/lib/format
 
 const estadoPagoBadge: Record<string, string> = {
-  Pendiente: 'bg-warning/15 text-warning border-warning/40 shadow-sm',
-  Parcial: 'bg-warning/15 text-warning border-warning/40 shadow-sm',
-  Pagado: 'bg-success/15 text-success border-primary/40 shadow-sm',
+  Pendiente: 'bg-[#D9770626] text-warning border-[#D9770666] shadow-sm',
+  Parcial: 'bg-[#D9770626] text-warning border-[#D9770666] shadow-sm',
+  Pagado: 'bg-[#05966926] text-success border-[#0F766E66] shadow-sm',
 };
 
 /** Get initials from a name string (up to 2 chars) */
@@ -252,64 +252,64 @@ export default function FacturacionModule() {
       {/* ══════════════════ PAYMENT ANALYTICS SUMMARY ══════════════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
         {/* Total Pendiente */}
-        <div className="relative rounded-xl border-l-[3px] border-l-warning bg-warning/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <div className="relative rounded-xl border-l-[3px] border-l-warning bg-[#D977061A] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-warning">Total Pendiente</p>
               <AnimatedNumber value={analytics.totalPendiente} className="text-xl font-bold text-warning" />
             </div>
-            <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-[#D9770633] flex items-center justify-center">
               <AlertTriangle className="w-5 h-5 text-warning" />
             </div>
           </div>
-          <p className="text-warning/70 text-warning/50 mt-2">{pendientes.length} reserva{pendientes.length !== 1 ? 's' : ''} pendiente{pendientes.length !== 1 ? 's' : ''}</p>
+          <p className="text-[#D97706B3] text-[#D9770680] mt-2">{pendientes.length} reserva{pendientes.length !== 1 ? 's' : ''} pendiente{pendientes.length !== 1 ? 's' : ''}</p>
         </div>
 
         {/* Total Cobrado Hoy */}
-        <div className="relative rounded-xl border-l-[3px] border-l-primary bg-primary/5 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <div className="relative rounded-xl border-l-[3px] border-l-primary bg-[#0F766E0D] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-primary">Cobrado Hoy</p>
               <AnimatedNumber value={analytics.totalCobradoHoy} className="text-xl font-bold text-primary" />
             </div>
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-[#0F766E33] flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5 text-primary" />
             </div>
           </div>
-          <p className="text-primary/50 text-primary/50 mt-2">{pagos.filter(p => p.fecha.startsWith(todayLocal())).length} pago{pagos.filter(p => p.fecha.startsWith(todayLocal())).length !== 1 ? 's' : ''} del día</p>
+          <p className="text-[#0F766E80] text-[#0F766E80] mt-2">{pagos.filter(p => p.fecha.startsWith(todayLocal())).length} pago{pagos.filter(p => p.fecha.startsWith(todayLocal())).length !== 1 ? 's' : ''} del día</p>
         </div>
 
         {/* Cobros este Mes */}
-        <div className="relative rounded-xl border-l-[3px] border-l-info bg-info/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <div className="relative rounded-xl border-l-[3px] border-l-info bg-[#0284C71A] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-info">Cobros este Mes</p>
               <AnimatedNumber value={analytics.cobrosMes} className="text-xl font-bold text-info" />
             </div>
-            <div className="w-10 h-10 rounded-full bg-info/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-[#0284C733] flex items-center justify-center">
               <CalendarDays className="w-5 h-5 text-info" />
             </div>
           </div>
-          <p className="text-info/70 text-info/50 mt-2">Acumulado mensual</p>
+          <p className="text-[#0284C7B3] text-[#0284C780] mt-2">Acumulado mensual</p>
         </div>
 
         {/* Promedio por Reserva */}
-        <div className="relative rounded-xl border-l-[3px] border-l-chart-5 bg-chart-5/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+        <div className="relative rounded-xl border-l-[3px] border-l-chart-5 bg-[#8B5CF61A] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-chart-5">Promedio por Reserva</p>
               <AnimatedNumber value={analytics.promedio} className="text-xl font-bold text-chart-5" />
             </div>
-            <div className="w-10 h-10 rounded-full bg-chart-5/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-[#8B5CF633] flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-chart-5" />
             </div>
           </div>
-          <p className="text-chart-5/70 text-chart-5/50 mt-2">{pagos.length} pago{pagos.length !== 1 ? 's' : ''} en total</p>
+          <p className="text-[#8B5CF6B3] text-[#8B5CF680] mt-2">{pagos.length} pago{pagos.length !== 1 ? 's' : ''} en total</p>
         </div>
       </div>
 
       <Tabs defaultValue="pendientes">
-        <TabsList className="bg-muted/50">
+        <TabsList className="bg-[#F1F5F980]">
           <TabsTrigger value="pendientes" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
             <CreditCard className="w-4 h-4 mr-1" />Cobros pendientes
           </TabsTrigger>
@@ -342,7 +342,7 @@ export default function FacturacionModule() {
                       const borderColor = r.estadoPago === 'Parcial' ? 'border-l-warning' : 'border-l-destructive';
                       const dSince = daysSince(r.checkin);
                       return (
-                        <div key={r.id} className={`border-l-[3px] ${borderColor} p-4 space-y-2.5 hover:bg-muted/20 transition-all duration-150`}>
+                        <div key={r.id} className={`border-l-[3px] ${borderColor} p-4 space-y-2.5 hover:bg-[#F1F5F933] transition-all duration-150`}>
                           {/* Guest avatar + Room + Days */}
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2.5 min-w-0">
@@ -381,7 +381,7 @@ export default function FacturacionModule() {
                             </div>
                           </div>
                           {/* Money summary */}
-                          <div className="grid grid-cols-3 gap-2 text-center rounded-lg border p-2.5 bg-muted/30">
+                          <div className="grid grid-cols-3 gap-2 text-center rounded-lg border p-2.5 bg-[#F1F5F94D]">
                             <div>
                               <p className="text-[10px] text-muted-foreground leading-tight">Total</p>
                               <p className="text-sm font-semibold">{formatMoney(total)}</p>
@@ -399,7 +399,7 @@ export default function FacturacionModule() {
                           <div className="flex gap-2 pt-0.5">
                             <Button
                               size="sm"
-                              className="flex-1 h-8 text-xs bg-primary hover:bg-primary/90"
+                              className="flex-1 h-8 text-xs bg-primary hover:bg-[#0F766EE6]"
                               onClick={() => openPagoDialog(r.id)}
                             >
                               <CreditCard className="w-3.5 h-3.5 mr-1" />Cobrar
@@ -453,7 +453,7 @@ export default function FacturacionModule() {
                         const borderColor = r.estadoPago === 'Parcial' ? 'border-l-warning' : 'border-l-destructive';
                         const dSince = daysSince(r.checkin);
                         return (
-                          <TableRow key={r.id} className={`group border-l-[3px] ${borderColor} hover:bg-primary/10 hover:-translate-y-px transition-all duration-150`}>
+                          <TableRow key={r.id} className={`group border-l-[3px] ${borderColor} hover:bg-[#0F766E1A] hover:-translate-y-px transition-all duration-150`}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2.5">
                                 <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold shrink-0">
@@ -496,7 +496,7 @@ export default function FacturacionModule() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
-                                <Button size="sm" onClick={() => openPagoDialog(r.id)} className="bg-primary hover:bg-primary/90">
+                                <Button size="sm" onClick={() => openPagoDialog(r.id)} className="bg-primary hover:bg-[#0F766EE6]">
                                   <CreditCard className="w-3.5 h-3.5 mr-1" />Cobrar
                                 </Button>
                                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openRecibo(r.id)}>
@@ -574,7 +574,7 @@ export default function FacturacionModule() {
                       const saldoR = totalR - pagadoR;
                       const metodoType = getMetodoIcon(metodoNombre);
                       return (
-                        <div key={p.id} className="p-4 space-y-2.5 hover:bg-muted/20 transition-colors duration-150">
+                        <div key={p.id} className="p-4 space-y-2.5 hover:bg-[#F1F5F933] transition-colors duration-150">
                           {/* Date + Amount */}
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -651,7 +651,7 @@ export default function FacturacionModule() {
                         const saldoR = totalR - pagadoR;
                         const metodoType = getMetodoIcon(metodoNombre);
                         return (
-                          <TableRow key={p.id} className="group hover:bg-primary/10 hover:-translate-y-px transition-all duration-150 animate-in fade-in-0 slide-in-from-bottom-1" style={{ animationDelay: `${idx * 30}ms`, animationFillMode: 'backwards' }}>
+                          <TableRow key={p.id} className="group hover:bg-[#0F766E1A] hover:-translate-y-px transition-all duration-150 animate-in fade-in-0 slide-in-from-bottom-1" style={{ animationDelay: `${idx * 30}ms`, animationFillMode: 'backwards' }}>
                             <TableCell>
                               <div className="space-y-0.5">
                                 <span className="text-sm">{formatFecha(p.fecha)}</span>
@@ -711,7 +711,7 @@ export default function FacturacionModule() {
 
           {pagoReserva && (
             <>
-              <div className="rounded-lg border p-3 space-y-2 bg-muted/30">
+              <div className="rounded-lg border p-3 space-y-2 bg-[#F1F5F94D]">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-muted-foreground">Huésped</span>
@@ -814,10 +814,10 @@ function MetodoIconBadge({ type, name }: { type: 'credit' | 'bank' | 'wallet' | 
     cash: <CircleDollarSign className="w-3 h-3" />,
   };
   const colorMap = {
-    credit: 'bg-info/15 text-info',
-    bank: 'bg-chart-5/15 text-chart-5',
-    wallet: 'bg-warning/15 text-warning',
-    cash: 'bg-primary/10 text-primary',
+    credit: 'bg-[#0284C726] text-info',
+    bank: 'bg-[#8B5CF626] text-chart-5',
+    wallet: 'bg-[#D9770626] text-warning',
+    cash: 'bg-[#0F766E1A] text-primary',
   };
   return (
     <Badge variant="secondary" className={`gap-1 ${colorMap[type]}`}>

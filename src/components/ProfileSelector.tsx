@@ -10,10 +10,10 @@ import { signOut, useSession } from 'next-auth/react';
 import { useHotelStore } from '@/lib/store';
 
 const ROL_INFO: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
-  owner: { label: 'Administrador Principal', icon: ShieldCheck, color: 'bg-warning/15 text-warning' },
-  admin: { label: 'Admin', icon: Shield, color: 'bg-chart-5/15 text-chart-5' },
-  recepcion: { label: 'Recepcion', icon: UserCog, color: 'bg-info/15 text-info' },
-  limpieza: { label: 'Limpieza', icon: Sparkles, color: 'bg-success/15 text-success' },
+  owner: { label: 'Administrador Principal', icon: ShieldCheck, color: 'bg-[#D9770626] text-warning' },
+  admin: { label: 'Admin', icon: Shield, color: 'bg-[#8B5CF626] text-chart-5' },
+  recepcion: { label: 'Recepcion', icon: UserCog, color: 'bg-[#0284C726] text-info' },
+  limpieza: { label: 'Limpieza', icon: Sparkles, color: 'bg-[#05966926] text-success' },
 };
 
 interface ProfileSelectorProps {
@@ -184,7 +184,7 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
             return (
               <Card
                 key={p.profileId}
-                className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md"
+                className="cursor-pointer hover:border-[#0F766E80] transition-all hover:shadow-md"
                 onClick={() => handleCardClick(p.profileId, !!p.tienePassword)}
               >
                 <CardContent className="flex items-center justify-between p-4">

@@ -325,7 +325,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
                   <p className="text-sm font-medium">
                     Seña de referencia: {formatMoney(reservaCreada.senaMonto)} (30%)
                   </p>
-                  <div className="rounded-lg border bg-muted/30 p-4 text-left space-y-2">
+                  <div className="rounded-lg border bg-[#F1F5F94D] p-4 text-left space-y-2">
                     <p className="text-sm font-medium">Contactá al hotel para coordinar el pago:</p>
                     {reservaCreada.contacto?.whatsapp && (
                       <a
@@ -406,7 +406,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
                         <div key={i} className="rounded-lg border p-4 space-y-3">
                           <p className="text-sm text-muted-foreground">Hasta {c.capacidadTotal} personas en total</p>
                           {c.legs.map((leg, li) => (
-                            <div key={li} className="rounded-md bg-muted/30 px-3 py-2">
+                            <div key={li} className="rounded-md bg-[#F1F5F94D] px-3 py-2">
                               <p className="text-sm font-medium">{leg.tipo}</p>
                               <p className="text-xs text-muted-foreground">{leg.personas} persona{leg.personas !== 1 ? 's' : ''} · {formatMoney(leg.subtotal)}</p>
                             </div>
@@ -448,7 +448,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
                               {r.badges.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5 mt-1">
                                   {r.badges.map((b) => (
-                                    <span key={b} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[11px] px-2 py-0.5">
+                                    <span key={b} className="inline-flex items-center gap-1 rounded-full bg-[#0F766E1A] text-primary text-[11px] px-2 py-0.5">
                                       <Zap className="w-3 h-3" /> {b}
                                     </span>
                                   ))}
@@ -528,7 +528,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
                             {seleccion.combo.tipo2} · {seleccion.combo.personas2} persona{seleccion.combo.personas2 !== 1 ? 's' : ''}
                           </p>
                           <DesgloseTotal d={seleccion.combo.desglose2} />
-                          <div className="flex justify-between items-center rounded-lg border bg-primary/5 p-3 text-sm font-semibold">
+                          <div className="flex justify-between items-center rounded-lg border bg-[#0F766E0D] p-3 text-sm font-semibold">
                             <span>Total combinado</span>
                             <span>{formatMoney(seleccion.desglose.total + seleccion.combo.desglose2.total)}</span>
                           </div>

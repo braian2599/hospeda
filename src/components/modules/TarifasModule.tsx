@@ -158,17 +158,17 @@ function modoLabel(m: ModoCobro): string {
 
 // Single uniform color for all tariff types — no per-mode differentiation
 function modoBadgeColor(_m: ModoCobro): string {
-  return 'bg-primary/10 text-primary border-0';
+  return 'bg-[#0F766E1A] text-primary border-0';
 }
 
 // Uniform subtle tint for all rate cards
 function modoGradient(_m: ModoCobro): string {
-  return 'bg-primary/5';
+  return 'bg-[#0F766E0D]';
 }
 
 // Uniform icon circle color for all rate cards
 function modoIconCircle(_m: ModoCobro): string {
-  return 'bg-primary/10 text-primary';
+  return 'bg-[#0F766E1A] text-primary';
 }
 
 function crearRangoDefault(modo: ModoCobro, minPersonas: number = 1): RangoPrecio {
@@ -258,13 +258,13 @@ function WizardStepper({ current, onSelect }: { current: 1 | 2 | 3; onSelect: (s
                   isActive
                     ? 'bg-primary text-white shadow-sm'
                     : isDone
-                      ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      ? 'bg-[#0F766E1A] text-primary hover:bg-[#0F766E33]'
+                      : 'bg-muted text-muted-foreground hover:bg-[#F1F5F9CC]'
                 }`}
                 aria-current={isActive ? 'step' : undefined}
               >
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                  isActive ? 'bg-white/20' : isDone ? 'bg-primary text-white' : 'bg-background'
+                  isActive ? 'bg-[#FFFFFF33]' : isDone ? 'bg-primary text-white' : 'bg-background'
                 }`}>
                   {isDone ? <Check className="w-3 h-3" /> : s.n}
                 </span>
@@ -320,7 +320,7 @@ function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount
         </div>
 
         {/* Desde */}
-        <div className="mb-1.5 pb-1.5 border-b border-primary/20">
+        <div className="mb-1.5 pb-1.5 border-b border-[#0F766E33]">
           <p className="text-[8px] text-muted-foreground uppercase tracking-wider">Desde</p>
           <div className="flex items-baseline gap-1">
             <span className="text-lg font-bold text-primary tabular-nums">{formatMoney(desde)}</span>
@@ -331,7 +331,7 @@ function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount
         {/* Rangos */}
         <div className="space-y-0.5 mb-1.5">
           {rangos.slice(0, 4).map((r, i) => (
-            <div key={i} className="flex justify-between text-[10px] px-1.5 py-0.5 rounded border-l-26 border-primary/30">
+            <div key={i} className="flex justify-between text-[10px] px-1.5 py-0.5 rounded border-l-26 border-[#0F766E4D]">
               <span className="text-muted-foreground font-mono">
                 {formatoRango(r)} {modo === 'porHabitacion' ? 'hab.' : modo === 'porCama' ? 'cama' : 'pers.'}
               </span>
@@ -347,17 +347,17 @@ function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount
         {(tieneAcomp || tieneNinos || tieneNoches) && (
           <div className="flex gap-1 flex-wrap mb-1.5">
             {tieneAcomp && (
-              <Badge className="bg-primary/10 text-primary border-0 text-[9px] py-0 h-4">
+              <Badge className="bg-[#0F766E1A] text-primary border-0 text-[9px] py-0 h-4">
                 <Star className="w-2.5 h-2.5 mr-0.5" />Acompañante
               </Badge>
             )}
             {tieneNinos && (
-              <Badge className="bg-primary/10 text-primary border-0 text-[9px] py-0 h-4">
+              <Badge className="bg-[#0F766E1A] text-primary border-0 text-[9px] py-0 h-4">
                 <Baby className="w-2.5 h-2.5 mr-0.5" />Niños
               </Badge>
             )}
             {tieneNoches && (
-              <Badge className="bg-primary/10 text-primary border-0 text-[9px] py-0 h-4">
+              <Badge className="bg-[#0F766E1A] text-primary border-0 text-[9px] py-0 h-4">
                 <Zap className="w-2.5 h-2.5 mr-0.5" />Cortesía
               </Badge>
             )}
@@ -365,7 +365,7 @@ function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount
         )}
 
         {/* Stats footer */}
-        <div className="flex items-center gap-2 text-[9px] text-muted-foreground pt-1.5 border-t border-primary/20">
+        <div className="flex items-center gap-2 text-[9px] text-muted-foreground pt-1.5 border-t border-[#0F766E33]">
           <span className="flex items-center gap-0.5"><Tags className="w-2.5 h-2.5" />{rangos.length}</span>
           <span className="flex items-center gap-0.5"><Sparkles className="w-2.5 h-2.5" />{promoCount}</span>
           <span className="flex items-center gap-0.5"><Info className="w-2.5 h-2.5" />{camposCount}</span>
@@ -379,7 +379,7 @@ function TariffMiniPreview({ nombre, modoCobro, rangos, promociones, camposCount
 
 function ComparisonRow({ label, differs, children }: { label: string; differs: boolean; children: React.ReactNode }) {
   return (
-    <TableRow className={differs ? 'bg-primary/5' : ''}>
+    <TableRow className={differs ? 'bg-[#0F766E0D]' : ''}>
       <TableCell className="font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">{label}</TableCell>
       {children}
     </TableRow>
@@ -423,8 +423,8 @@ function ComparisonModal({ tariffs, onClose }: {
       <div className="overflow-x-auto rounded-lg border border-border">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/40">
-              <TableHead className="w-40 sticky left-0 bg-muted/40 z-10">Característica</TableHead>
+            <TableRow className="bg-[#F1F5F966]">
+              <TableHead className="w-40 sticky left-0 bg-[#F1F5F966] z-10">Característica</TableHead>
               {tariffs.map(({ tipo }) => (
                 <TableHead key={tipo} className="font-bold text-primary min-w-[160px]">
                   <div className="flex items-center gap-1.5">
@@ -492,7 +492,7 @@ function ComparisonModal({ tariffs, onClose }: {
                 return (
                   <TableCell key={tipo}>
                     {a?.activo ? (
-                      <Badge className="bg-primary/10 text-primary border-0">
+                      <Badge className="bg-[#0F766E1A] text-primary border-0">
                         <Star className="w-3 h-3 mr-0.5" />{a.etiqueta || 'Sí'}
                         {a.cantidad > 1 && ` ×${a.cantidad}`}
                       </Badge>
@@ -510,7 +510,7 @@ function ComparisonModal({ tariffs, onClose }: {
                 return (
                   <TableCell key={tipo}>
                     {n?.activo ? (
-                      <Badge className="bg-primary/10 text-primary border-0">
+                      <Badge className="bg-[#0F766E1A] text-primary border-0">
                         <Baby className="w-3 h-3 mr-0.5" />{formatMoney(n.precioNino || 0)}/noche
                       </Badge>
                     ) : (
@@ -527,7 +527,7 @@ function ComparisonModal({ tariffs, onClose }: {
                 return (
                   <TableCell key={tipo}>
                     {nc?.activo ? (
-                      <Badge className="bg-primary/10 text-primary border-0">
+                      <Badge className="bg-[#0F766E1A] text-primary border-0">
                         <Zap className="w-3 h-3 mr-0.5" />{describeNochesCortesia(nc.modalidad)}
                       </Badge>
                     ) : (
@@ -973,7 +973,7 @@ export default function TarifasModule() {
       <ModuleHeader icon={Tags} title="Tarifas y Métodos de Pago" subtitle="Configurá precios y formas de cobro" />
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="bg-muted/50">
+        <TabsList className="bg-[#F1F5F980]">
           <TabsTrigger value="tarifas" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all"><Tags className="w-4 h-4 mr-1" />Tarifas</TabsTrigger>
           <TabsTrigger value="metodos" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all"><CreditCard className="w-4 h-4 mr-1" />Métodos de Pago</TabsTrigger>
           <TabsTrigger value="categorias" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all"><ListChecks className="w-4 h-4 mr-1" />Categorías de Gastos</TabsTrigger>
@@ -996,7 +996,7 @@ export default function TarifasModule() {
                   variant="outline"
                   size="sm"
                   onClick={selectedForCompare.length >= 2 ? openComparison : () => toast.info('Seleccioná al menos 2 tarifas para comparar.')}
-                  className="border-primary/30 text-primary hover:bg-primary/20 hover:text-white"
+                  className="border-[#0F766E4D] text-primary hover:bg-[#0F766E33] hover:text-white"
                 >
                   <GitCompareArrows className="w-4 h-4 mr-1" />
                   Comparar {selectedForCompare.length > 0 && `(${selectedForCompare.length})`}
@@ -1011,7 +1011,7 @@ export default function TarifasModule() {
             </div>
           </div>
 
-          <div className="flex items-start gap-2 p-2 rounded-lg bg-primary/5 border-primary/30 text-primary text-sm">
+          <div className="flex items-start gap-2 p-2 rounded-lg bg-[#0F766E0D] border-[#0F766E4D] text-primary text-sm">
             <Info className="w-4 h-4 mt-0.5 shrink-0" />
             Haga clic en una tarifa para editarla. Usá las casillas para seleccionar 2-3 tarifas y compararlas. Los cambios se guardan automáticamente al confirmar.
           </div>
@@ -1037,7 +1037,7 @@ export default function TarifasModule() {
                 <Card
                   key={tipo}
                   className={`card-hover cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg border group relative overflow-hidden ${modoGradient(modo)} ${
-                    isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/30'
+                    isSelected ? 'border-primary ring-2 ring-[#0F766E33]' : 'border-border hover:border-[#0F766E4D]'
                   }`}
                   onClick={() => openModalTarifa(tipo)}
                 >
@@ -1052,7 +1052,7 @@ export default function TarifasModule() {
                       className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
                         isSelected
                           ? 'bg-primary border-primary text-white'
-                          : 'bg-card/80 border-border text-transparent hover:border-primary'
+                          : 'bg-[#FFFFFFCC] border-border text-transparent hover:border-primary'
                       }`}
                       aria-label={isSelected ? 'Quitar de comparación' : 'Seleccionar para comparar'}
                       aria-pressed={isSelected}
@@ -1063,7 +1063,7 @@ export default function TarifasModule() {
 
                   {/* Shine overlay — animates in on hover */}
                   <div
-                    className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                    className="absolute inset-0 bg-gradient-to-br from-[#0F766E1A] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                     aria-hidden="true"
                   />
 
@@ -1077,7 +1077,7 @@ export default function TarifasModule() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7 opacity-60 group-hover:opacity-100 hover:bg-card/80 transition-opacity"
+                          className="h-7 w-7 opacity-60 group-hover:opacity-100 hover:bg-[#FFFFFFCC] transition-opacity"
                           aria-label="Acciones rápidas"
                         >
                           <MoreVertical className="w-4 h-4" />
@@ -1145,7 +1145,7 @@ export default function TarifasModule() {
                     </div>
 
                     {/* Prominent "Desde" price */}
-                    <div className="mb-1.5 pb-1.5 border-b border-primary/20">
+                    <div className="mb-1.5 pb-1.5 border-b border-[#0F766E33]">
                       <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Desde</p>
                       <div className="flex items-baseline gap-1">
                         <span className="text-lg font-bold text-primary tabular-nums">{formatMoney(precioDesdeVal)}</span>
@@ -1161,9 +1161,9 @@ export default function TarifasModule() {
                       {rangos.map((r, i) => (
                         <div
                           key={i}
-                          className={`flex justify-between items-center text-xs px-1.5 py-1 rounded-md border-l-26 border-primary/30 transition-colors ${
-                            i % 2 === 1 ? 'bg-primary/5' : ''
-                          } hover:bg-primary/10`}
+                          className={`flex justify-between items-center text-xs px-1.5 py-1 rounded-md border-l-26 border-[#0F766E4D] transition-colors ${
+                            i % 2 === 1 ? 'bg-[#0F766E0D]' : ''
+                          } hover:bg-[#0F766E1A]`}
                         >
                           <span className="text-muted-foreground font-mono text-[10px]">
                             {formatoRango(r)} {modo === 'porHabitacion' ? 'hab.' : modo === 'porCama' ? 'cama' : 'pers.'}
@@ -1177,12 +1177,12 @@ export default function TarifasModule() {
                     </div>
 
                     {/* Footer: promo badges + quick stats */}
-                    <div className="mt-1.5 pt-1.5 border-t border-primary/20 space-y-1">
+                    <div className="mt-1.5 pt-1.5 border-t border-[#0F766E33] space-y-1">
                       {/* Promotion indicators with icons */}
                       {(tieneAcompanante || tieneNinos || tieneNoches) && (
                         <div className="flex gap-1 flex-wrap">
                           {tieneAcompanante && (
-                            <Badge className="bg-primary/10 text-primary border-0 text-[10px] py-0 h-5" title={tarifaPromos!.acompananteSinCargo!.etiqueta || 'Acompañante sin cargo'}>
+                            <Badge className="bg-[#0F766E1A] text-primary border-0 text-[10px] py-0 h-5" title={tarifaPromos!.acompananteSinCargo!.etiqueta || 'Acompañante sin cargo'}>
                               <Star className="w-2.5 h-2.5 mr-0.5" />{tarifaPromos!.acompananteSinCargo!.etiqueta || 'Acompañante gratis'}
                               {tarifaPromos!.acompananteSinCargo!.cantidad > 1 && (
                                 <span className="ml-0.5 opacity-75">×{tarifaPromos!.acompananteSinCargo!.cantidad}</span>
@@ -1190,12 +1190,12 @@ export default function TarifasModule() {
                             </Badge>
                           )}
                           {tieneNinos && (
-                            <Badge className="bg-primary/10 text-primary border-0 text-[10px] py-0 h-5">
+                            <Badge className="bg-[#0F766E1A] text-primary border-0 text-[10px] py-0 h-5">
                               <Baby className="w-2.5 h-2.5 mr-0.5" />Niños {formatMoney(tarifaPromos!.ninosDiferenciado!.precioNino || 0)}/noche
                             </Badge>
                           )}
                           {tieneNoches && (
-                            <Badge className="bg-primary/10 text-primary border-0 text-[10px] py-0 h-5" title={describeNochesCortesia(tarifaPromos!.nochesCortesia!.modalidad)}>
+                            <Badge className="bg-[#0F766E1A] text-primary border-0 text-[10px] py-0 h-5" title={describeNochesCortesia(tarifaPromos!.nochesCortesia!.modalidad)}>
                               <Zap className="w-2.5 h-2.5 mr-0.5" />{describeNochesCortesia(tarifaPromos!.nochesCortesia!.modalidad)}
                             </Badge>
                           )}
@@ -1204,14 +1204,14 @@ export default function TarifasModule() {
 
                       {/* Quick stats: ranges, custom fields, promotions count */}
                       <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
-                        <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-muted/50" title={`${rangos.length} rango(s) de precio`}>
-                          <Tags className="w-2.5 h-2.5 text-primary/60" />{rangos.length} rango{rangos.length !== 1 ? 's' : ''}
+                        <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-[#F1F5F980]" title={`${rangos.length} rango(s) de precio`}>
+                          <Tags className="w-2.5 h-2.5 text-[#0F766E99]" />{rangos.length} rango{rangos.length !== 1 ? 's' : ''}
                         </span>
-                        <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-muted/50" title={`${promoCount} promoción(es) activa(s)`}>
-                          <Sparkles className={`w-2.5 h-2.5 ${promoCount > 0 ? 'text-primary' : 'text-muted-foreground/60'}`} />{promoCount} promo{promoCount !== 1 ? 's' : ''}
+                        <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-[#F1F5F980]" title={`${promoCount} promoción(es) activa(s)`}>
+                          <Sparkles className={`w-2.5 h-2.5 ${promoCount > 0 ? 'text-primary' : 'text-[#64748B99]'}`} />{promoCount} promo{promoCount !== 1 ? 's' : ''}
                         </span>
-                        <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-muted/50" title={`${campos} campo(s) personalizado(s)`}>
-                          <Info className="w-2.5 h-2.5 text-primary/60" />{campos} campo{campos !== 1 ? 's' : ''}
+                        <span className="inline-flex items-center gap-1 px-1 py-0.5 rounded bg-[#F1F5F980]" title={`${campos} campo(s) personalizado(s)`}>
+                          <Info className="w-2.5 h-2.5 text-[#0F766E99]" />{campos} campo{campos !== 1 ? 's' : ''}
                         </span>
                       </div>
                     </div>
@@ -1221,7 +1221,7 @@ export default function TarifasModule() {
             })}
             {tiposTarifa.length === 0 && (
               <div className="col-span-full">
-                <Card className="border-dashed border-2 bg-muted/20">
+                <Card className="border-dashed border-2 bg-[#F1F5F933]">
                   <CardContent className="p-2">
                     <EmptyState
                       variant="generic"
@@ -1266,7 +1266,7 @@ export default function TarifasModule() {
                   <TableRow key={m.id}>
                     <TableCell className="font-medium">{m.nombre}</TableCell>
                     <TableCell><Badge variant="outline">{m.tipo}</Badge></TableCell>
-                    <TableCell className="hidden sm:table-cell">{m.recargo ? <Badge className="bg-primary/10 text-primary border-0">Sí</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{m.recargo ? <Badge className="bg-[#0F766E1A] text-primary border-0">Sí</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
                     <TableCell className="text-xs hidden md:table-cell">
                       {m.recargo && m.cuotas.length > 0
                         ? m.cuotas.map(c => `${c.cantidad} ctas (${c.porcentaje}%)`).join(', ')
@@ -1380,8 +1380,8 @@ export default function TarifasModule() {
                             onClick={() => handleModoCobroChange(opt.value)}
                             className={`flex flex-col items-center gap-1 p-2.5 sm:p-3 rounded-lg border-2 transition-all text-center ${
                               selected
-                                ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                                : 'border-border hover:border-primary/30 text-muted-foreground'
+                                ? 'border-primary bg-[#0F766E1A] text-primary shadow-sm'
+                                : 'border-border hover:border-[#0F766E4D] text-muted-foreground'
                             }`}
                           >
                             <Icon className="w-5 h-5" />
@@ -1390,7 +1390,7 @@ export default function TarifasModule() {
                         );
                       })}
                     </div>
-                    <div className="flex items-start gap-2 p-2 rounded-lg bg-primary/5 border border-primary/30 text-primary">
+                    <div className="flex items-start gap-2 p-2 rounded-lg bg-[#0F766E0D] border border-[#0F766E4D] text-primary">
                       <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                       <p className="text-[11px]">{MODO_OPTIONS.find(o => o.value === tarifaForm.modoCobro)?.description}</p>
                     </div>
@@ -1410,7 +1410,7 @@ export default function TarifasModule() {
 
                     {/* Visual range builder — interactive tiered view */}
                     {tarifaForm.modoCobro !== 'porHabitacion' && tarifaForm.modoCobro !== 'porCama' && (
-                      <div className="mt-2 mb-3 p-3 rounded-lg bg-muted/30 border border-border">
+                      <div className="mt-2 mb-3 p-3 rounded-lg bg-[#F1F5F94D] border border-border">
                         <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
                           <Users className="w-3 h-3" />Vista por escalones
                         </p>
@@ -1464,7 +1464,7 @@ export default function TarifasModule() {
               {/* STEP 3: Promotions + custom fields */}
               {wizardStep === 3 && (
                 <div className="space-y-4 animate-fade-in">
-                  <div className="space-y-4 border rounded-xl p-4 bg-muted/20">
+                  <div className="space-y-4 border rounded-xl p-4 bg-[#F1F5F933]">
                     <h3 className="text-sm font-semibold flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-primary" />Promociones</h3>
 
                     {/* 1. Acompañante sin cargo */}
@@ -1486,7 +1486,7 @@ export default function TarifasModule() {
                         </Label>
                       </div>
                       {promos?.acompananteSinCargo?.activo && (
-                        <div className="ml-6 space-y-2 border-l-26 border-primary/30 pl-3">
+                        <div className="ml-6 space-y-2 border-l-26 border-[#0F766E4D] pl-3">
                           <div className="space-y-1.5">
                             <Label className="text-xs">Etiqueta (nombre del beneficio)</Label>
                             <Input
@@ -1568,7 +1568,7 @@ export default function TarifasModule() {
                         </Label>
                       </div>
                       {promos?.ninosDiferenciado?.activo && (
-                        <div className="ml-6 space-y-2 border-l-26 border-primary/30 pl-3">
+                        <div className="ml-6 space-y-2 border-l-26 border-[#0F766E4D] pl-3">
                           <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1.5">
                               <Label className="text-xs">Precio por niño / noche</Label>
@@ -1617,7 +1617,7 @@ export default function TarifasModule() {
                         </Label>
                       </div>
                       {promos?.nochesCortesia?.activo && (
-                        <div className="ml-6 space-y-2 border-l-26 border-primary/30 pl-3">
+                        <div className="ml-6 space-y-2 border-l-26 border-[#0F766E4D] pl-3">
                           <Select
                             value={promos.nochesCortesia.modalidad.tipo}
                             onValueChange={v => {
@@ -1704,7 +1704,7 @@ export default function TarifasModule() {
                     {/* Campos adicionales */}
                     <div>
                       <p className="text-sm font-medium mb-1 flex items-center gap-1.5">
-                        <Info className="w-3.5 h-3.5 text-primary/60" />Campos adicionales
+                        <Info className="w-3.5 h-3.5 text-[#0F766E99]" />Campos adicionales
                       </p>
                       <p className="text-xs text-muted-foreground mb-2">Se pedirán al elegir esta tarifa en la reserva.</p>
                       <div className="space-y-2">

@@ -225,19 +225,19 @@ export default function SuperAdminPlanes() {
 
               {/* Limits */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg bg-muted/50">
+                <div className="p-3 rounded-lg bg-[#F1F5F980]">
                   <p className="text-xs text-muted-foreground">Habitaciones</p>
                   <p className="text-sm font-semibold">{limitDisplay(plan.maxHabitaciones)}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-muted/50">
+                <div className="p-3 rounded-lg bg-[#F1F5F980]">
                   <p className="text-xs text-muted-foreground">Usuarios</p>
                   <p className="text-sm font-semibold">{limitDisplay(plan.maxUsuarios)}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-muted/50">
+                <div className="p-3 rounded-lg bg-[#F1F5F980]">
                   <p className="text-xs text-muted-foreground">Tarifas</p>
                   <p className="text-sm font-semibold">{limitDisplay(plan.maxTarifas)}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-muted/50">
+                <div className="p-3 rounded-lg bg-[#F1F5F980]">
                   <p className="text-xs text-muted-foreground">Reservas/mes</p>
                   <p className="text-sm font-semibold">{limitDisplay(plan.maxReservasMes)}</p>
                 </div>
@@ -263,7 +263,7 @@ export default function SuperAdminPlanes() {
                     {(Object.keys(FEATURE_FLAGS) as FeatureFlag[])
                       .filter((flag) => plan.featureFlags?.[flag])
                       .map((flag) => (
-                        <Badge key={flag} className="text-xs font-normal bg-primary/15 text-primary border-primary/30">
+                        <Badge key={flag} className="text-xs font-normal bg-[#0F766E26] text-primary border-[#0F766E4D]">
                           {FEATURE_FLAGS[flag].label}
                         </Badge>
                       ))}
