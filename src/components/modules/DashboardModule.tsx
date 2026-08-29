@@ -864,9 +864,12 @@ export default function DashboardModule() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
-        <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-primary" borderColor="border-l-primary" bgGradient="bg-primary/5" iconBg="bg-primary/20" labelColor="text-primary" valueColor="text-primary" subColor="text-primary/50" numericValue={tasaOcupacion} suffix="%" sparkData={sparkOccupancy} sparkColor="#059669" />
-        <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-primary" borderColor="border-l-primary" bgGradient="bg-primary/5" iconBg="bg-primary/20" labelColor="text-primary" valueColor="text-primary" subColor="text-primary/50" numericValue={checkinsHoy.length} sparkData={sparkCheckins} sparkColor="#059669" />
-        <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-warning" borderColor="border-l-warning" bgGradient="bg-warning/10" iconBg="bg-warning/20" labelColor="text-warning" valueColor="text-warning" subColor="text-warning/50" numericValue={checkoutsHoy.length} sparkData={sparkCheckouts} sparkColor="#F59E0B" />
+        {/* Fondos/íconos con opacidad en color fijo (no bg-primary/N): en navegadores
+            sin soporte de color-mix() (ej. Chrome <111) esa clase cae a su versión
+            100% sólida, y como el texto usa el mismo color, quedaba invisible. */}
+        <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-primary" borderColor="border-l-primary" bgGradient="bg-[#0F766E0D]" iconBg="bg-[#0F766E33]" labelColor="text-primary" valueColor="text-primary" subColor="text-[#0F766E80]" numericValue={tasaOcupacion} suffix="%" sparkData={sparkOccupancy} sparkColor="#059669" />
+        <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-primary" borderColor="border-l-primary" bgGradient="bg-[#0F766E0D]" iconBg="bg-[#0F766E33]" labelColor="text-primary" valueColor="text-primary" subColor="text-[#0F766E80]" numericValue={checkinsHoy.length} sparkData={sparkCheckins} sparkColor="#059669" />
+        <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-warning" borderColor="border-l-warning" bgGradient="bg-[#D977061A]" iconBg="bg-[#D9770633]" labelColor="text-warning" valueColor="text-warning" subColor="text-[#D9770680]" numericValue={checkoutsHoy.length} sparkData={sparkCheckouts} sparkColor="#F59E0B" />
         <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-teal-600" borderColor="border-l-teal-500" bgGradient="bg-teal-50" iconBg="bg-teal-500/20" labelColor="text-teal-600" valueColor="text-teal-800" subColor="text-teal-600/50" numericValue={reservadas} sparkData={sparkRevenue} sparkColor="#059669" />
       </div>
 

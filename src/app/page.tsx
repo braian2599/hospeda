@@ -151,7 +151,7 @@ export default function HomePage() {
             {FEATURE_PREVIEW.map(({ icon: Icon, title, desc }, i) => (
               <FadeIn key={title} delay={i * 80}>
                 <div className="group h-full rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F766E1A]">
                     <Icon className="h-6 w-6 text-primary" />
                   </div>
                   <h3 className="mt-5 text-lg font-semibold text-foreground">{title}</h3>
