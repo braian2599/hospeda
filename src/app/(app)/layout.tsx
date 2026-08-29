@@ -66,10 +66,10 @@ function HotelSelector({ hoteles, userName, onSelected }: {
         </div>
         <div className="space-y-2">
           {hoteles.map(h => (
-            <Card key={h.tenantId} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => handleSelect(h.tenantId)}>
+            <Card key={h.tenantId} className="cursor-pointer hover:border-[#0F766E80] transition-all hover:shadow-md" onClick={() => handleSelect(h.tenantId)}>
               <CardContent className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-[#0F766E1A] flex items-center justify-center">
                     <Hotel className="w-5 h-5 text-primary" />
                   </div>
                   <div>

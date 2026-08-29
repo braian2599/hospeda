@@ -262,11 +262,11 @@ export default function LimpiezaModule() {
 
       {/* ── Maintenance alert banner ── */}
       {enMantenimiento.length > 0 && (
-        <Card className="border-destructive/40 bg-destructive/10 overflow-hidden">
+        <Card className="border-[#EF444466] bg-[#EF44441A] overflow-hidden">
           <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="relative w-10 h-10 rounded-full bg-destructive/15 flex items-center justify-center shrink-0">
-                <span className="absolute inset-0 rounded-full bg-destructive/20 animate-ping" />
+              <div className="relative w-10 h-10 rounded-full bg-[#EF444426] flex items-center justify-center shrink-0">
+                <span className="absolute inset-0 rounded-full bg-[#EF444433] animate-ping" />
                 <AlertTriangle className="relative w-5 h-5 text-destructive animate-pulse-subtle" />
               </div>
               <div className="min-w-0">
@@ -281,7 +281,7 @@ export default function LimpiezaModule() {
             <Button
               size="sm"
               variant="outline"
-              className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
+              className="border-[#EF444466] text-destructive hover:bg-[#EF44441A] hover:text-destructive shrink-0"
               onClick={() => setModulo('habitaciones' as ModuloId)}
             >
               <DoorOpen className="w-3.5 h-3.5 mr-1.5" />Ir a Habitaciones
@@ -294,7 +294,7 @@ export default function LimpiezaModule() {
       {/* ── Cleaning Queue + En Mantenimiento (2-col grid) ── */}
       <div className="grid md:grid-cols-2 gap-4">
         {/* Cleaning Queue */}
-        <Card className="border-warning/40">
+        <Card className="border-[#D9770666]">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-base flex items-center gap-2">
@@ -307,7 +307,7 @@ export default function LimpiezaModule() {
                   </span>
                 )}
               </CardTitle>
-              <Badge variant="secondary" className="bg-warning/15 text-warning shadow-sm font-semibold">
+              <Badge variant="secondary" className="bg-[#D9770626] text-warning shadow-sm font-semibold">
                 {porLimpiar.length}
               </Badge>
             </div>
@@ -315,7 +315,7 @@ export default function LimpiezaModule() {
           <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto custom-scroll">
             {porLimpiar.length === 0 ? (
               <div className="text-center py-8">
-                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center shadow-sm">
+                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#0F766E1A] flex items-center justify-center shadow-sm">
                   <CheckCircle className="w-7 h-7 text-primary" />
                 </div>
                 <p className="text-sm font-medium text-primary">¡Todo limpio!</p>
@@ -341,7 +341,7 @@ export default function LimpiezaModule() {
                     <div className="flex items-start gap-2.5 min-w-0 flex-1">
                       <div className={cn(
                         'w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm',
-                        isHighPriority ? 'bg-destructive/15' : sinceCheckoutMs > 0 && (sinceCheckoutMs / 3_600_000) >= 1 ? 'bg-warning/15' : 'bg-info/10'
+                        isHighPriority ? 'bg-[#EF444426]' : sinceCheckoutMs > 0 && (sinceCheckoutMs / 3_600_000) >= 1 ? 'bg-[#D9770626]' : 'bg-[#0284C71A]'
                       )}>
                         <BedDouble className={cn(
                           'w-4 h-4',
@@ -352,7 +352,7 @@ export default function LimpiezaModule() {
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="text-sm font-bold text-primary">Hab. {num}</p>
                           {isHighPriority && (
-                            <Badge className="text-[10px] bg-destructive/15 text-destructive shadow-sm font-semibold">Urgente</Badge>
+                            <Badge className="text-[10px] bg-[#EF444426] text-destructive shadow-sm font-semibold">Urgente</Badge>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -368,7 +368,7 @@ export default function LimpiezaModule() {
                     </div>
                     <Button
                       size="sm"
-                      className="h-7 text-xs bg-primary hover:bg-primary/80 text-white shadow-sm shrink-0"
+                      className="h-7 text-xs bg-primary hover:bg-[#0F766ECC] text-white shadow-sm shrink-0"
                       disabled={markingClean === num}
                       onClick={() => handleMarcarLimpia(num)}
                     >
@@ -383,7 +383,7 @@ export default function LimpiezaModule() {
         </Card>
 
         {/* En mantenimiento */}
-        <Card className="border-destructive/40">
+        <Card className="border-[#EF444466]">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
@@ -396,7 +396,7 @@ export default function LimpiezaModule() {
                   </span>
                 )}
               </CardTitle>
-              <Badge variant="secondary" className="bg-destructive/10 text-destructive shadow-sm font-semibold">
+              <Badge variant="secondary" className="bg-[#EF44441A] text-destructive shadow-sm font-semibold">
                 {enMantenimiento.length}
               </Badge>
             </div>
@@ -404,7 +404,7 @@ export default function LimpiezaModule() {
           <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto custom-scroll">
             {enMantenimiento.length === 0 ? (
               <div className="text-center py-8">
-                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-muted/30 flex items-center justify-center shadow-sm">
+                <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-[#F1F5F94D] flex items-center justify-center shadow-sm">
                   <CheckCircle className="w-7 h-7 text-muted-foreground" />
                 </div>
                 <p className="text-sm font-medium">Sin problemas activos</p>
@@ -418,7 +418,7 @@ export default function LimpiezaModule() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                    <div className="w-9 h-9 rounded-full bg-destructive/15 flex items-center justify-center shrink-0 shadow-sm">
+                    <div className="w-9 h-9 rounded-full bg-[#EF444426] flex items-center justify-center shrink-0 shadow-sm">
                       <Wrench className="w-4 h-4 text-destructive" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -430,7 +430,7 @@ export default function LimpiezaModule() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 text-xs border-primary/30 text-primary hover:bg-primary/20 shrink-0"
+                    className="h-7 text-xs border-[#0F766E4D] text-primary hover:bg-[#0F766E33] shrink-0"
                     onClick={() => setModalResolver(num)}
                   >
                     <Check className="w-3 h-3 mr-1" />Resolver
@@ -443,7 +443,7 @@ export default function LimpiezaModule() {
       </div>
 
       {/* ── Reportar mantenimiento ── */}
-      <Card className={showReportForm ? 'border-warning/40' : ''}>
+      <Card className={showReportForm ? 'border-[#D9770666]' : ''}>
         <CardHeader className="pb-3 cursor-pointer" onClick={() => setShowReportForm(!showReportForm)}>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
@@ -455,7 +455,7 @@ export default function LimpiezaModule() {
         {showReportForm && (
           <CardContent className="space-y-3">
             {repConfirm && reservasAfectadas > 0 && (
-              <div className="flex items-center gap-2 p-2.5 bg-warning/15 rounded-lg text-warning text-sm">
+              <div className="flex items-center gap-2 p-2.5 bg-[#D9770626] rounded-lg text-warning text-sm">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>Esta habitación tiene <strong>{reservasAfectadas}</strong> reserva{reservasAfectadas !== 1 ? 's' : ''} activa{reservasAfectadas !== 1 ? 's' : ''} que serán canceladas.</span>
                 <Button size="sm" variant="ghost" className="h-6 w-6 p-0 ml-auto" onClick={() => setRepConfirm(false)}>
@@ -491,7 +491,7 @@ export default function LimpiezaModule() {
 
       {/* ── Historial de Mantenimiento ── */}
       <Card>
-        <CardHeader className="bg-muted/50">
+        <CardHeader className="bg-[#F1F5F980]">
           <CardTitle className="text-base flex items-center gap-2">
             <Search className="w-4 h-4" /> Historial de Mantenimiento
           </CardTitle>
@@ -521,7 +521,7 @@ export default function LimpiezaModule() {
 
           {listaPaginada.length === 0 ? (
             <div className="text-center py-8">
-              <Wrench className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
+              <Wrench className="w-8 h-8 mx-auto mb-2 text-[#64748B66]" />
               <p className="text-sm text-muted-foreground">No hay reparaciones registradas.</p>
             </div>
           ) : (
@@ -572,7 +572,7 @@ export default function LimpiezaModule() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             {modalResolver && habitaciones[modalResolver] && (
-              <div className="bg-destructive/15 rounded-lg p-2.5">
+              <div className="bg-[#EF444426] rounded-lg p-2.5">
                 <p className="text-sm text-destructive">
                   <strong>Problema reportado:</strong> {habitaciones[modalResolver].problema || 'Sin descripción'}
                 </p>
@@ -608,7 +608,7 @@ export default function LimpiezaModule() {
                     onClick={() => setSacarDeCaja(true)}
                     className={cn(
                       'flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all',
-                      sacarDeCaja ? 'border-brand-mint bg-primary/10' : 'border-muted hover:border-muted-foreground/30'
+                      sacarDeCaja ? 'border-brand-mint bg-[#0F766E1A]' : 'border-muted hover:border-[#64748B4D]'
                     )}
                   >
                     <Wallet className={cn('w-5 h-5', sacarDeCaja ? 'text-primary' : 'text-muted-foreground')} />
@@ -620,7 +620,7 @@ export default function LimpiezaModule() {
                     onClick={() => setSacarDeCaja(false)}
                     className={cn(
                       'flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all',
-                      !sacarDeCaja ? 'border-info/40 bg-info/15' : 'border-muted hover:border-muted-foreground/30'
+                      !sacarDeCaja ? 'border-[#0284C766] bg-[#0284C726]' : 'border-muted hover:border-[#64748B4D]'
                     )}
                   >
                     <Banknote className={cn('w-5 h-5', !sacarDeCaja ? 'text-info' : 'text-muted-foreground')} />
@@ -641,7 +641,7 @@ export default function LimpiezaModule() {
             <Button
               onClick={handleResolver}
               disabled={!reparacion.trim() || resolviendo}
-              className="bg-primary hover:bg-primary/80 text-white"
+              className="bg-primary hover:bg-[#0F766ECC] text-white"
             >
               {resolviendo ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
               Marcar como Resuelto

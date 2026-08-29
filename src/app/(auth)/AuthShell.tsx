@@ -64,7 +64,7 @@ export default function AuthShell({ children, maxWidth = 460, showLogo = true, s
       {showBackButton && (
         <Link
           href="/"
-          className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 text-sm text-white/90 backdrop-blur-sm transition hover:bg-white/20 hover:text-white"
+          className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 rounded-lg bg-[#FFFFFF1A] px-3 py-2 text-sm text-[#FFFFFFE6] backdrop-blur-sm transition hover:bg-[#FFFFFF33] hover:text-white"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver al inicio
@@ -101,7 +101,7 @@ export default function AuthShell({ children, maxWidth = 460, showLogo = true, s
 function AuthLogo() {
   return (
     <div className="flex items-center justify-center mb-6">
-      <div className="w-14 h-14 rounded-2xl bg-white shadow-lg shadow-primary/20 flex items-center justify-center overflow-hidden ring-1 ring-slate-100">
+      <div className="w-14 h-14 rounded-2xl bg-white shadow-lg shadow-[#0F766E33] flex items-center justify-center overflow-hidden ring-1 ring-slate-100">
         <Image
           src="/logo.png"
           alt="Hospedá"

@@ -17,32 +17,32 @@ export default function PublicFooter() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2">
-              <div className="h-9 w-9 overflow-hidden rounded-lg border border-white/20 bg-white/10">
+              <div className="h-9 w-9 overflow-hidden rounded-lg border border-[#FFFFFF33] bg-[#FFFFFF1A]">
                 <Image src="/logo.png" alt="Hospedá logo" width={36} height={36} className="h-full w-full object-cover" />
               </div>
               <span className="text-lg font-bold">Hospedá</span>
             </div>
-            <p className="mt-4 text-sm text-white/70">
+            <p className="mt-4 text-sm text-[#FFFFFFB3]">
               La plataforma de gestión hotelera simple para alojamientos en Argentina.
             </p>
           </div>
 
           {/* Producto */}
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-white/80">Producto</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-[#FFFFFFCC]">Producto</h4>
             <ul className="mt-4 space-y-2 text-sm">
               <li>
-                <Link href="/funciones" className="text-white/70 transition-colors hover:text-white">
+                <Link href="/funciones" className="text-[#FFFFFFB3] transition-colors hover:text-white">
                   Funciones
                 </Link>
               </li>
               <li>
-                <Link href="/precios" className="text-white/70 transition-colors hover:text-white">
+                <Link href="/precios" className="text-[#FFFFFFB3] transition-colors hover:text-white">
                   Precios
                 </Link>
               </li>
               <li>
-                <Link href="/contacto" className="text-white/70 transition-colors hover:text-white">
+                <Link href="/contacto" className="text-[#FFFFFFB3] transition-colors hover:text-white">
                   Contacto
                 </Link>
               </li>
@@ -51,15 +51,15 @@ export default function PublicFooter() {
 
           {/* Cuenta */}
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-white/80">Cuenta</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-[#FFFFFFCC]">Cuenta</h4>
             <ul className="mt-4 space-y-2 text-sm">
               <li>
-                <Link href="/register" className="text-white/70 transition-colors hover:text-white">
+                <Link href="/register" className="text-[#FFFFFFB3] transition-colors hover:text-white">
                   Registrarse
                 </Link>
               </li>
               <li>
-                <Link href="/login" className="text-white/70 transition-colors hover:text-white">
+                <Link href="/login" className="text-[#FFFFFFB3] transition-colors hover:text-white">
                   Iniciar sesión
                 </Link>
               </li>
@@ -68,12 +68,12 @@ export default function PublicFooter() {
 
           {/* Contacto */}
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-white/80">Contacto</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-[#FFFFFFCC]">Contacto</h4>
             <ul className="mt-4 space-y-2 text-sm">
               <li>
                 <a
                   href="mailto:braian9952@gmail.com"
-                  className="flex items-center gap-2 text-white/70 transition-colors hover:text-white"
+                  className="flex items-center gap-2 text-[#FFFFFFB3] transition-colors hover:text-white"
                 >
                   <Mail className="h-4 w-4" />
                   braian9952@gmail.com
@@ -83,8 +83,8 @@ export default function PublicFooter() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-white/10 pt-8 text-center">
-          <p className="text-sm text-white/70">© {year} Hospedá. Todos los derechos reservados.</p>
+        <div className="mt-12 border-t border-[#FFFFFF1A] pt-8 text-center">
+          <p className="text-sm text-[#FFFFFFB3]">© {year} Hospedá. Todos los derechos reservados.</p>
         </div>
       </div>
     </footer>

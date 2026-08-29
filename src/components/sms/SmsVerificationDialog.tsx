@@ -182,10 +182,10 @@ export default function SmsVerificationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden">
         {/* Header with gradient */}
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pt-6 pb-4">
+        <div className="bg-gradient-to-br from-[#0F766E1A] via-[#0F766E0D] to-transparent px-6 pt-6 pb-4">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[#0F766E1A] flex items-center justify-center">
                 <Smartphone className="w-5 h-5 text-primary" />
               </div>
               <div>
@@ -234,7 +234,7 @@ export default function SmsVerificationDialog({
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg p-3">
+                <div className="flex items-center gap-2 text-sm text-destructive bg-[#EF44441A] rounded-lg p-3">
                   <XCircle className="w-4 h-4 shrink-0" />
                   {error}
                 </div>
@@ -304,7 +304,7 @@ export default function SmsVerificationDialog({
               {/* Dev code display (solo en desarrollo) */}
               {devCode && (
                 <div className="text-center">
-                  <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-warning/15 text-warning font-mono">
+                  <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-[#D9770626] text-warning font-mono">
                     DEV: {devCode}
                   </span>
                 </div>
@@ -312,7 +312,7 @@ export default function SmsVerificationDialog({
 
               {/* Error message */}
               {error && (
-                <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg p-3">
+                <div className="flex items-center gap-2 text-sm text-destructive bg-[#EF44441A] rounded-lg p-3">
                   <XCircle className="w-4 h-4 shrink-0" />
                   {error}
                 </div>
@@ -354,7 +354,7 @@ export default function SmsVerificationDialog({
           {/* ── STEP 3: Verified ── */}
           {step === 'verified' && (
             <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-[#0F766E1A] flex items-center justify-center">
                 <CheckCircle2 className="w-8 h-8 text-primary" />
               </div>
               <div>

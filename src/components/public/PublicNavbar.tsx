@@ -27,7 +27,7 @@ export default function PublicNavbar() {
     href === '/' ? pathname === '/' : pathname?.startsWith(href);
 
   return (
-    <header className="sticky top-0 z-50 h-16 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-50 h-16 w-full border-b border-border bg-[#F8FAFCF2] backdrop-blur supports-[backdrop-filter]:bg-[#F8FAFCCC]">
       <nav className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>

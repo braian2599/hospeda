@@ -71,7 +71,7 @@ export default function LoginForm() {
           <h1 className="text-5xl font-bold tracking-tight mb-3">
             Hospedá
           </h1>
-          <p className="text-lg text-white/70 mb-8">Sistema de Gestión Hotelera</p>
+          <p className="text-lg text-[#FFFFFFB3] mb-8">Sistema de Gestión Hotelera</p>
           <div
             className="w-16 h-0.5 rounded-full"
             style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.8), rgba(255,255,255,0))' }}
@@ -82,7 +82,7 @@ export default function LoginForm() {
       {/* ── Right: Login card panel ── */}
       <div className="flex-1 flex items-center justify-center relative z-10 p-4 sm:p-6">
         <Card
-          className="w-full max-w-sm rounded-2xl shadow-2xl border border-background/10 bg-foreground/90 backdrop-blur-xl"
+          className="w-full max-w-sm rounded-2xl shadow-2xl border border-[#F8FAFC1A] bg-[#0F172AE6] backdrop-blur-xl"
           style={{ animation: 'fadeUp 0.5s ease-out both' }}
         >
           <CardHeader className="text-center pb-2">

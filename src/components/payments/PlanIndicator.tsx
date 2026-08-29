@@ -41,8 +41,8 @@ export default function PlanIndicator() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors text-left">
-            <span className="w-7 h-7 rounded-md bg-warning/10 flex items-center justify-center shrink-0">
+          <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#F1F5F980] transition-colors text-left">
+            <span className="w-7 h-7 rounded-md bg-[#D977061A] flex items-center justify-center shrink-0">
               <Crown className="w-3.5 h-3.5 text-warning" />
             </span>
             <span className="flex-1 min-w-0">

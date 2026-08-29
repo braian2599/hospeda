@@ -114,14 +114,14 @@ export default function SuscripcionModule() {
 
   // Estado visual de la suscripción
   const estadoColor: Record<string, string> = {
-    trial: 'bg-info/15 text-info',
-    pendiente_pago: 'bg-warning/15 text-warning',
+    trial: 'bg-[#0284C726] text-info',
+    pendiente_pago: 'bg-[#D9770626] text-warning',
     activa: isRecurring
-      ? 'bg-success/15 text-success'
-      : 'bg-success/15 text-success',
-    vencida: 'bg-destructive/15 text-destructive',
+      ? 'bg-[#05966926] text-success'
+      : 'bg-[#05966926] text-success',
+    vencida: 'bg-[#EF444426] text-destructive',
     cancelada: 'bg-muted text-muted-foreground',
-    suspensa: 'bg-warning/15 text-warning',
+    suspensa: 'bg-[#D9770626] text-warning',
   };
 
   const estadoLabel: Record<string, string> = {
@@ -164,7 +164,7 @@ export default function SuscripcionModule() {
       {/* ── Header ── */}
       <div>
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-warning/20 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-[#D9770633] flex items-center justify-center">
             <Crown className="w-5 h-5 text-warning" />
           </div>
           <div>
@@ -275,9 +275,9 @@ export default function SuscripcionModule() {
 
       {/* ── Cancelar suscripción recurrente ── */}
       {isRecurring && currentEstado === 'activa' && (
-        <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border">
+        <div className="flex items-center justify-between p-4 rounded-xl bg-[#F1F5F980] border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#0F766E1A] flex items-center justify-center">
               <CreditCard className="w-5 h-5 text-primary" />
             </div>
             <div>
@@ -292,7 +292,7 @@ export default function SuscripcionModule() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
+                className="text-destructive hover:bg-[#EF44441A] hover:text-destructive border-[#EF444433]"
                 onClick={() => setShowCancelConfirm(true)}
               >
                 <XCircle className="w-4 h-4 mr-1.5" />
@@ -320,7 +320,7 @@ export default function SuscripcionModule() {
 
       {/* ── Trial expired warning ── */}
       {trialExpired && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20">
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-[#EF44441A] border border-[#EF444433]">
           <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-sm font-medium text-destructive">
@@ -363,7 +363,7 @@ export default function SuscripcionModule() {
           onClick={() => setShowTransfer(!showTransfer)}
           className="flex items-center gap-3 group w-full text-left"
         >
-          <div className="w-10 h-10 rounded-xl bg-info/20 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-[#0284C733] flex items-center justify-center shrink-0">
             <Building2 className="w-5 h-5 text-info" />
           </div>
           <div className="flex-1">
@@ -380,7 +380,7 @@ export default function SuscripcionModule() {
         {showTransfer && (
           <Card className="mt-4">
             <CardContent className="p-5 space-y-4">
-              <div className="flex items-start gap-2 p-3 bg-info/10 rounded-lg">
+              <div className="flex items-start gap-2 p-3 bg-[#0284C71A] rounded-lg">
                 <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Luego de realizar la transferencia, enviá el comprobante con tu nombre de hotel y el plan elegido. Un administrador activará tu suscripción una vez verificado el pago.
@@ -459,7 +459,7 @@ export default function SuscripcionModule() {
                         href={`https://wa.me/${bankDetails.comprobanteWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, les envío el comprobante de transferencia para activar mi suscripción a Hospedá.')}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-success/15 text-success hover:bg-success/25 transition-colors text-sm font-medium"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#05966926] text-success hover:bg-[#05966940] transition-colors text-sm font-medium"
                       >
                         <MessageCircle className="w-4 h-4" />
                         WhatsApp
@@ -468,7 +468,7 @@ export default function SuscripcionModule() {
                     {bankDetails.comprobanteEmail && (
                       <a
                         href={`mailto:${bankDetails.comprobanteEmail}?subject=${encodeURIComponent('Comprobante de transferencia - Hospedá')}`}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-info/15 text-info hover:bg-info/25 transition-colors text-sm font-medium"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0284C726] text-info hover:bg-[#0284C740] transition-colors text-sm font-medium"
                       >
                         <Mail className="w-4 h-4" />
                         {bankDetails.comprobanteEmail}
@@ -477,7 +477,7 @@ export default function SuscripcionModule() {
                     {bankDetails.comprobanteTelefono && (
                       <a
                         href={`tel:${bankDetails.comprobanteTelefono.replace(/[^0-9+]/g, '')}`}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground hover:bg-muted/70 transition-colors text-sm font-medium"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground hover:bg-[#F1F5F9B3] transition-colors text-sm font-medium"
                       >
                         <Phone className="w-4 h-4" />
                         {bankDetails.comprobanteTelefono}

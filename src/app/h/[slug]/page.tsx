@@ -13,17 +13,17 @@ const PAGO_BANNER: Record<string, { icon: typeof Check; text: string; className:
   exito: {
     icon: CheckCircle2,
     text: '¡Gracias! Recibimos tu pago. El hotel va a confirmar los detalles de tu reserva a la brevedad.',
-    className: 'bg-success/10 text-success border-success/30',
+    className: 'bg-[#0596691A] text-success border-[#0596694D]',
   },
   pendiente: {
     icon: Clock,
     text: 'Tu pago está pendiente de acreditación. Te vamos a avisar apenas se confirme.',
-    className: 'bg-warning/10 text-warning border-warning/30',
+    className: 'bg-[#D977061A] text-warning border-[#D977064D]',
   },
   error: {
     icon: XCircle,
     text: 'El pago no se pudo completar. Podés intentar de nuevo o contactar al hotel directamente.',
-    className: 'bg-destructive/10 text-destructive border-destructive/30',
+    className: 'bg-[#EF44441A] text-destructive border-[#EF44444D]',
   },
 };
 
@@ -103,14 +103,14 @@ export default async function HotelLandingPage(
         {heroFoto ? (
           <img src={heroFoto} alt={tenant.nombre} className="h-full w-full object-cover" />
         ) : (
-          <div className="h-full w-full bg-gradient-to-br from-primary/20 to-primary/5" />
+          <div className="h-full w-full bg-gradient-to-br from-[#0F766E33] to-[#0F766E0D]" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#000000B3] via-[#00000033] to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
           <div className="mx-auto max-w-6xl">
             <h1 className="text-3xl md:text-5xl font-bold text-white drop-shadow-sm">{tenant.nombre}</h1>
             {(tenant.direccion || tenant.pais) && (
-              <p className="mt-2 flex items-center gap-1.5 text-white/90 text-sm md:text-base">
+              <p className="mt-2 flex items-center gap-1.5 text-[#FFFFFFE6] text-sm md:text-base">
                 <MapPin className="w-4 h-4 shrink-0" />
                 {[tenant.direccion, tenant.pais].filter(Boolean).join(', ')}
               </p>

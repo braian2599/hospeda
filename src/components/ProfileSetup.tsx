@@ -63,7 +63,7 @@ export default function ProfileSetup({ email, currentName, onComplete }: Profile
       <div className="h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-sm mx-4 rounded-2xl shadow-2xl text-center">
           <CardContent className="pt-8 pb-6 space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-[#0F766E1A] flex items-center justify-center">
               <CheckCircle2 className="w-8 h-8 text-primary" />
             </div>
             <h2 className="text-xl font-bold">Perfil listo</h2>
@@ -82,7 +82,7 @@ export default function ProfileSetup({ email, currentName, onComplete }: Profile
       <Card className="w-full max-w-sm rounded-2xl shadow-xl">
         <CardHeader className="text-center pb-2">
           <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
-          <div className="mx-auto w-10 h-10 rounded-full bg-indigo-900/30 flex items-center justify-center mb-2">
+          <div className="mx-auto w-10 h-10 rounded-full bg-[#312C854D] flex items-center justify-center mb-2">
             <UserCircle className="w-5 h-5 text-indigo-600" />
           </div>
           <CardTitle className="text-xl">Completá tu perfil</CardTitle>
@@ -92,7 +92,7 @@ export default function ProfileSetup({ email, currentName, onComplete }: Profile
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <div className="rounded-lg bg-muted/50 p-3 text-center">
+          <div className="rounded-lg bg-[#F1F5F980] p-3 text-center">
             <p className="text-sm font-medium">{email}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Tu cuenta de acceso</p>
           </div>

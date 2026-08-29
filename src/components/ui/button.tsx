@@ -5,20 +5,20 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 btn-ripple [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:border-ring aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 btn-ripple [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:border-ring aria-invalid:ring-[#EF444466] aria-invalid:border-destructive",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+          "bg-primary text-primary-foreground shadow-xs hover:bg-[#0F766EE6]",
         destructive:
-          "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/40 bg-destructive/60",
+          "bg-destructive text-white shadow-xs hover:bg-[#EF4444E6] focus-visible:ring-[#EF444466] bg-[#EF444499]",
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground bg-input/30 border-input hover:bg-input/50",
+          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground bg-[#E2E8F04D] border-input hover:bg-[#E2E8F080]",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
+          "bg-secondary text-secondary-foreground shadow-xs hover:bg-[#F1F5F9CC]",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground hover:bg-accent/50",
+          "hover:bg-accent hover:text-accent-foreground hover:bg-[#F1F5F980]",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

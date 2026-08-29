@@ -147,7 +147,7 @@ export default function SmsLoginTab() {
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-lg p-2.5">
+            <div className="flex items-center gap-2 text-xs text-destructive bg-[#EF44441A] rounded-lg p-2.5">
               <XCircle className="w-3.5 h-3.5 shrink-0" />
               {error}
             </div>
@@ -206,7 +206,7 @@ export default function SmsLoginTab() {
           {/* Dev code */}
           {devCode && (
             <div className="text-center">
-              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-warning/15 text-warning font-mono">
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-[#D9770626] text-warning font-mono">
                 DEV: {devCode}
               </span>
             </div>
@@ -214,7 +214,7 @@ export default function SmsLoginTab() {
 
           {/* Error */}
           {error && (
-            <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-lg p-2.5">
+            <div className="flex items-center gap-2 text-xs text-destructive bg-[#EF44441A] rounded-lg p-2.5">
               <XCircle className="w-3.5 h-3.5 shrink-0" />
               {error}
             </div>

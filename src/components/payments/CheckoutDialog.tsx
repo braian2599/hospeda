@@ -128,10 +128,10 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header with gradient */}
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pt-6 pb-4 shrink-0">
+        <div className="bg-gradient-to-br from-[#0F766E1A] via-[#0F766E0D] to-transparent px-6 pt-6 pb-4 shrink-0">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[#0F766E1A] flex items-center justify-center">
                 <CreditCard className="w-5 h-5 text-primary" />
               </div>
               <div>
@@ -151,7 +151,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
 
           {/* Plan summary bar */}
           {step !== 'success' && step !== 'error' && (
-            <div className="flex items-center justify-between bg-background/80 backdrop-blur-sm rounded-lg px-4 py-3 mt-3">
+            <div className="flex items-center justify-between bg-[#F8FAFCCC] backdrop-blur-sm rounded-lg px-4 py-3 mt-3">
               <div>
                 <p className="font-semibold text-sm">{plan.nombre}</p>
                 <p className="text-xs text-muted-foreground">{PLAN_DESC[selectedPlan]}</p>
@@ -187,7 +187,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
               </div>
 
               {/* Recurring badge */}
-              <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/10">
+              <div className="flex items-center gap-2 p-3 bg-[#0F766E0D] rounded-lg border border-[#0F766E1A]">
                 <RefreshCw className="w-4 h-4 text-primary shrink-0" />
                 <p className="text-xs text-primary">
                   <strong>Suscripción recurrente:</strong> El cobro se realiza automáticamente el día 10 de cada mes. Podés cancelar cuando quieras.
@@ -195,7 +195,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
               </div>
 
               {/* Plan details */}
-              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <div className="bg-[#F1F5F980] rounded-lg p-4 space-y-3">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Incluido en el plan {plan.nombre}
                 </p>
@@ -209,7 +209,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
 
               {/* MP badge */}
               <div className="flex items-center justify-center gap-2 py-2">
-                <div className="flex items-center gap-1.5 bg-info/10 rounded-full px-3 py-1.5">
+                <div className="flex items-center gap-1.5 bg-[#0284C71A] rounded-full px-3 py-1.5">
                   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none">
                     <path d="M3 4h18v16H3V4z" fill="#009EE3" rx="2"/>
                     <path d="M7 8h4l-1 4h3l-4 6 1-4H8l2-6H7z" fill="white"/>
@@ -245,7 +245,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
           {/* ── STEP 2: Processing ── */}
           {step === 'processing' && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-[#0F766E1A] flex items-center justify-center mb-4">
                 <Loader2 className="w-8 h-8 text-primary animate-spin" />
               </div>
               <p className="font-medium">Creando tu suscripción recurrente...</p>
@@ -258,7 +258,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
           {/* ── STEP 3: Success ── */}
           {step === 'success' && checkoutUrl && (
             <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-chart-2/10 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-[#10B9811A] flex items-center justify-center">
                 <Check className="w-8 h-8 text-chart-2" />
               </div>
               <div>
@@ -290,7 +290,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
           {/* ── STEP 4: Error ── */}
           {step === 'error' && (
             <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-[#EF44441A] flex items-center justify-center">
                 <AlertTriangle className="w-8 h-8 text-destructive" />
               </div>
               <div>

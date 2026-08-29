@@ -14,10 +14,10 @@ interface ProfileWelcomeProps {
 }
 
 const ROL_INFO: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
-  owner: { label: 'Administrador Principal', icon: ShieldCheck, color: 'bg-warning/15 text-warning' },
-  admin: { label: 'Admin', icon: Shield, color: 'bg-chart-5/15 text-chart-5' },
-  recepcion: { label: 'Recepcion', icon: UserCog, color: 'bg-info/15 text-info' },
-  limpieza: { label: 'Limpieza', icon: Sparkles, color: 'bg-success/15 text-success' },
+  owner: { label: 'Administrador Principal', icon: ShieldCheck, color: 'bg-[#D9770626] text-warning' },
+  admin: { label: 'Admin', icon: Shield, color: 'bg-[#8B5CF626] text-chart-5' },
+  recepcion: { label: 'Recepcion', icon: UserCog, color: 'bg-[#0284C726] text-info' },
+  limpieza: { label: 'Limpieza', icon: Sparkles, color: 'bg-[#05966926] text-success' },
 };
 
 export default function ProfileWelcome({ profileName, email, rol, hotelNombre, onComplete }: ProfileWelcomeProps) {
@@ -43,7 +43,7 @@ export default function ProfileWelcome({ profileName, email, rol, hotelNombre, o
           </div>
 
           {/* Profile card */}
-          <div className="rounded-xl border bg-muted/30 p-4 space-y-3">
+          <div className="rounded-xl border bg-[#F1F5F94D] p-4 space-y-3">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${rolInfo.color}`}>
                 <RolIcon className="w-5 h-5" />

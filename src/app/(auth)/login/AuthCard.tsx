@@ -99,16 +99,16 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
     return (
       <AuthShell maxWidth={440}>
         <div className="text-center">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-[#0F766E1A] border border-[#0F766E33] flex items-center justify-center mb-6">
             <CheckCircle2 className="w-8 h-8 text-primary" />
           </div>
           <h2 className="text-xl font-bold text-foreground mb-2">Cuenta creada</h2>
           <p className="text-sm text-muted-foreground mb-6">
-            Te enviamos un email a <strong className="text-foreground/80">{regEmail}</strong> con un enlace para verificar tu cuenta.
+            Te enviamos un email a <strong className="text-[#0F172ACC]">{regEmail}</strong> con un enlace para verificar tu cuenta.
           </p>
-          <p className="text-xs text-foreground/40 mb-6">El enlace expira en 24 horas. Revisá también la carpeta de spam.</p>
+          <p className="text-xs text-[#0F172A66] mb-6">El enlace expira en 24 horas. Revisá también la carpeta de spam.</p>
           <Button
-            className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25"
+            className="w-full h-11 rounded-xl bg-primary hover:bg-[#0F766EE6] text-primary-foreground font-medium shadow-lg shadow-[#0F766E40]"
             onClick={() => { setStep('form'); setMode('login'); }}
           >
             Ir a iniciar sesión
@@ -128,13 +128,13 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
         </div>
 
         {verified && (
-          <div className="mb-5 rounded-xl border border-primary/30 bg-primary/10 text-primary p-3 text-sm flex items-center gap-2">
+          <div className="mb-5 rounded-xl border border-[#0F766E4D] bg-[#0F766E1A] text-primary p-3 text-sm flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             Email verificado. Ya podés iniciar sesión.
           </div>
         )}
         {errorMessage && (
-          <div className="mb-5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive p-3 text-sm flex items-center gap-2">
+          <div className="mb-5 rounded-xl border border-[#EF44444D] bg-[#EF44441A] text-destructive p-3 text-sm flex items-center gap-2">
             <span className="w-4 h-4 shrink-0">⚠</span>
             {errorMessage}
           </div>
@@ -162,7 +162,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="login-password" className="text-xs text-slate-500">Contraseña</Label>
-              <Link href="/forgot-password" className="text-xs text-primary hover:text-primary/80 transition-colors">¿La olvidaste?</Link>
+              <Link href="/forgot-password" className="text-xs text-primary hover:text-[#0F766ECC] transition-colors">¿La olvidaste?</Link>
             </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -172,7 +172,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
                 placeholder="Tu contraseña"
                 value={loginPassword}
                 onChange={e => setLoginPassword(e.target.value)}
-                className="pl-10 pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-primary/50 focus:ring-primary/20"
+                className="pl-10 pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-[#0F766E80] focus:ring-[#0F766E33]"
                 autoComplete="current-password"
                 disabled={loginLoading}
               />
@@ -188,7 +188,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
           </div>
           <Button
             type="submit"
-            className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all duration-200 shadow-lg shadow-primary/25"
+            className="w-full h-11 rounded-xl bg-primary hover:bg-[#0F766EE6] text-primary-foreground font-medium transition-all duration-200 shadow-lg shadow-[#0F766E40]"
             disabled={loginLoading}
           >
             {loginLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Ingresando…</> : 'Ingresar'}
@@ -261,7 +261,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
               placeholder="Mínimo 8 caracteres"
               value={regPassword}
               onChange={e => setRegPassword(e.target.value)}
-              className="pl-10 pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-primary/50 focus:ring-primary/20"
+              className="pl-10 pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-[#0F766E80] focus:ring-[#0F766E33]"
               autoComplete="new-password"
               disabled={regLoading}
             />
@@ -277,7 +277,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
         </div>
         <Button
           type="submit"
-          className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25"
+          className="w-full h-11 rounded-xl bg-primary hover:bg-[#0F766EE6] text-primary-foreground font-medium shadow-lg shadow-[#0F766E40]"
           disabled={regLoading}
         >
           {regLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Creando cuenta…</> : 'Crear cuenta gratuita'}
@@ -330,7 +330,7 @@ function InputField({ id, label, icon, type = 'text', placeholder, value, onChan
           placeholder={placeholder}
           value={value}
           onChange={e => onChange(e.target.value)}
-          className={`${icon ? 'pl-10 ' : ''}h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-primary/50 focus:ring-primary/20`}
+          className={`${icon ? 'pl-10 ' : ''}h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-[#0F766E80] focus:ring-[#0F766E33]`}
           autoComplete={autoComplete}
           disabled={disabled}
         />

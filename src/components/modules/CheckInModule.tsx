@@ -30,9 +30,9 @@ import { formatMoney, formatFecha, todayLocal, daysAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 const estadoPagoBadge: Record<string, string> = {
-  Pendiente: 'bg-warning/15 text-warning border-warning/40',
-  Parcial: 'bg-warning/15 text-warning border-warning/40',
-  Pagado: 'bg-success/15 text-success border-primary/40',
+  Pendiente: 'bg-[#D9770626] text-warning border-[#D9770666]',
+  Parcial: 'bg-[#D9770626] text-warning border-[#D9770666]',
+  Pagado: 'bg-[#05966926] text-success border-[#0F766E66]',
 };
 
 const PARENTESCO_OPTIONS = [
@@ -296,7 +296,7 @@ export default function CheckInModule() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Pendientes Check-In */}
-          <Card className="border-primary/30 bg-primary/5">
+          <Card className="border-[#0F766E4D] bg-[#0F766E0D]">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <LogIn className="w-5 h-5 text-primary" />
@@ -305,7 +305,7 @@ export default function CheckInModule() {
                 <Badge
                   key={`cin-${pendientesCheckIn.length}`}
                   variant="secondary"
-                  className="ml-auto count-pop bg-primary/15 text-primary border-primary/30 hover:bg-primary/80/20"
+                  className="ml-auto count-pop bg-[#0F766E26] text-primary border-[#0F766E4D] hover:bg-[#0F766ECC]/20"
                 >
                   {pendientesCheckIn.length}
                 </Badge>
@@ -317,13 +317,13 @@ export default function CheckInModule() {
               ) : (
                 <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
                   {pendientesCheckIn.map(r => (
-                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-primary/10 transition-colors duration-200 group">
+                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-[#0F766E1A] transition-colors duration-200 group">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-sm group-hover:text-primary transition-colors">{r.huesped}</span>
                           <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                           {(r.ninos || 0) > 0 && (
-                            <Badge variant="outline" className="bg-chart-5/15 text-chart-5 border-chart-5/40">
+                            <Badge variant="outline" className="bg-[#8B5CF626] text-chart-5 border-[#8B5CF666]">
                               <Baby className="w-3 h-3 mr-1" />{r.ninos} menor{(r.ninos || 0) > 1 ? 'es' : ''}
                             </Badge>
                           )}
@@ -335,7 +335,7 @@ export default function CheckInModule() {
                           <span>{r.personas} adulto{s(r.personas)}{(r.ninos || 0) > 0 ? ` + ${r.ninos} niño${(r.ninos || 0) > 1 ? 's' : ''}` : ''}</span>
                         </div>
                       </div>
-                      <Button size="sm" className="bg-primary hover:bg-primary/80 text-white shadow-sm" onClick={() => openCheckIn(r)}>
+                      <Button size="sm" className="bg-primary hover:bg-[#0F766ECC] text-white shadow-sm" onClick={() => openCheckIn(r)}>
                         <KeyRound className="w-3.5 h-3.5 mr-1" />Check-In
                       </Button>
                     </div>
@@ -346,7 +346,7 @@ export default function CheckInModule() {
           </Card>
 
           {/* Pendientes Check-Out */}
-          <Card className="border-warning/40 bg-warning/10">
+          <Card className="border-[#D9770666] bg-[#D977061A]">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <LogOut className="w-5 h-5 text-warning" />
@@ -355,7 +355,7 @@ export default function CheckInModule() {
                 <Badge
                   key={`cout-${pendientesCheckOut.length}`}
                   variant="secondary"
-                  className="ml-auto count-pop bg-warning/15 text-warning border-warning/40 hover:bg-warning/20"
+                  className="ml-auto count-pop bg-[#D9770626] text-warning border-[#D9770666] hover:bg-[#D9770633]"
                 >
                   {pendientesCheckOut.length}
                 </Badge>
@@ -367,13 +367,13 @@ export default function CheckInModule() {
               ) : (
                 <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
                   {pendientesCheckOut.map(r => (
-                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-warning/15 transition-colors duration-200 group">
+                    <div key={r.id} className="border rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-[#D9770626] transition-colors duration-200 group">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-sm group-hover:text-primary transition-colors">{r.huesped}</span>
                           <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
                           {r.menores && r.menores.length > 0 && (
-                            <Badge variant="outline" className="bg-chart-5/15 text-chart-5 border-chart-5/40">
+                            <Badge variant="outline" className="bg-[#8B5CF626] text-chart-5 border-[#8B5CF666]">
                               <Baby className="w-3 h-3 mr-1" />{r.menores.length} menor{r.menores.length > 1 ? 'es' : ''}
                             </Badge>
                           )}
@@ -428,7 +428,7 @@ export default function CheckInModule() {
                   </p>
 
                   {menoresErrors.length > 0 && (
-                    <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 space-y-1">
+                    <div className="rounded-lg border border-[#EF444466] bg-[#EF44441A] p-3 space-y-1">
                       {menoresErrors.map((err, i) => (
                         <p key={i} className="text-xs text-destructive">{err}</p>
                       ))}
@@ -437,7 +437,7 @@ export default function CheckInModule() {
 
                   <div className="space-y-4">
                     {menoresForms.map((menor, idx) => (
-                      <div key={idx} className="rounded-lg border p-4 space-y-3 bg-muted/30">
+                      <div key={idx} className="rounded-lg border p-4 space-y-3 bg-[#F1F5F94D]">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-semibold flex items-center gap-1.5">
                             <Baby className="w-4 h-4 text-chart-5" />
@@ -871,20 +871,20 @@ const KPI_COLORS: Record<string, {
 }> = {
   primary: {
     border: 'border-l-primary',
-    bg: 'bg-primary/5',
+    bg: 'bg-[#0F766E0D]',
     label: 'text-primary',
     value: 'text-primary',
-    sub: 'text-primary/50',
-    iconBg: 'bg-primary/20',
+    sub: 'text-[#0F766E80]',
+    iconBg: 'bg-[#0F766E33]',
     icon: 'text-primary',
   },
   amber: {
     border: 'border-l-amber-500',
-    bg: 'bg-warning/10',
+    bg: 'bg-[#D977061A]',
     label: 'text-warning',
     value: 'text-warning',
-    sub: 'text-warning/50',
-    iconBg: 'bg-warning/20',
+    sub: 'text-[#D9770680]',
+    iconBg: 'bg-[#D9770633]',
     icon: 'text-warning',
   },
   teal: {
@@ -892,8 +892,8 @@ const KPI_COLORS: Record<string, {
     bg: 'bg-teal-50',
     label: 'text-teal-600',
     value: 'text-teal-800',
-    sub: 'text-teal-600/50',
-    iconBg: 'bg-teal-500/20',
+    sub: 'text-[#00948880]',
+    iconBg: 'bg-[#00B9A633]',
     icon: 'text-teal-600',
   },
 };
@@ -982,8 +982,8 @@ function PulsingDot({ color = 'bg-primary' }: { color?: string }) {
  */
 function CelebratoryEmptyState() {
   return (
-    <div className="rounded-lg p-6 flex flex-col items-center justify-center text-center border border-primary/20 bg-primary/5">
-      <div className="size-12 rounded-full bg-primary/20 flex items-center justify-center mb-3">
+    <div className="rounded-lg p-6 flex flex-col items-center justify-center text-center border border-[#0F766E33] bg-[#0F766E0D]">
+      <div className="size-12 rounded-full bg-[#0F766E33] flex items-center justify-center mb-3">
         <CheckCircle className="w-7 h-7 text-primary" />
       </div>
       <p className="text-sm font-semibold text-foreground">¡Todo al día!</p>
@@ -997,7 +997,7 @@ function CelebratoryEmptyState() {
  */
 function StatCardSkeleton() {
   return (
-    <div className="p-4 rounded-xl border-l-[3px] border-l-muted bg-muted/30">
+    <div className="p-4 rounded-xl border-l-[3px] border-l-muted bg-[#F1F5F94D]">
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <Skeleton className="h-3 w-24" />

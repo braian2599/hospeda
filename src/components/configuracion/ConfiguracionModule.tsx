@@ -321,7 +321,7 @@ function HotelSection() {
               onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
             />
           ) : null}
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A33] to-transparent" />
         </div>
         <CardContent className="p-4 md:p-6 -mt-12 relative">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4">
@@ -441,7 +441,7 @@ function HotelSection() {
           </div>
 
           {form.logoUrl && (
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F1F5F980]">
               <img src={form.logoUrl} alt="Logo" className="w-12 h-12 rounded-lg object-contain bg-white p-1" onError={e => (e.currentTarget.style.display = 'none')} />
               <span className="text-sm text-muted-foreground">Vista previa del logo</span>
             </div>
@@ -557,7 +557,7 @@ function FiscalSection() {
                 value={form.cuit}
                 onChange={e => setForm({ ...form, cuit: e.target.value })}
                 placeholder="20-12345678-9"
-                className={cuitDigits.length >= 11 ? (cuitValido ? 'border-primary focus-visible:ring-brand-emerald/30' : 'border-destructive focus-visible:ring-destructive/30') : ''}
+                className={cuitDigits.length >= 11 ? (cuitValido ? 'border-primary focus-visible:ring-[#0596694D]' : 'border-destructive focus-visible:ring-[#EF44444D]') : ''}
               />
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Dígito verificador esperado:</span>
@@ -726,7 +726,7 @@ function PhotoGrid({
           <button
             type="button"
             onClick={() => onDelete(url)}
-            className="absolute top-1 right-1 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-1 right-1 p-1.5 rounded-full bg-[#00000099] text-white opacity-0 group-hover:opacity-100 transition-opacity"
             title="Eliminar foto"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -1546,7 +1546,7 @@ function HabitacionesSection() {
           ) : (
             <div className="space-y-2">
               {Object.entries(roomSummary).map(([tipo, info]) => (
-                <div key={tipo} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                <div key={tipo} className="flex items-center justify-between p-3 rounded-lg border bg-[#F1F5F94D]">
                   <div className="flex items-center gap-2 min-w-0">
                     <BedDouble className="w-4 h-4 shrink-0" style={{ color: forestAccent }} />
                     <span className="text-sm font-medium capitalize truncate">{tipo}</span>
@@ -1724,7 +1724,7 @@ function CuentaSection() {
                 value={confirmPass}
                 onChange={e => setConfirmPass(e.target.value)}
                 placeholder="Repetí la nueva contraseña"
-                className={`pr-10 ${passwordsMismatch ? 'border-destructive focus-visible:ring-destructive/30' : passwordsMatch ? 'border-primary focus-visible:ring-brand-emerald/30' : ''}`}
+                className={`pr-10 ${passwordsMismatch ? 'border-destructive focus-visible:ring-[#EF44444D]' : passwordsMatch ? 'border-primary focus-visible:ring-[#0596694D]' : ''}`}
               />
               <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showConfirm ? 'Ocultar' : 'Mostrar'}>
                 {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -1923,7 +1923,7 @@ function ExportarSection() {
           ) : (
             <ul className="space-y-2 max-h-72 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
               {history.map(h => (
-                <li key={h.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                <li key={h.id} className="flex items-center justify-between p-3 rounded-lg border bg-[#F1F5F94D]">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: forestAlpha(15) }}>
                       {h.formato === 'JSON' ? <Database className="w-4 h-4" style={{ color: forest }} /> : <FileText className="w-4 h-4" style={{ color: forest }} />}
@@ -1996,7 +1996,7 @@ function SuscripcionSection() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[#0F766E1A] flex items-center justify-center">
                 <Crown className="w-5 h-5 text-primary" />
               </div>
               <div>
@@ -2014,7 +2014,7 @@ function SuscripcionSection() {
 
         {isTrial && diasTrial <= 7 && (
           <CardContent className="pt-0">
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-brand-amber/10 border border-brand-amber/20">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F59E0B1A] border border-[#F59E0B33]">
               <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
               <p className="text-sm text-warning">
                 Tu prueba vence en {diasTrial} días. Seleccioná un plan para no perder acceso.
@@ -2134,7 +2134,7 @@ function SuscripcionSection() {
           onClick={() => setShowTransfer(!showTransfer)}
           className="flex items-center gap-3 group w-full text-left"
         >
-          <div className="w-9 h-9 rounded-xl bg-info/10 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-[#0284C71A] flex items-center justify-center shrink-0">
             <Building2 className="w-4 h-4 text-info" />
           </div>
           <div className="flex-1">
@@ -2151,7 +2151,7 @@ function SuscripcionSection() {
         {showTransfer && (
           <Card className="mt-3">
             <CardContent className="p-4 space-y-3">
-              <div className="flex items-start gap-2 p-2.5 bg-info/5 rounded-lg">
+              <div className="flex items-start gap-2 p-2.5 bg-[#0284C70D] rounded-lg">
                 <Info className="w-3.5 h-3.5 text-info shrink-0 mt-0.5" />
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Luego de realizar la transferencia, enviá el comprobante con tu nombre de hotel y el plan elegido. Un administrador activará tu suscripción una vez verificado el pago.
@@ -2215,7 +2215,7 @@ function SuscripcionSection() {
                             href={`https://wa.me/${bankDetails.comprobanteWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, les envío el comprobante de transferencia para activar mi suscripción a Hospedá.')}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success/15 text-success hover:bg-success/25 transition-colors text-xs font-medium"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#05966926] text-success hover:bg-[#05966940] transition-colors text-xs font-medium"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                             WhatsApp
@@ -2224,7 +2224,7 @@ function SuscripcionSection() {
                         {bankDetails.comprobanteEmail && (
                           <a
                             href={`mailto:${bankDetails.comprobanteEmail}?subject=${encodeURIComponent('Comprobante de transferencia - Hospedá')}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-info/15 text-info hover:bg-info/25 transition-colors text-xs font-medium"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0284C726] text-info hover:bg-[#0284C740] transition-colors text-xs font-medium"
                           >
                             <Mail className="w-3.5 h-3.5" />
                             {bankDetails.comprobanteEmail}
@@ -2233,7 +2233,7 @@ function SuscripcionSection() {
                         {bankDetails.comprobanteTelefono && (
                           <a
                             href={`tel:${bankDetails.comprobanteTelefono.replace(/[^0-9+]/g, '')}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground hover:bg-muted/70 transition-colors text-xs font-medium"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground hover:bg-[#F1F5F9B3] transition-colors text-xs font-medium"
                           >
                             <Phone className="w-3.5 h-3.5" />
                             {bankDetails.comprobanteTelefono}

@@ -27,7 +27,7 @@ function AcceptInvitationForm() {
     return (
       <AuthShell maxWidth={420}>
         <div className="text-center">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center mb-6">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-[#EF44441A] border border-[#EF444433] flex items-center justify-center mb-6">
             <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Enlace inválido</h2>
@@ -49,13 +49,13 @@ function AcceptInvitationForm() {
     return (
       <AuthShell maxWidth={420}>
         <div className="text-center">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-[#0F766E1A] border border-[#0F766E33] flex items-center justify-center mb-6">
             <CheckCircle2 className="w-8 h-8 text-primary" />
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Contraseña creada</h2>
           <p className="text-sm text-slate-500 mb-6">Ya podés iniciar sesión con tu email y la contraseña que creaste.</p>
           <Button
-            className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25"
+            className="w-full h-11 rounded-xl bg-primary hover:bg-[#0F766EE6] text-primary-foreground font-medium shadow-lg shadow-[#0F766E40]"
             onClick={() => router.push('/login')}
           >
             Ir a iniciar sesión
@@ -103,7 +103,7 @@ function AcceptInvitationForm() {
   return (
     <AuthShell maxWidth={440}>
       <div className="text-center mb-6">
-        <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+        <div className="mx-auto w-12 h-12 rounded-xl bg-[#0F766E1A] flex items-center justify-center mb-3">
           <Mail className="w-6 h-6 text-primary" />
         </div>
         <h1 className="text-2xl font-bold text-slate-900 mb-1">Creá tu contraseña</h1>
@@ -122,7 +122,7 @@ function AcceptInvitationForm() {
               placeholder="Mínimo 8 caracteres"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-primary/50 focus:ring-primary/20"
+              className="pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-[#0F766E80] focus:ring-[#0F766E33]"
               autoComplete="new-password"
               disabled={loading}
             />
@@ -146,7 +146,7 @@ function AcceptInvitationForm() {
               placeholder="Repetí la contraseña"
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
-              className="pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-primary/50 focus:ring-primary/20"
+              className="pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-[#0F766E80] focus:ring-[#0F766E33]"
               autoComplete="new-password"
               disabled={loading}
             />
@@ -163,7 +163,7 @@ function AcceptInvitationForm() {
 
         <Button
           type="submit"
-          className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25"
+          className="w-full h-11 rounded-xl bg-primary hover:bg-[#0F766EE6] text-primary-foreground font-medium shadow-lg shadow-[#0F766E40]"
           disabled={loading}
         >
           {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Creando…</> : 'Crear contraseña y entrar'}
@@ -171,7 +171,7 @@ function AcceptInvitationForm() {
       </form>
 
       <div className="text-center mt-5">
-        <Link href="/login" className="text-sm text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1">
+        <Link href="/login" className="text-sm text-primary hover:text-[#0F766ECC] transition-colors inline-flex items-center gap-1">
           <ArrowLeft className="w-3.5 h-3.5" /> Volver a iniciar sesión
         </Link>
       </div>
@@ -183,7 +183,7 @@ export default function AcceptInvitationPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0F2B28 0%, #0F766E 35%, #0D9488 70%, #14B8A6 100%)' }}>
-        <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-[#FFFFFF4D] border-t-white rounded-full animate-spin" />
       </div>
     }>
       <AcceptInvitationForm />

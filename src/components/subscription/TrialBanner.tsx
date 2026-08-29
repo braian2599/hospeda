@@ -40,7 +40,7 @@ export default function TrialBanner() {
   if (planActual !== 'trial') {
     return (
       <>
-        <div className="flex items-center justify-between px-4 py-1.5 bg-secondary/50 border-b border-border text-xs text-muted-foreground">
+        <div className="flex items-center justify-between px-4 py-1.5 bg-[#F1F5F980] border-b border-border text-xs text-muted-foreground">
           <span>
             Plan <span className="font-medium text-foreground">{plans[planActual].nombre}</span>
             <span className="ml-1">{plans[planActual].precioDisplay}/mes</span>
@@ -66,7 +66,7 @@ export default function TrialBanner() {
   if (vencido) {
     return (
       <>
-        <div className="flex items-center gap-3 px-4 py-3 bg-destructive/10 border-b border-destructive/20">
+        <div className="flex items-center gap-3 px-4 py-3 bg-[#EF44441A] border-b border-[#EF444433]">
           <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-destructive">
@@ -95,11 +95,11 @@ export default function TrialBanner() {
     <>
       <div className={`flex items-center gap-3 px-4 py-2.5 border-b ${
         urgencia
-          ? 'bg-brand-amber/10 border-brand-amber/20'
-          : 'bg-primary/5 border-border'
+          ? 'bg-[#F59E0B1A] border-[#F59E0B33]'
+          : 'bg-[#0F766E0D] border-border'
       }`}>
         <div className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-full ${
-          urgencia ? 'bg-brand-amber/15' : 'bg-primary/10'
+          urgencia ? 'bg-[#F59E0B26]' : 'bg-[#0F766E1A]'
         }`}>
           {urgencia
             ? <AlertTriangle className="w-4 h-4 text-warning" />

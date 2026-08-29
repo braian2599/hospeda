@@ -63,16 +63,16 @@ const PIE_COLORS = ['#0F2B28', '#059669', '#F59E0B', '#EF4444', '#3B82F6', '#7C3
 // ==================== KPI CARD ====================
 
 const KPI_COLORS: Record<string, { borderL: string; bg: string; darkBg: string; label: string; value: string; sub: string; iconBg: string; iconColor: string }> = {
-  primary: { borderL: 'border-l-primary', bg: 'bg-primary/10', darkBg: 'bg-primary/5', label: 'text-primary', value: 'text-primary', sub: 'text-primary/50', iconBg: 'bg-primary/20', iconColor: 'text-primary' },
-  emerald: { borderL: 'border-l-primary', bg: 'bg-primary/5', darkBg: 'bg-primary/5', label: 'text-primary', value: 'text-primary/70', sub: 'text-primary/50', iconBg: 'bg-primary/20', iconColor: 'text-primary' },
-  green: { borderL: 'border-l-success', bg: 'bg-success/10', darkBg: 'bg-success/5', label: 'text-success', value: 'text-success', sub: 'text-success/50', iconBg: 'bg-success/20', iconColor: 'text-success' },
-  red: { borderL: 'border-l-destructive', bg: 'bg-destructive/10', darkBg: 'bg-destructive/5', label: 'text-destructive', value: 'text-destructive', sub: 'text-destructive/50', iconBg: 'bg-destructive/20', iconColor: 'text-destructive' },
-  amber: { borderL: 'border-l-warning', bg: 'bg-warning/10', darkBg: 'bg-warning/5', label: 'text-warning', value: 'text-warning', sub: 'text-warning/50', iconBg: 'bg-warning/20', iconColor: 'text-warning' },
-  chart5: { borderL: 'border-l-chart-5', bg: 'bg-chart-5/10', darkBg: 'bg-chart-5/10', label: 'text-chart-5', value: 'text-chart-5', sub: 'text-chart-5/50', iconBg: 'bg-chart-5/20', iconColor: 'text-chart-5' },
-  teal: { borderL: 'border-l-teal-500', bg: 'bg-teal-50/40', darkBg: 'bg-teal-50/20', label: 'text-teal-600', value: 'text-teal-800', sub: 'text-teal-600/50', iconBg: 'bg-teal-500/20', iconColor: 'text-teal-600' },
-  blue: { borderL: 'border-l-info', bg: 'bg-info/10', darkBg: 'bg-info/5', label: 'text-info', value: 'text-info', sub: 'text-info/50', iconBg: 'bg-info/20', iconColor: 'text-info' },
-  sky: { borderL: 'border-l-info', bg: 'bg-info/10', darkBg: 'bg-info/5', label: 'text-info', value: 'text-info', sub: 'text-info/50', iconBg: 'bg-info/20', iconColor: 'text-info' },
-  pink: { borderL: 'border-l-pink-500', bg: 'bg-pink-50/40', darkBg: 'bg-pink-50/20', label: 'text-pink-600', value: 'text-pink-800', sub: 'text-pink-600/50', iconBg: 'bg-pink-500/20', iconColor: 'text-pink-600' },
+  primary: { borderL: 'border-l-primary', bg: 'bg-[#0F766E1A]', darkBg: 'bg-[#0F766E0D]', label: 'text-primary', value: 'text-primary', sub: 'text-[#0F766E80]', iconBg: 'bg-[#0F766E33]', iconColor: 'text-primary' },
+  emerald: { borderL: 'border-l-primary', bg: 'bg-[#0F766E0D]', darkBg: 'bg-[#0F766E0D]', label: 'text-primary', value: 'text-[#0F766EB3]', sub: 'text-[#0F766E80]', iconBg: 'bg-[#0F766E33]', iconColor: 'text-primary' },
+  green: { borderL: 'border-l-success', bg: 'bg-[#0596691A]', darkBg: 'bg-[#0596690D]', label: 'text-success', value: 'text-success', sub: 'text-[#05966980]', iconBg: 'bg-[#05966933]', iconColor: 'text-success' },
+  red: { borderL: 'border-l-destructive', bg: 'bg-[#EF44441A]', darkBg: 'bg-[#EF44440D]', label: 'text-destructive', value: 'text-destructive', sub: 'text-[#EF444480]', iconBg: 'bg-[#EF444433]', iconColor: 'text-destructive' },
+  amber: { borderL: 'border-l-warning', bg: 'bg-[#D977061A]', darkBg: 'bg-[#D977060D]', label: 'text-warning', value: 'text-warning', sub: 'text-[#D9770680]', iconBg: 'bg-[#D9770633]', iconColor: 'text-warning' },
+  chart5: { borderL: 'border-l-chart-5', bg: 'bg-[#8B5CF61A]', darkBg: 'bg-[#8B5CF61A]', label: 'text-chart-5', value: 'text-chart-5', sub: 'text-[#8B5CF680]', iconBg: 'bg-[#8B5CF633]', iconColor: 'text-chart-5' },
+  teal: { borderL: 'border-l-teal-500', bg: 'bg-[#F0FDFA66]', darkBg: 'bg-[#F0FDFA33]', label: 'text-teal-600', value: 'text-teal-800', sub: 'text-[#00948880]', iconBg: 'bg-[#00B9A633]', iconColor: 'text-teal-600' },
+  blue: { borderL: 'border-l-info', bg: 'bg-[#0284C71A]', darkBg: 'bg-[#0284C70D]', label: 'text-info', value: 'text-info', sub: 'text-[#0284C780]', iconBg: 'bg-[#0284C733]', iconColor: 'text-info' },
+  sky: { borderL: 'border-l-info', bg: 'bg-[#0284C71A]', darkBg: 'bg-[#0284C70D]', label: 'text-info', value: 'text-info', sub: 'text-[#0284C780]', iconBg: 'bg-[#0284C733]', iconColor: 'text-info' },
+  pink: { borderL: 'border-l-pink-500', bg: 'bg-[#FDF2F866]', darkBg: 'bg-[#FDF2F833]', label: 'text-pink-600', value: 'text-pink-800', sub: 'text-[#E3007680]', iconBg: 'bg-[#F6339A33]', iconColor: 'text-pink-600' },
 };
 
 interface KpiProps {
@@ -174,8 +174,8 @@ function ProgressKpi({ label, value, max, color = 'bg-primary', suffix = '%', de
  */
 function ReportTabHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex items-center gap-3">
-      <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center text-primary shrink-0">
+    <div className="relative overflow-hidden rounded-xl border border-[#0F766E33] bg-[#0F766E0D] px-4 py-3 flex items-center gap-3">
+      <div className="w-9 h-9 rounded-lg bg-[#0F766E33] flex items-center justify-center text-primary shrink-0">
         {icon}
       </div>
       <div className="min-w-0">
@@ -237,10 +237,10 @@ function SummaryCard({ icon, label, value, colorFamily, trend }: {
  */
 function OccupancyBadge({ pct }: { pct: number }) {
   const cls = pct > 80
-    ? 'bg-success/15 text-success border-primary/40'
+    ? 'bg-[#05966926] text-success border-[#0F766E66]'
     : pct >= 50
-      ? 'bg-warning/15 text-warning border-warning/40'
-      : 'bg-destructive/15 text-destructive border-destructive/40';
+      ? 'bg-[#D9770626] text-warning border-[#D9770666]'
+      : 'bg-[#EF444426] text-destructive border-[#EF444466]';
   return (
     <Badge variant="outline" className={`text-xs font-semibold shadow-sm ${cls}`}>
       {pct}%
@@ -964,7 +964,7 @@ export default function ReportesModule() {
       <ModuleHeader icon={BarChart3} title="Reportes" subtitle="Métricas y análisis de tu hotel" />
 
       {/* Date Range Filter */}
-      <Card className="bg-muted/20 border-border">
+      <Card className="bg-[#F1F5F933] border-border">
         <CardContent className="p-3 sm:p-4">
           <div className="flex flex-wrap items-end justify-center gap-2 sm:gap-3">
             <div className="grid gap-1.5 flex-1 min-w-[130px] sm:flex-none">
@@ -1091,7 +1091,7 @@ export default function ReportesModule() {
       {/* ==================== TABS ==================== */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <div className="flex justify-center overflow-x-auto -mx-1 px-1">
-          <TabsList className="flex flex-nowrap h-auto gap-0.5 sm:gap-1 min-w-max bg-muted/50">
+          <TabsList className="flex flex-nowrap h-auto gap-0.5 sm:gap-1 min-w-max bg-[#F1F5F980]">
             <TabsTrigger value="financiero" className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><DollarSign className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Financiero</span></TabsTrigger>
             <TabsTrigger value="gastos" className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><TrendingDown className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Gastos</span></TabsTrigger>
             <TabsTrigger value="auditoria" className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"><FileText className="w-4 h-4 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Auditoría</span></TabsTrigger>
@@ -1116,7 +1116,7 @@ export default function ReportesModule() {
               size="icon"
               variant={showFinChart ? 'default' : 'outline'}
               onClick={() => setShowFinChart(!showFinChart)}
-              className={`shrink-0 h-9 w-9 transition-all ${showFinChart ? 'bg-primary text-white hover:bg-primary/90' : 'hover:bg-primary hover:text-white'}`}
+              className={`shrink-0 h-9 w-9 transition-all ${showFinChart ? 'bg-primary text-white hover:bg-[#0F766EE6]' : 'hover:bg-primary hover:text-white'}`}
               aria-label={showFinChart ? 'Ocultar gráfico' : 'Mostrar gráfico'}
             >
               <BarChart3 className="w-4 h-4" />
@@ -1295,7 +1295,7 @@ export default function ReportesModule() {
               size="icon"
               variant={showGastoChart ? 'default' : 'outline'}
               onClick={() => setShowGastoChart(!showGastoChart)}
-              className={`shrink-0 h-9 w-9 transition-all ${showGastoChart ? 'bg-primary text-white hover:bg-primary/90' : 'hover:bg-primary hover:text-white'}`}
+              className={`shrink-0 h-9 w-9 transition-all ${showGastoChart ? 'bg-primary text-white hover:bg-[#0F766EE6]' : 'hover:bg-primary hover:text-white'}`}
               aria-label={showGastoChart ? 'Ocultar gráfico' : 'Mostrar gráfico'}
             >
               <BarChart3 className="w-4 h-4" />
@@ -1734,7 +1734,7 @@ export default function ReportesModule() {
               size="icon"
               variant={showHabChart ? 'default' : 'outline'}
               onClick={() => setShowHabChart(!showHabChart)}
-              className={`shrink-0 h-9 w-9 transition-all ${showHabChart ? 'bg-primary text-white hover:bg-primary/90' : 'hover:bg-primary hover:text-white'}`}
+              className={`shrink-0 h-9 w-9 transition-all ${showHabChart ? 'bg-primary text-white hover:bg-[#0F766EE6]' : 'hover:bg-primary hover:text-white'}`}
               aria-label={showHabChart ? 'Ocultar gráfico' : 'Mostrar gráfico'}
             >
               <BarChart3 className="w-4 h-4" />
@@ -1879,7 +1879,7 @@ export default function ReportesModule() {
                   {habResumen.habs.map(h => {
                     const pct = ocupacionPorHabitacion[h.numero] || 0;
                     return (
-                      <TableRow key={h.numero} className="hover:bg-primary/10 transition-colors">
+                      <TableRow key={h.numero} className="hover:bg-[#0F766E1A] transition-colors">
                         <TableCell className="text-center font-medium">{h.numero}</TableCell>
                         <TableCell className="text-center text-xs sm:text-sm">{h.tipo}</TableCell>
                         <TableCell className="text-center hidden sm:table-cell text-xs sm:text-sm">{h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}</TableCell>
@@ -1932,7 +1932,7 @@ export default function ReportesModule() {
 
           {/* Top customer highlight */}
           {topCliente && (
-            <Card className="relative overflow-hidden border-2 border-primary/30 bg-primary/5">
+            <Card className="relative overflow-hidden border-2 border-[#0F766E4D] bg-[#0F766E0D]">
               <CardContent className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-deep to-brand-emerald flex items-center justify-center text-white shadow-md shrink-0">
@@ -2013,7 +2013,7 @@ export default function ReportesModule() {
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No hay clientes que coincidan.</TableCell></TableRow>
                   ) : (
                     clientesFrecuentes.map((c, i) => (
-                      <TableRow key={c.id} className={`${i % 2 === 1 ? 'bg-primary/5' : ''} hover:bg-primary/10 transition-colors`}>
+                      <TableRow key={c.id} className={`${i % 2 === 1 ? 'bg-[#0F766E0D]' : ''} hover:bg-[#0F766E1A] transition-colors`}>
                         <TableCell className="text-center font-medium text-xs sm:text-sm">
                           <span className="inline-flex items-center gap-1.5">
                             {i === 0 && <Crown className="w-3.5 h-3.5 text-warning" />}
@@ -2164,13 +2164,13 @@ export default function ReportesModule() {
                     { label: 'Saldo Esperado', value: formatMoneda(selectedCajaTurno.cierre.saldoEsperado) },
                     { label: 'Saldo Contado', value: formatMoneda(selectedCajaTurno.cierre.saldoContado) },
                   ].map(item => (
-                    <div key={item.label} className="text-center p-2 rounded-lg bg-muted/50">
+                    <div key={item.label} className="text-center p-2 rounded-lg bg-[#F1F5F980]">
                       <p className="text-xs text-muted-foreground">{item.label}</p>
                       <p className="font-medium mt-0.5">{item.value}</p>
                     </div>
                   ))}
                 </div>
-                <div className="text-center p-3 rounded-lg bg-muted/30">
+                <div className="text-center p-3 rounded-lg bg-[#F1F5F94D]">
                   <p className="text-xs text-muted-foreground mb-1">Diferencia</p>
                   <p className={`text-2xl font-bold ${selectedCajaTurno.cierre.diferencia === 0 ? 'text-success' : 'text-destructive'}`}>
                     {formatMoneda(selectedCajaTurno.cierre.diferencia)}

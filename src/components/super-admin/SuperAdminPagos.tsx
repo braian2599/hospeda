@@ -74,9 +74,9 @@ function formatDateInput(iso: string) {
 
 function estadoBadge(estado: string) {
   const map: Record<string, string> = {
-    pendiente: 'bg-warning/15 text-warning border-warning/40',
-    pagado: 'bg-success/15 text-success border-primary',
-    fallido: 'bg-destructive/10 text-destructive border-destructive/30',
+    pendiente: 'bg-[#D9770626] text-warning border-[#D9770666]',
+    pagado: 'bg-[#05966926] text-success border-primary',
+    fallido: 'bg-[#EF44441A] text-destructive border-[#EF44444D]',
     devuelto: 'bg-muted text-muted-foreground border-border',
   };
   return (
@@ -408,7 +408,7 @@ export default function SuperAdminPagos() {
             </div>
 
             {selectedTenantName && (
-              <div className="p-3 rounded-lg bg-muted/50 text-sm">
+              <div className="p-3 rounded-lg bg-[#F1F5F980] text-sm">
                 <p className="text-muted-foreground">Se registrará un pago para:</p>
                 <p className="font-medium">{selectedTenantName}</p>
               </div>

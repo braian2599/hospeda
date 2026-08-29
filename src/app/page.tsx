@@ -112,7 +112,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── Social proof bar ─── */}
-      <section className="border-y border-border bg-secondary/50 py-12">
+      <section className="border-y border-border bg-[#F1F5F980] py-12">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <p className="text-center text-sm font-medium uppercase tracking-wider text-muted-foreground">
             Diseñado para alojamientos en Argentina
@@ -150,7 +150,7 @@ export default function HomePage() {
           <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURE_PREVIEW.map(({ icon: Icon, title, desc }, i) => (
               <FadeIn key={title} delay={i * 80}>
-                <div className="group h-full rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg">
+                <div className="group h-full rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[#0F766E33] hover:shadow-lg">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F766E1A]">
                     <Icon className="h-6 w-6 text-primary" />
                   </div>
@@ -173,7 +173,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── Final CTA ─── */}
-      <section className="bg-secondary/30 py-24">
+      <section className="bg-[#F1F5F94D] py-24">
         <FadeIn className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <Badge variant="secondary" className="mb-5 gap-1">
             <Clock className="h-3 w-3" />

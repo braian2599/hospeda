@@ -107,7 +107,7 @@ function ShortcutRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
-      <span className="text-sm text-foreground/80">{label}</span>
+      <span className="text-sm text-[#0F172ACC]">{label}</span>
       <span className="flex items-center gap-1.5 shrink-0">{keys}</span>
     </div>
   );
@@ -142,7 +142,7 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
         aria-label="Ayuda y atajos"
         title="Ayuda y atajos"
         onClick={() => setOpen(true)}
-        className={`text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors ${compact ? 'h-8 w-8' : 'h-9 w-9'}`}
+        className={`text-[#475569B3] hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors ${compact ? 'h-8 w-8' : 'h-9 w-9'}`}
       >
         <Keyboard className="w-4 h-4" />
       </Button>
@@ -166,7 +166,7 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
           {/* Atajos de teclado */}
           <section className="space-y-1">
             <SectionLabel>Atajos de teclado</SectionLabel>
-            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 divide-y divide-border/60">
+            <div className="rounded-lg border border-border bg-[#F1F5F94D] px-3 py-2 divide-y divide-[#E2E8F099]">
               <ShortcutRow
                 keys={
                   <>
@@ -218,7 +218,7 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="w-full mt-1 gap-1.5 text-xs h-8 text-primary hover:bg-primary/10"
+              className="w-full mt-1 gap-1.5 text-xs h-8 text-primary hover:bg-[#0F766E1A]"
               onClick={() => {
                 setOpen(false);
                 // Defer to let this dialog close before opening the full overlay.
@@ -239,7 +239,7 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
           {/* Consejos rápidos */}
           <section className="space-y-2">
             <SectionLabel>Consejos rápidos</SectionLabel>
-            <ul className="space-y-2 text-sm text-foreground/80">
+            <ul className="space-y-2 text-sm text-[#0F172ACC]">
               <li className="flex gap-2">
                 <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
                 <span>
@@ -273,7 +273,7 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={handleContactSupport}
-                className="bg-primary hover:bg-primary/90 text-white gap-2 flex-1"
+                className="bg-primary hover:bg-[#0F766EE6] text-white gap-2 flex-1"
               >
                 <LifeBuoy className="w-4 h-4" />
                 Contactar soporte

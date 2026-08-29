@@ -83,7 +83,7 @@ Datos verificatorios:
       </div>
 
       {/* Aviso de seguridad — compacto */}
-      <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-2.5 flex items-start gap-2">
+      <div className="mb-4 rounded-lg border border-[#0F766E33] bg-[#0F766E0D] p-2.5 flex items-start gap-2">
         <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
         <p className="text-[11px] text-slate-600 leading-relaxed">
           Por seguridad, el reseteo es manual. El administrador verificará tu identidad antes de resetear.
@@ -123,7 +123,7 @@ Datos verificatorios:
           {supportEmail && (
             <Button
               onClick={handleCopy}
-              className="w-full h-8 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-medium transition flex items-center justify-center gap-1.5 mt-auto"
+              className="w-full h-8 rounded-lg bg-primary hover:bg-[#0F766EE6] text-white text-xs font-medium transition flex items-center justify-center gap-1.5 mt-auto"
             >
               {copied ? (
                 <><Check className="w-3.5 h-3.5" /> Copiado</>
@@ -149,7 +149,7 @@ Datos verificatorios:
       <div className="text-center">
         <Link
           href="/login"
-          className="text-xs text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1"
+          className="text-xs text-primary hover:text-[#0F766ECC] transition-colors inline-flex items-center gap-1"
         >
           ← Volver a iniciar sesión
         </Link>

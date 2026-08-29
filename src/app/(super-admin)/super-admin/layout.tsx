@@ -110,7 +110,7 @@ function ProtectedGuard({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4 max-w-sm px-6">
-          <div className="w-14 h-14 mx-auto rounded-full bg-destructive/10 flex items-center justify-center">
+          <div className="w-14 h-14 mx-auto rounded-full bg-[#EF44441A] flex items-center justify-center">
             <ShieldAlert className="w-7 h-7 text-destructive" />
           </div>
           <div className="space-y-1">
@@ -171,7 +171,7 @@ function SuperAdminShell({ children }: { children: ReactNode }) {
           {/* ─── Sidebar Overlay (mobile) ─── */}
           {sidebarOpen && (
             <div
-              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+              className="fixed inset-0 z-40 bg-[#00000080] lg:hidden"
               onClick={() => setSidebarOpen(false)}
             />
           )}
@@ -223,7 +223,7 @@ function SuperAdminShell({ children }: { children: ReactNode }) {
           </aside>
 
           {/* ─── Main Content ─── */}
-          <main className="flex-1 min-w-0 bg-muted/50">
+          <main className="flex-1 min-w-0 bg-[#F1F5F980]">
             <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
               {children}
             </div>

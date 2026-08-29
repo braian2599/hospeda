@@ -57,7 +57,7 @@ function renderCell(value: string | boolean) {
     return value ? (
       <Check className="mx-auto h-5 w-5 text-chart-2" />
     ) : (
-      <X className="mx-auto h-5 w-5 text-muted-foreground/40" />
+      <X className="mx-auto h-5 w-5 text-[#64748B66]" />
     );
   }
   return <span className="text-sm text-foreground">{value}</span>;
@@ -203,7 +203,7 @@ export default function PreciosPage() {
       </section>
 
       {/* ─── Comparison table ─── */}
-      <section className="bg-secondary/30 py-24">
+      <section className="bg-[#F1F5F94D] py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <FadeIn className="mx-auto mb-12 max-w-2xl text-center">
             <Badge variant="secondary" className="mb-4 gap-1">
@@ -222,17 +222,17 @@ export default function PreciosPage() {
           <FadeIn className="hidden overflow-hidden rounded-2xl border border-border bg-card md:block">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border bg-secondary/50">
+                <tr className="border-b border-border bg-[#F1F5F980]">
                   <th className="p-4 text-left text-sm font-semibold text-foreground">Característica</th>
                   <th className="p-4 text-center text-sm font-semibold text-foreground">Profesional</th>
-                  <th className="bg-primary/5 p-4 text-center text-sm font-semibold text-primary">Premium</th>
+                  <th className="bg-[#0F766E0D] p-4 text-center text-sm font-semibold text-primary">Premium</th>
                   <th className="p-4 text-center text-sm font-semibold text-foreground">Elite</th>
                 </tr>
               </thead>
               <tbody>
                 {comparisonSections.map(section => (
                   <Fragment key={section.title}>
-                    <tr className="border-b border-border bg-secondary/30">
+                    <tr className="border-b border-border bg-[#F1F5F94D]">
                       <td colSpan={4} className="p-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         {section.title}
                       </td>
@@ -241,7 +241,7 @@ export default function PreciosPage() {
                       <tr key={row.label} className="border-b border-border last:border-0">
                         <td className="p-4 text-sm text-foreground">{row.label}</td>
                         <td className="p-4 text-center">{renderCell(row.profesional)}</td>
-                        <td className="bg-primary/5 p-4 text-center">{renderCell(row.premium)}</td>
+                        <td className="bg-[#0F766E0D] p-4 text-center">{renderCell(row.premium)}</td>
                         <td className="p-4 text-center">{renderCell(row.elite)}</td>
                       </tr>
                     ))}
@@ -265,15 +265,15 @@ export default function PreciosPage() {
                         <p className="mb-2 text-sm font-medium text-foreground">{row.label}</p>
                         <div className="grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
                           <div>
-                            <p className="mb-1 font-semibold text-foreground/70">Profesional</p>
+                            <p className="mb-1 font-semibold text-[#0F172AB3]">Profesional</p>
                             <div className="flex justify-center">{renderCell(row.profesional)}</div>
                           </div>
-                          <div className="rounded-md bg-primary/5 py-1">
+                          <div className="rounded-md bg-[#0F766E0D] py-1">
                             <p className="mb-1 font-semibold text-primary">Premium</p>
                             <div className="flex justify-center">{renderCell(row.premium)}</div>
                           </div>
                           <div>
-                            <p className="mb-1 font-semibold text-foreground/70">Elite</p>
+                            <p className="mb-1 font-semibold text-[#0F172AB3]">Elite</p>
                             <div className="flex justify-center">{renderCell(row.elite)}</div>
                           </div>
                         </div>
@@ -305,7 +305,7 @@ export default function PreciosPage() {
                 <FadeIn key={item.q} delay={i * 50}>
                   <div
                     className={`rounded-xl border bg-card transition-colors ${
-                      isOpen ? 'border-primary/30' : 'border-border hover:border-primary/20'
+                      isOpen ? 'border-[#0F766E4D]' : 'border-border hover:border-[#0F766E33]'
                     }`}
                   >
                     <button
@@ -338,7 +338,7 @@ export default function PreciosPage() {
       </section>
 
       {/* ─── Final CTA ─── */}
-      <section className="bg-secondary/30 py-24">
+      <section className="bg-[#F1F5F94D] py-24">
         <FadeIn className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <h2 className="text-4xl font-bold text-foreground">Comenzá gratis hoy</h2>
           <p className="mt-4 text-lg text-muted-foreground">

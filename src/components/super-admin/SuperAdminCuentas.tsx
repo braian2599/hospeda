@@ -94,11 +94,11 @@ interface PlanOption {
 // ─── Helpers ───
 function subEstadoBadge(estado: string) {
   const map: Record<string, string> = {
-    trial: 'bg-warning/15 text-warning border-warning/40',
-    activa: 'bg-success/15 text-success border-primary',
-    vencida: 'bg-destructive/10 text-destructive border-destructive/30',
+    trial: 'bg-[#D9770626] text-warning border-[#D9770666]',
+    activa: 'bg-[#05966926] text-success border-primary',
+    vencida: 'bg-[#EF44441A] text-destructive border-[#EF44444D]',
     cancelada: 'bg-muted text-muted-foreground border-border',
-    suspensa: 'bg-warning/15 text-warning border-warning/40',
+    suspensa: 'bg-[#D9770626] text-warning border-[#D9770666]',
   };
   return (
     <Badge variant="outline" className={map[estado] || ''}>
@@ -466,7 +466,7 @@ export default function SuperAdminCuentas() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className={`h-8 w-8 ${t.activo ? 'text-destructive hover:text-destructive/80' : 'text-success hover:text-success/80'}`}
+                              className={`h-8 w-8 ${t.activo ? 'text-destructive hover:text-[#EF4444CC]' : 'text-success hover:text-[#059669CC]'}`}
                               title={t.activo ? 'Desactivar' : 'Activar'}
                               onClick={() => handleToggleActive(t)}
                             >
@@ -487,7 +487,7 @@ export default function SuperAdminCuentas() {
                       {/* Expanded row: users */}
                       {expandedRows.has(t.id) && (
                         <TableRow key={`${t.id}-expanded`}>
-                          <TableCell colSpan={9} className="bg-muted/30 p-4">
+                          <TableCell colSpan={9} className="bg-[#F1F5F94D] p-4">
                             <div className="max-w-2xl">
                               <p className="text-xs font-medium text-muted-foreground mb-2">
                                 Usuarios de {t.nombre} ({t.usuarios.length})
@@ -540,7 +540,7 @@ export default function SuperAdminCuentas() {
                                         <p className="text-sm font-medium flex items-center gap-1.5">
                                           {FEATURE_FLAGS[flag].label}
                                           {incluidaPorPlan && (
-                                            <Badge variant="outline" className="text-[10px] font-normal text-primary border-primary/40">
+                                            <Badge variant="outline" className="text-[10px] font-normal text-primary border-[#0F766E66]">
                                               Incluida en el plan
                                             </Badge>
                                           )}
@@ -753,7 +753,7 @@ export default function SuperAdminCuentas() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={actionLoading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-[#EF4444E6]"
               disabled={actionLoading || deleteConfirmName !== selectedTenant?.nombre}
               onClick={async () => {
                 if (!selectedTenant) return;

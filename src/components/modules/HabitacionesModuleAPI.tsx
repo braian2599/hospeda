@@ -15,11 +15,11 @@ import { toast } from 'sonner';
 import { type TipoHabitacion, CAPACIDAD_POR_TIPO } from '@/lib/types';
 
 const estados: Record<string, string> = {
-  Disponible: 'bg-success/15 text-success',
-  Ocupada: 'bg-destructive/15 text-destructive',
-  Limpieza: 'bg-warning/15 text-warning',
-  Mantenamiento: 'bg-muted/30 text-muted-foreground',
-  Reservada: 'bg-chart-5/15 text-chart-5',
+  Disponible: 'bg-[#05966926] text-success',
+  Ocupada: 'bg-[#EF444426] text-destructive',
+  Limpieza: 'bg-[#D9770626] text-warning',
+  Mantenamiento: 'bg-[#F1F5F94D] text-muted-foreground',
+  Reservada: 'bg-[#8B5CF626] text-chart-5',
 };
 
 const TIPOS_HABITACION: { tipo: TipoHabitacion; label: string; descripcion: string; personas: string }[] = [
@@ -114,7 +114,7 @@ export default function HabitacionesModuleAPI() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-info/15 flex items-center justify-center"><Bed className="w-5 h-5 text-info" /></div>
+            <div className="w-9 h-9 rounded-lg bg-[#0284C726] flex items-center justify-center"><Bed className="w-5 h-5 text-info" /></div>
             Gestión de Habitaciones
           </h2>
         </div>
@@ -130,7 +130,7 @@ export default function HabitacionesModuleAPI() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg bg-info/15 flex items-center justify-center"><Bed className="w-5 h-5 text-info" /></div>
+          <div className="w-9 h-9 rounded-lg bg-[#0284C726] flex items-center justify-center"><Bed className="w-5 h-5 text-info" /></div>
           Gestión de Habitaciones
         </h2>
         <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Nueva</Button>
@@ -194,10 +194,10 @@ export default function HabitacionesModuleAPI() {
                       onClick={() => handleTipoChange(t.tipo)}
                       className={`
                         flex flex-col items-center gap-0.5 rounded-lg border-2 p-2.5 text-center
-                        transition-all cursor-pointer hover:bg-accent/50
+                        transition-all cursor-pointer hover:bg-[#F1F5F980]
                         ${selected
-                          ? 'border-primary bg-primary/5 shadow-sm'
-                          : 'border-muted hover:border-muted-foreground/30'
+                          ? 'border-primary bg-[#0F766E0D] shadow-sm'
+                          : 'border-muted hover:border-[#64748B4D]'
                         }
                       `}
                     >

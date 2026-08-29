@@ -331,7 +331,7 @@ export default function SuperAdminConfig() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-xs text-muted-foreground bg-info/10 p-3 rounded-lg flex items-start gap-2">
+            <p className="text-xs text-muted-foreground bg-[#0284C71A] p-3 rounded-lg flex items-start gap-2">
               <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
               <span>
                 Estos datos se muestran a los hoteles en el módulo de Suscripción para que puedan transferir el pago de su plan. Completalos con los datos reales de la cuenta de Hospedá.

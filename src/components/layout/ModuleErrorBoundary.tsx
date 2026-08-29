@@ -60,7 +60,7 @@ export class ModuleErrorBoundary extends React.Component<Props, State> {
       return (
         <div className="min-h-[400px] flex items-center justify-center p-6">
           <div className="max-w-lg w-full text-center space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center animate-in fade-in zoom-in-50 duration-300">
+            <div className="mx-auto w-16 h-16 rounded-full bg-[#EF44441A] flex items-center justify-center animate-in fade-in zoom-in-50 duration-300">
               <AlertTriangle className="w-8 h-8 text-destructive" />
             </div>
             <div>
@@ -72,7 +72,7 @@ export class ModuleErrorBoundary extends React.Component<Props, State> {
               </p>
             </div>
             {this.state.error && (
-              <details className="text-left bg-muted/50 rounded-lg p-3 text-xs font-mono text-muted-foreground border border-border">
+              <details className="text-left bg-[#F1F5F980] rounded-lg p-3 text-xs font-mono text-muted-foreground border border-border">
                 <summary className="cursor-pointer font-medium mb-1 hover:text-foreground transition-colors">
                   Detalles técnicos ({this.state.errorId})
                 </summary>
@@ -89,7 +89,7 @@ export class ModuleErrorBoundary extends React.Component<Props, State> {
               <Button
                 onClick={this.handleGoDashboard}
                 size="sm"
-                className="bg-primary hover:bg-primary/90"
+                className="bg-primary hover:bg-[#0F766EE6]"
               >
                 <LayoutDashboard className="w-4 h-4 mr-1" />
                 Ir al Dashboard

@@ -39,12 +39,12 @@ import RoomStatusMap from './RoomStatusMap';
 // ═══════════════════════════════════════════════════════════
 
 const estados: Record<EstadoHabitacion, string> = {
-  Disponible: 'bg-success/15 text-success',
-  Ocupada: 'bg-warning/15 text-warning',
-  Limpieza: 'bg-warning/15 text-warning',
-  Mantenimiento: 'bg-muted/30 text-muted-foreground',
-  Reservada: 'bg-info/10 text-info',
-  'Fuera de servicio': 'bg-destructive/15 text-destructive',
+  Disponible: 'bg-[#05966926] text-success',
+  Ocupada: 'bg-[#D9770626] text-warning',
+  Limpieza: 'bg-[#D9770626] text-warning',
+  Mantenimiento: 'bg-[#F1F5F94D] text-muted-foreground',
+  Reservada: 'bg-[#0284C71A] text-info',
+  'Fuera de servicio': 'bg-[#EF444426] text-destructive',
 };
 
 // Status color palette for backgrounds, borders, icons
@@ -59,42 +59,42 @@ type StatusVisual = {
 const STATUS_VISUAL: Record<EstadoHabitacion, StatusVisual> = {
   Disponible: {
     color: 'var(--brand-emerald)',
-    bgTint: 'bg-primary/10',
+    bgTint: 'bg-[#0F766E1A]',
     borderClass: 'border-l-[3px] border-l-primary',
     icon: CheckCircle,
     needsAttention: false,
   },
   Ocupada: {
     color: 'var(--brand-amber)',
-    bgTint: 'bg-warning/10',
+    bgTint: 'bg-[#D977061A]',
     borderClass: 'border-l-[3px] border-l-amber-400',
     icon: UserCheck,
     needsAttention: false,
   },
   Limpieza: {
     color: 'var(--warning)',
-    bgTint: 'bg-warning/10',
+    bgTint: 'bg-[#D977061A]',
     borderClass: 'border-l-[3px] border-l-yellow-400',
     icon: SprayCan,
     needsAttention: true,
   },
   Mantenimiento: {
     color: 'var(--status-finalized)',
-    bgTint: 'bg-muted/60',
+    bgTint: 'bg-[#F1F5F999]',
     borderClass: 'border-l-[3px] border-l-slate-400',
     icon: Wrench,
     needsAttention: true,
   },
   Reservada: {
     color: 'var(--info)',
-    bgTint: 'bg-info/10',
+    bgTint: 'bg-[#0284C71A]',
     borderClass: 'border-l-[3px] border-l-sky-400',
     icon: CalendarCheck,
     needsAttention: false,
   },
   'Fuera de servicio': {
     color: 'var(--destructive)',
-    bgTint: 'bg-destructive/10',
+    bgTint: 'bg-[#EF44441A]',
     borderClass: 'border-l-[3px] border-l-red-400',
     icon: Ban,
     needsAttention: false,
@@ -201,7 +201,7 @@ function RoomStatsBanner() {
 
   if (total === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed border-[#64748B4D] bg-[#F1F5F933] p-6 text-center text-sm text-muted-foreground">
         No hay habitaciones cargadas.
       </div>
     );
@@ -214,12 +214,12 @@ function RoomStatsBanner() {
     <div
       className={`
         flex items-center gap-3 p-3 rounded-xl border border-l-[3px] border-l-status-available
-        bg-primary/5
+        bg-[#0F766E0D]
         transition-all duration-500 ease-out
         ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
       `}
     >
-      <div className="size-8 rounded-full flex items-center justify-center shrink-0 bg-primary/20">
+      <div className="size-8 rounded-full flex items-center justify-center shrink-0 bg-[#0F766E33]">
         <Bed className="w-4 h-4 text-primary" />
       </div>
       <div className="min-w-0">
@@ -296,7 +296,7 @@ function RoomTypeAnalytics() {
   return (
     <div className="rounded-xl border bg-card p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
+        <div className="w-7 h-7 rounded-lg bg-[#0F766E33] flex items-center justify-center">
           <Bed className="w-3.5 h-3.5 text-primary" />
         </div>
         <span className="text-sm font-semibold text-foreground">Distribución por tipo</span>
@@ -325,7 +325,7 @@ function RoomTypeAnalytics() {
           return (
             <div
               key={d.tipo}
-              className="rounded-lg border bg-muted/20 p-2.5 space-y-1.5"
+              className="rounded-lg border bg-[#F1F5F933] p-2.5 space-y-1.5"
             >
               <div className="flex items-center gap-2">
                 <d.Icon className="w-3.5 h-3.5 shrink-0" style={{ color }} />
@@ -433,8 +433,8 @@ function StatusChangePopover({
                     w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs
                     transition-colors cursor-pointer
                     ${isCurrent
-                      ? 'bg-accent/50 font-semibold text-foreground'
-                      : 'text-foreground/80 hover:bg-accent/40'
+                      ? 'bg-[#F1F5F980] font-semibold text-foreground'
+                      : 'text-[#0F172ACC] hover:bg-[#F1F5F966]'
                     }
                   `}
                 >
@@ -511,7 +511,7 @@ function EnhancedRoomCard({
 
         {/* Row 2: Type badge + camas inline */}
         <div className="flex items-center gap-1">
-          <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5 border-muted-foreground/25">
+          <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5 border-[#64748B40]">
             <TipoIcon className="w-2 h-2" />
             {hab.tipo}
           </Badge>
@@ -631,10 +631,10 @@ function FloorGroup({
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="w-full flex items-center gap-2.5 p-3 hover:bg-accent/30 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-2.5 p-3 hover:bg-[#F1F5F94D] transition-colors cursor-pointer"
             aria-label={`${isOpen ? 'Colapsar' : 'Expandir'} ${floorLabel}`}
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 text-primary shrink-0">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#0F766E33] text-primary shrink-0">
               {isFloorPattern ? (
                 <span className="text-sm font-bold">{floorNum}</span>
               ) : (
@@ -875,7 +875,7 @@ export default function HabitacionesModule() {
       <ModuleHeader icon={Bed} title="Habitaciones" subtitle="Gestioná las habitaciones de tu hotel">
         <div className="flex items-center gap-2">
           {/* ── View toggle ── */}
-          <div className="flex items-center gap-0.5 rounded-lg border bg-muted/50 p-0.5">
+          <div className="flex items-center gap-0.5 rounded-lg border bg-[#F1F5F980] p-0.5">
             <button
               type="button"
               onClick={() => setViewMode('lista')}
@@ -884,7 +884,7 @@ export default function HabitacionesModule() {
                 transition-all duration-200
                 ${viewMode === 'lista'
                   ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-[#F1F5F980]'
                 }
               `}
               aria-label="Vista de lista"
@@ -900,7 +900,7 @@ export default function HabitacionesModule() {
                 transition-all duration-200
                 ${viewMode === 'mapa'
                   ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-[#F1F5F980]'
                 }
               `}
               aria-label="Vista de mapa"
@@ -947,8 +947,8 @@ export default function HabitacionesModule() {
       {viewMode === 'lista' && (
         <div className="space-y-3">
           {groupedRooms.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center text-sm text-muted-foreground">
-              <DoorOpen className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+            <div className="rounded-xl border border-dashed border-[#64748B4D] bg-[#F1F5F933] p-8 text-center text-sm text-muted-foreground">
+              <DoorOpen className="w-10 h-10 mx-auto mb-3 text-[#64748B66]" />
               No hay habitaciones cargadas. Creá la primera con el botón{' '}
               <span className="font-semibold text-foreground">&quot;Nueva Habitación&quot;</span>.
             </div>
@@ -1014,10 +1014,10 @@ export default function HabitacionesModule() {
                       onClick={() => handleTipoChange(t.tipo)}
                       className={`
                         flex flex-col items-center gap-0.5 rounded-lg border-2 p-2.5 text-center
-                        transition-all cursor-pointer hover:bg-accent/50
+                        transition-all cursor-pointer hover:bg-[#F1F5F980]
                         ${selected
-                          ? 'border-primary bg-primary/5 shadow-sm'
-                          : 'border-muted hover:border-muted-foreground/30'
+                          ? 'border-primary bg-[#0F766E0D] shadow-sm'
+                          : 'border-muted hover:border-[#64748B4D]'
                         }
                       `}
                     >

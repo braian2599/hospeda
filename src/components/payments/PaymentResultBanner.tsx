@@ -26,21 +26,21 @@ export default function PaymentResultBanner() {
   const config = {
     success: {
       icon: CheckCircle2,
-      bg: 'bg-primary/10 border-primary/20',
+      bg: 'bg-[#0F766E1A] border-[#0F766E33]',
       iconColor: 'text-primary',
       title: '¡Pago recibido!',
       message: 'Tu suscripción se está activando. En unos minutos verás tu nuevo plan reflejado.',
     },
     failure: {
       icon: XCircle,
-      bg: 'bg-destructive/10 border-destructive/20',
+      bg: 'bg-[#EF44441A] border-[#EF444433]',
       iconColor: 'text-destructive',
       title: 'El pago no se completó',
       message: 'Podés intentar nuevamente desde la sección de Suscripción, o contactarnos si tenés algún problema.',
     },
     pending: {
       icon: Clock,
-      bg: 'bg-warning/10 border-warning/20',
+      bg: 'bg-[#D977061A] border-[#D9770633]',
       iconColor: 'text-warning',
       title: 'Pago pendiente',
       message: 'Tu pago está siendo procesado. Te notificaremos cuando se acredite.',
@@ -61,7 +61,7 @@ export default function PaymentResultBanner() {
       </div>
       <button
         onClick={() => setDismissed(true)}
-        className="p-1 rounded-md hover:bg-accent/50 transition-colors shrink-0"
+        className="p-1 rounded-md hover:bg-[#F1F5F980] transition-colors shrink-0"
         aria-label="Cerrar"
       >
         <X className="w-4 h-4 text-muted-foreground" />

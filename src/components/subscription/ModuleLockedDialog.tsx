@@ -45,7 +45,7 @@ export default function ModuleLockedDialog() {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-brand-amber/15 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-[#F59E0B26] flex items-center justify-center">
               <Lock className="w-5 h-5 text-warning" />
             </div>
             <div>
@@ -59,7 +59,7 @@ export default function ModuleLockedDialog() {
           </div>
         </DialogHeader>
 
-        <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+        <div className="bg-[#F1F5F980] rounded-lg p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Módulo solicitado</span>
             <span className="font-medium text-sm">{moduloNombre}</span>
@@ -89,7 +89,7 @@ export default function ModuleLockedDialog() {
               {sigPlan.modulos
                 .filter(m => !planActualInfo.modulos.includes(m))
                 .map(m => (
-                  <div key={m} className="flex items-center gap-1 bg-primary/5 rounded-md px-2 py-1 text-xs">
+                  <div key={m} className="flex items-center gap-1 bg-[#0F766E0D] rounded-md px-2 py-1 text-xs">
                     <Check className="w-3 h-3 text-primary" />
                     {NOMBRES_MODULOS[m]}
                   </div>

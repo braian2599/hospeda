@@ -185,7 +185,7 @@ function DateRangePickerInline({
       </Button>
       {open
         ? createPortal(
-            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40" onClick={() => handleOpenChange(false)}>
+            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#00000066]" onClick={() => handleOpenChange(false)}>
               <div
                 className="bg-card rounded-xl shadow-2xl border border-border pointer-events-auto"
                 onClick={e => e.stopPropagation()}
@@ -209,7 +209,7 @@ function DateRangePickerInline({
                     size="sm"
                     onClick={handleConfirm}
                     disabled={!localRange.from}
-                    className="bg-primary hover:bg-primary/80 text-white text-xs h-8"
+                    className="bg-primary hover:bg-[#0F766ECC] text-white text-xs h-8"
                   >
                     Confirmar fechas
                   </Button>
@@ -230,17 +230,17 @@ const s = (n: number) => n !== 1 ? 's' : '';
 // formatFecha and formatMoney imported from @/lib/format
 
 const estadoReservaBadge: Record<string, string> = {
- Confirmada: 'bg-success/15 text-success border-primary/40',
- Cancelada: 'bg-destructive/15 text-destructive border-destructive/40',
- 'Check-In realizado': 'bg-info/15 text-info border-info/40',
+ Confirmada: 'bg-[#05966926] text-success border-[#0F766E66]',
+ Cancelada: 'bg-[#EF444426] text-destructive border-[#EF444466]',
+ 'Check-In realizado': 'bg-[#0284C726] text-info border-[#0284C766]',
  'Check-Out realizado': 'bg-muted text-muted-foreground border-border',
- 'A confirmar': 'bg-brand-amber/15 text-brand-amber border-brand-amber/40',
+ 'A confirmar': 'bg-[#F59E0B26] text-brand-amber border-[#F59E0B66]',
 };
 
 const estadoPagoBadge: Record<string, string> = {
- Pendiente: 'bg-warning/15 text-warning border-warning/40',
- Parcial: 'bg-warning/15 text-warning border-warning/40',
- Pagado: 'bg-success/15 text-success border-primary/40',
+ Pendiente: 'bg-[#D9770626] text-warning border-[#D9770666]',
+ Parcial: 'bg-[#D9770626] text-warning border-[#D9770666]',
+ Pagado: 'bg-[#05966926] text-success border-[#0F766E66]',
 };
 
 const estadosReserva = ['Confirmada', 'A confirmar', 'Cancelada', 'Check-In realizado', 'Check-Out realizado'];
@@ -1258,35 +1258,35 @@ export default function ReservasModule() {
 
  {/* ==================== TODAY'S ACTIVITY SUMMARY ==================== */}
  <div className="grid grid-cols-3 gap-3 card-grid-stagger">
-   <div className="relative rounded-xl border-l-[3px] border-l-primary bg-primary/5 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   <div className="relative rounded-xl border-l-[3px] border-l-primary bg-[#0F766E0D] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
      <div className="flex items-start justify-between">
        <div className="space-y-1">
          <p className="text-xs font-medium text-primary">Check-ins hoy</p>
          <p className="text-xl font-bold text-primary">{todayActivity.checkinsHoy}</p>
        </div>
-       <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+       <div className="w-10 h-10 rounded-full bg-[#0F766E33] flex items-center justify-center shrink-0">
          <TrendingUp className="w-5 h-5 text-primary" />
        </div>
      </div>
    </div>
-   <div className="relative rounded-xl border-l-[3px] border-l-warning bg-warning/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   <div className="relative rounded-xl border-l-[3px] border-l-warning bg-[#D977061A] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
      <div className="flex items-start justify-between">
        <div className="space-y-1">
          <p className="text-xs font-medium text-warning">Check-outs hoy</p>
          <p className="text-xl font-bold text-warning">{todayActivity.checkoutsHoy}</p>
        </div>
-       <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center shrink-0">
+       <div className="w-10 h-10 rounded-full bg-[#D9770633] flex items-center justify-center shrink-0">
          <TrendingDown className="w-5 h-5 text-warning" />
        </div>
      </div>
    </div>
-   <div className="relative rounded-xl border-l-[3px] border-l-success bg-success/10 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+   <div className="relative rounded-xl border-l-[3px] border-l-success bg-[#0596691A] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
      <div className="flex items-start justify-between">
        <div className="space-y-1">
          <p className="text-xs font-medium text-success">En alojamiento</p>
          <p className="text-xl font-bold text-success">{todayActivity.inHouse}</p>
        </div>
-       <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center shrink-0">
+       <div className="w-10 h-10 rounded-full bg-[#05966933] flex items-center justify-center shrink-0">
          <Bed className="w-5 h-5 text-success" />
        </div>
      </div>
@@ -1294,7 +1294,7 @@ export default function ReservasModule() {
  </div>
 
  {/* ==================== FILTER BAR ==================== */}
- <Card className="bg-muted/20 border-border/80">
+ <Card className="bg-[#F1F5F933] border-[#E2E8F0CC]">
  <CardContent className="p-4">
  <div className="flex flex-wrap gap-3 items-end justify-center">
  <div className="grid gap-1.5">
@@ -1380,7 +1380,7 @@ export default function ReservasModule() {
  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetalle(r); } }}
  className={cn(
    'w-full text-left p-4 transition-all duration-200 cursor-pointer',
-   'hover:-translate-y-0.5 hover:shadow-md active:bg-muted/50'
+   'hover:-translate-y-0.5 hover:shadow-md active:bg-[#F1F5F980]'
  )}
  >
  {/* Row 1: Guest + Room Badge */}
@@ -1389,7 +1389,7 @@ export default function ReservasModule() {
      <p className="font-semibold text-sm truncate">{r.huesped}</p>
      <p className="text-xs text-muted-foreground">{r.dni}</p>
    </div>
-   <div className="flex items-center gap-1 shrink-0 bg-primary/8 rounded-md px-2 py-1">
+   <div className="flex items-center gap-1 shrink-0 bg-[#0F766E14] rounded-md px-2 py-1">
      <BedDouble className="w-3.5 h-3.5 text-primary" />
      <span className="text-xs font-bold text-primary font-mono">{r.habitacion}</span>
    </div>
@@ -1447,7 +1447,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-primary hover:bg-primary/10 hover:text-primary"
+         className="h-7 text-xs px-2 text-primary hover:bg-[#0F766E1A] hover:text-primary"
          disabled={isActionLoading}
          onClick={() => handleQuickCheckIn(r)}
        >
@@ -1456,7 +1456,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-warning hover:bg-warning/15"
+         className="h-7 text-xs px-2 text-warning hover:bg-[#D9770626]"
          onClick={() => openEdit(r)}
        >
          <Pencil className="w-3 h-3 mr-1" />Editar
@@ -1464,7 +1464,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-destructive hover:bg-destructive/15"
+         className="h-7 text-xs px-2 text-destructive hover:bg-[#EF444426]"
          onClick={() => openCancel(r.id)}
        >
          <XCircle className="w-3 h-3 mr-1" />Cancelar
@@ -1476,7 +1476,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-warning hover:bg-warning/15"
+         className="h-7 text-xs px-2 text-warning hover:bg-[#D9770626]"
          disabled={isActionLoading}
          onClick={() => handleQuickCheckOut(r)}
        >
@@ -1489,7 +1489,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-primary hover:bg-primary/10 hover:text-primary"
+         className="h-7 text-xs px-2 text-primary hover:bg-[#0F766E1A] hover:text-primary"
          onClick={() => abrirConfirmarPago(r)}
        >
          <CreditCard className="w-3 h-3 mr-1" />Confirmar pago
@@ -1497,7 +1497,7 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-destructive hover:bg-destructive/15"
+         className="h-7 text-xs px-2 text-destructive hover:bg-[#EF444426]"
          onClick={() => openCancel(r.id)}
        >
          <XCircle className="w-3 h-3 mr-1" />Cancelar
@@ -1508,7 +1508,7 @@ export default function ReservasModule() {
      <Button
        size="sm"
        variant="ghost"
-       className="h-7 text-xs px-2 text-chart-5 hover:bg-chart-5/15"
+       className="h-7 text-xs px-2 text-chart-5 hover:bg-[#8B5CF626]"
        onClick={() => openEdit(r)}
      >
        <CreditCard className="w-3 h-3 mr-1" />Pago
@@ -1526,7 +1526,7 @@ export default function ReservasModule() {
  <div className="hidden sm:block overflow-x-auto">
  <Table>
  <TableHeader>
- <TableRow className="bg-muted/30">
+ <TableRow className="bg-[#F1F5F94D]">
    <TableHead className="text-center">Huésped</TableHead>
    <TableHead>Habitación</TableHead>
    <TableHead>Check-in</TableHead>
@@ -1551,7 +1551,7 @@ export default function ReservasModule() {
    const payProgress = getPaymentProgress(r);
    const isActionLoading = quickActionLoading === r.id;
    return (
-     <TableRow key={r.id} className="group transition-all duration-150 hover:bg-primary/10 hover:-translate-y-px hover:shadow-sm">
+     <TableRow key={r.id} className="group transition-all duration-150 hover:bg-[#0F766E1A] hover:-translate-y-px hover:shadow-sm">
        <TableCell className="font-medium text-center">
          <button
            className="group-hover:text-primary transition-colors cursor-pointer"
@@ -1625,7 +1625,7 @@ export default function ReservasModule() {
                <Button
                  size="sm"
                  variant="ghost"
-                 className="h-7 text-xs px-2 text-primary hover:bg-primary/10 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                 className="h-7 text-xs px-2 text-primary hover:bg-[#0F766E1A] hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
                  disabled={isActionLoading}
                  onClick={() => handleQuickCheckIn(r)}
                >
@@ -1634,7 +1634,7 @@ export default function ReservasModule() {
                <Button
                  size="sm"
                  variant="outline"
-                 className="border-warning/40 text-warning hover:bg-warning/15 h-7 text-xs px-2"
+                 className="border-[#D9770666] text-warning hover:bg-[#D9770626] h-7 text-xs px-2"
                  onClick={() => openEdit(r)}
                >
                  <Pencil className="w-3 h-3 mr-1" />Editar
@@ -1642,7 +1642,7 @@ export default function ReservasModule() {
                <Button
                  size="sm"
                  variant="outline"
-                 className="border-destructive/40 text-destructive hover:bg-destructive/15 h-7 text-xs px-2"
+                 className="border-[#EF444466] text-destructive hover:bg-[#EF444426] h-7 text-xs px-2"
                  onClick={() => openCancel(r.id)}
                >
                  <XCircle className="w-3 h-3 mr-1" />Cancelar
@@ -1653,7 +1653,7 @@ export default function ReservasModule() {
              <Button
                size="sm"
                variant="ghost"
-               className="h-7 text-xs px-2 text-warning hover:bg-warning/15 opacity-0 group-hover:opacity-100 transition-opacity"
+               className="h-7 text-xs px-2 text-warning hover:bg-[#D9770626] opacity-0 group-hover:opacity-100 transition-opacity"
                disabled={isActionLoading}
                onClick={() => handleQuickCheckOut(r)}
              >
@@ -1665,7 +1665,7 @@ export default function ReservasModule() {
                <Button
                  size="sm"
                  variant="outline"
-                 className="border-primary/40 text-primary hover:bg-primary/10 h-7 text-xs px-2"
+                 className="border-[#0F766E66] text-primary hover:bg-[#0F766E1A] h-7 text-xs px-2"
                  onClick={() => abrirConfirmarPago(r)}
                >
                  <CreditCard className="w-3 h-3 mr-1" />Confirmar pago
@@ -1673,7 +1673,7 @@ export default function ReservasModule() {
                <Button
                  size="sm"
                  variant="outline"
-                 className="border-destructive/40 text-destructive hover:bg-destructive/15 h-7 text-xs px-2"
+                 className="border-[#EF444466] text-destructive hover:bg-[#EF444426] h-7 text-xs px-2"
                  onClick={() => openCancel(r.id)}
                >
                  <XCircle className="w-3 h-3 mr-1" />Cancelar
@@ -1684,7 +1684,7 @@ export default function ReservasModule() {
              <Button
                size="sm"
                variant="ghost"
-               className="h-7 text-xs px-2 text-chart-5 hover:bg-chart-5/15 opacity-0 group-hover:opacity-100 transition-opacity"
+               className="h-7 text-xs px-2 text-chart-5 hover:bg-[#8B5CF626] opacity-0 group-hover:opacity-100 transition-opacity"
                onClick={() => openEdit(r)}
              >
                <CreditCard className="w-3 h-3 mr-1" />Pago
@@ -1801,15 +1801,15 @@ export default function ReservasModule() {
  <Separator />
  {/* ─── Resumen financiero ─── */}
  <div className="grid grid-cols-3 gap-3">
- <div className="rounded-xl border-2 border-primary/30 bg-primary/10 p-3 text-center">
+ <div className="rounded-xl border-2 border-[#0F766E4D] bg-[#0F766E1A] p-3 text-center">
  <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">Total reserva</p>
  <p className="font-bold text-lg text-primary">{formatMoney(calcularTotalReserva(detalleReserva.id))}</p>
  </div>
- <div className="rounded-xl border-2 border-info/40 bg-info/10 p-3 text-center">
+ <div className="rounded-xl border-2 border-[#0284C766] bg-[#0284C71A] p-3 text-center">
  <p className="text-xs font-medium text-info uppercase tracking-wide mb-1">Pagado</p>
  <p className="font-bold text-lg text-info">{formatMoney(calcularTotalPagado(detalleReserva.id))}</p>
  </div>
- <div className={`rounded-xl border-2 p-3 text-center ${getSaldo(detalleReserva) > 0 ? 'border-destructive/40 bg-destructive/15' : 'border-border bg-muted/30'}`}> 
+ <div className={`rounded-xl border-2 p-3 text-center ${getSaldo(detalleReserva) > 0 ? 'border-[#EF444466] bg-[#EF444426]' : 'border-border bg-[#F1F5F94D]'}`}> 
  <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${getSaldo(detalleReserva) > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>Saldo</p>
  <p className={`font-bold text-lg ${getSaldo(detalleReserva) > 0 ? 'text-destructive' : 'text-foreground'}`}>
  {formatMoney(getSaldo(detalleReserva))}
@@ -1842,7 +1842,7 @@ export default function ReservasModule() {
  </DialogHeader>
 
  {errors.length > 0 && (
- <div className="rounded-lg border border-destructive/40 bg-destructive/15 p-3 space-y-1">
+ <div className="rounded-lg border border-[#EF444466] bg-[#EF444426] p-3 space-y-1">
  {errors.map((err, i) => (
  <p key={i} className="text-sm text-destructive flex items-center gap-1">
  <AlertTriangle className="w-3.5 h-3.5" /> {err}
@@ -1911,7 +1911,7 @@ export default function ReservasModule() {
 
  {/* Dynamic custom fields from tarifa */}
  {camposPersonalizados.length > 0 && (
- <div className="border rounded-lg p-3 bg-muted/30">
+ <div className="border rounded-lg p-3 bg-[#F1F5F94D]">
  <p className="text-sm font-medium mb-2">Campos adicionales</p>
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
  {camposPersonalizados.map(campo => (
@@ -1977,8 +1977,8 @@ export default function ReservasModule() {
  key={hab.numero}
  className={`cursor-pointer transition-all p-3 ${
  isSelected
- ? 'ring-2 ring-brand-mint border-brand-mint bg-primary/10'
- : 'hover:bg-muted/50'
+ ? 'ring-2 ring-brand-mint border-brand-mint bg-[#0F766E1A]'
+ : 'hover:bg-[#F1F5F980]'
  }`}
  onClick={() => selectRoom(hab)}
  >
@@ -1993,7 +1993,7 @@ export default function ReservasModule() {
  )}
  </div>
  {isSelected && (
- <div className="flex items-center gap-3 mt-2 pt-2 border-t border-primary/40/50">
+ <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#0F766E66]/50">
  <span className="text-xs text-primary font-medium">✓ Seleccionada</span>
  <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
  <Label className="text-xs text-primary">Pers.:</Label>
@@ -2088,8 +2088,8 @@ export default function ReservasModule() {
  <div
  className={`grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg border-2 transition-all ${
  isComboSelected
- ? 'border-brand-mint bg-primary/10 cursor-default'
- : 'border-transparent hover:border-primary/30 hover:bg-muted/30 cursor-pointer'
+ ? 'border-brand-mint bg-[#0F766E1A] cursor-default'
+ : 'border-transparent hover:border-[#0F766E4D] hover:bg-[#F1F5F94D] cursor-pointer'
  }`}
  onClick={() => { if (!isComboSelected) selectCombinacion(sug); }}
  >
@@ -2097,7 +2097,7 @@ export default function ReservasModule() {
  const isFirst = (isSelectedComboRev ? hi === 1 : hi === 0);
  const pVal = isFirst ? (parseInt(form.personas) || 1) : (parseInt(form.personas2) || 1);
  return (
- <Card key={hab.numero} className={`p-3 border-dashed border-primary/40 bg-primary/5`}>
+ <Card key={hab.numero} className={`p-3 border-dashed border-[#0F766E66] bg-[#0F766E0D]`}>
  <div className="flex items-center justify-between">
  <span className="font-bold">{hab.numero}</span>
  <Badge variant="outline">{hab.tipo}</Badge>
@@ -2131,7 +2131,7 @@ export default function ReservasModule() {
  })}
  </div>
  <div className="flex items-center justify-center gap-2">
- <Badge className={isComboSelected ? 'bg-brand-mint text-white' : 'bg-primary/10 text-primary border-primary/40'}>
+ <Badge className={isComboSelected ? 'bg-brand-mint text-white' : 'bg-[#0F766E1A] text-primary border-[#0F766E66]'}>
  {isComboSelected
  ? `Personas: ${(parseInt(form.personas) || 1) + (parseInt(form.personas2) || 1)} / ${sug.capacidadTotal}`
  : `Total combinado: ${sug.capacidadTotal} personas`
@@ -2148,7 +2148,7 @@ export default function ReservasModule() {
 
  {/* Price summary */}
  {computed.precioCalculado > 0 && (
- <div className="rounded-lg border p-3 bg-muted/30 space-y-1">
+ <div className="rounded-lg border p-3 bg-[#F1F5F94D] space-y-1">
  {/* Promociones activas */}
  {computed.desglose && (
  <>
@@ -2160,7 +2160,7 @@ export default function ReservasModule() {
  )}
  {computed.desglose.tieneAcompanante && (
  <div className="flex items-center gap-1.5 text-xs text-primary">
- <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary">{computed.desglose.acompananteEtiqueta}</Badge>
+ <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-[#0F766E66] text-primary">{computed.desglose.acompananteEtiqueta}</Badge>
  <span>{computed.desglose.acompananteCantidad > 1 ? `${computed.desglose.acompananteCantidad} sin cargo` : 'sin cargo'}</span>
  {computed.desglose.acompananteCantidad > 0 && <span className="text-muted-foreground">→ Hab. {promocionesEfectivas?.acompananteSinCargo?.habitacionAsignada || 'por asignar'}</span>}
  </div>
@@ -2234,7 +2234,7 @@ export default function ReservasModule() {
  {clientesEncontrados.map(c => (
  <button
  key={c.id}
- className="w-full text-left px-4 py-2 hover:bg-muted/50 border-b last:border-b-0 text-sm transition-colors"
+ className="w-full text-left px-4 py-2 hover:bg-[#F1F5F980] border-b last:border-b-0 text-sm transition-colors"
  onClick={() => selectCliente(c)}
  >
  <span className="font-medium">{c.nombre}</span>
@@ -2298,7 +2298,7 @@ export default function ReservasModule() {
 
      {/* Total: barra oscura */}
      <div className="flex justify-between items-center py-3 px-4 bg-primary rounded-lg my-2">
-       <span className="text-[13px] font-medium text-white/70">
+       <span className="text-[13px] font-medium text-[#FFFFFFB3]">
          {form.reservaMultiple ? 'Total combinado' : 'Total'}
        </span>
        <span className="font-bold text-xl text-brand-mint">
@@ -2307,7 +2307,7 @@ export default function ReservasModule() {
      </div>
 
      {/* ─── Forma de pago: toggle plano ─── */}
-     <div className="flex bg-muted/50 rounded-lg p-1">
+     <div className="flex bg-[#F1F5F980] rounded-lg p-1">
        {(['ninguno', 'parcial', 'total'] as PagoRadio[]).map(tipo => (
          <button
            key={tipo}
@@ -2415,7 +2415,7 @@ export default function ReservasModule() {
            !form.habitacion || !form.huesped.trim() || !form.dni.trim() || !form.telefono.trim() ||
            (form.reservaMultiple && !form.habitacion2)
          }
-         className="min-w-[200px] bg-primary hover:bg-primary/80 text-white text-[13px] font-semibold"
+         className="min-w-[200px] bg-primary hover:bg-[#0F766ECC] text-white text-[13px] font-semibold"
        >
          {editingId ? 'Guardar cambios' : form.reservaMultiple ? 'Crear reservas múltiples' : 'Crear reserva'}
          <span className="ml-2 font-bold">({formatMoney(totalAPagar)})</span>
@@ -2463,7 +2463,7 @@ export default function ReservasModule() {
  <p className="text-sm text-muted-foreground">
  {confirmarPagoReserva.huesped} — Hab. {confirmarPagoReserva.habitacion} · {formatFecha(confirmarPagoReserva.checkin)} → {formatFecha(confirmarPagoReserva.checkout)}
  </p>
- <div className="rounded-lg border bg-primary/5 p-3 text-center">
+ <div className="rounded-lg border bg-[#0F766E0D] p-3 text-center">
  <p className="text-xs text-muted-foreground uppercase tracking-wide">Seña (30% del total)</p>
  <p className="font-bold text-lg text-primary">{formatMoney(Math.ceil(calcularTotalReserva(confirmarPagoReserva.id) * 0.3))}</p>
  </div>
@@ -2502,7 +2502,7 @@ export default function ReservasModule() {
  La tarifa seleccionada incluye un <strong>{acompananteEtiqueta.toLowerCase()}</strong> sin cargo.
  ¿Desea hospedar al {acompananteEtiqueta.toLowerCase()} sin cargo en la habitación <strong>{acompananteHabitacion}</strong>?
  </p>
- <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+ <div className="space-y-3 border rounded-lg p-3 bg-[#F1F5F94D]">
  <div className="grid gap-1.5">
  <Label>Nombre del {acompananteEtiqueta.toLowerCase()} *</Label>
  <Input value={acompananteNombre} onChange={e => setAcompananteNombre(e.target.value)} placeholder="Nombre completo" />
