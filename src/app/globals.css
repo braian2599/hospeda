@@ -1,4 +1,9 @@
-@import "tailwindcss";
+/* source("..") restringe el escaneo automático de clases a src/ (donde
+   vive este archivo, un nivel arriba) — sin esto, Tailwind escanea TODO
+   el repo por defecto y genera clases "fantasma" a partir de cualquier
+   texto suelto en la raíz (worklog.md, mockups, etc.) que mencione una
+   clase vieja, aunque ningún componente real la use. */
+@import "tailwindcss" source("..");
 @import "tw-animate-css";
 
 @theme inline {
