@@ -111,7 +111,7 @@ export default function ContactoPage() {
                 </Button>
 
                 {sent && (
-                  <p className="rounded-md bg-primary/10 px-4 py-3 text-sm text-primary">
+                  <p className="rounded-md bg-[#0F766E1A] px-4 py-3 text-sm text-primary">
                     ¡Listo! Abrimos tu cliente de email con el mensaje cargado.
                     Si no se abrió automáticamente, escribinos a{' '}
                     <a
@@ -132,7 +132,7 @@ export default function ContactoPage() {
             <div className="space-y-6">
               {/* Email card */}
               <div className="rounded-2xl border border-border bg-card p-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F766E1A]">
                   <Mail className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-foreground">Email</h3>
@@ -149,7 +149,7 @@ export default function ContactoPage() {
 
               {/* Chat card */}
               <div className="rounded-2xl border border-border bg-card p-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F766E1A]">
                   <MessageSquare className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-foreground">¿Preferís escribir desde la app?</h3>

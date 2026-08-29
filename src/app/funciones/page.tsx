@@ -171,7 +171,7 @@ function MoreFeaturesCarousel() {
         <div className="grid grid-cols-1 md:grid-cols-2 md:h-[460px]">
           {/* Left: text — centered vertically */}
           <div className="flex flex-col items-center justify-center px-16 py-10 text-center md:px-20 md:text-left md:items-start">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F766E1A]">
               <current.icon className="h-6 w-6 text-primary" />
             </div>
             <h4 className="mt-4 text-xl font-semibold text-foreground">{current.title}</h4>
@@ -254,7 +254,7 @@ export default function FuncionesPage() {
                 <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg">
                   {/* Header */}
                   <div className="p-6">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F766E1A]">
                       <Icon className="h-6 w-6 text-primary" />
                     </div>
                     <h2 className="mt-5 text-xl font-semibold text-foreground">{title}</h2>
@@ -296,7 +296,7 @@ export default function FuncionesPage() {
             <ul className="mt-8 space-y-3">
               {BENEFITS.map(b => (
                 <li key={b} className="flex items-center gap-3">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0F766E1A]">
                     <Check className="h-3.5 w-3.5 text-primary" />
                   </div>
                   <span className="text-sm text-foreground">{b}</span>
