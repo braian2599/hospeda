@@ -48,6 +48,8 @@ type Row = {
   elite: string | boolean;
 };
 
+type Section = { title: string; note?: string; rows: Row[] };
+
 function limiteTexto(n: number): string {
   return n === 0 ? 'Ilimitado' : `Hasta ${n}`;
 }
@@ -113,7 +115,7 @@ export default function PreciosPage() {
   const pr = plans.premium;
   const e = plans.elite;
 
-  const comparisonSections: { title: string; rows: Row[] }[] = [
+  const comparisonSections: Section[] = [
     {
       title: 'Límites',
       rows: [
@@ -134,6 +136,7 @@ export default function PreciosPage() {
     },
     {
       title: 'Integraciones',
+      note: 'Vamos a sumar más canales e integraciones más adelante.',
       rows: (Object.keys(FEATURE_FLAGS) as FeatureFlag[]).map((f) => ({
         label: FEATURE_FLAGS[f].label,
         profesional: !!p.featureFlags[f],
@@ -233,8 +236,15 @@ export default function PreciosPage() {
                 {comparisonSections.map(section => (
                   <Fragment key={section.title}>
                     <tr className="border-b border-border bg-[#F1F5F94D]">
-                      <td colSpan={4} className="p-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {section.title}
+                      <td colSpan={4} className="p-3">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          {section.title}
+                        </span>
+                        {section.note && (
+                          <span className="ml-2 text-xs font-normal normal-case text-muted-foreground/80">
+                            · {section.note}
+                          </span>
+                        )}
                       </td>
                     </tr>
                     {section.rows.map(row => (
@@ -258,6 +268,11 @@ export default function PreciosPage() {
                 <div className="rounded-2xl border border-border bg-card p-5">
                   <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {section.title}
+                    {section.note && (
+                      <span className="ml-1 font-normal normal-case text-muted-foreground/80">
+                        · {section.note}
+                      </span>
+                    )}
                   </h3>
                   <div className="space-y-4">
                     {section.rows.map(row => (
