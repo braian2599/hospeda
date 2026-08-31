@@ -264,7 +264,11 @@ export default function LimpiezaModule() {
 
   return (
     <div className="space-y-6">
-      <ModuleHeader icon={SprayCan} title="Limpieza y Mantenimiento" subtitle="Gestioná el estado de habitaciones y tareas" />
+      <ModuleHeader icon={SprayCan} title="Limpieza y Mantenimiento" subtitle="Gestioná el estado de habitaciones y tareas">
+        <Button variant="destructive" size="sm" onClick={() => setShowReportForm(true)}>
+          <Wrench className="w-4 h-4 mr-1.5" />Reportar mantenimiento
+        </Button>
+      </ModuleHeader>
 
       {/* ── Maintenance alert banner ── */}
       {enMantenimiento.length > 0 && (
@@ -447,11 +451,6 @@ export default function LimpiezaModule() {
           </CardContent>
         </Card>
       </div>
-
-      {/* ── Reportar mantenimiento (acceso rápido) ── */}
-      <Button variant="outline" size="sm" onClick={() => setShowReportForm(true)} className="border-[#D9770666] text-warning hover:bg-[#D9770614]">
-        <Wrench className="w-3.5 h-3.5 mr-1.5" />Reportar mantenimiento
-      </Button>
 
       <Dialog open={showReportForm} onOpenChange={(open) => { setShowReportForm(open); if (!open) setRepConfirm(false); }}>
         <DialogContent className="sm:max-w-md">
