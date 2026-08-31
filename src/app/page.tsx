@@ -19,6 +19,8 @@ import {
   Coffee,
   Sparkles,
   Clock,
+  Globe,
+  LayoutGrid,
 } from 'lucide-react';
 
 /* ============================================================
@@ -31,6 +33,24 @@ const SOCIAL_PROOF = [
   { icon: DoorOpen, label: 'Cabañas' },
   { icon: Building2, label: 'Posadas' },
   { icon: Coffee, label: 'B&B' },
+];
+
+const FUTURAS_INTEGRACIONES = [
+  {
+    icon: Globe,
+    nombre: 'Booking.com',
+    desc: 'Tarifas, disponibilidad y reservas sincronizadas en tiempo real, sin cargar nada a mano.',
+  },
+  {
+    icon: Home,
+    nombre: 'Airbnb',
+    desc: 'Conexión directa para evitar el doble booking y actualizar precios al instante.',
+  },
+  {
+    icon: LayoutGrid,
+    nombre: 'Y más canales',
+    desc: 'Expedia, Despegar y otras plataformas se irán sumando a medida que avance la integración.',
+  },
 ];
 
 // Only 3 preview cards on the home page — the full list lives on /funciones.
@@ -168,6 +188,37 @@ export default function HomePage() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Futuras integraciones ─── */}
+      <section className="border-y border-border bg-[#F1F5F980] py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <FadeIn className="mx-auto max-w-2xl text-center">
+            <Badge variant="secondary" className="mb-4 gap-1">
+              <Clock className="h-3 w-3" />
+              Próximamente
+            </Badge>
+            <h2 className="text-4xl font-bold text-foreground">Más canales, un solo lugar</h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Estamos preparando la sincronización directa con las plataformas de reservas más usadas,
+              para que gestiones todo desde Hospedá sin cargar nada dos veces.
+            </p>
+          </FadeIn>
+
+          <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-3">
+            {FUTURAS_INTEGRACIONES.map(({ icon: Icon, nombre, desc }, i) => (
+              <FadeIn key={nombre} delay={i * 80}>
+                <div className="h-full rounded-2xl border border-dashed border-border bg-card/60 p-6 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+                    <Icon className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="mt-5 text-lg font-semibold text-foreground">{nombre}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
+                </div>
+              </FadeIn>
+            ))}
           </div>
         </div>
       </section>
