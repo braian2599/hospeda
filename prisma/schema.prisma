@@ -188,6 +188,8 @@ model Habitacion {
   camasSimples       Int
   estado             EstadoHabitacion @default(Disponible)
   problema           String?
+  bloqueaDisponibilidad Boolean       @default(true)
+  bloqueadoHasta     DateTime?
   precioPorCama      Int?
   piso               Int?
   orden              Int              @default(0)

@@ -252,7 +252,7 @@ export const api = {
   // ── Mantenimiento ──
   mantenimiento: {
     list: (resuelto?: string) => apiFetch<DbMantenimiento[]>(`/mantenimiento${resuelto !== undefined ? `?resuelto=${resuelto}` : ''}`),
-    create: (data: { habitacion: string; problema: string; empleado?: string }) =>
+    create: (data: { habitacion: string; problema: string; empleado?: string; bloquear?: boolean; hasta?: string | null }) =>
       apiFetch<DbMantenimiento>('/mantenimiento', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: { reparacion?: string; monto?: number; sacarDeCaja?: boolean }) =>
       apiFetch<{ mantenimiento: DbMantenimiento; gasto?: DbGasto | null; movimientoCaja?: DbMovimientoCaja | null }>(`/mantenimiento/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -310,6 +310,7 @@ export interface DbHabitacion {
   id: string; tenantId: string; numero: string; tipo: string;
   capacidad: number; camasMatrimoniales: number; camasSimples: number;
   estado: string; problema?: string | null; precioPorCama?: number | null;
+  bloqueaDisponibilidad?: boolean; bloqueadoHasta?: string | null;
   piso?: number | null; orden: number; createdAt: string; updatedAt: string;
 }
 export interface CreateHabitacion {

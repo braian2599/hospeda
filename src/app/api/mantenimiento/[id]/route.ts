@@ -106,6 +106,19 @@ export async function PUT(
         }
       }
 
+      // Liberar la habitación: vuelve a Disponible y se limpian los campos
+      // de bloqueo (antes esto solo pasaba en el estado local del cliente,
+      // nunca se persistía en la BD).
+      await tx.habitacion.updateMany({
+        where: { tenantId, numero: reporte.habitacion },
+        data: {
+          estado: 'Disponible',
+          problema: null,
+          bloqueaDisponibilidad: true,
+          bloqueadoHasta: null,
+        },
+      });
+
       return { mantenimiento: updated, gasto, movimientoCaja };
     });
 

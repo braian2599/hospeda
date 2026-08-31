@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
@@ -118,8 +119,8 @@ function formatTimeSince(ms: number): string {
 export default function LimpiezaModule() {
   const habitaciones = useHotelStore(s => s.habitaciones);
   const marcarComoLimpia = useHotelStore(s => s.marcarComoLimpia);
-  const cambiarEstadoHabitacion = useHotelStore(s => s.cambiarEstadoHabitacion);
   const reportarMantenimiento = useHotelStore(s => s.reportarMantenimiento);
+  const reservasAfectadasPorMantenimiento = useHotelStore(s => s.reservasAfectadasPorMantenimiento);
   const resolverMantenimiento = useHotelStore(s => s.resolverMantenimiento);
   const historialMantenimiento = useHotelStore(s => s.historialMantenimiento);
   const reservas = useHotelStore(s => s.reservas);
@@ -152,6 +153,9 @@ export default function LimpiezaModule() {
   const [showReportForm, setShowReportForm] = useState(false);
   const [repHab, setRepHab] = useState('');
   const [repDesc, setRepDesc] = useState('');
+  const [repBloquear, setRepBloquear] = useState(true);
+  const [repFinBloqueo, setRepFinBloqueo] = useState<'indefinido' | 'fecha'>('indefinido');
+  const [repFechaFin, setRepFechaFin] = useState('');
   const [repConfirm, setRepConfirm] = useState(false);
   const [reportando, setReportando] = useState(false);
 
@@ -164,12 +168,13 @@ export default function LimpiezaModule() {
   const habDisponibles = Object.entries(habitaciones).filter(([, h]) => h.estado !== 'Mantenimiento' && h.estado !== 'Fuera de servicio');
 
   // ── Affected reservations for report form ──
+  // Mismo cálculo que usa el store al reportar — así el número que ve el
+  // usuario siempre coincide con lo que realmente se va a cancelar.
   const reservasAfectadas = useMemo(() => {
-    if (!repHab) return 0;
-    return reservas.filter(
-      r => r.habitacion === repHab && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && r.estado !== 'Check-In realizado'
-    ).length;
-  }, [repHab, reservas]);
+    if (!repHab || !repBloquear) return 0;
+    const hasta = repFinBloqueo === 'fecha' ? (repFechaFin || null) : null;
+    return reservasAfectadasPorMantenimiento(repHab, hasta).length;
+  }, [repHab, repBloquear, repFinBloqueo, repFechaFin, reservasAfectadasPorMantenimiento, reservas]);
 
   // ── Filtered & paginated maintenance history ──
   const listaFiltrada = useMemo(() => {
@@ -204,10 +209,6 @@ export default function LimpiezaModule() {
     setMarkingClean(habNum);
     try {
       await marcarComoLimpia(habNum);
-      // Ensure the room is set to Disponible if it's still in Limpieza
-      if (habitaciones[habNum]?.estado === 'Limpieza') {
-        await cambiarEstadoHabitacion(habNum, 'Disponible');
-      }
       toast.success('Habitación marcada como limpia', { description: `Hab. ${habNum} disponible` });
     } catch (err: any) {
       toast.error(err.message || 'Error al marcar como limpia');
@@ -237,16 +238,21 @@ export default function LimpiezaModule() {
 
   const handleReportar = async () => {
     if (!repHab || !repDesc.trim()) return;
+    if (repBloquear && repFinBloqueo === 'fecha' && !repFechaFin) return;
     if (reservasAfectadas > 0 && !repConfirm) {
       setRepConfirm(true);
       return;
     }
     setReportando(true);
     try {
-      await reportarMantenimiento(repHab, repDesc.trim());
+      const hasta = repBloquear && repFinBloqueo === 'fecha' ? repFechaFin : null;
+      await reportarMantenimiento(repHab, repDesc.trim(), repBloquear, hasta);
       toast.success('Mantenimiento reportado', { description: `Habitación ${repHab}` });
       setRepHab('');
       setRepDesc('');
+      setRepBloquear(true);
+      setRepFinBloqueo('indefinido');
+      setRepFechaFin('');
       setShowReportForm(false);
       setRepConfirm(false);
     } catch (err: any) {
@@ -442,18 +448,17 @@ export default function LimpiezaModule() {
         </Card>
       </div>
 
-      {/* ── Reportar mantenimiento ── */}
-      <Card className={showReportForm ? 'border-[#D9770666]' : ''}>
-        <CardHeader className="pb-3 cursor-pointer" onClick={() => setShowReportForm(!showReportForm)}>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-warning" /> Reportar mantenimiento
-            </CardTitle>
-            <Button variant="ghost" size="sm">{showReportForm ? 'Cancelar' : 'Abrir formulario'}</Button>
-          </div>
-        </CardHeader>
-        {showReportForm && (
-          <CardContent className="space-y-3">
+      {/* ── Reportar mantenimiento (acceso rápido) ── */}
+      <Button variant="outline" size="sm" onClick={() => setShowReportForm(true)} className="border-[#D9770666] text-warning hover:bg-[#D9770614]">
+        <Wrench className="w-3.5 h-3.5 mr-1.5" />Reportar mantenimiento
+      </Button>
+
+      <Dialog open={showReportForm} onOpenChange={(open) => { setShowReportForm(open); if (!open) setRepConfirm(false); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reportar mantenimiento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
             {repConfirm && reservasAfectadas > 0 && (
               <div className="flex items-center gap-2 p-2.5 bg-[#D9770626] rounded-lg text-warning text-sm">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -477,17 +482,64 @@ export default function LimpiezaModule() {
               onChange={e => setRepDesc(e.target.value)}
               rows={2}
             />
+
+            <div className="flex items-center gap-2 pt-1">
+              <Checkbox
+                id="rep-bloquear"
+                checked={repBloquear}
+                onCheckedChange={(checked) => { setRepBloquear(!!checked); setRepConfirm(false); }}
+              />
+              <Label htmlFor="rep-bloquear" className="text-sm cursor-pointer">
+                Sacar de disponibilidad para reservas
+              </Label>
+            </div>
+
+            {repBloquear && (
+              <div className="space-y-2 pl-1">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setRepFinBloqueo('indefinido'); setRepConfirm(false); }}
+                    className={cn(
+                      'text-xs font-medium px-3 py-2 rounded-lg border-2 transition-all',
+                      repFinBloqueo === 'indefinido' ? 'border-brand-mint bg-[#0F766E1A] text-primary' : 'border-muted text-muted-foreground hover:border-[#64748B4D]'
+                    )}
+                  >
+                    Hasta nuevo aviso
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setRepFinBloqueo('fecha'); setRepConfirm(false); }}
+                    className={cn(
+                      'text-xs font-medium px-3 py-2 rounded-lg border-2 transition-all',
+                      repFinBloqueo === 'fecha' ? 'border-brand-mint bg-[#0F766E1A] text-primary' : 'border-muted text-muted-foreground hover:border-[#64748B4D]'
+                    )}
+                  >
+                    Hasta una fecha
+                  </button>
+                </div>
+                {repFinBloqueo === 'fecha' && (
+                  <DatePickerInline
+                    value={repFechaFin}
+                    onChange={v => { setRepFechaFin(v); setRepConfirm(false); }}
+                    placeholder="Elegir fecha límite"
+                  />
+                )}
+              </div>
+            )}
+
             <Button
               onClick={handleReportar}
               variant="destructive"
-              disabled={!repHab || !repDesc.trim() || reportando}
+              className="w-full"
+              disabled={!repHab || !repDesc.trim() || (repBloquear && repFinBloqueo === 'fecha' && !repFechaFin) || reportando}
             >
               {reportando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wrench className="w-4 h-4 mr-1" />}
               {repConfirm ? 'Confirmar y reportar' : 'Reportar mantenimiento'}
             </Button>
-          </CardContent>
-        )}
-      </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Historial de Mantenimiento ── */}
       <Card>

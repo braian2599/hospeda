@@ -268,7 +268,9 @@ interface HotelStore {
 
   // Limpieza
   marcarComoLimpia: (numero: string) => Promise<void>;
-  reportarMantenimiento: (numero: string, descripcion: string) => Promise<void>;
+  /** Reservas "Confirmada"/"A confirmar" de esa habitación que se superponen con el período de bloqueo (hasta=null → indefinido). */
+  reservasAfectadasPorMantenimiento: (numero: string, hasta: string | null) => Reserva[];
+  reportarMantenimiento: (numero: string, descripcion: string, bloquear: boolean, hasta: string | null) => Promise<void>;
   resolverMantenimiento: (numero: string, reparacion: string, monto: number, sacarDeCaja?: boolean) => Promise<void>;
 
   // Caja
@@ -624,7 +626,19 @@ export const useHotelStore = create<HotelStore>()(
 
         for (const num in habitaciones) {
           const hab = habitaciones[num];
-          if (hab.estado === 'Mantenimiento' || hab.estado === 'Fuera de servicio') continue;
+          if (hab.estado === 'Fuera de servicio') continue;
+          if (hab.estado === 'Mantenimiento') {
+            if (hab.bloqueaDisponibilidad === false) {
+              // El hotel eligió no sacarla de disponibilidad — sigue reservable.
+            } else if (hab.bloqueadoHasta) {
+              // Bloqueada solo hasta cierta fecha: si el rango buscado arranca
+              // después, no la excluimos.
+              const finBloqueo = new Date(hab.bloqueadoHasta + 'T23:59:59');
+              if (fechaDesde <= finBloqueo) continue;
+            } else {
+              continue; // "Hasta nuevo aviso" — bloqueada indefinidamente.
+            }
+          }
 
           if (hab.tipo === 'Compartida') {
             const personasOcupadas = reservas
@@ -1088,22 +1102,34 @@ export const useHotelStore = create<HotelStore>()(
         }
       },
 
-      reportarMantenimiento: async (numero, descripcion) => {
+      reservasAfectadasPorMantenimiento: (numero, hasta) => {
+        const { reservas } = get();
+        const ahora = new Date();
+        const finBloqueo = hasta ? new Date(hasta + 'T23:59:59') : null;
+        return reservas.filter(r => {
+          if (r.habitacion !== numero) return false;
+          if (r.estado !== 'Confirmada' && r.estado !== 'A confirmar') return false;
+          const checkin = new Date(r.checkin + 'T12:00:00');
+          const checkout = new Date(r.checkout + 'T12:00:00');
+          if (checkout <= ahora) return false; // la estadía ya terminó, no afecta
+          if (finBloqueo && checkin >= finBloqueo) return false; // arranca después del fin del bloqueo
+          return true;
+        });
+      },
+
+      reportarMantenimiento: async (numero, descripcion, bloquear, hasta) => {
         const { habitaciones, reservas } = get();
         const hab = habitaciones[numero];
         if (!hab) return;
 
         const empleado = get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema';
 
-        // Identificar reservas a cancelar (solo Confirmada — las demás no se pueden cancelar)
-        const reservasACancelar = reservas.filter(r =>
-          r.habitacion === numero &&
-          r.estado === 'Confirmada'
-        );
+        // Si no se saca de disponibilidad, no hay reservas que cancelar.
+        const reservasACancelar = bloquear ? get().reservasAfectadasPorMantenimiento(numero, hasta) : [];
 
         try {
-          // 1. Cancelar reservas confirmadas de esa habitación via API (antes de crear el reporte)
-          // Si alguna falla, abortamos todo — no se crea el reporte ni se toca el estado local
+          // 1. Cancelar las reservas afectadas por el bloqueo (si aplica) via API,
+          // antes de crear el reporte. Si alguna falla, abortamos todo.
           if (reservasACancelar.length > 0) {
             const results = await Promise.allSettled(
               reservasACancelar.map(r => api.reservas.cancel(r.id))
@@ -1115,11 +1141,28 @@ export const useHotelStore = create<HotelStore>()(
             }
           }
 
-          // 2. Crear reporte de mantenimiento en BD (solo si las cancelaciones fueron exitosas)
-          const reporte = await api.mantenimiento.create({ habitacion: numero, problema: descripcion, empleado });
+          // 2. Crear reporte de mantenimiento (la API también marca la habitación
+          // como "Mantenimiento" en la BD, con el bloqueo elegido — antes esto
+          // solo pasaba en el estado local, nunca se guardaba).
+          const reporte = await api.mantenimiento.create({
+            habitacion: numero,
+            problema: descripcion,
+            empleado,
+            bloquear,
+            hasta: bloquear ? hasta : null,
+          });
 
           // 3. Todo OK — actualizar estado local
-          const newHabs = { ...habitaciones, [numero]: { ...hab, estado: 'Mantenimiento' as const, problema: descripcion } };
+          const newHabs = {
+            ...habitaciones,
+            [numero]: {
+              ...hab,
+              estado: 'Mantenimiento' as const,
+              problema: descripcion,
+              bloqueaDisponibilidad: bloquear,
+              bloqueadoHasta: bloquear ? (hasta || undefined) : undefined,
+            },
+          };
           const cancelIds = new Set(reservasACancelar.map(r => r.id));
           const newReservas = reservas.map(r =>
             cancelIds.has(r.id) ? { ...r, estado: 'Cancelada' as const } : r
@@ -1131,7 +1174,7 @@ export const useHotelStore = create<HotelStore>()(
             reservas: newReservas,
             mantenimientoPendientes: { ...mantenimientoPendientes, [numero]: reporte.id },
           });
-          get()._registrarAuditoria('Mantenimiento', `Reporte: Hab ${numero} - ${descripcion}`);
+          get()._registrarAuditoria('Mantenimiento', `Reporte: Hab ${numero} - ${descripcion}${bloquear ? (hasta ? ` (bloqueada hasta ${hasta})` : ' (bloqueada hasta nuevo aviso)') : ' (sin sacar de disponibilidad)'}`);
         } catch (err) {
           console.error('reportarMantenimiento error:', err);
           throw err;
@@ -1174,8 +1217,8 @@ export const useHotelStore = create<HotelStore>()(
         }];
 
         const newHabs = { ...prevHabitaciones };
-        const { problema: _, ...habSinProblema } = newHabs[numero];
-        newHabs[numero] = { ...habSinProblema, estado: 'Disponible' as const };
+        const { problema: _, bloqueadoHasta: __unused, ...habLimpia } = newHabs[numero];
+        newHabs[numero] = { ...habLimpia, estado: 'Disponible' as const, bloqueaDisponibilidad: true };
 
         const { [numero]: __, ...restPendientes } = prevPendientes;
 
@@ -1730,6 +1773,8 @@ export const useHotelStore = create<HotelStore>()(
               camasMatrimoniales: h.camasMatrimoniales, camasSimples: h.camasSimples,
               estado: h.estado as EstadoHabitacion,
               problema: h.problema || undefined,
+              bloqueaDisponibilidad: h.bloqueaDisponibilidad !== false,
+              bloqueadoHasta: h.bloqueadoHasta ? String(h.bloqueadoHasta).split('T')[0] : undefined,
               precioPorCama: h.precioPorCama || undefined,
               piso: h.piso ?? undefined,
             };

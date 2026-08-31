@@ -19,6 +19,10 @@ export interface Habitacion {
   camasSimples: number;
   estado: EstadoHabitacion;
   problema?: string;
+  /** Si un mantenimiento activo bloquea la disponibilidad para reservas (default true). */
+  bloqueaDisponibilidad?: boolean;
+  /** Fecha (YYYY-MM-DD) hasta la que bloquea, si aplica. undefined/null = "hasta nuevo aviso" (indefinido). */
+  bloqueadoHasta?: string;
   precioPorCama?: number;
   piso?: number;
 }
