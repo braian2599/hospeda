@@ -353,7 +353,7 @@ interface GanttReserva {
 }
 
 function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
-  habitaciones: Record<string, { tipo: string; estado: string; problema?: string }>;
+  habitaciones: Record<string, { tipo: string; estado: string; problema?: string; bloqueaDisponibilidad?: boolean; bloqueadoHasta?: string }>;
   reservas: { habitacion: string; estado: string; checkin: string; checkout: string; huesped: string; horaCheckin?: string; horaCheckout?: string; tipoTarifa?: string; total?: number; estadoPago?: string; ninos?: number }[];
   fechaInicioBase: Date;
 }) {
@@ -447,8 +447,16 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         reservasHab.push({ tipo: 'Limpieza', checkin: hoyStr, checkout: hoyStr, huesped: 'Limpieza', horaCheckin: new Date(hoyStr + 'T00:00:00'), horaCheckout: new Date(hoyStr + 'T23:59:59') });
       }
 
-      if (hab.estado === 'Mantenimiento') {
-        reservasHab.push({ tipo: 'Mantenimiento', checkin: columnas[0], checkout: columnas[ganttDays - 1], huesped: hab.problema || 'Mantenimiento', horaCheckin: new Date(columnas[0] + 'T00:00:00'), horaCheckout: new Date(columnas[ganttDays - 1] + 'T23:59:59') });
+      // Solo se dibuja si de verdad bloquea disponibilidad, y respeta la
+      // fecha límite elegida al reportar el problema (si no hay fecha,
+      // "hasta nuevo aviso" sigue cubriendo todo el rango visible).
+      if (hab.estado === 'Mantenimiento' && hab.bloqueaDisponibilidad !== false) {
+        const inicioVisible = columnas[0];
+        const finVisible = columnas[ganttDays - 1];
+        if (!hab.bloqueadoHasta || hab.bloqueadoHasta >= inicioVisible) {
+          const fin = hab.bloqueadoHasta && hab.bloqueadoHasta < finVisible ? hab.bloqueadoHasta : finVisible;
+          reservasHab.push({ tipo: 'Mantenimiento', checkin: inicioVisible, checkout: fin, huesped: hab.problema || 'Mantenimiento', horaCheckin: new Date(inicioVisible + 'T00:00:00'), horaCheckout: new Date(fin + 'T23:59:59') });
+        }
       }
 
       // Habitaciones compartidas: carriles múltiples
