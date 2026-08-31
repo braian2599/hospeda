@@ -48,7 +48,7 @@ type Row = {
   elite: string | boolean;
 };
 
-type Section = { title: string; note?: string; rows: Row[] };
+type Section = { title: string; rows: Row[] };
 
 function limiteTexto(n: number): string {
   return n === 0 ? 'Ilimitado' : `Hasta ${n}`;
@@ -136,13 +136,17 @@ export default function PreciosPage() {
     },
     {
       title: 'Integraciones',
-      note: 'Vamos a sumar más canales e integraciones más adelante.',
-      rows: (Object.keys(FEATURE_FLAGS) as FeatureFlag[]).map((f) => ({
-        label: FEATURE_FLAGS[f].label,
-        profesional: !!p.featureFlags[f],
-        premium: !!pr.featureFlags[f],
-        elite: !!e.featureFlags[f],
-      })),
+      // bookingSync/airbnbSync quedan afuera de esta tabla: mostrarlas acá con ✓
+      // da a entender que ya están funcionando incluidas en el plan, y no es así
+      // todavía (ver sección "Futuras integraciones" debajo).
+      rows: (Object.keys(FEATURE_FLAGS) as FeatureFlag[])
+        .filter((f) => f !== 'bookingSync' && f !== 'airbnbSync')
+        .map((f) => ({
+          label: FEATURE_FLAGS[f].label,
+          profesional: !!p.featureFlags[f],
+          premium: !!pr.featureFlags[f],
+          elite: !!e.featureFlags[f],
+        })),
     },
     {
       title: 'Soporte',
@@ -236,15 +240,8 @@ export default function PreciosPage() {
                 {comparisonSections.map(section => (
                   <Fragment key={section.title}>
                     <tr className="border-b border-border bg-[#F1F5F94D]">
-                      <td colSpan={4} className="p-3">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          {section.title}
-                        </span>
-                        {section.note && (
-                          <span className="ml-2 text-xs font-normal normal-case text-muted-foreground/80">
-                            · {section.note}
-                          </span>
-                        )}
+                      <td colSpan={4} className="p-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {section.title}
                       </td>
                     </tr>
                     {section.rows.map(row => (
@@ -268,11 +265,6 @@ export default function PreciosPage() {
                 <div className="rounded-2xl border border-border bg-card p-5">
                   <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {section.title}
-                    {section.note && (
-                      <span className="ml-1 font-normal normal-case text-muted-foreground/80">
-                        · {section.note}
-                      </span>
-                    )}
                   </h3>
                   <div className="space-y-4">
                     {section.rows.map(row => (
@@ -299,6 +291,22 @@ export default function PreciosPage() {
               </FadeIn>
             ))}
           </div>
+
+          {/* Futuras integraciones — deliberadamente fuera de la tabla de ✓/✗:
+              todavía no están funcionando, no corresponde mostrarlas como incluidas
+              en ningún plan. */}
+          <FadeIn className="mt-6 rounded-2xl border border-dashed border-border bg-card/60 p-5 text-center sm:text-left">
+            <div className="flex flex-col items-center gap-1 sm:flex-row sm:items-baseline sm:gap-2">
+              <Badge variant="secondary" className="gap-1">
+                <Clock className="h-3 w-3" />
+                Futuras integraciones
+              </Badge>
+              <p className="text-sm text-muted-foreground">
+                Booking.com y Airbnb: sincronización de tarifas, disponibilidad y reservas en tiempo real.
+                Todavía no están disponibles ni incluidas en ningún plan — las vamos a ir sumando más adelante.
+              </p>
+            </div>
+          </FadeIn>
         </div>
       </section>
 
