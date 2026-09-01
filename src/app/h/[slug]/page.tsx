@@ -225,7 +225,7 @@ export default async function HotelLandingPage(
                         <div className="flex items-center justify-between">
                           <div>
                             <h3 className="font-semibold">{h.tipo}</h3>
-                            <p className="text-xs text-muted-foreground">Hab. {h.numero}</p>
+                            <p className="text-xs text-muted-foreground">{h.numero}</p>
                           </div>
                           <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                             <Users className="w-3.5 h-3.5" /> {h.capacidad}

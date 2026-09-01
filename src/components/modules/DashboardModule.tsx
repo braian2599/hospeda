@@ -353,7 +353,7 @@ interface GanttReserva {
 }
 
 function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
-  habitaciones: Record<string, { tipo: string; estado: string; problema?: string; bloqueaDisponibilidad?: boolean; bloqueadoHasta?: string }>;
+  habitaciones: Record<string, { tipo: string; estado: string; problema?: string; bloqueaDisponibilidad?: boolean; bloqueadoHasta?: string; orden?: number }>;
   reservas: { habitacion: string; estado: string; checkin: string; checkout: string; huesped: string; horaCheckin?: string; horaCheckout?: string; tipoTarifa?: string; total?: number; estadoPago?: string; ninos?: number }[];
   fechaInicioBase: Date;
 }) {
@@ -408,7 +408,12 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
   }, []);
 
   const rows = useMemo(() => {
-    const habNumbers = Object.keys(habitaciones).sort((a, b) => parseInt(a) - parseInt(b));
+    const habNumbers = Object.keys(habitaciones).sort((a, b) => {
+      const oa = habitaciones[a].orden ?? 0;
+      const ob = habitaciones[b].orden ?? 0;
+      if (oa !== ob) return oa - ob;
+      return a.localeCompare(b, undefined, { numeric: true });
+    });
     const result: React.ReactNode[] = [];
 
     habNumbers.forEach((num, rowIndex) => {

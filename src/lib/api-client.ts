@@ -112,6 +112,9 @@ export const api = {
       apiFetch<DbHabitacion>(`/habitaciones/${encodeURIComponent(numero)}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (numero: string) =>
       apiFetch<{ success: boolean }>(`/habitaciones/${encodeURIComponent(numero)}`, { method: 'DELETE' }),
+    /** orden: números de habitación en el orden deseado (índice = nuevo valor de "orden"). */
+    reorder: (orden: string[]) =>
+      apiFetch<{ success: boolean }>('/habitaciones/reorder', { method: 'PUT', body: JSON.stringify({ orden }) }),
   },
 
   // ── Clientes ──

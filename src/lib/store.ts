@@ -242,6 +242,8 @@ interface HotelStore {
   editarHabitacion: (numeroOriginal: string, numeroNuevo: string, tipo: string, capacidad: number, camasMatrimoniales: number, camasSimples: number, piso?: number) => Promise<boolean>;
   eliminarHabitacion: (numero: string) => Promise<boolean>;
   cambiarEstadoHabitacion: (numero: string, nuevoEstado: EstadoHabitacion) => Promise<boolean>;
+  /** Guarda el orden de visualización elegido a mano (array de números de habitación, en el orden deseado). */
+  reordenarHabitaciones: (ordenNumeros: string[]) => Promise<boolean>;
 
   // Clientes
   agregarCliente: (datos: { nombre: string; dni: string; telefono?: string; email?: string; fechaNacimiento?: string; nacionalidad?: string; domicilio?: string; preferencias?: string }) => Promise<Cliente | null>;
@@ -547,6 +549,27 @@ export const useHotelStore = create<HotelStore>()(
           await api.habitaciones.update(numero, { estado: nuevoEstado });
         } catch (err) {
           console.error('[cambiarEstadoHabitacion] API error, rolling back:', err);
+          set({ habitaciones: prevHabitaciones });
+          return false;
+        }
+        return true;
+      },
+
+      reordenarHabitaciones: async (ordenNumeros) => {
+        const { habitaciones } = get();
+        const prevHabitaciones = habitaciones;
+
+        const newHabs = { ...habitaciones };
+        ordenNumeros.forEach((numero, i) => {
+          if (newHabs[numero]) newHabs[numero] = { ...newHabs[numero], orden: i };
+        });
+        set({ habitaciones: newHabs });
+        get()._registrarAuditoria('Habitación', 'Orden de habitaciones actualizado');
+
+        try {
+          await api.habitaciones.reorder(ordenNumeros);
+        } catch (err) {
+          console.error('[reordenarHabitaciones] API error, rolling back:', err);
           set({ habitaciones: prevHabitaciones });
           return false;
         }
@@ -1775,6 +1798,7 @@ export const useHotelStore = create<HotelStore>()(
               problema: h.problema || undefined,
               bloqueaDisponibilidad: h.bloqueaDisponibilidad !== false,
               bloqueadoHasta: h.bloqueadoHasta ? String(h.bloqueadoHasta).split('T')[0] : undefined,
+              orden: h.orden ?? 0,
               precioPorCama: h.precioPorCama || undefined,
               piso: h.piso ?? undefined,
             };

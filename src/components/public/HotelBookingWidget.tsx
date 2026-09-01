@@ -436,7 +436,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
                         return (
                           <div key={r.numero} className={`rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${seleccionada ? 'border-primary ring-1 ring-primary' : ''}`}>
                             <div>
-                              <p className="font-semibold">{r.tipo} — Hab. {r.numero}</p>
+                              <p className="font-semibold">{r.tipo} — {r.numero}</p>
                               <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                                 <Users className="w-3.5 h-3.5" /> Hasta {r.capacidad} persona{r.capacidad !== 1 ? 's' : ''}
                               </p>
@@ -475,7 +475,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
                 <TabsContent value="cliente" className="space-y-3 mt-4">
                   {seleccion && (
                     <p className="text-sm text-muted-foreground">
-                      {seleccion.tipo}{seleccion.numero ? ` (Hab. ${seleccion.numero})` : ''} · {seleccion.personas} persona{seleccion.personas !== 1 ? 's' : ''}
+                      {seleccion.tipo}{seleccion.numero ? ` (${seleccion.numero})` : ''} · {seleccion.personas} persona{seleccion.personas !== 1 ? 's' : ''}
                       {seleccion.combo && ` + ${seleccion.combo.tipo2} · ${seleccion.combo.personas2} persona${seleccion.combo.personas2 !== 1 ? 's' : ''}`}
                     </p>
                   )}
@@ -518,7 +518,7 @@ export default function HotelBookingWidget({ slug }: { slug: string }) {
                   {seleccion && (
                     <>
                       <p className="text-sm text-muted-foreground">
-                        {seleccion.tipo}{seleccion.numero ? ` (Hab. ${seleccion.numero})` : ''} · {seleccion.personas} persona{seleccion.personas !== 1 ? 's' : ''}
+                        {seleccion.tipo}{seleccion.numero ? ` (${seleccion.numero})` : ''} · {seleccion.personas} persona{seleccion.personas !== 1 ? 's' : ''}
                       </p>
                       <DesgloseTotal d={seleccion.desglose} />
 

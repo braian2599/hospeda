@@ -22,7 +22,7 @@ import {
 import {
   Plus, Pencil, Trash2, Bed, User, Users,
   CheckCircle, UserCheck, CalendarCheck, SprayCan, Wrench, Ban,
-  Download, LayoutGrid, List,
+  Download, LayoutGrid, List, ArrowUpDown,
   ChevronDown, ChevronRight,
   DoorOpen, Sparkles,
   type LucideIcon,
@@ -33,6 +33,7 @@ import { type TipoHabitacion, type EstadoHabitacion, type Habitacion, CAPACIDAD_
 import { todayLocal, safeDate } from '@/lib/format';
 import { exportToCSV } from '@/lib/csv-export';
 import RoomStatusMap from './RoomStatusMap';
+import HabitacionesReorder from './HabitacionesReorder';
 
 // ═══════════════════════════════════════════════════════════
 // STATUS CONFIGURATION
@@ -715,7 +716,7 @@ export default function HabitacionesModule() {
   const cambiarEstadoHabitacion = useHotelStore(s => s.cambiarEstadoHabitacion);
   const [modal, setModal] = useState<'nueva' | 'editar' | 'eliminar' | null>(null);
   const [sel, setSel] = useState<string>('');
-  const [viewMode, setViewMode] = useState<'lista' | 'mapa'>('lista');
+  const [viewMode, setViewMode] = useState<'lista' | 'mapa' | 'reordenar'>('lista');
   const [form, setForm] = useState({
     numero: '',
     tipo: 'Doble' as TipoHabitacion,
@@ -728,7 +729,12 @@ export default function HabitacionesModule() {
   const esCompartida = form.tipo === 'Compartida';
   const today = useMemo(() => todayLocal(), []);
   const sorted = useMemo(
-    () => Object.entries(habitaciones).sort(([a], [b]) => a.localeCompare(b)),
+    () => Object.entries(habitaciones).sort(([numA, a], [numB, b]) => {
+      const oa = a.orden ?? 0;
+      const ob = b.orden ?? 0;
+      if (oa !== ob) return oa - ob;
+      return numA.localeCompare(numB, undefined, { numeric: true });
+    }),
     [habitaciones]
   );
 
@@ -909,6 +915,14 @@ export default function HabitacionesModule() {
               Mapa
             </button>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5 shadow-sm"
+            onClick={() => setViewMode(v => v === 'reordenar' ? 'lista' : 'reordenar')}
+          >
+            <ArrowUpDown className="w-3.5 h-3.5" />Reordenar
+          </Button>
           <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors" onClick={() => {
             const headers = ['Número', 'Tipo', 'Estado', 'Piso', 'Precio'];
             const rows = sorted.map(([, h]) => [
@@ -937,6 +951,15 @@ export default function HabitacionesModule() {
 
       {/* ── Status legend (both views) ── */}
       <RoomStatusLegend />
+
+      {/* ── Reorder view ── */}
+      {viewMode === 'reordenar' && (
+        <Card>
+          <CardContent className="pt-6">
+            <HabitacionesReorder onDone={() => setViewMode('lista')} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Map view ── */}
       {viewMode === 'mapa' && (

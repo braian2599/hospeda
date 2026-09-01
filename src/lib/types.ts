@@ -25,6 +25,8 @@ export interface Habitacion {
   bloqueadoHasta?: string;
   precioPorCama?: number;
   piso?: number;
+  /** Orden de visualización elegido a mano por el hotel (Habitaciones → Reordenar). */
+  orden?: number;
 }
 
 export type EstadoHabitacion = 'Disponible' | 'Ocupada' | 'Limpieza' | 'Mantenimiento' | 'Reservada' | 'Fuera de servicio';
