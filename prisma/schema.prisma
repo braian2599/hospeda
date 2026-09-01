@@ -30,6 +30,8 @@ model Tenant {
   horaCheckin    String?
   horaCheckout   String?
   politicaCancelacion String?
+  mapaLat        Float?
+  mapaLng        Float?
   timezone       String            @default("America/Argentina/Buenos_Aires")
   logoUrl        String?
   descripcion    String?

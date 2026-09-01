@@ -728,7 +728,7 @@ function LandingSection() {
   const [landingTab, setLandingTab] = useState<LandingTabId>('ubicacion');
 
   // Ubicación
-  const [ubicacion, setUbicacion] = useState({ direccion: '', ciudad: '', provincia: '', pais: 'Argentina' });
+  const [ubicacion, setUbicacion] = useState({ direccion: '', ciudad: '', provincia: '', pais: 'Argentina', mapaLat: '', mapaLng: '' });
   const [savingUbicacion, setSavingUbicacion] = useState(false);
 
   // Políticas
@@ -783,6 +783,8 @@ function LandingSection() {
       setUbicacion({
         direccion: hotelData.direccion || '', ciudad: hotelData.ciudad || '',
         provincia: hotelData.provincia || '', pais: hotelData.pais || 'Argentina',
+        mapaLat: hotelData.mapaLat != null ? String(hotelData.mapaLat) : '',
+        mapaLng: hotelData.mapaLng != null ? String(hotelData.mapaLng) : '',
       });
       setPoliticas({
         horaCheckin: hotelData.horaCheckin || '', horaCheckout: hotelData.horaCheckout || '',
@@ -818,9 +820,29 @@ function LandingSection() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleGuardarUbicacion = async () => {
+    const latTrim = ubicacion.mapaLat.trim();
+    const lngTrim = ubicacion.mapaLng.trim();
+    const mapaLat = latTrim ? Number(latTrim.replace(',', '.')) : null;
+    const mapaLng = lngTrim ? Number(lngTrim.replace(',', '.')) : null;
+    if ((latTrim && Number.isNaN(mapaLat)) || (lngTrim && Number.isNaN(mapaLng))) {
+      toast.error('Latitud/longitud inválidas');
+      return;
+    }
+    if ((mapaLat !== null) !== (mapaLng !== null)) {
+      toast.error('Cargá latitud y longitud, las dos o ninguna');
+      return;
+    }
     setSavingUbicacion(true);
     try {
-      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ubicacion) });
+      const res = await fetch('/api/configuracion/hotel', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          direccion: ubicacion.direccion, ciudad: ubicacion.ciudad,
+          provincia: ubicacion.provincia, pais: ubicacion.pais,
+          mapaLat, mapaLng,
+        }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast.success('Ubicación guardada');
@@ -1087,6 +1109,42 @@ function LandingSection() {
                     <Input value={ubicacion.pais} onChange={(e) => setUbicacion({ ...ubicacion, pais: e.target.value })} placeholder="Argentina" />
                   </ConfigField>
                 </div>
+
+                <Separator />
+
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">Mapa (opcional)</h4>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    La dirección de arriba es solo texto — para que el mapa de la página pública muestre el pin en el lugar exacto, cargá las coordenadas: abrí Google Maps, buscá tu hotel, hacé click derecho sobre el pin exacto y elegí las coordenadas que aparecen arriba del menú (se copian solas al hacer click).
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ConfigField label="Latitud" icon={MapPin}>
+                      <Input value={ubicacion.mapaLat} onChange={(e) => setUbicacion({ ...ubicacion, mapaLat: e.target.value })} placeholder="Ej: -34.603722" />
+                    </ConfigField>
+                    <ConfigField label="Longitud" icon={MapPin}>
+                      <Input value={ubicacion.mapaLng} onChange={(e) => setUbicacion({ ...ubicacion, mapaLng: e.target.value })} placeholder="Ej: -58.381592" />
+                    </ConfigField>
+                  </div>
+                  {(() => {
+                    const lat = Number(ubicacion.mapaLat.trim().replace(',', '.'));
+                    const lng = Number(ubicacion.mapaLng.trim().replace(',', '.'));
+                    const coordsValidas = ubicacion.mapaLat.trim() && ubicacion.mapaLng.trim() && !Number.isNaN(lat) && !Number.isNaN(lng);
+                    return coordsValidas ? (
+                      <div className="mt-3 rounded-lg border overflow-hidden">
+                        <iframe
+                          src={`https://www.google.com/maps?q=${lat},${lng}&z=16&output=embed`}
+                          width="100%"
+                          height="220"
+                          style={{ border: 0, display: 'block' }}
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          title="Vista previa del mapa"
+                        />
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+
                 <div className="flex justify-end">
                   <Button onClick={handleGuardarUbicacion} disabled={savingUbicacion} size="sm">
                     {savingUbicacion ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}

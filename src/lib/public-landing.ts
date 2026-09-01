@@ -28,6 +28,8 @@ export async function getPublicTenant(slug: string) {
       horaCheckin: true,
       horaCheckout: true,
       politicaCancelacion: true,
+      mapaLat: true,
+      mapaLng: true,
       activo: true,
       configuracion: {
         select: {

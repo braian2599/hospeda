@@ -104,6 +104,7 @@ export default async function HotelLandingPage(
   const promosDestacadas = badgesDestacados(tenant);
   const pagoBanner = pago ? PAGO_BANNER[pago] : null;
   const direccionCompleta = [tenant.direccion, tenant.ciudad, tenant.provincia, tenant.pais].filter(Boolean).join(', ');
+  const tieneCoordenadas = tenant.mapaLat != null && tenant.mapaLng != null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -179,27 +180,33 @@ export default async function HotelLandingPage(
         </div>
 
         {/* Ubicación */}
-        {direccionCompleta && (
+        {(tieneCoordenadas || direccionCompleta) && (
           <div className="space-y-3">
             <h2 className="text-xl font-semibold">Ubicación</h2>
-            <div className="rounded-xl border overflow-hidden">
-              <iframe
-                src={`https://www.google.com/maps?q=${encodeURIComponent(direccionCompleta)}&output=embed`}
-                width="100%"
-                height="320"
-                style={{ border: 0, display: 'block' }}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title={`Ubicación de ${tenant.nombre}`}
-              />
-            </div>
+            {tieneCoordenadas && (
+              <div className="rounded-xl border overflow-hidden">
+                <iframe
+                  src={`https://www.google.com/maps?q=${tenant.mapaLat},${tenant.mapaLng}&z=16&output=embed`}
+                  width="100%"
+                  height="320"
+                  style={{ border: 0, display: 'block' }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title={`Ubicación de ${tenant.nombre}`}
+                />
+              </div>
+            )}
             <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(direccionCompleta)}`}
+              href={
+                tieneCoordenadas
+                  ? `https://www.google.com/maps/dir/?api=1&destination=${tenant.mapaLat},${tenant.mapaLng}`
+                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccionCompleta)}`
+              }
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
             >
-              <MapPin className="w-4 h-4 shrink-0" /> Cómo llegar
+              <MapPin className="w-4 h-4 shrink-0" /> {tieneCoordenadas ? 'Cómo llegar' : 'Ver en Google Maps'}
             </a>
           </div>
         )}

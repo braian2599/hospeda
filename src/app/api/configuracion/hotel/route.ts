@@ -12,7 +12,7 @@ export async function GET() {
       select: {
         nombre: true, slug: true, email: true, telefono: true,
         direccion: true, ciudad: true, provincia: true, pais: true, moneda: true, timezone: true, logoUrl: true,
-        horaCheckin: true, horaCheckout: true, politicaCancelacion: true,
+        horaCheckin: true, horaCheckout: true, politicaCancelacion: true, mapaLat: true, mapaLng: true,
         descripcion: true, fotos: true, servicios: true,
         configuracion: {
           select: {
@@ -40,6 +40,8 @@ export async function GET() {
       horaCheckin: tenant.horaCheckin || '',
       horaCheckout: tenant.horaCheckout || '',
       politicaCancelacion: tenant.politicaCancelacion || '',
+      mapaLat: tenant.mapaLat,
+      mapaLng: tenant.mapaLng,
       timezone: tenant.timezone || 'America/Argentina/Buenos_Aires',
       logoUrl: tenant.logoUrl || config.hotelLogoUrl || '',
       descripcion: tenant.descripcion || '',
@@ -75,13 +77,19 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const {
       nombre, email, telefono, direccion, ciudad, provincia, pais, moneda, timezone, logoUrl, descripcion, fotos, servicios,
-      horaCheckin, horaCheckout, politicaCancelacion,
+      horaCheckin, horaCheckout, politicaCancelacion, mapaLat, mapaLng,
       tarifasPublicas, mostrarSeccionAgencias, textoAgencias,
       modoCobroSena, senaWhatsapp, senaEmail, senaInstrucciones,
     } = body;
 
     if (modoCobroSena !== undefined && modoCobroSena !== 'mercadopago' && modoCobroSena !== 'manual') {
       return NextResponse.json({ error: 'Modo de cobro de seña inválido' }, { status: 400 });
+    }
+    if (mapaLat !== undefined && mapaLat !== null && (typeof mapaLat !== 'number' || mapaLat < -90 || mapaLat > 90)) {
+      return NextResponse.json({ error: 'Latitud inválida' }, { status: 400 });
+    }
+    if (mapaLng !== undefined && mapaLng !== null && (typeof mapaLng !== 'number' || mapaLng < -180 || mapaLng > 180)) {
+      return NextResponse.json({ error: 'Longitud inválida' }, { status: 400 });
     }
 
     // Update Tenant
@@ -100,6 +108,8 @@ export async function PUT(req: NextRequest) {
     if (horaCheckin !== undefined) updateData.horaCheckin = horaCheckin;
     if (horaCheckout !== undefined) updateData.horaCheckout = horaCheckout;
     if (politicaCancelacion !== undefined) updateData.politicaCancelacion = politicaCancelacion;
+    if (mapaLat !== undefined) updateData.mapaLat = mapaLat;
+    if (mapaLng !== undefined) updateData.mapaLng = mapaLng;
     if (Array.isArray(fotos)) updateData.fotos = fotos.filter((f: unknown) => typeof f === 'string');
     if (Array.isArray(servicios)) updateData.servicios = servicios.filter((s: unknown) => typeof s === 'string' && s.trim()).map((s: string) => s.trim());
 
