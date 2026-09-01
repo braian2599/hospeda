@@ -103,6 +103,7 @@ export default async function HotelLandingPage(
   const config = tenant.configuracion;
   const promosDestacadas = badgesDestacados(tenant);
   const pagoBanner = pago ? PAGO_BANNER[pago] : null;
+  const direccionCompleta = [tenant.direccion, tenant.ciudad, tenant.provincia, tenant.pais].filter(Boolean).join(', ');
 
   return (
     <div className="min-h-screen bg-background">
@@ -123,10 +124,10 @@ export default async function HotelLandingPage(
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
           <div className="mx-auto max-w-6xl">
             <h1 className="text-3xl md:text-5xl font-bold text-white drop-shadow-sm">{tenant.nombre}</h1>
-            {(tenant.direccion || tenant.ciudad || tenant.provincia || tenant.pais) && (
+            {direccionCompleta && (
               <p className="mt-2 flex items-center gap-1.5 text-[#FFFFFFE6] text-sm md:text-base">
                 <MapPin className="w-4 h-4 shrink-0" />
-                {[tenant.direccion, tenant.ciudad, tenant.provincia, tenant.pais].filter(Boolean).join(', ')}
+                {direccionCompleta}
               </p>
             )}
           </div>
@@ -176,6 +177,32 @@ export default async function HotelLandingPage(
             </div>
           )}
         </div>
+
+        {/* Ubicación */}
+        {direccionCompleta && (
+          <div className="space-y-3">
+            <h2 className="text-xl font-semibold">Ubicación</h2>
+            <div className="rounded-xl border overflow-hidden">
+              <iframe
+                src={`https://www.google.com/maps?q=${encodeURIComponent(direccionCompleta)}&output=embed`}
+                width="100%"
+                height="320"
+                style={{ border: 0, display: 'block' }}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title={`Ubicación de ${tenant.nombre}`}
+              />
+            </div>
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(direccionCompleta)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+            >
+              <MapPin className="w-4 h-4 shrink-0" /> Cómo llegar
+            </a>
+          </div>
+        )}
 
         {/* Galería */}
         {galeria.length > 0 && (
