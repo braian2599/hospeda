@@ -14,14 +14,14 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import {
   CreditCard, Building2, FileText, Shield, Headphones, Download,
   Crown, Check, Loader2, Save, Eye, EyeOff, Star, ArrowRight,
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
-  Settings, Copy, Info, Menu, BedDouble, KeyRound, Database, Receipt,
+  Settings, Copy, Info, BedDouble, KeyRound, Database, Receipt,
   Users, History, CheckCircle2, XCircle, Lock, Printer, MessageCircle,
   Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban,
 } from 'lucide-react';
@@ -38,8 +38,7 @@ const SECTIONS = [
   { id: 'hotel', label: 'Hotel Info', icon: Building2 },
   { id: 'fiscal', label: 'Fiscal', icon: FileText },
   { id: 'habitaciones', label: 'Habitaciones', icon: BedDouble },
-  { id: 'fotos', label: 'Landing', icon: ImageIcon },
-  { id: 'integraciones', label: 'Integraciones', icon: Globe },
+  { id: 'landing', label: 'Landing', icon: ImageIcon },
   { id: 'cuenta', label: 'Cuenta y Contraseña', icon: KeyRound },
   { id: 'exportar', label: 'Datos / Export', icon: Database },
   { id: 'suscripcion', label: 'Suscripción', icon: CreditCard },
@@ -135,8 +134,6 @@ const forestAlpha = (alpha: number) => `color-mix(in srgb, var(--primary) ${alph
 // ─── Main module ───
 export default function ConfiguracionModule() {
   const [activeSection, setActiveSection] = useState<SectionId>('hotel');
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [integracionesHabilitadas, setIntegracionesHabilitadas] = useState(false);
   const [fotosHabilitadas, setFotosHabilitadas] = useState(false);
   const { usuarioActual } = useHotelStore();
 
@@ -145,15 +142,13 @@ export default function ConfiguracionModule() {
       .then((r) => r.json())
       .then((data) => {
         const flags = data?.featureFlags;
-        setIntegracionesHabilitadas(!!(flags?.bookingSync || flags?.airbnbSync || flags?.landingPage));
         setFotosHabilitadas(!!flags?.landingPage);
       })
       .catch(() => {});
   }, []);
 
   const visibleSections = SECTIONS.filter((s) => {
-    if (s.id === 'integraciones') return integracionesHabilitadas;
-    if (s.id === 'fotos') return fotosHabilitadas;
+    if (s.id === 'landing') return fotosHabilitadas;
     return true;
   });
 
@@ -167,81 +162,50 @@ export default function ConfiguracionModule() {
     );
   }
 
-  const sidebarNav = (
-    <nav aria-label="Secciones de configuración" className="space-y-1">
-      {visibleSections.map(s => {
-        const Icon = s.icon;
-        const active = activeSection === s.id;
-        return (
-          <button
-            key={s.id}
-            onClick={() => { setActiveSection(s.id); setMobileOpen(false); }}
-            aria-current={active ? 'page' : undefined}
-            className={`
-              w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-              ${active
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'}
-            `}
-          >
-            <Icon className="w-4 h-4 shrink-0" />
-            <span className="truncate">{s.label}</span>
-          </button>
-        );
-      })}
-    </nav>
-  );
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: forestAlpha(15) }}>
-            <Settings className="w-5 h-5 shrink-0" style={{ color: forest }} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Configuración</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">Administrá tu hotel, plan y cuenta</p>
-          </div>
+      {/* Header centrado */}
+      <div className="flex flex-col items-center text-center gap-2">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: forestAlpha(15) }}>
+          <Settings className="w-5 h-5 shrink-0" style={{ color: forest }} />
         </div>
-
-        {/* Mobile menu trigger */}
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="md:hidden" aria-label="Abrir menú de secciones">
-              <Menu className="w-4 h-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-72 p-4 overflow-y-auto">
-            <SheetTitle className="text-base mb-3">Secciones</SheetTitle>
-            {sidebarNav}
-          </SheetContent>
-        </Sheet>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Configuración</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Administrá tu hotel, plan y cuenta</p>
+        </div>
       </div>
 
-      {/* Body: sidebar + content */}
-      <div className="flex gap-6">
-        {/* Desktop sticky sidebar */}
-        <aside className="hidden md:block w-60 shrink-0" aria-label="Navegación de configuración">
-          <div className="sticky top-4">
-            {sidebarNav}
-          </div>
-        </aside>
+      {/* Secciones — tabs horizontales */}
+      <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as SectionId)}>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex sm:justify-center">
+          <TabsList className="flex flex-nowrap h-auto gap-0.5 sm:gap-1 min-w-max bg-[#F1F5F980]">
+            {visibleSections.map(s => {
+              const Icon = s.icon;
+              return (
+                <TabsTrigger
+                  key={s.id}
+                  value={s.id}
+                  className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"
+                >
+                  <Icon className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                  <span>{s.label}</span>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </div>
 
-        {/* Active section content */}
-        <div className="flex-1 min-w-0 animate-in fade-in-0 duration-200" key={activeSection}>
+        <div className="mt-6 animate-in fade-in-0 duration-200" key={activeSection}>
           {activeSection === 'hotel' && <HotelSection />}
           {activeSection === 'fiscal' && <FiscalSection />}
           {activeSection === 'habitaciones' && <HabitacionesSection />}
-          {activeSection === 'fotos' && <FotosSection />}
-          {activeSection === 'integraciones' && <IntegracionesSection />}
+          {activeSection === 'landing' && <LandingSection />}
           {activeSection === 'cuenta' && <CuentaSection />}
           {activeSection === 'exportar' && <ExportarSection />}
           {activeSection === 'suscripcion' && <SuscripcionSection />}
           {activeSection === 'soporte' && <SoporteSection />}
         </div>
-      </div>
+      </Tabs>
     </div>
   );
 }
@@ -253,9 +217,8 @@ function HotelSection() {
   const { planActual } = useHotelStore();
   const plans = usePlans();
   const [form, setForm] = useState({
-    nombre: '', email: '', telefono: '', direccion: '', ciudad: '', provincia: '', pais: 'Argentina',
-    moneda: 'ARS', timezone: 'America/Argentina/Buenos_Aires', logoUrl: '', heroUrl: '',
-    horaCheckin: '', horaCheckout: '', politicaCancelacion: '',
+    nombre: '', email: '', telefono: '', moneda: 'ARS',
+    timezone: 'America/Argentina/Buenos_Aires', logoUrl: '', heroUrl: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -269,17 +232,10 @@ function HotelSection() {
           nombre: data.nombre || '',
           email: data.email || '',
           telefono: data.telefono || '',
-          direccion: data.direccion || '',
-          ciudad: data.ciudad || '',
-          provincia: data.provincia || '',
-          pais: data.pais || 'Argentina',
           moneda: data.moneda || 'ARS',
           timezone: data.timezone || 'America/Argentina/Buenos_Aires',
           logoUrl: data.logoUrl || '',
           heroUrl: data.heroUrl || '',
-          horaCheckin: data.horaCheckin || '',
-          horaCheckout: data.horaCheckout || '',
-          politicaCancelacion: data.politicaCancelacion || '',
         });
       })
       .catch(() => {})
@@ -299,11 +255,7 @@ function HotelSection() {
       // Only send fields the API knows about — heroUrl stays client-side.
       const payload = {
         nombre: form.nombre, email: form.email, telefono: form.telefono,
-        direccion: form.direccion, ciudad: form.ciudad, provincia: form.provincia,
-        pais: form.pais, moneda: form.moneda,
-        timezone: form.timezone, logoUrl: form.logoUrl,
-        horaCheckin: form.horaCheckin, horaCheckout: form.horaCheckout,
-        politicaCancelacion: form.politicaCancelacion,
+        moneda: form.moneda, timezone: form.timezone, logoUrl: form.logoUrl,
       };
       const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -348,7 +300,7 @@ function HotelSection() {
             <div className="flex-1 min-w-0 pb-1">
               <h3 className="text-xl font-bold truncate">{form.nombre || 'Sin nombre'}</h3>
               <p className="text-sm text-muted-foreground truncate">
-                {form.direccion || 'Sin dirección'} · {form.pais || 'Argentina'}
+                {form.email || 'Sin email'} · {form.moneda}
               </p>
             </div>
             <Badge variant="secondary" className="self-start sm:self-end capitalize">
@@ -386,7 +338,7 @@ function HotelSection() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <ContactInfoCard icon={Phone} label="Teléfono" value={form.telefono} color={forestAccent} />
         <ContactInfoCard icon={Mail} label="Email" value={form.email} color={forest} />
-        <ContactInfoCard icon={MapPin} label="Dirección" value={form.direccion} color={forestAccent} />
+        <ContactInfoCard icon={DollarSign} label="Moneda" value={form.moneda} color={forestAccent} />
       </div>
 
       {/* Editable form */}
@@ -405,18 +357,6 @@ function HotelSection() {
             </ConfigField>
             <ConfigField label="Teléfono" icon={Phone}>
               <Input value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="+54 11 1234-5678" />
-            </ConfigField>
-            <ConfigField label="Dirección" icon={MapPin}>
-              <Input value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} placeholder="Av. Siempre Viva 742" />
-            </ConfigField>
-            <ConfigField label="Ciudad" icon={MapPin}>
-              <Input value={form.ciudad} onChange={e => setForm({ ...form, ciudad: e.target.value })} placeholder="San Fernando del Valle de Catamarca" />
-            </ConfigField>
-            <ConfigField label="Provincia" icon={MapPin}>
-              <Input value={form.provincia} onChange={e => setForm({ ...form, provincia: e.target.value })} placeholder="Catamarca" />
-            </ConfigField>
-            <ConfigField label="País" icon={Globe}>
-              <Input value={form.pais} onChange={e => setForm({ ...form, pais: e.target.value })} placeholder="Argentina" />
             </ConfigField>
             <ConfigField label="Moneda" icon={DollarSign}>
               <Select value={form.moneda} onValueChange={v => setForm({ ...form, moneda: v })}>
@@ -464,31 +404,6 @@ function HotelSection() {
               <span className="text-sm text-muted-foreground">Vista previa del logo</span>
             </div>
           )}
-
-          <Separator />
-
-          <div>
-            <h4 className="text-sm font-semibold mb-1">Políticas del hotel</h4>
-            <p className="text-xs text-muted-foreground mb-4">Se muestran en la página pública, así el huésped las conoce antes de reservar.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ConfigField label="Check-in a partir de" icon={LogIn}>
-                <Input type="time" value={form.horaCheckin} onChange={e => setForm({ ...form, horaCheckin: e.target.value })} />
-              </ConfigField>
-              <ConfigField label="Check-out hasta" icon={LogOut}>
-                <Input type="time" value={form.horaCheckout} onChange={e => setForm({ ...form, horaCheckout: e.target.value })} />
-              </ConfigField>
-              <div className="md:col-span-2">
-                <ConfigField label="Política de cancelación / reembolsos" icon={Ban} hint="Texto libre — por ejemplo: condiciones para cancelar, plazos de reembolso, etc.">
-                  <Textarea
-                    value={form.politicaCancelacion}
-                    onChange={e => setForm({ ...form, politicaCancelacion: e.target.value })}
-                    placeholder="Ej: Cancelaciones con más de 48hs de anticipación reciben reembolso total. Dentro de las 48hs, se retiene la seña."
-                    rows={3}
-                  />
-                </ConfigField>
-              </div>
-            </div>
-          </div>
 
           <div className="flex justify-end">
             <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: forest }}>
@@ -721,7 +636,7 @@ function FiscalSection() {
 }
 
 // ═══════════════════════════════════════════
-// FOTOS Y DESCRIPCIÓN (landing page pública)
+// LANDING PAGE (ubicación, políticas, fotos, precios, cobro de seña, agencias)
 // ═══════════════════════════════════════════
 
 const MAX_FOTO_BYTES = 8 * 1024 * 1024;
@@ -798,34 +713,81 @@ function PhotoGrid({
 interface HabitacionFotoDTO { numero: string; tipo: string; fotos: string[]; }
 interface TarifaDTO { id: string; nombre: string; activa: boolean; }
 
-function FotosSection() {
+type LandingTabId = 'ubicacion' | 'politicas' | 'fotos' | 'precios' | 'cobro' | 'agencias';
+
+const LANDING_TABS: { id: LandingTabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'ubicacion', label: 'Ubicación', icon: MapPin },
+  { id: 'politicas', label: 'Políticas', icon: Ban },
+  { id: 'fotos', label: 'Fotos', icon: ImageIcon },
+  { id: 'precios', label: 'Precios', icon: DollarSign },
+  { id: 'cobro', label: 'Cobro de seña', icon: CreditCard },
+  { id: 'agencias', label: 'Agencias', icon: Users },
+];
+
+function LandingSection() {
+  const [landingTab, setLandingTab] = useState<LandingTabId>('ubicacion');
+
+  // Ubicación
+  const [ubicacion, setUbicacion] = useState({ direccion: '', ciudad: '', provincia: '', pais: 'Argentina' });
+  const [savingUbicacion, setSavingUbicacion] = useState(false);
+
+  // Políticas
+  const [politicas, setPoliticas] = useState({ horaCheckin: '', horaCheckout: '', politicaCancelacion: '' });
+  const [savingPoliticas, setSavingPoliticas] = useState(false);
+
+  // Fotos y descripción
   const [descripcion, setDescripcion] = useState('');
   const [fotosHotel, setFotosHotel] = useState<string[]>([]);
   const [slug, setSlug] = useState('');
   const [habitacionesList, setHabitacionesList] = useState<HabitacionFotoDTO[]>([]);
   const [habitacionSeleccionada, setHabitacionSeleccionada] = useState('');
-  const [tarifasList, setTarifasList] = useState<TarifaDTO[]>([]);
-  const [tarifasPublicas, setTarifasPublicas] = useState<Record<string, string>>({});
-  const [savingTarifas, setSavingTarifas] = useState(false);
-  const [mostrarSeccionAgencias, setMostrarSeccionAgencias] = useState(false);
-  const [textoAgencias, setTextoAgencias] = useState('');
   const [servicios, setServicios] = useState<string[]>([]);
   const [nuevoServicio, setNuevoServicio] = useState('');
   const [savingServicios, setSavingServicios] = useState(false);
-  const [savingAgencias, setSavingAgencias] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [uploadingHotel, setUploadingHotel] = useState(false);
   const [uploadingHabitacion, setUploadingHabitacion] = useState(false);
   const [savingDescripcion, setSavingDescripcion] = useState(false);
 
+  // Precios públicos
+  const [tarifasList, setTarifasList] = useState<TarifaDTO[]>([]);
+  const [tarifasPublicas, setTarifasPublicas] = useState<Record<string, string>>({});
+  const [savingTarifas, setSavingTarifas] = useState(false);
+
+  // Cobro de seña
+  const [modoCobroSena, setModoCobroSena] = useState<'mercadopago' | 'manual'>('mercadopago');
+  const [senaWhatsapp, setSenaWhatsapp] = useState('');
+  const [senaEmail, setSenaEmail] = useState('');
+  const [senaInstrucciones, setSenaInstrucciones] = useState('');
+  const [savingModoCobro, setSavingModoCobro] = useState(false);
+  const [mpConectado, setMpConectado] = useState(false);
+  const [mpUserId, setMpUserId] = useState<string | null>(null);
+  const [mpLoading, setMpLoading] = useState(true);
+  const [mpDisconnecting, setMpDisconnecting] = useState(false);
+
+  // Agencias
+  const [mostrarSeccionAgencias, setMostrarSeccionAgencias] = useState(false);
+  const [textoAgencias, setTextoAgencias] = useState('');
+  const [savingAgencias, setSavingAgencias] = useState(false);
+
+  const [loading, setLoading] = useState(true);
+
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [hotelData, habsData, tarifasData] = await Promise.all([
+      const [hotelData, habsData, tarifasData, mpData] = await Promise.all([
         fetch('/api/configuracion/hotel').then((r) => r.json()),
         fetch('/api/habitaciones').then((r) => r.json()),
         fetch('/api/tarifas').then((r) => r.json()),
+        fetch('/api/configuracion/mercadopago').then((r) => r.json()).catch(() => ({})),
       ]);
+      setUbicacion({
+        direccion: hotelData.direccion || '', ciudad: hotelData.ciudad || '',
+        provincia: hotelData.provincia || '', pais: hotelData.pais || 'Argentina',
+      });
+      setPoliticas({
+        horaCheckin: hotelData.horaCheckin || '', horaCheckout: hotelData.horaCheckout || '',
+        politicaCancelacion: hotelData.politicaCancelacion || '',
+      });
       setDescripcion(hotelData.descripcion || '');
       setFotosHotel(hotelData.fotos || []);
       setSlug(hotelData.slug || '');
@@ -833,20 +795,89 @@ function FotosSection() {
       setMostrarSeccionAgencias(!!hotelData.mostrarSeccionAgencias);
       setTextoAgencias(hotelData.textoAgencias || '');
       setServicios(hotelData.servicios || []);
+      setModoCobroSena(hotelData.modoCobroSena === 'manual' ? 'manual' : 'mercadopago');
+      setSenaWhatsapp(hotelData.senaWhatsapp || '');
+      setSenaEmail(hotelData.senaEmail || '');
+      setSenaInstrucciones(hotelData.senaInstrucciones || '');
       const habs: HabitacionFotoDTO[] = Array.isArray(habsData)
         ? habsData.map((h: { numero: string; tipo: string; fotos?: string[] }) => ({ numero: h.numero, tipo: h.tipo, fotos: h.fotos || [] }))
         : [];
       setHabitacionesList(habs);
       setHabitacionSeleccionada((prev) => prev || habs[0]?.numero || '');
       setTarifasList(Array.isArray(tarifasData) ? tarifasData.filter((t: TarifaDTO) => t.activa) : []);
+      setMpConectado(!!mpData.conectado);
+      setMpUserId(mpData.mpUserId || null);
     } catch {
-      toast.error('Error al cargar fotos');
+      toast.error('Error al cargar la landing page');
     } finally {
       setLoading(false);
+      setMpLoading(false);
     }
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const handleGuardarUbicacion = async () => {
+    setSavingUbicacion(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ubicacion) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Ubicación guardada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingUbicacion(false);
+    }
+  };
+
+  const handleGuardarPoliticas = async () => {
+    setSavingPoliticas(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(politicas) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Políticas guardadas');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingPoliticas(false);
+    }
+  };
+
+  const handleGuardarModoCobro = async () => {
+    setSavingModoCobro(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modoCobroSena, senaWhatsapp, senaEmail, senaInstrucciones }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Modo de cobro guardado');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingModoCobro(false);
+    }
+  };
+
+  const handleDesconectarMp = async () => {
+    setMpDisconnecting(true);
+    try {
+      const res = await fetch('/api/configuracion/mercadopago', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMpConectado(false);
+      setMpUserId(null);
+      toast.success('Mercado Pago desconectado');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al desconectar');
+    } finally {
+      setMpDisconnecting(false);
+    }
+  };
 
   const borrarDeR2 = (url: string) => {
     fetch('/api/uploads/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) }).catch(() => {});
@@ -998,9 +1029,9 @@ function FotosSection() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Fotos y descripción</h3>
+        <h3 className="text-lg font-semibold flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Landing page</h3>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Se van a mostrar en la landing page pública del hotel. Función en prueba.
+          Todo lo que ven tus huéspedes en tu página pública, en un solo lugar. Función en prueba.
         </p>
       </div>
 
@@ -1015,167 +1046,350 @@ function FotosSection() {
         </a>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Descripción del hotel</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Textarea
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-            placeholder="Contales a tus huéspedes sobre tu hotel..."
-            rows={4}
-          />
-          <Button onClick={handleGuardarDescripcion} disabled={savingDescripcion} size="sm">
-            {savingDescripcion ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-            Guardar
-          </Button>
-        </CardContent>
-      </Card>
+      <Tabs value={landingTab} onValueChange={(v) => setLandingTab(v as LandingTabId)}>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="flex flex-nowrap h-auto gap-0.5 sm:gap-1 min-w-max">
+            {LANDING_TABS.map((t) => {
+              const Icon = t.icon;
+              return (
+                <TabsTrigger
+                  key={t.id}
+                  value={t.id}
+                  className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{t.label}</span>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Servicios del hotel</CardTitle>
-          <CardDescription>Ej: Desayuno incluido, Wi-Fi, TV, Pileta, Estacionamiento.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-2">
-            <Input
-              value={nuevoServicio}
-              onChange={(e) => setNuevoServicio(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAgregarServicio(); } }}
-              placeholder="Ej: Wi-Fi"
-            />
-            <Button onClick={handleAgregarServicio} disabled={savingServicios} size="sm">Agregar</Button>
-          </div>
-          {servicios.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {servicios.map((s) => (
-                <span key={s} className="inline-flex items-center gap-1.5 rounded-full bg-muted text-sm px-3 py-1">
-                  {s}
-                  <button
-                    type="button"
-                    onClick={() => handleQuitarServicio(s)}
-                    className="text-muted-foreground hover:text-destructive"
-                    title="Quitar"
-                  >
-                    <XCircle className="w-3.5 h-3.5" />
-                  </button>
-                </span>
-              ))}
+        <div className="mt-4" key={landingTab}>
+          {landingTab === 'ubicacion' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Ubicación</CardTitle>
+                <CardDescription>Dónde está tu hotel — se muestra en la página pública.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ConfigField label="Dirección" icon={MapPin}>
+                    <Input value={ubicacion.direccion} onChange={(e) => setUbicacion({ ...ubicacion, direccion: e.target.value })} placeholder="Av. Siempre Viva 742" />
+                  </ConfigField>
+                  <ConfigField label="Ciudad" icon={MapPin}>
+                    <Input value={ubicacion.ciudad} onChange={(e) => setUbicacion({ ...ubicacion, ciudad: e.target.value })} placeholder="San Fernando del Valle de Catamarca" />
+                  </ConfigField>
+                  <ConfigField label="Provincia" icon={MapPin}>
+                    <Input value={ubicacion.provincia} onChange={(e) => setUbicacion({ ...ubicacion, provincia: e.target.value })} placeholder="Catamarca" />
+                  </ConfigField>
+                  <ConfigField label="País" icon={Globe}>
+                    <Input value={ubicacion.pais} onChange={(e) => setUbicacion({ ...ubicacion, pais: e.target.value })} placeholder="Argentina" />
+                  </ConfigField>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={handleGuardarUbicacion} disabled={savingUbicacion} size="sm">
+                    {savingUbicacion ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                    Guardar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {landingTab === 'politicas' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Políticas del hotel</CardTitle>
+                <CardDescription>Horarios de check-in/check-out y condiciones de cancelación — se muestran en la página pública, así el huésped las conoce antes de reservar.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ConfigField label="Check-in a partir de" icon={LogIn}>
+                    <Input type="time" value={politicas.horaCheckin} onChange={(e) => setPoliticas({ ...politicas, horaCheckin: e.target.value })} />
+                  </ConfigField>
+                  <ConfigField label="Check-out hasta" icon={LogOut}>
+                    <Input type="time" value={politicas.horaCheckout} onChange={(e) => setPoliticas({ ...politicas, horaCheckout: e.target.value })} />
+                  </ConfigField>
+                  <div className="md:col-span-2">
+                    <ConfigField label="Política de cancelación / reembolsos" icon={Ban} hint="Texto libre — por ejemplo: condiciones para cancelar, plazos de reembolso, etc.">
+                      <Textarea
+                        value={politicas.politicaCancelacion}
+                        onChange={(e) => setPoliticas({ ...politicas, politicaCancelacion: e.target.value })}
+                        placeholder="Ej: Cancelaciones con más de 48hs de anticipación reciben reembolso total. Dentro de las 48hs, se retiene la seña."
+                        rows={3}
+                      />
+                    </ConfigField>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={handleGuardarPoliticas} disabled={savingPoliticas} size="sm">
+                    {savingPoliticas ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                    Guardar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {landingTab === 'fotos' && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Descripción del hotel</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Textarea
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    placeholder="Contales a tus huéspedes sobre tu hotel..."
+                    rows={4}
+                  />
+                  <Button onClick={handleGuardarDescripcion} disabled={savingDescripcion} size="sm">
+                    {savingDescripcion ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                    Guardar
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Servicios del hotel</CardTitle>
+                  <CardDescription>Ej: Desayuno incluido, Wi-Fi, TV, Pileta, Estacionamiento.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      value={nuevoServicio}
+                      onChange={(e) => setNuevoServicio(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAgregarServicio(); } }}
+                      placeholder="Ej: Wi-Fi"
+                    />
+                    <Button onClick={handleAgregarServicio} disabled={savingServicios} size="sm">Agregar</Button>
+                  </div>
+                  {servicios.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {servicios.map((s) => (
+                        <span key={s} className="inline-flex items-center gap-1.5 rounded-full bg-muted text-sm px-3 py-1">
+                          {s}
+                          <button
+                            type="button"
+                            onClick={() => handleQuitarServicio(s)}
+                            className="text-muted-foreground hover:text-destructive"
+                            title="Quitar"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Fotos del hotel</CardTitle>
+                  <CardDescription>Portada y galería general</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <PhotoGrid fotos={fotosHotel} onUpload={handleUploadHotel} onDelete={handleDeleteHotel} uploading={uploadingHotel} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Fotos por habitación</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {habitacionesList.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No hay habitaciones cargadas todavía.</p>
+                  ) : (
+                    <>
+                      <Select value={habitacionSeleccionada} onValueChange={setHabitacionSeleccionada}>
+                        <SelectTrigger className="w-full sm:w-64"><SelectValue placeholder="Elegir habitación" /></SelectTrigger>
+                        <SelectContent>
+                          {habitacionesList.map((h) => (
+                            <SelectItem key={h.numero} value={h.numero}>Hab. {h.numero} — {h.tipo}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {habitacionActual && (
+                        <PhotoGrid
+                          fotos={habitacionActual.fotos}
+                          onUpload={handleUploadHabitacion}
+                          onDelete={handleDeleteHabitacion}
+                          uploading={uploadingHabitacion}
+                        />
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           )}
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Fotos del hotel</CardTitle>
-          <CardDescription>Portada y galería general</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <PhotoGrid fotos={fotosHotel} onUpload={handleUploadHotel} onDelete={handleDeleteHotel} uploading={uploadingHotel} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Fotos por habitación</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {habitacionesList.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay habitaciones cargadas todavía.</p>
-          ) : (
-            <>
-              <Select value={habitacionSeleccionada} onValueChange={setHabitacionSeleccionada}>
-                <SelectTrigger className="w-full sm:w-64"><SelectValue placeholder="Elegir habitación" /></SelectTrigger>
-                <SelectContent>
-                  {habitacionesList.map((h) => (
-                    <SelectItem key={h.numero} value={h.numero}>Hab. {h.numero} — {h.tipo}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {habitacionActual && (
-                <PhotoGrid
-                  fotos={habitacionActual.fotos}
-                  onUpload={handleUploadHabitacion}
-                  onDelete={handleDeleteHabitacion}
-                  uploading={uploadingHabitacion}
-                />
-              )}
-            </>
+          {landingTab === 'precios' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Precios públicos por tipo de habitación</CardTitle>
+                <CardDescription>Elegí qué tarifa mostrar como precio en la landing, para cada tipo de habitación.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {tiposPresentes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No hay habitaciones cargadas todavía.</p>
+                ) : tarifasList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No hay tarifas activas — creá una en Tarifas primero.</p>
+                ) : (
+                  <>
+                    {tiposPresentes.map((tipo) => (
+                      <div key={tipo} className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium">{tipo}</span>
+                        <Select
+                          value={tarifasPublicas[tipo] || '__ninguna__'}
+                          onValueChange={(v) => setTarifasPublicas((prev) => ({ ...prev, [tipo]: v === '__ninguna__' ? '' : v }))}
+                        >
+                          <SelectTrigger className="w-56"><SelectValue placeholder="Sin precio público" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__ninguna__">Sin precio público</SelectItem>
+                            {tarifasList.map((t) => (
+                              <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                    <Button onClick={handleGuardarTarifasPublicas} disabled={savingTarifas} size="sm">
+                      {savingTarifas ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                      Guardar
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Precios públicos por tipo de habitación</CardTitle>
-          <CardDescription>Elegí qué tarifa mostrar como precio en la landing, para cada tipo de habitación.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {tiposPresentes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay habitaciones cargadas todavía.</p>
-          ) : tarifasList.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay tarifas activas — creá una en Tarifas primero.</p>
-          ) : (
-            <>
-              {tiposPresentes.map((tipo) => (
-                <div key={tipo} className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium">{tipo}</span>
-                  <Select
-                    value={tarifasPublicas[tipo] || '__ninguna__'}
-                    onValueChange={(v) => setTarifasPublicas((prev) => ({ ...prev, [tipo]: v === '__ninguna__' ? '' : v }))}
-                  >
-                    <SelectTrigger className="w-56"><SelectValue placeholder="Sin precio público" /></SelectTrigger>
+          {landingTab === 'cobro' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Cobro de seña</CardTitle>
+                <CardDescription>Elegí cómo se cobra la seña de las reservas hechas desde tu página pública.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-1.5 max-w-xs">
+                  <Label>Modo de cobro</Label>
+                  <Select value={modoCobroSena} onValueChange={(v) => setModoCobroSena(v as 'mercadopago' | 'manual')}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__ninguna__">Sin precio público</SelectItem>
-                      {tarifasList.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
-                      ))}
+                      <SelectItem value="mercadopago">Mercado Pago (cobro automático)</SelectItem>
+                      <SelectItem value="manual">Contactar al hotel (cobro manual)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              ))}
-              <Button onClick={handleGuardarTarifasPublicas} disabled={savingTarifas} size="sm">
-                {savingTarifas ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                Guardar
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Sección para agencias</CardTitle>
-          <CardDescription>Un bloque chico en la landing para captar convenios B2B, sin mostrar precios.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Mostrar sección de agencias</span>
-            <Switch checked={mostrarSeccionAgencias} onCheckedChange={setMostrarSeccionAgencias} />
-          </div>
-          {mostrarSeccionAgencias && (
-            <Textarea
-              value={textoAgencias}
-              onChange={(e) => setTextoAgencias(e.target.value)}
-              placeholder="Trabajamos con agencias de viajes. Contactanos para conocer nuestros convenios."
-              rows={3}
-            />
+                {modoCobroSena === 'mercadopago' ? (
+                  mpLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  ) : mpConectado ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm">
+                        <p className="font-medium text-success">Cuenta conectada</p>
+                        {mpUserId && <p className="text-xs text-muted-foreground">ID de cuenta: {mpUserId}</p>}
+                      </div>
+                      <Button variant="outline" size="sm" onClick={handleDesconectarMp} disabled={mpDisconnecting}>
+                        {mpDisconnecting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                        Desconectar
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button asChild size="sm">
+                      <a href="/api/configuracion/mercadopago/connect">Conectar Mercado Pago</a>
+                    </Button>
+                  )
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      El huésped va a ver estos datos para coordinar el pago de la seña con vos directamente — cargá al menos uno.
+                    </p>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <div className="grid gap-1.5">
+                        <Label>WhatsApp</Label>
+                        <Input
+                          placeholder="+54 9 11 1234-5678"
+                          value={senaWhatsapp}
+                          onChange={(e) => setSenaWhatsapp(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>Email</Label>
+                        <Input
+                          type="email"
+                          placeholder="reservas@tuhotel.com"
+                          value={senaEmail}
+                          onChange={(e) => setSenaEmail(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label>Instrucciones para el huésped (opcional)</Label>
+                      <Textarea
+                        placeholder="Ej: Transferí a alias hotel.mza o coordiná el medio de pago por WhatsApp."
+                        value={senaInstrucciones}
+                        onChange={(e) => setSenaInstrucciones(e.target.value)}
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <Button onClick={handleGuardarModoCobro} disabled={savingModoCobro} size="sm">
+                  {savingModoCobro ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                  Guardar
+                </Button>
+              </CardContent>
+            </Card>
           )}
-          <Button onClick={handleGuardarAgencias} disabled={savingAgencias} size="sm">
-            {savingAgencias ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-            Guardar
-          </Button>
-        </CardContent>
-      </Card>
+
+          {landingTab === 'agencias' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Sección para agencias</CardTitle>
+                <CardDescription>Un bloque chico en la landing para captar convenios B2B, sin mostrar precios.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Mostrar sección de agencias</span>
+                  <Switch checked={mostrarSeccionAgencias} onCheckedChange={setMostrarSeccionAgencias} />
+                </div>
+                {mostrarSeccionAgencias && (
+                  <Textarea
+                    value={textoAgencias}
+                    onChange={(e) => setTextoAgencias(e.target.value)}
+                    placeholder="Trabajamos con agencias de viajes. Contactanos para conocer nuestros convenios."
+                    rows={3}
+                  />
+                )}
+                <Button onClick={handleGuardarAgencias} disabled={savingAgencias} size="sm">
+                  {savingAgencias ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                  Guardar
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </Tabs>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════
 // INTEGRACIONES (Booking.com / Airbnb — sync iCal)
+//
+// Se decidió no seguir este camino por ahora (solo se sigue con ARCA a
+// futuro). Se saca del menú de Configuración pero se deja el código y la
+// lógica intactos por si se retoma más adelante — por eso queda sin
+// referenciar desde ConfiguracionModule. El bloque de "Cobro de seña" que
+// tenía esta sección se movió a LandingSection (sub-tab "Cobro de seña").
 // ═══════════════════════════════════════════
 
 interface CanalExternoDTO {
@@ -1200,72 +1414,6 @@ function IntegracionesSection() {
   const [creando, setCreando] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [importDrafts, setImportDrafts] = useState<Record<string, string>>({});
-  const [mpConectado, setMpConectado] = useState(false);
-  const [mpUserId, setMpUserId] = useState<string | null>(null);
-  const [mpLoading, setMpLoading] = useState(true);
-  const [mpDisconnecting, setMpDisconnecting] = useState(false);
-  const [modoCobroSena, setModoCobroSena] = useState<'mercadopago' | 'manual'>('mercadopago');
-  const [senaWhatsapp, setSenaWhatsapp] = useState('');
-  const [senaEmail, setSenaEmail] = useState('');
-  const [senaInstrucciones, setSenaInstrucciones] = useState('');
-  const [modoCobroLoading, setModoCobroLoading] = useState(true);
-  const [savingModoCobro, setSavingModoCobro] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/configuracion/mercadopago')
-      .then((r) => r.json())
-      .then((data) => {
-        setMpConectado(!!data.conectado);
-        setMpUserId(data.mpUserId || null);
-      })
-      .catch(() => {})
-      .finally(() => setMpLoading(false));
-
-    fetch('/api/configuracion/hotel')
-      .then((r) => r.json())
-      .then((data) => {
-        setModoCobroSena(data.modoCobroSena === 'manual' ? 'manual' : 'mercadopago');
-        setSenaWhatsapp(data.senaWhatsapp || '');
-        setSenaEmail(data.senaEmail || '');
-        setSenaInstrucciones(data.senaInstrucciones || '');
-      })
-      .catch(() => {})
-      .finally(() => setModoCobroLoading(false));
-  }, []);
-
-  const handleDesconectarMp = async () => {
-    setMpDisconnecting(true);
-    try {
-      const res = await fetch('/api/configuracion/mercadopago', { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setMpConectado(false);
-      setMpUserId(null);
-      toast.success('Mercado Pago desconectado');
-    } catch (err: unknown) {
-      toast.error((err as Error).message || 'Error al desconectar');
-    } finally {
-      setMpDisconnecting(false);
-    }
-  };
-
-  const handleGuardarModoCobro = async () => {
-    setSavingModoCobro(true);
-    try {
-      const res = await fetch('/api/configuracion/hotel', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modoCobroSena, senaWhatsapp, senaEmail, senaInstrucciones }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Modo de cobro guardado');
-    } catch (err: unknown) {
-      toast.error((err as Error).message || 'Error al guardar');
-    } finally {
-      setSavingModoCobro(false);
-    }
-  };
 
   const fetchCanales = useCallback(async () => {
     setLoading(true);
@@ -1374,91 +1522,6 @@ function IntegracionesSection() {
           Sincronizá disponibilidad por habitación con Booking.com y Airbnb vía iCal. Función en prueba.
         </p>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Cobro de seña</CardTitle>
-          <CardDescription>Elegí cómo se cobra la seña de las reservas hechas desde tu página pública.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {modoCobroLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-          ) : (
-            <>
-              <div className="grid gap-1.5 max-w-xs">
-                <Label>Modo de cobro</Label>
-                <Select value={modoCobroSena} onValueChange={(v) => setModoCobroSena(v as 'mercadopago' | 'manual')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mercadopago">Mercado Pago (cobro automático)</SelectItem>
-                    <SelectItem value="manual">Contactar al hotel (cobro manual)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {modoCobroSena === 'mercadopago' ? (
-                mpLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                ) : mpConectado ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm">
-                      <p className="font-medium text-success">Cuenta conectada</p>
-                      {mpUserId && <p className="text-xs text-muted-foreground">ID de cuenta: {mpUserId}</p>}
-                    </div>
-                    <Button variant="outline" size="sm" onClick={handleDesconectarMp} disabled={mpDisconnecting}>
-                      {mpDisconnecting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                      Desconectar
-                    </Button>
-                  </div>
-                ) : (
-                  <Button asChild size="sm">
-                    <a href="/api/configuracion/mercadopago/connect">Conectar Mercado Pago</a>
-                  </Button>
-                )
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    El huésped va a ver estos datos para coordinar el pago de la seña con vos directamente — cargá al menos uno.
-                  </p>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    <div className="grid gap-1.5">
-                      <Label>WhatsApp</Label>
-                      <Input
-                        placeholder="+54 9 11 1234-5678"
-                        value={senaWhatsapp}
-                        onChange={(e) => setSenaWhatsapp(e.target.value)}
-                      />
-                    </div>
-                    <div className="grid gap-1.5">
-                      <Label>Email</Label>
-                      <Input
-                        type="email"
-                        placeholder="reservas@tuhotel.com"
-                        value={senaEmail}
-                        onChange={(e) => setSenaEmail(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label>Instrucciones para el huésped (opcional)</Label>
-                    <Textarea
-                      placeholder="Ej: Transferí a alias hotel.mza o coordiná el medio de pago por WhatsApp."
-                      value={senaInstrucciones}
-                      onChange={(e) => setSenaInstrucciones(e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <Button onClick={handleGuardarModoCobro} disabled={savingModoCobro} size="sm">
-                {savingModoCobro ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                Guardar
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
