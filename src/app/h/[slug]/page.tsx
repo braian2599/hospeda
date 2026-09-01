@@ -7,7 +7,21 @@ import HotelBookingWidget from '@/components/public/HotelBookingWidget';
 import {
   MapPin, Phone, Mail, Users, BedDouble, Building2, Zap,
   Wifi, Coffee, Tv, Waves, Car, Wind, Check, Bed, CheckCircle2, Clock, XCircle,
+  LogIn, LogOut, Ban,
 } from 'lucide-react';
+
+function formatPrecioPublico(monto: number, moneda: string): string {
+  try {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: moneda || 'ARS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(monto);
+  } catch {
+    return `$${monto.toLocaleString('es-AR')}`;
+  }
+}
 
 const PAGO_BANNER: Record<string, { icon: typeof Check; text: string; className: string }> = {
   exito: {
@@ -109,10 +123,10 @@ export default async function HotelLandingPage(
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
           <div className="mx-auto max-w-6xl">
             <h1 className="text-3xl md:text-5xl font-bold text-white drop-shadow-sm">{tenant.nombre}</h1>
-            {(tenant.direccion || tenant.pais) && (
+            {(tenant.direccion || tenant.ciudad || tenant.provincia || tenant.pais) && (
               <p className="mt-2 flex items-center gap-1.5 text-[#FFFFFFE6] text-sm md:text-base">
                 <MapPin className="w-4 h-4 shrink-0" />
-                {[tenant.direccion, tenant.pais].filter(Boolean).join(', ')}
+                {[tenant.direccion, tenant.ciudad, tenant.provincia, tenant.pais].filter(Boolean).join(', ')}
               </p>
             )}
           </div>
@@ -194,6 +208,41 @@ export default async function HotelLandingPage(
           </div>
         )}
 
+        {/* Políticas del hotel */}
+        {(tenant.horaCheckin || tenant.horaCheckout || tenant.politicaCancelacion) && (
+          <div className="space-y-3">
+            <h2 className="text-xl font-semibold">Políticas del hotel</h2>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {(tenant.horaCheckin || tenant.horaCheckout) && (
+                <div className="rounded-xl border bg-card p-5 space-y-3">
+                  {tenant.horaCheckin && (
+                    <p className="flex items-center gap-2.5 text-sm">
+                      <LogIn className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-muted-foreground">Check-in a partir de las</span>
+                      <span className="font-semibold">{tenant.horaCheckin}</span>
+                    </p>
+                  )}
+                  {tenant.horaCheckout && (
+                    <p className="flex items-center gap-2.5 text-sm">
+                      <LogOut className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-muted-foreground">Check-out hasta las</span>
+                      <span className="font-semibold">{tenant.horaCheckout}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+              {tenant.politicaCancelacion && (
+                <div className="rounded-xl border bg-card p-5">
+                  <p className="flex items-start gap-2.5 text-sm">
+                    <Ban className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <span className="text-muted-foreground whitespace-pre-line">{tenant.politicaCancelacion}</span>
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Buscador de disponibilidad */}
         <HotelBookingWidget slug={slug} />
 
@@ -238,7 +287,7 @@ export default async function HotelLandingPage(
                         )}
                         {precioPublico && (
                           <p className="text-sm text-muted-foreground">
-                            Desde ${precioPublico.desde.toLocaleString('es-AR')}
+                            Desde {formatPrecioPublico(precioPublico.desde, tenant.moneda)}
                           </p>
                         )}
                       </div>

@@ -23,8 +23,13 @@ model Tenant {
   email          String
   telefono       String?
   direccion      String?
+  ciudad         String?
+  provincia      String?
   pais           String            @default("Argentina")
   moneda         String            @default("ARS")
+  horaCheckin    String?
+  horaCheckout   String?
+  politicaCancelacion String?
   timezone       String            @default("America/Argentina/Buenos_Aires")
   logoUrl        String?
   descripcion    String?

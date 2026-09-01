@@ -23,7 +23,7 @@ import {
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
   Settings, Copy, Info, Menu, BedDouble, KeyRound, Database, Receipt,
   Users, History, CheckCircle2, XCircle, Lock, Printer, MessageCircle,
-  Image as ImageIcon, Upload, Trash2,
+  Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -252,7 +252,11 @@ export default function ConfiguracionModule() {
 function HotelSection() {
   const { planActual } = useHotelStore();
   const plans = usePlans();
-  const [form, setForm] = useState({ nombre: '', email: '', telefono: '', direccion: '', pais: 'Argentina', moneda: 'ARS', timezone: 'America/Argentina/Buenos_Aires', logoUrl: '', heroUrl: '' });
+  const [form, setForm] = useState({
+    nombre: '', email: '', telefono: '', direccion: '', ciudad: '', provincia: '', pais: 'Argentina',
+    moneda: 'ARS', timezone: 'America/Argentina/Buenos_Aires', logoUrl: '', heroUrl: '',
+    horaCheckin: '', horaCheckout: '', politicaCancelacion: '',
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [metrics, setMetrics] = useState<{ habitaciones: number; usuarios: number } | null>(null);
@@ -266,11 +270,16 @@ function HotelSection() {
           email: data.email || '',
           telefono: data.telefono || '',
           direccion: data.direccion || '',
+          ciudad: data.ciudad || '',
+          provincia: data.provincia || '',
           pais: data.pais || 'Argentina',
           moneda: data.moneda || 'ARS',
           timezone: data.timezone || 'America/Argentina/Buenos_Aires',
           logoUrl: data.logoUrl || '',
           heroUrl: data.heroUrl || '',
+          horaCheckin: data.horaCheckin || '',
+          horaCheckout: data.horaCheckout || '',
+          politicaCancelacion: data.politicaCancelacion || '',
         });
       })
       .catch(() => {})
@@ -290,8 +299,11 @@ function HotelSection() {
       // Only send fields the API knows about — heroUrl stays client-side.
       const payload = {
         nombre: form.nombre, email: form.email, telefono: form.telefono,
-        direccion: form.direccion, pais: form.pais, moneda: form.moneda,
+        direccion: form.direccion, ciudad: form.ciudad, provincia: form.provincia,
+        pais: form.pais, moneda: form.moneda,
         timezone: form.timezone, logoUrl: form.logoUrl,
+        horaCheckin: form.horaCheckin, horaCheckout: form.horaCheckout,
+        politicaCancelacion: form.politicaCancelacion,
       };
       const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -397,6 +409,12 @@ function HotelSection() {
             <ConfigField label="Dirección" icon={MapPin}>
               <Input value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} placeholder="Av. Siempre Viva 742" />
             </ConfigField>
+            <ConfigField label="Ciudad" icon={MapPin}>
+              <Input value={form.ciudad} onChange={e => setForm({ ...form, ciudad: e.target.value })} placeholder="San Fernando del Valle de Catamarca" />
+            </ConfigField>
+            <ConfigField label="Provincia" icon={MapPin}>
+              <Input value={form.provincia} onChange={e => setForm({ ...form, provincia: e.target.value })} placeholder="Catamarca" />
+            </ConfigField>
             <ConfigField label="País" icon={Globe}>
               <Input value={form.pais} onChange={e => setForm({ ...form, pais: e.target.value })} placeholder="Argentina" />
             </ConfigField>
@@ -446,6 +464,31 @@ function HotelSection() {
               <span className="text-sm text-muted-foreground">Vista previa del logo</span>
             </div>
           )}
+
+          <Separator />
+
+          <div>
+            <h4 className="text-sm font-semibold mb-1">Políticas del hotel</h4>
+            <p className="text-xs text-muted-foreground mb-4">Se muestran en la página pública, así el huésped las conoce antes de reservar.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ConfigField label="Check-in a partir de" icon={LogIn}>
+                <Input type="time" value={form.horaCheckin} onChange={e => setForm({ ...form, horaCheckin: e.target.value })} />
+              </ConfigField>
+              <ConfigField label="Check-out hasta" icon={LogOut}>
+                <Input type="time" value={form.horaCheckout} onChange={e => setForm({ ...form, horaCheckout: e.target.value })} />
+              </ConfigField>
+              <div className="md:col-span-2">
+                <ConfigField label="Política de cancelación / reembolsos" icon={Ban} hint="Texto libre — por ejemplo: condiciones para cancelar, plazos de reembolso, etc.">
+                  <Textarea
+                    value={form.politicaCancelacion}
+                    onChange={e => setForm({ ...form, politicaCancelacion: e.target.value })}
+                    placeholder="Ej: Cancelaciones con más de 48hs de anticipación reciben reembolso total. Dentro de las 48hs, se retiene la seña."
+                    rows={3}
+                  />
+                </ConfigField>
+              </div>
+            </div>
+          </div>
 
           <div className="flex justify-end">
             <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: forest }}>

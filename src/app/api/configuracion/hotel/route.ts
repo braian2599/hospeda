@@ -11,7 +11,8 @@ export async function GET() {
       where: { id: tenantId },
       select: {
         nombre: true, slug: true, email: true, telefono: true,
-        direccion: true, pais: true, moneda: true, timezone: true, logoUrl: true,
+        direccion: true, ciudad: true, provincia: true, pais: true, moneda: true, timezone: true, logoUrl: true,
+        horaCheckin: true, horaCheckout: true, politicaCancelacion: true,
         descripcion: true, fotos: true, servicios: true,
         configuracion: {
           select: {
@@ -32,8 +33,13 @@ export async function GET() {
       email: tenant.email,
       telefono: tenant.telefono || '',
       direccion: tenant.direccion || '',
+      ciudad: tenant.ciudad || '',
+      provincia: tenant.provincia || '',
       pais: tenant.pais || 'Argentina',
       moneda: tenant.moneda || 'ARS',
+      horaCheckin: tenant.horaCheckin || '',
+      horaCheckout: tenant.horaCheckout || '',
+      politicaCancelacion: tenant.politicaCancelacion || '',
       timezone: tenant.timezone || 'America/Argentina/Buenos_Aires',
       logoUrl: tenant.logoUrl || config.hotelLogoUrl || '',
       descripcion: tenant.descripcion || '',
@@ -68,7 +74,8 @@ export async function PUT(req: NextRequest) {
     const tenantId = await requireOwner();
     const body = await req.json();
     const {
-      nombre, email, telefono, direccion, pais, moneda, timezone, logoUrl, descripcion, fotos, servicios,
+      nombre, email, telefono, direccion, ciudad, provincia, pais, moneda, timezone, logoUrl, descripcion, fotos, servicios,
+      horaCheckin, horaCheckout, politicaCancelacion,
       tarifasPublicas, mostrarSeccionAgencias, textoAgencias,
       modoCobroSena, senaWhatsapp, senaEmail, senaInstrucciones,
     } = body;
@@ -83,11 +90,16 @@ export async function PUT(req: NextRequest) {
     if (email?.trim()) updateData.email = email.trim().toLowerCase();
     if (telefono !== undefined) updateData.telefono = telefono;
     if (direccion !== undefined) updateData.direccion = direccion;
+    if (ciudad !== undefined) updateData.ciudad = ciudad;
+    if (provincia !== undefined) updateData.provincia = provincia;
     if (pais !== undefined) updateData.pais = pais;
     if (moneda !== undefined) updateData.moneda = moneda;
     if (timezone !== undefined) updateData.timezone = timezone;
     if (logoUrl !== undefined) updateData.logoUrl = logoUrl;
     if (descripcion !== undefined) updateData.descripcion = descripcion;
+    if (horaCheckin !== undefined) updateData.horaCheckin = horaCheckin;
+    if (horaCheckout !== undefined) updateData.horaCheckout = horaCheckout;
+    if (politicaCancelacion !== undefined) updateData.politicaCancelacion = politicaCancelacion;
     if (Array.isArray(fotos)) updateData.fotos = fotos.filter((f: unknown) => typeof f === 'string');
     if (Array.isArray(servicios)) updateData.servicios = servicios.filter((s: unknown) => typeof s === 'string' && s.trim()).map((s: string) => s.trim());
 

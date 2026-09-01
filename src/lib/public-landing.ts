@@ -19,10 +19,15 @@ export async function getPublicTenant(slug: string) {
       fotos: true,
       servicios: true,
       direccion: true,
+      ciudad: true,
+      provincia: true,
       pais: true,
       telefono: true,
       email: true,
       moneda: true,
+      horaCheckin: true,
+      horaCheckout: true,
+      politicaCancelacion: true,
       activo: true,
       configuracion: {
         select: {
