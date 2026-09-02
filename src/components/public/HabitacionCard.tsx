@@ -167,7 +167,7 @@ export default function HabitacionCard({
       </div>
 
       <Dialog open={detalleAbierto} onOpenChange={setDetalleAbierto}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh]">
         <div className="space-y-4">
           <DialogTitle>{habitacion.tipo} — {habitacion.numero}</DialogTitle>
 

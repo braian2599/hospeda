@@ -452,7 +452,7 @@ export default function ClientesModule() {
 
       {/* ═══════════ MODAL CREAR/EDITAR ═══════════ */}
       <Dialog open={modal === 'crear' || modal === 'editar'} onOpenChange={() => setModal(null)}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh]">
           <DialogHeader><DialogTitle>{modal === 'crear' ? 'Nuevo Cliente' : 'Editar Cliente'}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -479,7 +479,7 @@ export default function ClientesModule() {
 
       {/* ═══════════ MODAL DETALLE (enhanced) ═══════════ */}
       <Dialog open={modal === 'detalle'} onOpenChange={() => setModal(null)}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh]">
           {selected && (() => {
             const selectedLoyalty = getLoyaltyInfo(selected.historialEstadias.length);
             const selectedInitials = getInitials(selected.nombre);

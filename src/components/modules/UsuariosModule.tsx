@@ -744,7 +744,7 @@ export default function UsuariosModule() {
 
       {/* ═══════════ DIALOG: CREAR / EDITAR USUARIO (existing) ═══════════ */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
               {ownerEditing ? 'Editar tu perfil' : (editingId ? 'Editar usuario' : 'Crear nuevo usuario')}

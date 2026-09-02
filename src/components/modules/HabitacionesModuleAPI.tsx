@@ -175,7 +175,7 @@ export default function HabitacionesModuleAPI() {
 
       {/* Modal Nueva/Editar */}
       <Dialog open={modal === 'nueva' || modal === 'editar'} onOpenChange={() => setModal(null)}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh]">
           <DialogHeader><DialogTitle>{modal === 'nueva' ? 'Nueva Habitación' : `Editar ${sel}`}</DialogTitle></DialogHeader>
           <div className="grid gap-5 py-4">
             <div className="grid gap-2">

@@ -398,7 +398,7 @@ export default function CheckInModule() {
 
       {/* =================== MODAL CHECK-IN =================== */}
       <Dialog key={`checkin-${dialogKey}`} open={modalTipo === 'checkin'} onOpenChange={closeModal}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh]">
           {selReserva && (
             <>
               <DialogHeader>
@@ -642,7 +642,7 @@ export default function CheckInModule() {
 
       {/* =================== MODAL CHECK-OUT =================== */}
       <Dialog key={`checkout-${dialogKey}`} open={modalTipo === 'checkout'} onOpenChange={closeModal}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md max-h-[90vh]">
           {selReserva && (() => {
             const total = calcularTotalReserva(selReserva.id);
             const pagado = calcularTotalPagado(selReserva.id);

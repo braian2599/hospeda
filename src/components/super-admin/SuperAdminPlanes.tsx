@@ -288,7 +288,7 @@ export default function SuperAdminPlanes() {
 
       {/* ─── Edit Dialog ─── */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />

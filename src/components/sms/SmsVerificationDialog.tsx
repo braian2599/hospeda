@@ -180,7 +180,7 @@ export default function SmsVerificationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden" scrollBody={false}>
         {/* Header with gradient */}
         <div className="bg-gradient-to-br from-[#0F766E1A] via-[#0F766E0D] to-transparent px-6 pt-6 pb-4">
           <DialogHeader>

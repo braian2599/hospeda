@@ -1705,7 +1705,7 @@ export default function ReservasModule() {
 
  {/* ==================== MODAL DETALLE ==================== */}
  <Dialog open={modalDetalleOpen} onOpenChange={setModalDetalleOpen}>
- <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+ <DialogContent className="sm:max-w-3xl max-h-[85vh]">
  <DialogHeader>
  <DialogTitle>Detalle de Reserva #{detalleReserva?.id}</DialogTitle>
  </DialogHeader>
@@ -1836,7 +1836,7 @@ export default function ReservasModule() {
 
  {/* ==================== MODAL NUEVA/EDITAR RESERVA ==================== */}
  <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
- <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto p-6">
+ <DialogContent className="sm:max-w-5xl max-h-[90vh]">
  <DialogHeader>
  <DialogTitle className="text-xl">{editingId ? `Editar Reserva #${editingId}` : 'Nueva Reserva'}</DialogTitle>
  </DialogHeader>

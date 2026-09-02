@@ -701,7 +701,7 @@ export default function FacturacionModule() {
 
       {/* =================== MODAL PAGO =================== */}
       <Dialog open={pagoDialogOpen} onOpenChange={() => setPagoDialogOpen(false)}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <DollarSign className="w-5 h-5" />
@@ -789,7 +789,7 @@ export default function FacturacionModule() {
 
       {/* =================== MODAL RECIBO (ENHANCED) =================== */}
       <Dialog open={reciboDialogOpen} onOpenChange={() => setReciboDialogOpen(false)}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />

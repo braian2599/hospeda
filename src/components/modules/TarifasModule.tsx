@@ -409,7 +409,7 @@ function ComparisonModal({ tariffs, onClose }: {
   const campoDiffers = new Set(campoCounts).size > 1;
 
   return (
-    <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+    <DialogContent className="sm:max-w-4xl max-h-[90vh]">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2 text-xl">
           <GitCompareArrows className="w-5 h-5 text-primary" />
@@ -1336,7 +1336,7 @@ export default function TarifasModule() {
 
       {/* ==================== MODAL: TARIFA (CREAR/EDITAR — WIZARD) ==================== */}
       <Dialog open={modalTarifa} onOpenChange={setModalTarifa}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-5">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh]" bodyClassName="p-5">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               {editandoTarifa ? <><Pencil className="w-5 h-5" />Editar - {editandoTarifa}</> : <><Sparkles className="w-5 h-5 text-primary" />Nueva Tarifa</>}
@@ -1802,7 +1802,7 @@ export default function TarifasModule() {
 
       {/* ==================== MODAL: MÉTODO DE PAGO ==================== */}
       <Dialog open={modalMetodo} onOpenChange={setModalMetodo}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{editandoMetodo ? 'Editar Método de Pago' : 'Nuevo Método de Pago'}</DialogTitle>
           </DialogHeader>

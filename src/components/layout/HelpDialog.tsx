@@ -148,7 +148,7 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md max-h-[85vh]">
           <DialogHeader>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-primary text-white">

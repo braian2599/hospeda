@@ -2110,7 +2110,7 @@ export default function ReportesModule() {
 
       {/* ==================== DIALOG: Agregar Gasto ==================== */}
       <Dialog open={gastoModal} onOpenChange={setGastoModal}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Agregar Gasto</DialogTitle>
           </DialogHeader>
@@ -2148,7 +2148,7 @@ export default function ReportesModule() {
 
       {/* ==================== DIALOG: Detalle Caja ==================== */}
       <Dialog open={cajaDetailIdx !== null} onOpenChange={() => setCajaDetailIdx(null)}>
-        <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[80vh]">
           {selectedCajaTurno && (
             <>
               <DialogHeader>
