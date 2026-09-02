@@ -3,11 +3,10 @@ import type { Metadata } from 'next';
 import { getPublicTenant, badgesDestacados } from '@/lib/public-landing';
 import { parseTarifaPrecios } from '@/lib/tarifa-calc';
 import { precioDesde, promoBadgesPublicos } from '@/lib/tarifas-format';
-import HabitacionCard from '@/components/public/HabitacionCard';
+import LandingTabs from '@/components/public/LandingTabs';
 import {
-  MapPin, Phone, Mail, Building2, Zap,
-  Wifi, Coffee, Tv, Waves, Car, Wind, Check, CheckCircle2, Clock, XCircle,
-  LogIn, LogOut, Ban, Instagram, Facebook,
+  MapPin, Mail, MessageCircle, Instagram, Facebook,
+  Check, CheckCircle2, Clock, XCircle,
 } from 'lucide-react';
 
 const PAGO_BANNER: Record<string, { icon: typeof Check; text: string; className: string }> = {
@@ -49,19 +48,6 @@ function precioPublicoDeHabitacion(
   return { desde, badges: promoBadgesPublicos(precios) };
 }
 
-const SERVICIO_ICONOS: { match: RegExp; icon: typeof Check }[] = [
-  { match: /wi.?fi|internet/i, icon: Wifi },
-  { match: /desayuno/i, icon: Coffee },
-  { match: /tv|televisi/i, icon: Tv },
-  { match: /pileta|piscina/i, icon: Waves },
-  { match: /estacionamiento|cochera|parking/i, icon: Car },
-  { match: /aire|climatizaci/i, icon: Wind },
-];
-
-function iconoServicio(nombre: string): typeof Check {
-  return SERVICIO_ICONOS.find((s) => s.match.test(nombre))?.icon || Check;
-}
-
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
@@ -92,6 +78,12 @@ export default async function HotelLandingPage(
   const pagoBanner = pago ? PAGO_BANNER[pago] : null;
   const direccionCompleta = [tenant.direccion, tenant.ciudad, tenant.provincia, tenant.pais].filter(Boolean).join(', ');
   const tieneCoordenadas = tenant.mapaLat != null && tenant.mapaLng != null;
+  const habitacionesConPrecio = tenant.habitaciones.map((h) => ({
+    habitacion: h,
+    precioDesde: precioPublicoDeHabitacion(h.tipo, config?.tarifasPublicas, tenant.tarifas)?.desde ?? null,
+    badges: precioPublicoDeHabitacion(h.tipo, config?.tarifasPublicas, tenant.tarifas)?.badges ?? [],
+  }));
+  const hayContacto = !!(tenant.telefono || tenant.email || tenant.instagramUrl || tenant.facebookUrl);
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,20 +114,7 @@ export default async function HotelLandingPage(
         </div>
       </div>
 
-      {/* Franja de promociones destacadas — bien arriba, no al final */}
-      {promosDestacadas.length > 0 && (
-        <div className="bg-primary text-primary-foreground">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm font-medium">
-            {promosDestacadas.map((b) => (
-              <span key={b} className="inline-flex items-center gap-1.5">
-                <Zap className="w-4 h-4" /> {b}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 space-y-10">
         {/* Sobre el hotel + Contacto — arriba de todo */}
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-3">
@@ -144,185 +123,77 @@ export default async function HotelLandingPage(
               {tenant.descripcion || 'Este hotel todavía no cargó una descripción.'}
             </p>
           </div>
-          {(tenant.telefono || tenant.email || tenant.instagramUrl || tenant.facebookUrl) && (
+          {hayContacto && (
             <div className="space-y-3 rounded-xl border p-5 bg-card h-fit">
               <h3 className="font-semibold text-sm">Contacto</h3>
-              {tenant.telefono && (
-                <a
-                  href={`https://wa.me/${tenant.telefono.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-primary hover:underline"
-                >
-                  <Phone className="w-4 h-4 shrink-0" /> {tenant.telefono}
-                </a>
-              )}
-              {tenant.email && (
-                <a href={`mailto:${tenant.email}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
-                  <Mail className="w-4 h-4 shrink-0" /> {tenant.email}
-                </a>
-              )}
-              {tenant.instagramUrl && (
-                <a href={tenant.instagramUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                  <Instagram className="w-4 h-4 shrink-0" /> Instagram
-                </a>
-              )}
-              {tenant.facebookUrl && (
-                <a href={tenant.facebookUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                  <Facebook className="w-4 h-4 shrink-0" /> Facebook
-                </a>
-              )}
+              <div className="flex items-center gap-2.5">
+                {tenant.telefono && (
+                  <a
+                    href={`https://wa.me/${tenant.telefono.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`WhatsApp: ${tenant.telefono}`}
+                    className="flex items-center justify-center w-10 h-10 rounded-full border bg-background text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                  >
+                    <MessageCircle className="w-[18px] h-[18px]" />
+                  </a>
+                )}
+                {tenant.email && (
+                  <a
+                    href={`mailto:${tenant.email}`}
+                    title={tenant.email}
+                    className="flex items-center justify-center w-10 h-10 rounded-full border bg-background text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                  >
+                    <Mail className="w-[18px] h-[18px]" />
+                  </a>
+                )}
+                {tenant.facebookUrl && (
+                  <a
+                    href={tenant.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Facebook"
+                    className="flex items-center justify-center w-10 h-10 rounded-full border bg-background text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                  >
+                    <Facebook className="w-[18px] h-[18px]" />
+                  </a>
+                )}
+                {tenant.instagramUrl && (
+                  <a
+                    href={tenant.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Instagram"
+                    className="flex items-center justify-center w-10 h-10 rounded-full border bg-background text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                  >
+                    <Instagram className="w-[18px] h-[18px]" />
+                  </a>
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Ubicación */}
-        {(tieneCoordenadas || direccionCompleta) && (
-          <div className="space-y-3">
-            <h2 className="text-xl font-semibold">Ubicación</h2>
-            {tieneCoordenadas && (
-              <div className="rounded-xl border overflow-hidden">
-                <iframe
-                  src={`https://www.google.com/maps?q=${tenant.mapaLat},${tenant.mapaLng}&z=16&output=embed`}
-                  width="100%"
-                  height="320"
-                  style={{ border: 0, display: 'block' }}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title={`Ubicación de ${tenant.nombre}`}
-                />
-              </div>
-            )}
-            <a
-              href={
-                tieneCoordenadas
-                  ? `https://www.google.com/maps/dir/?api=1&destination=${tenant.mapaLat},${tenant.mapaLng}`
-                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccionCompleta)}`
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-            >
-              <MapPin className="w-4 h-4 shrink-0" /> {tieneCoordenadas ? 'Cómo llegar' : 'Ver en Google Maps'}
-            </a>
-          </div>
-        )}
-
-        {/* Galería */}
-        {galeria.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-xl font-semibold">Fotos</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {galeria.map((url) => (
-                <div key={url} className="aspect-video rounded-lg overflow-hidden border bg-muted">
-                  <img src={url} alt="" className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Servicios */}
-        {tenant.servicios.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-xl font-semibold">Servicios</h2>
-            <div className="flex flex-wrap gap-3">
-              {tenant.servicios.map((s) => {
-                const Icono = iconoServicio(s);
-                return (
-                  <span key={s} className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
-                    <Icono className="w-4 h-4 text-primary shrink-0" /> {s}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Políticas del hotel */}
-        {(tenant.horaCheckin || tenant.horaCheckout || tenant.politicaCancelacion) && (
-          <div className="space-y-3">
-            <h2 className="text-xl font-semibold">Políticas del hotel</h2>
-            <div className="grid sm:grid-cols-2 gap-4">
-              {(tenant.horaCheckin || tenant.horaCheckout) && (
-                <div className="rounded-xl border bg-card p-5 space-y-3">
-                  {tenant.horaCheckin && (
-                    <p className="flex items-center gap-2.5 text-sm">
-                      <LogIn className="w-4 h-4 text-primary shrink-0" />
-                      <span className="text-muted-foreground">Check-in a partir de las</span>
-                      <span className="font-semibold">{tenant.horaCheckin}</span>
-                    </p>
-                  )}
-                  {tenant.horaCheckout && (
-                    <p className="flex items-center gap-2.5 text-sm">
-                      <LogOut className="w-4 h-4 text-primary shrink-0" />
-                      <span className="text-muted-foreground">Check-out hasta las</span>
-                      <span className="font-semibold">{tenant.horaCheckout}</span>
-                    </p>
-                  )}
-                </div>
-              )}
-              {tenant.politicaCancelacion && (
-                <div className="rounded-xl border bg-card p-5">
-                  <p className="flex items-start gap-2.5 text-sm">
-                    <Ban className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <span className="text-muted-foreground whitespace-pre-line">{tenant.politicaCancelacion}</span>
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Habitaciones — cada tarjeta permite reservar directamente, con sus propias fechas */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Habitaciones</h2>
-          {tenant.habitaciones.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Todavía no hay habitaciones cargadas.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {tenant.habitaciones.map((h) => {
-                const precioPublico = precioPublicoDeHabitacion(h.tipo, config?.tarifasPublicas, tenant.tarifas);
-                return (
-                  <HabitacionCard
-                    key={h.numero}
-                    slug={slug}
-                    habitacion={h}
-                    telefonoHotel={tenant.telefono || ''}
-                    moneda={tenant.moneda}
-                    precioDesde={precioPublico ? precioPublico.desde : null}
-                    badges={precioPublico?.badges || []}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Sección para agencias (B2B, sin precios) */}
-        {config?.mostrarSeccionAgencias && (
-          <div className="rounded-xl border bg-card p-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-            <div className="flex items-start gap-3">
-              <Building2 className="w-6 h-6 text-primary shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-semibold">¿Sos agencia de viajes?</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {config.textoAgencias || 'Trabajamos con agencias de viajes. Contactanos para conocer nuestros convenios.'}
-                </p>
-              </div>
-            </div>
-            {tenant.telefono && (
-              <a
-                href={`https://wa.me/${tenant.telefono.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity shrink-0"
-              >
-                <Phone className="w-4 h-4" /> Contactar
-              </a>
-            )}
-          </div>
-        )}
+        {/* Reservas / Acerca del Hotel / Promociones */}
+        <LandingTabs
+          slug={slug}
+          moneda={tenant.moneda}
+          telefonoHotel={tenant.telefono || ''}
+          habitaciones={habitacionesConPrecio}
+          horaCheckin={tenant.horaCheckin || ''}
+          horaCheckout={tenant.horaCheckout || ''}
+          politicaCancelacion={tenant.politicaCancelacion || ''}
+          servicios={tenant.servicios}
+          direccionCompleta={direccionCompleta}
+          tieneCoordenadas={tieneCoordenadas}
+          mapaLat={tenant.mapaLat}
+          mapaLng={tenant.mapaLng}
+          nombreHotel={tenant.nombre}
+          galeria={galeria}
+          promosDestacadas={promosDestacadas}
+          mostrarSeccionAgencias={!!config?.mostrarSeccionAgencias}
+          textoAgencias={config?.textoAgencias || null}
+        />
       </div>
 
       <footer className="border-t py-6 text-center text-xs text-muted-foreground">
