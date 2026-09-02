@@ -470,7 +470,6 @@ interface NuevaReservaForm {
  habitacion2: string;
  reservaMultiple: boolean;
  filtroMatrimonial: boolean;
- filtroCompartidas: boolean;
  // Client
  clienteId: string | null;
  huesped: string;
@@ -502,7 +501,6 @@ const emptyForm: NuevaReservaForm = {
  habitacion2: '',
  reservaMultiple: false,
  filtroMatrimonial: false,
- filtroCompartidas: false,
  clienteId: null,
  huesped: '',
  dni: '',
@@ -827,19 +825,16 @@ export default function ReservasModule() {
  const individualesCompartidas = form.filtroMatrimonial
  ? compartidas.filter(h => h.camasMatrimoniales > 0)
  : compartidas;
- if (form.filtroCompartidas) return individualesCompartidas;
  const normales = disponibles.filter(h => h.tipo !== 'Compartida');
  const individualesNormales = form.filtroMatrimonial
  ? normales.filter(h => h.camasMatrimoniales > 0 && h.capacidad >= personasBusqueda)
  : normales.filter(h => h.capacidad >= personasBusqueda);
  return [...individualesNormales, ...individualesCompartidas];
- }, [disponibles, form.filtroMatrimonial, form.filtroCompartidas, personasBusqueda]);
+ }, [disponibles, form.filtroMatrimonial, personasBusqueda]);
 
  // ==================== COMPUTED: SUGERENCIAS DE COMBINACIÓN ====================
  const sugerenciasCombinacion: CombinacionSugerencia[] = useMemo(() => {
- // Las combinaciones son siempre de habitaciones normales (no compartidas):
- // si el usuario pidió ver solo compartidas, no tiene sentido sugerirlas.
- if (personasBusqueda <= 1 || form.filtroCompartidas) return [];
+ if (personasBusqueda <= 1) return [];
  const normales = disponibles.filter(h => h.tipo !== 'Compartida');
  // Candidatas para combinar: sin filtro → sin cama matrimonial; con filtro → con cama matrimonial
  const candidatas = form.filtroMatrimonial
@@ -859,7 +854,7 @@ export default function ReservasModule() {
  }
  results.sort((a, b) => a.capacidadTotal - b.capacidadTotal);
  return results;
- }, [disponibles, personasBusqueda, form.filtroMatrimonial, form.filtroCompartidas]);
+ }, [disponibles, personasBusqueda, form.filtroMatrimonial]);
 
  // ==================== COMPUTED: BÚSQUEDA DE CLIENTES EN VIVO ====================
  // buscarCliente ya filtra en memoria (sin red), así que se puede derivar en
@@ -946,7 +941,6 @@ export default function ReservasModule() {
  habitacion2: '',
  reservaMultiple: false,
  filtroMatrimonial: false,
- filtroCompartidas: false,
  clienteId: r.idCliente,
  huesped: r.huesped,
  dni: r.dni,
@@ -2096,8 +2090,7 @@ export default function ReservasModule() {
  </div>
  )}
 
- {/* Filtros de listado */}
- <div className="flex flex-wrap items-center gap-4">
+ {/* Filtro cama matrimonial */}
  <div className="flex items-center gap-2">
  <Checkbox
  id="filtro-matrimonial"
@@ -2107,17 +2100,6 @@ export default function ReservasModule() {
  <Label htmlFor="filtro-matrimonial" className="text-sm cursor-pointer">
  Solo habitaciones con cama matrimonial
  </Label>
- </div>
- <div className="flex items-center gap-2">
- <Checkbox
- id="filtro-compartidas"
- checked={form.filtroCompartidas}
- onCheckedChange={(checked) => updateForm({ filtroCompartidas: !!checked })}
- />
- <Label htmlFor="filtro-compartidas" className="text-sm cursor-pointer">
- Solo habitaciones compartidas
- </Label>
- </div>
  </div>
 
  <Button onClick={handleSearchDisponibilidad} disabled={!form.checkin || !form.checkout}>
@@ -2131,9 +2113,9 @@ export default function ReservasModule() {
  <p className="text-sm text-muted-foreground">
  {disponiblesFiltradas.length} de {disponibles.length} habitación(es) disponible(s)
  </p>
- {(form.filtroMatrimonial || form.filtroCompartidas) && (
+ {form.filtroMatrimonial && (
  <p className="text-xs text-muted-foreground">
- (Filtrando: {[form.filtroMatrimonial && 'solo con cama matrimonial', form.filtroCompartidas && 'solo compartidas'].filter(Boolean).join(' · ')})
+ (Filtrando: solo con cama matrimonial)
  </p>
  )}
  </div>
@@ -2165,7 +2147,6 @@ export default function ReservasModule() {
  {disponiblesFiltradas.length} habitación(es) disponible(s)
  {sugerenciasCombinacion.length > 0 && ` · ${sugerenciasCombinacion.length} combinación(es)`}
  {form.filtroMatrimonial ? ' (filtro: cama matrimonial)' : ''}
- {form.filtroCompartidas ? ' (filtro: compartidas)' : ''}
  </p>
  )}
 
