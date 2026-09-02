@@ -6,8 +6,9 @@ import type { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import WhatsAppIcon from './WhatsAppIcon';
 import {
-  Loader2, CalendarDays, Users, Bed, BedDouble, Zap, Phone,
+  Loader2, CalendarDays, Users, Bed, BedDouble, Zap,
   ChevronLeft, ChevronRight, Images, X,
 } from 'lucide-react';
 
@@ -239,7 +240,7 @@ export default function HabitacionCard({
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 rounded-md border text-sm font-medium px-3 py-2 hover:bg-muted transition-colors"
                 >
-                  <Phone className="w-4 h-4" /> Consultar por WhatsApp
+                  <WhatsAppIcon className="w-4 h-4" /> Consultar por WhatsApp
                 </a>
               )
             ) : (

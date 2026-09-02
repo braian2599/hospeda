@@ -4,8 +4,10 @@ import { getPublicTenant, badgesDestacados } from '@/lib/public-landing';
 import { parseTarifaPrecios } from '@/lib/tarifa-calc';
 import { precioDesde, promoBadgesPublicos } from '@/lib/tarifas-format';
 import LandingTabs from '@/components/public/LandingTabs';
+import FadeIn from '@/components/public/FadeIn';
+import WhatsAppIcon from '@/components/public/WhatsAppIcon';
 import {
-  MapPin, Mail, MessageCircle, Instagram, Facebook,
+  MapPin, Mail, Instagram, Facebook,
   Check, CheckCircle2, Clock, XCircle,
 } from 'lucide-react';
 
@@ -103,9 +105,12 @@ export default async function HotelLandingPage(
         <div className="absolute inset-0 bg-gradient-to-t from-[#000000B3] via-[#00000033] to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
           <div className="mx-auto max-w-6xl">
-            <h1 className="text-3xl md:text-5xl font-bold text-white drop-shadow-sm">{tenant.nombre}</h1>
+            <h1 className="animate-slide-up text-3xl md:text-5xl font-bold text-white drop-shadow-sm">{tenant.nombre}</h1>
             {direccionCompleta && (
-              <p className="mt-2 flex items-center gap-1.5 text-[#FFFFFFE6] text-sm md:text-base">
+              <p
+                className="animate-slide-up mt-2 flex items-center gap-1.5 text-[#FFFFFFE6] text-sm md:text-base"
+                style={{ animationDelay: '80ms' }}
+              >
                 <MapPin className="w-4 h-4 shrink-0" />
                 {direccionCompleta}
               </p>
@@ -114,35 +119,35 @@ export default async function HotelLandingPage(
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-12 space-y-12">
         {/* Sobre el hotel + Contacto — arriba de todo */}
-        <div className="grid md:grid-cols-3 gap-8">
+        <FadeIn className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-3">
-            <h2 className="text-xl font-semibold">Sobre el hotel</h2>
-            <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
+            <h2 className="text-xl font-semibold text-center md:text-left">Sobre el hotel</h2>
+            <p className="text-muted-foreground whitespace-pre-line leading-relaxed text-center md:text-left">
               {tenant.descripcion || 'Este hotel todavía no cargó una descripción.'}
             </p>
           </div>
           {hayContacto && (
-            <div className="space-y-3 rounded-xl border p-5 bg-card h-fit">
-              <h3 className="font-semibold text-sm">Contacto</h3>
-              <div className="flex items-center gap-2.5">
+            <div className="flex flex-col items-center text-center gap-4 rounded-xl border p-6 bg-card h-fit">
+              <h3 className="font-semibold text-sm tracking-wide uppercase text-muted-foreground">Contacto</h3>
+              <div className="flex items-center justify-center gap-3">
                 {tenant.telefono && (
                   <a
                     href={`https://wa.me/${tenant.telefono.replace(/\D/g, '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     title={`WhatsApp: ${tenant.telefono}`}
-                    className="flex items-center justify-center w-10 h-10 rounded-full border bg-background text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                    className="flex items-center justify-center w-11 h-11 rounded-full border bg-background text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary hover:scale-110 hover:shadow-md transition-all duration-200"
                   >
-                    <MessageCircle className="w-[18px] h-[18px]" />
+                    <WhatsAppIcon className="w-[18px] h-[18px]" />
                   </a>
                 )}
                 {tenant.email && (
                   <a
                     href={`mailto:${tenant.email}`}
                     title={tenant.email}
-                    className="flex items-center justify-center w-10 h-10 rounded-full border bg-background text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                    className="flex items-center justify-center w-11 h-11 rounded-full border bg-background text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary hover:scale-110 hover:shadow-md transition-all duration-200"
                   >
                     <Mail className="w-[18px] h-[18px]" />
                   </a>
@@ -153,7 +158,7 @@ export default async function HotelLandingPage(
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Facebook"
-                    className="flex items-center justify-center w-10 h-10 rounded-full border bg-background text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                    className="flex items-center justify-center w-11 h-11 rounded-full border bg-background text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary hover:scale-110 hover:shadow-md transition-all duration-200"
                   >
                     <Facebook className="w-[18px] h-[18px]" />
                   </a>
@@ -164,7 +169,7 @@ export default async function HotelLandingPage(
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Instagram"
-                    className="flex items-center justify-center w-10 h-10 rounded-full border bg-background text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                    className="flex items-center justify-center w-11 h-11 rounded-full border bg-background text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary hover:scale-110 hover:shadow-md transition-all duration-200"
                   >
                     <Instagram className="w-[18px] h-[18px]" />
                   </a>
@@ -172,7 +177,7 @@ export default async function HotelLandingPage(
               </div>
             </div>
           )}
-        </div>
+        </FadeIn>
 
         {/* Reservas / Acerca del Hotel / Promociones */}
         <LandingTabs
