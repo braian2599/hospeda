@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
             "font-src 'self' https://fonts.gstatic.com data:",
             "img-src 'self' data: https: blob:",
             "connect-src 'self' https://api.mercadopago.com https://www.mercadopago.com https://*.r2.cloudflarestorage.com wss:",
-            "frame-src 'self' https://www.mercadopago.com",
+            "frame-src 'self' https://www.mercadopago.com https://www.google.com",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self' https://www.mercadopago.com",
