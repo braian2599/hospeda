@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { parseTarifaPrecios } from '@/lib/tarifa-calc';
-import { promoBadgesPublicos } from '@/lib/tarifas-format';
+import { promoBadgesTab } from '@/lib/tarifas-format';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import {
   CreditCard, Building2, FileText, Shield, Headphones, Download,
@@ -730,7 +730,7 @@ const LANDING_TABS: { id: LandingTabId; label: string; icon: React.ComponentType
 /** Tarifas activas con una promoción activa (noches de cortesía / niños diferenciado) — misma lógica que la landing pública. */
 function tarifasConPromo(tarifas: TarifaDTO[]): (TarifaDTO & { badges: string[] })[] {
   return tarifas
-    .map((t) => ({ ...t, badges: promoBadgesPublicos(parseTarifaPrecios(t.precios)) }))
+    .map((t) => ({ ...t, badges: promoBadgesTab(parseTarifaPrecios(t.precios)) }))
     .filter((t) => t.badges.length > 0);
 }
 
