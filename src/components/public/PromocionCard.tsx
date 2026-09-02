@@ -171,8 +171,23 @@ export default function PromocionCard({
             <div className="flex items-start gap-2 text-sm">
               <Gift className="w-4 h-4 text-primary shrink-0 mt-0.5" />
               <span>
-                <span className="font-medium">{promocion.acompanante.etiqueta}:</span> {promocion.acompanante.cantidad} sin cargo
-                {promocion.acompanante.personasHospedan != null && ` — para grupos de ${promocion.acompanante.personasHospedan} personas`}
+                <span className="font-medium">{promocion.acompanante.etiqueta}:</span>{' '}
+                {promocion.acompanante.personasHospedan != null ? (
+                  <>
+                    grupo de {promocion.acompanante.personasHospedan} persona{promocion.acompanante.personasHospedan !== 1 ? 's' : ''} que paga{promocion.acompanante.personasHospedan !== 1 ? 'n' : ''}{' '}
+                    <span className="font-semibold text-primary">
+                      + {promocion.acompanante.cantidad} {promocion.acompanante.cantidad === 1 ? 'persona' : 'personas'} sin cargo
+                    </span>{' '}
+                    (no se cuenta dentro del grupo de {promocion.acompanante.personasHospedan})
+                  </>
+                ) : (
+                  <>
+                    <span className="font-semibold text-primary">
+                      {promocion.acompanante.cantidad} {promocion.acompanante.cantidad === 1 ? 'persona' : 'personas'} sin cargo
+                    </span>{' '}
+                    además del grupo que reserva
+                  </>
+                )}
                 {promocion.acompanante.habitacionNumero && ` · incluye habitación ${promocion.acompanante.habitacionNumero}${promocion.acompanante.habitacionTipo ? ` (${promocion.acompanante.habitacionTipo})` : ''} sin cargo`}
               </span>
             </div>
@@ -257,7 +272,7 @@ export default function PromocionCard({
 
             {promocion.acompanante?.personasHospedan != null && (
               <p className="text-xs text-muted-foreground">
-                {promocion.acompanante.etiqueta}: válido para grupos de {promocion.acompanante.personasHospedan} personas.
+                {promocion.acompanante.etiqueta}: válido para un grupo de {promocion.acompanante.personasHospedan} persona{promocion.acompanante.personasHospedan !== 1 ? 's' : ''} paga{promocion.acompanante.personasHospedan !== 1 ? 'n' : ''} — buscá con esa cantidad de personas. El acompañante sin cargo se suma aparte, no se cuenta en la búsqueda.
               </p>
             )}
 
