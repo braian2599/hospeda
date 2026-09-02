@@ -62,6 +62,8 @@ export default function HabitacionCard({
 
   const [consultando, setConsultando] = useState(false);
   const [error, setError] = useState('');
+  const [confirmando, setConfirmando] = useState(false);
+  const [redirigiendo, setRedirigiendo] = useState(false);
 
   const camas = [
     habitacion.camasMatrimoniales > 0 ? `${habitacion.camasMatrimoniales} matrimonial${habitacion.camasMatrimoniales !== 1 ? 'es' : ''}` : null,
@@ -70,10 +72,18 @@ export default function HabitacionCard({
 
   const handleSelectRango = (r: DateRange | undefined) => {
     setRango(r);
+    setConfirmando(false);
+    setError('');
     if (r?.from && r?.to) setCalendarioAbierto(false);
   };
 
-  const buscarYReservar = async () => {
+  const handleCambiarPersonas = (v: number) => {
+    setPersonas(v);
+    setConfirmando(false);
+    setError('');
+  };
+
+  const consultarDisponibilidad = async () => {
     setError('');
     if (!rango?.from || !rango?.to) {
       setError('Elegí fecha de entrada y salida');
@@ -92,13 +102,24 @@ export default function HabitacionCard({
         setError('No hay disponibilidad para esas fechas.');
         return;
       }
-      const destino = new URLSearchParams({ habitacion: habitacion.numero, checkin, checkout, personas: String(personas) });
-      router.push(`/h/${slug}/reservar?${destino}`);
+      setConfirmando(true);
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al consultar disponibilidad');
     } finally {
       setConsultando(false);
     }
+  };
+
+  const irAReservar = () => {
+    if (!rango?.from || !rango?.to) return;
+    setRedirigiendo(true);
+    const destino = new URLSearchParams({
+      habitacion: habitacion.numero,
+      checkin: toISO(rango.from),
+      checkout: toISO(rango.to),
+      personas: String(personas),
+    });
+    router.push(`/h/${slug}/reservar?${destino}`);
   };
 
   const etiquetaFechas = rango?.from
@@ -180,19 +201,21 @@ export default function HabitacionCard({
           )}
 
           <div className="space-y-3">
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Users className="w-4 h-4 shrink-0" /> Hasta {habitacion.capacidad} persona{habitacion.capacidad !== 1 ? 's' : ''}
+            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Users className="w-4 h-4 shrink-0" /> Hasta {habitacion.capacidad} persona{habitacion.capacidad !== 1 ? 's' : ''}
+              </span>
+              {camas && (
+                <span className="flex items-center gap-1">
+                  <span aria-hidden>·</span> <Bed className="w-4 h-4 shrink-0" /> {camas}
+                </span>
+              )}
+              {precioDesde !== null && (
+                <span className="flex items-center gap-1 font-semibold text-foreground">
+                  <span aria-hidden>·</span> Desde {formatMoney(precioDesde, moneda)}
+                </span>
+              )}
             </p>
-
-            {camas && (
-              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Bed className="w-4 h-4 shrink-0" /> {camas}
-              </p>
-            )}
-
-            {precioDesde !== null && (
-              <p className="text-sm font-semibold text-foreground">Desde {formatMoney(precioDesde, moneda)}</p>
-            )}
 
             {badges.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
@@ -251,7 +274,7 @@ export default function HabitacionCard({
                       min={1}
                       max={habitacion.capacidad}
                       value={personas}
-                      onChange={(e) => setPersonas(Math.min(habitacion.capacidad, Math.max(1, parseInt(e.target.value) || 1)))}
+                      onChange={(e) => handleCambiarPersonas(Math.min(habitacion.capacidad, Math.max(1, parseInt(e.target.value) || 1)))}
                       className="w-full text-sm bg-transparent outline-none"
                       aria-label="Cantidad de personas"
                     />
@@ -259,14 +282,39 @@ export default function HabitacionCard({
                   </div>
                 </div>
                 {error && <p className="text-xs text-destructive">{error}</p>}
-                <button
-                  onClick={buscarYReservar}
-                  disabled={consultando}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
-                >
-                  {consultando ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  Consultar disponibilidad y reservar
-                </button>
+
+                {confirmando ? (
+                  <div className="rounded-lg border bg-[#0F766E0D] p-3 space-y-2.5">
+                    <p className="text-sm">
+                      Hay disponibilidad para <strong>{etiquetaFechas}</strong>. ¿Deseás reservar?
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={irAReservar}
+                        disabled={redirigiendo}
+                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+                      >
+                        {redirigiendo ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                        Sí, reservar
+                      </button>
+                      <button
+                        onClick={() => setConfirmando(false)}
+                        className="rounded-md border text-sm font-medium px-3 py-2 hover:bg-muted transition-colors shrink-0"
+                      >
+                        Elegir otras fechas
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={consultarDisponibilidad}
+                    disabled={consultando}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+                  >
+                    {consultando ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    Consultar disponibilidad
+                  </button>
+                )}
               </div>
             )}
           </div>
