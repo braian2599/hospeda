@@ -1942,7 +1942,7 @@ export default function ReservasModule() {
 
  {/* ==================== MODAL NUEVA/EDITAR RESERVA ==================== */}
  <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
- <DialogContent className="sm:max-w-2xl max-h-[90vh]">
+ <DialogContent className="sm:max-w-5xl max-h-[90vh]">
  <DialogHeader>
  <div className="flex items-center gap-3">
  <div className="w-10 h-10 rounded-xl bg-[#0F766E1A] flex items-center justify-center shrink-0">
@@ -2020,8 +2020,8 @@ export default function ReservasModule() {
 
  {/* ==================== TAB: DISPONIBILIDAD ==================== */}
  <TabsContent value="disponibilidad" className="space-y-4 mt-4">
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 card-grid-stagger">
- <div className="grid gap-1.5 sm:col-span-2">
+ <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
+ <div className="grid gap-1.5 sm:col-span-2 lg:col-span-2">
  <DateRangePickerInline
  checkin={form.checkin}
  checkout={form.checkout}
@@ -2123,11 +2123,11 @@ export default function ReservasModule() {
  </p>
  )}
  </div>
- <div className="flex flex-wrap gap-3 max-h-52 overflow-y-auto">
+ <div className="flex flex-wrap justify-center gap-3 max-h-52 overflow-y-auto">
  {disponiblesFiltradas.map(hab => {
  const isSelected = !form.reservaMultiple && form.habitacion === hab.numero;
  return (
- <div key={hab.numero} className="w-[200px] shrink-0">
+ <div key={hab.numero} className="w-full sm:w-[calc(33.333%-0.5rem)]">
  <RoomSelectCard
  hab={hab}
  selected={isSelected}
@@ -2184,29 +2184,29 @@ export default function ReservasModule() {
  {sugerenciasOpen && sugerenciasCombinacion.length > 0 && (
  <div className="space-y-3">
  <p className="text-sm font-medium text-muted-foreground">Sugerencias (combinación de 2 habitaciones)</p>
+ <div className="flex flex-wrap justify-center gap-4">
  {sugerenciasCombinacion.map((sug, i) => {
  const isSelectedCombo = form.habitacion === sug.habitaciones[0].numero && form.habitacion2 === sug.habitaciones[1].numero;
  const isSelectedComboRev = form.habitacion === sug.habitaciones[1].numero && form.habitacion2 === sug.habitaciones[0].numero;
  const isComboSelected = isSelectedCombo || isSelectedComboRev;
  return (
- <div key={i} className="space-y-2">
+ <div key={i} className="w-full sm:w-[calc(50%-0.5rem)] space-y-2">
  <div
- className={`inline-block max-w-full rounded-lg border p-3 transition-all ${
+ className={`rounded-lg border p-3 transition-all ${
  isComboSelected
  ? 'border-primary cursor-default'
  : 'border-border hover:border-primary/40 hover:bg-[#F1F5F94D] cursor-pointer'
  }`}
  onClick={() => { if (!isComboSelected) selectCombinacion(sug); }}
  >
- {/* Mismo ancho de tarjeta que la lista individual, para que midan exactamente lo mismo — y el
- recuadro se ajusta a las 2 tarjetas en vez de estirarse a lo ancho del modal. */}
- <div className="flex flex-wrap gap-3">
+ {/* 2 tarjetas repartiendo el ancho del grupo en partes iguales */}
+ <div className="grid grid-cols-2 gap-3">
  {sug.habitaciones.map((hab, hi) => {
  const isFirst = (isSelectedComboRev ? hi === 1 : hi === 0);
  const pVal = isFirst ? (parseInt(form.personas) || 1) : (parseInt(form.personas2) || 1);
  return (
- <div key={hab.numero} className="w-[200px] shrink-0">
  <RoomSelectCard
+ key={hab.numero}
  hab={hab}
  selected={isComboSelected}
  dashed={!isComboSelected}
@@ -2214,7 +2214,6 @@ export default function ReservasModule() {
  onPersonasChange={val => updateForm(isFirst ? { personas: String(val) } : { personas2: String(val) })}
  showNinos={false}
  />
- </div>
  );
  })}
  </div>
@@ -2228,10 +2227,10 @@ export default function ReservasModule() {
  </Badge>
  {isComboSelected && <span className="text-xs text-primary font-medium">✓ Seleccionada</span>}
  </div>
- {i < sugerenciasCombinacion.length - 1 && <Separator />}
  </div>
  );
  })}
+ </div>
  </div>
  )}
  </TabsContent>
