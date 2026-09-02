@@ -147,10 +147,11 @@ export default function HabitacionCard({
 
       <Dialog open={detalleAbierto} onOpenChange={setDetalleAbierto}>
         <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+        <div className="space-y-4">
           <DialogTitle>{habitacion.tipo} — {habitacion.numero}</DialogTitle>
 
           {habitacion.fotos.length > 0 && (
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-muted -mt-2">
+            <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
               <img src={habitacion.fotos[fotoIndex]} alt="" className="w-full h-full object-cover" />
               {habitacion.fotos.length > 1 && (
                 <>
@@ -179,11 +180,19 @@ export default function HabitacionCard({
           )}
 
           <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> Hasta {habitacion.capacidad} persona{habitacion.capacidad !== 1 ? 's' : ''}</span>
-              {camas && <span className="flex items-center gap-1.5"><Bed className="w-4 h-4" /> {camas}</span>}
-              {precioDesde !== null && <span className="font-semibold text-foreground">Desde {formatMoney(precioDesde, moneda)}</span>}
-            </div>
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Users className="w-4 h-4 shrink-0" /> Hasta {habitacion.capacidad} persona{habitacion.capacidad !== 1 ? 's' : ''}
+            </p>
+
+            {camas && (
+              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Bed className="w-4 h-4 shrink-0" /> {camas}
+              </p>
+            )}
+
+            {precioDesde !== null && (
+              <p className="text-sm font-semibold text-foreground">Desde {formatMoney(precioDesde, moneda)}</p>
+            )}
 
             {badges.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
@@ -261,6 +270,7 @@ export default function HabitacionCard({
               </div>
             )}
           </div>
+        </div>
         </DialogContent>
       </Dialog>
     </div>
