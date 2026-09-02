@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
-  Loader2, CalendarDays, Users, Bed, BedDouble, Zap, Baby, Gift, Search,
+  Loader2, CalendarDays, Users, Bed, BedDouble, Zap, Baby, Gift, Search, Sparkles,
 } from 'lucide-react';
 import type { HabitacionPublica } from './HabitacionCard';
 import type { CampoPersonalizado } from '@/lib/types';
@@ -67,6 +67,14 @@ function formatMoney(n: number, moneda: string): string {
   } catch {
     return `$${n.toLocaleString('es-AR')}`;
   }
+}
+
+function IconCircle({ icon: Icon }: { icon: typeof Zap }) {
+  return (
+    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+      <Icon className="w-4 h-4 text-primary" />
+    </div>
+  );
 }
 
 export default function PromocionCard({
@@ -142,70 +150,87 @@ export default function PromocionCard({
 
   return (
     <>
-      <div className="rounded-xl border bg-primary/5 border-primary/20 p-5 space-y-3 transition-all hover:shadow-sm hover:-translate-y-0.5">
-        <h3 className="font-semibold">{promocion.nombre}</h3>
+      <div className="group rounded-2xl border bg-card overflow-hidden transition-all hover:shadow-lg hover:border-primary/30">
+        <div className="h-1.5 bg-gradient-to-r from-primary to-primary/30" />
+        <div className="p-6 sm:p-8 space-y-6">
+          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
+            <div className="space-y-2.5 min-w-0">
+              <div className="flex items-center gap-3">
+                <IconCircle icon={Sparkles} />
+                <h3 className="text-lg font-semibold">{promocion.nombre}</h3>
+              </div>
+              {promocion.descripcion && (
+                <p className="text-sm text-muted-foreground whitespace-pre-line pl-12">{promocion.descripcion}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setDialogAbierto(true)}
+              className="shrink-0 w-full lg:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium px-6 py-2.5 hover:opacity-90 transition-opacity"
+            >
+              Ver disponibilidad
+            </button>
+          </div>
 
-        {promocion.descripcion && (
-          <p className="text-sm text-muted-foreground whitespace-pre-line">{promocion.descripcion}</p>
-        )}
+          {/* Detalle completo de cada beneficio activo en la tarifa — para que el
+              huésped entienda exactamente cómo funciona, sin tener que adivinar. */}
+          <div className="grid sm:grid-cols-2 gap-3">
+            {promocion.nochesCortesia && (
+              <div className="rounded-xl border bg-primary/5 border-primary/10 p-4 flex items-start gap-3">
+                <IconCircle icon={Zap} />
+                <div className="space-y-0.5 min-w-0">
+                  <p className="text-sm font-medium">Noches de cortesía</p>
+                  <p className="text-sm text-muted-foreground">{promocion.nochesCortesia.texto}</p>
+                </div>
+              </div>
+            )}
+            {promocion.ninosDiferenciado && (
+              <div className="rounded-xl border bg-primary/5 border-primary/10 p-4 flex items-start gap-3">
+                <IconCircle icon={Baby} />
+                <div className="space-y-0.5 min-w-0">
+                  <p className="text-sm font-medium">Niños con tarifa especial</p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatMoney(promocion.ninosDiferenciado.precioNino, moneda)}/noche
+                    {promocion.ninosDiferenciado.edadMaxima != null && ` (hasta ${promocion.ninosDiferenciado.edadMaxima} años)`}
+                  </p>
+                </div>
+              </div>
+            )}
+            {promocion.acompanante && (
+              <div className="rounded-xl border bg-primary/5 border-primary/10 p-4 flex items-start gap-3 sm:col-span-2">
+                <IconCircle icon={Gift} />
+                <div className="space-y-0.5 min-w-0">
+                  <p className="text-sm font-medium">{promocion.acompanante.etiqueta}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {promocion.acompanante.personasHospedan != null ? (
+                      <>
+                        Grupo de {promocion.acompanante.personasHospedan} persona{promocion.acompanante.personasHospedan !== 1 ? 's' : ''} que paga{promocion.acompanante.personasHospedan !== 1 ? 'n' : ''}{' '}
+                        <span className="font-medium text-primary">
+                          + {promocion.acompanante.cantidad} {promocion.acompanante.cantidad === 1 ? 'persona' : 'personas'} sin cargo
+                        </span>{' '}
+                        (no se cuenta dentro del grupo de {promocion.acompanante.personasHospedan})
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium text-primary">
+                          {promocion.acompanante.cantidad} {promocion.acompanante.cantidad === 1 ? 'persona' : 'personas'} sin cargo
+                        </span>{' '}
+                        además del grupo que reserva
+                      </>
+                    )}
+                    {promocion.acompanante.habitacionNumero && ` · incluye habitación ${promocion.acompanante.habitacionNumero}${promocion.acompanante.habitacionTipo ? ` (${promocion.acompanante.habitacionTipo})` : ''} sin cargo`}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
-        {/* Detalle completo de cada beneficio activo en la tarifa — para que el
-            huésped entienda exactamente cómo funciona, sin tener que adivinar. */}
-        <div className="space-y-2 rounded-lg bg-background/60 border border-primary/10 p-3">
-          {promocion.nochesCortesia && (
-            <div className="flex items-start gap-2 text-sm">
-              <Zap className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span><span className="font-medium">Noches de cortesía:</span> {promocion.nochesCortesia.texto}</span>
-            </div>
-          )}
-          {promocion.ninosDiferenciado && (
-            <div className="flex items-start gap-2 text-sm">
-              <Baby className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>
-                <span className="font-medium">Niños con tarifa especial:</span> {formatMoney(promocion.ninosDiferenciado.precioNino, moneda)}/noche
-                {promocion.ninosDiferenciado.edadMaxima != null && ` (hasta ${promocion.ninosDiferenciado.edadMaxima} años)`}
-              </span>
-            </div>
-          )}
-          {promocion.acompanante && (
-            <div className="flex items-start gap-2 text-sm">
-              <Gift className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>
-                <span className="font-medium">{promocion.acompanante.etiqueta}:</span>{' '}
-                {promocion.acompanante.personasHospedan != null ? (
-                  <>
-                    grupo de {promocion.acompanante.personasHospedan} persona{promocion.acompanante.personasHospedan !== 1 ? 's' : ''} que paga{promocion.acompanante.personasHospedan !== 1 ? 'n' : ''}{' '}
-                    <span className="font-semibold text-primary">
-                      + {promocion.acompanante.cantidad} {promocion.acompanante.cantidad === 1 ? 'persona' : 'personas'} sin cargo
-                    </span>{' '}
-                    (no se cuenta dentro del grupo de {promocion.acompanante.personasHospedan})
-                  </>
-                ) : (
-                  <>
-                    <span className="font-semibold text-primary">
-                      {promocion.acompanante.cantidad} {promocion.acompanante.cantidad === 1 ? 'persona' : 'personas'} sin cargo
-                    </span>{' '}
-                    además del grupo que reserva
-                  </>
-                )}
-                {promocion.acompanante.habitacionNumero && ` · incluye habitación ${promocion.acompanante.habitacionNumero}${promocion.acompanante.habitacionTipo ? ` (${promocion.acompanante.habitacionTipo})` : ''} sin cargo`}
-              </span>
-            </div>
-          )}
           {promocion.camposPersonalizados.length > 0 && (
-            <p className="text-xs text-muted-foreground pt-1 border-t border-primary/10">
+            <p className="text-xs text-muted-foreground border-t pt-4">
               Al reservar te vamos a pedir: {promocion.camposPersonalizados.map((c) => c.nombre).join(', ')}
             </p>
           )}
         </div>
-
-        <button
-          type="button"
-          onClick={() => setDialogAbierto(true)}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-2 hover:opacity-90 transition-opacity"
-        >
-          Ver disponibilidad
-        </button>
       </div>
 
       <Dialog open={dialogAbierto} onOpenChange={setDialogAbierto}>

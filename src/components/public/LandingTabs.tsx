@@ -226,9 +226,11 @@ export default function LandingTabs({
         {promociones.length > 0 ? (
           <FadeIn className="space-y-4">
             <SectionTitle>Promociones vigentes</SectionTitle>
-            <div className="mx-auto max-w-3xl grid sm:grid-cols-2 gap-4">
-              {promociones.map((p) => (
-                <PromocionCard key={p.tarifaId} slug={slug} moneda={moneda} promocion={p} habitaciones={habitacionesRaw} />
+            <div className="mx-auto max-w-4xl space-y-5">
+              {promociones.map((p, i) => (
+                <FadeIn key={p.tarifaId} delay={i * 60}>
+                  <PromocionCard slug={slug} moneda={moneda} promocion={p} habitaciones={habitacionesRaw} />
+                </FadeIn>
               ))}
             </div>
           </FadeIn>
