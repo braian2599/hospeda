@@ -362,6 +362,7 @@ model Tarifa {
   camposPersonalizados Json?
   choferCortesia       Boolean  @default(false)
   habitacionChofer     String?
+  promoDescripcion     String?
   activa               Boolean  @default(true)
   orden                Int      @default(0)
   createdAt            DateTime @default(now())

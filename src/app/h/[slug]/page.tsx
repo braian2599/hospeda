@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getPublicTenant, badgesDestacados } from '@/lib/public-landing';
+import { getPublicTenant, promocionesPublicas } from '@/lib/public-landing';
 import { parseTarifaPrecios } from '@/lib/tarifa-calc';
 import { precioDesde, promoBadgesPublicos } from '@/lib/tarifas-format';
 import LandingTabs from '@/components/public/LandingTabs';
@@ -76,7 +76,7 @@ export default async function HotelLandingPage(
 
   const [heroFoto, ...galeria] = tenant.fotos;
   const config = tenant.configuracion;
-  const promosDestacadas = badgesDestacados(tenant);
+  const promociones = promocionesPublicas(tenant);
   const pagoBanner = pago ? PAGO_BANNER[pago] : null;
   const direccionCompleta = [tenant.direccion, tenant.ciudad, tenant.provincia, tenant.pais].filter(Boolean).join(', ');
   const tieneCoordenadas = tenant.mapaLat != null && tenant.mapaLng != null;
@@ -195,7 +195,7 @@ export default async function HotelLandingPage(
           mapaLng={tenant.mapaLng}
           nombreHotel={tenant.nombre}
           galeria={galeria}
-          promosDestacadas={promosDestacadas}
+          promociones={promociones}
           mostrarSeccionAgencias={!!config?.mostrarSeccionAgencias}
           textoAgencias={config?.textoAgencias || null}
         />

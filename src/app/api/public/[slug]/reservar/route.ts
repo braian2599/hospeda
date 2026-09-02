@@ -33,6 +33,18 @@ function resolverTarifaPublica(
   return { tarifaNombre: tarifaDb.nombre, precios };
 }
 
+/** Resuelve una tarifa promocional puntual por id — usada por el flujo de reserva desde el tab Promociones. */
+function resolverTarifaPorId(
+  tenant: PublicTenant,
+  tarifaId: string
+): { tarifaNombre: string; precios: TarifaPrecios } | null {
+  const tarifaDb = tenant.tarifas.find((t) => t.id === tarifaId);
+  if (!tarifaDb) return null;
+  const precios = parseTarifaPrecios(tarifaDb.precios);
+  if (precios.rangos.length === 0) return null;
+  return { tarifaNombre: tarifaDb.nombre, precios };
+}
+
 // POST /api/public/[slug]/reservar
 // Acepta una segunda habitación opcional (tipo2/habitacion2/personas2) para reservar
 // una combinación de 2 habitaciones en un solo paso, con un solo cobro de seña.
@@ -58,6 +70,7 @@ export async function POST(
   }
 
   const tipo = typeof body.tipo === 'string' ? body.tipo.trim() : '';
+  const tarifaIdPromo = typeof body.tarifaId === 'string' ? body.tarifaId.trim() : '';
   const habitacionSolicitada = typeof body.habitacion === 'string' ? body.habitacion.trim() : '';
   const tipo2 = typeof body.tipo2 === 'string' ? body.tipo2.trim() : '';
   const habitacion2Solicitada = typeof body.habitacion2 === 'string' ? body.habitacion2.trim() : '';
@@ -101,7 +114,9 @@ export async function POST(
     ? (tenant.configuracion.tarifasPublicas as Record<string, string>)
     : {};
 
-  const tarifa1 = resolverTarifaPublica(tenant, tarifasPublicas, tipo);
+  const tarifa1 = tarifaIdPromo
+    ? resolverTarifaPorId(tenant, tarifaIdPromo)
+    : resolverTarifaPublica(tenant, tarifasPublicas, tipo);
   if (!tarifa1) return NextResponse.json({ error: 'Ese tipo de habitación no está disponible para reservar online' }, { status: 400 });
 
   let tarifa2: { tarifaNombre: string; precios: TarifaPrecios } | null = null;

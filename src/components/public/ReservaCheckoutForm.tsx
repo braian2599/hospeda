@@ -51,7 +51,7 @@ function formatMoney(n: number, moneda: string): string {
 }
 
 export default function ReservaCheckoutForm({
-  slug, hotelNombre, moneda, habitacion, checkin, checkout, personas, resultado,
+  slug, hotelNombre, moneda, habitacion, checkin, checkout, personas, resultado, tarifaId,
 }: {
   slug: string;
   hotelNombre: string;
@@ -61,6 +61,7 @@ export default function ReservaCheckoutForm({
   checkout: string;
   personas: number;
   resultado: { total: number; desglose: Desglose };
+  tarifaId?: string;
 }) {
   const [form, setForm] = useState({
     huesped: '', dni: '', telefono: '', email: '', nacionalidad: '', fechaNacimiento: '', domicilio: '',
@@ -87,6 +88,7 @@ export default function ReservaCheckoutForm({
           checkin,
           checkout,
           personas,
+          ...(tarifaId ? { tarifaId } : {}),
           ...form,
         }),
       });

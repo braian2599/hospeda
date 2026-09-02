@@ -49,7 +49,7 @@ export async function getPublicTenant(slug: string) {
       },
       tarifas: {
         where: { activa: true },
-        select: { id: true, nombre: true, precios: true },
+        select: { id: true, nombre: true, precios: true, promoDescripcion: true },
       },
     },
   });
@@ -299,18 +299,67 @@ export async function buscarDisponibilidad(
   return { resultados, combinaciones };
 }
 
-/** Todos los badges de promoción distintos, entre todos los tipos con tarifa pública (para el banner). */
-export function badgesDestacados(tenant: PublicTenant): string[] {
-  const tarifasPublicas = (tenant.configuracion?.tarifasPublicas && typeof tenant.configuracion.tarifasPublicas === 'object')
-    ? (tenant.configuracion.tarifasPublicas as Record<string, string>)
-    : {};
+export interface PromocionPublica {
+  tarifaId: string;
+  nombre: string;
+  descripcion: string | null;
+  badges: string[];
+}
 
-  const badges = new Set<string>();
-  for (const tarifaId of Object.values(tarifasPublicas)) {
-    const tarifaDb = tenant.tarifas.find((t) => t.id === tarifaId);
-    if (!tarifaDb) continue;
+/**
+ * Tarifas con una promoción activa (noches de cortesía / niños diferenciado),
+ * para el tab "Promociones" de la landing — independiente de si esa tarifa
+ * está asignada como tarifa pública de algún tipo de habitación: cualquier
+ * tarifa activa con promoción pasa directo a esta lista.
+ */
+export function promocionesPublicas(tenant: PublicTenant): PromocionPublica[] {
+  const promos: PromocionPublica[] = [];
+  for (const tarifaDb of tenant.tarifas) {
     const precios = parseTarifaPrecios(tarifaDb.precios);
-    for (const b of promoBadgesPublicos(precios)) badges.add(b);
+    const badges = promoBadgesPublicos(precios);
+    if (badges.length === 0) continue;
+    promos.push({ tarifaId: tarifaDb.id, nombre: tarifaDb.nombre, descripcion: tarifaDb.promoDescripcion, badges });
   }
-  return Array.from(badges);
+  return promos;
+}
+
+/**
+ * Disponibilidad de todas las habitaciones del hotel (cualquier tipo)
+ * cotizadas con UNA tarifa puntual — usada por el flujo de reserva desde
+ * el tab Promociones, que no está atado a ningún tipo de habitación.
+ */
+export async function buscarDisponibilidadPorTarifa(
+  tenant: PublicTenant,
+  tarifaId: string,
+  fechas: FechasValidadas,
+  personas: number
+): Promise<HabitacionDisponiblePublica[]> {
+  const tarifaDb = tenant.tarifas.find((t) => t.id === tarifaId);
+  if (!tarifaDb) return [];
+  const precios = parseTarifaPrecios(tarifaDb.precios);
+  if (precios.rangos.length === 0) return [];
+
+  const libres = await habitacionesLibres(tenant, fechas.checkin, fechas.checkout);
+  const resultados: HabitacionDisponiblePublica[] = [];
+
+  for (const h of libres) {
+    if (h.capacidad < personas) continue;
+    const desglose = calcularDesgloseTarifa({ promo: precios }, 'promo', personas, fechas.noches, {
+      checkin: fechas.checkin.toISOString().slice(0, 10),
+    });
+    if (!desglose || desglose.total <= 0) continue;
+
+    resultados.push({
+      numero: h.numero,
+      tipo: h.tipo,
+      capacidad: h.capacidad,
+      camasMatrimoniales: h.camasMatrimoniales,
+      camasSimples: h.camasSimples,
+      total: desglose.total,
+      badges: promoBadgesPublicos(precios),
+      desglose: aDesglosePublico(desglose),
+    });
+  }
+  resultados.sort((a, b) => a.tipo.localeCompare(b.tipo) || a.numero.localeCompare(b.numero));
+  return resultados;
 }

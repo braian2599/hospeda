@@ -1,5 +1,7 @@
 import Link from 'next/link';
-import { getPublicTenant, parseFechasConsulta, parsePersonasConsulta, buscarDisponibilidad } from '@/lib/public-landing';
+import {
+  getPublicTenant, parseFechasConsulta, parsePersonasConsulta, buscarDisponibilidad, buscarDisponibilidadPorTarifa,
+} from '@/lib/public-landing';
 import ReservaCheckoutForm from '@/components/public/ReservaCheckoutForm';
 
 function AvisoVolver({ slug, hotelNombre, mensaje }: { slug: string; hotelNombre: string; mensaje: string }) {
@@ -18,11 +20,11 @@ function AvisoVolver({ slug, hotelNombre, mensaje }: { slug: string; hotelNombre
 export default async function ReservarPage(
   { params, searchParams }: {
     params: Promise<{ slug: string }>;
-    searchParams: Promise<{ habitacion?: string; checkin?: string; checkout?: string; personas?: string }>;
+    searchParams: Promise<{ habitacion?: string; checkin?: string; checkout?: string; personas?: string; tarifaId?: string }>;
   }
 ) {
   const { slug } = await params;
-  const { habitacion: numero, checkin, checkout, personas: personasStr } = await searchParams;
+  const { habitacion: numero, checkin, checkout, personas: personasStr, tarifaId } = await searchParams;
   const tenant = await getPublicTenant(slug);
   if (!tenant) return <AvisoVolver slug={slug} hotelNombre="el hotel" mensaje="No encontramos este hotel." />;
 
@@ -34,7 +36,9 @@ export default async function ReservarPage(
     return <AvisoVolver slug={slug} hotelNombre={tenant.nombre} mensaje="El link de reserva no es válido o venció." />;
   }
 
-  const { resultados } = await buscarDisponibilidad(tenant, fechas, personas);
+  const resultados = tarifaId
+    ? await buscarDisponibilidadPorTarifa(tenant, tarifaId, fechas, personas)
+    : (await buscarDisponibilidad(tenant, fechas, personas)).resultados;
   const resultado = resultados.find((r) => r.numero === numero);
 
   if (!resultado) {
@@ -51,6 +55,7 @@ export default async function ReservarPage(
       checkout={checkout!}
       personas={personas}
       resultado={resultado}
+      tarifaId={tarifaId}
     />
   );
 }

@@ -44,6 +44,7 @@ export async function PUT(
       camposPersonalizados,
       choferCortesia,
       habitacionChofer,
+      promoDescripcion,
       activa,
       orden,
     } = body;
@@ -80,6 +81,7 @@ export async function PUT(
         ...(camposPersonalizados !== undefined && { camposPersonalizados: camposPersonalizados ?? null }),
         ...(choferCortesia !== undefined && { choferCortesia: Boolean(choferCortesia) }),
         ...(habitacionChofer !== undefined && { habitacionChofer: habitacionChofer?.trim() || null }),
+        ...(promoDescripcion !== undefined && { promoDescripcion: promoDescripcion?.trim() || null }),
         ...(activa !== undefined && { activa: Boolean(activa) }),
         ...(orden !== undefined && { orden: parseInt(orden) || 0 }),
       },

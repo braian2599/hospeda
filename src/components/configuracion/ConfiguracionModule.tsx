@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { parseTarifaPrecios } from '@/lib/tarifa-calc';
+import { promoBadgesPublicos } from '@/lib/tarifas-format';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import {
   CreditCard, Building2, FileText, Shield, Headphones, Download,
@@ -23,7 +25,7 @@ import {
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
   Settings, Copy, Info, BedDouble, KeyRound, Database, Receipt,
   Users, History, CheckCircle2, XCircle, Lock, Printer, MessageCircle,
-  Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban, Instagram, Facebook,
+  Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban, Instagram, Facebook, Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -711,18 +713,26 @@ function PhotoGrid({
 }
 
 interface HabitacionFotoDTO { numero: string; tipo: string; fotos: string[]; descripcion: string; }
-interface TarifaDTO { id: string; nombre: string; activa: boolean; }
+interface TarifaDTO { id: string; nombre: string; activa: boolean; precios: unknown; promoDescripcion: string | null; }
 
-type LandingTabId = 'ubicacion' | 'politicas' | 'fotos' | 'precios' | 'cobro' | 'agencias';
+type LandingTabId = 'ubicacion' | 'politicas' | 'fotos' | 'precios' | 'promociones' | 'cobro' | 'agencias';
 
 const LANDING_TABS: { id: LandingTabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'ubicacion', label: 'Ubicación', icon: MapPin },
   { id: 'politicas', label: 'Políticas', icon: Ban },
   { id: 'fotos', label: 'Fotos', icon: ImageIcon },
   { id: 'precios', label: 'Precios', icon: DollarSign },
+  { id: 'promociones', label: 'Promociones', icon: Zap },
   { id: 'cobro', label: 'Cobro de seña', icon: CreditCard },
   { id: 'agencias', label: 'Agencias', icon: Users },
 ];
+
+/** Tarifas activas con una promoción activa (noches de cortesía / niños diferenciado) — misma lógica que la landing pública. */
+function tarifasConPromo(tarifas: TarifaDTO[]): (TarifaDTO & { badges: string[] })[] {
+  return tarifas
+    .map((t) => ({ ...t, badges: promoBadgesPublicos(parseTarifaPrecios(t.precios)) }))
+    .filter((t) => t.badges.length > 0);
+}
 
 function LandingSection() {
   const [landingTab, setLandingTab] = useState<LandingTabId>('ubicacion');
@@ -758,6 +768,10 @@ function LandingSection() {
   const [tarifasList, setTarifasList] = useState<TarifaDTO[]>([]);
   const [tarifasPublicas, setTarifasPublicas] = useState<Record<string, string>>({});
   const [savingTarifas, setSavingTarifas] = useState(false);
+
+  // Promociones (tab aparte — no depende de tarifasPublicas)
+  const [promoDescripciones, setPromoDescripciones] = useState<Record<string, string>>({});
+  const [savingPromoId, setSavingPromoId] = useState<string | null>(null);
 
   // Cobro de seña
   const [modoCobroSena, setModoCobroSena] = useState<'mercadopago' | 'manual'>('mercadopago');
@@ -816,7 +830,9 @@ function LandingSection() {
         : [];
       setHabitacionesList(habs);
       setHabitacionSeleccionada((prev) => prev || habs[0]?.numero || '');
-      setTarifasList(Array.isArray(tarifasData) ? tarifasData.filter((t: TarifaDTO) => t.activa) : []);
+      const tarifasActivas: TarifaDTO[] = Array.isArray(tarifasData) ? tarifasData.filter((t: TarifaDTO) => t.activa) : [];
+      setTarifasList(tarifasActivas);
+      setPromoDescripciones(Object.fromEntries(tarifasActivas.map((t) => [t.id, t.promoDescripcion || ''])));
       setMpConectado(!!mpData.conectado);
       setMpUserId(mpData.mpUserId || null);
     } catch {
@@ -1058,6 +1074,25 @@ function LandingSection() {
       toast.error((err as Error).message || 'Error al guardar');
     } finally {
       setSavingTarifas(false);
+    }
+  };
+
+  const handleGuardarPromoDescripcion = async (tarifaId: string) => {
+    setSavingPromoId(tarifaId);
+    try {
+      const res = await fetch(`/api/tarifas/${tarifaId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promoDescripcion: promoDescripciones[tarifaId] || '' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setTarifasList((prev) => prev.map((t) => (t.id === tarifaId ? { ...t, promoDescripcion: data.promoDescripcion } : t)));
+      toast.success('Descripción guardada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingPromoId(null);
     }
   };
 
@@ -1424,6 +1459,54 @@ function LandingSection() {
                       Guardar
                     </Button>
                   </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {landingTab === 'promociones' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Promociones</CardTitle>
+                <CardDescription>
+                  Las tarifas activas con una promoción (noches de cortesía o niños con tarifa diferenciada) pasan
+                  directo al tab &quot;Promociones&quot; de tu página pública — no hace falta asignarlas a ningún tipo
+                  de habitación. Acá podés escribirles una descripción para mostrar en la landing.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {tarifasConPromo(tarifasList).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Todavía no tenés tarifas con una promoción activa. Activá &quot;Noches de cortesía&quot; o &quot;Niños con tarifa diferenciada&quot;
+                    en una tarifa (módulo Tarifas) para que aparezca acá.
+                  </p>
+                ) : (
+                  tarifasConPromo(tarifasList).map((t) => (
+                    <div key={t.id} className="rounded-lg border p-4 space-y-2.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-medium text-sm">{t.nombre}</span>
+                        <div className="flex flex-wrap gap-1.5 justify-end">
+                          {t.badges.map((b) => (
+                            <Badge key={b} className="bg-[#0F766E1A] text-primary border-0 text-[11px]">
+                              <Zap className="w-3 h-3 mr-1" />{b}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <Textarea
+                        value={promoDescripciones[t.id] ?? ''}
+                        onChange={(e) => setPromoDescripciones((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                        placeholder="Descripción para mostrar en la landing (opcional)"
+                        rows={2}
+                      />
+                      <div className="flex justify-end">
+                        <Button onClick={() => handleGuardarPromoDescripcion(t.id)} disabled={savingPromoId === t.id} size="sm">
+                          {savingPromoId === t.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                          Guardar
+                        </Button>
+                      </div>
+                    </div>
+                  ))
                 )}
               </CardContent>
             </Card>

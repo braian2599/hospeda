@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import HabitacionCard, { type HabitacionPublica } from './HabitacionCard';
+import PromocionCard, { type PromocionPublica } from './PromocionCard';
 import FadeIn from './FadeIn';
 import WhatsAppIcon from './WhatsAppIcon';
 import {
@@ -53,7 +54,7 @@ interface LandingTabsProps {
   mapaLng: number | null;
   nombreHotel: string;
   galeria: string[];
-  promosDestacadas: string[];
+  promociones: PromocionPublica[];
   mostrarSeccionAgencias: boolean;
   textoAgencias: string | null;
 }
@@ -62,10 +63,11 @@ export default function LandingTabs({
   slug, moneda, telefonoHotel, habitaciones,
   horaCheckin, horaCheckout, politicaCancelacion, servicios,
   direccionCompleta, tieneCoordenadas, mapaLat, mapaLng, nombreHotel,
-  galeria, promosDestacadas, mostrarSeccionAgencias, textoAgencias,
+  galeria, promociones, mostrarSeccionAgencias, textoAgencias,
 }: LandingTabsProps) {
   const hayPoliticas = !!(horaCheckin || horaCheckout || politicaCancelacion);
   const hayUbicacion = tieneCoordenadas || !!direccionCompleta;
+  const habitacionesRaw = habitaciones.map((h) => h.habitacion);
 
   return (
     <Tabs defaultValue="reservas">
@@ -221,17 +223,12 @@ export default function LandingTabs({
 
       {/* ==================== PROMOCIONES ==================== */}
       <TabsContent value="promos" className="pt-8 space-y-10">
-        {promosDestacadas.length > 0 ? (
+        {promociones.length > 0 ? (
           <FadeIn className="space-y-4">
             <SectionTitle>Promociones vigentes</SectionTitle>
-            <div className="mx-auto max-w-2xl grid sm:grid-cols-2 gap-3">
-              {promosDestacadas.map((b) => (
-                <div
-                  key={b}
-                  className="flex items-center justify-center gap-2.5 rounded-xl border bg-primary/5 border-primary/20 px-4 py-3 text-sm font-medium transition-all hover:shadow-sm hover:-translate-y-0.5"
-                >
-                  <Zap className="w-4 h-4 text-primary shrink-0" /> {b}
-                </div>
+            <div className="mx-auto max-w-3xl grid sm:grid-cols-2 gap-4">
+              {promociones.map((p) => (
+                <PromocionCard key={p.tarifaId} slug={slug} moneda={moneda} promocion={p} habitaciones={habitacionesRaw} />
               ))}
             </div>
           </FadeIn>
