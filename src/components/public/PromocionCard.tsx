@@ -7,18 +7,35 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
-  Loader2, CalendarDays, Users, Bed, BedDouble, Zap, Search,
+  Loader2, CalendarDays, Users, Bed, BedDouble, Zap, Baby, Gift, Search,
 } from 'lucide-react';
 import type { HabitacionPublica } from './HabitacionCard';
 import type { CampoPersonalizado } from '@/lib/types';
+
+export interface NochesCortesiaPublica {
+  texto: string;
+}
+
+export interface NinosDiferenciadoPublica {
+  precioNino: number;
+  edadMaxima: number | null;
+}
+
+export interface AcompananteSinCargoPublica {
+  etiqueta: string;
+  cantidad: number;
+  personasHospedan: number | null;
+  habitacionNumero: string | null;
+  habitacionTipo: string | null;
+}
 
 export interface PromocionPublica {
   tarifaId: string;
   nombre: string;
   descripcion: string | null;
-  badges: string[];
-  tieneNinosDiferenciado: boolean;
-  edadMaximaNinos: number | null;
+  nochesCortesia: NochesCortesiaPublica | null;
+  ninosDiferenciado: NinosDiferenciadoPublica | null;
+  acompanante: AcompananteSinCargoPublica | null;
   camposPersonalizados: CampoPersonalizado[];
 }
 
@@ -71,6 +88,8 @@ export default function PromocionCard({
   const [resultados, setResultados] = useState<ResultadoPromo[] | null>(null);
   const [redirigiendo, setRedirigiendo] = useState<string | null>(null);
 
+  const tieneNinos = !!promocion.ninosDiferenciado;
+
   const handleSelectRango = (r: DateRange | undefined) => {
     setRango(r);
     setResultados(null);
@@ -88,7 +107,7 @@ export default function PromocionCard({
     try {
       const params = new URLSearchParams({
         checkin: toISO(rango.from), checkout: toISO(rango.to), personas: String(personas),
-        ...(promocion.tieneNinosDiferenciado ? { ninos: String(ninos) } : {}),
+        ...(tieneNinos ? { ninos: String(ninos) } : {}),
       });
       const res = await fetch(`/api/public/${slug}/promociones/${promocion.tarifaId}/disponibilidad?${params}`);
       const data = await res.json();
@@ -110,7 +129,7 @@ export default function PromocionCard({
       checkout: toISO(rango.to),
       personas: String(personas),
       tarifaId: promocion.tarifaId,
-      ...(promocion.tieneNinosDiferenciado && ninos > 0 ? { ninos: String(ninos) } : {}),
+      ...(tieneNinos && ninos > 0 ? { ninos: String(ninos) } : {}),
     });
     router.push(`/h/${slug}/reservar?${destino}`);
   };
@@ -125,16 +144,46 @@ export default function PromocionCard({
     <>
       <div className="rounded-xl border bg-primary/5 border-primary/20 p-5 space-y-3 transition-all hover:shadow-sm hover:-translate-y-0.5">
         <h3 className="font-semibold">{promocion.nombre}</h3>
-        <div className="flex flex-wrap gap-1.5">
-          {promocion.badges.map((b) => (
-            <span key={b} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[11px] px-2 py-0.5">
-              <Zap className="w-3 h-3" /> {b}
-            </span>
-          ))}
-        </div>
+
         {promocion.descripcion && (
           <p className="text-sm text-muted-foreground whitespace-pre-line">{promocion.descripcion}</p>
         )}
+
+        {/* Detalle completo de cada beneficio activo en la tarifa — para que el
+            huésped entienda exactamente cómo funciona, sin tener que adivinar. */}
+        <div className="space-y-2 rounded-lg bg-background/60 border border-primary/10 p-3">
+          {promocion.nochesCortesia && (
+            <div className="flex items-start gap-2 text-sm">
+              <Zap className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <span><span className="font-medium">Noches de cortesía:</span> {promocion.nochesCortesia.texto}</span>
+            </div>
+          )}
+          {promocion.ninosDiferenciado && (
+            <div className="flex items-start gap-2 text-sm">
+              <Baby className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <span>
+                <span className="font-medium">Niños con tarifa especial:</span> {formatMoney(promocion.ninosDiferenciado.precioNino, moneda)}/noche
+                {promocion.ninosDiferenciado.edadMaxima != null && ` (hasta ${promocion.ninosDiferenciado.edadMaxima} años)`}
+              </span>
+            </div>
+          )}
+          {promocion.acompanante && (
+            <div className="flex items-start gap-2 text-sm">
+              <Gift className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <span>
+                <span className="font-medium">{promocion.acompanante.etiqueta}:</span> {promocion.acompanante.cantidad} sin cargo
+                {promocion.acompanante.personasHospedan != null && ` — para grupos de ${promocion.acompanante.personasHospedan} personas`}
+                {promocion.acompanante.habitacionNumero && ` · incluye habitación ${promocion.acompanante.habitacionNumero}${promocion.acompanante.habitacionTipo ? ` (${promocion.acompanante.habitacionTipo})` : ''} sin cargo`}
+              </span>
+            </div>
+          )}
+          {promocion.camposPersonalizados.length > 0 && (
+            <p className="text-xs text-muted-foreground pt-1 border-t border-primary/10">
+              Al reservar te vamos a pedir: {promocion.camposPersonalizados.map((c) => c.nombre).join(', ')}
+            </p>
+          )}
+        </div>
+
         <button
           type="button"
           onClick={() => setDialogAbierto(true)}
@@ -182,11 +231,11 @@ export default function PromocionCard({
                   className="w-full text-sm bg-transparent outline-none"
                   aria-label="Cantidad de personas"
                 />
-                <span className="text-xs text-muted-foreground shrink-0">{promocion.tieneNinosDiferenciado ? 'adultos' : 'personas'}</span>
+                <span className="text-xs text-muted-foreground shrink-0">{tieneNinos ? 'adultos' : 'personas'}</span>
               </div>
             </div>
 
-            {promocion.tieneNinosDiferenciado && (
+            {tieneNinos && (
               <div className="grid gap-1.5">
                 <div className="flex items-center gap-2 rounded-md border px-3 py-2 bg-background">
                   <Users className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -200,10 +249,16 @@ export default function PromocionCard({
                     aria-label="Cantidad de niños"
                   />
                   <span className="text-xs text-muted-foreground shrink-0">
-                    niños{promocion.edadMaximaNinos != null ? ` (hasta ${promocion.edadMaximaNinos} años)` : ''}
+                    niños{promocion.ninosDiferenciado?.edadMaxima != null ? ` (hasta ${promocion.ninosDiferenciado.edadMaxima} años)` : ''}
                   </span>
                 </div>
               </div>
+            )}
+
+            {promocion.acompanante?.personasHospedan != null && (
+              <p className="text-xs text-muted-foreground">
+                {promocion.acompanante.etiqueta}: válido para grupos de {promocion.acompanante.personasHospedan} personas.
+              </p>
             )}
 
             <button

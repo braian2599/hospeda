@@ -4,7 +4,7 @@
 import { db } from '@/lib/db';
 import { parseFeatureFlags } from '@/lib/feature-flags';
 import { parseTarifaPrecios, calcularDesgloseTarifa, type DesgloseTarifa } from '@/lib/tarifa-calc';
-import { promoBadgesPublicos, promoBadgesTab } from '@/lib/tarifas-format';
+import { promoBadgesPublicos, promoBadgesTab, describeNochesCortesia } from '@/lib/tarifas-format';
 import type { CampoPersonalizado } from '@/lib/types';
 
 const MAX_NOCHES_CONSULTA = 30;
@@ -50,7 +50,7 @@ export async function getPublicTenant(slug: string) {
       },
       tarifas: {
         where: { activa: true },
-        select: { id: true, nombre: true, precios: true, promoDescripcion: true },
+        select: { id: true, nombre: true, precios: true, promoDescripcion: true, camposPersonalizados: true },
       },
     },
   });
@@ -300,13 +300,39 @@ export async function buscarDisponibilidad(
   return { resultados, combinaciones };
 }
 
+/**
+ * Tarifa.camposPersonalizados es una columna propia (Json), NO vive adentro
+ * de Tarifa.precios — parseTarifaPrecios() no la toca. Hay que leerla aparte.
+ */
+function parseCamposPersonalizados(raw: unknown): CampoPersonalizado[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((c): c is CampoPersonalizado => !!c && typeof c === 'object' && typeof (c as CampoPersonalizado).nombre === 'string');
+}
+
+export interface NochesCortesiaPublica {
+  texto: string;
+}
+
+export interface NinosDiferenciadoPublica {
+  precioNino: number;
+  edadMaxima: number | null;
+}
+
+export interface AcompananteSinCargoPublica {
+  etiqueta: string;
+  cantidad: number;
+  personasHospedan: number | null;
+  habitacionNumero: string | null;
+  habitacionTipo: string | null;
+}
+
 export interface PromocionPublica {
   tarifaId: string;
   nombre: string;
   descripcion: string | null;
-  badges: string[];
-  tieneNinosDiferenciado: boolean;
-  edadMaximaNinos: number | null;
+  nochesCortesia: NochesCortesiaPublica | null;
+  ninosDiferenciado: NinosDiferenciadoPublica | null;
+  acompanante: AcompananteSinCargoPublica | null;
   camposPersonalizados: CampoPersonalizado[];
 }
 
@@ -315,24 +341,46 @@ export interface PromocionPublica {
  * acompañante sin cargo), para el tab "Promociones" de la landing —
  * independiente de si esa tarifa está asignada como tarifa pública de algún
  * tipo de habitación: cualquier tarifa activa con promoción pasa directo a
- * esta lista. Cada tarifa es personalizada — también se exponen sus campos
- * extra (camposPersonalizados) y si pide cantidad de niños, para que el
- * buscador y la página de reserva los pidan.
+ * esta lista. Cada tarifa es personalizada: se exponen TODOS sus detalles
+ * (etiqueta, condiciones, niños, campos extra) para que el cliente entienda
+ * cómo funciona sin tener que adivinar — mismos textos que ve el hotel en
+ * el módulo Tarifas.
  */
 export function promocionesPublicas(tenant: PublicTenant): PromocionPublica[] {
   const promos: PromocionPublica[] = [];
   for (const tarifaDb of tenant.tarifas) {
     const precios = parseTarifaPrecios(tarifaDb.precios);
-    const badges = promoBadgesTab(precios);
-    if (badges.length === 0) continue;
+    const promociones = precios.promociones;
+
+    const nc = promociones?.nochesCortesia;
+    const nochesCortesia = nc?.activo ? { texto: describeNochesCortesia(nc.modalidad) } : null;
+
+    const nd = promociones?.ninosDiferenciado;
+    const ninosDiferenciado = nd?.activo ? { precioNino: nd.precioNino || 0, edadMaxima: nd.edadMaxima ?? null } : null;
+
+    const acom = promociones?.acompananteSinCargo;
+    let acompanante: AcompananteSinCargoPublica | null = null;
+    if (acom?.activo) {
+      const habAsignada = acom.habitacionAsignada ? tenant.habitaciones.find((h) => h.numero === acom.habitacionAsignada) : undefined;
+      acompanante = {
+        etiqueta: acom.etiqueta || 'Acompañante sin cargo',
+        cantidad: acom.cantidad || 1,
+        personasHospedan: acom.personasHospedan ?? null,
+        habitacionNumero: habAsignada?.numero ?? null,
+        habitacionTipo: habAsignada?.tipo ?? null,
+      };
+    }
+
+    if (!nochesCortesia && !ninosDiferenciado && !acompanante) continue;
+
     promos.push({
       tarifaId: tarifaDb.id,
       nombre: tarifaDb.nombre,
       descripcion: tarifaDb.promoDescripcion,
-      badges,
-      tieneNinosDiferenciado: !!precios.promociones?.ninosDiferenciado?.activo,
-      edadMaximaNinos: precios.promociones?.ninosDiferenciado?.edadMaxima ?? null,
-      camposPersonalizados: precios.camposPersonalizados || [],
+      nochesCortesia,
+      ninosDiferenciado,
+      acompanante,
+      camposPersonalizados: parseCamposPersonalizados(tarifaDb.camposPersonalizados),
     });
   }
   return promos;
@@ -363,7 +411,7 @@ export function resolverRequisitosTarifa(
 
   const precios = parseTarifaPrecios(tarifaDb.precios);
   return {
-    camposPersonalizados: precios.camposPersonalizados || [],
+    camposPersonalizados: parseCamposPersonalizados(tarifaDb.camposPersonalizados),
     tieneNinosDiferenciado: !!precios.promociones?.ninosDiferenciado?.activo,
     edadMaximaNinos: precios.promociones?.ninosDiferenciado?.edadMaxima ?? null,
   };

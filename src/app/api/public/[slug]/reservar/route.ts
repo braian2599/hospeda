@@ -5,7 +5,13 @@ import {
   getPublicTenant, parseFechasConsulta, parsePersonasConsulta, type PublicTenant,
 } from '@/lib/public-landing';
 import { parseTarifaPrecios, calcularTotalSegunTarifa } from '@/lib/tarifa-calc';
-import type { TarifaPrecios } from '@/lib/types';
+import type { TarifaPrecios, CampoPersonalizado } from '@/lib/types';
+
+/** Tarifa.camposPersonalizados es una columna propia (Json), no vive adentro de Tarifa.precios. */
+function parseCamposPersonalizados(raw: unknown): CampoPersonalizado[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((c): c is CampoPersonalizado => !!c && typeof c === 'object' && typeof (c as CampoPersonalizado).nombre === 'string');
+}
 import { getValidAccessToken, createDepositCheckout, PORCENTAJE_SENA } from '@/lib/payments/mp-connect';
 
 function clientIp(req: NextRequest): string {
@@ -18,31 +24,37 @@ interface LegInput {
   personas: number;
 }
 
+interface TarifaResuelta {
+  tarifaNombre: string;
+  precios: TarifaPrecios;
+  camposPersonalizados: CampoPersonalizado[];
+}
+
 /** Valida que el tipo tenga una tarifa pública configurada y devuelve sus precios. Null si no se puede vender online. */
 function resolverTarifaPublica(
   tenant: PublicTenant,
   tarifasPublicas: Record<string, string>,
   tipo: string
-): { tarifaNombre: string; precios: TarifaPrecios } | null {
+): TarifaResuelta | null {
   const tarifaId = tarifasPublicas[tipo];
   if (!tarifaId) return null;
   const tarifaDb = tenant.tarifas.find((t) => t.id === tarifaId);
   if (!tarifaDb) return null;
   const precios = parseTarifaPrecios(tarifaDb.precios);
   if (precios.rangos.length === 0) return null;
-  return { tarifaNombre: tarifaDb.nombre, precios };
+  return { tarifaNombre: tarifaDb.nombre, precios, camposPersonalizados: parseCamposPersonalizados(tarifaDb.camposPersonalizados) };
 }
 
 /** Resuelve una tarifa promocional puntual por id — usada por el flujo de reserva desde el tab Promociones. */
 function resolverTarifaPorId(
   tenant: PublicTenant,
   tarifaId: string
-): { tarifaNombre: string; precios: TarifaPrecios } | null {
+): TarifaResuelta | null {
   const tarifaDb = tenant.tarifas.find((t) => t.id === tarifaId);
   if (!tarifaDb) return null;
   const precios = parseTarifaPrecios(tarifaDb.precios);
   if (precios.rangos.length === 0) return null;
-  return { tarifaNombre: tarifaDb.nombre, precios };
+  return { tarifaNombre: tarifaDb.nombre, precios, camposPersonalizados: parseCamposPersonalizados(tarifaDb.camposPersonalizados) };
 }
 
 // POST /api/public/[slug]/reservar
@@ -129,7 +141,7 @@ export async function POST(
 
   // Cada tarifa es personalizada — si tiene campos extra obligatorios, hay que validarlos acá
   // (no solo confiar en la validación del lado del cliente).
-  for (const campo of tarifa1.precios.camposPersonalizados || []) {
+  for (const campo of tarifa1.camposPersonalizados) {
     if (campo.requerido && !datosAdicionales[campo.nombre]?.trim()) {
       return NextResponse.json({ error: `El campo "${campo.nombre}" es obligatorio` }, { status: 400 });
     }
