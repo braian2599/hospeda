@@ -2123,7 +2123,7 @@ export default function ReservasModule() {
  </p>
  )}
  </div>
- <div className="flex flex-wrap justify-center gap-3 max-h-52 overflow-y-auto">
+ <div className="flex flex-wrap justify-center gap-3">
  {disponiblesFiltradas.map(hab => {
  const isSelected = !form.reservaMultiple && form.habitacion === hab.numero;
  return (
