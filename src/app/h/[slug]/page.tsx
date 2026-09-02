@@ -3,25 +3,12 @@ import type { Metadata } from 'next';
 import { getPublicTenant, badgesDestacados } from '@/lib/public-landing';
 import { parseTarifaPrecios } from '@/lib/tarifa-calc';
 import { precioDesde, promoBadgesPublicos } from '@/lib/tarifas-format';
-import HotelBookingWidget from '@/components/public/HotelBookingWidget';
+import HabitacionCard from '@/components/public/HabitacionCard';
 import {
-  MapPin, Phone, Mail, Users, BedDouble, Building2, Zap,
-  Wifi, Coffee, Tv, Waves, Car, Wind, Check, Bed, CheckCircle2, Clock, XCircle,
+  MapPin, Phone, Mail, Building2, Zap,
+  Wifi, Coffee, Tv, Waves, Car, Wind, Check, CheckCircle2, Clock, XCircle,
   LogIn, LogOut, Ban,
 } from 'lucide-react';
-
-function formatPrecioPublico(monto: number, moneda: string): string {
-  try {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: moneda || 'ARS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(monto);
-  } catch {
-    return `$${monto.toLocaleString('es-AR')}`;
-  }
-}
 
 const PAGO_BANNER: Record<string, { icon: typeof Check; text: string; className: string }> = {
   exito: {
@@ -277,59 +264,29 @@ export default async function HotelLandingPage(
           </div>
         )}
 
-        {/* Buscador de disponibilidad */}
-        <HotelBookingWidget slug={slug} />
-
-        {/* Habitaciones */}
+        {/* Habitaciones — cada tarjeta permite reservar directamente, con sus propias fechas */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Habitaciones</h2>
           {tenant.habitaciones.length === 0 ? (
             <p className="text-sm text-muted-foreground">Todavía no hay habitaciones cargadas.</p>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {tenant.habitaciones.map((h) => {
-                  const precioPublico = precioPublicoDeHabitacion(h.tipo, config?.tarifasPublicas, tenant.tarifas);
-                  const camas = [
-                    h.camasMatrimoniales > 0 ? `${h.camasMatrimoniales} matrimonial${h.camasMatrimoniales !== 1 ? 'es' : ''}` : null,
-                    h.camasSimples > 0 ? `${h.camasSimples} individual${h.camasSimples !== 1 ? 'es' : ''}` : null,
-                  ].filter(Boolean).join(' · ');
-                  return (
-                    <div key={h.numero} className="rounded-xl border overflow-hidden bg-card">
-                      {h.fotos[0] ? (
-                        <div className="aspect-video">
-                          <img src={h.fotos[0]} alt={h.tipo} className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="aspect-video bg-muted flex items-center justify-center">
-                          <BedDouble className="w-8 h-8 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div className="p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-semibold">{h.tipo}</h3>
-                            <p className="text-xs text-muted-foreground">{h.numero}</p>
-                          </div>
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                            <Users className="w-3.5 h-3.5" /> {h.capacidad}
-                          </span>
-                        </div>
-                        {camas && (
-                          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Bed className="w-3.5 h-3.5 shrink-0" /> {camas}
-                          </p>
-                        )}
-                        {precioPublico && (
-                          <p className="text-sm text-muted-foreground">
-                            Desde {formatPrecioPublico(precioPublico.desde, tenant.moneda)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                const precioPublico = precioPublicoDeHabitacion(h.tipo, config?.tarifasPublicas, tenant.tarifas);
+                return (
+                  <HabitacionCard
+                    key={h.numero}
+                    slug={slug}
+                    habitacion={h}
+                    telefonoHotel={tenant.telefono || ''}
+                    moneda={tenant.moneda}
+                    precioDesde={precioPublico ? precioPublico.desde : null}
+                    badges={precioPublico?.badges || []}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Sección para agencias (B2B, sin precios) */}
