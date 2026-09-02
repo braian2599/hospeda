@@ -65,6 +65,9 @@ export async function POST(
   const dni = typeof body.dni === 'string' ? body.dni.trim() : '';
   const telefono = typeof body.telefono === 'string' ? body.telefono.trim() : '';
   const email = typeof body.email === 'string' ? body.email.trim() : '';
+  const domicilio = typeof body.domicilio === 'string' ? body.domicilio.trim() : '';
+  const nacionalidad = typeof body.nacionalidad === 'string' ? body.nacionalidad.trim() : '';
+  const fechaNacimientoStr = typeof body.fechaNacimiento === 'string' ? body.fechaNacimiento.trim() : '';
 
   if (!tipo) return NextResponse.json({ error: 'Falta el tipo de habitación' }, { status: 400 });
   if (!huesped || huesped.length < 2) return NextResponse.json({ error: 'Falta el nombre del huésped' }, { status: 400 });
@@ -72,6 +75,13 @@ export async function POST(
   if (!telefono || telefono.length < 6) return NextResponse.json({ error: 'Teléfono inválido' }, { status: 400 });
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
+  }
+  let fechaNacimiento: Date | null = null;
+  if (fechaNacimientoStr) {
+    fechaNacimiento = new Date(fechaNacimientoStr);
+    if (Number.isNaN(fechaNacimiento.getTime())) {
+      return NextResponse.json({ error: 'Fecha de nacimiento inválida' }, { status: 400 });
+    }
   }
 
   const fechas = parseFechasConsulta(body.checkin, body.checkout);
@@ -130,6 +140,37 @@ export async function POST(
   let habitacionReservada2: string | null = null;
   try {
     const { r1, r2 } = await db.$transaction(async (tx) => {
+      // ── Cliente: mismos datos que pide el módulo interno de Reservas, para
+      //    no dejar el registro de cliente a medias — se busca por DNI y si ya
+      //    existe se completan los campos que faltaban, igual que crearReserva
+      //    en el store interno. ──
+      const clienteExistente = await tx.cliente.findUnique({
+        where: { tenantId_dni: { tenantId: tenant.id, dni } },
+      });
+      const cliente = clienteExistente
+        ? await tx.cliente.update({
+            where: { id: clienteExistente.id },
+            data: {
+              telefono: telefono || clienteExistente.telefono,
+              email: email || clienteExistente.email,
+              domicilio: domicilio || clienteExistente.domicilio,
+              nacionalidad: nacionalidad || clienteExistente.nacionalidad,
+              fechaNacimiento: fechaNacimiento || clienteExistente.fechaNacimiento,
+            },
+          })
+        : await tx.cliente.create({
+            data: {
+              tenantId: tenant.id,
+              nombre: huesped,
+              dni,
+              telefono,
+              email: email || null,
+              domicilio: domicilio || null,
+              nacionalidad: nacionalidad || null,
+              fechaNacimiento,
+            },
+          });
+
       // ── Leg 1: re-chequeo de disponibilidad dentro de la transacción ──
       const habsDeTipo1 = tenant.habitaciones
         .filter((h) => h.tipo === tipo && h.capacidad >= personas)
@@ -164,11 +205,13 @@ export async function POST(
       const nueva1 = await tx.reserva.create({
         data: {
           tenantId: tenant.id,
+          clienteId: cliente.id,
           habitacion: libre1.numero,
           huesped,
           dni,
           telefono,
           email: email || null,
+          domicilio: domicilio || null,
           checkin: fechas.checkin,
           checkout: fechas.checkout,
           personas,
@@ -241,11 +284,13 @@ export async function POST(
         nueva2 = await tx.reserva.create({
           data: {
             tenantId: tenant.id,
+            clienteId: cliente.id,
             habitacion: libre2.numero,
             huesped,
             dni,
             telefono,
             email: email || null,
+            domicilio: domicilio || null,
             checkin: fechas.checkin,
             checkout: fechas.checkout,
             personas: personas2,

@@ -710,7 +710,7 @@ function PhotoGrid({
   );
 }
 
-interface HabitacionFotoDTO { numero: string; tipo: string; fotos: string[]; }
+interface HabitacionFotoDTO { numero: string; tipo: string; fotos: string[]; descripcion: string; }
 interface TarifaDTO { id: string; nombre: string; activa: boolean; }
 
 type LandingTabId = 'ubicacion' | 'politicas' | 'fotos' | 'precios' | 'cobro' | 'agencias';
@@ -746,6 +746,8 @@ function LandingSection() {
   const [savingServicios, setSavingServicios] = useState(false);
   const [uploadingHotel, setUploadingHotel] = useState(false);
   const [uploadingHabitacion, setUploadingHabitacion] = useState(false);
+  const [descripcionHabitacionDraft, setDescripcionHabitacionDraft] = useState('');
+  const [savingDescripcionHabitacion, setSavingDescripcionHabitacion] = useState(false);
   const [savingDescripcion, setSavingDescripcion] = useState(false);
 
   // Precios públicos
@@ -802,7 +804,7 @@ function LandingSection() {
       setSenaEmail(hotelData.senaEmail || '');
       setSenaInstrucciones(hotelData.senaInstrucciones || '');
       const habs: HabitacionFotoDTO[] = Array.isArray(habsData)
-        ? habsData.map((h: { numero: string; tipo: string; fotos?: string[] }) => ({ numero: h.numero, tipo: h.tipo, fotos: h.fotos || [] }))
+        ? habsData.map((h: { numero: string; tipo: string; fotos?: string[]; descripcion?: string | null }) => ({ numero: h.numero, tipo: h.tipo, fotos: h.fotos || [], descripcion: h.descripcion || '' }))
         : [];
       setHabitacionesList(habs);
       setHabitacionSeleccionada((prev) => prev || habs[0]?.numero || '');
@@ -937,6 +939,30 @@ function LandingSection() {
   };
 
   const habitacionActual = habitacionesList.find((h) => h.numero === habitacionSeleccionada);
+
+  useEffect(() => {
+    setDescripcionHabitacionDraft(habitacionActual?.descripcion || '');
+  }, [habitacionActual?.numero, habitacionActual?.descripcion]);
+
+  const handleGuardarDescripcionHabitacion = async () => {
+    if (!habitacionActual) return;
+    setSavingDescripcionHabitacion(true);
+    try {
+      const res = await fetch(`/api/habitaciones/${encodeURIComponent(habitacionActual.numero)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ descripcion: descripcionHabitacionDraft }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setHabitacionesList((prev) => prev.map((h) => (h.numero === habitacionActual.numero ? { ...h, descripcion: descripcionHabitacionDraft } : h)));
+      toast.success('Descripción guardada');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingDescripcionHabitacion(false);
+    }
+  };
 
   const handleUploadHabitacion = async (file: File) => {
     if (!habitacionActual) return;
@@ -1257,7 +1283,8 @@ function LandingSection() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Fotos por habitación</CardTitle>
+                  <CardTitle className="text-base">Fotos y descripción por habitación</CardTitle>
+                  <CardDescription>Se muestran en el detalle de la habitación ("Ver más") en la landing.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {habitacionesList.length === 0 ? (
@@ -1273,12 +1300,26 @@ function LandingSection() {
                         </SelectContent>
                       </Select>
                       {habitacionActual && (
-                        <PhotoGrid
-                          fotos={habitacionActual.fotos}
-                          onUpload={handleUploadHabitacion}
-                          onDelete={handleDeleteHabitacion}
-                          uploading={uploadingHabitacion}
-                        />
+                        <>
+                          <div className="space-y-2">
+                            <Textarea
+                              value={descripcionHabitacionDraft}
+                              onChange={(e) => setDescripcionHabitacionDraft(e.target.value)}
+                              placeholder="Ej: Habitación luminosa con balcón, ideal para parejas, a metros del centro."
+                              rows={3}
+                            />
+                            <Button onClick={handleGuardarDescripcionHabitacion} disabled={savingDescripcionHabitacion} size="sm">
+                              {savingDescripcionHabitacion ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                              Guardar descripción
+                            </Button>
+                          </div>
+                          <PhotoGrid
+                            fotos={habitacionActual.fotos}
+                            onUpload={handleUploadHabitacion}
+                            onDelete={handleDeleteHabitacion}
+                            uploading={uploadingHabitacion}
+                          />
+                        </>
                       )}
                     </>
                   )}

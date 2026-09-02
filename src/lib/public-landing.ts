@@ -41,7 +41,7 @@ export async function getPublicTenant(slug: string) {
       habitaciones: {
         select: {
           numero: true, tipo: true, capacidad: true, fotos: true, orden: true,
-          camasMatrimoniales: true, camasSimples: true,
+          camasMatrimoniales: true, camasSimples: true, descripcion: true,
         },
         orderBy: { orden: 'asc' },
       },
