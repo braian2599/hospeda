@@ -32,6 +32,8 @@ model Tenant {
   politicaCancelacion String?
   mapaLat        Float?
   mapaLng        Float?
+  instagramUrl   String?
+  facebookUrl    String?
   timezone       String            @default("America/Argentina/Buenos_Aires")
   logoUrl        String?
   descripcion    String?

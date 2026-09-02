@@ -7,7 +7,7 @@ import HabitacionCard from '@/components/public/HabitacionCard';
 import {
   MapPin, Phone, Mail, Building2, Zap,
   Wifi, Coffee, Tv, Waves, Car, Wind, Check, CheckCircle2, Clock, XCircle,
-  LogIn, LogOut, Ban,
+  LogIn, LogOut, Ban, Instagram, Facebook,
 } from 'lucide-react';
 
 const PAGO_BANNER: Record<string, { icon: typeof Check; text: string; className: string }> = {
@@ -144,7 +144,7 @@ export default async function HotelLandingPage(
               {tenant.descripcion || 'Este hotel todavía no cargó una descripción.'}
             </p>
           </div>
-          {(tenant.telefono || tenant.email) && (
+          {(tenant.telefono || tenant.email || tenant.instagramUrl || tenant.facebookUrl) && (
             <div className="space-y-3 rounded-xl border p-5 bg-card h-fit">
               <h3 className="font-semibold text-sm">Contacto</h3>
               {tenant.telefono && (
@@ -160,6 +160,16 @@ export default async function HotelLandingPage(
               {tenant.email && (
                 <a href={`mailto:${tenant.email}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
                   <Mail className="w-4 h-4 shrink-0" /> {tenant.email}
+                </a>
+              )}
+              {tenant.instagramUrl && (
+                <a href={tenant.instagramUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                  <Instagram className="w-4 h-4 shrink-0" /> Instagram
+                </a>
+              )}
+              {tenant.facebookUrl && (
+                <a href={tenant.facebookUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                  <Facebook className="w-4 h-4 shrink-0" /> Facebook
                 </a>
               )}
             </div>

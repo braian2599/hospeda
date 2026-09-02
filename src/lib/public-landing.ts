@@ -30,6 +30,8 @@ export async function getPublicTenant(slug: string) {
       politicaCancelacion: true,
       mapaLat: true,
       mapaLng: true,
+      instagramUrl: true,
+      facebookUrl: true,
       activo: true,
       configuracion: {
         select: {

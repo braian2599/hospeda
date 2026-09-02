@@ -13,6 +13,7 @@ export async function GET() {
         nombre: true, slug: true, email: true, telefono: true,
         direccion: true, ciudad: true, provincia: true, pais: true, moneda: true, timezone: true, logoUrl: true,
         horaCheckin: true, horaCheckout: true, politicaCancelacion: true, mapaLat: true, mapaLng: true,
+        instagramUrl: true, facebookUrl: true,
         descripcion: true, fotos: true, servicios: true,
         configuracion: {
           select: {
@@ -42,6 +43,8 @@ export async function GET() {
       politicaCancelacion: tenant.politicaCancelacion || '',
       mapaLat: tenant.mapaLat,
       mapaLng: tenant.mapaLng,
+      instagramUrl: tenant.instagramUrl || '',
+      facebookUrl: tenant.facebookUrl || '',
       timezone: tenant.timezone || 'America/Argentina/Buenos_Aires',
       logoUrl: tenant.logoUrl || config.hotelLogoUrl || '',
       descripcion: tenant.descripcion || '',
@@ -77,7 +80,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const {
       nombre, email, telefono, direccion, ciudad, provincia, pais, moneda, timezone, logoUrl, descripcion, fotos, servicios,
-      horaCheckin, horaCheckout, politicaCancelacion, mapaLat, mapaLng,
+      horaCheckin, horaCheckout, politicaCancelacion, mapaLat, mapaLng, instagramUrl, facebookUrl,
       tarifasPublicas, mostrarSeccionAgencias, textoAgencias,
       modoCobroSena, senaWhatsapp, senaEmail, senaInstrucciones,
     } = body;
@@ -90,6 +93,12 @@ export async function PUT(req: NextRequest) {
     }
     if (mapaLng !== undefined && mapaLng !== null && (typeof mapaLng !== 'number' || mapaLng < -180 || mapaLng > 180)) {
       return NextResponse.json({ error: 'Longitud inválida' }, { status: 400 });
+    }
+    if (instagramUrl && (typeof instagramUrl !== 'string' || !/^https?:\/\//i.test(instagramUrl))) {
+      return NextResponse.json({ error: 'El link de Instagram debe empezar con http:// o https://' }, { status: 400 });
+    }
+    if (facebookUrl && (typeof facebookUrl !== 'string' || !/^https?:\/\//i.test(facebookUrl))) {
+      return NextResponse.json({ error: 'El link de Facebook debe empezar con http:// o https://' }, { status: 400 });
     }
 
     // Update Tenant
@@ -110,6 +119,8 @@ export async function PUT(req: NextRequest) {
     if (politicaCancelacion !== undefined) updateData.politicaCancelacion = politicaCancelacion;
     if (mapaLat !== undefined) updateData.mapaLat = mapaLat;
     if (mapaLng !== undefined) updateData.mapaLng = mapaLng;
+    if (instagramUrl !== undefined) updateData.instagramUrl = instagramUrl?.trim() || null;
+    if (facebookUrl !== undefined) updateData.facebookUrl = facebookUrl?.trim() || null;
     if (Array.isArray(fotos)) updateData.fotos = fotos.filter((f: unknown) => typeof f === 'string');
     if (Array.isArray(servicios)) updateData.servicios = servicios.filter((s: unknown) => typeof s === 'string' && s.trim()).map((s: string) => s.trim());
 

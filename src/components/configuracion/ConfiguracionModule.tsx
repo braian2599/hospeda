@@ -23,7 +23,7 @@ import {
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
   Settings, Copy, Info, BedDouble, KeyRound, Database, Receipt,
   Users, History, CheckCircle2, XCircle, Lock, Printer, MessageCircle,
-  Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban,
+  Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban, Instagram, Facebook,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -731,6 +731,10 @@ function LandingSection() {
   const [ubicacion, setUbicacion] = useState({ direccion: '', ciudad: '', provincia: '', pais: 'Argentina', mapaLat: '', mapaLng: '' });
   const [savingUbicacion, setSavingUbicacion] = useState(false);
 
+  // Redes sociales
+  const [redes, setRedes] = useState({ instagramUrl: '', facebookUrl: '' });
+  const [savingRedes, setSavingRedes] = useState(false);
+
   // Políticas
   const [politicas, setPoliticas] = useState({ horaCheckin: '', horaCheckout: '', politicaCancelacion: '' });
   const [savingPoliticas, setSavingPoliticas] = useState(false);
@@ -787,6 +791,10 @@ function LandingSection() {
         provincia: hotelData.provincia || '', pais: hotelData.pais || 'Argentina',
         mapaLat: hotelData.mapaLat != null ? String(hotelData.mapaLat) : '',
         mapaLng: hotelData.mapaLng != null ? String(hotelData.mapaLng) : '',
+      });
+      setRedes({
+        instagramUrl: hotelData.instagramUrl || '',
+        facebookUrl: hotelData.facebookUrl || '',
       });
       setPoliticas({
         horaCheckin: hotelData.horaCheckin || '', horaCheckout: hotelData.horaCheckout || '',
@@ -852,6 +860,34 @@ function LandingSection() {
       toast.error((err as Error).message || 'Error al guardar');
     } finally {
       setSavingUbicacion(false);
+    }
+  };
+
+  const handleGuardarRedes = async () => {
+    const instagramUrl = redes.instagramUrl.trim();
+    const facebookUrl = redes.facebookUrl.trim();
+    if (instagramUrl && !/^https?:\/\//i.test(instagramUrl)) {
+      toast.error('El link de Instagram debe empezar con http:// o https://');
+      return;
+    }
+    if (facebookUrl && !/^https?:\/\//i.test(facebookUrl)) {
+      toast.error('El link de Facebook debe empezar con http:// o https://');
+      return;
+    }
+    setSavingRedes(true);
+    try {
+      const res = await fetch('/api/configuracion/hotel', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instagramUrl, facebookUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Redes sociales guardadas');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSavingRedes(false);
     }
   };
 
@@ -1174,6 +1210,31 @@ function LandingSection() {
                 <div className="flex justify-end">
                   <Button onClick={handleGuardarUbicacion} disabled={savingUbicacion} size="sm">
                     {savingUbicacion ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                    Guardar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {landingTab === 'ubicacion' && (
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle className="text-base">Redes sociales</CardTitle>
+                <CardDescription>Se muestran como links en la página pública. Dejá el campo vacío si no querés mostrar esa red.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ConfigField label="Instagram" icon={Instagram} hint="Ej: https://instagram.com/tuhotel">
+                    <Input value={redes.instagramUrl} onChange={(e) => setRedes({ ...redes, instagramUrl: e.target.value })} placeholder="https://instagram.com/tuhotel" />
+                  </ConfigField>
+                  <ConfigField label="Facebook" icon={Facebook} hint="Ej: https://facebook.com/tuhotel">
+                    <Input value={redes.facebookUrl} onChange={(e) => setRedes({ ...redes, facebookUrl: e.target.value })} placeholder="https://facebook.com/tuhotel" />
+                  </ConfigField>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={handleGuardarRedes} disabled={savingRedes} size="sm">
+                    {savingRedes ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                     Guardar
                   </Button>
                 </div>
