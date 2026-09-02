@@ -4,7 +4,8 @@
 import { db } from '@/lib/db';
 import { parseFeatureFlags } from '@/lib/feature-flags';
 import { parseTarifaPrecios, calcularDesgloseTarifa, type DesgloseTarifa } from '@/lib/tarifa-calc';
-import { promoBadgesPublicos } from '@/lib/tarifas-format';
+import { promoBadgesPublicos, promoBadgesTab } from '@/lib/tarifas-format';
+import type { CampoPersonalizado } from '@/lib/types';
 
 const MAX_NOCHES_CONSULTA = 30;
 const MAX_PERSONAS_CONSULTA = 20;
@@ -304,23 +305,68 @@ export interface PromocionPublica {
   nombre: string;
   descripcion: string | null;
   badges: string[];
+  tieneNinosDiferenciado: boolean;
+  edadMaximaNinos: number | null;
+  camposPersonalizados: CampoPersonalizado[];
 }
 
 /**
- * Tarifas con una promoción activa (noches de cortesía / niños diferenciado),
- * para el tab "Promociones" de la landing — independiente de si esa tarifa
- * está asignada como tarifa pública de algún tipo de habitación: cualquier
- * tarifa activa con promoción pasa directo a esta lista.
+ * Tarifas con una promoción activa (noches de cortesía / niños diferenciado /
+ * acompañante sin cargo), para el tab "Promociones" de la landing —
+ * independiente de si esa tarifa está asignada como tarifa pública de algún
+ * tipo de habitación: cualquier tarifa activa con promoción pasa directo a
+ * esta lista. Cada tarifa es personalizada — también se exponen sus campos
+ * extra (camposPersonalizados) y si pide cantidad de niños, para que el
+ * buscador y la página de reserva los pidan.
  */
 export function promocionesPublicas(tenant: PublicTenant): PromocionPublica[] {
   const promos: PromocionPublica[] = [];
   for (const tarifaDb of tenant.tarifas) {
     const precios = parseTarifaPrecios(tarifaDb.precios);
-    const badges = promoBadgesPublicos(precios);
+    const badges = promoBadgesTab(precios);
     if (badges.length === 0) continue;
-    promos.push({ tarifaId: tarifaDb.id, nombre: tarifaDb.nombre, descripcion: tarifaDb.promoDescripcion, badges });
+    promos.push({
+      tarifaId: tarifaDb.id,
+      nombre: tarifaDb.nombre,
+      descripcion: tarifaDb.promoDescripcion,
+      badges,
+      tieneNinosDiferenciado: !!precios.promociones?.ninosDiferenciado?.activo,
+      edadMaximaNinos: precios.promociones?.ninosDiferenciado?.edadMaxima ?? null,
+      camposPersonalizados: precios.camposPersonalizados || [],
+    });
   }
   return promos;
+}
+
+/** Requisitos de una tarifa aplicada a una reserva pública (campos extra / niños), sea la tarifa general de un tipo o una tarifa promocional puntual. */
+export interface RequisitosTarifa {
+  camposPersonalizados: CampoPersonalizado[];
+  tieneNinosDiferenciado: boolean;
+  edadMaximaNinos: number | null;
+}
+
+/** Resuelve los requisitos (campos extra / niños) de la tarifa que se terminó usando en una reserva pública. */
+export function resolverRequisitosTarifa(
+  tenant: PublicTenant,
+  { tipo, tarifaId }: { tipo?: string; tarifaId?: string }
+): RequisitosTarifa | null {
+  let tarifaDb;
+  if (tarifaId) {
+    tarifaDb = tenant.tarifas.find((t) => t.id === tarifaId);
+  } else if (tipo) {
+    const tarifasPublicas = (tenant.configuracion?.tarifasPublicas && typeof tenant.configuracion.tarifasPublicas === 'object')
+      ? (tenant.configuracion.tarifasPublicas as Record<string, string>)
+      : {};
+    tarifaDb = tenant.tarifas.find((t) => t.id === tarifasPublicas[tipo]);
+  }
+  if (!tarifaDb) return null;
+
+  const precios = parseTarifaPrecios(tarifaDb.precios);
+  return {
+    camposPersonalizados: precios.camposPersonalizados || [],
+    tieneNinosDiferenciado: !!precios.promociones?.ninosDiferenciado?.activo,
+    edadMaximaNinos: precios.promociones?.ninosDiferenciado?.edadMaxima ?? null,
+  };
 }
 
 /**
@@ -332,20 +378,29 @@ export async function buscarDisponibilidadPorTarifa(
   tenant: PublicTenant,
   tarifaId: string,
   fechas: FechasValidadas,
-  personas: number
+  personas: number,
+  ninos: number = 0
 ): Promise<HabitacionDisponiblePublica[]> {
   const tarifaDb = tenant.tarifas.find((t) => t.id === tarifaId);
   if (!tarifaDb) return [];
   const precios = parseTarifaPrecios(tarifaDb.precios);
   if (precios.rangos.length === 0) return [];
 
+  // "personas" son adultos — si la tarifa tiene niños con tarifa diferenciada,
+  // los niños se suman aparte para el chequeo de capacidad y para el cálculo
+  // del precio (calcularDesgloseTarifa espera el total de ocupantes).
+  const tieneNinos = !!precios.promociones?.ninosDiferenciado?.activo;
+  const ninosEfectivos = tieneNinos ? ninos : 0;
+  const totalOcupantes = personas + ninosEfectivos;
+
   const libres = await habitacionesLibres(tenant, fechas.checkin, fechas.checkout);
   const resultados: HabitacionDisponiblePublica[] = [];
 
   for (const h of libres) {
-    if (h.capacidad < personas) continue;
-    const desglose = calcularDesgloseTarifa({ promo: precios }, 'promo', personas, fechas.noches, {
+    if (h.capacidad < totalOcupantes) continue;
+    const desglose = calcularDesgloseTarifa({ promo: precios }, 'promo', totalOcupantes, fechas.noches, {
       checkin: fechas.checkin.toISOString().slice(0, 10),
+      ninos: ninosEfectivos > 0 ? ninosEfectivos : undefined,
     });
     if (!desglose || desglose.total <= 0) continue;
 
@@ -356,7 +411,7 @@ export async function buscarDisponibilidadPorTarifa(
       camasMatrimoniales: h.camasMatrimoniales,
       camasSimples: h.camasSimples,
       total: desglose.total,
-      badges: promoBadgesPublicos(precios),
+      badges: promoBadgesTab(precios),
       desglose: aDesglosePublico(desglose),
     });
   }

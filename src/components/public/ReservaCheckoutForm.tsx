@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   Loader2, ArrowLeft, CheckCircle2, Phone, Mail, BedDouble,
 } from 'lucide-react';
+import type { CampoPersonalizado } from '@/lib/types';
 
 interface Desglose {
   tarifa: string;
@@ -51,7 +52,7 @@ function formatMoney(n: number, moneda: string): string {
 }
 
 export default function ReservaCheckoutForm({
-  slug, hotelNombre, moneda, habitacion, checkin, checkout, personas, resultado, tarifaId,
+  slug, hotelNombre, moneda, habitacion, checkin, checkout, personas, ninos, resultado, tarifaId, camposPersonalizados,
 }: {
   slug: string;
   hotelNombre: string;
@@ -60,22 +61,33 @@ export default function ReservaCheckoutForm({
   checkin: string;
   checkout: string;
   personas: number;
+  ninos?: number;
   resultado: { total: number; desglose: Desglose };
   tarifaId?: string;
+  camposPersonalizados?: CampoPersonalizado[];
 }) {
   const [form, setForm] = useState({
     huesped: '', dni: '', telefono: '', email: '', nacionalidad: '', fechaNacimiento: '', domicilio: '',
   });
+  const [datosAdicionales, setDatosAdicionales] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
   const [reservaCreada, setReservaCreada] = useState<ReservaCreada | null>(null);
   const [redirigiendo, setRedirigiendo] = useState(false);
+
+  const campos = camposPersonalizados || [];
 
   const confirmarReserva = async () => {
     setError('');
     if (!form.huesped.trim() || !form.dni.trim() || !form.telefono.trim()) {
       setError('Completá nombre, DNI y teléfono');
       return;
+    }
+    for (const campo of campos) {
+      if (campo.requerido && !datosAdicionales[campo.nombre]?.trim()) {
+        setError(`El campo "${campo.nombre}" es obligatorio`);
+        return;
+      }
     }
     setEnviando(true);
     try {
@@ -88,7 +100,9 @@ export default function ReservaCheckoutForm({
           checkin,
           checkout,
           personas,
+          ...(ninos ? { ninos } : {}),
           ...(tarifaId ? { tarifaId } : {}),
+          ...(campos.length > 0 ? { datosAdicionales } : {}),
           ...form,
         }),
       });
@@ -194,7 +208,10 @@ export default function ReservaCheckoutForm({
                 <div className="text-muted-foreground space-y-0.5">
                   <p>Entrada: {formatFechaLarga(checkin)}</p>
                   <p>Salida: {formatFechaLarga(checkout)}</p>
-                  <p>{personas} persona{personas !== 1 ? 's' : ''}</p>
+                  <p>
+                    {personas} {ninos ? 'adulto' : 'persona'}{personas !== 1 ? 's' : ''}
+                    {!!ninos && ` + ${ninos} niño${ninos !== 1 ? 's' : ''}`}
+                  </p>
                 </div>
                 <div className="rounded-lg border bg-background p-3 space-y-1 mt-2">
                   <div className="flex justify-between text-muted-foreground">
@@ -282,6 +299,28 @@ export default function ReservaCheckoutForm({
                 />
               </div>
             </div>
+
+            {campos.length > 0 && (
+              <div className="space-y-3 rounded-lg border bg-[#F1F5F94D] p-3">
+                <p className="text-sm font-medium">Datos adicionales de esta promoción</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {campos.map((campo) => (
+                    <div key={campo.nombre} className="grid gap-1.5">
+                      <label className="text-sm font-medium">
+                        {campo.nombre} {campo.requerido && <span className="text-destructive">*</span>}
+                      </label>
+                      <input
+                        type={campo.tipo === 'numero' ? 'number' : 'text'}
+                        value={datosAdicionales[campo.nombre] || ''}
+                        onChange={(e) => setDatosAdicionales((d) => ({ ...d, [campo.nombre]: e.target.value }))}
+                        placeholder={campo.nombre}
+                        className="rounded-md border px-3 py-2 text-sm bg-background"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 

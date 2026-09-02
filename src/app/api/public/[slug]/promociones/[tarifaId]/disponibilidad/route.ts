@@ -32,7 +32,10 @@ export async function GET(
   const personas = parsePersonasConsulta(searchParams.get('personas') || '2');
   if (typeof personas !== 'number') return NextResponse.json({ error: personas.error }, { status: 400 });
 
-  const resultados = await buscarDisponibilidadPorTarifa(tenant, tarifaId, fechas, personas);
+  const ninosRaw = searchParams.get('ninos');
+  const ninos = ninosRaw ? Math.max(0, Math.min(20, parseInt(ninosRaw) || 0)) : 0;
+
+  const resultados = await buscarDisponibilidadPorTarifa(tenant, tarifaId, fechas, personas, ninos);
 
   return NextResponse.json({
     checkin: searchParams.get('checkin'),

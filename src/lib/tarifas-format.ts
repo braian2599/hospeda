@@ -19,9 +19,10 @@ export function describeNochesCortesia(mod: ModalidadNochesCortesia): string {
 }
 
 /**
- * Promociones aptas para mostrar públicamente en la landing.
- * Excluye "acompañante sin cargo" (chofer de cortesía, etc.) — es un
- * acuerdo operativo con agencias/excursiones, no algo para el público general.
+ * Promociones aptas para mostrar en el precio de cada habitación (tarjetas
+ * de la pestaña Reservas). Excluye "acompañante sin cargo" (chofer de
+ * cortesía, etc.) — es un acuerdo operativo con agencias/excursiones, no
+ * algo para mostrar en cada tarjeta de habitación.
  */
 export function promoBadgesPublicos(tarifa: TarifaPrecios): string[] {
   const badges: string[] = [];
@@ -30,6 +31,21 @@ export function promoBadgesPublicos(tarifa: TarifaPrecios): string[] {
   }
   if (tarifa.promociones?.ninosDiferenciado?.activo) {
     badges.push('Niños con tarifa especial');
+  }
+  return badges;
+}
+
+/**
+ * Todas las promociones de una tarifa, para el tab "Promociones" de la
+ * landing — a diferencia de promoBadgesPublicos, SÍ incluye "acompañante
+ * sin cargo" (cualquier tarifa con una promoción activa se publica ahí,
+ * sin excepciones).
+ */
+export function promoBadgesTab(tarifa: TarifaPrecios): string[] {
+  const badges = promoBadgesPublicos(tarifa);
+  const acom = tarifa.promociones?.acompananteSinCargo;
+  if (acom?.activo) {
+    badges.push(acom.etiqueta || 'Acompañante sin cargo');
   }
   return badges;
 }

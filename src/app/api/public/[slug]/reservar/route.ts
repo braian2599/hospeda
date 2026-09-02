@@ -103,6 +103,14 @@ export async function POST(
   const personas = parsePersonasConsulta(body.personas);
   if (typeof personas !== 'number') return NextResponse.json({ error: personas.error }, { status: 400 });
 
+  const ninosRaw = Number(body.ninos);
+  const ninos = Number.isInteger(ninosRaw) ? Math.max(0, Math.min(20, ninosRaw)) : 0;
+
+  const datosAdicionalesRaw = body.datosAdicionales;
+  const datosAdicionales: Record<string, string> = (datosAdicionalesRaw && typeof datosAdicionalesRaw === 'object' && !Array.isArray(datosAdicionalesRaw))
+    ? Object.fromEntries(Object.entries(datosAdicionalesRaw as Record<string, unknown>).map(([k, v]) => [k, String(v ?? '').trim()]))
+    : {};
+
   let personas2: number | null = null;
   if (tipo2) {
     const p2 = parsePersonasConsulta(body.personas2);
@@ -118,6 +126,15 @@ export async function POST(
     ? resolverTarifaPorId(tenant, tarifaIdPromo)
     : resolverTarifaPublica(tenant, tarifasPublicas, tipo);
   if (!tarifa1) return NextResponse.json({ error: 'Ese tipo de habitación no está disponible para reservar online' }, { status: 400 });
+
+  // Cada tarifa es personalizada — si tiene campos extra obligatorios, hay que validarlos acá
+  // (no solo confiar en la validación del lado del cliente).
+  for (const campo of tarifa1.precios.camposPersonalizados || []) {
+    if (campo.requerido && !datosAdicionales[campo.nombre]?.trim()) {
+      return NextResponse.json({ error: `El campo "${campo.nombre}" es obligatorio` }, { status: 400 });
+    }
+  }
+  const ninosEfectivos = tarifa1.precios.promociones?.ninosDiferenciado?.activo ? ninos : 0;
 
   let tarifa2: { tarifaNombre: string; precios: TarifaPrecios } | null = null;
   if (tipo2) {
@@ -188,7 +205,7 @@ export async function POST(
 
       // ── Leg 1: re-chequeo de disponibilidad dentro de la transacción ──
       const habsDeTipo1 = tenant.habitaciones
-        .filter((h) => h.tipo === tipo && h.capacidad >= personas)
+        .filter((h) => h.tipo === tipo && h.capacidad >= personas + ninosEfectivos)
         .sort((a, b) => a.orden - b.orden);
       if (habsDeTipo1.length === 0) throw new Error('NO_DISPONIBLE');
       if (habitacionSolicitada && !habsDeTipo1.some((h) => h.numero === habitacionSolicitada)) {
@@ -213,8 +230,11 @@ export async function POST(
 
       // Reserva.total se guarda en CENTAVOS en toda la base (igual que las reservas
       // internas, ver store.ts crearReserva) — calcularTotalSegunTarifa devuelve pesos.
-      const total1 = calcularTotalSegunTarifa({ [tipo]: tarifa1.precios }, tipo, personas, fechas.noches, {
+      // calcularDesgloseTarifa espera el total de OCUPANTES en "personas" (resta los
+      // niños internamente) — igual que el cálculo interno (ReservasModule.computed).
+      const total1 = calcularTotalSegunTarifa({ [tipo]: tarifa1.precios }, tipo, personas + ninosEfectivos, fechas.noches, {
         checkin: fechas.checkin.toISOString().slice(0, 10),
+        ninos: ninosEfectivos > 0 ? ninosEfectivos : undefined,
       });
 
       const nueva1 = await tx.reserva.create({
@@ -230,6 +250,8 @@ export async function POST(
           checkin: fechas.checkin,
           checkout: fechas.checkout,
           personas,
+          ninos: ninosEfectivos > 0 ? ninosEfectivos : null,
+          datosAdicionales: Object.keys(datosAdicionales).length > 0 ? datosAdicionales : undefined,
           estado: modoCobroSena === 'manual' ? 'AConfirmar' : 'Confirmada',
           estadoPago: 'Pendiente',
           tipoTarifa: tarifa1.tarifaNombre,

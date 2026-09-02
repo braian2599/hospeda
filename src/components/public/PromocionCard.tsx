@@ -10,12 +10,16 @@ import {
   Loader2, CalendarDays, Users, Bed, BedDouble, Zap, Search,
 } from 'lucide-react';
 import type { HabitacionPublica } from './HabitacionCard';
+import type { CampoPersonalizado } from '@/lib/types';
 
 export interface PromocionPublica {
   tarifaId: string;
   nombre: string;
   descripcion: string | null;
   badges: string[];
+  tieneNinosDiferenciado: boolean;
+  edadMaximaNinos: number | null;
+  camposPersonalizados: CampoPersonalizado[];
 }
 
 interface ResultadoPromo {
@@ -61,6 +65,7 @@ export default function PromocionCard({
   const [rango, setRango] = useState<DateRange>();
   const [calendarioAbierto, setCalendarioAbierto] = useState(false);
   const [personas, setPersonas] = useState(2);
+  const [ninos, setNinos] = useState(0);
   const [buscando, setBuscando] = useState(false);
   const [error, setError] = useState('');
   const [resultados, setResultados] = useState<ResultadoPromo[] | null>(null);
@@ -83,6 +88,7 @@ export default function PromocionCard({
     try {
       const params = new URLSearchParams({
         checkin: toISO(rango.from), checkout: toISO(rango.to), personas: String(personas),
+        ...(promocion.tieneNinosDiferenciado ? { ninos: String(ninos) } : {}),
       });
       const res = await fetch(`/api/public/${slug}/promociones/${promocion.tarifaId}/disponibilidad?${params}`);
       const data = await res.json();
@@ -104,6 +110,7 @@ export default function PromocionCard({
       checkout: toISO(rango.to),
       personas: String(personas),
       tarifaId: promocion.tarifaId,
+      ...(promocion.tieneNinosDiferenciado && ninos > 0 ? { ninos: String(ninos) } : {}),
     });
     router.push(`/h/${slug}/reservar?${destino}`);
   };
@@ -175,9 +182,29 @@ export default function PromocionCard({
                   className="w-full text-sm bg-transparent outline-none"
                   aria-label="Cantidad de personas"
                 />
-                <span className="text-xs text-muted-foreground shrink-0">personas</span>
+                <span className="text-xs text-muted-foreground shrink-0">{promocion.tieneNinosDiferenciado ? 'adultos' : 'personas'}</span>
               </div>
             </div>
+
+            {promocion.tieneNinosDiferenciado && (
+              <div className="grid gap-1.5">
+                <div className="flex items-center gap-2 rounded-md border px-3 py-2 bg-background">
+                  <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <input
+                    type="number"
+                    min={0}
+                    max={20}
+                    value={ninos}
+                    onChange={(e) => { setNinos(Math.min(20, Math.max(0, parseInt(e.target.value) || 0))); setResultados(null); }}
+                    className="w-full text-sm bg-transparent outline-none"
+                    aria-label="Cantidad de niños"
+                  />
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    niños{promocion.edadMaximaNinos != null ? ` (hasta ${promocion.edadMaximaNinos} años)` : ''}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <button
               type="button"
