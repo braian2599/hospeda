@@ -30,7 +30,7 @@ import {
  CalendarDays, Plus, Pencil, XCircle, Search, BedDouble, Users, Eye,
  AlertTriangle, ChevronDown, ChevronUp, Lightbulb,
  Download, LogIn, LogOut, CreditCard, Bed, TrendingUp, TrendingDown,
- ArrowRight, User, Loader2,
+ ArrowRight, User, Loader2, CheckCircle2,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import TodaySummary from '@/components/modules/TodaySummary';
@@ -245,17 +245,34 @@ const estadoPagoBadge: Record<string, string> = {
 
 const estadosReserva = ['Confirmada', 'A confirmar', 'Cancelada', 'Check-In realizado', 'Check-Out realizado'];
 
-// ==================== DESGLOSE PRECIO COMPONENT ====================
+// ==================== DESGLOSE PRECIO ====================
+
+interface DesgloseItem {
+  nochesGratis: number;
+  nochesCobrables: number;
+  tieneAcompanante: boolean;
+  acompananteEtiqueta: string;
+  acompananteCantidad: number;
+  ninosCount: number;
+  precioNino: number;
+  adultos: number;
+  modoCobro: string;
+  personasACobrar: number;
+  precioRango: number;
+  totalAdultos: number;
+  totalNinos: number;
+}
+
 function DesglosePrecio({ form, computed, formatMoney, s }: {
   form: { tipoTarifa: string; reservaMultiple: boolean; habitacion: string; habitacion2?: string; personas: string; personas2?: string };
-  computed: { noches: number; subtotal: number; subtotal2: number; desglose: any };
+  computed: { noches: number; subtotal: number; subtotal2: number; desglose: DesgloseItem | null; desglose2: DesgloseItem | null };
   formatMoney: (n: number) => string;
   s: (n: number) => string;
 }) {
   const d = computed.desglose;
 
-  const adultoLinea = (d: any) => {
-    if (!d || d.totalAdultos === 0) return null;
+  const adultoLinea = (d: DesgloseItem) => {
+    if (d.totalAdultos === 0) return null;
     const modo = d.modoCobro;
     if (modo === 'porCama') {
       return `${d.personasACobrar} adulto${d.personasACobrar > 1 ? 's' : ''} × ${formatMoney(d.precioRango)}/cama/noche`;
@@ -265,7 +282,7 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
     return `${d.personasACobrar} adulto${d.personasACobrar > 1 ? 's' : ''}`;
   };
 
-  const renderLines = (sub: number, dLocal: any) => {
+  const renderLines = (sub: number, dLocal: DesgloseItem | null) => {
     if (!dLocal) return (
       <div className="space-y-1">
         <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-muted-foreground">Subtotal</span><span className="font-semibold text-foreground">{formatMoney(sub)}</span></div>
@@ -327,7 +344,7 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
           {computed.subtotal2 > 0 && (
             <>
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-2">Habitación {form.habitacion2}</p>
-              {renderLines(computed.subtotal2, null)}
+              {renderLines(computed.subtotal2, computed.desglose2)}
             </>
           )}
         </>
@@ -335,6 +352,95 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
         renderLines(computed.subtotal, d)
       )}
     </>
+  );
+}
+
+// ==================== TARJETA DE HABITACIÓN (individual y combinación) ====================
+// Un único componente para que ambos casos se vean con exactamente el mismo
+// tamaño y la misma información visible — antes la de combinación no mostraba
+// camas libres y quedaba más ancha por ir en una grilla de 2 columnas.
+function RoomSelectCard({
+  hab, selected, dashed, onSelect, personas, onPersonasChange, ninos, onNinosChange, showNinos,
+}: {
+  hab: HabitacionDisponible;
+  selected: boolean;
+  dashed?: boolean;
+  onSelect?: () => void;
+  personas: number;
+  onPersonasChange: (v: number) => void;
+  ninos?: number;
+  onNinosChange?: (v: number) => void;
+  showNinos: boolean;
+}) {
+  return (
+    <Card
+      className={cn(
+        'p-3 flex flex-col justify-between transition-all',
+        onSelect && 'cursor-pointer',
+        selected
+          ? 'ring-2 ring-brand-mint border-brand-mint bg-[#0F766E1A]'
+          : dashed
+            ? 'border-dashed border-[#0F766E66] bg-[#0F766E0D]'
+            : onSelect ? 'hover:bg-[#F1F5F980]' : ''
+      )}
+      onClick={onSelect}
+    >
+      <div>
+        <div className="flex items-center justify-between">
+          <span className="font-bold text-base">{hab.numero}</span>
+          <Badge variant="outline">{hab.tipo}</Badge>
+        </div>
+        <div className="text-xs text-muted-foreground mt-1">
+          Cap. {hab.capacidad} · {hab.camasMatrimoniales}M / {hab.camasSimples}S
+          {hab.camasLibres !== undefined && (
+            <span> · {hab.camasLibres} cama{s(hab.camasLibres)} libre{s(hab.camasLibres)}</span>
+          )}
+        </div>
+      </div>
+      <div className={cn('flex items-center gap-3 mt-2 pt-2 border-t', selected ? 'border-[#0F766E66]/50' : 'border-transparent')}>
+        {selected ? (
+          <>
+            <span className="text-xs text-primary font-medium">✓ Seleccionada</span>
+            <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+              <Label className="text-xs text-primary">Pers.:</Label>
+              <Input
+                type="number"
+                min="1"
+                max={hab.capacidad}
+                value={personas}
+                onChange={e => {
+                  const val = parseInt(e.target.value) || 1;
+                  if (val > hab.capacidad || val < 1) return;
+                  onPersonasChange(val);
+                }}
+                className="h-7 text-xs w-14 text-center"
+              />
+            </div>
+            {showNinos && onNinosChange && (
+              <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                <Label className="text-xs text-primary">Niños:</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max={Math.max(0, hab.capacidad - personas)}
+                  value={ninos ?? 0}
+                  onChange={e => {
+                    let val = parseInt(e.target.value) || 0;
+                    const maxNinos = Math.max(0, hab.capacidad - personas);
+                    if (val < 0) val = 0;
+                    if (val > maxNinos) val = maxNinos;
+                    onNinosChange(val);
+                  }}
+                  className="h-7 text-xs w-14 text-center"
+                />
+              </div>
+            )}
+          </>
+        ) : (
+          <span className="text-xs invisible">✓ Seleccionada</span>
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -457,7 +563,7 @@ export default function ReservasModule() {
  const [tab, setTab] = useState('disponibilidad');
  const [disponibles, setDisponibles] = useState<HabitacionDisponible[]>([]);
  const [busquedaCliente, setBusquedaCliente] = useState('');
- const [clientesEncontrados, setClientesEncontrados] = useState<Cliente[]>([]);
+ const [clienteDropdownOpen, setClienteDropdownOpen] = useState(false);
  const [sugerenciasOpen, setSugerenciasOpen] = useState(false);
 
  // ==================== ACOMPAÑANTE SIN CARGO STATE ====================
@@ -506,26 +612,12 @@ export default function ReservasModule() {
  const computed = useMemo((): {
  noches: number; precioCalculado: number; subtotal: number; recargo: number;
  totalFinal: number; subtotal2: number; totalFinal2: number; totalFinalCombinado: number;
- // Desglose de promociones
- desglose: {
- nochesGratis: number;
- nochesCobrables: number;
- tieneAcompanante: boolean;
- acompananteEtiqueta: string;
- acompananteCantidad: number;
- ninosCount: number;
- precioNino: number;
- adultos: number;
- // Detailed breakdown
- modoCobro: string;
- personasACobrar: number;
- precioRango: number;
- totalAdultos: number;
- totalNinos: number;
- } | null;
+ // Desglose de precio (siempre calculado) + promociones cuando la tarifa las tiene
+ desglose: DesgloseItem | null;
+ desglose2: DesgloseItem | null;
  } => {
  if (!form.checkin || !form.checkout || !form.personas) {
- return { noches: 1, precioCalculado: 0, subtotal: 0, recargo: 0, totalFinal: 0, subtotal2: 0, totalFinal2: 0, totalFinalCombinado: 0, desglose: null };
+ return { noches: 1, precioCalculado: 0, subtotal: 0, recargo: 0, totalFinal: 0, subtotal2: 0, totalFinal2: 0, totalFinalCombinado: 0, desglose: null, desglose2: null };
  }
  const noches = nochesEntre(form.checkin, form.checkout);
  const adultos = parseInt(form.personas) || 1;
@@ -533,17 +625,9 @@ export default function ReservasModule() {
  const totalPersonas = adultos + ninosCount;
  const subtotal = calcularTotalSegunTarifa(form.tipoTarifa, totalPersonas, noches, { checkin: form.checkin, ninos: ninosCount > 0 ? ninosCount : undefined });
 
- // Calcular desglose de promociones
- let desglose: { nochesGratis: number; nochesCobrables: number; tieneAcompanante: boolean; acompananteEtiqueta: string; acompananteCantidad: number; ninosCount: number; precioNino: number; adultos: number; modoCobro: string; personasACobrar: number; precioRango: number; totalAdultos: number; totalNinos: number } | null = null;
- if (promocionesEfectivas) {
- const ninosDif = promocionesEfectivas.ninosDiferenciado;
- const cantNinos = (ninosCount > 0 && ninosDif?.activo) ? ninosCount : 0;
- const acom = promocionesEfectivas.acompananteSinCargo;
- const tieneAcompanante = !!(acom?.activo && acom.cantidad > 0);
-
- // Calcular noches gratis
+ // Noches de cortesía (si la tarifa tiene esa promoción activa) — afecta a ambas habitaciones por igual.
  let nochesGratis = 0;
- const nc = promocionesEfectivas.nochesCortesia;
+ const nc = promocionesEfectivas?.nochesCortesia;
  if (nc?.activo && nc.modalidad) {
  if (nc.modalidad.tipo === 'cadaX') {
  const cada = nc.modalidad.cada || 999;
@@ -560,35 +644,39 @@ export default function ReservasModule() {
  }
  }
  const nochesCobrables = Math.max(0, noches - nochesGratis);
- // Detailed breakdown: replicate calcularTotalSegunTarifa logic for intermediate values
- let modoCobro = 'porGrupo';
- let personasACobrar = adultos; // Ya NO se descuenta acompañante: todos pagan
+ const tarifa = tarifas[form.tipoTarifa] || tarifas['normal'];
+ const modoCobro = tarifa?.modoCobro || 'porGrupo';
+
+ // Desglose de precio para una habitación — SIEMPRE se calcula, tenga o no
+ // promociones la tarifa (antes solo se armaba con promociones activas y el
+ // resto de los casos caía a un "Subtotal" plano sin tarifa/noches/precio).
+ const calcDesglose = (personasN: number, ninosN: number) => {
+ const ninosDif = promocionesEfectivas?.ninosDiferenciado;
+ const cantNinos = (ninosN > 0 && ninosDif?.activo) ? ninosN : 0;
+ const acom = promocionesEfectivas?.acompananteSinCargo;
+ const tieneAcompanante = !!(acom?.activo && acom.cantidad > 0);
+
  let precioRango = 0;
  let totalAdultos = 0;
  let totalNinos = 0;
- const tarifa = tarifas[form.tipoTarifa] || tarifas['normal'];
  if (tarifa?.rangos && tarifa.rangos.length > 0) {
- modoCobro = tarifa.modoCobro || 'porGrupo';
- const ninosDifLocal = promocionesEfectivas?.ninosDiferenciado;
- // Find matching range — usa adultos (NO descuenta acompañante)
- let rango = tarifa.rangos.find((r: any) => adultos >= r.minPersonas && (r.maxPersonas === null || adultos <= r.maxPersonas));
+ // Find matching range — usa personasN (NO descuenta acompañante)
+ let rango = tarifa.rangos.find((r: any) => personasN >= r.minPersonas && (r.maxPersonas === null || personasN <= r.maxPersonas));
  if (!rango && tarifa.rangos.length > 0) rango = tarifa.rangos[tarifa.rangos.length - 1];
  precioRango = rango?.precio || 0;
  const nC = nochesCobrables;
  if (modoCobro === 'porCama') {
- totalAdultos = nC * adultos * precioRango;
- } else if (modoCobro === 'porHabitacion') {
- totalAdultos = nC * precioRango;
+ totalAdultos = nC * personasN * precioRango;
  } else {
- // porGrupo: el precio es el total del grupo
+ // porHabitacion / porGrupo: el precio es el total del grupo/habitación
  totalAdultos = nC * precioRango;
  }
- if (cantNinos > 0 && ninosDifLocal?.activo) {
- totalNinos = cantNinos * (ninosDifLocal.precioNino || 0) * nC;
+ if (cantNinos > 0 && ninosDif?.activo) {
+ totalNinos = cantNinos * (ninosDif.precioNino || 0) * nC;
  }
  }
 
- desglose = {
+ return {
  nochesGratis,
  nochesCobrables,
  tieneAcompanante,
@@ -596,14 +684,16 @@ export default function ReservasModule() {
  acompananteCantidad: acom?.cantidad || 1,
  ninosCount: cantNinos,
  precioNino: ninosDif?.precioNino || 0,
- adultos,
+ adultos: personasN,
  modoCobro,
- personasACobrar,
+ personasACobrar: personasN, // Ya no se descuenta acompañante: todos pagan
  precioRango,
  totalAdultos,
  totalNinos,
  };
- }
+ };
+
+ const desglose = calcDesglose(adultos, ninosCount);
 
  // Parse cuotas
  let recargo = 0;
@@ -614,15 +704,17 @@ export default function ReservasModule() {
  }
  const totalFinal = subtotal + recargo;
 
- // If multiple, calculate room2 total (with ninos support)
+ // If multiple, calculate room2 total (with ninos support) — mismo desglose completo que la habitación 1.
  let subtotal2 = 0;
+ let desglose2: typeof desglose | null = null;
  if (form.reservaMultiple && form.habitacion2 && habitaciones[form.habitacion2]) {
  const p2 = parseInt(form.personas2) || 1;
  subtotal2 = calcularTotalSegunTarifa(form.tipoTarifa, p2, noches, { checkin: form.checkin, ninos: ninosCount > 0 ? ninosCount : undefined });
+ desglose2 = calcDesglose(p2, ninosCount);
  }
  const totalFinal2 = subtotal2;
 
- return { noches, precioCalculado: subtotal, subtotal, recargo, totalFinal, subtotal2, totalFinal2, totalFinalCombinado: totalFinal + totalFinal2, desglose };
+ return { noches, precioCalculado: subtotal, subtotal, recargo, totalFinal, subtotal2, totalFinal2, totalFinalCombinado: totalFinal + totalFinal2, desglose, desglose2 };
  }, [form.checkin, form.checkout, form.personas, form.personas2, form.tipoTarifa, form.habitacion, form.habitacion2, form.reservaMultiple, form.pagoCuotas, form.ninos, habitaciones, calcularTotalSegunTarifa, nochesEntre, promocionesEfectivas, tieneNinosDiferenciado]);
 
  // ==================== COMPUTED: SELECTED MÉTODO DE PAGO ====================
@@ -757,18 +849,21 @@ export default function ReservasModule() {
  return results;
  }, [disponibles, personasBusqueda, form.filtroMatrimonial]);
 
+ // ==================== COMPUTED: BÚSQUEDA DE CLIENTES EN VIVO ====================
+ // buscarCliente ya filtra en memoria (sin red), así que se puede derivar en
+ // cada tecleo sin necesidad de un botón "Buscar" ni de un estado aparte.
+ const clientesEncontrados: Cliente[] = useMemo(() => {
+ const q = busquedaCliente.trim();
+ if (q.length < 2) return [];
+ return buscarCliente(q);
+ }, [busquedaCliente, buscarCliente]);
+
  // ==================== HANDLERS ====================
 
  const handleSearchDisponibilidad = () => {
  if (!form.checkin || !form.checkout) return;
  const res = buscarDisponibilidad(form.checkin, form.checkout);
  setDisponibles(res);
- };
-
- const handleSearchCliente = () => {
- if (busquedaCliente.length < 2) return;
- const res = buscarCliente(busquedaCliente);
- setClientesEncontrados(res);
  };
 
  const selectCliente = (c: Cliente) => {
@@ -783,7 +878,7 @@ export default function ReservasModule() {
  nacionalidad: c.nacionalidad || prev.nacionalidad,
  fechaNacimiento: c.fechaNacimiento || prev.fechaNacimiento,
  }));
- setClientesEncontrados([]);
+ setClienteDropdownOpen(false);
  setBusquedaCliente('');
  };
 
@@ -1228,7 +1323,7 @@ export default function ReservasModule() {
  setForm(emptyForm);
  setDisponibles([]);
  setErrors([]);
- setClientesEncontrados([]);
+ setClienteDropdownOpen(false);
  setBusquedaCliente('');
  };
 
@@ -1838,7 +1933,19 @@ export default function ReservasModule() {
  <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
  <DialogContent className="sm:max-w-5xl max-h-[90vh]">
  <DialogHeader>
+ <div className="flex items-center gap-3">
+ <div className="w-10 h-10 rounded-xl bg-[#0F766E1A] flex items-center justify-center shrink-0">
+ <CalendarDays className="w-5 h-5 text-primary" />
+ </div>
+ <div>
  <DialogTitle className="text-xl">{editingId ? `Editar Reserva #${editingId}` : 'Nueva Reserva'}</DialogTitle>
+ <p className="text-xs text-muted-foreground mt-0.5">
+ {form.checkin && form.checkout
+ ? `${formatFecha(form.checkin)} → ${formatFecha(form.checkout)}`
+ : 'Elegí fechas, habitación y datos del huésped'}
+ </p>
+ </div>
+ </div>
  </DialogHeader>
 
  {errors.length > 0 && (
@@ -1851,13 +1958,49 @@ export default function ReservasModule() {
  </div>
  )}
 
+ {/* Resumen persistente — visible en las 3 pestañas, no solo al final de Disponibilidad */}
+ {(form.habitacion || (form.checkin && form.checkout)) && (
+ <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border bg-[#0F766E0D] px-4 py-2.5">
+ <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+ {form.habitacion ? (
+ <span className="flex items-center gap-1.5 font-medium">
+ <BedDouble className="w-4 h-4 text-primary shrink-0" />
+ Hab. {form.habitacion}{form.reservaMultiple && form.habitacion2 ? ` + ${form.habitacion2}` : ''}
+ </span>
+ ) : (
+ <span className="flex items-center gap-1.5 text-muted-foreground">
+ <BedDouble className="w-4 h-4 shrink-0" /> Sin habitación
+ </span>
+ )}
+ {form.checkin && form.checkout && (
+ <span className="flex items-center gap-1.5 text-muted-foreground">
+ <CalendarDays className="w-4 h-4 shrink-0" />
+ {computed.noches} noche{s(computed.noches)}
+ </span>
+ )}
+ {form.huesped.trim() && (
+ <span className="flex items-center gap-1.5 text-muted-foreground">
+ <User className="w-4 h-4 shrink-0" /> {form.huesped}
+ </span>
+ )}
+ </div>
+ {computed.precioCalculado > 0 && (
+ <span className="font-bold text-primary">
+ {formatMoney(form.reservaMultiple ? (computed.totalFinalCombinado || computed.totalFinal) : computed.totalFinal)}
+ </span>
+ )}
+ </div>
+ )}
+
  <Tabs value={tab} onValueChange={setTab}>
  <TabsList className="w-full grid grid-cols-3">
  <TabsTrigger value="disponibilidad" className="flex-1">
  <BedDouble className="w-4 h-4 mr-1" />Disponibilidad
+ {!!form.habitacion && <CheckCircle2 className="w-3.5 h-3.5 ml-1.5 text-primary" />}
  </TabsTrigger>
  <TabsTrigger value="cliente" className="flex-1">
  <Users className="w-4 h-4 mr-1" />Cliente
+ {!!(form.huesped.trim() && form.dni.trim() && form.telefono.trim()) && <CheckCircle2 className="w-3.5 h-3.5 ml-1.5 text-primary" />}
  </TabsTrigger>
  <TabsTrigger value="pago" className="flex-1">
  <Eye className="w-4 h-4 mr-1" />Pago
@@ -1973,65 +2116,17 @@ export default function ReservasModule() {
  {disponiblesFiltradas.map(hab => {
  const isSelected = !form.reservaMultiple && form.habitacion === hab.numero;
  return (
- <Card
+ <RoomSelectCard
  key={hab.numero}
- className={`cursor-pointer transition-all p-3 ${
- isSelected
- ? 'ring-2 ring-brand-mint border-brand-mint bg-[#0F766E1A]'
- : 'hover:bg-[#F1F5F980]'
- }`}
- onClick={() => selectRoom(hab)}
- >
- <div className="flex items-center justify-between">
- <span className="font-bold">{hab.numero}</span>
- <Badge variant="outline">{hab.tipo}</Badge>
- </div>
- <div className="text-xs text-muted-foreground mt-1">
- Cap. {hab.capacidad} · {hab.camasMatrimoniales}M / {hab.camasSimples}S
- {hab.camasLibres !== undefined && (
- <span> · {hab.camasLibres} cama{s(hab.camasLibres)} libre{s(hab.camasLibres)}</span>
- )}
- </div>
- {isSelected && (
- <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#0F766E66]/50">
- <span className="text-xs text-primary font-medium">✓ Seleccionada</span>
- <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
- <Label className="text-xs text-primary">Pers.:</Label>
- <Input
- type="number"
- min="1"
- max={hab.capacidad}
- value={Math.min(parseInt(form.personas) || 1, hab.capacidad)}
- onChange={e => {
- const val = parseInt(e.target.value) || 1;
- if (val > hab.capacidad) return;
- updateForm({ personas: String(val) });
- }}
- className="h-7 text-xs w-14 text-center"
+ hab={hab}
+ selected={isSelected}
+ onSelect={() => selectRoom(hab)}
+ personas={Math.min(parseInt(form.personas) || 1, hab.capacidad)}
+ onPersonasChange={val => updateForm({ personas: String(val) })}
+ showNinos={tieneNinosDiferenciado}
+ ninos={parseInt(form.ninos) || 0}
+ onNinosChange={val => updateForm({ ninos: String(val) })}
  />
- </div>
- {tieneNinosDiferenciado && (
- <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
- <Label className="text-xs text-primary">Niños:</Label>
- <Input
- type="number"
- min="0"
- max={Math.max(0, hab.capacidad - (parseInt(form.personas) || 1))}
- value={form.ninos}
- onChange={e => {
- let val = parseInt(e.target.value) || 0;
- const maxNinos = Math.max(0, hab.capacidad - (parseInt(form.personas) || 1));
- if (val < 0) val = 0;
- if (val > maxNinos) val = maxNinos;
- updateForm({ ninos: String(val) });
- }}
- className="h-7 text-xs w-14 text-center"
- />
- </div>
- )}
- </div>
- )}
- </Card>
  );
  })}
  </div>
@@ -2081,54 +2176,34 @@ export default function ReservasModule() {
  const isSelectedCombo = form.habitacion === sug.habitaciones[0].numero && form.habitacion2 === sug.habitaciones[1].numero;
  const isSelectedComboRev = form.habitacion === sug.habitaciones[1].numero && form.habitacion2 === sug.habitaciones[0].numero;
  const isComboSelected = isSelectedCombo || isSelectedComboRev;
- const hab1 = isSelectedComboRev ? sug.habitaciones[1] : sug.habitaciones[0];
- const hab2 = isSelectedComboRev ? sug.habitaciones[0] : sug.habitaciones[1];
  return (
  <div key={i} className="space-y-2">
  <div
- className={`grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg border-2 transition-all ${
+ className={`rounded-lg border-2 p-3 transition-all ${
  isComboSelected
  ? 'border-brand-mint bg-[#0F766E1A] cursor-default'
  : 'border-transparent hover:border-[#0F766E4D] hover:bg-[#F1F5F94D] cursor-pointer'
  }`}
  onClick={() => { if (!isComboSelected) selectCombinacion(sug); }}
  >
+ {/* Misma grilla de 3 columnas que la lista individual, para que las tarjetas midan exactamente lo mismo */}
+ <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
  {sug.habitaciones.map((hab, hi) => {
  const isFirst = (isSelectedComboRev ? hi === 1 : hi === 0);
  const pVal = isFirst ? (parseInt(form.personas) || 1) : (parseInt(form.personas2) || 1);
  return (
- <Card key={hab.numero} className={`p-3 border-dashed border-[#0F766E66] bg-[#0F766E0D]`}>
- <div className="flex items-center justify-between">
- <span className="font-bold">{hab.numero}</span>
- <Badge variant="outline">{hab.tipo}</Badge>
- </div>
- <div className="text-xs text-muted-foreground mt-1">
- Cap. {hab.capacidad} · {hab.camasMatrimoniales}M / {hab.camasSimples}S
- </div>
- {isComboSelected && (
- <div className="flex items-center gap-1.5 mt-2" onClick={e => e.stopPropagation()}>
- <Label className="text-xs text-primary">Pers.:</Label>
- <Input
- type="number"
- min="1"
- max={hab.capacidad}
- value={pVal}
- onChange={e => {
- const val = parseInt(e.target.value) || 1;
- if (val > hab.capacidad || val < 1) return;
- if (isFirst) {
- updateForm({ personas: String(val) });
- } else {
- updateForm({ personas2: String(val) });
- }
- }}
- className="h-7 text-xs w-14 text-center"
+ <RoomSelectCard
+ key={hab.numero}
+ hab={hab}
+ selected={isComboSelected}
+ dashed={!isComboSelected}
+ personas={pVal}
+ onPersonasChange={val => updateForm(isFirst ? { personas: String(val) } : { personas2: String(val) })}
+ showNinos={false}
  />
- </div>
- )}
- </Card>
  );
  })}
+ </div>
  </div>
  <div className="flex items-center justify-center gap-2">
  <Badge className={isComboSelected ? 'bg-brand-mint text-white' : 'bg-[#0F766E1A] text-primary border-[#0F766E66]'}>
@@ -2214,36 +2289,41 @@ export default function ReservasModule() {
 
  {/* ==================== TAB: CLIENTE ==================== */}
  <TabsContent value="cliente" className="space-y-4 mt-4">
- <div className="grid gap-2">
+ <div className="grid gap-2 relative">
  <Label>Buscar cliente existente</Label>
- <div className="flex gap-2">
+ <div className="relative">
+ <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
  <Input
+ className="pl-9"
  placeholder="Nombre, DNI o email..."
  value={busquedaCliente}
- onChange={e => setBusquedaCliente(e.target.value)}
- onKeyDown={e => e.key === 'Enter' && handleSearchCliente()}
+ onChange={e => { setBusquedaCliente(e.target.value); setClienteDropdownOpen(true); }}
+ onFocus={() => setClienteDropdownOpen(true)}
+ onBlur={() => setClienteDropdownOpen(false)}
  />
- <Button variant="outline" onClick={handleSearchCliente}>
- <Search className="w-4 h-4" />
- </Button>
- </div>
- </div>
-
- {clientesEncontrados.length > 0 && (
- <div className="border rounded-lg max-h-40 overflow-y-auto">
- {clientesEncontrados.map(c => (
+ {clienteDropdownOpen && busquedaCliente.trim().length >= 2 && (
+ <div className="absolute z-30 top-full left-0 right-0 mt-1 border rounded-lg bg-card shadow-lg max-h-52 overflow-y-auto">
+ {clientesEncontrados.length === 0 ? (
+ <p className="px-4 py-3 text-sm text-muted-foreground">Sin resultados para &quot;{busquedaCliente.trim()}&quot;</p>
+ ) : (
+ clientesEncontrados.map(c => (
  <button
  key={c.id}
+ type="button"
  className="w-full text-left px-4 py-2 hover:bg-[#F1F5F980] border-b last:border-b-0 text-sm transition-colors"
+ onMouseDown={e => e.preventDefault()}
  onClick={() => selectCliente(c)}
  >
  <span className="font-medium">{c.nombre}</span>
  <span className="text-muted-foreground ml-2">({c.dni})</span>
  {c.telefono && <span className="text-muted-foreground ml-2">{c.telefono}</span>}
  </button>
- ))}
+ ))
+ )}
  </div>
  )}
+ </div>
+ </div>
 
  <Separator />
  <p className="text-xs text-muted-foreground">Datos del huésped (se autocompletan al seleccionar un cliente)</p>
