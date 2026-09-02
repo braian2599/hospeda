@@ -384,7 +384,7 @@ function RoomSelectCard({
   return (
     <Card
       className={cn(
-        'relative p-3 flex flex-col justify-between transition-all bg-card',
+        'p-3 flex flex-col justify-between transition-all bg-card',
         onSelect && 'cursor-pointer',
         selected
           ? 'border-2 border-primary shadow-sm'
@@ -394,14 +394,12 @@ function RoomSelectCard({
       )}
       onClick={onSelect}
     >
-      {selected && (
-        <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shadow-sm">
-          <Check className="w-3 h-3" />
-        </div>
-      )}
       <div>
         <div className="flex items-center justify-between">
-          <span className="font-bold text-base">{hab.numero}</span>
+          <span className="flex items-center gap-1.5 font-bold text-base">
+            {selected && <Check className="w-4 h-4 text-primary shrink-0" strokeWidth={3} />}
+            {hab.numero}
+          </span>
           <Badge variant="outline">{hab.tipo}</Badge>
         </div>
         <div className="text-xs text-muted-foreground mt-1">
@@ -1944,7 +1942,7 @@ export default function ReservasModule() {
 
  {/* ==================== MODAL NUEVA/EDITAR RESERVA ==================== */}
  <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
- <DialogContent className="sm:max-w-5xl max-h-[90vh]">
+ <DialogContent className="sm:max-w-2xl max-h-[90vh]">
  <DialogHeader>
  <div className="flex items-center gap-3">
  <div className="w-10 h-10 rounded-xl bg-[#0F766E1A] flex items-center justify-center shrink-0">
@@ -2022,8 +2020,8 @@ export default function ReservasModule() {
 
  {/* ==================== TAB: DISPONIBILIDAD ==================== */}
  <TabsContent value="disponibilidad" className="space-y-4 mt-4">
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
- <div className="grid gap-1.5 sm:col-span-2 lg:col-span-2">
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 card-grid-stagger">
+ <div className="grid gap-1.5 sm:col-span-2">
  <DateRangePickerInline
  checkin={form.checkin}
  checkout={form.checkout}
@@ -2125,12 +2123,12 @@ export default function ReservasModule() {
  </p>
  )}
  </div>
- <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,220px))] gap-3 max-h-52 overflow-y-auto">
+ <div className="flex flex-wrap gap-3 max-h-52 overflow-y-auto">
  {disponiblesFiltradas.map(hab => {
  const isSelected = !form.reservaMultiple && form.habitacion === hab.numero;
  return (
+ <div key={hab.numero} className="w-[200px] shrink-0">
  <RoomSelectCard
- key={hab.numero}
  hab={hab}
  selected={isSelected}
  onSelect={() => selectRoom(hab)}
@@ -2140,6 +2138,7 @@ export default function ReservasModule() {
  ninos={parseInt(form.ninos) || 0}
  onNinosChange={val => updateForm({ ninos: String(val) })}
  />
+ </div>
  );
  })}
  </div>
@@ -2192,21 +2191,22 @@ export default function ReservasModule() {
  return (
  <div key={i} className="space-y-2">
  <div
- className={`rounded-lg border p-3 transition-all ${
+ className={`inline-block max-w-full rounded-lg border p-3 transition-all ${
  isComboSelected
  ? 'border-primary cursor-default'
  : 'border-border hover:border-primary/40 hover:bg-[#F1F5F94D] cursor-pointer'
  }`}
  onClick={() => { if (!isComboSelected) selectCombinacion(sug); }}
  >
- {/* Mismo ancho de tarjeta que la lista individual, para que midan exactamente lo mismo */}
- <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,220px))] gap-3">
+ {/* Mismo ancho de tarjeta que la lista individual, para que midan exactamente lo mismo — y el
+ recuadro se ajusta a las 2 tarjetas en vez de estirarse a lo ancho del modal. */}
+ <div className="flex flex-wrap gap-3">
  {sug.habitaciones.map((hab, hi) => {
  const isFirst = (isSelectedComboRev ? hi === 1 : hi === 0);
  const pVal = isFirst ? (parseInt(form.personas) || 1) : (parseInt(form.personas2) || 1);
  return (
+ <div key={hab.numero} className="w-[200px] shrink-0">
  <RoomSelectCard
- key={hab.numero}
  hab={hab}
  selected={isComboSelected}
  dashed={!isComboSelected}
@@ -2214,6 +2214,7 @@ export default function ReservasModule() {
  onPersonasChange={val => updateForm(isFirst ? { personas: String(val) } : { personas2: String(val) })}
  showNinos={false}
  />
+ </div>
  );
  })}
  </div>
