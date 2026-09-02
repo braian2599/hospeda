@@ -30,7 +30,7 @@ import {
  CalendarDays, Plus, Pencil, XCircle, Search, BedDouble, Users, Eye,
  AlertTriangle, ChevronDown, ChevronUp, Lightbulb,
  Download, LogIn, LogOut, CreditCard, Bed, TrendingUp, TrendingDown,
- ArrowRight, User, Loader2, CheckCircle2,
+ ArrowRight, User, Loader2, CheckCircle2, Check,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import TodaySummary from '@/components/modules/TodaySummary';
@@ -282,76 +282,85 @@ function DesglosePrecio({ form, computed, formatMoney, s }: {
     return `${d.personasACobrar} adulto${d.personasACobrar > 1 ? 's' : ''}`;
   };
 
-  const renderLines = (sub: number, dLocal: DesgloseItem | null) => {
-    if (!dLocal) return (
-      <div className="space-y-1">
-        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-muted-foreground">Subtotal</span><span className="font-semibold text-foreground">{formatMoney(sub)}</span></div>
-      </div>
-    );
-
+  const renderRoomBlock = (roomLabel: string | null, sub: number, dLocal: DesgloseItem | null) => {
     const lines: { key: string; label: string; value: string; dim?: boolean }[] = [];
 
-    const aLabel = adultoLinea(dLocal);
-    if (aLabel) {
-      lines.push({ key: 'adultos', label: aLabel, value: formatMoney(dLocal.totalAdultos) });
-    }
-
-    if (dLocal.ninosCount > 0 && dLocal.totalNinos > 0) {
-      lines.push({
-        key: 'ninos',
-        label: `${dLocal.ninosCount} niño${dLocal.ninosCount > 1 ? 's' : ''} × ${formatMoney(dLocal.precioNino)}/noche`,
-        value: formatMoney(dLocal.totalNinos),
-      });
-    }
-
-    if (dLocal.nochesGratis > 0) {
-      const totalBase = dLocal.totalAdultos + dLocal.totalNinos;
-      const ahorro = totalBase > 0 && dLocal.nochesCobrables > 0
-        ? Math.round(totalBase / dLocal.nochesCobrables * dLocal.nochesGratis)
-        : 0;
-      lines.push({
-        key: 'cortesia',
-        label: `${dLocal.nochesGratis} noche${dLocal.nochesGratis > 1 ? 's' : ''} de cortesía`,
-        value: `- ${formatMoney(ahorro)}`,
-        dim: true,
-      });
+    if (dLocal) {
+      const aLabel = adultoLinea(dLocal);
+      if (aLabel) {
+        lines.push({ key: 'adultos', label: aLabel, value: formatMoney(dLocal.totalAdultos) });
+      }
+      if (dLocal.ninosCount > 0 && dLocal.totalNinos > 0) {
+        lines.push({
+          key: 'ninos',
+          label: `${dLocal.ninosCount} niño${dLocal.ninosCount > 1 ? 's' : ''} × ${formatMoney(dLocal.precioNino)}/noche`,
+          value: formatMoney(dLocal.totalNinos),
+        });
+      }
+      if (dLocal.nochesGratis > 0) {
+        const totalBase = dLocal.totalAdultos + dLocal.totalNinos;
+        const ahorro = totalBase > 0 && dLocal.nochesCobrables > 0
+          ? Math.round(totalBase / dLocal.nochesCobrables * dLocal.nochesGratis)
+          : 0;
+        lines.push({
+          key: 'cortesia',
+          label: `${dLocal.nochesGratis} noche${dLocal.nochesGratis > 1 ? 's' : ''} de cortesía`,
+          value: `- ${formatMoney(ahorro)}`,
+          dim: true,
+        });
+      }
     }
 
     return (
-      <div className="space-y-1">
-        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-muted-foreground">Tarifa</span><span className="font-semibold text-foreground capitalize">{form.tipoTarifa}</span></div>
-        <div className="flex justify-between items-center py-1 text-[13px]"><span className="text-muted-foreground">Noches</span><span className="font-semibold text-foreground">{computed.noches}{dLocal?.nochesGratis > 0 ? ` (${dLocal.nochesCobrables} cobrables)` : ''}</span></div>
-        {lines.map(l => (
-          <div key={l.key} className="flex justify-between items-center py-1 text-[13px]">
-            <span className={l.dim ? 'text-muted-foreground line-through' : 'text-muted-foreground'}>{l.label}</span>
-            <span className={l.dim ? 'font-medium text-muted-foreground' : 'font-semibold text-foreground'}>{l.value}</span>
+      <div className="rounded-lg border bg-card p-3.5 space-y-1.5">
+        {roomLabel && (
+          <div className="flex items-center gap-1.5 pb-1.5 mb-0.5 border-b">
+            <BedDouble className="w-3.5 h-3.5 text-primary shrink-0" />
+            <span className="text-[13px] font-semibold text-foreground">{roomLabel}</span>
           </div>
-        ))}
-        <div className="flex justify-between items-center py-1.5 mt-1 border-t border-border text-[13px]">
-          <span className="font-medium text-muted-foreground">Subtotal</span>
-          <span className="font-bold text-foreground">{formatMoney(sub)}</span>
-        </div>
+        )}
+        {!dLocal ? (
+          <div className="flex justify-between items-center text-[13px]">
+            <span className="text-muted-foreground">Subtotal</span>
+            <span className="font-semibold text-foreground">{formatMoney(sub)}</span>
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-between items-center text-[13px]">
+              <span className="text-muted-foreground">Tarifa</span>
+              <span className="font-medium text-foreground capitalize">{form.tipoTarifa}</span>
+            </div>
+            <div className="flex justify-between items-center text-[13px]">
+              <span className="text-muted-foreground">Noches</span>
+              <span className="font-medium text-foreground">{computed.noches}{dLocal.nochesGratis > 0 ? ` (${dLocal.nochesCobrables} cobrables)` : ''}</span>
+            </div>
+            {lines.map(l => (
+              <div key={l.key} className="flex justify-between items-center text-[13px]">
+                <span className={l.dim ? 'text-muted-foreground line-through' : 'text-muted-foreground'}>{l.label}</span>
+                <span className={l.dim ? 'font-medium text-muted-foreground' : 'font-medium text-foreground'}>{l.value}</span>
+              </div>
+            ))}
+            <div className="flex justify-between items-center pt-1.5 mt-1 border-t text-[13px]">
+              <span className="font-medium text-muted-foreground">Subtotal</span>
+              <span className="font-bold text-foreground">{formatMoney(sub)}</span>
+            </div>
+          </>
+        )}
       </div>
     );
   };
 
   return (
-    <>
+    <div className="space-y-2.5">
       {form.reservaMultiple ? (
         <>
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Habitación {form.habitacion}</p>
-          {renderLines(computed.subtotal, d)}
-          {computed.subtotal2 > 0 && (
-            <>
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider pt-2">Habitación {form.habitacion2}</p>
-              {renderLines(computed.subtotal2, computed.desglose2)}
-            </>
-          )}
+          {renderRoomBlock(form.habitacion, computed.subtotal, d)}
+          {computed.subtotal2 > 0 && renderRoomBlock(form.habitacion2 || null, computed.subtotal2, computed.desglose2)}
         </>
       ) : (
-        renderLines(computed.subtotal, d)
+        renderRoomBlock(null, computed.subtotal, d)
       )}
-    </>
+    </div>
   );
 }
 
@@ -375,16 +384,21 @@ function RoomSelectCard({
   return (
     <Card
       className={cn(
-        'p-3 flex flex-col justify-between transition-all',
+        'relative p-3 flex flex-col justify-between transition-all bg-card',
         onSelect && 'cursor-pointer',
         selected
-          ? 'ring-2 ring-brand-mint border-brand-mint bg-[#0F766E1A]'
+          ? 'border-2 border-primary shadow-sm'
           : dashed
-            ? 'border-dashed border-[#0F766E66] bg-[#0F766E0D]'
-            : onSelect ? 'hover:bg-[#F1F5F980]' : ''
+            ? 'border-dashed border-[#0F766E66]'
+            : onSelect ? 'hover:border-primary/40 hover:bg-[#F1F5F980]' : ''
       )}
       onClick={onSelect}
     >
+      {selected && (
+        <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shadow-sm">
+          <Check className="w-3 h-3" />
+        </div>
+      )}
       <div>
         <div className="flex items-center justify-between">
           <span className="font-bold text-base">{hab.numero}</span>
@@ -397,12 +411,11 @@ function RoomSelectCard({
           )}
         </div>
       </div>
-      <div className={cn('flex items-center gap-3 mt-2 pt-2 border-t', selected ? 'border-[#0F766E66]/50' : 'border-transparent')}>
+      <div className={cn('flex items-center gap-3 mt-2 pt-2 border-t', selected ? 'border-border' : 'border-transparent')}>
         {selected ? (
           <>
-            <span className="text-xs text-primary font-medium">✓ Seleccionada</span>
             <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
-              <Label className="text-xs text-primary">Pers.:</Label>
+              <Label className="text-xs text-muted-foreground">Pers.:</Label>
               <Input
                 type="number"
                 min="1"
@@ -418,7 +431,7 @@ function RoomSelectCard({
             </div>
             {showNinos && onNinosChange && (
               <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                <Label className="text-xs text-primary">Niños:</Label>
+                <Label className="text-xs text-muted-foreground">Niños:</Label>
                 <Input
                   type="number"
                   min="0"
@@ -437,7 +450,7 @@ function RoomSelectCard({
             )}
           </>
         ) : (
-          <span className="text-xs invisible">✓ Seleccionada</span>
+          <div className="h-7" aria-hidden />
         )}
       </div>
     </Card>
@@ -2112,7 +2125,7 @@ export default function ReservasModule() {
  </p>
  )}
  </div>
- <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-h-52 overflow-y-auto">
+ <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,220px))] gap-3 max-h-52 overflow-y-auto">
  {disponiblesFiltradas.map(hab => {
  const isSelected = !form.reservaMultiple && form.habitacion === hab.numero;
  return (
@@ -2179,15 +2192,15 @@ export default function ReservasModule() {
  return (
  <div key={i} className="space-y-2">
  <div
- className={`rounded-lg border-2 p-3 transition-all ${
+ className={`rounded-lg border p-3 transition-all ${
  isComboSelected
- ? 'border-brand-mint bg-[#0F766E1A] cursor-default'
- : 'border-transparent hover:border-[#0F766E4D] hover:bg-[#F1F5F94D] cursor-pointer'
+ ? 'border-primary cursor-default'
+ : 'border-border hover:border-primary/40 hover:bg-[#F1F5F94D] cursor-pointer'
  }`}
  onClick={() => { if (!isComboSelected) selectCombinacion(sug); }}
  >
- {/* Misma grilla de 3 columnas que la lista individual, para que las tarjetas midan exactamente lo mismo */}
- <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+ {/* Mismo ancho de tarjeta que la lista individual, para que midan exactamente lo mismo */}
+ <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,220px))] gap-3">
  {sug.habitaciones.map((hab, hi) => {
  const isFirst = (isSelectedComboRev ? hi === 1 : hi === 0);
  const pVal = isFirst ? (parseInt(form.personas) || 1) : (parseInt(form.personas2) || 1);
@@ -2218,71 +2231,6 @@ export default function ReservasModule() {
  </div>
  );
  })}
- </div>
- )}
-
- {/* Price summary */}
- {computed.precioCalculado > 0 && (
- <div className="rounded-lg border p-3 bg-[#F1F5F94D] space-y-1">
- {/* Promociones activas */}
- {computed.desglose && (
- <>
- {computed.desglose.ninosCount > 0 && (
- <div className="flex justify-between text-xs text-chart-5">
- <span>{computed.desglose.ninosCount} niño{computed.desglose.ninosCount > 1 ? 's' : ''} × {computed.desglose.nochesCobrables} noche{computed.desglose.nochesCobrables > 1 ? 's' : ''}</span>
- <span>{formatMoney(computed.desglose.ninosCount * computed.desglose.precioNino * computed.desglose.nochesCobrables)}</span>
- </div>
- )}
- {computed.desglose.tieneAcompanante && (
- <div className="flex items-center gap-1.5 text-xs text-primary">
- <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-[#0F766E66] text-primary">{computed.desglose.acompananteEtiqueta}</Badge>
- <span>{computed.desglose.acompananteCantidad > 1 ? `${computed.desglose.acompananteCantidad} sin cargo` : 'sin cargo'}</span>
- {computed.desglose.acompananteCantidad > 0 && <span className="text-muted-foreground">→ Hab. {promocionesEfectivas?.acompananteSinCargo?.habitacionAsignada || 'por asignar'}</span>}
- </div>
- )}
- {computed.desglose.nochesGratis > 0 && (
- <div className="flex justify-between text-xs text-warning">
- <span>{computed.desglose.nochesGratis} noche{computed.desglose.nochesGratis > 1 ? 's' : ''} de cortesía</span>
- <span className="line-through opacity-60">-noches gratis-</span>
- </div>
- )}
- {computed.desglose.ninosCount > 0 && (
- <p className="text-[10px] text-muted-foreground">
- {computed.desglose.adultos} adulto{computed.desglose.adultos > 1 ? 's' : ''} + {computed.desglose.ninosCount} niño{computed.desglose.ninosCount > 1 ? 's' : ''} · {computed.desglose.nochesCobrables} noche{computed.desglose.nochesCobrables > 1 ? 's' : ''} cobrable{computed.desglose.nochesCobrables > 1 ? 's' : ''}
- </p>
- )}
- </>
- )}
- <div className="flex justify-between text-sm">
- <span className="text-muted-foreground">
- {form.reservaMultiple ? `Hab. ${form.habitacion} (${computed.desglose ? `${computed.desglose.adultos} adulto${computed.desglose.adultos > 1 ? 's' : ''}` : `${form.personas} pers.`})` : `${computed.desglose ? `${computed.desglose.adultos} adulto${computed.desglose.adultos > 1 ? 's' : ''}` : `${form.personas} persona${s(parseInt(form.personas))}`}`}
- {computed.desglose && computed.desglose.nochesGratis > 0 ? ` × ${computed.desglose.nochesCobrables} de ${computed.noches} noches` : ` × ${computed.noches} noche${s(computed.noches)}`}
- </span>
- <span className="font-bold">{formatMoney(computed.totalFinal)}</span>
- </div>
- {form.reservaMultiple && computed.subtotal2 > 0 && (
- <div className="flex justify-between text-sm mt-1">
- <span className="text-muted-foreground">
- Hab. {form.habitacion2} ({parseInt(form.personas2) || 1} pers.)
- {' × '}{computed.noches} noche{s(computed.noches)}
- </span>
- <span className="font-bold">{formatMoney(computed.totalFinal2)}</span>
- </div>
- )}
- {computed.recargo > 0 && (
- <div className="flex justify-between text-sm mt-1">
- <span className="text-muted-foreground">Recargo por cuotas</span>
- <span className="text-warning">{formatMoney(computed.recargo)}</span>
- </div>
- )}
- <div className="flex justify-between text-sm mt-1 pt-1 border-t">
- <span className="font-medium">
- {form.reservaMultiple ? 'Total combinado' : 'Total final'}
- </span>
- <span className="font-bold text-base">
- {formatMoney(form.reservaMultiple ? (computed.totalFinalCombinado || computed.totalFinal) : computed.totalFinal)}
- </span>
- </div>
  </div>
  )}
  </TabsContent>
@@ -2376,12 +2324,12 @@ export default function ReservasModule() {
        </div>
      )}
 
-     {/* Total: barra oscura */}
-     <div className="flex justify-between items-center py-3 px-4 bg-primary rounded-lg my-2">
-       <span className="text-[13px] font-medium text-[#FFFFFFB3]">
+     {/* Total */}
+     <div className="flex justify-between items-center py-3 px-4 rounded-lg border bg-[#0F766E0D] my-2">
+       <span className="text-[13px] font-medium text-muted-foreground">
          {form.reservaMultiple ? 'Total combinado' : 'Total'}
        </span>
-       <span className="font-bold text-xl text-brand-mint">
+       <span className="font-bold text-xl text-primary">
          {formatMoney(form.reservaMultiple ? (computed.totalFinalCombinado || computed.totalFinal) : computed.totalFinal)}
        </span>
      </div>
