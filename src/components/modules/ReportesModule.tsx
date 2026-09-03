@@ -295,6 +295,14 @@ export default function ReportesModule() {
     setCajaHistorialLoading(false);
   }, []);
 
+  // Cargar el historial de caja apenas se monta el módulo, con el rango por
+  // defecto (cajaDesde/cajaHasta) — si no, el subtítulo y los inputs de fecha
+  // ya muestran ese rango pero los KPIs/tabla siguen mostrando caja.historial
+  // sin filtrar hasta que el usuario aprieta "Filtrar" manualmente.
+  useEffect(() => {
+    fetchCajaHistorial(cajaDesde, cajaHasta);
+  }, []);
+
   // Cargar usuarios desde la API (no están en el store)
   useEffect(() => {
     api.usuarios.list().then(setUsuarios).catch((err: unknown) => { console.error('Error cargando usuarios:', err); });
