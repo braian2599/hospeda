@@ -122,6 +122,7 @@ export default function LimpiezaModule() {
   const reportarMantenimiento = useHotelStore(s => s.reportarMantenimiento);
   const reservasAfectadasPorMantenimiento = useHotelStore(s => s.reservasAfectadasPorMantenimiento);
   const resolverMantenimiento = useHotelStore(s => s.resolverMantenimiento);
+  const mantenimientoPendientes = useHotelStore(s => s.mantenimientoPendientes);
   const historialMantenimiento = useHotelStore(s => s.historialMantenimiento);
   const reservas = useHotelStore(s => s.reservas);
   const setModulo = useHotelStore(s => s.setModulo);
@@ -164,8 +165,12 @@ export default function LimpiezaModule() {
 
   // ── Derived room state ──
   const porLimpiar = Object.entries(habitaciones).filter(([, h]) => h.estado === 'Limpieza');
-  const enMantenimiento = Object.entries(habitaciones).filter(([, h]) => h.estado === 'Mantenimiento');
-  const habDisponibles = Object.entries(habitaciones).filter(([, h]) => h.estado !== 'Mantenimiento' && h.estado !== 'Fuera de servicio');
+  // Una habitación con reporte pendiente puede seguir en estado 'Ocupada' (no
+  // se le cambia el estado si tenía un huésped adentro al reportar — ver
+  // reportarMantenimiento en el store), así que mantenimientoPendientes es la
+  // única fuente de verdad de "tiene un reporte activo", no el estado.
+  const enMantenimiento = Object.entries(habitaciones).filter(([num]) => !!mantenimientoPendientes[num]);
+  const habDisponibles = Object.entries(habitaciones).filter(([num, h]) => !mantenimientoPendientes[num] && h.estado !== 'Fuera de servicio');
 
   // ── Affected reservations for report form ──
   // Mismo cálculo que usa el store al reportar — así el número que ve el

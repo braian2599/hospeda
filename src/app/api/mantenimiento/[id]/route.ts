@@ -106,13 +106,18 @@ export async function PUT(
         }
       }
 
-      // Liberar la habitación: vuelve a Disponible y se limpian los campos
-      // de bloqueo (antes esto solo pasaba en el estado local del cliente,
-      // nunca se persistía en la BD).
+      // Liberar la habitación: se limpian los campos de bloqueo. El estado
+      // solo se fuerza a 'Disponible' si de verdad estaba en 'Mantenimiento'
+      // — si el reporte se creó con la habitación Ocupada (ver POST), nunca
+      // se le cambió el estado, y forzarla acá a Disponible dejaría al
+      // huésped que sigue adentro marcado como si la habitación estuviera libre.
+      const habActual = await tx.habitacion.findFirst({ where: { tenantId, numero: reporte.habitacion } });
+      const estadoFinal = habActual?.estado === 'Mantenimiento' ? 'Disponible' : habActual?.estado;
+
       await tx.habitacion.updateMany({
         where: { tenantId, numero: reporte.habitacion },
         data: {
-          estado: 'Disponible',
+          ...(estadoFinal ? { estado: estadoFinal } : {}),
           problema: null,
           bloqueaDisponibilidad: true,
           bloqueadoHasta: null,

@@ -73,6 +73,14 @@ export async function POST(req: NextRequest) {
       bloqueadoHasta = fecha;
     }
 
+    // Si la habitación está ocupada por un huésped, no la marcamos como
+    // "Mantenimiento" — el mapa de habitaciones solo muestra la info del
+    // huésped cuando estado === 'Ocupada', así que el cambio lo haría
+    // "desaparecer" del mapa. El reporte se crea igual; el resto de los
+    // campos (problema/bloqueaDisponibilidad/bloqueadoHasta) sigue
+    // bloqueando disponibilidad futura de la habitación.
+    const nuevoEstado = hab.estado === 'Ocupada' ? hab.estado : 'Mantenimiento';
+
     const [reporte] = await db.$transaction([
       db.mantenimiento.create({
         data: {
@@ -86,7 +94,7 @@ export async function POST(req: NextRequest) {
       db.habitacion.update({
         where: { tenantId_numero: { tenantId, numero } },
         data: {
-          estado: 'Mantenimiento',
+          estado: nuevoEstado,
           problema: problema.trim(),
           bloqueaDisponibilidad: bloquea,
           bloqueadoHasta,

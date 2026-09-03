@@ -1180,11 +1180,15 @@ export const useHotelStore = create<HotelStore>()(
           });
 
           // 3. Todo OK — actualizar estado local
+          // Si la habitación está ocupada, no la marcamos como "Mantenimiento"
+          // — el mapa solo muestra la info del huésped cuando estado ===
+          // 'Ocupada', así que el huésped "desaparecería" del mapa (ver misma
+          // lógica en POST /api/mantenimiento).
           const newHabs = {
             ...habitaciones,
             [numero]: {
               ...hab,
-              estado: 'Mantenimiento' as const,
+              estado: hab.estado === 'Ocupada' ? hab.estado : 'Mantenimiento' as const,
               problema: descripcion,
               bloqueaDisponibilidad: bloquear,
               bloqueadoHasta: bloquear ? (hasta || undefined) : undefined,
@@ -1211,8 +1215,12 @@ export const useHotelStore = create<HotelStore>()(
       resolverMantenimiento: async (numero, reparacion, monto, sacarDeCaja = true) => {
         const state = get();
         const hab = state.habitaciones[numero];
-        if (!hab || hab.estado !== 'Mantenimiento') return;
+        if (!hab) return;
 
+        // No exigimos estado === 'Mantenimiento': una habitación Ocupada
+        // cuando se reportó el problema conserva ese estado (ver
+        // reportarMantenimiento) y aun así puede tener un reporte pendiente
+        // que resolver — mantenimientoPendientes es la fuente de verdad.
         const reportId = state.mantenimientoPendientes[numero];
         if (!reportId) return;
         const empleado = state.usuarioActual?.nombreCompleto || state.usuarioActual?.nombre || 'Sistema';
@@ -1245,7 +1253,15 @@ export const useHotelStore = create<HotelStore>()(
 
         const newHabs = { ...prevHabitaciones };
         const { problema: _, bloqueadoHasta: __unused, ...habLimpia } = newHabs[numero];
-        newHabs[numero] = { ...habLimpia, estado: 'Disponible' as const, bloqueaDisponibilidad: true };
+        // Solo forzar a 'Disponible' si de verdad estaba en 'Mantenimiento' —
+        // si el reporte se creó con la habitación Ocupada, su estado nunca
+        // cambió (ver reportarMantenimiento), y pisarlo acá dejaría al
+        // huésped que sigue adentro marcado como habitación libre.
+        newHabs[numero] = {
+          ...habLimpia,
+          estado: habLimpia.estado === 'Mantenimiento' ? 'Disponible' as const : habLimpia.estado,
+          bloqueaDisponibilidad: true,
+        };
 
         const { [numero]: __, ...restPendientes } = prevPendientes;
 
