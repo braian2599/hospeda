@@ -1328,7 +1328,6 @@ export const useHotelStore = create<HotelStore>()(
         // Si es egreso con categoría, crear gasto optimista localmente también
         const esEgresoConCategoria = tipo === 'egreso' && categoriaGastoNombre;
         let tempGastoId: string | undefined;
-        let prevGastos = gastos;
         if (esEgresoConCategoria) {
           tempGastoId = generarId();
           const nuevoGasto: Gasto = {
@@ -1353,8 +1352,17 @@ export const useHotelStore = create<HotelStore>()(
           return true;
         } catch (err) {
           console.error('registrarMovimientoCaja API error:', err);
-          // Rollback: restaurar caja y gastos
-          set({ caja, ...(esEgresoConCategoria ? { gastos: prevGastos } : {}) });
+          // Rollback dirigido: quitar solo el movimiento/gasto optimista que
+          // falló, tomando el estado MÁS RECIENTE (no la foto de `caja`/`gastos`
+          // de arriba). Si revertiéramos a esa foto completa, pisaríamos
+          // movimientos que otro usuario haya agregado y confirmado mientras
+          // esta petición estaba en vuelo — desaparecerían de la UI aunque
+          // ya estén guardados en la BD.
+          const latestCaja = get().caja;
+          set({
+            caja: { ...latestCaja, movimientos: latestCaja.movimientos.filter(m => m.id !== tempId) },
+            ...(esEgresoConCategoria && tempGastoId ? { gastos: get().gastos.filter(g => g.id !== tempGastoId) } : {}),
+          });
           return false;
         }
       },
