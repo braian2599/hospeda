@@ -1382,7 +1382,20 @@ export const useHotelStore = create<HotelStore>()(
           }
         }
 
-        const diferencia = saldoContado - saldoEsperado;
+        // Total esperado (según sistema) de métodos distintos a efectivo — `totalOtros`
+        // es lo que el cajero contó/verificó para esos métodos, no el valor del
+        // sistema, así que la diferencia debe combinar ambos: si no, una
+        // discrepancia real en Mercado Pago/tarjeta queda descartada del cierre.
+        let totalOtrosEsperado = 0;
+        caja.movimientos.forEach(mov => {
+          if (mov.metodo !== 'Efectivo') {
+            totalOtrosEsperado += mov.tipo === 'ingreso' ? mov.monto : -mov.monto;
+          }
+        });
+
+        const diferenciaEfectivo = saldoContado - saldoEsperado;
+        const diferenciaOtros = totalOtros - totalOtrosEsperado;
+        const diferencia = diferenciaEfectivo + diferenciaOtros;
         const empleado = get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema';
         const cierre: CierreCaja = {
           empleado, fecha: new Date().toISOString(), saldoEsperado, saldoContado, diferencia, billetes, totalOtrosMetodos: totalOtros,

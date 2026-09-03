@@ -81,8 +81,18 @@ export async function POST(req: NextRequest) {
       .reduce((sum, m) => sum + m.monto, 0);
     const saldoEsperado = turno.montoInicial + totalIngresos - totalEgresos;
 
-    // Diferencia solo de efectivo (contado vs esperado) — en centavos
-    const diferencia = saldoContado - saldoEsperado;
+    // Total esperado (según sistema) de métodos distintos a efectivo — en centavos
+    const totalOtrosEsperado = turno.movimientos
+      .filter((m) => m.metodo !== 'Efectivo')
+      .reduce((sum, m) => sum + (m.tipo === 'ingreso' ? m.monto : -m.monto), 0);
+
+    // `totalOtrosNum` es lo que el cajero contó/verificó para los otros métodos
+    // (no el valor del sistema) — la diferencia total combina efectivo y el
+    // resto de los métodos, para que una discrepancia en Mercado Pago/tarjeta
+    // no quede descartada del registro persistido.
+    const diferenciaEfectivo = saldoContado - saldoEsperado;
+    const diferenciaOtros = totalOtrosNum - totalOtrosEsperado;
+    const diferencia = diferenciaEfectivo + diferenciaOtros;
 
     // Actualizar turno
     const turnoCerrado = await db.turnoCaja.update({

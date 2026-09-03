@@ -745,7 +745,10 @@ export default function CajaModule() {
   const handleCerrar = async () => {
     setLoadingCerrar(true);
     try {
-      const cierre = await cerrarCaja(denomQuantities, totalOtros, cierreNotes || undefined, discrepancyExplain || undefined);
+      // Se envía lo que el cajero contó/verificó (otrosContadosTotal), no el total
+      // calculado por el sistema (totalOtros) — así el cierre persistido refleja
+      // una discrepancia real en Mercado Pago/tarjeta en vez de descartarla.
+      const cierre = await cerrarCaja(denomQuantities, otrosContadosTotal, cierreNotes || undefined, discrepancyExplain || undefined);
       if (cierre) {
         const msg = cierreNotes || discrepancyExplain
           ? `Turno finalizado · Diferencia: ${formatMoney(cierre.diferencia)}`
