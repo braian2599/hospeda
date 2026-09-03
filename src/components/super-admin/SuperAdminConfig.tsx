@@ -612,15 +612,15 @@ export default function SuperAdminConfig() {
                   <span className="text-xs text-muted-foreground">px</span>
                 </div>
                 {devCompanyLogoUrl && (
-                  <div
-                    className="shrink-0 overflow-hidden rounded border border-dashed border-border bg-muted"
+                  <img
+                    src={devCompanyLogoUrl}
+                    alt="Vista previa del tamaño"
+                    className="shrink-0 rounded"
                     style={{
                       width: Number(devCompanyLogoWidth) || DEV_LOGO_DEFAULT,
                       height: Number(devCompanyLogoHeight) || DEV_LOGO_DEFAULT,
                     }}
-                  >
-                    <img src={devCompanyLogoUrl} alt="Vista previa del tamaño" className="h-full w-full object-cover" />
-                  </div>
+                  />
                 )}
               </div>
               <p className="text-xs text-muted-foreground">

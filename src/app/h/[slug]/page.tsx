@@ -213,7 +213,7 @@ export default async function HotelLandingPage(
                 src={devCompany.logoUrl}
                 alt={devCompany.nombre || 'Logo empresa desarrolladora'}
                 style={{ width: devCompany.logoWidth, height: devCompany.logoHeight }}
-                className="rounded object-cover"
+                className="rounded"
               />
             )}
             {devCompany.nombre && (

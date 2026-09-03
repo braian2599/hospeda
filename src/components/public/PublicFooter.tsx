@@ -98,13 +98,11 @@ export default function PublicFooter() {
             <p className="flex items-center justify-center gap-2 text-xs text-[#FFFFFF80]">
               Desarrollado por
               {devCompany.logoUrl && (
-                <Image
+                <img
                   src={devCompany.logoUrl}
                   alt={devCompany.name || 'Logo empresa desarrolladora'}
-                  width={devCompany.logoWidth}
-                  height={devCompany.logoHeight}
-                  className="rounded object-cover"
-                  unoptimized
+                  style={{ width: devCompany.logoWidth, height: devCompany.logoHeight }}
+                  className="rounded"
                 />
               )}
               {devCompany.name && (
