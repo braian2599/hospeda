@@ -264,7 +264,23 @@ export default function ReportesModule() {
   const [desde, setDesde] = useState(haceNDias(30));
   const [hasta, setHasta] = useState(hoy());
 
-  const setRango = (dias: number) => { setDesde(haceNDias(dias)); setHasta(hoy()); };
+  // Preset de rango activo (7d/30d/1a), para resaltar el botón correspondiente.
+  // Se guarda como estado propio en vez de derivarlo de diasPeriodo: comparar
+  // rangos de fechas con aritmética de milisegundos (T00:00:00 vs T23:59:59)
+  // daba resultados "inclusivos" (ej: 7d generaba diasPeriodo=8) que no
+  // coincidían con los umbrales de los botones, así que ninguno quedaba
+  // resaltado correctamente. null = rango custom (fechas editadas a mano).
+  const [rangoPreset, setRangoPreset] = useState<7 | 30 | 365 | null>(30);
+
+  const setRango = (dias: 7 | 30 | 365) => {
+    setDesde(haceNDias(dias));
+    setHasta(hoy());
+    setRangoPreset(dias);
+  };
+
+  // Editar las fechas a mano define un rango custom: ningún preset queda activo.
+  const setDesdeManual = (v: string) => { setDesde(v); setRangoPreset(null); };
+  const setHastaManual = (v: string) => { setHasta(v); setRangoPreset(null); };
 
   // Gasto dialog
   const [gastoModal, setGastoModal] = useState(false);
@@ -982,16 +998,16 @@ export default function ReportesModule() {
           <div className="flex flex-wrap items-end justify-center gap-2 sm:gap-3">
             <div className="grid gap-1.5 flex-1 min-w-[130px] sm:flex-none">
               <Label className="text-xs text-muted-foreground text-center">Desde</Label>
-              <Input type="date" value={desde} onChange={e => setDesde(e.target.value)} className="w-full sm:w-40" />
+              <Input type="date" value={desde} onChange={e => setDesdeManual(e.target.value)} className="w-full sm:w-40" />
             </div>
             <div className="grid gap-1.5 flex-1 min-w-[130px] sm:flex-none">
               <Label className="text-xs text-muted-foreground text-center">Hasta</Label>
-              <Input type="date" value={hasta} onChange={e => setHasta(e.target.value)} className="w-full sm:w-40" />
+              <Input type="date" value={hasta} onChange={e => setHastaManual(e.target.value)} className="w-full sm:w-40" />
             </div>
             <div className="flex gap-1.5 sm:gap-2 flex-wrap">
-              <Button size="sm" variant={diasPeriodo <= 7 ? 'default' : 'outline'} onClick={() => setRango(7)} className="text-xs sm:text-sm">7d</Button>
-              <Button size="sm" variant={diasPeriodo <= 30 && diasPeriodo > 7 ? 'default' : 'outline'} onClick={() => setRango(30)} className="text-xs sm:text-sm">30d</Button>
-              <Button size="sm" variant={diasPeriodo > 30 ? 'default' : 'outline'} onClick={() => setRango(365)} className="text-xs sm:text-sm">1a</Button>
+              <Button size="sm" variant={rangoPreset === 7 ? 'default' : 'outline'} onClick={() => setRango(7)} className="text-xs sm:text-sm">7d</Button>
+              <Button size="sm" variant={rangoPreset === 30 ? 'default' : 'outline'} onClick={() => setRango(30)} className="text-xs sm:text-sm">30d</Button>
+              <Button size="sm" variant={rangoPreset === 365 ? 'default' : 'outline'} onClick={() => setRango(365)} className="text-xs sm:text-sm">1a</Button>
             </div>
             <div className="w-px h-8 bg-border hidden sm:block" />
             <Button
