@@ -217,13 +217,19 @@ function CashFlowTimeline({
   aperturaMonto: number;
   now: number;
 }) {
-  // Build timeline entries with running balance
+  // Build timeline entries with running balance.
+  // `aperturaMonto` es el efectivo inicial de la caja, así que el saldo
+  // corrido debe reflejar solo movimientos en Efectivo — un ingreso/egreso
+  // en Mercado Pago o tarjeta no mueve el efectivo del cajón. Si se sumaran
+  // todos los métodos acá, este "saldo actual" contradiría al saldo real de
+  // efectivo que se muestra en el resto de la pantalla.
   const entries: TimelineEntry[] = useMemo(() => {
     // Sort chronologically (oldest first)
     const sorted = [...movimientos].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
     return sorted.reduce<TimelineEntry[]>((acc, m) => {
       const prevBalance = acc.length > 0 ? acc[acc.length - 1].runningBalance : aperturaMonto;
-      const newBalance = m.tipo === 'ingreso' ? prevBalance + m.monto : prevBalance - m.monto;
+      const esEfectivo = m.metodo === 'Efectivo';
+      const newBalance = !esEfectivo ? prevBalance : (m.tipo === 'ingreso' ? prevBalance + m.monto : prevBalance - m.monto);
       acc.push({
         id: m.id,
         fecha: m.fecha,
@@ -350,7 +356,7 @@ function CashFlowTimeline({
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <CircleDot className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-semibold text-primary">Saldo actual</span>
+                <span className="text-xs font-semibold text-primary">Saldo actual (efectivo)</span>
               </div>
               <span className="text-sm font-bold tabular-nums text-primary">{formatMoney(entries[entries.length - 1].runningBalance)}</span>
             </div>
