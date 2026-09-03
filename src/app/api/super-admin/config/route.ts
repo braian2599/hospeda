@@ -72,6 +72,10 @@ export async function GET() {
         moneda: configMap.plataforma_moneda || 'ARS',
         supportEmail: configMap.support_email || '',
       },
+      empresaDesarrolladora: {
+        nombre: configMap.dev_company_nombre || '',
+        logoUrl: configMap.dev_company_logo_url || '',
+      },
     });
   } catch (error: unknown) {
     const err = error as Error;

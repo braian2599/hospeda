@@ -13,8 +13,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Save, Loader2, Eye, EyeOff, Settings, CreditCard, Globe, Building2, MessageCircle, Phone, Mail, Info } from 'lucide-react';
+import { Save, Loader2, Eye, EyeOff, Settings, CreditCard, Globe, Building2, MessageCircle, Phone, Mail, Info, Image as ImageIcon, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+
+const MAX_LOGO_BYTES = 4 * 1024 * 1024;
+const ALLOWED_LOGO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+async function uploadDevCompanyLogo(file: File): Promise<string> {
+  if (!ALLOWED_LOGO_TYPES.has(file.type)) {
+    throw new Error('Formato no permitido (solo jpg, png, webp)');
+  }
+  if (file.size > MAX_LOGO_BYTES) {
+    throw new Error(`El archivo debe pesar menos de ${MAX_LOGO_BYTES / 1024 / 1024}MB`);
+  }
+
+  const presignRes = await fetch('/api/super-admin/upload-logo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contentType: file.type, size: file.size }),
+  });
+  const presignData = await presignRes.json();
+  if (!presignRes.ok) throw new Error(presignData.error || 'Error al preparar la subida');
+
+  const putRes = await fetch(presignData.uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file,
+  });
+  if (!putRes.ok) throw new Error('Error al subir el archivo');
+
+  return presignData.publicUrl as string;
+}
 
 // ─── Main Component ───
 export default function SuperAdminConfig() {
@@ -45,6 +74,11 @@ export default function SuperAdminConfig() {
   const [bankComprobanteWhatsapp, setBankComprobanteWhatsapp] = useState('');
   const [bankComprobanteTelefono, setBankComprobanteTelefono] = useState('');
 
+  // Empresa desarrolladora (crédito en footers públicos)
+  const [devCompanyNombre, setDevCompanyNombre] = useState('');
+  const [devCompanyLogoUrl, setDevCompanyLogoUrl] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
   useEffect(() => {
     fetch('/api/super-admin/config')
       .then((res) => res.json())
@@ -53,6 +87,7 @@ export default function SuperAdminConfig() {
         const mp = data.mercadopago || {};
         const plat = data.plataforma || {};
         const bank = data.banco || {};
+        const devCompany = data.empresaDesarrolladora || {};
         // Los campos sensibles vienen enmascarados (ej: "APP_...cdef")
         // El usuario verá el valor enmascarado y solo lo enviará si lo edita.
         setMpAccessToken(mp.accessToken || '');
@@ -72,6 +107,9 @@ export default function SuperAdminConfig() {
         setBankComprobanteEmail(bank.comprobanteEmail || '');
         setBankComprobanteWhatsapp(bank.comprobanteWhatsapp || '');
         setBankComprobanteTelefono(bank.comprobanteTelefono || '');
+        // Empresa desarrolladora
+        setDevCompanyNombre(devCompany.nombre || '');
+        setDevCompanyLogoUrl(devCompany.logoUrl || '');
       })
       .catch(() => toast.error('Error al cargar configuración'))
       .finally(() => setLoading(false));
@@ -79,6 +117,19 @@ export default function SuperAdminConfig() {
 
   // Detecta si un valor está enmascarado (contiene "...")
   const isMasked = (value: string) => value.includes('...');
+
+  const handleLogoUpload = async (file: File) => {
+    setUploadingLogo(true);
+    try {
+      const url = await uploadDevCompanyLogo(file);
+      setDevCompanyLogoUrl(url);
+      toast.success('Logo subido. No olvides guardar la configuración.');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al subir el logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -101,6 +152,9 @@ export default function SuperAdminConfig() {
         bank_comprobante_email: bankComprobanteEmail,
         bank_comprobante_whatsapp: bankComprobanteWhatsapp,
         bank_comprobante_telefono: bankComprobanteTelefono,
+        // Empresa desarrolladora
+        dev_company_nombre: devCompanyNombre,
+        dev_company_logo_url: devCompanyLogoUrl,
       };
       // La API preserva el valor existente si un campo sensible viene enmascarado
 
@@ -443,6 +497,78 @@ export default function SuperAdminConfig() {
                   />
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ─── Empresa desarrolladora ─── */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ImageIcon className="w-5 h-5 text-primary" />
+              Empresa desarrolladora
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground bg-[#0284C71A] p-3 rounded-lg flex items-start gap-2">
+              <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
+              <span>
+                Se muestran como crédito en el footer de la landing de Hospi y en el footer de la landing de cada hotel. Si se deja vacío, no se muestra nada.
+              </span>
+            </p>
+
+            <div className="space-y-2">
+              <Label>Nombre de la empresa</Label>
+              <Input
+                value={devCompanyNombre}
+                onChange={(e) => setDevCompanyNombre(e.target.value)}
+                placeholder="Ej: Nombre de tu estudio o empresa"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Logo</Label>
+              <div className="flex items-center gap-3">
+                {devCompanyLogoUrl ? (
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
+                    <img src={devCompanyLogoUrl} alt="Logo empresa desarrolladora" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setDevCompanyLogoUrl('')}
+                      className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow-sm"
+                      title="Quitar logo"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-muted text-muted-foreground">
+                    <ImageIcon className="w-5 h-5" />
+                  </div>
+                )}
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted transition-colors">
+                  {uploadingLogo ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
+                  {devCompanyLogoUrl ? 'Cambiar logo' : 'Subir logo'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={uploadingLogo}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleLogoUpload(file);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                JPG, PNG o WEBP. Máximo {MAX_LOGO_BYTES / 1024 / 1024}MB.
+              </p>
             </div>
           </CardContent>
         </Card>

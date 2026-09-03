@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getPublicTenant, promocionesPublicas } from '@/lib/public-landing';
+import { getDevCompanyBranding } from '@/lib/dev-company';
 import { parseTarifaPrecios } from '@/lib/tarifa-calc';
 import { precioDesde, promoBadgesPublicos } from '@/lib/tarifas-format';
 import LandingTabs from '@/components/public/LandingTabs';
@@ -74,6 +75,7 @@ export default async function HotelLandingPage(
   const tenant = await getPublicTenant(slug);
   if (!tenant) notFound();
 
+  const devCompany = await getDevCompanyBranding();
   const [heroFoto, ...galeria] = tenant.fotos;
   const config = tenant.configuracion;
   const promociones = promocionesPublicas(tenant);
@@ -201,8 +203,17 @@ export default async function HotelLandingPage(
         />
       </div>
 
-      <footer className="border-t py-6 text-center text-xs text-muted-foreground">
-        Powered by <span className="font-medium">Hospi</span>
+      <footer className="border-t py-6 text-center text-xs text-muted-foreground space-y-1.5">
+        <p>Powered by <span className="font-medium">Hospi</span></p>
+        {devCompany.nombre && (
+          <p className="flex items-center justify-center gap-1.5">
+            Desarrollado por
+            {devCompany.logoUrl && (
+              <img src={devCompany.logoUrl} alt={devCompany.nombre} className="h-4 w-4 rounded object-cover" />
+            )}
+            <span className="font-medium">{devCompany.nombre}</span>
+          </p>
+        )}
       </footer>
     </div>
   );

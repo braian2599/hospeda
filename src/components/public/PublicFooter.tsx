@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Mail } from 'lucide-react';
 import { useContactEmail } from '@/hooks/useContactEmail';
+import { useDevCompany } from '@/hooks/useDevCompany';
 
 /**
  * Public site footer — dark teal background, 4-column layout.
@@ -15,6 +16,7 @@ import { useContactEmail } from '@/hooks/useContactEmail';
 export default function PublicFooter() {
   const year = new Date().getFullYear();
   const contactEmail = useContactEmail();
+  const devCompany = useDevCompany();
   return (
     <footer style={{ backgroundColor: '#0F2B28' }} className="text-white">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -90,8 +92,24 @@ export default function PublicFooter() {
           )}
         </div>
 
-        <div className="mt-12 border-t border-[#FFFFFF1A] pt-8 text-center">
+        <div className="mt-12 border-t border-[#FFFFFF1A] pt-8 text-center space-y-2">
           <p className="text-sm text-[#FFFFFFB3]">© {year} Hospi. Todos los derechos reservados.</p>
+          {devCompany.name && (
+            <p className="flex items-center justify-center gap-1.5 text-xs text-[#FFFFFF80]">
+              Desarrollado por
+              {devCompany.logoUrl && (
+                <Image
+                  src={devCompany.logoUrl}
+                  alt={devCompany.name}
+                  width={16}
+                  height={16}
+                  className="h-4 w-4 rounded object-cover"
+                  unoptimized
+                />
+              )}
+              <span className="font-medium text-[#FFFFFFB3]">{devCompany.name}</span>
+            </p>
+          )}
         </div>
       </div>
     </footer>
