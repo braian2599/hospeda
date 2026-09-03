@@ -818,8 +818,11 @@ export default function DashboardModule() {
     });
   }, [reservas]);
 
-  // Alerta de caja abierta
-  const [, setTick] = useState(0);
+  // Alerta de caja abierta — `tick` fuerza a recalcular cajaAbiertaHoras cada
+  // minuto; sin él en las deps del useMemo, el valor quedaba congelado en lo
+  // que era al abrir la caja (o al último cambio real de `caja`) y la alerta
+  // de "caja abierta hace más de 8hs" nunca llegaba a dispararse sola.
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (caja.estado !== 'abierta') return;
     const id = setInterval(() => setTick(t => t + 1), 60000);
@@ -831,7 +834,7 @@ export default function DashboardModule() {
       return Math.round((Date.now() - new Date(caja.apertura.fecha).getTime()) / (1000 * 60 * 60));
     }
     return 0;
-  }, [caja]);
+  }, [caja, tick]);
 
   const tieneAlertas = enLimpieza > 0 || checkinsHoy.length > 0 || checkoutsHoy.length > 0 || enMantenimiento > 0 || cajaAbiertaHoras >= 8;
 
