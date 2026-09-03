@@ -892,16 +892,21 @@ export default function TarifasModule() {
     setModalMetodo(true);
   };
 
-  const handleGuardarMetodo = () => {
+  const handleGuardarMetodo = async () => {
     const nombre = metForm.nombre.trim();
     if (!nombre) { toast.warning('Ingrese un nombre.'); return; }
 
+    let ok: boolean;
     if (editandoMetodo === null) {
       const nuevoId = nombre.toLowerCase().replace(/\s+/g, '_');
       if (metodosPago.some(m => m.id === nuevoId)) { toast.warning('Ya existe un método con ese nombre.'); return; }
-      agregarMetodoPago({ id: nuevoId, nombre, tipo: metForm.tipo, recargo: metForm.recargo, cuotas: metForm.cuotas });
+      ok = await agregarMetodoPago({ id: nuevoId, nombre, tipo: metForm.tipo, recargo: metForm.recargo, cuotas: metForm.cuotas });
     } else {
-      editarMetodoPago(editandoMetodo, { id: editandoMetodo, nombre, tipo: metForm.tipo, recargo: metForm.recargo, cuotas: metForm.cuotas });
+      ok = await editarMetodoPago(editandoMetodo, { id: editandoMetodo, nombre, tipo: metForm.tipo, recargo: metForm.recargo, cuotas: metForm.cuotas });
+    }
+    if (!ok) {
+      toast.error('No se pudo guardar el método de pago.', { description: 'Intentá de nuevo en unos segundos.' });
+      return;
     }
     setModalMetodo(false);
   };
@@ -910,7 +915,9 @@ export default function TarifasModule() {
     if (id === 'efectivo') { toast.warning('No se puede eliminar el método Efectivo.'); return; }
     const metodo = metodosPago.find(m => m.id === id);
     if (!metodo) return;
-    if (pagos.some(p => p.metodo === metodo.id)) {
+    // Los pagos guardan el NOMBRE resuelto del método (metodo.nombre), no su id
+    // — comparar contra metodo.id nunca coincide y dejaba pasar esta validación.
+    if (pagos.some(p => p.metodo === metodo.nombre)) {
       toast.warning(`No se puede eliminar "${metodo.nombre}". Hay pago(s) registrado(s) con este método.`); return;
     }
     if (reservas.some(r => r.metodoPagoId === id && (r.estado === 'Confirmada' || r.estado === 'Check-In realizado'))) {
@@ -918,10 +925,14 @@ export default function TarifasModule() {
     }
     setConfirmDialog({
       open: true, titulo: 'Eliminar método de pago', msg: `¿Eliminar este método de pago?`,
-      onConfirm: () => {
-        eliminarMetodoPago(id);
+      onConfirm: async () => {
+        const ok = await eliminarMetodoPago(id);
         setConfirmDialog({ ...confirmDialog, open: false });
-        toast.success('Método de pago eliminado.');
+        if (ok) {
+          toast.success('Método de pago eliminado.');
+        } else {
+          toast.error('No se pudo eliminar el método de pago.', { description: 'Puede que ya no exista, o que haya pagos/reservas asociados.' });
+        }
       },
     });
   };
@@ -939,14 +950,19 @@ export default function TarifasModule() {
     setModalCategoria(true);
   };
 
-  const handleGuardarCategoria = () => {
+  const handleGuardarCategoria = async () => {
     const nombre = catForm.trim();
     if (!nombre) { toast.warning('Ingrese un nombre.'); return; }
+    let ok: boolean;
     if (editandoCat === null) {
       if (categoriasGastos.includes(nombre)) { toast.warning('Ya existe una categoría con ese nombre.'); return; }
-      agregarCategoriaGasto(nombre);
+      ok = await agregarCategoriaGasto(nombre);
     } else {
-      editarCategoriaGasto(editandoCat, nombre);
+      ok = await editarCategoriaGasto(editandoCat, nombre);
+    }
+    if (!ok) {
+      toast.error('No se pudo guardar la categoría.', { description: 'Intentá de nuevo en unos segundos.' });
+      return;
     }
     setModalCategoria(false);
   };
@@ -958,10 +974,14 @@ export default function TarifasModule() {
     }
     setConfirmDialog({
       open: true, titulo: 'Eliminar categoría', msg: `¿Eliminar la categoría "${nombre}"?`,
-      onConfirm: () => {
-        eliminarCategoriaGasto(nombre);
+      onConfirm: async () => {
+        const ok = await eliminarCategoriaGasto(nombre);
         setConfirmDialog({ ...confirmDialog, open: false });
-        toast.success('Categoría eliminada.');
+        if (ok) {
+          toast.success('Categoría eliminada.');
+        } else {
+          toast.error('No se pudo eliminar la categoría.', { description: 'Puede que ya no exista, o que haya gastos asociados.' });
+        }
       },
     });
   };
