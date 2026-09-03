@@ -713,10 +713,15 @@ export const useHotelStore = create<HotelStore>()(
 
         // Fix 6: crear/encontrar cliente ANTES de la reserva para vincular en BD
         let clienteRealId: string | undefined;
+        // Solo true si el cliente se creó de cero en esta llamada (no si ya
+        // existía y lo encontramos por DNI) — determina si hay que borrarlo
+        // más abajo cuando la reserva termina fallando, para no dejarlo huérfano.
+        let clienteFueCreadoAhora = false;
         try {
           try {
             const dbCliente = await api.clientes.create({ nombre: datos.huesped, dni: datos.dni, telefono: datos.telefono || '', email: datos.email, fechaNacimiento: (datos as any).fechaNacimiento, nacionalidad: (datos as any).nacionalidad, domicilio: datos.domicilio, preferencias: '' });
             clienteRealId = dbCliente.id;
+            clienteFueCreadoAhora = true;
             const currentClientes = get().clientes;
             if (!currentClientes.find(c => c.id === dbCliente.id)) {
               set({ clientes: [...currentClientes, { id: dbCliente.id, nombre: dbCliente.nombre, dni: dbCliente.dni, telefono: dbCliente.telefono, email: dbCliente.email || '', fechaNacimiento: (dbCliente as any).fechaNacimiento ? String((dbCliente as any).fechaNacimiento).split('T')[0] : undefined, nacionalidad: (dbCliente as any).nacionalidad || undefined, domicilio: (dbCliente as any).domicilio || datos.domicilio || undefined, preferencias: dbCliente.preferencias, historialEstadias: [], fechaCreacion: dbCliente.createdAt?.split('T')[0] || '' }] });
@@ -801,6 +806,17 @@ export const useHotelStore = create<HotelStore>()(
               [datos.habitacion]: prevHabitaciones[datos.habitacion],
             },
           });
+          // Si el cliente se creó recién en esta llamada, borrarlo — si no,
+          // queda huérfano en la BD (sin ninguna reserva) cada vez que la
+          // reserva falla después de haber creado el cliente.
+          if (clienteFueCreadoAhora && clienteRealId) {
+            try {
+              await api.clientes.delete(clienteRealId);
+              set({ clientes: get().clientes.filter(c => c.id !== clienteRealId) });
+            } catch (cleanupErr) {
+              console.warn('[crearReserva] No se pudo borrar el cliente huérfano:', cleanupErr);
+            }
+          }
           // Re-lanzar errores de auth para que el componente muestre el mensaje adecuado
           if (isAuth) throw err;
           return null;
