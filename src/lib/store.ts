@@ -255,7 +255,7 @@ interface HotelStore {
   crearReserva: (datos: Partial<Reserva> & { checkin: string; checkout: string; habitacion: string; huesped: string; dni: string; personas: number }) => Promise<Reserva | null>;
   modificarReserva: (id: string, datos: Partial<Reserva>) => Promise<boolean>;
   cancelarReserva: (id: string) => Promise<boolean>;
-  buscarDisponibilidad: (desde: string, hasta: string) => HabitacionDisponible[];
+  buscarDisponibilidad: (desde: string, hasta: string, excludeReservaId?: string) => HabitacionDisponible[];
   calcularTotalReserva: (idReserva: string) => number;
   calcularTotalPagado: (idReserva: string) => number;
   nochesEntre: (checkin: string, checkout: string) => number;
@@ -641,7 +641,7 @@ export const useHotelStore = create<HotelStore>()(
       },
 
       // ===== RESERVAS =====
-      buscarDisponibilidad: (desde, hasta) => {
+      buscarDisponibilidad: (desde, hasta, excludeReservaId) => {
         const { habitaciones, reservas } = get();
         const fechaDesde = new Date(desde + 'T12:00:00');
         const fechaHasta = new Date(hasta + 'T12:00:00');
@@ -665,7 +665,7 @@ export const useHotelStore = create<HotelStore>()(
 
           if (hab.tipo === 'Compartida') {
             const personasOcupadas = reservas
-              .filter(r => r.habitacion === num && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado')
+              .filter(r => r.habitacion === num && r.id !== excludeReservaId && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado')
               .filter(r => { const rD = new Date(r.checkin + 'T12:00:00'); const rH = new Date(r.checkout + 'T12:00:00'); return rD < fechaHasta && rH > fechaDesde; })
               .reduce((sum, r) => sum + (r.personas || 1), 0);
             const camasLibres = hab.capacidad - personasOcupadas;
@@ -674,7 +674,7 @@ export const useHotelStore = create<HotelStore>()(
           }
 
           const conflicto = reservas.some(r => {
-            if (r.habitacion !== num || r.estado === 'Cancelada' || r.estado === 'Check-Out realizado') return false;
+            if (r.habitacion !== num || r.id === excludeReservaId || r.estado === 'Cancelada' || r.estado === 'Check-Out realizado') return false;
             const rD = new Date(r.checkin + 'T12:00:00'); const rH = new Date(r.checkout + 'T12:00:00');
             return rD < fechaHasta && rH > fechaDesde;
           });
@@ -818,7 +818,11 @@ export const useHotelStore = create<HotelStore>()(
           const checkin = datos.checkin || reserva.checkin;
           const checkout = datos.checkout || reserva.checkout;
           const habitacion = datos.habitacion || reserva.habitacion;
-          const disponibles = state.buscarDisponibilidad(checkin, checkout);
+          // Excluir la propia reserva del chequeo de conflicto — si no, una
+          // edición que reenvía las mismas fechas/habitación (sin cambios
+          // reales) siempre fallaba porque la reserva se detectaba como
+          // "conflicto" contra sí misma.
+          const disponibles = state.buscarDisponibilidad(checkin, checkout, id);
           if (!disponibles.find(h => h.numero === habitacion)) return false;
         }
 

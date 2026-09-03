@@ -869,7 +869,9 @@ export default function ReservasModule() {
 
  const handleSearchDisponibilidad = () => {
  if (!form.checkin || !form.checkout) return;
- const res = buscarDisponibilidad(form.checkin, form.checkout);
+ // Al editar, excluir la propia reserva de la búsqueda: si no, su
+ // habitación actual aparece como "no disponible" por conflicto consigo misma.
+ const res = buscarDisponibilidad(form.checkin, form.checkout, editingId || undefined);
  setDisponibles(res);
  };
 
