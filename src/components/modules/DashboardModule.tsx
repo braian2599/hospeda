@@ -33,6 +33,11 @@ const ROW_H = 46;
 const BAR_H = 26;
 const BAR_TOP = (ROW_H - BAR_H) / 2;
 const NOMBRES_DIAS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
+// Ancho fijo por columna de día (px). Antes las columnas eran `flex-1` sin
+// mínimo, así que con 14-30 días se achicaban a unos pocos px en mobile y
+// quedaban ilegibles. Con un ancho fijo, el calendario simplemente scrollea
+// horizontalmente cuando no entra — igual que cualquier tabla ancha.
+const DAY_COL_W = 44;
 
 // formatMoney and todayLocal imported from @/lib/format
 
@@ -474,7 +479,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
           const d = new Date(col + 'T12:00:00');
           const esFS = d.getDay() === 0 || d.getDay() === 6;
           const isHoy = col === hoyStr;
-          return <div key={ci} className={`flex-1 h-full border-l-2 border-border box-border ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0284C71A]' : ''}`} style={{ height: FILA_H }} />;
+          return <div key={ci} className={`shrink-0 h-full border-l-2 border-border box-border ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0284C71A]' : ''}`} style={{ width: DAY_COL_W, height: FILA_H }} />;
         });
 
         const barras = reservasActivas.map((res, idx) => {
@@ -497,11 +502,11 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
 
         result.push(
           <div key={num} className={`flex items-stretch border-b-2 border-border last:border-b-0 hover:bg-[#0F766E0D] transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-[#FFFFFFCC]' : ''}`} style={{ height: FILA_H }}>
-            <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-border bg-card z-[5]" style={{ height: FILA_H }}>
+            <div className="w-[130px] min-w-[130px] shrink-0 sticky left-0 flex flex-col justify-center px-3.5 border-r-2 border-border bg-card z-[5]" style={{ height: FILA_H }}>
               <span className="text-[12px] font-bold text-foreground leading-tight">{num}</span>
               <span className="text-[10px] text-muted-foreground font-medium mt-0.5">{hab.tipo}</span>
             </div>
-            <div className="flex-1 relative overflow-hidden min-w-0">
+            <div className="relative overflow-hidden shrink-0" style={{ width: ganttDays * DAY_COL_W }}>
               <div className="absolute top-0 left-0 w-full h-full flex pointer-events-none">{bgCells}</div>
               {barras}
             </div>
@@ -515,7 +520,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         const d = new Date(col + 'T12:00:00');
         const esFS = d.getDay() === 0 || d.getDay() === 6;
         const isHoy = col === hoyStr;
-        return <div key={ci} className={`flex-1 h-full border-l-2 border-border box-border ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0284C71A]' : ''}`} />;
+        return <div key={ci} className={`shrink-0 h-full border-l-2 border-border box-border ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0284C71A]' : ''}`} style={{ width: DAY_COL_W }} />;
       });
 
       const barras = reservasHab.map((res, idx) => {
@@ -537,11 +542,11 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
 
       result.push(
         <div key={num} className={`flex items-stretch border-b-2 border-border last:border-b-0 hover:bg-[#0F766E0D] transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-[#FFFFFFCC]' : ''}`} style={{ height: ROW_H }}>
-          <div className="w-[130px] min-w-[130px] shrink-0 flex flex-col justify-center px-3.5 border-r-2 border-border bg-card z-[5]" style={{ height: ROW_H }}>
+          <div className="w-[130px] min-w-[130px] shrink-0 sticky left-0 flex flex-col justify-center px-3.5 border-r-2 border-border bg-card z-[5]" style={{ height: ROW_H }}>
             <span className="text-[12px] font-bold text-foreground leading-tight">{num}</span>
             <span className="text-[10px] text-muted-foreground font-medium mt-0.5">{hab.tipo}</span>
           </div>
-          <div className="flex-1 relative overflow-hidden min-w-0">
+          <div className="relative overflow-hidden shrink-0" style={{ width: ganttDays * DAY_COL_W }}>
             <div className="absolute top-0 left-0 w-full h-full flex pointer-events-none">{bgCells}</div>
             {barras}
           </div>
@@ -558,7 +563,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       const esFS = d.getDay() === 0 || d.getDay() === 6;
       const isHoy = col === hoyStr;
       return (
-        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-border min-w-0 transition-colors duration-150 ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0F766E0D]' : ''}`}>
+        <div key={i} className={`shrink-0 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-border transition-colors duration-150 ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0F766E0D]' : ''}`} style={{ width: DAY_COL_W }}>
           <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-rose-500' : 'text-muted-foreground'} ${isHoy ? '!text-primary' : ''}`}>
             {NOMBRES_DIAS[d.getDay()]}
           </span>
@@ -585,27 +590,27 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
     <>
       <Card className="overflow-hidden">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-base flex items-center gap-2">
               <CalendarCheck className="w-4 h-4 text-status-reserved" />
               Calendario de Ocupación
             </CardTitle>
-            <div className="flex items-center gap-1.5">
-              <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setOffset(o => o - 1)} disabled={offset <= -4}>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button variant="outline" size="icon" onClick={() => setOffset(o => o - 1)} disabled={offset <= -4}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <span className="text-xs text-muted-foreground font-medium min-w-[120px] truncate text-center">{rangeLabel}</span>
-              <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setOffset(o => o + 1)}>
+              <Button variant="outline" size="icon" onClick={() => setOffset(o => o + 1)}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
               {offset !== 0 && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setOffset(0)}>Hoy</Button>
+                <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => setOffset(0)}>Hoy</Button>
               )}
               <div className="w-px h-5 bg-[#64748B66] mx-0.5" />
               <Button
                 variant={ganttDays === 14 ? 'default' : 'outline'}
                 size="sm"
-                className={cn('h-7 text-xs', ganttDays === 14 && 'bg-primary hover:bg-[#0F766ECC]')}
+                className={cn('h-9 text-xs', ganttDays === 14 && 'bg-primary hover:bg-[#0F766ECC]')}
                 onClick={() => setGanttDays(14)}
               >
                 2 sem
@@ -613,7 +618,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
               <Button
                 variant={ganttDays === 30 ? 'default' : 'outline'}
                 size="sm"
-                className={cn('h-7 text-xs', ganttDays === 30 && 'bg-primary hover:bg-[#0F766ECC]')}
+                className={cn('h-9 text-xs', ganttDays === 30 && 'bg-primary hover:bg-[#0F766ECC]')}
                 onClick={() => setGanttDays(30)}
               >
                 1 mes
@@ -622,7 +627,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
               <Button
                 variant={mostrarHistorial ? 'default' : 'outline'}
                 size="sm"
-                className={cn('h-7 text-xs gap-1.5', mostrarHistorial && 'bg-muted-foreground hover:bg-[#64748BCC]')}
+                className={cn('h-9 text-xs gap-1.5', mostrarHistorial && 'bg-muted-foreground hover:bg-[#64748BCC]')}
                 onClick={() => setMostrarHistorial(v => !v)}
               >
                 <History className="w-3.5 h-3.5" />
@@ -633,11 +638,18 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         </CardHeader>
         <CardContent className="p-0">
           <div className="bg-card border-2 border-border rounded-lg overflow-hidden shadow-sm">
-            <div className="flex border-b-2 border-border bg-card">
-              <div className="w-[130px] min-w-[130px] shrink-0 border-r-2 border-border" />
-              <div className="flex flex-1">{headerCols}</div>
+            {/* Un solo contenedor con scroll horizontal para header + filas —
+                antes header y filas scrolleaban por separado (y en la práctica
+                ninguno de los dos llegaba a scrollear, porque las columnas de
+                día eran `flex-1` sin ancho mínimo y se achicaban para "entrar"
+                siempre, quedando ilegibles en mobile con 14-30 columnas). */}
+            <div className="overflow-x-auto">
+              <div className="flex border-b-2 border-border bg-card">
+                <div className="w-[130px] min-w-[130px] shrink-0 sticky left-0 z-10 border-r-2 border-border bg-card" />
+                <div className="flex" style={{ width: ganttDays * DAY_COL_W }}>{headerCols}</div>
+              </div>
+              {rows}
             </div>
-            <div className="overflow-x-auto">{rows}</div>
             <div className="flex gap-4 flex-wrap px-3.5 py-2.5 border-t-2 border-border">
               {legendItems.map(item => (
                 <span key={item.label} className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
