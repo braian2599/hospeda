@@ -1147,6 +1147,12 @@ export default function ReservasModule() {
  try {
  // Reserva 1
  const r1 = await crearReserva(extendedDatos as any);
+ if (!r1) {
+ toast.error('Error al crear la reserva múltiple', { description: `No se pudo crear la reserva para la habitación ${form.habitacion}. No se intentó la segunda habitación.` });
+ return;
+ }
+ reservaCreada = r1;
+
  // Reserva 2 — Fix 1: pasar ninos y calcular total correctamente
  const personas2 = parseInt(form.personas2) || 1;
  const ninos2 = tieneNinosDiferenciado ? ninosCount : 0;
@@ -1161,7 +1167,11 @@ export default function ReservasModule() {
  total: total2,
  };
  const r2 = await crearReserva(datos2 as any);
- reservaCreada = r1;
+ if (!r2) {
+ toast.warning('Reserva parcial', { description: `Se creó la reserva de la habitación ${form.habitacion}, pero no se pudo crear la de la habitación ${form.habitacion2}. Creála por separado.` });
+ closeModal();
+ return;
+ }
 
  // Payment split proportionally between both reservations
  if (form.pagoTipo === 'parcial' || form.pagoTipo === 'total') {
@@ -1172,7 +1182,7 @@ export default function ReservasModule() {
  } else {
  montoTotalPago = parseFloat(form.pagoMonto) || 0;
  }
- if (montoTotalPago > 0 && form.pagoMetodo && r1 && r2) {
+ if (montoTotalPago > 0 && form.pagoMetodo) {
  // Split proportionally by each reservation's total
  const prop1 = totalConRecargo / totalCombinado;
  const prop2 = total2 / totalCombinado;
@@ -1188,7 +1198,7 @@ export default function ReservasModule() {
 
  // Acompañante sin cargo check for multiple
  const acomMulti = promocionesEfectivas?.acompananteSinCargo;
- if (!editingId && acomMulti?.activo && acomMulti.habitacionAsignada && r1) {
+ if (!editingId && acomMulti?.activo && acomMulti.habitacionAsignada) {
  // Validar que la habitación asignada esté disponible
  const dispoAcom = buscarDisponibilidad(form.checkin, form.checkout);
  const habAcomDisponible = dispoAcom.find(h => h.numero === acomMulti.habitacionAsignada);
