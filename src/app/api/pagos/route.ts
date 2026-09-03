@@ -3,6 +3,13 @@ import { db } from '@/lib/db';
 import { requirePermission, AuthError, getAuthSession } from '@/lib/auth/utils';
 import { Prisma } from '@prisma/client';
 
+// El cliente ya bloquea el cobro si su copia local de `caja.estado` no está
+// 'abierta', pero esa copia puede estar desactualizada (otra pestaña/usuario
+// cerró el turno). Si la API tolerara crear el pago igual, quedaría sin su
+// movimiento de caja asociado — un "faltante" silencioso que solo aparece al
+// cerrar turno. Por eso la apertura de caja se exige acá también.
+class CajaCerradaError extends Error {}
+
 // ─────────────────────────────────────────────────────────
 // GET /api/pagos — Listar pagos con filtros
 // ─────────────────────────────────────────────────────────
@@ -109,6 +116,15 @@ export async function POST(req: NextRequest) {
 
     // ── Transacción atómica: crear pago + movimiento de caja + actualizar estadoPago ──
     const result = await db.$transaction(async (tx) => {
+      // 0) Requiere turno de caja abierto — un pago sin movimiento de caja
+      // asociado generaría un faltante falso al cerrar turno (ver comentario arriba).
+      const turno = await tx.turnoCaja.findFirst({
+        where: { tenantId, estado: 'abierta' },
+      });
+      if (!turno) {
+        throw new CajaCerradaError('No hay un turno de caja abierto. Abrí la caja antes de registrar un cobro.');
+      }
+
       // 1) Crear pago (with resolved metodo name)
       const pago = await tx.pago.create({
         data: {
@@ -120,25 +136,20 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 2) Registrar movimiento de caja si hay turno abierto
-      const turno = await tx.turnoCaja.findFirst({
-        where: { tenantId, estado: 'abierta' },
+      // 2) Registrar movimiento de caja
+      await tx.movimientoCaja.create({
+        data: {
+          tenantId,
+          turnoId: turno.id,
+          tipo: 'ingreso',
+          monto: montoInt,
+          descripcion: `Pago de ${reserva.huesped} (Reserva #${reservaId})`,
+          metodo: metodoResuelto,
+          empleadoId: session?.user?.id || '',
+          empleadoNombre,
+          reservaId,
+        },
       });
-      if (turno) {
-        await tx.movimientoCaja.create({
-          data: {
-            tenantId,
-            turnoId: turno.id,
-            tipo: 'ingreso',
-            monto: montoInt,
-            descripcion: `Pago de ${reserva.huesped} (Reserva #${reservaId})`,
-            metodo: metodoResuelto,
-            empleadoId: session?.user?.id || '',
-            empleadoNombre,
-            reservaId,
-          },
-        });
-      }
 
       // 3) Recalcular estadoPago
       const allPagos = await tx.pago.findMany({
@@ -191,6 +202,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, estadoPago: result.estadoPago, estado: result.estado }, { status: 201 });
   } catch (error) {
+    if (error instanceof CajaCerradaError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
