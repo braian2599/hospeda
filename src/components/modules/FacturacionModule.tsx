@@ -182,13 +182,21 @@ export default function FacturacionModule() {
     })
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
 
-  // Pagination for pendientes
+  // Pagination for pendientes — `safePendPage` clamps a página que quedó
+  // fuera de rango (p.ej. un pago registrado sacó ítems de "pendientes" y
+  // ahora hay menos páginas de las que había cuando se navegó a esta):
+  // sin el clamp, slice() con un offset fuera del array devuelve vacío y la
+  // pantalla muestra "no hay datos" aunque sí haya reservas pendientes.
   const pendTotalPages = Math.ceil(pendientes.length / PAGE_SIZE) || 1;
-  const pagedPendientes = pendientes.slice((pendPage - 1) * PAGE_SIZE, pendPage * PAGE_SIZE);
+  const safePendPage = Math.min(Math.max(1, pendPage), pendTotalPages);
+  const pagedPendientes = pendientes.slice((safePendPage - 1) * PAGE_SIZE, safePendPage * PAGE_SIZE);
 
-  // Pagination for historial
+  // Pagination for historial — mismo clamp: los filtros ya resetean histPage
+  // a 1, pero la lista también puede achicarse por otros motivos (p.ej. otro
+  // usuario cancela una reserva cuyo pago se estaba mostrando).
   const histTotalPages = Math.ceil(filteredPagos.length / PAGE_SIZE) || 1;
-  const pagedPagos = filteredPagos.slice((histPage - 1) * PAGE_SIZE, histPage * PAGE_SIZE);
+  const safeHistPage = Math.min(Math.max(1, histPage), histTotalPages);
+  const pagedPagos = filteredPagos.slice((safeHistPage - 1) * PAGE_SIZE, safeHistPage * PAGE_SIZE);
 
   // Open payment dialog
   const openPagoDialog = (reservaId: string) => {
@@ -511,7 +519,7 @@ export default function FacturacionModule() {
                   </TableBody>
                 </Table>
               </div>
-              <PaginationBar page={pendPage} totalPages={pendTotalPages} onPageChange={setPendPage} totalItems={pendientes.length} pageSize={PAGE_SIZE} />
+              <PaginationBar page={safePendPage} totalPages={pendTotalPages} onPageChange={setPendPage} totalItems={pendientes.length} pageSize={PAGE_SIZE} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -693,7 +701,7 @@ export default function FacturacionModule() {
                   </TableBody>
                 </Table>
               </div>
-              <PaginationBar page={histPage} totalPages={histTotalPages} onPageChange={setHistPage} totalItems={filteredPagos.length} pageSize={PAGE_SIZE} />
+              <PaginationBar page={safeHistPage} totalPages={histTotalPages} onPageChange={setHistPage} totalItems={filteredPagos.length} pageSize={PAGE_SIZE} />
             </CardContent>
           </Card>
         </TabsContent>
