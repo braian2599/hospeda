@@ -42,6 +42,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
   const [showRegPwd, setShowRegPwd] = useState(false);
   const [hotelNombre, setHotelNombre] = useState('');
   const [regLoading, setRegLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const getErrorMessage = (error: string | null) => {
     switch (error) {
@@ -74,6 +75,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
     e.preventDefault();
     if (!regName.trim() || !regEmail.trim() || !regPassword || !hotelNombre.trim()) { toast.error('Completá todos los campos obligatorios'); return; }
     if (regPassword.length < 8) { toast.error('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número'); return; }
+    if (!acceptedTerms) { toast.error('Debés aceptar los Términos y Condiciones y la Política de Privacidad'); return; }
     setRegLoading(true);
     try {
       const res = await fetch('/api/auth/register', {
@@ -84,6 +86,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
           password: regPassword,
           name: regName.trim(),
           hotelNombre: hotelNombre.trim(),
+          acceptedTerms,
         }),
       });
       const data = await res.json();
@@ -213,7 +216,15 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
         <p className="text-sm text-slate-500">30 días de prueba gratuita · Sin tarjeta de crédito</p>
       </div>
 
-      <GoogleButton onClick={handleGoogle} disabled={regLoading}>Registrarse con Google</GoogleButton>
+      <GoogleButton
+        onClick={() => {
+          if (!acceptedTerms) { toast.error('Debés aceptar los Términos y Condiciones y la Política de Privacidad'); return; }
+          handleGoogle();
+        }}
+        disabled={regLoading}
+      >
+        Registrarse con Google
+      </GoogleButton>
 
       <div className="relative mb-4">
         <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200" /></div>
@@ -275,10 +286,30 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
             </button>
           </div>
         </div>
+        <label className="flex items-start gap-2 text-xs text-slate-500 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+            disabled={regLoading}
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-primary focus:ring-[#0F766E33]"
+          />
+          <span>
+            Acepto los{' '}
+            <Link href="/terminos" target="_blank" className="text-primary hover:underline">
+              Términos y Condiciones
+            </Link>{' '}
+            y la{' '}
+            <Link href="/privacidad" target="_blank" className="text-primary hover:underline">
+              Política de Privacidad
+            </Link>
+            .
+          </span>
+        </label>
         <Button
           type="submit"
           className="w-full h-11 rounded-xl bg-primary hover:bg-[#0F766EE6] text-primary-foreground font-medium shadow-lg shadow-[#0F766E40]"
-          disabled={regLoading}
+          disabled={regLoading || !acceptedTerms}
         >
           {regLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Creando cuenta…</> : 'Crear cuenta gratuita'}
         </Button>
@@ -290,7 +321,6 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
           Iniciar sesión
         </button>
       </p>
-      <p className="text-[10px] text-center text-slate-400 mt-4">Al registrarte aceptás nuestros términos de uso</p>
     </AuthShell>
   );
 }

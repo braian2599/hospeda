@@ -13,10 +13,13 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { hotelNombre } = body;
+    const { hotelNombre, acceptedTerms } = body;
 
     if (!hotelNombre || !hotelNombre.trim()) {
       return NextResponse.json({ error: 'Ingresá el nombre del hotel' }, { status: 400 });
+    }
+    if (acceptedTerms !== true) {
+      return NextResponse.json({ error: 'Debés aceptar los Términos y Condiciones y la Política de Privacidad' }, { status: 400 });
     }
 
     // Verificar que el usuario no tenga ya un hotel
@@ -57,6 +60,10 @@ export async function POST(req: NextRequest) {
 
     // Crear todo en transacción
     const result = await db.$transaction(async (tx) => {
+      if (!user.termsAcceptedAt) {
+        await tx.user.update({ where: { id: user.id }, data: { termsAcceptedAt: new Date() } });
+      }
+
       const tenant = await tx.tenant.create({
         data: {
           nombre: hotelNombre.trim(),

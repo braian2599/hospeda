@@ -94,6 +94,11 @@ export default function PublicFooter() {
 
         <div className="mt-12 border-t border-[#FFFFFF1A] pt-8 text-center space-y-2">
           <p className="text-sm text-[#FFFFFFB3]">© {year} Hospi. Todos los derechos reservados.</p>
+          <p className="flex items-center justify-center gap-3 text-xs text-[#FFFFFF80]">
+            <Link href="/terminos" className="transition-colors hover:text-white">Términos y Condiciones</Link>
+            <span aria-hidden="true">·</span>
+            <Link href="/privacidad" className="transition-colors hover:text-white">Política de Privacidad</Link>
+          </p>
           {(devCompany.name || devCompany.logoUrl) && (
             <p className="flex items-center justify-center gap-2 text-xs text-[#FFFFFF80]">
               Desarrollado por

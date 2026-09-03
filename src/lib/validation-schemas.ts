@@ -34,6 +34,7 @@ export const registerSchema = z.object({
     .min(1, 'El nombre del hotel es obligatorio')
     .max(120, 'El nombre del hotel es demasiado largo'),
   phone: z.string().max(40, 'El teléfono es demasiado largo').optional(),
+  acceptedTerms: z.literal(true, 'Debés aceptar los Términos y Condiciones y la Política de Privacidad'),
 });
 
 // ─────────────────────────────────────────────────────────────

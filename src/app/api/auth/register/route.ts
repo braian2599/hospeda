@@ -11,10 +11,10 @@ export async function POST(req: NextRequest) {
   try {
     checkBodySize(req);
     const body = await req.json();
-    const { email, password, name, hotelNombre, phone } = body;
+    const { email, password, name, hotelNombre, phone, acceptedTerms } = body;
 
     // ── Validación con Zod (campos críticos primero) ──
-    const zodResult = registerSchema.safeParse({ email, password, name, hotelNombre, phone });
+    const zodResult = registerSchema.safeParse({ email, password, name, hotelNombre, phone, acceptedTerms });
     if (!zodResult.success) {
       return NextResponse.json(
         { error: formatZodError(zodResult.error) },
@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
           name,
           phone: phone || null,
           emailVerified: null, // Requiere verificación
+          termsAcceptedAt: new Date(),
         },
       });
 

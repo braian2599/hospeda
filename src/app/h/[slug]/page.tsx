@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getPublicTenant, promocionesPublicas } from '@/lib/public-landing';
 import { getDevCompanyBranding } from '@/lib/dev-company';
@@ -204,7 +205,11 @@ export default async function HotelLandingPage(
       </div>
 
       <footer className="border-t py-6 text-center text-xs text-muted-foreground space-y-1.5">
-        <p>Powered by <span className="font-medium">Hospi</span></p>
+        <p className="flex items-center justify-center gap-3">
+          <Link href="/terminos" className="hover:text-foreground transition-colors">Términos y Condiciones</Link>
+          <span aria-hidden="true">·</span>
+          <Link href="/privacidad" className="hover:text-foreground transition-colors">Política de Privacidad</Link>
+        </p>
         {(devCompany.nombre || devCompany.logoUrl) && (
           <p className="flex items-center justify-center gap-2">
             Desarrollado por

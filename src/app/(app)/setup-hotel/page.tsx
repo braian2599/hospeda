@@ -8,16 +8,22 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 export default function SetupHotelPage() {
   const router = useRouter();
   const [hotelNombre, setHotelNombre] = useState('');
   const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hotelNombre.trim()) {
       toast.error('Ingresá el nombre del hotel');
+      return;
+    }
+    if (!acceptedTerms) {
+      toast.error('Debés aceptar los Términos y Condiciones y la Política de Privacidad');
       return;
     }
 
@@ -26,7 +32,7 @@ export default function SetupHotelPage() {
       const res = await fetch('/api/auth/setup-hotel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hotelNombre: hotelNombre.trim() }),
+        body: JSON.stringify({ hotelNombre: hotelNombre.trim(), acceptedTerms }),
       });
 
       const data = await res.json();
@@ -78,7 +84,28 @@ export default function SetupHotelPage() {
               </p>
             </div>
 
-            <Button type="submit" className="w-full h-11" disabled={loading || !hotelNombre.trim()}>
+            <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                disabled={loading}
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-border text-primary focus:ring-[#0F766E33]"
+              />
+              <span>
+                Acepto los{' '}
+                <Link href="/terminos" target="_blank" className="text-primary hover:underline">
+                  Términos y Condiciones
+                </Link>{' '}
+                y la{' '}
+                <Link href="/privacidad" target="_blank" className="text-primary hover:underline">
+                  Política de Privacidad
+                </Link>
+                .
+              </span>
+            </label>
+
+            <Button type="submit" className="w-full h-11" disabled={loading || !hotelNombre.trim() || !acceptedTerms}>
               {loading ? (
                 <><Loader2 className="w-4 h-4 animate-spin mr-2" />Creando hotel...</>
               ) : (
