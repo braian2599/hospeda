@@ -534,7 +534,12 @@ export default function ReportesModule() {
   }, [auditoriaEnPeriodo, auditTipo, auditEmpleado, auditSearch, auditTurno]);
 
   const auditTotalPages = Math.max(1, Math.ceil(auditFiltrada.length / AUDIT_PER_PAGE));
-  const auditPaged = auditFiltrada.slice((auditPage - 1) * AUDIT_PER_PAGE, auditPage * AUDIT_PER_PAGE);
+  // auditPage no se resetea cuando cambia el rango de fechas global
+  // (desde/hasta, arriba de todos los tabs) — solo los filtros propios del
+  // tab de auditoría lo hacen. Si el rango se achica y auditPage queda fuera
+  // de rango ("Página 5 de 2"), este clamp evita un slice() vacío.
+  const safeAuditPage = Math.min(Math.max(1, auditPage), auditTotalPages);
+  const auditPaged = auditFiltrada.slice((safeAuditPage - 1) * AUDIT_PER_PAGE, safeAuditPage * AUDIT_PER_PAGE);
 
   // Clientes frecuentes
   const clientesFrecuentes = useMemo(() => {
@@ -940,9 +945,9 @@ export default function ReportesModule() {
   const auditPageNumbers = useMemo(() => {
     const total = auditTotalPages;
     if (total <= 9) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(auditPage - 4, total - 8));
+    const start = Math.max(1, Math.min(safeAuditPage - 4, total - 8));
     return Array.from({ length: Math.min(9, total) }, (_, i) => start + i);
-  }, [auditTotalPages, auditPage]);
+  }, [auditTotalPages, safeAuditPage]);
 
   const selectedCajaTurno = cajaDetailIdx !== null ? (cajaHistorialFiltrado || caja.historial)[cajaDetailIdx] : null;
 
@@ -1583,7 +1588,7 @@ export default function ReportesModule() {
           </div>
 
           <p className="text-sm text-muted-foreground text-center">
-            {auditFiltrada.length} registros — Página {auditPage} de {auditTotalPages}
+            {auditFiltrada.length} registros — Página {safeAuditPage} de {auditTotalPages}
           </p>
 
           <Card>
@@ -1619,15 +1624,15 @@ export default function ReportesModule() {
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
-                  <PaginationPrevious onClick={() => setAuditPage(p => Math.max(1, p - 1))} className={auditPage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'} />
+                  <PaginationPrevious onClick={() => setAuditPage(Math.max(1, safeAuditPage - 1))} className={safeAuditPage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'} />
                 </PaginationItem>
                 {auditPageNumbers.map(p => (
                   <PaginationItem key={p}>
-                    <PaginationLink isActive={p === auditPage} onClick={() => setAuditPage(p)} className="cursor-pointer">{p}</PaginationLink>
+                    <PaginationLink isActive={p === safeAuditPage} onClick={() => setAuditPage(p)} className="cursor-pointer">{p}</PaginationLink>
                   </PaginationItem>
                 ))}
                 <PaginationItem>
-                  <PaginationNext onClick={() => setAuditPage(p => Math.min(auditTotalPages, p + 1))} className={auditPage >= auditTotalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'} />
+                  <PaginationNext onClick={() => setAuditPage(Math.min(auditTotalPages, safeAuditPage + 1))} className={safeAuditPage >= auditTotalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'} />
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
