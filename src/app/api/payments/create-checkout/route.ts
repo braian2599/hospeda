@@ -44,6 +44,17 @@ export async function POST(request: NextRequest) {
 
     const plan = await getServerPlan(planTipo as PlanTipo);
 
+    // getServerPlan ya no filtra por activo (ver plan-server.ts) — un plan
+    // retirado de la venta desde Super Admin debe seguir resolviendo acá
+    // (para no crashear si un tenant existente lo consulta), pero no debe
+    // poder iniciarse un checkout nuevo contra él.
+    if (!plan?.activo) {
+      return NextResponse.json(
+        { error: 'Este plan ya no está disponible para nuevas suscripciones.' },
+        { status: 400 }
+      );
+    }
+
     // --- Verificar MP configurado ---
     const mpToken = await getMPAccessToken();
     if (!mpToken) {

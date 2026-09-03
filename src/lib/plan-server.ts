@@ -27,9 +27,12 @@ export async function getServerPlans(): Promise<Record<PlanTipo, PlanInfo>> {
   }
 
   try {
-    const dbPlans = await db.plan.findMany({
-      where: { activo: true },
-    });
+    // Sin filtro de activo — un plan desactivado sigue existiendo para los
+    // tenants que ya lo tienen. Filtrarlo acá hacía que getServerPlan(tipo)
+    // devolviera `undefined` (tipado como PlanInfo) para ese tipo, rompiendo
+    // cualquier código server-side que consultara el plan de un tenant en un
+    // plan retirado de la venta.
+    const dbPlans = await db.plan.findMany();
 
     if (dbPlans.length > 0) {
       const plans: Record<string, PlanInfo> = {};
@@ -46,6 +49,7 @@ export async function getServerPlans(): Promise<Record<PlanTipo, PlanInfo>> {
           modulos: (Array.isArray(p.modulos) ? p.modulos : []) as ModuloId[],
           featureFlags: parseFeatureFlags(p.featureFlags),
           duracionDias: 30,
+          activo: p.activo,
         };
       }
       plansCache = plans;

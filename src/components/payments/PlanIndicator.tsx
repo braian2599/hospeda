@@ -71,26 +71,30 @@ export default function PlanIndicator() {
 
           {planActual !== 'premium' && (
             <>
-              <DropdownMenuItem
-                onClick={() => handleSelectPlan('profesional')}
-                className="flex items-center gap-3 py-2.5 cursor-pointer"
-              >
-                <CreditCard className="w-4 h-4 text-primary" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Upgrade a Profesional</p>
-                  <p className="text-xs text-muted-foreground">{plans.profesional.precioDisplay}/mes</p>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleSelectPlan('premium')}
-                className="flex items-center gap-3 py-2.5 cursor-pointer"
-              >
-                <Crown className="w-4 h-4 text-warning" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Upgrade a Premium</p>
-                  <p className="text-xs text-muted-foreground">{plans.premium.precioDisplay}/mes</p>
-                </div>
-              </DropdownMenuItem>
+              {plans.profesional.activo && (
+                <DropdownMenuItem
+                  onClick={() => handleSelectPlan('profesional')}
+                  className="flex items-center gap-3 py-2.5 cursor-pointer"
+                >
+                  <CreditCard className="w-4 h-4 text-primary" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Upgrade a Profesional</p>
+                    <p className="text-xs text-muted-foreground">{plans.profesional.precioDisplay}/mes</p>
+                  </div>
+                </DropdownMenuItem>
+              )}
+              {plans.premium.activo && (
+                <DropdownMenuItem
+                  onClick={() => handleSelectPlan('premium')}
+                  className="flex items-center gap-3 py-2.5 cursor-pointer"
+                >
+                  <Crown className="w-4 h-4 text-warning" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Upgrade a Premium</p>
+                    <p className="text-xs text-muted-foreground">{plans.premium.precioDisplay}/mes</p>
+                  </div>
+                </DropdownMenuItem>
+              )}
             </>
           )}
 

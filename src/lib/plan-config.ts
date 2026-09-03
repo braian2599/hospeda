@@ -27,6 +27,10 @@ export interface PlanInfo {
   modulos: ModuloId[];
   featureFlags: Record<FeatureFlag, boolean>; // integraciones que trae el plan
   duracionDias: number; // duración del período, 0 = mensual
+  // false = retirado de la venta desde Super Admin — sigue existiendo para los
+  // tenants que ya lo tienen (no se les cambia el plan), pero no se debe
+  // ofrecer para altas/upgrades nuevos. Ver /api/plans y getServerPlans().
+  activo: boolean;
 }
 
 // ─── Módulos por nivel ───
@@ -79,6 +83,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     modulos: MODULOS_PREMIUM,
     featureFlags: { ...DEFAULT_FLAGS },
     duracionDias: 30,
+    activo: true,
   },
   // Retirado de la venta (Plan.activo = false en la BD) — se mantiene acá solo
   // por compatibilidad de tipos, no se ofrece a hoteles nuevos.
@@ -94,6 +99,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     modulos: MODULOS_BASICOS,
     featureFlags: { ...DEFAULT_FLAGS },
     duracionDias: 30,
+    activo: false,
   },
   profesional: {
     tipo: 'profesional',
@@ -107,6 +113,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     modulos: MODULOS_PROFESIONAL,
     featureFlags: { ...DEFAULT_FLAGS },
     duracionDias: 30,
+    activo: true,
   },
   premium: {
     tipo: 'premium',
@@ -120,6 +127,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     modulos: MODULOS_PREMIUM,
     featureFlags: { ...DEFAULT_FLAGS, facturacionArca: true },
     duracionDias: 30,
+    activo: true,
   },
   elite: {
     tipo: 'elite',
@@ -133,6 +141,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     modulos: MODULOS_ELITE,
     featureFlags: { landingPage: true, bookingSync: true, airbnbSync: true, facturacionArca: true },
     duracionDias: 30,
+    activo: true,
   },
 };
 
@@ -175,8 +184,14 @@ export function proximoPlan(planTipo: PlanTipo, plans?: Record<string, PlanInfo>
   const source = plans || PLANES;
   const orden: PlanTipo[] = ['trial', 'profesional', 'premium', 'elite'];
   const idx = orden.indexOf(planTipo);
-  if (idx >= orden.length - 1) return null;
-  return source[orden[idx + 1]] || PLANES[orden[idx + 1]];
+  // Salta cualquier plan retirado de la venta (activo: false) en el camino —
+  // sugerir upgrade a un plan que ya no se vende termina rechazado por la
+  // API de checkout, así que directamente se ofrece el siguiente disponible.
+  for (let i = idx + 1; i < orden.length; i++) {
+    const candidato = source[orden[i]] || PLANES[orden[i]];
+    if (candidato?.activo) return candidato;
+  }
+  return null;
 }
 
 /** Nombre del módulo para mostrar en mensajes */

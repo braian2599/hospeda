@@ -25,6 +25,7 @@ function dbPlanToPlanInfo(plan: {
   maxReservasMes: number;
   modulos: any;
   featureFlags: any;
+  activo: boolean;
 }): PlanInfo {
   return {
     tipo: plan.type as PlanTipo,
@@ -38,13 +39,21 @@ function dbPlanToPlanInfo(plan: {
     modulos: Array.isArray(plan.modulos) ? plan.modulos : [],
     featureFlags: parseFeatureFlags(plan.featureFlags),
     duracionDias: 30,
+    activo: plan.activo,
   };
 }
 
 export async function GET() {
   try {
+    // Antes filtraba where: { activo: true } — un plan desactivado desde
+    // Super Admin directamente desaparecía de la respuesta, y cualquier
+    // lookup plans[tipo] en el cliente (landing de precios, indicador de
+    // plan en el sidebar, etc.) rompía con "undefined.propiedad" para ESE
+    // tipo, incluso para tenants que ya estaban en ese plan. Ahora se
+    // devuelven todos los planes con su flag `activo`, y cada consumidor
+    // decide si lo ofrece para compra (precios/PlanIndicator lo ocultan) o
+    // lo sigue mostrando igual (el tenant que ya está en ese plan).
     const dbPlans = await db.plan.findMany({
-      where: { activo: true },
       orderBy: { precioMensual: 'asc' },
     });
 

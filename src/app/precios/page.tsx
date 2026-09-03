@@ -192,16 +192,25 @@ export default function PreciosPage() {
       {/* ─── Plan cards ─── */}
       <section className="bg-background pb-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          {/* Un plan retirado de la venta (activo: false) no se ofrece acá —
+              sigue existiendo para los tenants que ya lo tienen, solo se
+              oculta de las altas nuevas. */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <FadeIn>
-              <PlanCard planTipo="profesional" onSelect={handlePlanSelect} />
-            </FadeIn>
-            <FadeIn delay={100}>
-              <PlanCard planTipo="premium" destacado onSelect={handlePlanSelect} />
-            </FadeIn>
-            <FadeIn delay={200}>
-              <PlanCard planTipo="elite" onSelect={handlePlanSelect} />
-            </FadeIn>
+            {p.activo && (
+              <FadeIn>
+                <PlanCard planTipo="profesional" onSelect={handlePlanSelect} />
+              </FadeIn>
+            )}
+            {pr.activo && (
+              <FadeIn delay={100}>
+                <PlanCard planTipo="premium" destacado onSelect={handlePlanSelect} />
+              </FadeIn>
+            )}
+            {e.activo && (
+              <FadeIn delay={200}>
+                <PlanCard planTipo="elite" onSelect={handlePlanSelect} />
+              </FadeIn>
+            )}
           </div>
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Todos los planes incluyen 30 días de prueba gratuita

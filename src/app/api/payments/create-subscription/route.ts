@@ -49,6 +49,17 @@ export async function POST(request: NextRequest) {
 
     const plan = await getServerPlan(planTipo as any);
 
+    // getServerPlan ya no filtra por activo (ver plan-server.ts) — un plan
+    // retirado de la venta debe seguir resolviendo acá (para no crashear si
+    // un tenant existente lo consulta), pero no debe poder suscribirse de
+    // nuevo a él.
+    if (!plan?.activo) {
+      return NextResponse.json(
+        { error: 'Este plan ya no está disponible para nuevas suscripciones.' },
+        { status: 400 }
+      );
+    }
+
     // Verificar si ya tiene una suscripción recurrente activa
     const existingSub = await db.subscription.findUnique({
       where: { tenantId: authTenantId },

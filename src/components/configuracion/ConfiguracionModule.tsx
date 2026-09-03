@@ -2473,8 +2473,11 @@ function SuscripcionSection() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {(['profesional', 'premium', 'elite'] as const).map(tipo => {
             const plan = plans[tipo];
-            if (!plan) return null;
             const isCurrent = planActual === tipo;
+            // Un plan retirado de la venta no se ofrece para cambiarse a él —
+            // salvo que sea el que el tenant ya tiene, para no perder
+            // visibilidad de su propio plan actual.
+            if (!plan || (!plan.activo && !isCurrent)) return null;
 
             return (
               <Card key={tipo} className={`relative ${isCurrent ? 'border-primary ring-1 ring-primary' : ''}`}>
