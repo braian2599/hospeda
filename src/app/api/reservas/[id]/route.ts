@@ -120,16 +120,19 @@ export async function PUT(
     // ── Validate room change ──
     const habitacionFinal = nuevaHabitacion?.trim() || existing.habitacion;
     const habitacionChanged = habitacionFinal !== existing.habitacion;
+    const datesChanged = nuevoCheckin || nuevoCheckout;
 
-    if (habitacionChanged) {
-      // Verify new room exists
-      const room = await db.habitacion.findUnique({
+    // Solo hace falta traer la habitación cuando vamos a validarla y/o chequear
+    // solapamiento (si no cambian ni fecha ni habitación, no hay nada que revisar).
+    let room: Awaited<ReturnType<typeof db.habitacion.findUnique>> = null;
+    if (habitacionChanged || datesChanged) {
+      room = await db.habitacion.findUnique({
         where: { tenantId_numero: { tenantId, numero: habitacionFinal } },
       });
       if (!room) {
         return NextResponse.json({ error: `La habitación "${habitacionFinal}" no existe` }, { status: 404 });
       }
-      if (room.estado === 'FueraDeServicio' || room.estado === 'Mantenimiento') {
+      if (habitacionChanged && (room.estado === 'FueraDeServicio' || room.estado === 'Mantenimiento')) {
         return NextResponse.json(
           { error: `La habitación "${habitacionFinal}" no está disponible` },
           { status: 400 }
@@ -138,23 +141,48 @@ export async function PUT(
     }
 
     // ── Check date overlap for current room (or new room if changed) ──
-    const datesChanged = nuevoCheckin || nuevoCheckout;
-    if (datesChanged || habitacionChanged) {
-      const overlapping = await db.reserva.count({
-        where: {
-          tenantId,
-          habitacion: habitacionFinal,
-          estado: { in: ['Confirmada', 'CheckIn_realizado'] },
-          id: { not: id }, // Exclude the current reserva
-          checkin: { lt: checkoutDate },
-          checkout: { gt: checkinDate },
-        },
-      });
-      if (overlapping > 0) {
-        return NextResponse.json(
-          { error: `La habitación "${habitacionFinal}" ya tiene una reserva en ese rango de fechas` },
-          { status: 409 }
-        );
+    if (room) {
+      if (room.tipo === 'Compartida') {
+        // Habitación compartida: varias reservas conviven en el mismo rango
+        // mientras haya camas libres — solo rechazar si la ocupación total
+        // (existente + esta) supera la capacidad, igual que en POST /api/reservas.
+        const personasFinal = personas !== undefined ? (parseInt(personas) || 1) : existing.personas;
+        const overlappingReservas = await db.reserva.findMany({
+          where: {
+            tenantId,
+            habitacion: habitacionFinal,
+            estado: { in: ['Confirmada', 'CheckIn_realizado'] },
+            id: { not: id },
+            checkin: { lt: checkoutDate },
+            checkout: { gt: checkinDate },
+          },
+          select: { personas: true },
+        });
+        const personasOcupadas = overlappingReservas.reduce((sum, r) => sum + (r.personas || 1), 0);
+        const camasLibres = room.capacidad - personasOcupadas;
+        if (personasFinal > camasLibres) {
+          return NextResponse.json(
+            { error: `La habitación "${habitacionFinal}" no tiene camas suficientes libres en ese rango de fechas (disponibles: ${Math.max(0, camasLibres)})` },
+            { status: 409 }
+          );
+        }
+      } else {
+        const overlapping = await db.reserva.count({
+          where: {
+            tenantId,
+            habitacion: habitacionFinal,
+            estado: { in: ['Confirmada', 'CheckIn_realizado'] },
+            id: { not: id }, // Exclude the current reserva
+            checkin: { lt: checkoutDate },
+            checkout: { gt: checkinDate },
+          },
+        });
+        if (overlapping > 0) {
+          return NextResponse.json(
+            { error: `La habitación "${habitacionFinal}" ya tiene una reserva en ese rango de fechas` },
+            { status: 409 }
+          );
+        }
       }
     }
 
