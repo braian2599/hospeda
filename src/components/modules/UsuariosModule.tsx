@@ -222,6 +222,10 @@ export default function UsuariosModule() {
   const esOwner = usuarioActual?.rol === 'owner';
   const esAdminOOwner = esOwner || usuarioActual?.rol === 'admin';
   const puedeModificar = esOwner || usuarioActual?.permisos.includes('usuarios');
+  // Un usuario con el permiso "usuarios" pero sin ser owner/admin no puede
+  // asignarle el rol admin a nadie (ni a sí mismo) — el servidor ya lo
+  // rechaza; esto evita que la UI ofrezca una opción que después falla.
+  const assignableRoles = esAdminOOwner ? ASSIGNABLE_ROLES : ASSIGNABLE_ROLES.filter(r => r.value !== 'admin');
 
   // ═══════════════════════════════════════════════════════════
   // FETCH
@@ -801,7 +805,7 @@ export default function UsuariosModule() {
                       <SelectValue placeholder="Seleccionar rol" />
                     </SelectTrigger>
                     <SelectContent>
-                      {ASSIGNABLE_ROLES.map(r => (
+                      {assignableRoles.map(r => (
                         <SelectItem key={r.value} value={r.value}>
                           <div className="flex items-center gap-2">
                             <r.icon className="w-4 h-4" />
@@ -910,7 +914,7 @@ export default function UsuariosModule() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ASSIGNABLE_ROLES.map(r => (
+                  {assignableRoles.map(r => (
                     <SelectItem key={r.value} value={r.value}>
                       <div className="flex items-center gap-2">
                         <r.icon className="w-4 h-4" />

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { requirePermission, getActorTenantUser, AuthError } from '@/lib/auth/utils';
 import bcrypt from 'bcryptjs';
 import { validatePassword, rateLimit, checkBodySize } from '@/lib/validation';
 
@@ -19,7 +19,14 @@ export async function PUT(
     const body = await req.json();
     const { rol, permisos, activo, nombreCompleto, password } = body;
 
-    // No permitir modificar el rol del owner actual
+    const actor = await getActorTenantUser(tenantId);
+    if (!actor) {
+      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
+    }
+    const actorIsOwner = actor.rol === 'owner';
+    const actorIsAdmin = actor.rol === 'admin';
+    const actorIsSelf = actor.id === id;
+
     const targetUser = await db.tenantUser.findFirst({
       where: { id, tenantId },
     });
@@ -32,6 +39,58 @@ export async function PUT(
         { error: `Rol inválido. Valores permitidos: ${VALID_ROLES.join(', ')}` },
         { status: 400 }
       );
+    }
+
+    // Nadie puede escalar su propio rol/permisos/estado — evita que un usuario
+    // con el permiso "usuarios" (sin ser owner/admin) se autoascienda. Solo
+    // bloqueamos si el valor realmente CAMBIA respecto al actual, para no
+    // romper el flujo normal de "editar mi propio nombre" (que reenvía
+    // rol/permisos sin tocarlos).
+    if (actorIsSelf) {
+      if (rol !== undefined && rol !== targetUser.rol) {
+        return NextResponse.json({ error: 'No podés cambiar tu propio rol' }, { status: 403 });
+      }
+      if (activo !== undefined && activo !== targetUser.activo) {
+        return NextResponse.json({ error: 'No podés cambiar tu propio estado' }, { status: 403 });
+      }
+      if (permisos !== undefined) {
+        const actuales = Array.isArray(targetUser.permisos) ? (targetUser.permisos as string[]) : [];
+        const nuevos = Array.isArray(permisos) ? permisos : [];
+        const cambiaron = nuevos.length !== actuales.length || nuevos.some((p: string) => !actuales.includes(p));
+        if (cambiaron) {
+          return NextResponse.json({ error: 'No podés cambiar tus propios permisos' }, { status: 403 });
+        }
+      }
+    }
+
+    // Solo un owner puede modificar la cuenta de otro owner (nombre, rol,
+    // permisos, contraseña, estado) — antes esto era un comentario sin código
+    // detrás, cualquiera con el permiso "usuarios" podía tomar la cuenta.
+    if (targetUser.rol === 'owner' && !actorIsOwner) {
+      return NextResponse.json({ error: 'Solo el propietario puede modificar esta cuenta' }, { status: 403 });
+    }
+
+    // Asignar el rol de propietario o administrador requiere ser owner/admin
+    // — evita que alguien con el permiso "usuarios" (sin serlo) se otorgue,
+    // o le otorgue a otro, acceso total al sistema.
+    if (rol === 'owner' && !actorIsOwner) {
+      return NextResponse.json({ error: 'Solo el propietario puede asignar el rol de propietario' }, { status: 403 });
+    }
+    if (rol === 'admin' && !actorIsOwner && !actorIsAdmin) {
+      return NextResponse.json({ error: 'No tenés permiso para asignar el rol de administrador' }, { status: 403 });
+    }
+
+    // Un usuario sin rol owner/admin no puede otorgarle a otro permisos que
+    // él mismo no tiene — evita "lavar" acceso a módulos como Caja/Facturación.
+    if (permisos !== undefined && !actorIsOwner && !actorIsAdmin) {
+      const solicitados = Array.isArray(permisos) ? permisos : [];
+      const noAutorizados = solicitados.filter((p: string) => !actor.permisos.includes(p));
+      if (noAutorizados.length > 0) {
+        return NextResponse.json(
+          { error: `No podés otorgar permisos que no tenés: ${noAutorizados.join(', ')}` },
+          { status: 403 }
+        );
+      }
     }
 
     // No permitir desactivar al último owner
@@ -88,6 +147,11 @@ export async function DELETE(
     const tenantId = await requirePermission('usuarios');
     const { id } = await params;
 
+    const actor = await getActorTenantUser(tenantId);
+    if (!actor) {
+      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
+    }
+
     const tenantUser = await db.tenantUser.findFirst({
       where: { id, tenantId },
     });
@@ -97,6 +161,16 @@ export async function DELETE(
 
     if (!tenantUser.activo) {
       return NextResponse.json({ error: 'Este usuario ya está desactivado' }, { status: 409 });
+    }
+
+    if (actor.id === id) {
+      return NextResponse.json({ error: 'No podés desactivar tu propia cuenta' }, { status: 403 });
+    }
+
+    // Solo un owner puede desactivar a otro owner o a un admin — antes
+    // cualquiera con el permiso "usuarios" podía suspender a un administrador.
+    if ((tenantUser.rol === 'owner' || tenantUser.rol === 'admin') && actor.rol !== 'owner') {
+      return NextResponse.json({ error: 'Solo el propietario puede desactivar a un owner o administrador' }, { status: 403 });
     }
 
     if (tenantUser.rol === 'owner') {

@@ -144,6 +144,39 @@ export async function requirePermission(permission: string | string[]): Promise<
 }
 
 /**
+ * Devuelve el TenantUser del actor autenticado (id, rol, permisos) para el
+ * tenant actual — a diferencia de requirePermission/requireOwner (que solo
+ * confirman que el actor PUEDE hacer algo), esto permite reglas que dependen
+ * de QUIÉN es el actor: p. ej. impedir que alguien se autoescale de rol o
+ * modifique la cuenta de otro owner. Devuelve null si no hay sesión válida.
+ */
+export async function getActorTenantUser(tenantId: string): Promise<{ id: string; rol: string; permisos: string[] } | null> {
+  const session = await getAuthSession();
+  if (!session?.user?.id) return null;
+
+  const { db } = await import('@/lib/db');
+  const tenantUserId = session.user.tenantUserId;
+  const whereClause: Record<string, unknown> = { tenantId, activo: true };
+  if (tenantUserId) {
+    whereClause.id = tenantUserId;
+  } else {
+    whereClause.userId = session.user.id;
+  }
+
+  const tenantUser = await db.tenantUser.findFirst({
+    where: whereClause,
+    select: { id: true, rol: true, permisos: true },
+  });
+  if (!tenantUser) return null;
+
+  return {
+    id: tenantUser.id,
+    rol: tenantUser.rol,
+    permisos: Array.isArray(tenantUser.permisos) ? (tenantUser.permisos as string[]) : [],
+  };
+}
+
+/**
  * Requiere que la suscripción del tenant esté activa y vigente.
  * Úsalo en operaciones críticas (crear reservas, check-in, pagos, etc.)
  * para prevenir que tenants con suscripción vencida sigan operando.
