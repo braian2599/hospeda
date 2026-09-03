@@ -19,6 +19,11 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const { nombre, logoUrl } = await getDevCompanyBranding();
-  return NextResponse.json({ devCompanyName: nombre, devCompanyLogoUrl: logoUrl });
+  const { nombre, logoUrl, logoWidth, logoHeight } = await getDevCompanyBranding();
+  return NextResponse.json({
+    devCompanyName: nombre,
+    devCompanyLogoUrl: logoUrl,
+    devCompanyLogoWidth: logoWidth,
+    devCompanyLogoHeight: logoHeight,
+  });
 }

@@ -209,7 +209,12 @@ export default async function HotelLandingPage(
           <p className="flex items-center justify-center gap-2">
             Desarrollado por
             {devCompany.logoUrl && (
-              <img src={devCompany.logoUrl} alt={devCompany.nombre || 'Logo empresa desarrolladora'} className="h-8 w-8 rounded object-cover" />
+              <img
+                src={devCompany.logoUrl}
+                alt={devCompany.nombre || 'Logo empresa desarrolladora'}
+                style={{ width: devCompany.logoWidth, height: devCompany.logoHeight }}
+                className="rounded object-cover"
+              />
             )}
             {devCompany.nombre && (
               <span className="font-medium">{devCompany.nombre}</span>

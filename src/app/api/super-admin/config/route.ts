@@ -75,6 +75,8 @@ export async function GET() {
       empresaDesarrolladora: {
         nombre: configMap.dev_company_nombre || '',
         logoUrl: configMap.dev_company_logo_url || '',
+        logoWidth: configMap.dev_company_logo_width || '',
+        logoHeight: configMap.dev_company_logo_height || '',
       },
     });
   } catch (error: unknown) {

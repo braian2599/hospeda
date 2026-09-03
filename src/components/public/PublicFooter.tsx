@@ -101,9 +101,9 @@ export default function PublicFooter() {
                 <Image
                   src={devCompany.logoUrl}
                   alt={devCompany.name || 'Logo empresa desarrolladora'}
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 rounded object-cover"
+                  width={devCompany.logoWidth}
+                  height={devCompany.logoHeight}
+                  className="rounded object-cover"
                   unoptimized
                 />
               )}

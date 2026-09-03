@@ -15,6 +15,11 @@ import {
 } from '@/components/ui/select';
 import { Save, Loader2, Eye, EyeOff, Settings, CreditCard, Globe, Building2, MessageCircle, Phone, Mail, Info, Image as ImageIcon, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  DEV_COMPANY_LOGO_DEFAULT_SIZE as DEV_LOGO_DEFAULT,
+  DEV_COMPANY_LOGO_MIN_SIZE as DEV_LOGO_MIN,
+  DEV_COMPANY_LOGO_MAX_SIZE as DEV_LOGO_MAX,
+} from '@/lib/dev-company-constants';
 
 const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 const ALLOWED_LOGO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -77,6 +82,8 @@ export default function SuperAdminConfig() {
   // Empresa desarrolladora (crédito en footers públicos)
   const [devCompanyNombre, setDevCompanyNombre] = useState('');
   const [devCompanyLogoUrl, setDevCompanyLogoUrl] = useState('');
+  const [devCompanyLogoWidth, setDevCompanyLogoWidth] = useState('');
+  const [devCompanyLogoHeight, setDevCompanyLogoHeight] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
@@ -110,6 +117,8 @@ export default function SuperAdminConfig() {
         // Empresa desarrolladora
         setDevCompanyNombre(devCompany.nombre || '');
         setDevCompanyLogoUrl(devCompany.logoUrl || '');
+        setDevCompanyLogoWidth(devCompany.logoWidth || '');
+        setDevCompanyLogoHeight(devCompany.logoHeight || '');
       })
       .catch(() => toast.error('Error al cargar configuración'))
       .finally(() => setLoading(false));
@@ -155,6 +164,8 @@ export default function SuperAdminConfig() {
         // Empresa desarrolladora
         dev_company_nombre: devCompanyNombre,
         dev_company_logo_url: devCompanyLogoUrl,
+        dev_company_logo_width: devCompanyLogoWidth,
+        dev_company_logo_height: devCompanyLogoHeight,
       };
       // La API preserva el valor existente si un campo sensible viene enmascarado
 
@@ -568,6 +579,52 @@ export default function SuperAdminConfig() {
               </div>
               <p className="text-xs text-muted-foreground">
                 JPG, PNG o WEBP. Máximo {MAX_LOGO_BYTES / 1024 / 1024}MB.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tamaño del logo en los footers</Label>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">Ancho</span>
+                  <Input
+                    type="number"
+                    min={DEV_LOGO_MIN}
+                    max={DEV_LOGO_MAX}
+                    value={devCompanyLogoWidth}
+                    onChange={(e) => setDevCompanyLogoWidth(e.target.value)}
+                    placeholder="32"
+                    className="w-24"
+                  />
+                  <span className="text-xs text-muted-foreground">px</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">Alto</span>
+                  <Input
+                    type="number"
+                    min={DEV_LOGO_MIN}
+                    max={DEV_LOGO_MAX}
+                    value={devCompanyLogoHeight}
+                    onChange={(e) => setDevCompanyLogoHeight(e.target.value)}
+                    placeholder="32"
+                    className="w-24"
+                  />
+                  <span className="text-xs text-muted-foreground">px</span>
+                </div>
+                {devCompanyLogoUrl && (
+                  <div
+                    className="shrink-0 overflow-hidden rounded border border-dashed border-border bg-muted"
+                    style={{
+                      width: Number(devCompanyLogoWidth) || DEV_LOGO_DEFAULT,
+                      height: Number(devCompanyLogoHeight) || DEV_LOGO_DEFAULT,
+                    }}
+                  >
+                    <img src={devCompanyLogoUrl} alt="Vista previa del tamaño" className="h-full w-full object-cover" />
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Ancho y alto independientes, entre {DEV_LOGO_MIN} y {DEV_LOGO_MAX}px. Si se dejan vacíos, se usa {DEV_LOGO_DEFAULT}px.
               </p>
             </div>
           </CardContent>
