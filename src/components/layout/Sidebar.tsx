@@ -5,7 +5,7 @@ import { signOut, useSession } from 'next-auth/react';
 import { useHotelStore } from '@/lib/store';
 // Notification store no longer needed here — NotificationCenter is self-contained
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
-import { modulosEfectivos } from '@/lib/plan-config';
+import { modulosEfectivos, moduloDisponible } from '@/lib/plan-config';
 import { Button } from '@/components/ui/button';
 import { NotificationCenter } from '@/components/ui/notification-center';
 import { LogOut, X, Lock, Settings, Users, LayoutDashboard, Search, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, BarChart3, UserCog, Tags } from 'lucide-react';
@@ -115,7 +115,14 @@ export default function Sidebar() {
   const handleLogout = useCallback(() => {
     useHotelStore.getState().logout();
     sessionStorage.setItem('hospeda-logging-out', 'true');
-    update({ clearTenant: true }).then(() => { window.location.href = '/app'; });
+    // logout() ya vació el store (usuarioActual = null), así que la sidebar
+    // deja de renderizar en este mismo instante — si update() falla o tarda
+    // sin un .catch/.finally, el usuario queda con una pantalla en blanco,
+    // sin sidebar y sin forma de reintentar. .finally() garantiza la
+    // redirección pase lo que pase con la llamada a next-auth.
+    update({ clearTenant: true })
+      .catch(() => {})
+      .finally(() => { window.location.href = '/app'; });
   }, [update]);
 
   const [desktopExpanded, setDesktopExpanded] = useState(false);
@@ -123,13 +130,12 @@ export default function Sidebar() {
   const navRef = useRef<HTMLElement>(null);
   const activeItemRef = useRef<HTMLButtonElement>(null);
 
-  const [sidebarFixed, setSidebarFixed] = useState(false);
-  useEffect(() => {
-    const readPref = () => { setSidebarFixed(useHotelStore.getState().sidebarFixed || false); };
-    readPref();
-    window.addEventListener('hotel-prefs-changed', readPref);
-    return () => window.removeEventListener('hotel-prefs-changed', readPref);
-  }, []);
+  // Suscripción directa al store — antes se leía con un useState local
+  // sincronizado a mano vía un evento custom ('hotel-prefs-changed') que
+  // había que recordar disparar en cada lugar que cambiara la preferencia;
+  // si alguien la cambiaba sin disparar el evento, la sidebar quedaba con
+  // el valor viejo.
+  const sidebarFixed = useHotelStore(s => s.sidebarFixed) || false;
 
   const handleMouseEnter = useCallback(() => {
     if (collapseTimer.current) { clearTimeout(collapseTimer.current); collapseTimer.current = null; }
@@ -154,7 +160,12 @@ export default function Sidebar() {
   if (!usuarioActual) return null;
 
   const isFullAccess = usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin';
-  const efectivos = isFullAccess ? MODULOS_SISTEMA.map(m => m.id) : modulosEfectivos(usuarioActual.permisos, planActual, planes);
+  // El owner/admin tiene todos los permisos, pero igual queda sujeto al plan
+  // contratado — antes se le daba acceso a todos los módulos sin chequear el
+  // plan, así que el candado de "no incluido en tu plan" nunca le aplicaba.
+  const efectivos = isFullAccess
+    ? MODULOS_SISTEMA.map(m => m.id).filter(id => moduloDisponible(id, planActual, planes))
+    : modulosEfectivos(usuarioActual.permisos, planActual, planes);
   const efectivosSet = new Set(efectivos);
   const modulosVisibles = MODULOS_SISTEMA.filter(m => usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin' || usuarioActual.permisos.includes(m.id));
   const userName = usuarioActual.nombreCompleto || usuarioActual.nombre;

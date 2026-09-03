@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { modulosEfectivos, trialVencido } from '@/lib/plan-config';
+import { modulosEfectivos, moduloDisponible, trialVencido } from '@/lib/plan-config';
 import Sidebar from '@/components/layout/Sidebar';
 import DashboardModule from '@/components/modules/DashboardModule';
 import HabitacionesModule from '@/components/modules/HabitacionesModule';
@@ -24,7 +24,7 @@ import ProfileSettings from '@/components/layout/ProfileSettings';
 import CommandPalette from '@/components/layout/CommandPalette';
 import ModuleLockedDialog from '@/components/subscription/ModuleLockedDialog';
 import PaymentResultBanner from '@/components/payments/PaymentResultBanner';
-import type { ModuloId } from '@/lib/types';
+import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 
 const modules: Partial<Record<ModuloId, React.ComponentType>> = {
   dashboard: DashboardModule,
@@ -58,11 +58,15 @@ export default function AppPage() {
     );
   }
 
-  // Compute effective modules: intersection of user permissions and plan modules
-  const efectivos = modulosEfectivos(usuarioActual.permisos, planActual, planes);
+  // Compute effective modules: intersection of user permissions and plan modules.
+  // owner/admin tienen todos los permisos, pero igual quedan sujetos al plan
+  // contratado — antes bypaseaban el chequeo de plan por completo.
+  const isFullAccess = usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin';
+  const efectivos = isFullAccess
+    ? MODULOS_SISTEMA.map(m => m.id).filter(id => moduloDisponible(id, planActual, planes))
+    : modulosEfectivos(usuarioActual.permisos, planActual, planes);
 
-  // Permission check: user permiso AND plan module (owner/admin always have access)
-  const tienePermiso = usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin' || efectivos.includes(moduloActivo);
+  const tienePermiso = efectivos.includes(moduloActivo);
 
   // If trial expired, block everything except dashboard
   const trialExpirado = fechaVencimientoTrial && planActual === 'trial' && trialVencido(fechaVencimientoTrial);

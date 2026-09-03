@@ -108,7 +108,6 @@ export default function ProfileSettings({ open, onOpenChange }: ProfileSettingsP
   const handleSidebarToggle = (checked: boolean) => {
     setSidebarFixedLocal(checked);
     savePrefs({ sidebarFixed: checked });
-    window.dispatchEvent(new Event('hotel-prefs-changed'));
     toast.success(checked ? 'Sidebar fija activada' : 'Sidebar fija desactivada');
   };
 
