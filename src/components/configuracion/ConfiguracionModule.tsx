@@ -339,7 +339,7 @@ function HotelSection() {
           </div>
 
           {/* Hotel metrics */}
-          <div className="grid grid-cols-3 gap-3 mt-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-5">
             <MetricCard
               icon={Hotel}
               label="Habitaciones"

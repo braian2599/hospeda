@@ -1377,7 +1377,7 @@ export default function ReservasModule() {
  </ModuleHeader>
 
  {/* ==================== TODAY'S ACTIVITY SUMMARY ==================== */}
- <div className="grid grid-cols-3 gap-3 card-grid-stagger">
+ <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 card-grid-stagger">
    <div className="relative rounded-xl border-l-[3px] border-l-primary bg-[#0F766E0D] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
      <div className="flex items-start justify-between">
        <div className="space-y-1">
@@ -1920,7 +1920,7 @@ export default function ReservasModule() {
 
  <Separator />
  {/* ─── Resumen financiero ─── */}
- <div className="grid grid-cols-3 gap-3">
+ <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
  <div className="rounded-xl border-2 border-[#0F766E4D] bg-[#0F766E1A] p-3 text-center">
  <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">Total reserva</p>
  <p className="font-bold text-lg text-primary">{formatMoney(calcularTotalReserva(detalleReserva.id))}</p>
