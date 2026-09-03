@@ -1567,27 +1567,27 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-primary hover:bg-[#0F766E1A] hover:text-primary"
+         className="h-9 flex-1 text-xs px-2 text-primary hover:bg-[#0F766E1A] hover:text-primary"
          disabled={isActionLoading}
          onClick={() => handleQuickCheckIn(r)}
        >
-         <LogIn className="w-3 h-3 mr-1" />Check-in
+         <LogIn className="w-3.5 h-3.5 mr-1.5" />Check-in
        </Button>
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-warning hover:bg-[#D9770626]"
+         className="h-9 flex-1 text-xs px-2 text-warning hover:bg-[#D9770626]"
          onClick={() => openEdit(r)}
        >
-         <Pencil className="w-3 h-3 mr-1" />Editar
+         <Pencil className="w-3.5 h-3.5 mr-1.5" />Editar
        </Button>
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-destructive hover:bg-[#EF444426]"
+         className="h-9 flex-1 text-xs px-2 text-destructive hover:bg-[#EF444426]"
          onClick={() => openCancel(r.id)}
        >
-         <XCircle className="w-3 h-3 mr-1" />Cancelar
+         <XCircle className="w-3.5 h-3.5 mr-1.5" />Cancelar
        </Button>
      </>
    )}
@@ -1596,11 +1596,11 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-warning hover:bg-[#D9770626]"
+         className="h-9 flex-1 text-xs px-2 text-warning hover:bg-[#D9770626]"
          disabled={isActionLoading}
          onClick={() => handleQuickCheckOut(r)}
        >
-         <LogOut className="w-3 h-3 mr-1" />Check-out
+         <LogOut className="w-3.5 h-3.5 mr-1.5" />Check-out
        </Button>
      </>
    )}
@@ -1609,18 +1609,18 @@ export default function ReservasModule() {
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-primary hover:bg-[#0F766E1A] hover:text-primary"
+         className="h-9 flex-1 text-xs px-2 text-primary hover:bg-[#0F766E1A] hover:text-primary"
          onClick={() => abrirConfirmarPago(r)}
        >
-         <CreditCard className="w-3 h-3 mr-1" />Confirmar pago
+         <CreditCard className="w-3.5 h-3.5 mr-1.5" />Confirmar pago
        </Button>
        <Button
          size="sm"
          variant="ghost"
-         className="h-7 text-xs px-2 text-destructive hover:bg-[#EF444426]"
+         className="h-9 flex-1 text-xs px-2 text-destructive hover:bg-[#EF444426]"
          onClick={() => openCancel(r.id)}
        >
-         <XCircle className="w-3 h-3 mr-1" />Cancelar
+         <XCircle className="w-3.5 h-3.5 mr-1.5" />Cancelar
        </Button>
      </>
    )}
@@ -1628,10 +1628,10 @@ export default function ReservasModule() {
      <Button
        size="sm"
        variant="ghost"
-       className="h-7 text-xs px-2 text-chart-5 hover:bg-[#8B5CF626]"
+       className="h-9 flex-1 text-xs px-2 text-chart-5 hover:bg-[#8B5CF626]"
        onClick={() => openEdit(r)}
      >
-       <CreditCard className="w-3 h-3 mr-1" />Pago
+       <CreditCard className="w-3.5 h-3.5 mr-1.5" />Pago
      </Button>
    )}
  </div>
