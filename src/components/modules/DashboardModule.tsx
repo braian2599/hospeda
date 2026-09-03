@@ -764,7 +764,6 @@ function RoomHeatmap({ habitaciones, reservas }: {
 export default function DashboardModule() {
   const habitaciones = useHotelStore(s => s.habitaciones);
   const reservas = useHotelStore(s => s.reservas);
-  const pagos = useHotelStore(s => s.pagos);
   const caja = useHotelStore(s => s.caja);
   const setModulo = useHotelStore(s => s.setModulo);
   const realizarCheckOut = useHotelStore(s => s.realizarCheckOut);
@@ -809,12 +808,15 @@ export default function DashboardModule() {
     });
   }, [reservas]);
 
-  const sparkRevenue = useMemo(() => {
+  // Reservas confirmadas (sin check-in todavía) activas cada día — mismo
+  // criterio que "reservadas" (habitaciones en estado 'Reservada'), pero
+  // reconstruido día a día como hace sparkOccupancy.
+  const sparkReservadas = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
       const day = daysAgo(6 - i);
-      return pagos.filter(p => p.fecha === day).reduce((sum, p) => sum + p.monto, 0);
+      return reservas.filter(r => r.estado === 'Confirmada' && r.checkin <= day && r.checkout >= day).length;
     });
-  }, [pagos]);
+  }, [reservas]);
 
   // Alerta de caja abierta
   const [, setTick] = useState(0);
@@ -883,7 +885,7 @@ export default function DashboardModule() {
         <KPIAnimated icon={Bed} label="Ocupación" value={`${tasaOcupacion}%`} sub={`${ocupadas}/${totalHabitaciones} hab.`} color="text-primary" borderColor="border-l-primary" bgGradient="bg-[#0F766E0D]" iconBg="bg-[#0F766E33]" labelColor="text-primary" valueColor="text-primary" subColor="text-[#0F766E80]" numericValue={tasaOcupacion} suffix="%" sparkData={sparkOccupancy} sparkColor="#059669" />
         <KPIAnimated icon={LogIn} label="Check-ins" value={String(checkinsHoy.length)} sub="pendientes hoy" color="text-primary" borderColor="border-l-primary" bgGradient="bg-[#0F766E0D]" iconBg="bg-[#0F766E33]" labelColor="text-primary" valueColor="text-primary" subColor="text-[#0F766E80]" numericValue={checkinsHoy.length} sparkData={sparkCheckins} sparkColor="#059669" />
         <KPIAnimated icon={LogOut} label="Check-outs" value={String(checkoutsHoy.length)} sub="pendientes hoy" color="text-warning" borderColor="border-l-warning" bgGradient="bg-[#D977061A]" iconBg="bg-[#D9770633]" labelColor="text-warning" valueColor="text-warning" subColor="text-[#D9770680]" numericValue={checkoutsHoy.length} sparkData={sparkCheckouts} sparkColor="#F59E0B" />
-        <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-teal-600" borderColor="border-l-teal-500" bgGradient="bg-teal-50" iconBg="bg-[#00B9A633]" labelColor="text-teal-600" valueColor="text-teal-800" subColor="text-[#00948880]" numericValue={reservadas} sparkData={sparkRevenue} sparkColor="#059669" />
+        <KPIAnimated icon={CalendarCheck} label="Reservadas" value={String(reservadas)} sub="habitaciones" color="text-teal-600" borderColor="border-l-teal-500" bgGradient="bg-teal-50" iconBg="bg-[#00B9A633]" labelColor="text-teal-600" valueColor="text-teal-800" subColor="text-[#00948880]" numericValue={reservadas} sparkData={sparkReservadas} sparkColor="#059669" />
       </div>
 
       {/* Quick Actions */}
