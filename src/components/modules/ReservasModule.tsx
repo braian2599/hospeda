@@ -720,8 +720,11 @@ export default function ReservasModule() {
  let desglose2: typeof desglose | null = null;
  if (form.reservaMultiple && form.habitacion2 && habitaciones[form.habitacion2]) {
  const p2 = parseInt(form.personas2) || 1;
- subtotal2 = calcularTotalSegunTarifa(form.tipoTarifa, p2, noches, { checkin: form.checkin, ninos: ninosCount > 0 ? ninosCount : undefined });
- desglose2 = calcDesglose(p2, ninosCount);
+ // El campo "niños" es único para toda la reserva (no hay uno separado por
+ // habitación) y ya se cobra/cuenta en la habitación 1 — repetirlo acá
+ // cobraría a los mismos niños dos veces.
+ subtotal2 = calcularTotalSegunTarifa(form.tipoTarifa, p2, noches, { checkin: form.checkin });
+ desglose2 = calcDesglose(p2, 0);
  }
  const totalFinal2 = subtotal2;
 
@@ -1041,7 +1044,9 @@ export default function ReservasModule() {
  if (form.reservaMultiple && form.habitacion2 === form.habitacion) errs.push('Las habitaciones deben ser distintas');
  if (form.reservaMultiple && form.habitacion2 && habitaciones[form.habitacion2]) {
  const p2 = parseInt(form.personas2) || 1;
- const n2 = tieneNinosDiferenciado ? n1 : 0;
+ // Los niños ya se contaron como ocupantes de la habitación 1 (n1) — no
+ // están simultáneamente en las dos habitaciones.
+ const n2 = 0;
  const totalOcupantes2 = p2 + n2;
  if (totalOcupantes2 > habitaciones[form.habitacion2].capacidad) {
  errs.push(`La habitación ${form.habitacion2} tiene capacidad máxima de ${habitaciones[form.habitacion2].capacidad} personas (ingresó ${p2} adulto${p2 > 1 ? 's' : ''}${n2 > 0 ? ` + ${n2} niño${n2 > 1 ? 's' : ''} = ${totalOcupantes2}` : ''})`);
@@ -1153,17 +1158,18 @@ export default function ReservasModule() {
  }
  reservaCreada = r1;
 
- // Reserva 2 — Fix 1: pasar ninos y calcular total correctamente
+ // Reserva 2 — el campo "niños" es único para toda la reserva y ya se
+ // cobró/contó en la habitación 1 (extendedDatos.ninos) — no volver a
+ // sumarlo acá, o se cobra a los mismos niños dos veces.
  const personas2 = parseInt(form.personas2) || 1;
- const ninos2 = tieneNinosDiferenciado ? ninosCount : 0;
- const subtotal2 = calcularTotalSegunTarifa(form.tipoTarifa, personas2, noches, { checkin: form.checkin, ninos: ninos2 > 0 ? ninos2 : undefined });
+ const subtotal2 = calcularTotalSegunTarifa(form.tipoTarifa, personas2, noches, { checkin: form.checkin });
  const total2 = recargoPorcentaje > 0 ? subtotal2 + Math.round(subtotal2 * (recargoPorcentaje / 100)) : subtotal2;
 
  const datos2: Parameters<typeof crearReserva>[0] = {
  ...extendedDatos,
  habitacion: form.habitacion2,
  personas: personas2,
- ninos: ninos2 > 0 ? ninos2 : undefined,
+ ninos: undefined,
  total: total2,
  };
  const r2 = await crearReserva(datos2 as any);
