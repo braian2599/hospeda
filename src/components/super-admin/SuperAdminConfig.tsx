@@ -280,8 +280,11 @@ export default function SuperAdminConfig() {
                 type="email"
                 value={plataformaEmail}
                 onChange={(e) => setPlataformaEmail(e.target.value)}
-                placeholder="soporte@hospeda.com"
+                placeholder="soporte@hospi.com"
               />
+              <p className="text-xs text-muted-foreground">
+                Se muestra en la landing (footer, /contacto) y en los accesos de "contactar soporte" / "reportar error" dentro de la app. Si se deja vacío, esos accesos se ocultan.
+              </p>
             </div>
 
             <div className="space-y-2">

@@ -1,8 +1,10 @@
 // GET /api/support-email
-// Devuelve el email de soporte configurado por el super-admin.
-// Es público (no requiere auth) — lo usa la pantalla de "¿Olvidaste tu contraseña?".
-// NO expone credenciales de Mercado Pago ni configuración sensible.
-// Tiene rate limiting por IP para prevenir scraping.
+// Devuelve los emails públicos configurados por el super-admin:
+// - "email" (support_email): pantalla de "¿Olvidaste tu contraseña?".
+// - "contactEmail" (plataforma_email): landing (/contacto, footer) y los
+//   accesos de "contactar soporte/feedback/reportar error" dentro de la app.
+// Es público (no requiere auth). NO expone credenciales de Mercado Pago ni
+// configuración sensible. Tiene rate limiting por IP para prevenir scraping.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
@@ -22,16 +24,20 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const config = await db.platformConfig.findUnique({
-      where: { key: 'support_email' },
-      select: { value: true },
+    const configs = await db.platformConfig.findMany({
+      where: { key: { in: ['support_email', 'plataforma_email'] } },
+      select: { key: true, value: true },
     });
+    const configMap = Object.fromEntries(configs.map(c => [c.key, c.value]));
 
-    const email = config?.value || '';
+    const email = configMap.support_email || '';
+    const contactEmail = configMap.plataforma_email || '';
 
     return NextResponse.json({
       email,
       hasSupportEmail: !!email,
+      contactEmail,
+      hasContactEmail: !!contactEmail,
     });
   } catch (error: unknown) {
     const err = error as Error;

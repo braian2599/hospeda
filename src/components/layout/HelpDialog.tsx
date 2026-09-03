@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Keyboard, LifeBuoy, MessageSquare, Sparkles } from 'lucide-react';
 import { useHotelStore } from '@/lib/store';
+import { useContactEmail } from '@/hooks/useContactEmail';
 import type { ModuloId } from '@/lib/types';
 
 /* ────────────────────────────────────────────────────────────
@@ -128,10 +129,12 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
 
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const contactEmail = useContactEmail();
 
   const handleContactSupport = useCallback(() => {
-    window.location.href = 'mailto:soporte@hospeda.com?subject=Ayuda%20Hosped%C3%A1';
-  }, []);
+    if (!contactEmail) return;
+    window.location.href = `mailto:${contactEmail}?subject=${encodeURIComponent('Ayuda Hospi')}`;
+  }, [contactEmail]);
 
   return (
     <>
@@ -267,29 +270,31 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
             </ul>
           </section>
 
-          {/* ¿Necesitas ayuda? */}
-          <section className="space-y-2 pt-1">
-            <SectionLabel>¿Necesitas ayuda?</SectionLabel>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                onClick={handleContactSupport}
-                className="bg-primary hover:bg-[#0F766EE6] text-white gap-2 flex-1"
-              >
-                <LifeBuoy className="w-4 h-4" />
-                Contactar soporte
-              </Button>
-              <a
-                href="mailto:feedback@hospeda.com?subject=Sugerencia%20Hosped%C3%A1"
-                className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md border border-border bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
-              >
-                <MessageSquare className="w-4 h-4" />
-                Enviar feedback
-              </a>
-            </div>
-            <p className="text-[11px] text-muted-foreground pt-1">
-              Tiempo de respuesta promedio: menos de 24 hs hábiles.
-            </p>
-          </section>
+          {/* ¿Necesitas ayuda? — solo si hay un email de contacto configurado */}
+          {contactEmail && (
+            <section className="space-y-2 pt-1">
+              <SectionLabel>¿Necesitas ayuda?</SectionLabel>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  onClick={handleContactSupport}
+                  className="bg-primary hover:bg-[#0F766EE6] text-white gap-2 flex-1"
+                >
+                  <LifeBuoy className="w-4 h-4" />
+                  Contactar soporte
+                </Button>
+                <a
+                  href={`mailto:${contactEmail}?subject=${encodeURIComponent('Sugerencia Hospi')}`}
+                  className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md border border-border bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Enviar feedback
+                </a>
+              </div>
+              <p className="text-[11px] text-muted-foreground pt-1">
+                Tiempo de respuesta promedio: menos de 24 hs hábiles.
+              </p>
+            </section>
+          )}
         </DialogContent>
       </Dialog>
     </>

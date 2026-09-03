@@ -1,15 +1,20 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail } from 'lucide-react';
+import { useContactEmail } from '@/hooks/useContactEmail';
 
 /**
  * Public site footer — dark teal background, 4-column layout.
- * Server component (no 'use client').
+ * Client component: necesita useContactEmail() para no depender de un
+ * email hardcodeado — lee el configurado por el super-admin.
  * Uses inline style for the brand-deep color to avoid any Tailwind
  * resolution issues across builds.
  */
 export default function PublicFooter() {
   const year = new Date().getFullYear();
+  const contactEmail = useContactEmail();
   return (
     <footer style={{ backgroundColor: '#0F2B28' }} className="text-white">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -66,21 +71,23 @@ export default function PublicFooter() {
             </ul>
           </div>
 
-          {/* Contacto */}
-          <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-[#FFFFFFCC]">Contacto</h4>
-            <ul className="mt-4 space-y-2 text-sm">
-              <li>
-                <a
-                  href="mailto:braian9952@gmail.com"
-                  className="flex items-center gap-2 text-[#FFFFFFB3] transition-colors hover:text-white"
-                >
-                  <Mail className="h-4 w-4" />
-                  braian9952@gmail.com
-                </a>
-              </li>
-            </ul>
-          </div>
+          {/* Contacto — solo si hay un email configurado en Super Admin */}
+          {contactEmail && (
+            <div>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-[#FFFFFFCC]">Contacto</h4>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li>
+                  <a
+                    href={`mailto:${contactEmail}`}
+                    className="flex items-center gap-2 text-[#FFFFFFB3] transition-colors hover:text-white"
+                  >
+                    <Mail className="h-4 w-4" />
+                    {contactEmail}
+                  </a>
+                </li>
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="mt-12 border-t border-[#FFFFFF1A] pt-8 text-center">

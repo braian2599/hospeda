@@ -11,8 +11,7 @@ import PublicNavbar from '@/components/public/PublicNavbar';
 import PublicFooter from '@/components/public/PublicFooter';
 import FadeIn from '@/components/public/FadeIn';
 import { Sparkles, Mail, Send, ArrowRight, MessageSquare } from 'lucide-react';
-
-const SUPPORT_EMAIL = 'braian9952@gmail.com';
+import { useContactEmail } from '@/hooks/useContactEmail';
 
 /* ============================================================
  * Page
@@ -23,15 +22,17 @@ export default function ContactoPage() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
+  const contactEmail = useContactEmail();
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!contactEmail) return;
     const subject = encodeURIComponent(`Consulta de ${name || 'un interesado'}`);
     const body = encodeURIComponent(
       `Nombre: ${name}\nEmail: ${email}\n\n${message}`,
     );
     // Open the user's email client with prefilled subject + body
-    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:${contactEmail}?subject=${subject}&body=${body}`;
     setSent(true);
   };
 
@@ -105,20 +106,20 @@ export default function ContactoPage() {
                   />
                 </div>
 
-                <Button type="submit" size="lg" className="w-full sm:w-auto">
+                <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={!contactEmail}>
                   <Send className="mr-2 h-4 w-4" />
                   Enviar mensaje
                 </Button>
 
-                {sent && (
+                {sent && contactEmail && (
                   <p className="rounded-md bg-[#0F766E1A] px-4 py-3 text-sm text-primary">
                     ¡Listo! Abrimos tu cliente de email con el mensaje cargado.
                     Si no se abrió automáticamente, escribinos a{' '}
                     <a
-                      href={`mailto:${SUPPORT_EMAIL}`}
+                      href={`mailto:${contactEmail}`}
                       className="font-semibold underline underline-offset-2"
                     >
-                      {SUPPORT_EMAIL}
+                      {contactEmail}
                     </a>
                     .
                   </p>
@@ -130,22 +131,24 @@ export default function ContactoPage() {
           {/* Alt contact info (2/5) */}
           <FadeIn delay={150} className="lg:col-span-2">
             <div className="space-y-6">
-              {/* Email card */}
-              <div className="rounded-2xl border border-border bg-card p-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F766E1A]">
-                  <Mail className="h-6 w-6 text-primary" />
+              {/* Email card — solo si hay un email de contacto configurado */}
+              {contactEmail && (
+                <div className="rounded-2xl border border-border bg-card p-6">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F766E1A]">
+                    <Mail className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-foreground">Email</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    La forma más rápida de contactarnos.
+                  </p>
+                  <a
+                    href={`mailto:${contactEmail}`}
+                    className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-2"
+                  >
+                    {contactEmail}
+                  </a>
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-foreground">Email</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  La forma más rápida de contactarnos.
-                </p>
-                <a
-                  href={`mailto:${SUPPORT_EMAIL}`}
-                  className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-2"
-                >
-                  {SUPPORT_EMAIL}
-                </a>
-              </div>
+              )}
 
               {/* Chat card */}
               <div className="rounded-2xl border border-border bg-card p-6">

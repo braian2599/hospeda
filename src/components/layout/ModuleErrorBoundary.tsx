@@ -4,6 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, LayoutDashboard } from 'lucide-react';
 import { useHotelStore } from '@/lib/store';
+import { useContactEmail } from '@/hooks/useContactEmail';
 
 interface Props {
   moduleName: string;
@@ -14,6 +15,23 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorId: string | null;
+}
+
+// Componente función chico solo para poder usar el hook useContactEmail()
+// dentro de un class component (ModuleErrorBoundary necesita ser clase por
+// componentDidCatch). Si no hay email de contacto configurado, no se
+// muestra el botón — antes tenía "soporte@hospeda.com" hardcodeado.
+function ReportarErrorLink({ subject, body }: { subject: string; body: string }) {
+  const contactEmail = useContactEmail();
+  if (!contactEmail) return null;
+  const href = `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  return (
+    <a href={href} className="inline-flex">
+      <Button variant="ghost" size="sm">
+        Reportar error
+      </Button>
+    </a>
+  );
 }
 
 /**
@@ -50,12 +68,8 @@ export class ModuleErrorBoundary extends React.Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      const reportBody = encodeURIComponent(
-        `Error ID: ${this.state.errorId}\n\nMensaje: ${this.state.error?.message ?? 'Sin mensaje'}\n\nMódulo: ${this.props.moduleName}`
-      );
-      const reportHref = `mailto:soporte@hospeda.com?subject=${encodeURIComponent(
-        `Error en ${this.props.moduleName}`
-      )}&body=${reportBody}`;
+      const reportBody = `Error ID: ${this.state.errorId}\n\nMensaje: ${this.state.error?.message ?? 'Sin mensaje'}\n\nMódulo: ${this.props.moduleName}`;
+      const reportSubject = `Error en ${this.props.moduleName}`;
 
       return (
         <div className="min-h-[400px] flex items-center justify-center p-6">
@@ -94,11 +108,7 @@ export class ModuleErrorBoundary extends React.Component<Props, State> {
                 <LayoutDashboard className="w-4 h-4 mr-1" />
                 Ir al Dashboard
               </Button>
-              <a href={reportHref} className="inline-flex">
-                <Button variant="ghost" size="sm">
-                  Reportar error
-                </Button>
-              </a>
+              <ReportarErrorLink subject={reportSubject} body={reportBody} />
             </div>
           </div>
         </div>
