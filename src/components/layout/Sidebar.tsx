@@ -44,6 +44,7 @@ const NavItem = forwardRef<HTMLButtonElement, { m: (typeof MODULOS_SISTEMA)[numb
           }
         `}
         title={!expanded ? (locked ? `${m.label} (no disponible)` : m.label) : undefined}
+        aria-label={!expanded ? (locked ? `${m.label} (no disponible)` : m.label) : undefined}
       >
         <span className={`
           shrink-0 flex items-center justify-center rounded-md relative
@@ -57,8 +58,8 @@ const NavItem = forwardRef<HTMLButtonElement, { m: (typeof MODULOS_SISTEMA)[numb
         `}>
           <Icon className={expanded ? 'w-4 h-4' : 'w-[18px] h-[18px]'} />
           {locked && (
-            <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#47556999] flex items-center justify-center">
-              <Lock className="w-1.5 h-1.5 text-sidebar" />
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#47556999] flex items-center justify-center">
+              <Lock className="w-2 h-2 text-sidebar" />
             </span>
           )}
         </span>
@@ -129,6 +130,8 @@ export default function Sidebar() {
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navRef = useRef<HTMLElement>(null);
   const activeItemRef = useRef<HTMLButtonElement>(null);
+  const mobileDrawerRef = useRef<HTMLElement>(null);
+  const mobileCloseButtonRef = useRef<HTMLButtonElement>(null);
 
   // Suscripción directa al store — antes se leía con un useState local
   // sincronizado a mano vía un evento custom ('hotel-prefs-changed') que
@@ -150,12 +153,47 @@ export default function Sidebar() {
   useEffect(() => {
     const el = activeItemRef.current;
     const nav = navRef.current;
-    if (el && nav && !desktopExpanded) {
+    if (el && nav) {
       const navH = nav.clientHeight; const elTop = el.offsetTop - nav.offsetTop;
       const elH = el.offsetHeight; const scroll = nav.scrollTop;
       if (elTop < scroll || elTop + elH > scroll + navH) { nav.scrollTop = elTop - navH / 2 + elH / 2; }
     }
   }, [moduloActivo, desktopExpanded]);
+
+  // Comportamiento real de modal para el drawer mobile: foco inicial en el
+  // botón de cerrar, Escape lo cierra, y Tab queda atrapado adentro (antes
+  // se podía tabular hacia el contenido de atrás, que sigue visible detrás
+  // del overlay).
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    mobileCloseButtonRef.current?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSidebarOpen(false);
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const container = mobileDrawerRef.current;
+      if (!container) return;
+      const focusables = container.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [sidebarOpen, setSidebarOpen]);
 
   if (!usuarioActual) return null;
 
@@ -220,6 +258,7 @@ export default function Sidebar() {
                 : 'text-[#475569B3] hover:bg-sidebar-accent hover:text-sidebar-foreground'
               }`}
             title={!isExpanded ? 'Configuración' : undefined}
+            aria-label={!isExpanded ? 'Configuración' : undefined}
           >
             <span className={`shrink-0 flex items-center justify-center rounded-md ${isExpanded ? 'w-7 h-7' : 'w-8 h-8'} ${isActive('configuracion') ? 'text-sidebar-primary' : 'text-[#47556980]'}`}>
               <Settings className={isExpanded ? 'w-4 h-4' : 'w-[18px] h-[18px]'} />
@@ -239,6 +278,7 @@ export default function Sidebar() {
               ${isExpanded ? 'gap-3 px-3 py-2' : 'justify-center p-2'}
               text-[#475569B3] hover:bg-sidebar-accent hover:text-sidebar-foreground`}
             title={!isExpanded ? userName : undefined}
+            aria-label={!isExpanded ? userName : undefined}
           >
             <span className="w-7 h-7 rounded-full bg-[#E2E8F099] flex items-center justify-center shrink-0 text-sidebar-primary text-xs font-semibold">
               {userName?.charAt(0)?.toUpperCase() || 'A'}
@@ -249,7 +289,7 @@ export default function Sidebar() {
           {!isExpanded && <NotificationCenter />}
         </div>
 
-        <Button variant="ghost" size="icon" onClick={handleLogout} className={`text-[#475569B3] hover:text-destructive transition-colors ${isExpanded ? 'w-full justify-start gap-3 px-3 h-9' : 'w-full'}`}>
+        <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Cerrar sesión" className={`text-[#475569B3] hover:text-destructive transition-colors ${isExpanded ? 'w-full justify-start gap-3 px-3 h-9' : 'w-full'}`}>
           <LogOut className="w-4 h-4 shrink-0" />
           {isExpanded && <span className="text-[13px]">Cerrar sesión</span>}
         </Button>
@@ -261,8 +301,8 @@ export default function Sidebar() {
   const mobileSidebar = sidebarOpen && (
     <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menú de navegación">
       <div className="fixed inset-0 bg-[#00000066] backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-      <aside className="fixed inset-y-0 left-0 w-72 z-50 bg-sidebar border-r border-sidebar-border shadow-xl flex flex-col">
-        <button onClick={() => setSidebarOpen(false)} className="absolute top-3 right-3 z-10 p-1.5 rounded-md hover:bg-sidebar-accent text-[#475569B3] hover:text-sidebar-foreground transition-colors" aria-label="Cerrar menú">
+      <aside ref={mobileDrawerRef} className="fixed inset-y-0 left-0 w-72 z-50 bg-sidebar border-r border-sidebar-border shadow-xl flex flex-col">
+        <button ref={mobileCloseButtonRef} onClick={() => setSidebarOpen(false)} className="absolute top-3 right-3 z-10 p-1.5 rounded-md hover:bg-sidebar-accent text-[#475569B3] hover:text-sidebar-foreground transition-colors" aria-label="Cerrar menú">
           <X className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-3 px-4 py-4">
@@ -304,7 +344,7 @@ export default function Sidebar() {
                 >
                   <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-md relative ${active && !locked ? 'text-sidebar-primary' : locked ? 'text-[#47556966]' : 'text-[#47556980]'}`}>
                     <Icon className="w-4 h-4" />
-                    {locked && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#47556999] flex items-center justify-center"><Lock className="w-1.5 h-1.5 text-sidebar" /></span>}
+                    {locked && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#47556999] flex items-center justify-center"><Lock className="w-2 h-2 text-sidebar" /></span>}
                   </span>
                   <span className={`flex-1 text-left ${active && !locked ? 'text-sidebar-accent-foreground' : ''}`}>{m.label}</span>
                   {locked && <span className="text-[10px] text-[#47556980]">Upgrade</span>}
