@@ -581,34 +581,61 @@ export default function LimpiezaModule() {
               <p className="text-sm text-muted-foreground">No hay reparaciones registradas.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto -mx-6 px-6">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Hab.</TableHead>
-                    <TableHead>Problema</TableHead>
-                    <TableHead className="hidden md:table-cell">Reparación</TableHead>
-                    <TableHead className="text-right">Monto</TableHead>
-                    <TableHead className="hidden sm:table-cell">Empleado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {listaPaginada.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell className="text-xs whitespace-nowrap">{formatFechaHora(item.fecha)}</TableCell>
-                      <TableCell className="font-medium">{item.habitacion}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{item.problema}</TableCell>
-                      <TableCell className="hidden md:table-cell max-w-[200px] truncate">{item.reparacion}</TableCell>
-                      <TableCell className={cn('text-right font-medium', item.monto > 0 ? 'text-destructive' : 'text-muted-foreground')}>
+            <>
+              {/* ── Mobile: Cards ── */}
+              <div className="sm:hidden -mx-6 divide-y border-t">
+                {listaPaginada.map(item => (
+                  <div key={item.id} className="px-6 py-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">Hab. {item.habitacion}</p>
+                        <p className="text-[11px] text-muted-foreground">{formatFechaHora(item.fecha)}</p>
+                      </div>
+                      <p className={cn('text-sm font-bold shrink-0', item.monto > 0 ? 'text-destructive' : 'text-muted-foreground')}>
                         {formatMoney(item.monto)}
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">{item.empleado}</TableCell>
+                      </p>
+                    </div>
+                    <p className="text-xs"><span className="text-muted-foreground">Problema: </span>{item.problema}</p>
+                    {item.reparacion && (
+                      <p className="text-xs"><span className="text-muted-foreground">Reparación: </span>{item.reparacion}</p>
+                    )}
+                    {item.empleado && (
+                      <p className="text-[11px] text-muted-foreground">{item.empleado}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Desktop: Table ── */}
+              <div className="hidden sm:block overflow-x-auto -mx-6 px-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Hab.</TableHead>
+                      <TableHead>Problema</TableHead>
+                      <TableHead className="hidden md:table-cell">Reparación</TableHead>
+                      <TableHead className="text-right">Monto</TableHead>
+                      <TableHead className="hidden sm:table-cell">Empleado</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {listaPaginada.map(item => (
+                      <TableRow key={item.id}>
+                        <TableCell className="text-xs whitespace-nowrap">{formatFechaHora(item.fecha)}</TableCell>
+                        <TableCell className="font-medium">{item.habitacion}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{item.problema}</TableCell>
+                        <TableCell className="hidden md:table-cell max-w-[200px] truncate">{item.reparacion}</TableCell>
+                        <TableCell className={cn('text-right font-medium', item.monto > 0 ? 'text-destructive' : 'text-muted-foreground')}>
+                          {formatMoney(item.monto)}
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">{item.empleado}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
           <PaginationBar
             page={paginaActual}
