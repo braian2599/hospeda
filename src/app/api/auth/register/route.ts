@@ -73,7 +73,6 @@ export async function POST(req: NextRequest) {
           name,
           phone: phone || null,
           emailVerified: null, // Requiere verificación
-          termsAcceptedAt: new Date(),
         },
       });
 

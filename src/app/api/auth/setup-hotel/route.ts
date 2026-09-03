@@ -60,10 +60,6 @@ export async function POST(req: NextRequest) {
 
     // Crear todo en transacción
     const result = await db.$transaction(async (tx) => {
-      if (!user.termsAcceptedAt) {
-        await tx.user.update({ where: { id: user.id }, data: { termsAcceptedAt: new Date() } });
-      }
-
       const tenant = await tx.tenant.create({
         data: {
           nombre: hotelNombre.trim(),

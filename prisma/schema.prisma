@@ -151,21 +151,20 @@ model VerificationToken {
 }
 
 model User {
-  id              String       @id @default(cuid())
-  email           String       @unique
-  emailVerified   DateTime?
-  password        String?
-  phone           String?      @unique
-  phoneVerified   DateTime?
-  name            String?
-  image           String?
-  termsAcceptedAt DateTime?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id            String       @id @default(cuid())
+  email         String       @unique
+  emailVerified DateTime?
+  password      String?
+  phone         String?      @unique
+  phoneVerified DateTime?
+  name          String?
+  image         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  accounts        Account[]
-  sessions        Session[]
-  tenants         TenantUser[]
+  accounts      Account[]
+  sessions      Session[]
+  tenants       TenantUser[]
 }
 
 model TenantUser {
