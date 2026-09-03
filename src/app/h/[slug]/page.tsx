@@ -205,13 +205,15 @@ export default async function HotelLandingPage(
 
       <footer className="border-t py-6 text-center text-xs text-muted-foreground space-y-1.5">
         <p>Powered by <span className="font-medium">Hospi</span></p>
-        {devCompany.nombre && (
-          <p className="flex items-center justify-center gap-1.5">
+        {(devCompany.nombre || devCompany.logoUrl) && (
+          <p className="flex items-center justify-center gap-2">
             Desarrollado por
             {devCompany.logoUrl && (
-              <img src={devCompany.logoUrl} alt={devCompany.nombre} className="h-4 w-4 rounded object-cover" />
+              <img src={devCompany.logoUrl} alt={devCompany.nombre || 'Logo empresa desarrolladora'} className="h-8 w-8 rounded object-cover" />
             )}
-            <span className="font-medium">{devCompany.nombre}</span>
+            {devCompany.nombre && (
+              <span className="font-medium">{devCompany.nombre}</span>
+            )}
           </p>
         )}
       </footer>
