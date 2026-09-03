@@ -218,9 +218,9 @@ export default function Sidebar() {
       onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
     >
       <div className="flex items-center gap-3 px-3 py-4 min-h-[56px]">
-        <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain shrink-0" />
+        <img src="/logo.png" alt="Hospi" className="w-6 h-6 rounded object-contain shrink-0" />
         <div className="overflow-hidden whitespace-nowrap transition-opacity duration-200 flex-1" style={{ opacity: isExpanded ? 1 : 0, width: isExpanded ? 'auto' : 0 }}>
-          <h2 className="font-bold text-sm leading-tight text-sidebar-accent-foreground">Hospedá</h2>
+          <h2 className="font-bold text-sm leading-tight text-sidebar-accent-foreground">Hospi</h2>
           <p className="text-[11px] text-[#47556980]">Gestión Hotelera</p>
         </div>
         {isExpanded && (
@@ -306,9 +306,9 @@ export default function Sidebar() {
           <X className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-3 px-4 py-4">
-          <img src="/logo.png" alt="Hospedá" className="w-6 h-6 rounded object-contain shrink-0" />
+          <img src="/logo.png" alt="Hospi" className="w-6 h-6 rounded object-contain shrink-0" />
           <div className="min-w-0 flex-1">
-            <h2 className="font-bold text-sm leading-tight text-sidebar-accent-foreground">Hospedá</h2>
+            <h2 className="font-bold text-sm leading-tight text-sidebar-accent-foreground">Hospi</h2>
             <p className="text-[11px] text-[#47556980]">Gestión Hotelera</p>
           </div>
           <button

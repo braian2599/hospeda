@@ -1,5 +1,5 @@
 /**
- * Shared CSV export utilities for Hospeda modules.
+ * Shared CSV export utilities for Hospi modules.
  *
  * Provides:
  * - `escapeCSV` — safely escapes a value for CSV (quotes, commas, newlines)

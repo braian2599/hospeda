@@ -73,7 +73,7 @@ export default function TrialBanner() {
               Tu prueba gratuita venció
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Elegí un plan para seguir usando Hospedá con todos los módulos.
+              Elegí un plan para seguir usando Hospi con todos los módulos.
             </p>
           </div>
           <Button size="sm" className="shrink-0" onClick={handleUpgrade}>

@@ -202,7 +202,7 @@ export default async function HotelLandingPage(
       </div>
 
       <footer className="border-t py-6 text-center text-xs text-muted-foreground">
-        Powered by <span className="font-medium">Hospedá</span>
+        Powered by <span className="font-medium">Hospi</span>
       </footer>
     </div>
   );

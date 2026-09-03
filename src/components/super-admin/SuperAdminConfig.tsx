@@ -59,7 +59,7 @@ export default function SuperAdminConfig() {
         setMpPublicKey(mp.publicKey || '');
         setMpWebhookUrl(mp.webhookUrl || '');
         setMpWebhookSecret(mp.webhookSecret || '');
-        setPlataformaNombre(plat.nombre || 'Hospeda');
+        setPlataformaNombre(plat.nombre || 'Hospi');
         setPlataformaEmail(plat.emailContacto || '');
         setPlataformaMoneda(plat.moneda || 'ARS');
         setSupportEmail(plat.supportEmail || '');
@@ -270,7 +270,7 @@ export default function SuperAdminConfig() {
               <Input
                 value={plataformaNombre}
                 onChange={(e) => setPlataformaNombre(e.target.value)}
-                placeholder="Hospedá"
+                placeholder="Hospi"
               />
             </div>
 
@@ -334,7 +334,7 @@ export default function SuperAdminConfig() {
             <p className="text-xs text-muted-foreground bg-[#0284C71A] p-3 rounded-lg flex items-start gap-2">
               <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
               <span>
-                Estos datos se muestran a los hoteles en el módulo de Suscripción para que puedan transferir el pago de su plan. Completalos con los datos reales de la cuenta de Hospedá.
+                Estos datos se muestran a los hoteles en el módulo de Suscripción para que puedan transferir el pago de su plan. Completalos con los datos reales de la cuenta de Hospi.
               </span>
             </p>
 
@@ -352,7 +352,7 @@ export default function SuperAdminConfig() {
               <Input
                 value={bankTitular}
                 onChange={(e) => setBankTitular(e.target.value)}
-                placeholder="Ej: Hospedá S.A."
+                placeholder="Ej: Hospi S.A."
               />
             </div>
 
@@ -371,7 +371,7 @@ export default function SuperAdminConfig() {
                 <Input
                   value={bankAlias}
                   onChange={(e) => setBankAlias(e.target.value)}
-                  placeholder="Ej: hospeda.pago.mp"
+                  placeholder="Ej: hospi.pago.mp"
                   className="font-mono"
                 />
               </div>

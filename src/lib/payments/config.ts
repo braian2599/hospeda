@@ -109,7 +109,7 @@ export const PAYMENT_CONFIG = {
   currency: 'ARS',
 
   /** Nombre del producto en los proveedores */
-  productName: 'Hospedá — Suscripción Mensual',
+  productName: 'Hospi — Suscripción Mensual',
 
   /** Días de gracia antes de suspender por falta de pago */
   gracePeriodDays: 3,

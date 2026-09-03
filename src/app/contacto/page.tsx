@@ -154,7 +154,7 @@ export default function ContactoPage() {
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-foreground">¿Preferís escribir desde la app?</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Una vez dentro de Hospedá podés contactarnos desde el panel de ayuda.
+                  Una vez dentro de Hospi podés contactarnos desde el panel de ayuda.
                 </p>
                 <Link
                   href="/register"

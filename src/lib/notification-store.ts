@@ -1,5 +1,5 @@
 /**
- * Enhanced Notification store for Hospeda.
+ * Enhanced Notification store for Hospi.
  * Manages in-app notifications with categories, priorities, read/unread state,
  * action URLs, persisted flag, auto-dismiss, and smart grouping.
  */

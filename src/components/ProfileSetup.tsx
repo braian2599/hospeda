@@ -81,7 +81,7 @@ export default function ProfileSetup({ email, currentName, onComplete }: Profile
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm rounded-2xl shadow-xl">
         <CardHeader className="text-center pb-2">
-          <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
+          <img src="/logo.png" alt="Hospi" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
           <div className="mx-auto w-10 h-10 rounded-full bg-[#312C854D] flex items-center justify-center mb-2">
             <UserCircle className="w-5 h-5 text-indigo-600" />
           </div>

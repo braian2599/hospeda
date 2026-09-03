@@ -23,7 +23,7 @@
   <text x="152" y="246" text-anchor="middle" font-family="system-ui, sans-serif" font-size="36">🏨</text>
 
   <!-- Title -->
-  <text x="205" y="235" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="700" fill="white">Hospedá</text>
+  <text x="205" y="235" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="700" fill="white">Hospi</text>
 
   <!-- Tagline -->
   <text x="205" y="278" font-family="system-ui, -apple-system, sans-serif" font-size="26" fill="#94a3b8">Gestión Hotelera Simple</text>

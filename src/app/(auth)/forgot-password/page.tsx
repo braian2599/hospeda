@@ -37,9 +37,9 @@ export default function ForgotPasswordPage() {
   }, []);
 
   const emailTemplate = `Para: ${supportEmail}
-Asunto: Reset de contraseña - Hospedá
+Asunto: Reset de contraseña - Hospi
 
-Solicito el reseteo de mi contraseña de Hospedá.
+Solicito el reseteo de mi contraseña de Hospi.
 
 Datos verificatorios:
 - Nombre del hotel: [completá]
@@ -48,7 +48,7 @@ Datos verificatorios:
 - DNI: [completá]
 - Teléfono: [completá]
 
-⚠️ IMPORTANTE: Este email debe enviarse desde el email registrado en Hospedá.`;
+⚠️ IMPORTANTE: Este email debe enviarse desde el email registrado en Hospi.`;
 
   const handleCopy = async () => {
     try {
@@ -96,7 +96,7 @@ Datos verificatorios:
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <h3 className="text-xs font-semibold text-slate-900 mb-2">Datos a enviar</h3>
           <ul className="space-y-1">
-            {['Nombre del hotel', 'Titular de la cuenta', 'Email de Hospedá', 'DNI', 'Teléfono'].map((item) => (
+            {['Nombre del hotel', 'Titular de la cuenta', 'Email de Hospi', 'DNI', 'Teléfono'].map((item) => (
               <li key={item} className="text-[11px] text-slate-700 flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-primary shrink-0" />
                 {item}

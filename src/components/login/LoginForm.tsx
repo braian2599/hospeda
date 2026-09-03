@@ -66,10 +66,10 @@ export default function LoginForm() {
       >
         <div className="text-white max-w-md">
           <div className="flex items-center gap-3 mb-6">
-            <img src="/logo.png" alt="Hospedá" className="w-14 h-14 rounded-2xl object-contain" />
+            <img src="/logo.png" alt="Hospi" className="w-14 h-14 rounded-2xl object-contain" />
           </div>
           <h1 className="text-5xl font-bold tracking-tight mb-3">
-            Hospedá
+            Hospi
           </h1>
           <p className="text-lg text-[#FFFFFFB3] mb-8">Sistema de Gestión Hotelera</p>
           <div
@@ -86,8 +86,8 @@ export default function LoginForm() {
           style={{ animation: 'fadeUp 0.5s ease-out both' }}
         >
           <CardHeader className="text-center pb-2">
-            <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
-            <CardTitle className="text-xl">Hospedá</CardTitle>
+            <img src="/logo.png" alt="Hospi" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
+            <CardTitle className="text-xl">Hospi</CardTitle>
             <p className="text-sm text-muted-foreground">
               Sistema de Gestión Hotelera
             </p>
@@ -158,7 +158,7 @@ export default function LoginForm() {
             </form>
 
             <p className="text-xs text-center text-muted-foreground mt-4">
-              Hospedá · v2.0
+              Hospi · v2.0
             </p>
           </CardContent>
         </Card>

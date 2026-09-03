@@ -67,7 +67,7 @@ export async function GET() {
         comprobanteTelefono: configMap.bank_comprobante_telefono || '',
       },
       plataforma: {
-        nombre: configMap.plataforma_nombre || 'Hospeda',
+        nombre: configMap.plataforma_nombre || 'Hospi',
         emailContacto: configMap.plataforma_email || '',
         moneda: configMap.plataforma_moneda || 'ARS',
         supportEmail: configMap.support_email || '',

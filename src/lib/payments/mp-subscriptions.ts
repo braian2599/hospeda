@@ -76,7 +76,7 @@ export async function createMPSubscription(params: {
   };
 
   const body: Record<string, unknown> = {
-    reason: `Hospedá — Plan ${plan.nombre} — ${hotelNombre}`,
+    reason: `Hospi — Plan ${plan.nombre} — ${hotelNombre}`,
     external_reference: `${tenantId}:${planTipo}`,
     auto_recurring: autoRecurring,
     back_url: backUrl,

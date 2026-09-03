@@ -32,10 +32,10 @@ export default function PublicNavbar() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
           <div className="h-9 w-9 overflow-hidden rounded-lg border border-border bg-card">
-            <Image src="/logo.png" alt="Hospedá logo" width={36} height={36} className="h-full w-full object-cover" />
+            <Image src="/logo.png" alt="Hospi logo" width={36} height={36} className="h-full w-full object-cover" />
           </div>
           <span className="flex flex-col leading-none">
-            <span className="text-lg font-bold text-foreground">Hospedá</span>
+            <span className="text-lg font-bold text-foreground">Hospi</span>
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Gestor de Hoteles
             </span>

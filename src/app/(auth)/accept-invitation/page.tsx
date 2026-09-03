@@ -108,7 +108,7 @@ function AcceptInvitationForm() {
         </div>
         <h1 className="text-2xl font-bold text-slate-900 mb-1">Creá tu contraseña</h1>
         <p className="text-sm text-slate-500">
-          Te invitaron a Hospedá con <strong className="text-slate-700">{email}</strong>
+          Te invitaron a Hospi con <strong className="text-slate-700">{email}</strong>
         </p>
       </div>
 

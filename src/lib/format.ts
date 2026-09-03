@@ -1,5 +1,5 @@
 /**
- * Shared formatting utilities for Hospeda.
+ * Shared formatting utilities for Hospi.
  * All modules should use these instead of creating their own formatters.
  */
 

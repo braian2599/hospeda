@@ -54,8 +54,8 @@ export default function SetupHotelPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md rounded-2xl shadow-2xl" style={{ animation: 'fadeUp 0.5s ease-out both' }}>
         <CardHeader className="text-center">
-          <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
-          <CardTitle className="text-2xl">Bienvenido a Hospeda</CardTitle>
+          <img src="/logo.png" alt="Hospi" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
+          <CardTitle className="text-2xl">Bienvenido a Hospi</CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
             Para empezar, indica el nombre de tu hotel
           </CardDescription>

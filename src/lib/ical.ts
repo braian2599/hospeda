@@ -23,7 +23,7 @@ export function buildIcsFeed(hotelNombre: string, habitacion: string, ranges: Ic
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Hospeda//Sync//ES',
+    'PRODID:-//Hospi//Sync//ES',
     'CALSCALE:GREGORIAN',
     `X-WR-CALNAME:${escapeIcsText(`${hotelNombre} - Hab. ${habitacion}`)}`,
   ];

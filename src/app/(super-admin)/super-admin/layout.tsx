@@ -151,7 +151,7 @@ function SuperAdminShell({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
-            <h1 className="text-sm font-semibold hidden sm:block">Hospedá Super Admin</h1>
+            <h1 className="text-sm font-semibold hidden sm:block">Hospi Super Admin</h1>
           </div>
 
           <div className="ml-auto flex items-center gap-2">
@@ -217,7 +217,7 @@ function SuperAdminShell({ children }: { children: ReactNode }) {
             <div className="p-3">
               <Separator className="mb-3" />
               <div className="px-3 py-2 text-xs text-muted-foreground">
-                Hospedá — Panel de administración
+                Hospi — Panel de administración
               </div>
             </div>
           </aside>

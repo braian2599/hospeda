@@ -758,7 +758,7 @@ export default function ReportesModule() {
   const cajaTurnosAMostrar = cajaHistorialFiltrado || caja.historial;
 
   const handleExportPDF = useCallback(() => {
-    const hotelName = usuarioActual?.tenantNombre || 'Hospeda';
+    const hotelName = usuarioActual?.tenantNombre || 'Hospi';
     const dateRange = `${formatFecha(desde)} al ${formatFecha(hasta)}`;
     const generatedAt = new Date().toLocaleString('es-AR', { dateStyle: 'long', timeStyle: 'short' });
 

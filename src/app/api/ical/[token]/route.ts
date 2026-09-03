@@ -29,7 +29,7 @@ export async function GET(
   ]);
 
   const ics = buildIcsFeed(
-    tenant?.nombre || 'Hospedá',
+    tenant?.nombre || 'Hospi',
     canal.habitacion,
     reservas.map((r) => ({
       uid: r.id,

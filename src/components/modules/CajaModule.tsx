@@ -2001,7 +2001,7 @@ function ClosingWizard(props: ClosingWizardProps) {
                 w.document.write(`<div class="row"><span>Esperado:</span><strong>${formatMoney(props.expectedTotal)}</strong></div>`);
                 w.document.write(`<div class="row"><span>Diferencia:</span><strong style="color:${props.diferenciaTotal !== 0 ? 'red' : 'green'}">${formatMoney(props.diferenciaTotal)}</strong></div>`);
                 w.document.write(`<div class="sep"></div>`);
-                w.document.write(`<p style="text-align:center;font-size:10px">Hospeda — Sistema de Gestión Hotelera</p>`);
+                w.document.write(`<p style="text-align:center;font-size:10px">Hospi — Sistema de Gestión Hotelera</p>`);
                 w.document.write(`</body></html>`);
                 w.document.close();
                 w.print();

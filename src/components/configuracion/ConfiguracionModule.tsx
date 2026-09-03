@@ -1875,7 +1875,7 @@ function IntegracionesSection() {
                   </div>
                 </ConfigField>
 
-                <ConfigField label={`Link de ${CANAL_LABEL[c.canal]} para importar`} icon={Globe} hint="Pegá acá la URL de exportación .ics que te da Booking/Airbnb, para bloquear estas fechas en Hospedá.">
+                <ConfigField label={`Link de ${CANAL_LABEL[c.canal]} para importar`} icon={Globe} hint="Pegá acá la URL de exportación .ics que te da Booking/Airbnb, para bloquear estas fechas en Hospi.">
                   <div className="flex gap-2">
                     <Input
                       value={importDrafts[c.id] ?? ''}
@@ -2214,7 +2214,7 @@ function ExportarSection() {
         const blob = new Blob([text], { type: 'application/json;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `hospeda-backup-${new Date().toLocaleDateString('en-CA')}.json`;
+        link.download = `hospi-backup-${new Date().toLocaleDateString('en-CA')}.json`;
         link.click();
         URL.revokeObjectURL(link.href);
         addHistory('Backup completo', 'JSON', blob.size);
@@ -2252,7 +2252,7 @@ function ExportarSection() {
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `hospeda-${tipo}-${new Date().toLocaleDateString('en-CA')}.csv`;
+      link.download = `hospi-${tipo}-${new Date().toLocaleDateString('en-CA')}.csv`;
       link.click();
       URL.revokeObjectURL(link.href);
       addHistory(tipo.charAt(0).toUpperCase() + tipo.slice(1), 'CSV', blob.size);
@@ -2623,7 +2623,7 @@ function SuscripcionSection() {
                       <div className="flex flex-wrap gap-2">
                         {bankDetails.comprobanteWhatsapp && (
                           <a
-                            href={`https://wa.me/${bankDetails.comprobanteWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, les envío el comprobante de transferencia para activar mi suscripción a Hospedá.')}`}
+                            href={`https://wa.me/${bankDetails.comprobanteWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, les envío el comprobante de transferencia para activar mi suscripción a Hospi.')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#05966926] text-success hover:bg-[#05966940] transition-colors text-xs font-medium"
@@ -2634,7 +2634,7 @@ function SuscripcionSection() {
                         )}
                         {bankDetails.comprobanteEmail && (
                           <a
-                            href={`mailto:${bankDetails.comprobanteEmail}?subject=${encodeURIComponent('Comprobante de transferencia - Hospedá')}`}
+                            href={`mailto:${bankDetails.comprobanteEmail}?subject=${encodeURIComponent('Comprobante de transferencia - Hospi')}`}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0284C726] text-info hover:bg-[#0284C740] transition-colors text-xs font-medium"
                           >
                             <Mail className="w-3.5 h-3.5" />
@@ -2697,7 +2697,7 @@ function SoporteSection() {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">Versión</span>
-              <p className="font-medium">Hospedá v2.0</p>
+              <p className="font-medium">Hospi v2.0</p>
             </div>
             <div>
               <span className="text-muted-foreground">Plan</span>

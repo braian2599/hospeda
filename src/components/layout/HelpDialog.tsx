@@ -159,7 +159,7 @@ export default function HelpDialog({ compact = false }: HelpDialogProps) {
               </DialogTitle>
             </div>
             <DialogDescription className="text-xs">
-              Aprende a moverte por Hospedá más rápido con el teclado.
+              Aprende a moverte por Hospi más rápido con el teclado.
             </DialogDescription>
           </DialogHeader>
 

@@ -124,7 +124,7 @@ export default function HomePage() {
           <FadeIn delay={150} className="hidden lg:block">
             <ScreenshotFrame
               src="/screenshots/dashboard-new.png"
-              alt="Panel de control de Hospedá"
+              alt="Panel de control de Hospi"
               priority
             />
           </FadeIn>
@@ -203,7 +203,7 @@ export default function HomePage() {
             <h2 className="text-4xl font-bold text-foreground">Más canales, un solo lugar</h2>
             <p className="mt-4 text-lg text-muted-foreground">
               Estamos preparando la sincronización directa con las plataformas de reservas más usadas,
-              para que gestiones todo desde Hospedá sin cargar nada dos veces.
+              para que gestiones todo desde Hospi sin cargar nada dos veces.
             </p>
           </FadeIn>
 

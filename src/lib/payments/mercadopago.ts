@@ -59,8 +59,8 @@ export async function createMercadoPagoCheckout(params: {
     body: {
       items: [
         {
-          id: `hospeda-${planTipo}`,
-          title: `Hospedá — Plan ${plan.nombre}`,
+          id: `hospi-${planTipo}`,
+          title: `Hospi — Plan ${plan.nombre}`,
           description: `Suscripción mensual al plan ${plan.nombre} para ${hotelNombre}`,
           quantity: 1,
           unit_price: plan.precio / 100, // MP usa decimales, no centavos

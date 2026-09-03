@@ -290,7 +290,7 @@ export default function FuncionesPage() {
               Más tiempo para lo que realmente importa
             </h2>
             <p className="mt-4 text-muted-foreground">
-              Hospedá automatiza las tareas repetitivas para que te enfoques en atender a tus huéspedes.
+              Hospi automatiza las tareas repetitivas para que te enfoques en atender a tus huéspedes.
             </p>
 
             <ul className="mt-8 space-y-3">
@@ -315,7 +315,7 @@ export default function FuncionesPage() {
           <FadeIn delay={150}>
             <ScreenshotFrame
               src="/screenshots/reservas-new.png"
-              alt="Vista de reservas en Hospedá"
+              alt="Vista de reservas en Hospi"
               className="shadow-xl"
             />
           </FadeIn>

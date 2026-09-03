@@ -17,7 +17,7 @@ async function fetchIcs(url: string): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    const res = await fetch(url, { signal: controller.signal, headers: { 'User-Agent': 'Hospeda-iCal-Sync/1.0' } });
+    const res = await fetch(url, { signal: controller.signal, headers: { 'User-Agent': 'Hospi-iCal-Sync/1.0' } });
     if (!res.ok) throw new Error(`El servidor externo respondió ${res.status}`);
     return await res.text();
   } finally {

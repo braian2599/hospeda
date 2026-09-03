@@ -140,7 +140,7 @@ export async function sendVerificationSms(phone: string, code: string): Promise<
     const client = twilioMod.default(config.accountSid, config.authToken);
 
     const message = await client.messages.create({
-      body: `Hospeda - Tu codigo de verificacion es: ${code}. No lo compartas con nadie. Expira en 10 minutos.`,
+      body: `Hospi - Tu codigo de verificacion es: ${code}. No lo compartas con nadie. Expira en 10 minutos.`,
       from: config.fromNumber,
       to: normalizedPhone,
     });

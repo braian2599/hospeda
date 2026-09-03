@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       where: { id: authTenantId },
       select: { nombre: true },
     });
-    const hotelNombre = tenant?.nombre || 'Hospedá';
+    const hotelNombre = tenant?.nombre || 'Hospi';
     const effectiveEmail = email || 'guest@hospeda.com';
 
     // --- Crear checkout en Mercado Pago ---

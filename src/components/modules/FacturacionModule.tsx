@@ -251,7 +251,7 @@ export default function FacturacionModule() {
   const reciboReserva = reservas.find(r => r.id === reciboReservaId);
 
   // Hotel name for receipt
-  const hotelName = usuarioActual?.tenantNombre || 'Hospeda';
+  const hotelName = usuarioActual?.tenantNombre || 'Hospi';
 
   return (
     <div className="space-y-6">

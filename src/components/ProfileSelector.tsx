@@ -168,7 +168,7 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-1">
-          <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
+          <img src="/logo.png" alt="Hospi" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
           <p className="text-lg font-bold">{hotelNombre}</p>
           <p className="text-sm text-muted-foreground">{email}</p>
         </div>

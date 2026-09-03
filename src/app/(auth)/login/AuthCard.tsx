@@ -123,7 +123,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
     return (
       <AuthShell>
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">Bienvenido a Hospedá</h1>
+          <h1 className="text-2xl font-bold text-slate-900 mb-1">Bienvenido a Hospi</h1>
           <p className="text-sm text-slate-500">Ingresá para gestionar tu hotel</p>
         </div>
 

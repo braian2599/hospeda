@@ -13,7 +13,7 @@
 // Nadie puede recibir emails hasta que Resend esté configurado,
 // pero el sistema no se rompe.
 
-const APP_NAME = 'Hospedá';
+const APP_NAME = 'Hospi';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://hospeda.com';
 
 export function isEmailConfigured(): boolean {
@@ -116,7 +116,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
       html: `
         <div style="max-width:480px;margin:0 auto;font-family:system-ui,sans-serif;color:#1a1a1a">
           <div style="text-align:center;padding:32px 0 24px">
-            <h1 style="font-size:28px;font-weight:700;margin:0">🏨 Hospedá</h1>
+            <h1 style="font-size:28px;font-weight:700;margin:0">🏨 Hospi</h1>
           </div>
           <div style="background:#f9fafb;border-radius:12px;padding:32px">
             <h2 style="font-size:18px;margin:0 0 8px">Restablecé tu contraseña</h2>

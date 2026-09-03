@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       where: { id: authTenantId },
       select: { nombre: true, email: true },
     });
-    const hotelNombre = tenant?.nombre || 'Hospedá';
+    const hotelNombre = tenant?.nombre || 'Hospi';
     const effectiveEmail = email || tenant?.email || 'guest@hospeda.com';
 
     // Crear suscripción en MP

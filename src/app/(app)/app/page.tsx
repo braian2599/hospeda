@@ -134,7 +134,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
             <Menu className="w-5 h-5" />
           </Button>
-          <span className="font-bold text-sm">Hospedá</span>
+          <span className="font-bold text-sm">Hospi</span>
         </header>
         <div className="p-4 md:p-6 flex-1">
           <div className="max-w-7xl mx-auto w-full">

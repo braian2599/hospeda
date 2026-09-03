@@ -155,7 +155,7 @@ function generateReportHtml(data: PdfReportData): string {
 
   <!-- Footer -->
   <div style="margin-top:32px;border-top:1px solid ${GRAY_300};padding-top:8px;display:flex;justify-content:space-between;font-size:9px;color:${GRAY_500};">
-    <span>${escapeHtml(data.hotelName)} — Reporte generado con Hospeda</span>
+    <span>${escapeHtml(data.hotelName)} — Reporte generado con Hospi</span>
     <span>Página {PAGE}</span>
   </div>
 

@@ -18,9 +18,9 @@ export default function PublicFooter() {
           <div>
             <div className="flex items-center gap-2">
               <div className="h-9 w-9 overflow-hidden rounded-lg border border-[#FFFFFF33] bg-[#FFFFFF1A]">
-                <Image src="/logo.png" alt="Hospedá logo" width={36} height={36} className="h-full w-full object-cover" />
+                <Image src="/logo.png" alt="Hospi logo" width={36} height={36} className="h-full w-full object-cover" />
               </div>
-              <span className="text-lg font-bold">Hospedá</span>
+              <span className="text-lg font-bold">Hospi</span>
             </div>
             <p className="mt-4 text-sm text-[#FFFFFFB3]">
               La plataforma de gestión hotelera simple para alojamientos en Argentina.
@@ -84,7 +84,7 @@ export default function PublicFooter() {
         </div>
 
         <div className="mt-12 border-t border-[#FFFFFF1A] pt-8 text-center">
-          <p className="text-sm text-[#FFFFFFB3]">© {year} Hospedá. Todos los derechos reservados.</p>
+          <p className="text-sm text-[#FFFFFFB3]">© {year} Hospi. Todos los derechos reservados.</p>
         </div>
       </div>
     </footer>

@@ -12,7 +12,7 @@ import { ArrowLeft } from 'lucide-react';
  *
  * Modo claro únicamente (según especificación del proyecto).
  *
- * Incluye el logo de Hospedá por defecto al inicio de la card.
+ * Incluye el logo de Hospi por defecto al inicio de la card.
  * Incluye botón "Volver al inicio" arriba a la izquierda del fondo teal.
  */
 
@@ -20,7 +20,7 @@ interface AuthShellProps {
   children: ReactNode;
   /** Ancho máximo de la card flotante. Default: 460px */
   maxWidth?: number;
-  /** Mostrar el logo de Hospedá arriba de la card. Default: true */
+  /** Mostrar el logo de Hospi arriba de la card. Default: true */
   showLogo?: boolean;
   /** Mostrar botón "Volver al inicio". Default: true */
   showBackButton?: boolean;
@@ -95,7 +95,7 @@ export default function AuthShell({ children, maxWidth = 460, showLogo = true, s
 }
 
 /**
- * Logo de Hospedá — contenedor circular blanco con sombra.
+ * Logo de Hospi — contenedor circular blanco con sombra.
  * Se muestra centrado arriba del contenido de la card.
  */
 function AuthLogo() {
@@ -104,7 +104,7 @@ function AuthLogo() {
       <div className="w-14 h-14 rounded-2xl bg-white shadow-lg shadow-[#0F766E33] flex items-center justify-center overflow-hidden ring-1 ring-slate-100">
         <Image
           src="/logo.png"
-          alt="Hospedá"
+          alt="Hospi"
           width={40}
           height={40}
           className="object-contain"

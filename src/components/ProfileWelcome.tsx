@@ -37,7 +37,7 @@ export default function ProfileWelcome({ profileName, email, rol, hotelNombre, o
         <CardContent className="pt-8 pb-6 space-y-5">
           {/* Hotel icon */}
           <div className="text-center">
-            <img src="/logo.png" alt="Hospedá" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
+            <img src="/logo.png" alt="Hospi" className="mx-auto w-14 h-14 rounded-2xl object-contain mb-3" />
             <h2 className="text-lg font-bold">{hotelNombre}</h2>
             <p className="text-sm text-muted-foreground">Confirmá tu perfil para ingresar</p>
           </div>

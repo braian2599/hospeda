@@ -327,7 +327,7 @@ export default function SuscripcionModule() {
               Tu prueba gratuita venció
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Elegí un plan a continuación para seguir usando Hospedá con todos los módulos. El cobro es automático cada mes y podés cancelar cuando quieras.
+              Elegí un plan a continuación para seguir usando Hospi con todos los módulos. El cobro es automático cada mes y podés cancelar cuando quieras.
             </p>
           </div>
         </div>
@@ -456,7 +456,7 @@ export default function SuscripcionModule() {
                   <div className="flex flex-wrap gap-2">
                     {bankDetails.comprobanteWhatsapp && (
                       <a
-                        href={`https://wa.me/${bankDetails.comprobanteWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, les envío el comprobante de transferencia para activar mi suscripción a Hospedá.')}`}
+                        href={`https://wa.me/${bankDetails.comprobanteWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, les envío el comprobante de transferencia para activar mi suscripción a Hospi.')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#05966926] text-success hover:bg-[#05966940] transition-colors text-sm font-medium"
@@ -467,7 +467,7 @@ export default function SuscripcionModule() {
                     )}
                     {bankDetails.comprobanteEmail && (
                       <a
-                        href={`mailto:${bankDetails.comprobanteEmail}?subject=${encodeURIComponent('Comprobante de transferencia - Hospedá')}`}
+                        href={`mailto:${bankDetails.comprobanteEmail}?subject=${encodeURIComponent('Comprobante de transferencia - Hospi')}`}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0284C726] text-info hover:bg-[#0284C740] transition-colors text-sm font-medium"
                       >
                         <Mail className="w-4 h-4" />
