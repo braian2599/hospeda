@@ -19,13 +19,14 @@ import { Switch } from '@/components/ui/switch';
 import { parseTarifaPrecios } from '@/lib/tarifa-calc';
 import { promoBadgesTab } from '@/lib/tarifas-format';
 import { AnimatedNumber } from '@/components/ui/animated-number';
+import ModuleHeader from '@/components/layout/ModuleHeader';
 import {
   CreditCard, Building2, FileText, Shield, Headphones, Download,
   Crown, Check, Loader2, Save, Eye, EyeOff, Star, ArrowRight,
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
   Settings, Copy, Info, BedDouble, KeyRound, Database, Receipt,
   Users, History, CheckCircle2, XCircle, Lock, Printer, MessageCircle,
-  Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban, Instagram, Facebook, Zap,
+  Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban, Instagram, Facebook, Zap, Share2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -35,19 +36,42 @@ const CheckoutDialog = dynamic(
   { ssr: false }
 );
 
-// ─── Sidebar sections ───
-const SECTIONS = [
-  { id: 'hotel', label: 'Hotel Info', icon: Building2 },
-  { id: 'fiscal', label: 'Fiscal', icon: FileText },
-  { id: 'habitaciones', label: 'Habitaciones', icon: BedDouble },
-  { id: 'landing', label: 'Landing', icon: ImageIcon },
-  { id: 'cuenta', label: 'Cuenta y Contraseña', icon: KeyRound },
-  { id: 'exportar', label: 'Datos / Export', icon: Database },
-  { id: 'suscripcion', label: 'Suscripción', icon: CreditCard },
-  { id: 'soporte', label: 'Soporte', icon: Headphones },
-] as const;
+// ─── Sections, agrupadas por tema (se muestran como clusters separados en la
+// barra de navegación en vez de una fila plana de 8 tabs sueltas) ───
+type SectionId = 'hotel' | 'fiscal' | 'habitaciones' | 'landing' | 'cuenta' | 'exportar' | 'suscripcion' | 'soporte';
 
-type SectionId = (typeof SECTIONS)[number]['id'];
+interface SectionMeta { id: SectionId; label: string; icon: React.ComponentType<{ className?: string }>; }
+
+const SECTION_GROUPS: { label: string; sections: SectionMeta[] }[] = [
+  {
+    label: 'Hotel',
+    sections: [
+      { id: 'hotel', label: 'Hotel Info', icon: Building2 },
+      { id: 'fiscal', label: 'Fiscal', icon: FileText },
+      { id: 'habitaciones', label: 'Habitaciones', icon: BedDouble },
+    ],
+  },
+  {
+    label: 'Landing page',
+    sections: [
+      { id: 'landing', label: 'Landing', icon: ImageIcon },
+    ],
+  },
+  {
+    label: 'Cuenta',
+    sections: [
+      { id: 'cuenta', label: 'Cuenta y Contraseña', icon: KeyRound },
+    ],
+  },
+  {
+    label: 'Sistema',
+    sections: [
+      { id: 'exportar', label: 'Datos / Export', icon: Database },
+      { id: 'suscripcion', label: 'Suscripción', icon: CreditCard },
+      { id: 'soporte', label: 'Soporte', icon: Headphones },
+    ],
+  },
+];
 
 // ─── Static helpers ───
 
@@ -149,10 +173,9 @@ export default function ConfiguracionModule() {
       .catch(() => {});
   }, []);
 
-  const visibleSections = SECTIONS.filter((s) => {
-    if (s.id === 'landing') return fotosHabilitadas;
-    return true;
-  });
+  const visibleGroups = SECTION_GROUPS
+    .map(g => ({ ...g, sections: g.sections.filter(s => s.id !== 'landing' || fotosHabilitadas) }))
+    .filter(g => g.sections.length > 0);
 
   if (!usuarioActual || usuarioActual.rol !== 'owner') {
     return (
@@ -166,38 +189,42 @@ export default function ConfiguracionModule() {
 
   return (
     <div className="space-y-6">
-      {/* Header centrado */}
-      <div className="flex flex-col items-center text-center gap-2">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: forestAlpha(15) }}>
-          <Settings className="w-5 h-5 shrink-0" style={{ color: forest }} />
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Configuración</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">Administrá tu hotel, plan y cuenta</p>
-        </div>
-      </div>
+      <ModuleHeader icon={Settings} title="Configuración" subtitle="Administrá tu hotel, plan y cuenta" />
 
-      {/* Secciones — tabs horizontales */}
+      {/* Secciones agrupadas por tema — cada cluster es su propio grupo de tabs */}
       <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as SectionId)}>
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex sm:justify-center">
-          <TabsList className="flex flex-nowrap h-auto gap-0.5 sm:gap-1 min-w-max bg-[#F1F5F980]">
-            {visibleSections.map(s => {
-              const Icon = s.icon;
-              return (
-                <TabsTrigger
-                  key={s.id}
-                  value={s.id}
-                  className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"
-                >
-                  <Icon className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                  <span>{s.label}</span>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex flex-nowrap sm:flex-wrap items-start gap-4 sm:gap-5 min-w-max sm:min-w-0">
+            {visibleGroups.map((group, gi) => (
+              <div
+                key={group.label}
+                className="flex flex-col gap-1.5 animate-slide-up"
+                style={{ animationDelay: `${gi * 50}ms` }}
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-0.5">
+                  {group.label}
+                </span>
+                <TabsList className="flex flex-nowrap h-auto gap-0.5 bg-[#F1F5F980]">
+                  {group.sections.map(s => {
+                    const Icon = s.icon;
+                    return (
+                      <TabsTrigger
+                        key={s.id}
+                        value={s.id}
+                        className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"
+                      >
+                        <Icon className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                        <span>{s.label}</span>
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="mt-6 animate-in fade-in-0 duration-200" key={activeSection}>
+        <div className="mt-6 content-fade-switch" key={activeSection}>
           {activeSection === 'hotel' && <HotelSection />}
           {activeSection === 'fiscal' && <FiscalSection />}
           {activeSection === 'habitaciones' && <HabitacionesSection />}
@@ -274,7 +301,7 @@ function HotelSection() {
   return (
     <div className="space-y-6">
       {/* Hero + Hotel name */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden card-hover animate-slide-up">
         <div
           className="h-32 md:h-40 w-full bg-primary relative"
           aria-hidden
@@ -337,14 +364,14 @@ function HotelSection() {
       </Card>
 
       {/* Contact info cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 card-grid-stagger">
         <ContactInfoCard icon={Phone} label="Teléfono" value={form.telefono} color={forestAccent} />
         <ContactInfoCard icon={Mail} label="Email" value={form.email} color={forest} />
         <ContactInfoCard icon={DollarSign} label="Moneda" value={form.moneda} color={forestAccent} />
       </div>
 
       {/* Editable form */}
-      <Card>
+      <Card className="card-hover">
         <CardHeader>
           <CardTitle className="text-lg">Información del Hotel</CardTitle>
           <CardDescription>Datos que aparecen en comprobantes y la interfaz del sistema</CardDescription>
@@ -439,7 +466,7 @@ function MetricCard({ icon: Icon, label, value, isText, color }: { icon: React.C
 
 function ContactInfoCard({ icon: Icon, label, value, color }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; value: string; color: string }) {
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden card-hover">
       <CardContent className="p-4 flex items-start gap-3">
         <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}15` }}>
           <Icon className="w-5 h-5" style={{ color }} />
@@ -715,16 +742,35 @@ function PhotoGrid({
 interface HabitacionFotoDTO { numero: string; tipo: string; fotos: string[]; descripcion: string; }
 interface TarifaDTO { id: string; nombre: string; activa: boolean; precios: unknown; promoDescripcion: string | null; }
 
-type LandingTabId = 'ubicacion' | 'politicas' | 'fotos' | 'precios' | 'promociones' | 'cobro' | 'agencias';
+type LandingTabId = 'ubicacion' | 'redes' | 'politicas' | 'fotos' | 'precios' | 'promociones' | 'cobro' | 'agencias';
 
-const LANDING_TABS: { id: LandingTabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'ubicacion', label: 'Ubicación', icon: MapPin },
-  { id: 'politicas', label: 'Políticas', icon: Ban },
-  { id: 'fotos', label: 'Fotos', icon: ImageIcon },
-  { id: 'precios', label: 'Precios', icon: DollarSign },
-  { id: 'promociones', label: 'Promociones', icon: Zap },
-  { id: 'cobro', label: 'Cobro de seña', icon: CreditCard },
-  { id: 'agencias', label: 'Agencias', icon: Users },
+// Agrupadas por tema — antes eran 7 tabs sueltas en una sola fila (y "Redes
+// sociales" ni siquiera tenía tab propia, vivía escondida dentro de
+// "Ubicación"). Ahora cada categoría real de la landing tiene su lugar.
+const LANDING_TAB_GROUPS: { label: string; tabs: { id: LandingTabId; label: string; icon: React.ComponentType<{ className?: string }> }[] }[] = [
+  {
+    label: 'Contenido',
+    tabs: [
+      { id: 'ubicacion', label: 'Ubicación', icon: MapPin },
+      { id: 'redes', label: 'Redes sociales', icon: Share2 },
+      { id: 'politicas', label: 'Políticas', icon: Ban },
+      { id: 'fotos', label: 'Fotos', icon: ImageIcon },
+    ],
+  },
+  {
+    label: 'Precios y promos',
+    tabs: [
+      { id: 'precios', label: 'Precios', icon: DollarSign },
+      { id: 'promociones', label: 'Promociones', icon: Zap },
+    ],
+  },
+  {
+    label: 'Reservas y pagos',
+    tabs: [
+      { id: 'cobro', label: 'Cobro de seña', icon: CreditCard },
+      { id: 'agencias', label: 'Agencias', icon: Users },
+    ],
+  },
 ];
 
 /** Tarifas activas con una promoción activa (noches de cortesía / niños diferenciado) — misma lógica que la landing pública. */
@@ -1167,26 +1213,39 @@ function LandingSection() {
 
       <Tabs value={landingTab} onValueChange={(v) => setLandingTab(v as LandingTabId)}>
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <TabsList className="flex flex-nowrap h-auto gap-0.5 sm:gap-1 min-w-max">
-            {LANDING_TABS.map((t) => {
-              const Icon = t.icon;
-              return (
-                <TabsTrigger
-                  key={t.id}
-                  value={t.id}
-                  className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{t.label}</span>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+          <div className="flex flex-nowrap sm:flex-wrap items-start gap-4 sm:gap-5 min-w-max sm:min-w-0">
+            {LANDING_TAB_GROUPS.map((group, gi) => (
+              <div
+                key={group.label}
+                className="flex flex-col gap-1.5 animate-slide-up"
+                style={{ animationDelay: `${gi * 50}ms` }}
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-0.5">
+                  {group.label}
+                </span>
+                <TabsList className="flex flex-nowrap h-auto gap-0.5">
+                  {group.tabs.map((t) => {
+                    const Icon = t.icon;
+                    return (
+                      <TabsTrigger
+                        key={t.id}
+                        value={t.id}
+                        className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        <span>{t.label}</span>
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="mt-4" key={landingTab}>
+        <div className="mt-4 content-fade-switch" key={landingTab}>
           {landingTab === 'ubicacion' && (
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-base">Ubicación</CardTitle>
                 <CardDescription>Dónde está tu hotel — se muestra en la página pública.</CardDescription>
@@ -1252,8 +1311,8 @@ function LandingSection() {
             </Card>
           )}
 
-          {landingTab === 'ubicacion' && (
-            <Card className="mt-4">
+          {landingTab === 'redes' && (
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-base">Redes sociales</CardTitle>
                 <CardDescription>Se muestran como links en la página pública. Dejá el campo vacío si no querés mostrar esa red.</CardDescription>
@@ -1278,7 +1337,7 @@ function LandingSection() {
           )}
 
           {landingTab === 'politicas' && (
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-base">Políticas del hotel</CardTitle>
                 <CardDescription>Horarios de check-in/check-out y condiciones de cancelación — se muestran en la página pública, así el huésped las conoce antes de reservar.</CardDescription>
@@ -1313,8 +1372,8 @@ function LandingSection() {
           )}
 
           {landingTab === 'fotos' && (
-            <div className="space-y-6">
-              <Card>
+            <div className="space-y-6 card-grid-stagger">
+              <Card className="card-hover">
                 <CardHeader>
                   <CardTitle className="text-base">Descripción del hotel</CardTitle>
                 </CardHeader>
@@ -1332,7 +1391,7 @@ function LandingSection() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="card-hover">
                 <CardHeader>
                   <CardTitle className="text-base">Servicios del hotel</CardTitle>
                   <CardDescription>Ej: Desayuno incluido, Wi-Fi, TV, Pileta, Estacionamiento.</CardDescription>
@@ -1367,7 +1426,7 @@ function LandingSection() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="card-hover">
                 <CardHeader>
                   <CardTitle className="text-base">Fotos del hotel</CardTitle>
                   <CardDescription>Portada y galería general</CardDescription>
@@ -1377,7 +1436,7 @@ function LandingSection() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="card-hover">
                 <CardHeader>
                   <CardTitle className="text-base">Fotos y descripción por habitación</CardTitle>
                   <CardDescription>Se muestran en el detalle de la habitación ("Ver más") en la landing.</CardDescription>
@@ -1425,7 +1484,7 @@ function LandingSection() {
           )}
 
           {landingTab === 'precios' && (
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-base">Precios públicos por tipo de habitación</CardTitle>
                 <CardDescription>Elegí qué tarifa mostrar como precio en la landing, para cada tipo de habitación.</CardDescription>
@@ -1465,7 +1524,7 @@ function LandingSection() {
           )}
 
           {landingTab === 'promociones' && (
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-base">Promociones</CardTitle>
                 <CardDescription>
@@ -1513,7 +1572,7 @@ function LandingSection() {
           )}
 
           {landingTab === 'cobro' && (
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-base">Cobro de seña</CardTitle>
                 <CardDescription>Elegí cómo se cobra la seña de las reservas hechas desde tu página pública.</CardDescription>
@@ -1594,7 +1653,7 @@ function LandingSection() {
           )}
 
           {landingTab === 'agencias' && (
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-base">Sección para agencias</CardTitle>
                 <CardDescription>Un bloque chico en la landing para captar convenios B2B, sin mostrar precios.</CardDescription>
