@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, forwardRef } from 'react';
 import { signOut, useSession } from 'next-auth/react';
-import { useHotelStore } from '@/lib/store';
+import { useHotelStore, clearSessionRestoredFlag } from '@/lib/store';
 // Notification store no longer needed here — NotificationCenter is self-contained
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 import { modulosEfectivos, moduloDisponible } from '@/lib/plan-config';
@@ -115,6 +115,7 @@ export default function Sidebar() {
 
   const handleLogout = useCallback(() => {
     useHotelStore.getState().logout();
+    clearSessionRestoredFlag();
     sessionStorage.setItem('hospeda-logging-out', 'true');
     // logout() ya vació el store (usuarioActual = null), así que la sidebar
     // deja de renderizar en este mismo instante — si update() falla o tarda

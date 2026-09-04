@@ -4,7 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import AuthProvider from '@/components/providers/SessionProvider';
-import { useHotelStore } from '@/lib/store';
+import { useHotelStore, SESSION_RESTORED_KEY, clearSessionRestoredFlag } from '@/lib/store';
 import { usePlans } from '@/hooks/usePlans';
 import { usePresence } from '@/hooks/usePresence';
 import { useLandingEventsPolling } from '@/hooks/useLandingEventsPolling';
@@ -83,7 +83,7 @@ function HotelSelector({ hoteles, userName, onSelected }: {
           ))}
         </div>
         <div className="text-center">
-          <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: '/login' })}>
+          <Button variant="ghost" size="sm" onClick={() => { clearSessionRestoredFlag(); signOut({ callbackUrl: '/login' }); }}>
             <LogOut className="w-4 h-4 mr-2" /> Cerrar sesion
           </Button>
         </div>
@@ -220,8 +220,18 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         }
       }
     }
-    // 2) Ahora sí setear el store (después del JWT)
-    await loginFromSession(data);
+    // 2) Ahora sí setear el store (después del JWT).
+    // Este es el auto-login de un solo perfil que SessionLoader dispara
+    // solo, apenas detecta una cookie de NextAuth válida — pasa exactamente
+    // igual tanto en un login real recién hecho como en un simple recargado
+    // de página (el store en memoria se pierde en el recargado, la cookie
+    // no). Sin esta marca, cada F5 quedaba registrado como un login nuevo
+    // en la auditoría. sessionStorage sobrevive recargados pero no se
+    // comparte entre pestañas ni sobrevive a un logout explícito (se limpia
+    // en handleLogout), así que un login real posterior sí se audita.
+    const isReload = typeof window !== 'undefined' && sessionStorage.getItem(SESSION_RESTORED_KEY) === '1';
+    await loginFromSession(data, { skipAudit: isReload });
+    if (typeof window !== 'undefined') sessionStorage.setItem(SESSION_RESTORED_KEY, '1');
     // 3) Sincronizar datos del servidor (el JWT ya tiene tenantId)
     await syncFromServer();
   }, [loginFromSession, update, syncFromServer]);
@@ -265,6 +275,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     }
     // Post-logout con un solo perfil → cerrar sesión completamente
     if (isLoggingOut) {
+      clearSessionRestoredFlag();
       signOut({ callbackUrl: '/login' });
       return;
     }
@@ -331,6 +342,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
       // pero esto protege contra futuros cambios.
       if (e.key === 'nextauth.session-token' && !e.newValue && usuarioActual) {
         // Token eliminado en otra pestaña → cerrar sesión aquí también
+        clearSessionRestoredFlag();
         signOut({ callbackUrl: '/login' });
       }
     };
@@ -390,7 +402,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
               setError(null); setLoading(true);
               fetch('/api/auth/me', { cache: 'no-store' }).then(res => res.json()).then(data => processMeData(data)).catch(() => { setError('No se pudo conectar.'); setLoading(false); });
             }}>Reintentar</Button>
-            <Button variant="ghost" onClick={() => signOut({ callbackUrl: '/login' })}>
+            <Button variant="ghost" onClick={() => { clearSessionRestoredFlag(); signOut({ callbackUrl: '/login' }); }}>
               <LogOut className="w-4 h-4 mr-2" /> Cerrar sesion
             </Button>
           </div>

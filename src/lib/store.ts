@@ -231,7 +231,7 @@ interface HotelStore {
   setStartModule: (m: string) => void;
 
   // Auth
-  loginFromSession: (sessionData: Record<string, any>) => Promise<boolean>;
+  loginFromSession: (sessionData: Record<string, any>, options?: { skipAudit?: boolean }) => Promise<boolean>;
   logout: () => void;
 
   // Auditoria
@@ -308,6 +308,20 @@ interface HotelStore {
   resetData: () => void;
 }
 
+// ==================== SESSION RESTORE FLAG ====================
+// Marca, por pestaña (sessionStorage), si esta pestaña ya restauró una
+// sesión de NextAuth existente al menos una vez. loginFromSession() la usa
+// para no volver a escribir un registro de auditoría "Login" en cada
+// recargado de página (el store en memoria se pierde en el recargado, pero
+// la cookie de sesión no) — ver SessionLoader en (app)/layout.tsx.
+// Los flujos de logout/cambio de perfil deben llamar a
+// clearSessionRestoredFlag() para que un login real posterior sí se audite.
+export const SESSION_RESTORED_KEY = 'hospeda-session-restored';
+
+export function clearSessionRestoredFlag() {
+  if (typeof window !== 'undefined') sessionStorage.removeItem(SESSION_RESTORED_KEY);
+}
+
 // ==================== STORE ====================
 
 export const useHotelStore = create<HotelStore>()(
@@ -371,7 +385,7 @@ export const useHotelStore = create<HotelStore>()(
       setUsuarioActual: (u) => set({ usuarioActual: u }),
 
       // Auth
-      loginFromSession: async (sessionData: Record<string, any>) => {
+      loginFromSession: async (sessionData: Record<string, any>, options?: { skipAudit?: boolean }) => {
         const sesion: UsuarioSesion = {
           id: sessionData.id,
           tenantUserId: sessionData.tenantUserId,
@@ -401,7 +415,12 @@ export const useHotelStore = create<HotelStore>()(
           set({ planActual: sessionData.planActual });
         }
         set({ usuarioActual: sesion, moduloActivo: startModule, moduloBloqueado: null });
-        get()._registrarAuditoria('Login', `Inicio de sesión: ${sesion.nombreCompleto || sesion.nombre}`);
+        // skipAudit: true cuando esto es solo restaurar una sesión ya
+        // existente (ej. recargar la página) — no un login nuevo de verdad.
+        // Ver SessionLoader en (app)/layout.tsx.
+        if (!options?.skipAudit) {
+          get()._registrarAuditoria('Login', `Inicio de sesión: ${sesion.nombreCompleto || sesion.nombre}`);
+        }
         // NOTA: syncFromServer debe llamarse DESPUÉS de actualizar el JWT,
         // no aquí, para evitar race condition con las API routes.
         return true;
