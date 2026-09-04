@@ -26,6 +26,7 @@ import {
   Download, Printer, Crown, Star, FileDown,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { exportReportAsPdf, type PdfReportData } from '@/lib/pdf-export';
 import { downloadCSV } from '@/lib/csv-export';
@@ -259,6 +260,11 @@ export default function ReportesModule() {
 
   // Usuarios: no están en el store, se obtienen directamente de la API
   const [usuarios, setUsuarios] = useState<DbTenantUser[]>([]);
+
+  // Para achicar la cantidad de etiquetas visibles en el eje X de los
+  // gráficos en pantallas angostas — sin esto, un rango de 30 días muestra
+  // las 30 etiquetas superpuestas e ilegibles en un gráfico de ~320px.
+  const isMobile = useIsMobile();
 
   const [activeTab, setActiveTab] = useState('financiero');
   const [desde, setDesde] = useState(haceNDias(30));
@@ -1176,7 +1182,7 @@ export default function ReportesModule() {
                         tick={{ fontSize: 11, fill: '#64748B' }}
                         tickLine={false}
                         axisLine={{ stroke: '#E2E8F0' }}
-                        interval={dailyRevenueData.length > 31 ? Math.floor(dailyRevenueData.length / 10) : 0}
+                        interval={isMobile ? Math.max(0, Math.ceil(dailyRevenueData.length / 6) - 1) : (dailyRevenueData.length > 31 ? Math.floor(dailyRevenueData.length / 10) : 0)}
                       />
                       <YAxis
                         tick={{ fontSize: 11, fill: '#64748B' }}
@@ -1788,7 +1794,7 @@ export default function ReportesModule() {
                         tick={{ fontSize: 11, fill: '#64748B' }}
                         tickLine={false}
                         axisLine={{ stroke: '#E2E8F0' }}
-                        interval={dailyOccupancyData.length > 31 ? Math.floor(dailyOccupancyData.length / 10) : 0}
+                        interval={isMobile ? Math.max(0, Math.ceil(dailyOccupancyData.length / 6) - 1) : (dailyOccupancyData.length > 31 ? Math.floor(dailyOccupancyData.length / 10) : 0)}
                       />
                       <YAxis
                         domain={[0, 100]}
