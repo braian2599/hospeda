@@ -33,6 +33,11 @@ const ROW_H = 46;
 const BAR_H = 26;
 const BAR_TOP = (ROW_H - BAR_H) / 2;
 const NOMBRES_DIAS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
+// Ventana de días del mini-calendario mobile — deliberadamente chica para
+// que entre sin scroll horizontal en un celular (a diferencia de las
+// 14-30 columnas del calendario de escritorio, que ahí sí tiene el ancho
+// para mostrarse cómodo).
+const MOBILE_DAYS = 5;
 
 // formatMoney and todayLocal imported from @/lib/format
 
@@ -363,6 +368,11 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
   const [popoverData, setPopoverData] = useState<PopoverData | null>(null);
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
 
+  // Vista mobile: mini-calendario propio, independiente del de escritorio
+  // (offset en "páginas" de MOBILE_DAYS, no en semanas).
+  const [mobileOffset, setMobileOffset] = useState(0);
+  const mobileTouchStartX = useRef<number | null>(null);
+
   const fechaInicio = useMemo(() => {
     const d = new Date(fechaInicioBase);
     d.setDate(d.getDate() + offset * 7);
@@ -386,6 +396,28 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
   }, [columnas]);
 
   const hoyStr = todayLocal();
+
+  const mobileFechaInicio = useMemo(() => {
+    const d = new Date(fechaInicioBase);
+    d.setDate(d.getDate() + mobileOffset * MOBILE_DAYS);
+    return d;
+  }, [fechaInicioBase, mobileOffset]);
+
+  const mobileColumnas = useMemo(() => {
+    const cols: string[] = [];
+    for (let i = 0; i < MOBILE_DAYS; i++) {
+      const f = new Date(mobileFechaInicio);
+      f.setDate(f.getDate() + i);
+      cols.push(toLocalDateStr(f));
+    }
+    return cols;
+  }, [mobileFechaInicio]);
+
+  const mobileColIdx = useMemo(() => {
+    const idx: Record<string, number> = {};
+    mobileColumnas.forEach((c, i) => idx[c] = i);
+    return idx;
+  }, [mobileColumnas]);
 
   const handleBarClick = useCallback((e: React.MouseEvent, res: GanttReserva, num: string) => {
     e.stopPropagation();
@@ -586,77 +618,214 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
 
   const rangeLabel = `${formatearFecha(columnas[0])} — ${formatearFecha(columnas[columnas.length - 1])}`;
 
-  // ==================== Vista mobile: estado de HOY por habitación ====================
-  // Un calendario de 14-30 columnas no entra legible en ~350px por más CSS
-  // que se le haga — en vez de forzar la misma grilla, en mobile se muestra
-  // una lista simple y vertical con el estado actual de cada habitación,
-  // que es lo que realmente se puede usar cómodo desde el celular. El
-  // calendario completo (grilla) queda igual que siempre en desktop/tablet.
-  const estadoHoyPorHabitacion = useMemo(() => {
-    return habNumbersOrdenados.map(num => {
+  // ==================== Vista mobile: mini-Gantt de 5 días ====================
+  // Mismo lenguaje visual que el calendario de escritorio (barras de color,
+  // mismo popover al tocar), pero con una ventana fija de MOBILE_DAYS días
+  // en vez de 14-30 — a ese ancho entra sin scroll horizontal. Navegación
+  // con flechas y con swipe. No comparte estado con el calendario de
+  // escritorio (offset/ganttDays/mostrarHistorial de arriba) para no
+  // interferir entre sí.
+  const mobileRows = useMemo(() => {
+    const result: React.ReactNode[] = [];
+
+    habNumbersOrdenados.forEach((num, rowIndex) => {
       const hab = habitaciones[num];
-      const reservaHoy = reservas.find(r => {
-        if (r.habitacion !== num || r.estado === 'Cancelada') return false;
-        return r.checkin <= hoyStr && r.checkout >= hoyStr;
+      const reservasHab: GanttReserva[] = [];
+
+      reservas.forEach(r => {
+        if (r.habitacion !== num || r.estado === 'Cancelada') return;
+        if (r.checkin > mobileColumnas[MOBILE_DAYS - 1] || r.checkout < mobileColumnas[0]) return;
+
+        const esCheckout = r.estado === 'Checkout_realizado' || r.estado === 'Check-Out realizado';
+        const esCheckin = r.estado === 'CheckIn_realizado' || r.estado === 'Check-In realizado';
+        if (esCheckout) return; // mobile no muestra historial (mantiene la vista simple)
+
+        const horaCheckin = r.horaCheckin ? new Date(r.horaCheckin) : new Date(r.checkin + 'T14:00:00');
+        const horaCheckout = r.horaCheckout ? new Date(r.horaCheckout) : new Date(r.checkout + 'T09:00:00');
+        const estado = esCheckin ? 'Ocupada' : 'Reservada';
+        reservasHab.push({
+          tipo: estado, checkin: r.checkin, checkout: r.checkout, huesped: r.huesped,
+          horaCheckin, horaCheckout, tarifa: r.tipoTarifa, monto: r.total, estadoPago: r.estadoPago, ninos: r.ninos,
+        });
       });
 
-      let estado: string;
-      let huesped: string | undefined;
-      if (reservaHoy) {
-        const esCheckout = reservaHoy.estado === 'Checkout_realizado' || reservaHoy.estado === 'Check-Out realizado';
-        const esCheckin = reservaHoy.estado === 'CheckIn_realizado' || reservaHoy.estado === 'Check-In realizado';
-        estado = esCheckout ? 'Finalizada' : esCheckin ? 'Ocupada' : 'Reservada';
-        huesped = reservaHoy.huesped;
-      } else if (hab.estado === 'Limpieza') {
-        estado = 'Limpieza';
-      } else if (hab.estado === 'Mantenimiento' && hab.bloqueaDisponibilidad !== false) {
-        estado = 'Mantenimiento';
-      } else {
-        estado = 'Disponible';
+      if (hab.estado === 'Limpieza' && mobileColumnas.includes(hoyStr)) {
+        reservasHab.push({ tipo: 'Limpieza', checkin: hoyStr, checkout: hoyStr, huesped: 'Limpieza', horaCheckin: new Date(hoyStr + 'T00:00:00'), horaCheckout: new Date(hoyStr + 'T23:59:59') });
       }
 
-      return { num, tipo: hab.tipo, estado, huesped };
-    });
-  }, [habNumbersOrdenados, habitaciones, reservas, hoyStr]);
+      if (hab.estado === 'Mantenimiento' && hab.bloqueaDisponibilidad !== false) {
+        const inicioVisible = mobileColumnas[0];
+        const finVisible = mobileColumnas[MOBILE_DAYS - 1];
+        if (!hab.bloqueadoHasta || hab.bloqueadoHasta >= inicioVisible) {
+          const fin = hab.bloqueadoHasta && hab.bloqueadoHasta < finVisible ? hab.bloqueadoHasta : finVisible;
+          reservasHab.push({ tipo: 'Mantenimiento', checkin: inicioVisible, checkout: fin, huesped: hab.problema || 'Mantenimiento', horaCheckin: new Date(inicioVisible + 'T00:00:00'), horaCheckout: new Date(fin + 'T23:59:59') });
+        }
+      }
 
-  const ESTADO_DOT: Record<string, string> = {
-    Disponible: 'bg-[#64748B]',
-    Reservada: 'bg-status-reserved',
-    Ocupada: 'bg-status-available',
-    Finalizada: 'bg-status-finalized',
-    Limpieza: 'bg-status-cleaning',
-    Mantenimiento: 'bg-status-maintenance',
+      // Habitaciones compartidas: carriles múltiples (igual que en escritorio,
+      // si no las barras de distintos huéspedes se superponen).
+      if (hab.tipo === 'Compartida' && reservasHab.length > 0) {
+        const reservasActivas = reservasHab.filter(r => r.tipo !== 'Limpieza' && r.tipo !== 'Mantenimiento');
+        const numCarriles = reservasActivas.length || 1;
+        const FILA_H = Math.max(ROW_H, numCarriles * (BAR_H + 4) + 8);
+
+        const bgCellsCompartida = mobileColumnas.map((col, ci) => {
+          const d = new Date(col + 'T12:00:00');
+          const esFS = d.getDay() === 0 || d.getDay() === 6;
+          const isHoy = col === hoyStr;
+          return <div key={ci} className={`flex-1 h-full border-l-2 border-[#CBD5E1] box-border ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0284C71A]' : ''}`} style={{ height: FILA_H }} />;
+        });
+
+        const barrasCompartida = reservasActivas.map((res, idx) => {
+          const carrilTop = 4 + idx * (BAR_H + 4);
+          const barData = calcularBarra(res, mobileColIdx, mobileColumnas, MOBILE_DAYS);
+          if (!barData) return null;
+          return (
+            <div
+              key={idx}
+              className={`absolute rounded-md flex items-center px-1.5 cursor-pointer overflow-hidden transition-all duration-150 z-[4] box-border hover:brightness-110 ${getBarColorClass(res.tipo)}`}
+              style={{ left: `calc(${barData.leftPct}% + 2px)`, width: `calc(${barData.widthPct}% - 4px)`, top: carrilTop, height: BAR_H }}
+              onClick={(e) => handleBarClick(e, res, num)}
+            >
+              <span className="text-[10px] font-semibold text-white whitespace-nowrap overflow-hidden text-ellipsis pointer-events-none">
+                {res.huesped}
+              </span>
+            </div>
+          );
+        });
+
+        result.push(
+          <div key={num} className={`flex items-stretch border-b border-[#CBD5E1] last:border-b-0 ${rowIndex % 2 !== 0 ? 'bg-[#FFFFFFCC]' : ''}`} style={{ height: FILA_H }}>
+            <div className="w-[72px] min-w-[72px] shrink-0 flex flex-col justify-center px-2 border-r border-[#CBD5E1] bg-card" style={{ height: FILA_H }}>
+              <span className="text-[12px] font-bold text-foreground leading-tight truncate">{num}</span>
+              <span className="text-[9px] text-muted-foreground font-medium truncate">{hab.tipo}</span>
+            </div>
+            <div className="flex-1 relative overflow-hidden min-w-0">
+              <div className="absolute top-0 left-0 w-full h-full flex pointer-events-none">{bgCellsCompartida}</div>
+              {barrasCompartida}
+            </div>
+          </div>
+        );
+        return;
+      }
+
+      // Habitaciones normales
+      const bgCells = mobileColumnas.map((col, ci) => {
+        const d = new Date(col + 'T12:00:00');
+        const esFS = d.getDay() === 0 || d.getDay() === 6;
+        const isHoy = col === hoyStr;
+        return <div key={ci} className={`flex-1 h-full border-l-2 border-[#CBD5E1] box-border ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0284C71A]' : ''}`} />;
+      });
+
+      const barras = reservasHab.map((res, idx) => {
+        const barData = calcularBarra(res, mobileColIdx, mobileColumnas, MOBILE_DAYS);
+        if (!barData) return null;
+        return (
+          <div
+            key={idx}
+            className={`absolute rounded-md flex items-center px-1.5 cursor-pointer overflow-hidden transition-all duration-150 z-[4] box-border hover:brightness-110 ${getBarColorClass(res.tipo)}`}
+            style={{ left: `calc(${barData.leftPct}% + 2px)`, width: `calc(${barData.widthPct}% - 4px)`, top: BAR_TOP, height: BAR_H }}
+            onClick={(e) => handleBarClick(e, res, num)}
+          >
+            <span className="text-[10px] font-semibold text-white whitespace-nowrap overflow-hidden text-ellipsis pointer-events-none">
+              {res.huesped}
+            </span>
+          </div>
+        );
+      });
+
+      result.push(
+        <div key={num} className={`flex items-stretch border-b border-[#CBD5E1] last:border-b-0 ${rowIndex % 2 !== 0 ? 'bg-[#FFFFFFCC]' : ''}`} style={{ height: ROW_H }}>
+          <div className="w-[72px] min-w-[72px] shrink-0 flex flex-col justify-center px-2 border-r border-[#CBD5E1] bg-card" style={{ height: ROW_H }}>
+            <span className="text-[12px] font-bold text-foreground leading-tight truncate">{num}</span>
+            <span className="text-[9px] text-muted-foreground font-medium truncate">{hab.tipo}</span>
+          </div>
+          <div className="flex-1 relative overflow-hidden min-w-0">
+            <div className="absolute top-0 left-0 w-full h-full flex pointer-events-none">{bgCells}</div>
+            {barras}
+          </div>
+        </div>
+      );
+    });
+
+    return result;
+  }, [habNumbersOrdenados, habitaciones, reservas, mobileColumnas, mobileColIdx, handleBarClick, hoyStr]);
+
+  const mobileHeaderCols = useMemo(() => {
+    return mobileColumnas.map((col, i) => {
+      const d = new Date(col + 'T12:00:00');
+      const esFS = d.getDay() === 0 || d.getDay() === 6;
+      const isHoy = col === hoyStr;
+      return (
+        <div key={i} className={`flex-1 flex flex-col items-center justify-center py-1.5 border-l-2 border-[#CBD5E1] transition-colors duration-150 ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0F766E0D]' : ''}`}>
+          <span className={`text-[9px] font-semibold uppercase tracking-wider ${esFS ? 'text-rose-500' : 'text-muted-foreground'} ${isHoy ? '!text-primary' : ''}`}>
+            {NOMBRES_DIAS[d.getDay()]}
+          </span>
+          <span className={`text-[13px] font-bold leading-none mt-0.5 ${esFS ? 'text-rose-500' : 'text-foreground'} ${isHoy ? '!text-primary underline decoration-2 underline-offset-2 decoration-primary' : ''}`}>
+            {d.getDate()}
+          </span>
+        </div>
+      );
+    });
+  }, [mobileColumnas, hoyStr]);
+
+  const mobileRangeLabel = `${formatearFecha(mobileColumnas[0])} — ${formatearFecha(mobileColumnas[mobileColumnas.length - 1])}`;
+
+  const handleMobileTouchStart = (e: React.TouchEvent) => {
+    mobileTouchStartX.current = e.touches[0].clientX;
+  };
+  const handleMobileTouchEnd = (e: React.TouchEvent) => {
+    if (mobileTouchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - mobileTouchStartX.current;
+    const SWIPE_THRESHOLD = 40;
+    if (dx > SWIPE_THRESHOLD) setMobileOffset(o => Math.max(o - 1, -6));
+    else if (dx < -SWIPE_THRESHOLD) setMobileOffset(o => o + 1);
+    mobileTouchStartX.current = null;
   };
 
   return (
     <>
-      {/* ── Mobile: lista de estado de hoy por habitación ── */}
+      {/* ── Mobile: mini-Gantt de 5 días (swipe o flechas para navegar) ── */}
       <Card className="sm:hidden overflow-hidden">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <CalendarCheck className="w-4 h-4 text-status-reserved" />
-            Habitaciones hoy
-          </CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <CalendarCheck className="w-4 h-4 text-status-reserved" />
+              Ocupación
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setMobileOffset(o => Math.max(o - 1, -6))} disabled={mobileOffset <= -6}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              {mobileOffset !== 0 && (
+                <Button variant="ghost" size="sm" className="h-8 text-xs px-2" onClick={() => setMobileOffset(0)}>Hoy</Button>
+              )}
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setMobileOffset(o => o + 1)}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground text-center">{mobileRangeLabel}</p>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-border">
-            {estadoHoyPorHabitacion.map(({ num, tipo, estado, huesped }) => (
-              <div key={num} className="flex items-center justify-between gap-2 px-4 py-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{num}</p>
-                  <p className="text-[11px] text-muted-foreground">{tipo}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 min-w-0">
-                  {huesped && estado !== 'Disponible' && (
-                    <span className="text-xs text-muted-foreground truncate max-w-[100px]">{huesped}</span>
-                  )}
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-foreground shrink-0">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ESTADO_DOT[estado] || ESTADO_DOT.Disponible}`} />
-                    {estado}
-                  </span>
-                </div>
-              </div>
-            ))}
+          <div
+            className="bg-card border-2 border-[#CBD5E1] rounded-lg overflow-hidden shadow-sm"
+            onTouchStart={handleMobileTouchStart}
+            onTouchEnd={handleMobileTouchEnd}
+          >
+            <div className="flex border-b-2 border-[#CBD5E1] bg-card">
+              <div className="w-[72px] min-w-[72px] shrink-0 border-r border-[#CBD5E1]" />
+              <div className="flex flex-1">{mobileHeaderCols}</div>
+            </div>
+            {mobileRows}
+            <div className="flex gap-3 flex-wrap px-3 py-2 border-t border-[#CBD5E1]">
+              {legendItems.filter(i => i.label !== 'Finalizada').map(item => (
+                <span key={item.label} className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
+                  <span className={`inline-block w-2.5 h-2 rounded-sm ${item.color}`} />
+                  {item.label}
+                </span>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
