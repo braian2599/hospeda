@@ -479,7 +479,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
           const d = new Date(col + 'T12:00:00');
           const esFS = d.getDay() === 0 || d.getDay() === 6;
           const isHoy = col === hoyStr;
-          return <div key={ci} className={`shrink-0 h-full border-l-2 border-border box-border ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0284C71A]' : ''}`} style={{ width: DAY_COL_W, height: FILA_H }} />;
+          return <div key={ci} className={`shrink-0 h-full border-l-2 border-[#CBD5E1] box-border ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0284C71A]' : ''}`} style={{ width: DAY_COL_W, height: FILA_H }} />;
         });
 
         const barras = reservasActivas.map((res, idx) => {
@@ -501,8 +501,8 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         });
 
         result.push(
-          <div key={num} className={`flex items-stretch border-b-2 border-border last:border-b-0 hover:bg-[#0F766E0D] transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-[#FFFFFFCC]' : ''}`} style={{ height: FILA_H }}>
-            <div className="w-[130px] min-w-[130px] shrink-0 sticky left-0 flex flex-col justify-center px-3.5 border-r-2 border-border bg-card z-[5]" style={{ height: FILA_H }}>
+          <div key={num} className={`flex items-stretch border-b-2 border-[#CBD5E1] last:border-b-0 hover:bg-[#0F766E0D] transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-[#FFFFFFCC]' : ''}`} style={{ height: FILA_H }}>
+            <div className="w-[130px] min-w-[130px] shrink-0 sticky left-0 flex flex-col justify-center px-3.5 border-r-2 border-[#CBD5E1] bg-card z-[5]" style={{ height: FILA_H }}>
               <span className="text-[12px] font-bold text-foreground leading-tight">{num}</span>
               <span className="text-[10px] text-muted-foreground font-medium mt-0.5">{hab.tipo}</span>
             </div>
@@ -520,7 +520,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
         const d = new Date(col + 'T12:00:00');
         const esFS = d.getDay() === 0 || d.getDay() === 6;
         const isHoy = col === hoyStr;
-        return <div key={ci} className={`shrink-0 h-full border-l-2 border-border box-border ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0284C71A]' : ''}`} style={{ width: DAY_COL_W }} />;
+        return <div key={ci} className={`shrink-0 h-full border-l-2 border-[#CBD5E1] box-border ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0284C71A]' : ''}`} style={{ width: DAY_COL_W }} />;
       });
 
       const barras = reservasHab.map((res, idx) => {
@@ -541,8 +541,8 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       });
 
       result.push(
-        <div key={num} className={`flex items-stretch border-b-2 border-border last:border-b-0 hover:bg-[#0F766E0D] transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-[#FFFFFFCC]' : ''}`} style={{ height: ROW_H }}>
-          <div className="w-[130px] min-w-[130px] shrink-0 sticky left-0 flex flex-col justify-center px-3.5 border-r-2 border-border bg-card z-[5]" style={{ height: ROW_H }}>
+        <div key={num} className={`flex items-stretch border-b-2 border-[#CBD5E1] last:border-b-0 hover:bg-[#0F766E0D] transition-colors duration-150 ${rowIndex % 2 !== 0 ? 'bg-[#FFFFFFCC]' : ''}`} style={{ height: ROW_H }}>
+          <div className="w-[130px] min-w-[130px] shrink-0 sticky left-0 flex flex-col justify-center px-3.5 border-r-2 border-[#CBD5E1] bg-card z-[5]" style={{ height: ROW_H }}>
             <span className="text-[12px] font-bold text-foreground leading-tight">{num}</span>
             <span className="text-[10px] text-muted-foreground font-medium mt-0.5">{hab.tipo}</span>
           </div>
@@ -563,7 +563,7 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
       const esFS = d.getDay() === 0 || d.getDay() === 6;
       const isHoy = col === hoyStr;
       return (
-        <div key={i} className={`shrink-0 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-border transition-colors duration-150 ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0F766E0D]' : ''}`} style={{ width: DAY_COL_W }}>
+        <div key={i} className={`shrink-0 flex flex-col items-center justify-center py-2 px-0.5 border-l-2 border-[#CBD5E1] transition-colors duration-150 ${esFS ? 'bg-[#EF44441A]' : ''} ${isHoy ? 'bg-[#0F766E0D]' : ''}`} style={{ width: DAY_COL_W }}>
           <span className={`text-[10px] font-semibold uppercase tracking-wider ${esFS ? 'text-rose-500' : 'text-muted-foreground'} ${isHoy ? '!text-primary' : ''}`}>
             {NOMBRES_DIAS[d.getDay()]}
           </span>
@@ -651,8 +651,8 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
               className="overflow-x-auto"
               style={{ WebkitOverflowScrolling: 'touch', transform: 'translateZ(0)' }}
             >
-              <div className="flex border-b-2 border-border bg-card">
-                <div className="w-[130px] min-w-[130px] shrink-0 sticky left-0 z-10 border-r-2 border-border bg-card" />
+              <div className="flex border-b-2 border-[#CBD5E1] bg-card">
+                <div className="w-[130px] min-w-[130px] shrink-0 sticky left-0 z-10 border-r-2 border-[#CBD5E1] bg-card" />
                 <div className="flex" style={{ width: ganttDays * DAY_COL_W }}>{headerCols}</div>
               </div>
               {rows}
