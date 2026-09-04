@@ -122,6 +122,12 @@ export async function PATCH(req: NextRequest) {
     }
 
     const adminEmail = session?.user?.email || 'desconocido';
+    // Log interno (no tenant-visible) para trazabilidad de qué super-admin
+    // hizo cada acción — el email NO va al registro de auditoría del tenant
+    // (Auditoria.empleado), que los hoteles ven en su propio módulo de
+    // Usuarios ("Actividad reciente"). Ver también plans/route.ts y
+    // payments/route.ts, que tenían el mismo problema.
+    console.log(`[super-admin] PATCH tenant ${tenantId} action=${action} por ${adminEmail}`);
 
     // ── Cambiar plan ──
     if (action === 'changePlan') {
@@ -159,7 +165,7 @@ export async function PATCH(req: NextRequest) {
           tenantId,
           tipo: 'Cambio de Plan',
           detalle: `Plan cambiado de "${planAnterior?.nombre || 'desconocido'}" a "${plan.nombre}" por ${meses} mes(es). Vencimiento: ${fechaVencimiento.toLocaleDateString('es-AR')}.`,
-          empleado: `Super Admin (${adminEmail})`,
+          empleado: 'Super Admin',
           empleadoId: null,
         },
       });
@@ -204,7 +210,7 @@ export async function PATCH(req: NextRequest) {
           tenantId,
           tipo: 'Estado de Cuenta',
           detalle: `Tenant ${nuevoEstado ? 'activado' : 'desactivado'} por super-admin. ${nuevoEstado ? '' : 'Todas las sesiones activas fueron invalidadas.'}`,
-          empleado: `Super Admin (${adminEmail})`,
+          empleado: 'Super Admin',
           empleadoId: null,
         },
       });
@@ -229,7 +235,7 @@ export async function PATCH(req: NextRequest) {
           tenantId,
           tipo: 'Feature Flag',
           detalle: `"${FEATURE_FLAGS[flag as FeatureFlag].label}" ${enabled ? 'activada' : 'desactivada'} por super-admin.`,
-          empleado: `Super Admin (${adminEmail})`,
+          empleado: 'Super Admin',
           empleadoId: null,
         },
       });
@@ -274,7 +280,7 @@ export async function PATCH(req: NextRequest) {
             tenantId,
             tipo: 'Reset Password',
             detalle: `Contraseña reseteada para el perfil "${tu.nombreCompleto || tu.user.email}" por super-admin. Todas las sesiones del usuario fueron invalidadas.`,
-            empleado: `Super Admin (${adminEmail})`,
+            empleado: 'Super Admin',
             empleadoId: null,
           },
         });
@@ -315,7 +321,7 @@ export async function PATCH(req: NextRequest) {
           tenantId,
           tipo: 'Extensión de Suscripción',
           detalle: `Suscripción extendida ${diasNum} día(s) por super-admin. Nuevo vencimiento: ${baseDate.toLocaleDateString('es-AR')}.`,
-          empleado: `Super Admin (${adminEmail})`,
+          empleado: 'Super Admin',
           empleadoId: null,
         },
       });

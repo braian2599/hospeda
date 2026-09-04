@@ -81,6 +81,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El monto debe ser mayor a 0' }, { status: 400 });
     }
 
+    // Log interno (no tenant-visible) para trazabilidad — el email del
+    // super-admin NO va a los registros que el tenant puede ver (ver
+    // comentario en super-admin/tenants/route.ts).
+    console.log(`[super-admin] POST payment tenant=${tenantId} por ${session?.user?.email || 'desconocido'}`);
+
     const fechaDesde = new Date(periodoDesde);
     const fechaHasta = new Date(periodoHasta);
     if (isNaN(fechaDesde.getTime()) || isNaN(fechaHasta.getTime())) {
@@ -107,7 +112,7 @@ export async function POST(req: NextRequest) {
           estado: 'pagado',
           periodoDesde: fechaDesde,
           periodoHasta: fechaHasta,
-          nota: nota || `Pago manual registrado por super-admin (${session?.user?.email || 'desconocido'})`,
+          nota: nota || 'Pago manual registrado por super-admin',
         },
       });
 
@@ -136,7 +141,7 @@ export async function POST(req: NextRequest) {
           tenantId,
           tipo: 'Pago Manual',
           detalle: `Pago manual de $${(monto / 100).toLocaleString('es-AR')} registrado por super-admin. Período: ${fechaDesde.toLocaleDateString('es-AR')} - ${fechaHasta.toLocaleDateString('es-AR')}. Vencimiento extendido al ${nuevoVencimiento.toLocaleDateString('es-AR')}.`,
-          empleado: `Super Admin (${session?.user?.email || 'desconocido'})`,
+          empleado: 'Super Admin',
           empleadoId: null,
         },
       });

@@ -48,6 +48,11 @@ export async function PUT(req: NextRequest) {
 
     if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 });
 
+    // Log interno (no tenant-visible) para trazabilidad — el email del
+    // super-admin NO va al registro de auditoría del tenant (ver comentario
+    // en super-admin/tenants/route.ts).
+    console.log(`[super-admin] PUT plan ${id} por ${session?.user?.email || 'desconocido'}`);
+
     // Guardar el plan anterior para auditar el cambio
     const planAnterior = await db.plan.findUnique({ where: { id } });
     if (!planAnterior) {
@@ -136,7 +141,7 @@ export async function PUT(req: NextRequest) {
 
     if (tenantsConPlan.length > 0 && cambios.length > 0) {
       const detalleAudit = `Plan "${plan.nombre}" modificado por super-admin. Cambios: ${cambios.join(', ')}.`;
-      const empleadoAudit = `Super Admin (${session?.user?.email || 'desconocido'})`;
+      const empleadoAudit = 'Super Admin';
 
       await db.auditoria.createMany({
         data: tenantsConPlan.map(t => ({
