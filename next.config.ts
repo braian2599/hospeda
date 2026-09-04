@@ -39,6 +39,15 @@ const nextConfig: NextConfig = {
           ].join('; '),
         },
       ],
+    }, {
+      // Nunca cachear páginas/documentos (ni el navegador ni un CDN/proxy
+      // intermedio) — esta es una app dinámica y autenticada, no un sitio
+      // estático. Excluye _next/static (JS/CSS con hash, sí deben cachearse
+      // agresivo) y _next/image para no pisar el cacheo de imágenes de Next.
+      source: '/((?!_next/static|_next/image|favicon.ico).*)',
+      headers: [
+        { key: 'Cache-Control', value: 'no-store, must-revalidate' },
+      ],
     }];
   },
 };
