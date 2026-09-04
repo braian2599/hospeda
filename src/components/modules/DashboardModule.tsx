@@ -590,12 +590,16 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
     <>
       <Card className="overflow-hidden">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="text-base flex items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="text-base flex items-center gap-2 shrink-0">
               <CalendarCheck className="w-4 h-4 text-status-reserved" />
               Calendario de Ocupación
             </CardTitle>
-            <div className="flex items-center gap-1.5 flex-wrap">
+            {/* overflow-x-auto en vez de flex-wrap: así, si los controles no
+                entran en el ancho disponible, scrollean ellos mismos en su
+                propia fila — nunca fuerzan un scroll horizontal de toda la
+                card/página (que es lo que pasaba antes). */}
+            <div className="flex items-center gap-1.5 overflow-x-auto -mx-1 px-1 sm:mx-0 sm:px-0">
               <Button variant="outline" size="icon" onClick={() => setOffset(o => o - 1)} disabled={offset <= -4}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
@@ -643,7 +647,10 @@ function CalendarioGantt({ habitaciones, reservas, fechaInicioBase }: {
                 ninguno de los dos llegaba a scrollear, porque las columnas de
                 día eran `flex-1` sin ancho mínimo y se achicaban para "entrar"
                 siempre, quedando ilegibles en mobile con 14-30 columnas). */}
-            <div className="overflow-x-auto">
+            <div
+              className="overflow-x-auto"
+              style={{ WebkitOverflowScrolling: 'touch', transform: 'translateZ(0)' }}
+            >
               <div className="flex border-b-2 border-border bg-card">
                 <div className="w-[130px] min-w-[130px] shrink-0 sticky left-0 z-10 border-r-2 border-border bg-card" />
                 <div className="flex" style={{ width: ganttDays * DAY_COL_W }}>{headerCols}</div>
