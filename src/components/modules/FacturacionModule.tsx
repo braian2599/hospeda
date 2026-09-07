@@ -24,7 +24,7 @@ import {
 import {
   Receipt, CreditCard, FileText, Search, XCircle, DollarSign, CalendarDays, User,
   Building2, Phone, Mail, AlertTriangle, CheckCircle2, TrendingUp, Timer, Wallet,
-  Banknote, Printer, Hash, ArrowRight, CircleDollarSign, ChevronRight,
+  Banknote, Printer, Hash, ArrowRight, CircleDollarSign, ChevronRight, Download, Loader2,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
@@ -34,6 +34,7 @@ import QRCode from 'qrcode';
 import { docReceptor, letraComprobante, DOC_TIPO, CBTE_TIPO, tipoComprobantePorCondicionIva, nombreTipoComprobante } from '@/lib/afip/config';
 import { urlQrAfip } from '@/lib/afip/qr';
 import { montoALetras } from '@/lib/numero-a-letras';
+import { generarFacturaPdf, cargarImagenComoDataUrl } from '@/lib/afip/pdf-factura';
 
 // formatFecha, formatMoney, formatFechaHora, todayLocal imported from @/lib/format
 
@@ -1297,6 +1298,55 @@ function A4Receipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loading
     return () => { cancelled = true; };
   }, [modoDocumento, comprobanteEfectivo?.cae, comprobanteEfectivo?.tipoComprobanteCodigo, comprobanteEfectivo?.puntoVenta, comprobanteEfectivo?.numero, comprobanteEfectivo?.fecha, fiscal?.cuit, pagado, reserva.dni]);
 
+  // ── Descargar PDF: se dibuja el comprobante con las primitivas de jsPDF
+  // (texto/líneas/rectángulos) en vez de convertir HTML a imagen — así
+  // sale siempre igual, sin depender del diálogo de impresión del
+  // navegador ni de cómo cada uno renderiza el CSS del Dialog. ──
+  const [generandoPdf, setGenerandoPdf] = useState(false);
+  const handleDescargarPdf = async () => {
+    setGenerandoPdf(true);
+    try {
+      const logoDataUrl = fiscal?.facturaLogoUrl ? await cargarImagenComoDataUrl(fiscal.facturaLogoUrl) : null;
+      const { docTipo, docNro } = docReceptor(reserva.dni);
+      const sitTributaria = docTipo === DOC_TIPO.CUIT ? 'Responsable Inscripto / Monotributo' : 'Consumidor Final';
+      const etiquetaDoc = docTipo === DOC_TIPO.CUIT ? 'C.U.I.T.' : 'DNI';
+      const concepto = `Alojamiento — Hab. ${reserva.habitacion}${hab?.tipo ? ` (${hab.tipo})` : ''} — ${formatFecha(reserva.checkin)} a ${formatFecha(reserva.checkout)} (${noches} noche${noches !== 1 ? 's' : ''})`;
+      const letra = comprobanteEfectivo?.tipoComprobanteCodigo ? letraComprobante(comprobanteEfectivo.tipoComprobanteCodigo) : 'P';
+
+      const doc = generarFacturaPdf({
+        modo: modoDocumento === 'presupuesto' ? 'presupuesto' : 'factura',
+        vistaPrevia: modoDocumento === 'factura' && !esFacturaOficial,
+        razonSocialEmisor: razonSocial,
+        direccionEmisor: [fiscal?.direccionFiscal, fiscal?.ciudad].filter(Boolean).join(', '),
+        condicionIvaEmisor: fiscal?.iva || '',
+        cuitEmisor: fiscal?.cuit || '',
+        logoDataUrl,
+        letra,
+        codigoTipo: comprobanteEfectivo?.tipoComprobanteCodigo || null,
+        numeroDisplay: comprobanteEfectivo?.numeroDisplay || '—',
+        fecha: fechaEmision,
+        razonSocialReceptor: reserva.huesped,
+        domicilioReceptor: reserva.domicilio || '',
+        sitTributariaReceptor: sitTributaria,
+        etiquetaDocReceptor: etiquetaDoc,
+        docReceptor: docNro,
+        concepto,
+        importe: pagado,
+        montoEnLetras: montoALetras(pagado),
+        cae: comprobanteEfectivo?.cae || null,
+        caeVencimiento: comprobanteEfectivo?.caeVencimiento ? new Date(comprobanteEfectivo.caeVencimiento).toLocaleDateString('es-AR') : null,
+        qrDataUrl,
+      });
+
+      const prefijo = modoDocumento === 'presupuesto' ? 'Presupuesto' : 'Factura';
+      doc.save(`${prefijo}-${(comprobanteEfectivo?.numeroDisplay || reserva.id).replace(/[^\w-]/g, '')}.pdf`);
+    } catch {
+      toast.error('No se pudo generar el PDF', { description: 'Probá de nuevo — si sigue fallando, revisá que el logo cargado en Configuración sea una imagen válida.' });
+    } finally {
+      setGenerandoPdf(false);
+    }
+  };
+
   return (
     <div id="comprobante-imprimible" data-formato="a4" className="bg-card print:bg-white text-foreground print:text-black">
       <style>{'@media print { @page { size: A4; margin: 12mm; } }'}</style>
@@ -1440,7 +1490,13 @@ function A4Receipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loading
         </div>
       )}
 
-      <div className="flex justify-center pt-4 print:hidden">
+      <div className="flex justify-center gap-2 pt-4 print:hidden">
+        {modoDocumento !== 'interno' && (
+          <Button onClick={handleDescargarPdf} disabled={generandoPdf} size="sm" className="gap-1.5" style={{ backgroundColor: '#0F766E' }}>
+            {generandoPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Descargar PDF
+          </Button>
+        )}
         <Button onClick={onPrint} variant="outline" size="sm" className="gap-1.5">
           <Printer className="w-4 h-4" />
           Imprimir A4
