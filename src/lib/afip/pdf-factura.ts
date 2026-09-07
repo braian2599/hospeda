@@ -76,13 +76,15 @@ export async function cargarImagenComoDataUrl(url: string): Promise<string | nul
 export function generarFacturaPdf(d: DatosFacturaPdf): jsPDF {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const esFactura = d.modo === 'factura';
-  let y = 15;
+  const MY = 15; // margen superior/inferior (mm)
+  const ALTO_PAGINA = 297;
+  let y = MY;
 
   doc.setDrawColor(...NEGRO);
   doc.setLineWidth(0.5);
 
   // ── Encabezado: emisor | letra | datos del comprobante ──
-  const headerH = 33;
+  const headerH = 40;
   doc.rect(AX, y, BX - AX, headerH);
   doc.line(COL2_X, y, COL2_X, y + headerH);
   doc.line(COL3_X, y, COL3_X, y + headerH);
@@ -121,70 +123,76 @@ export function generarFacturaPdf(d: DatosFacturaPdf): jsPDF {
 
   // Letra
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(30);
-  doc.text(d.letra, (COL2_X + COL3_X) / 2, y + 18, { align: 'center' });
+  doc.setFontSize(34);
+  doc.text(d.letra, (COL2_X + COL3_X) / 2, y + 21, { align: 'center' });
   if (esFactura && d.codigoTipo) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
-    doc.text(`Código ${d.codigoTipo}`, (COL2_X + COL3_X) / 2, y + 23, { align: 'center' });
+    doc.text(`Código ${d.codigoTipo}`, (COL2_X + COL3_X) / 2, y + 27, { align: 'center' });
   }
 
   // Datos del comprobante
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text(esFactura ? 'FACTURA' : 'PRESUPUESTO', BX - 3, y + 8, { align: 'right' });
+  doc.setFontSize(18);
+  doc.text(esFactura ? 'FACTURA' : 'PRESUPUESTO', BX - 3, y + 10, { align: 'right' });
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text(`N° ${d.numeroDisplay}`, BX - 3, y + 14, { align: 'right' });
-  doc.text(`Fecha: ${d.fecha}`, BX - 3, y + 19, { align: 'right' });
-  if (d.cuitEmisor) doc.text(`C.U.I.T.: ${d.cuitEmisor}`, BX - 3, y + 24, { align: 'right' });
+  doc.setFontSize(10);
+  doc.text(`N° ${d.numeroDisplay}`, BX - 3, y + 18, { align: 'right' });
+  doc.text(`Fecha: ${d.fecha}`, BX - 3, y + 24, { align: 'right' });
+  if (d.cuitEmisor) doc.text(`C.U.I.T.: ${d.cuitEmisor}`, BX - 3, y + 30, { align: 'right' });
 
   y += headerH;
 
   // ── Datos del receptor ──
-  const receptorH = 20;
+  const receptorH = 25;
+  doc.setLineWidth(0.5);
   doc.rect(AX, y, BX - AX, receptorH);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
+  doc.setFontSize(9);
   doc.setTextColor(...NEGRO);
-  doc.text(`Razón Social: ${d.razonSocialReceptor}`, AX + 3, y + 6);
-  doc.text(`Domicilio: ${d.domicilioReceptor || '—'}`, AX + 3, y + 11.5);
-  doc.text(`Sit. Tributaria: ${d.sitTributariaReceptor}`, AX + 3, y + 17);
-  doc.text(`${d.etiquetaDocReceptor}: ${d.docReceptor}`, BX - 3, y + 17, { align: 'right' });
+  doc.text(`Razón Social: ${d.razonSocialReceptor}`, AX + 3, y + 7);
+  doc.text(`Domicilio: ${d.domicilioReceptor || '—'}`, AX + 3, y + 14);
+  doc.text(`Sit. Tributaria: ${d.sitTributariaReceptor}`, AX + 3, y + 21);
+  doc.text(`${d.etiquetaDocReceptor}: ${d.docReceptor}`, BX - 3, y + 21, { align: 'right' });
 
   y += receptorH;
 
-  // ── Detalle (ítems) ──
-  const itemsH = 60;
+  // ── Pie: monto en letras + QR/nota | totales + CAE — anclado cerca del
+  // borde inferior de la hoja, no pegado abajo del detalle. Así la factura
+  // ocupa siempre toda la hoja de arriba a abajo, tenga uno o diez ítems —
+  // exactamente como un comprobante real (la tabla de ítems se estira para
+  // llenar el espacio disponible, no al revés). ──
+  const footerH = esFactura ? 46 : 34;
+  const footerY = ALTO_PAGINA - MY - footerH;
+
+  // ── Detalle (ítems) — ocupa todo el espacio libre entre el receptor y el pie ──
+  const itemsH = footerY - y;
   doc.rect(AX, y, BX - AX, itemsH);
   const colDesc = AX + 3;
   const colImporte = AX + 130;
   const colCant = AX + 150;
   const colTotal = BX - 3;
   doc.setLineWidth(0.3);
-  doc.line(AX, y + 7, BX, y + 7);
+  doc.line(AX, y + 8, BX, y + 8);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text('Descripción', colDesc, y + 5);
-  doc.text('Importe', colImporte, y + 5, { align: 'right' });
-  doc.text('Cant.', colCant, y + 5, { align: 'right' });
-  doc.text('Total', colTotal, y + 5, { align: 'right' });
+  doc.setFontSize(9);
+  doc.text('Descripción', colDesc, y + 5.5);
+  doc.text('Importe', colImporte, y + 5.5, { align: 'right' });
+  doc.text('Cant.', colCant, y + 5.5, { align: 'right' });
+  doc.text('Total', colTotal, y + 5.5, { align: 'right' });
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  let iy = y + 13;
-  for (const linea of envolver(doc, d.concepto, colImporte - colDesc - 5)) {
+  doc.setFontSize(9);
+  let iy = y + 15;
+  for (const linea of envolver(doc, d.concepto, colImporte - colDesc - 15)) {
     doc.text(linea, colDesc, iy);
-    iy += 4;
+    iy += 4.5;
   }
-  doc.text(moneyAr(d.importe), colImporte, y + 13, { align: 'right' });
-  doc.text('1', colCant, y + 13, { align: 'right' });
-  doc.text(moneyAr(d.importe), colTotal, y + 13, { align: 'right' });
+  doc.text(moneyAr(d.importe), colImporte, y + 15, { align: 'right' });
+  doc.text('1', colCant, y + 15, { align: 'right' });
+  doc.text(moneyAr(d.importe), colTotal, y + 15, { align: 'right' });
 
-  y += itemsH;
-
-  // ── Pie: monto en letras + QR/nota | totales + CAE ──
-  const footerH = esFactura ? 42 : 30;
+  y = footerY;
   doc.setLineWidth(0.5);
   doc.rect(AX, y, BX - AX, footerH);
   const footerColX = AX + 115;
