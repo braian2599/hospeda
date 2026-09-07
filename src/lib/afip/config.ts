@@ -61,6 +61,13 @@ export function nombreTipoComprobante(cbteTipo: number): string {
   return `Comprobante ${cbteTipo}`;
 }
 
+/** La letra grande que llevan las facturas argentinas en el recuadro superior. */
+export function letraComprobante(cbteTipo: number): string {
+  if (cbteTipo === CBTE_TIPO.FACTURA_B) return 'B';
+  if (cbteTipo === CBTE_TIPO.FACTURA_C) return 'C';
+  return '?';
+}
+
 /** Determina tipo/número de documento del receptor a partir del DNI cargado en la reserva. */
 export function docReceptor(dni: string): { docTipo: number; docNro: string } {
   const digits = (dni || '').replace(/\D/g, '');

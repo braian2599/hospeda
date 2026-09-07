@@ -42,6 +42,7 @@ function formatResponse(r: ReservaComprobante) {
     cae: r.comprobanteCae,
     caeVencimiento: r.comprobanteCaeVencimiento,
     tipoComprobante: r.comprobanteTipoAfip ? nombreTipoComprobante(r.comprobanteTipoAfip) : null,
+    tipoComprobanteCodigo: r.comprobanteTipoAfip,
     ambiente: r.comprobanteAmbiente,
   };
 }

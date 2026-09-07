@@ -30,6 +30,10 @@ import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import PaginationBar from '@/components/ui/pagination-bar';
 import { AnimatedNumber } from '@/components/ui/animated-number';
+import QRCode from 'qrcode';
+import { docReceptor, letraComprobante, DOC_TIPO } from '@/lib/afip/config';
+import { urlQrAfip } from '@/lib/afip/qr';
+import { montoALetras } from '@/lib/numero-a-letras';
 
 // formatFecha, formatMoney, formatFechaHora, todayLocal imported from @/lib/format
 
@@ -110,9 +114,13 @@ interface DatosFiscales {
 /** Info del comprobante a mostrar — cubre tanto el interno (numeración propia) como el emitido con CAE real de AFIP. */
 interface ComprobanteDisplay {
   numeroDisplay: string;
+  numero: number;
+  puntoVenta: number;
+  fecha: string | null;
   cae: string | null;
   caeVencimiento: string | null;
   tipoComprobanteNombre: string | null;
+  tipoComprobanteCodigo: number | null;
   ambiente: 'homologacion' | 'produccion' | null;
 }
 
@@ -885,8 +893,9 @@ function ReciboContent({
   // valores hardcodeados que tenía el ticket originalmente. ──
   const [fiscal, setFiscal] = useState<DatosFiscales | null>(null);
   const [comprobante, setComprobante] = useState<{
-    numero: number; puntoVenta: number;
-    cae: string | null; caeVencimiento: string | null; tipoComprobante: string | null; ambiente: 'homologacion' | 'produccion' | null;
+    numero: number; puntoVenta: number; fecha: string | null;
+    cae: string | null; caeVencimiento: string | null; tipoComprobante: string | null; tipoComprobanteCodigo: number | null;
+    ambiente: 'homologacion' | 'produccion' | null;
   } | null>(null);
   // fetchingComprobante solo importa cuando isReceipt es true — se deriva
   // más abajo, así el efecto nunca necesita "resetear" este estado a mano
@@ -929,9 +938,11 @@ function ReciboContent({
           setComprobante({
             numero: data.numeroComprobante,
             puntoVenta: data.puntoVenta || 1,
+            fecha: data.fecha || null,
             cae: data.cae || null,
             caeVencimiento: data.caeVencimiento || null,
             tipoComprobante: data.tipoComprobante || null,
+            tipoComprobanteCodigo: data.tipoComprobanteCodigo || null,
             ambiente: data.ambiente || null,
           });
         }
@@ -961,12 +972,19 @@ function ReciboContent({
   const comprobanteInfo: ComprobanteDisplay | null = isReceipt
     ? (loadingComprobante || !comprobante ? null : {
         numeroDisplay: formatComprobante(comprobante.numero, comprobante.puntoVenta),
+        numero: comprobante.numero,
+        puntoVenta: comprobante.puntoVenta,
+        fecha: comprobante.fecha,
         cae: comprobante.cae,
         caeVencimiento: comprobante.caeVencimiento,
         tipoComprobanteNombre: comprobante.tipoComprobante,
+        tipoComprobanteCodigo: comprobante.tipoComprobanteCodigo,
         ambiente: comprobante.ambiente,
       })
-    : { numeroDisplay: cotizacionRef(reserva.id), cae: null, caeVencimiento: null, tipoComprobanteNombre: null, ambiente: null };
+    : {
+        numeroDisplay: cotizacionRef(reserva.id), numero: 0, puntoVenta: 0, fecha: null,
+        cae: null, caeVencimiento: null, tipoComprobanteNombre: null, tipoComprobanteCodigo: null, ambiente: null,
+      };
 
   return (
     <div className="space-y-3">
@@ -1227,139 +1245,162 @@ function A4Receipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loading
   const fechaEmision = now.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const razonSocial = fiscal?.razonSocial || hotelName;
 
+  // ── QR obligatorio de AFIP (RG 4892) — solo existe cuando hay CAE real. ──
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!comprobante?.cae || !comprobante.tipoComprobanteCodigo || !fiscal?.cuit) return;
+    let cancelled = false;
+    const { docTipo, docNro } = docReceptor(reserva.dni);
+    const url = urlQrAfip({
+      fecha: comprobante.fecha ? new Date(comprobante.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+      cuit: fiscal.cuit,
+      ptoVta: comprobante.puntoVenta,
+      cbteTipo: comprobante.tipoComprobanteCodigo,
+      nroCmp: comprobante.numero,
+      importe: pagado,
+      docTipo, docNro,
+      cae: comprobante.cae,
+    });
+    QRCode.toDataURL(url, { margin: 0, width: 200 })
+      .then(dataUrl => { if (!cancelled) setQrDataUrl(dataUrl); })
+      .catch(() => { if (!cancelled) setQrDataUrl(null); });
+    return () => { cancelled = true; };
+  }, [comprobante?.cae, comprobante?.tipoComprobanteCodigo, comprobante?.puntoVenta, comprobante?.numero, comprobante?.fecha, fiscal?.cuit, pagado, reserva.dni]);
+
+  const esFacturaOficial = isReceipt && !!comprobante?.cae && !!comprobante.tipoComprobanteCodigo;
+
   return (
     <div id="comprobante-imprimible" data-formato="a4" className="bg-card print:bg-white text-foreground print:text-black">
-      <style>{'@media print { @page { size: A4; margin: 15mm; } }'}</style>
+      <style>{'@media print { @page { size: A4; margin: 12mm; } }'}</style>
 
-      <div className="border rounded-lg p-8 space-y-6 print:border-none print:p-0">
-        {/* ── Header: logo + datos del emisor / N° de comprobante ── */}
-        <div className="flex items-start justify-between gap-6 pb-4 border-b-2 border-foreground/20">
-          <div className="flex items-center gap-4 min-w-0">
-            {fiscal?.facturaLogoUrl ? (
-              <img src={fiscal.facturaLogoUrl} alt={razonSocial} className="w-16 h-16 rounded-lg object-contain bg-white shrink-0" />
-            ) : (
-              <div className="w-16 h-16 rounded-lg bg-primary flex items-center justify-center shrink-0">
-                <Building2 className="w-8 h-8 text-white" />
-              </div>
-            )}
-            <div className="min-w-0">
-              <h3 className="text-lg font-bold leading-tight truncate">{razonSocial}</h3>
-              {fiscal?.cuit && <p className="text-xs text-muted-foreground print:text-black/70">CUIT: {fiscal.cuit}{fiscal.iva ? ` — ${fiscal.iva}` : ''}</p>}
-              <p className="text-xs text-muted-foreground print:text-black/70">
-                {[fiscal?.direccionFiscal, fiscal?.ciudad].filter(Boolean).join(', ') || 'Dirección no configurada'}
-              </p>
-              <p className="text-xs text-muted-foreground print:text-black/70">
-                {[fiscal?.telefono, fiscal?.email].filter(Boolean).join(' · ')}
-              </p>
-            </div>
-          </div>
-          <div className="text-right shrink-0">
-            <p className="text-xs font-semibold uppercase tracking-widest">
-              {comprobante?.tipoComprobanteNombre || (isReceipt ? 'Recibo' : 'Cotización')}
-            </p>
-            <p className="text-lg font-mono font-bold mt-0.5">{loadingComprobante ? '...' : (comprobante?.numeroDisplay || '—')}</p>
-            <p className="text-xs text-muted-foreground print:text-black/70 mt-1">Fecha: {fechaEmision}</p>
-            {comprobante?.cae && (
-              <p className="text-xs text-muted-foreground print:text-black/70 font-mono mt-1">
-                CAE: {comprobante.cae}<br />Vto: {comprobante.caeVencimiento ? new Date(comprobante.caeVencimiento).toLocaleDateString('es-AR') : '—'}
-              </p>
-            )}
-            {comprobante?.ambiente === 'homologacion' && (
-              <p className="text-[10px] font-bold text-destructive uppercase tracking-wide mt-1">Prueba — sin validez fiscal</p>
-            )}
-          </div>
-        </div>
-
-        {/* ── Datos del huésped / reserva ── */}
-        <div className="grid grid-cols-2 gap-6 text-sm">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground print:text-black/60">Huésped</p>
-            <p className="font-medium">{reserva.huesped}</p>
-            <p className="text-muted-foreground print:text-black/70">DNI: {reserva.dni}</p>
-            {reserva.telefono && <p className="text-muted-foreground print:text-black/70">Tel: {reserva.telefono}</p>}
-            {reserva.email && <p className="text-muted-foreground print:text-black/70">{reserva.email}</p>}
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground print:text-black/60">Estadía</p>
-            <p>Habitación {reserva.habitacion} ({hab?.tipo || '—'})</p>
-            <p className="text-muted-foreground print:text-black/70">{formatFecha(reserva.checkin)} — {formatFecha(reserva.checkout)} · {noches} noche{noches !== 1 ? 's' : ''}</p>
-            <p className="text-muted-foreground print:text-black/70">
-              {reserva.personas} adulto{reserva.personas !== 1 ? 's' : ''}{reserva.ninos ? ` + ${reserva.ninos} niño${reserva.ninos > 1 ? 's' : ''}` : ''}
-              {' · '}Tarifa {(reserva.tipoTarifa || 'normal').charAt(0).toUpperCase() + (reserva.tipoTarifa || 'normal').slice(1)}
-            </p>
-          </div>
-        </div>
-
-        {/* ── Detalle de pagos (tabla completa) ── */}
-        <div>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-foreground/20">
-                <TableHead>Fecha</TableHead>
-                <TableHead>Concepto</TableHead>
-                <TableHead>Método</TableHead>
-                <TableHead className="text-right">Monto</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {reservasPagos.length === 0 ? (
-                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground print:text-black/60">No hay pagos registrados.</TableCell></TableRow>
+      {esFacturaOficial ? (
+        <FacturaOficial
+          reserva={reserva} fiscal={fiscal} comprobante={comprobante} pagado={pagado}
+          noches={noches} hab={hab} fechaEmision={fechaEmision} qrDataUrl={qrDataUrl}
+        />
+      ) : (
+        <div className="border rounded-lg p-8 space-y-6 print:border-none print:p-0">
+          {/* ── Header: logo + datos del emisor / N° de comprobante ── */}
+          <div className="flex items-start justify-between gap-6 pb-4 border-b-2 border-foreground/20">
+            <div className="flex items-center gap-4 min-w-0">
+              {fiscal?.facturaLogoUrl ? (
+                <img src={fiscal.facturaLogoUrl} alt={razonSocial} className="w-16 h-16 rounded-lg object-contain bg-white shrink-0" />
               ) : (
-                reservasPagos.map(p => {
-                  const metodoNombre = metodosPago.find(m => m.id === p.metodo)?.nombre || p.metodo;
-                  return (
-                    <TableRow key={p.id} className="border-foreground/10">
-                      <TableCell>{formatFecha(p.fecha)}</TableCell>
-                      <TableCell>{p.nota || `Alojamiento hab. ${reserva.habitacion}`}</TableCell>
-                      <TableCell>{metodoNombre}</TableCell>
-                      <TableCell className="text-right font-medium">{formatMoney(p.monto)}</TableCell>
-                    </TableRow>
-                  );
-                })
+                <div className="w-16 h-16 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                  <Building2 className="w-8 h-8 text-white" />
+                </div>
               )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* ── Totales ── */}
-        <div className="flex justify-end">
-          <div className="w-64 space-y-1.5">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground print:text-black/70">Total reserva</span>
-              <span className="font-medium">{formatMoney(total)}</span>
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold leading-tight truncate">{razonSocial}</h3>
+                {fiscal?.cuit && <p className="text-xs text-muted-foreground print:text-black/70">CUIT: {fiscal.cuit}{fiscal.iva ? ` — ${fiscal.iva}` : ''}</p>}
+                <p className="text-xs text-muted-foreground print:text-black/70">
+                  {[fiscal?.direccionFiscal, fiscal?.ciudad].filter(Boolean).join(', ') || 'Dirección no configurada'}
+                </p>
+                <p className="text-xs text-muted-foreground print:text-black/70">
+                  {[fiscal?.telefono, fiscal?.email].filter(Boolean).join(' · ')}
+                </p>
+              </div>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground print:text-black/70">Total pagado</span>
-              <span className="font-medium">{formatMoney(pagado)}</span>
-            </div>
-            <div className="border-t border-foreground/20 pt-1.5 flex justify-between text-base font-bold">
-              <span>{saldo > 0 ? 'Saldo pendiente' : 'Estado'}</span>
-              <span className={saldo > 0 ? 'text-destructive print:text-black' : 'text-primary print:text-black'}>
-                {saldo > 0 ? formatMoney(saldo) : 'PAGADO'}
-              </span>
+            <div className="text-right shrink-0">
+              <p className="text-xs font-semibold uppercase tracking-widest">
+                {isReceipt ? 'Recibo' : 'Cotización'}
+              </p>
+              <p className="text-lg font-mono font-bold mt-0.5">{loadingComprobante ? '...' : (comprobante?.numeroDisplay || '—')}</p>
+              <p className="text-xs text-muted-foreground print:text-black/70 mt-1">Fecha: {fechaEmision}</p>
             </div>
           </div>
-        </div>
 
-        {reserva.notas && (
-          <div className="text-sm border-t border-foreground/10 pt-3">
-            <span className="text-muted-foreground print:text-black/70">Notas: </span>
-            <span>{reserva.notas}</span>
+          {/* ── Datos del huésped / reserva ── */}
+          <div className="grid grid-cols-2 gap-6 text-sm">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground print:text-black/60">Huésped</p>
+              <p className="font-medium">{reserva.huesped}</p>
+              <p className="text-muted-foreground print:text-black/70">DNI: {reserva.dni}</p>
+              {reserva.telefono && <p className="text-muted-foreground print:text-black/70">Tel: {reserva.telefono}</p>}
+              {reserva.email && <p className="text-muted-foreground print:text-black/70">{reserva.email}</p>}
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground print:text-black/60">Estadía</p>
+              <p>Habitación {reserva.habitacion} ({hab?.tipo || '—'})</p>
+              <p className="text-muted-foreground print:text-black/70">{formatFecha(reserva.checkin)} — {formatFecha(reserva.checkout)} · {noches} noche{noches !== 1 ? 's' : ''}</p>
+              <p className="text-muted-foreground print:text-black/70">
+                {reserva.personas} adulto{reserva.personas !== 1 ? 's' : ''}{reserva.ninos ? ` + ${reserva.ninos} niño${reserva.ninos > 1 ? 's' : ''}` : ''}
+                {' · '}Tarifa {(reserva.tipoTarifa || 'normal').charAt(0).toUpperCase() + (reserva.tipoTarifa || 'normal').slice(1)}
+              </p>
+            </div>
           </div>
-        )}
 
-        {/* ── Footer legal ── */}
-        <div className="border-t border-foreground/20 pt-3 space-y-1">
-          <p className="text-center text-[10px] text-muted-foreground print:text-black/60">
-            {razonSocial} — Documento generado el {fechaEmision}
-          </p>
-          {isReceipt && !comprobante?.cae && (
-            <p className="text-center text-[9px] text-muted-foreground/70 print:text-black/50">
-              Comprobante interno — no reemplaza la factura electrónica oficial de AFIP.
-            </p>
+          {/* ── Detalle de pagos (tabla completa) ── */}
+          <div>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-foreground/20">
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Concepto</TableHead>
+                  <TableHead>Método</TableHead>
+                  <TableHead className="text-right">Monto</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reservasPagos.length === 0 ? (
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground print:text-black/60">No hay pagos registrados.</TableCell></TableRow>
+                ) : (
+                  reservasPagos.map(p => {
+                    const metodoNombre = metodosPago.find(m => m.id === p.metodo)?.nombre || p.metodo;
+                    return (
+                      <TableRow key={p.id} className="border-foreground/10">
+                        <TableCell>{formatFecha(p.fecha)}</TableCell>
+                        <TableCell>{p.nota || `Alojamiento hab. ${reserva.habitacion}`}</TableCell>
+                        <TableCell>{metodoNombre}</TableCell>
+                        <TableCell className="text-right font-medium">{formatMoney(p.monto)}</TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* ── Totales ── */}
+          <div className="flex justify-end">
+            <div className="w-64 space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground print:text-black/70">Total reserva</span>
+                <span className="font-medium">{formatMoney(total)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground print:text-black/70">Total pagado</span>
+                <span className="font-medium">{formatMoney(pagado)}</span>
+              </div>
+              <div className="border-t border-foreground/20 pt-1.5 flex justify-between text-base font-bold">
+                <span>{saldo > 0 ? 'Saldo pendiente' : 'Estado'}</span>
+                <span className={saldo > 0 ? 'text-destructive print:text-black' : 'text-primary print:text-black'}>
+                  {saldo > 0 ? formatMoney(saldo) : 'PAGADO'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {reserva.notas && (
+            <div className="text-sm border-t border-foreground/10 pt-3">
+              <span className="text-muted-foreground print:text-black/70">Notas: </span>
+              <span>{reserva.notas}</span>
+            </div>
           )}
+
+          {/* ── Footer legal ── */}
+          <div className="border-t border-foreground/20 pt-3 space-y-1">
+            <p className="text-center text-[10px] text-muted-foreground print:text-black/60">
+              {razonSocial} — Documento generado el {fechaEmision}
+            </p>
+            {isReceipt && (
+              <p className="text-center text-[9px] text-muted-foreground/70 print:text-black/50">
+                Comprobante interno — no reemplaza la factura electrónica oficial de AFIP.
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex justify-center pt-4 print:hidden">
         <Button onClick={onPrint} variant="outline" size="sm" className="gap-1.5">
@@ -1367,6 +1408,120 @@ function A4Receipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loading
           Imprimir A4
         </Button>
       </div>
+    </div>
+  );
+}
+
+/* =================== FACTURA OFICIAL AFIP (con CAE real) =================== */
+/* Replica el formato estándar que usa cualquier software homologado de AFIP:
+   recuadro con la letra (B/C), datos del emisor y el receptor, detalle,
+   monto en letras, QR obligatorio (RG 4892) y CAE. */
+
+function FacturaOficial({
+  reserva, fiscal, comprobante, pagado, noches, hab, fechaEmision, qrDataUrl,
+}: {
+  reserva: Reserva;
+  fiscal: DatosFiscales | null;
+  comprobante: ComprobanteDisplay;
+  pagado: number;
+  noches: number;
+  hab: { tipo?: string } | undefined;
+  fechaEmision: string;
+  qrDataUrl: string | null;
+}) {
+  const cbteTipo = comprobante.tipoComprobanteCodigo!;
+  const letra = letraComprobante(cbteTipo);
+  const { docTipo, docNro } = docReceptor(reserva.dni);
+  const sitTributaria = docTipo === DOC_TIPO.CUIT ? 'Responsable Inscripto / Monotributo' : 'Consumidor Final';
+  const etiquetaDoc = docTipo === DOC_TIPO.CUIT ? 'C.U.I.T.' : 'DNI';
+  const concepto = `Alojamiento — Hab. ${reserva.habitacion}${hab?.tipo ? ` (${hab.tipo})` : ''} — ${formatFecha(reserva.checkin)} a ${formatFecha(reserva.checkout)} (${noches} noche${noches !== 1 ? 's' : ''})`;
+
+  return (
+    <div className="border-2 border-foreground print:border-black text-[13px]">
+      {/* ── Encabezado: emisor | letra | datos del comprobante ── */}
+      <div className="grid grid-cols-[1fr_auto_1fr] border-b-2 border-foreground print:border-black">
+        <div className="p-4 flex items-start gap-3 min-w-0">
+          {fiscal?.facturaLogoUrl ? (
+            <img src={fiscal.facturaLogoUrl} alt={fiscal.razonSocial} className="w-14 h-14 object-contain shrink-0" />
+          ) : (
+            <div className="w-14 h-14 rounded bg-primary flex items-center justify-center shrink-0">
+              <Building2 className="w-7 h-7 text-white" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-bold leading-tight">{fiscal?.razonSocial}</p>
+            <p className="text-xs leading-tight">{[fiscal?.direccionFiscal, fiscal?.ciudad].filter(Boolean).join(' - ')}</p>
+            <p className="font-semibold mt-1">{fiscal?.iva}</p>
+          </div>
+        </div>
+        <div className="border-x-2 border-foreground print:border-black w-20 flex flex-col items-center justify-center px-2">
+          <span className="text-4xl font-bold leading-none">{letra}</span>
+          <span className="text-[9px] mt-1">Código {cbteTipo}</span>
+        </div>
+        <div className="p-4 text-right">
+          <p className="text-xl font-bold tracking-wide">FACTURA</p>
+          <p className="font-semibold mt-1">N° {comprobante.numeroDisplay}</p>
+          <p>Fecha: {fechaEmision}</p>
+          <p className="mt-1">C.U.I.T.: {fiscal?.cuit}</p>
+        </div>
+      </div>
+
+      {/* ── Datos del receptor ── */}
+      <div className="grid grid-cols-[1fr_auto] border-b-2 border-foreground print:border-black p-3 gap-x-4 gap-y-0.5 text-xs">
+        <p><span className="font-semibold">Razón Social:</span> {reserva.huesped}</p>
+        <p></p>
+        <p><span className="font-semibold">Domicilio:</span> {reserva.domicilio || '—'}</p>
+        <p></p>
+        <p><span className="font-semibold">Sit. Tributaria:</span> {sitTributaria}</p>
+        <p className="font-semibold">{etiquetaDoc}: {docNro}</p>
+      </div>
+
+      {/* ── Detalle (ítems) ── */}
+      <div className="min-h-[160px]">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b-2 border-foreground print:border-black font-semibold">
+              <td className="p-2 text-left">Descripción</td>
+              <td className="p-2 text-right w-28">Importe</td>
+              <td className="p-2 text-right w-16">Cant.</td>
+              <td className="p-2 text-right w-28">Total</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="p-2">{concepto}</td>
+              <td className="p-2 text-right">{formatMoney(pagado)}</td>
+              <td className="p-2 text-right">1</td>
+              <td className="p-2 text-right">{formatMoney(pagado)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* ── Pie: monto en letras + QR | totales + CAE ── */}
+      <div className="grid grid-cols-[1fr_auto] border-t-2 border-foreground print:border-black">
+        <div className="p-3 border-r-2 border-foreground print:border-black">
+          <p className="text-xs font-semibold">Son pesos: {montoALetras(pagado)}</p>
+          {qrDataUrl && <img src={qrDataUrl} alt="QR AFIP" className="w-24 h-24 mt-2" />}
+        </div>
+        <div className="p-3 w-56 text-sm">
+          <div className="flex justify-between"><span>Subtotal</span><span>{formatMoney(pagado)}</span></div>
+          <div className="flex justify-between"><span>Bonificación</span><span>%0,00</span></div>
+          <div className="flex justify-between font-bold text-base border-t border-foreground print:border-black mt-1 pt-1">
+            <span>TOTAL</span><span>{formatMoney(pagado)}</span>
+          </div>
+          <div className="border-t border-foreground print:border-black mt-2 pt-1 text-xs font-mono">
+            <p><span className="font-sans font-semibold">C.A.E.: </span>{comprobante.cae}</p>
+            <p><span className="font-sans font-semibold">Vto. C.A.E.: </span>{comprobante.caeVencimiento ? new Date(comprobante.caeVencimiento).toLocaleDateString('es-AR') : '—'}</p>
+          </div>
+        </div>
+      </div>
+
+      {comprobante.ambiente === 'homologacion' && (
+        <p className="text-center text-[10px] font-bold text-destructive print:text-black py-1 border-t-2 border-foreground print:border-black uppercase tracking-wide">
+          Comprobante de prueba (homologación) — sin validez fiscal
+        </p>
+      )}
     </div>
   );
 }
