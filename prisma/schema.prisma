@@ -63,6 +63,7 @@ model Tenant {
   platformPayments PlatformPayment[]
   canalesExternos CanalExterno[]
   mercadoPago    TenantMercadoPago?
+  afip           TenantAfip?
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -303,6 +304,14 @@ model Reserva {
   comprobanteNumero        Int?
   comprobantePuntoVenta    Int?
   comprobanteFecha         DateTime?
+  // Si el comprobante fue autorizado por AFIP (CAE real, no solo interno),
+  // se completan estos campos. comprobanteAmbiente distingue un CAE de
+  // homologación (pruebas, sin validez fiscal) de uno de producción, para
+  // que nunca se confunda un comprobante de prueba con uno real.
+  comprobanteCae           String?
+  comprobanteCaeVencimiento DateTime?
+  comprobanteTipoAfip      Int?
+  comprobanteAmbiente      String?
 
   acompanantes             Acompanante[]
   menores                  Menor[]
@@ -638,6 +647,34 @@ model TenantMercadoPago {
   updatedAt    DateTime  @updatedAt
 
   tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// ═══════════════════════════════════════════════════════════
+// AFIP/ARCA — Facturación electrónica (WSAA + WSFEv1)
+// Certificado propio por hotel (cada CUIT necesita el suyo).
+// La clave privada se guarda cifrada (AES-256-GCM, ver lib/crypto.ts);
+// el certificado (parte pública) se guarda en texto plano, no es secreto.
+// ═══════════════════════════════════════════════════════════
+
+model TenantAfip {
+  id               String    @id @default(cuid())
+  tenantId         String    @unique
+  cuit             String    // solo dígitos, sin guiones (11 dígitos)
+  ambiente         String    @default("homologacion") // 'homologacion' | 'produccion'
+  certificadoPem   String?   // certificado X.509 (.crt/.pem) — no es secreto
+  clavePrivadaPem  String?   // clave privada — cifrada
+  activo           Boolean   @default(false) // true = certificado cargado, listo para usar
+  // Ticket WSAA cacheado (válido ~12hs) — evita volver a autenticar en cada
+  // emisión, algo que además AFIP rate-limitea. Ver lib/afip/wsaa.ts.
+  wsaaToken        String?
+  wsaaSign         String?
+  wsaaExpiracion   DateTime?
+  ultimaConexionOk DateTime? // último login WSAA exitoso (botón "Probar conexión")
+  ultimoError      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 // ═══════════════════════════════════════════════════════════

@@ -16,6 +16,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import { parseTarifaPrecios } from '@/lib/tarifa-calc';
 import { promoBadgesTab } from '@/lib/tarifas-format';
 import { AnimatedNumber } from '@/components/ui/animated-number';
@@ -38,7 +42,7 @@ const CheckoutDialog = dynamic(
 
 // ─── Sections, agrupadas por tema (se muestran como clusters separados en la
 // barra de navegación en vez de una fila plana de 8 tabs sueltas) ───
-type SectionId = 'hotel' | 'fiscal' | 'habitaciones' | 'landing' | 'cuenta' | 'exportar' | 'suscripcion' | 'soporte';
+type SectionId = 'hotel' | 'fiscal' | 'afip' | 'habitaciones' | 'landing' | 'cuenta' | 'exportar' | 'suscripcion' | 'soporte';
 
 interface SectionMeta { id: SectionId; label: string; icon: React.ComponentType<{ className?: string }>; }
 
@@ -48,6 +52,7 @@ const SECTION_GROUPS: { label: string; sections: SectionMeta[] }[] = [
     sections: [
       { id: 'hotel', label: 'Hotel Info', icon: Building2 },
       { id: 'fiscal', label: 'Fiscal', icon: FileText },
+      { id: 'afip', label: 'AFIP/ARCA', icon: Zap },
       { id: 'habitaciones', label: 'Habitaciones', icon: BedDouble },
     ],
   },
@@ -161,7 +166,10 @@ const forestAlpha = (alpha: number) => `color-mix(in srgb, var(--primary) ${alph
 export default function ConfiguracionModule() {
   const [activeSection, setActiveSection] = useState<SectionId>('hotel');
   const [fotosHabilitadas, setFotosHabilitadas] = useState(false);
+  const [arcaHabilitadaManual, setArcaHabilitadaManual] = useState(false);
   const { usuarioActual } = useHotelStore();
+  const planActual = useHotelStore(s => s.planActual);
+  const planes = usePlans();
 
   useEffect(() => {
     fetch('/api/configuracion/hotel')
@@ -169,12 +177,21 @@ export default function ConfiguracionModule() {
       .then((data) => {
         const flags = data?.featureFlags;
         setFotosHabilitadas(!!flags?.landingPage);
+        setArcaHabilitadaManual(!!flags?.facturacionArca);
       })
       .catch(() => {});
   }, []);
 
+  // Igual que en el servidor (getFeatureFlags): lo que trae el plan actual
+  // O una excepción manual cargada para este tenant — cualquiera de las dos
+  // alcanza.
+  const arcaHabilitada = !!planes[planActual]?.featureFlags?.facturacionArca || arcaHabilitadaManual;
+
   const visibleGroups = SECTION_GROUPS
-    .map(g => ({ ...g, sections: g.sections.filter(s => s.id !== 'landing' || fotosHabilitadas) }))
+    .map(g => ({
+      ...g,
+      sections: g.sections.filter(s => (s.id !== 'landing' || fotosHabilitadas) && (s.id !== 'afip' || arcaHabilitada)),
+    }))
     .filter(g => g.sections.length > 0);
 
   if (!usuarioActual || usuarioActual.rol !== 'owner') {
@@ -227,6 +244,7 @@ export default function ConfiguracionModule() {
         <div className="mt-6 content-fade-switch" key={activeSection}>
           {activeSection === 'hotel' && <HotelSection />}
           {activeSection === 'fiscal' && <FiscalSection />}
+          {activeSection === 'afip' && <AfipSection />}
           {activeSection === 'habitaciones' && <HabitacionesSection />}
           {activeSection === 'landing' && <LandingSection />}
           {activeSection === 'cuenta' && <CuentaSection />}
@@ -770,6 +788,261 @@ function FiscalSection() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// AFIP/ARCA — Facturación electrónica (WSAA + WSFEv1)
+// ═══════════════════════════════════════════
+
+interface AfipEstado {
+  cuit: string;
+  ambiente: 'homologacion' | 'produccion';
+  activo: boolean;
+  tieneCertificado: boolean;
+  ultimaConexionOk: string | null;
+  ultimoError: string | null;
+}
+
+function leerArchivoComoTexto(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.readAsText(file);
+  });
+}
+
+function AfipSection() {
+  const [estado, setEstado] = useState<AfipEstado | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [cuit, setCuit] = useState('');
+  const [ambienteForm, setAmbienteForm] = useState<'homologacion' | 'produccion'>('homologacion');
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [confirmProduccionOpen, setConfirmProduccionOpen] = useState(false);
+
+  const [certificadoPem, setCertificadoPem] = useState('');
+  const [clavePrivadaPem, setClavePrivadaPem] = useState('');
+  const [subiendoCert, setSubiendoCert] = useState(false);
+  const [eliminandoCert, setEliminandoCert] = useState(false);
+
+  const [probandoConexion, setProbandoConexion] = useState(false);
+
+  const cargarEstado = useCallback(() => {
+    return fetch('/api/configuracion/afip')
+      .then(r => r.json())
+      .then((data: AfipEstado & { error?: string }) => {
+        if (data.error) return;
+        setEstado(data);
+        setCuit(data.cuit || '');
+        setAmbienteForm(data.ambiente || 'homologacion');
+      });
+  }, []);
+
+  useEffect(() => { cargarEstado().catch(() => {}).finally(() => setLoading(false)); }, [cargarEstado]);
+
+  const guardarConfig = async (ambienteConfirmado?: 'produccion') => {
+    const cuitDigits = cuit.replace(/\D/g, '');
+    if (cuitDigits.length !== 11) { toast.error('El CUIT debe tener 11 dígitos'); return; }
+
+    // Pasar a producción emite comprobantes fiscales REALES ante AFIP —
+    // se pide una confirmación explícita antes de guardar ese cambio.
+    if (ambienteForm === 'produccion' && estado?.ambiente !== 'produccion' && !ambienteConfirmado) {
+      setConfirmProduccionOpen(true);
+      return;
+    }
+
+    setSavingConfig(true);
+    try {
+      const res = await fetch('/api/configuracion/afip', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cuit: cuitDigits, ambiente: ambienteForm, confirmarProduccion: ambienteForm === 'produccion' }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Error'); return; }
+      toast.success('Configuración de AFIP guardada');
+      setConfirmProduccionOpen(false);
+      await cargarEstado();
+    } catch { toast.error('Error de conexión'); }
+    setSavingConfig(false);
+  };
+
+  const subirCertificado = async () => {
+    if (!certificadoPem.trim() || !clavePrivadaPem.trim()) {
+      toast.error('Pegá o cargá el certificado y la clave privada');
+      return;
+    }
+    setSubiendoCert(true);
+    try {
+      const res = await fetch('/api/configuracion/afip/certificado', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ certificadoPem, clavePrivadaPem }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Error'); return; }
+      toast.success('Certificado cargado correctamente');
+      setCertificadoPem('');
+      setClavePrivadaPem('');
+      await cargarEstado();
+    } catch { toast.error('Error de conexión'); }
+    setSubiendoCert(false);
+  };
+
+  const eliminarCertificado = async () => {
+    setEliminandoCert(true);
+    try {
+      const res = await fetch('/api/configuracion/afip/certificado', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Error'); return; }
+      toast.success('Certificado eliminado');
+      await cargarEstado();
+    } catch { toast.error('Error de conexión'); }
+    setEliminandoCert(false);
+  };
+
+  const probarConexion = async () => {
+    setProbandoConexion(true);
+    try {
+      const res = await fetch('/api/configuracion/afip/probar', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'No se pudo conectar con AFIP'); await cargarEstado(); return; }
+      toast.success('Conexión con AFIP exitosa');
+      await cargarEstado();
+    } catch { toast.error('Error de conexión'); }
+    setProbandoConexion(false);
+  };
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Zap className="w-4 h-4" style={{ color: forest }} />
+            Facturación electrónica AFIP/ARCA
+          </CardTitle>
+          <CardDescription>Emitir el CAE real de cada comprobante directamente ante AFIP</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-start gap-2 rounded-lg border p-3 bg-[#0284C70D] text-sm">
+            <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
+            <div className="space-y-1 text-muted-foreground">
+              <p>Cada hotel necesita su propio certificado digital de AFIP, habilitado para el servicio <strong>&quot;Facturación Electrónica&quot;</strong> (wsfe). Se genera en el portal de AFIP con tu Clave Fiscal: Administrador de Relaciones → Administración de Certificados Digitales.</p>
+              <p>Empezá probando en <strong>homologación</strong> (entorno de pruebas de AFIP, sin validez fiscal real) antes de pasar a producción.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">CUIT habilitado ante AFIP</Label>
+              <Input value={cuit} onChange={e => setCuit(e.target.value)} placeholder="20123456789" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Ambiente</Label>
+              <Select value={ambienteForm} onValueChange={v => setAmbienteForm(v as 'homologacion' | 'produccion')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="homologacion">Homologación (pruebas)</SelectItem>
+                  <SelectItem value="produccion">Producción (comprobantes reales)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={() => guardarConfig()} disabled={savingConfig} style={{ backgroundColor: forest }}>
+              {savingConfig ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+              Guardar
+            </Button>
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-wrap items-center gap-2">
+            {estado?.activo ? (
+              <Badge className="bg-[#05966926] text-success border-[#0F766E66]"><CheckCircle2 className="w-3 h-3 mr-1" />Certificado activo</Badge>
+            ) : (
+              <Badge variant="secondary"><XCircle className="w-3 h-3 mr-1" />Sin certificado cargado</Badge>
+            )}
+            <Badge variant="outline">{ambienteForm === 'produccion' ? 'Producción' : 'Homologación'}</Badge>
+            {estado?.ultimaConexionOk && (
+              <span className="text-xs text-muted-foreground">Última conexión OK: {new Date(estado.ultimaConexionOk).toLocaleString('es-AR')}</span>
+            )}
+          </div>
+          {estado?.ultimoError && (
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{estado.ultimoError}</span>
+            </div>
+          )}
+
+          {estado?.activo && (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={probarConexion} disabled={probandoConexion}>
+                {probandoConexion ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Zap className="w-4 h-4 mr-1.5" />}
+                Probar conexión
+              </Button>
+              <Button variant="ghost" size="sm" onClick={eliminarCertificado} disabled={eliminandoCert} className="text-destructive hover:text-destructive">
+                {eliminandoCert ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Trash2 className="w-4 h-4 mr-1.5" />}
+                Quitar certificado
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Lock className="w-4 h-4" style={{ color: forest }} />
+            {estado?.tieneCertificado ? 'Reemplazar certificado' : 'Cargar certificado'}
+          </CardTitle>
+          <CardDescription>El certificado (.crt/.pem) no es secreto; la clave privada (.key/.pem) se guarda cifrada.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Certificado (.crt / .pem)</Label>
+              <Textarea value={certificadoPem} onChange={e => setCertificadoPem(e.target.value)} placeholder="-----BEGIN CERTIFICATE-----" rows={6} className="font-mono text-xs" />
+              <label className="inline-flex items-center gap-1.5 text-xs text-primary cursor-pointer hover:underline">
+                <Upload className="w-3.5 h-3.5" /> Cargar desde archivo
+                <input type="file" accept=".crt,.pem,.cer" className="hidden" onChange={async e => { const f = e.target.files?.[0]; if (f) setCertificadoPem(await leerArchivoComoTexto(f)); e.target.value = ''; }} />
+              </label>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Clave privada (.key / .pem)</Label>
+              <Textarea value={clavePrivadaPem} onChange={e => setClavePrivadaPem(e.target.value)} placeholder="-----BEGIN PRIVATE KEY-----" rows={6} className="font-mono text-xs" />
+              <label className="inline-flex items-center gap-1.5 text-xs text-primary cursor-pointer hover:underline">
+                <Upload className="w-3.5 h-3.5" /> Cargar desde archivo
+                <input type="file" accept=".key,.pem" className="hidden" onChange={async e => { const f = e.target.files?.[0]; if (f) setClavePrivadaPem(await leerArchivoComoTexto(f)); e.target.value = ''; }} />
+              </label>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={subirCertificado} disabled={subiendoCert} style={{ backgroundColor: forest }}>
+              {subiendoCert ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+              Cargar certificado
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={confirmProduccionOpen} onOpenChange={setConfirmProduccionOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Pasar a ambiente de producción?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A partir de este cambio, cada comprobante que se emita va a pedir un CAE <strong>real</strong> ante AFIP, con validez fiscal. Asegurate de haber probado el flujo completo en homologación antes de confirmar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => guardarConfig('produccion')}>Sí, pasar a producción</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

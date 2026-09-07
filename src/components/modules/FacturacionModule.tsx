@@ -107,6 +107,15 @@ interface DatosFiscales {
   email: string;
 }
 
+/** Info del comprobante a mostrar — cubre tanto el interno (numeración propia) como el emitido con CAE real de AFIP. */
+interface ComprobanteDisplay {
+  numeroDisplay: string;
+  cae: string | null;
+  caeVencimiento: string | null;
+  tipoComprobanteNombre: string | null;
+  ambiente: 'homologacion' | 'produccion' | null;
+}
+
 export default function FacturacionModule() {
   const reservas = useHotelStore(s => s.reservas);
   const pagos = useHotelStore(s => s.pagos);
@@ -875,7 +884,10 @@ function ReciboContent({
   // ── Datos fiscales reales (Configuración → Fiscal) — reemplazan los
   // valores hardcodeados que tenía el ticket originalmente. ──
   const [fiscal, setFiscal] = useState<DatosFiscales | null>(null);
-  const [comprobante, setComprobante] = useState<{ numero: number; puntoVenta: number } | null>(null);
+  const [comprobante, setComprobante] = useState<{
+    numero: number; puntoVenta: number;
+    cae: string | null; caeVencimiento: string | null; tipoComprobante: string | null; ambiente: 'homologacion' | 'produccion' | null;
+  } | null>(null);
   // fetchingComprobante solo importa cuando isReceipt es true — se deriva
   // más abajo, así el efecto nunca necesita "resetear" este estado a mano
   // en la rama !isReceipt (evita un setState sincrónico innecesario).
@@ -914,7 +926,14 @@ function ReciboContent({
       .then(data => {
         if (cancelled) return;
         if (data.numeroComprobante != null) {
-          setComprobante({ numero: data.numeroComprobante, puntoVenta: data.puntoVenta || 1 });
+          setComprobante({
+            numero: data.numeroComprobante,
+            puntoVenta: data.puntoVenta || 1,
+            cae: data.cae || null,
+            caeVencimiento: data.caeVencimiento || null,
+            tipoComprobante: data.tipoComprobante || null,
+            ambiente: data.ambiente || null,
+          });
         }
       })
       .catch(() => {})
@@ -926,9 +945,15 @@ function ReciboContent({
 
   const handlePrint = () => window.print();
 
-  const numeroDisplay = isReceipt
-    ? (loadingComprobante ? null : (comprobante ? formatComprobante(comprobante.numero, comprobante.puntoVenta) : null))
-    : cotizacionRef(reserva.id);
+  const comprobanteInfo: ComprobanteDisplay | null = isReceipt
+    ? (loadingComprobante || !comprobante ? null : {
+        numeroDisplay: formatComprobante(comprobante.numero, comprobante.puntoVenta),
+        cae: comprobante.cae,
+        caeVencimiento: comprobante.caeVencimiento,
+        tipoComprobanteNombre: comprobante.tipoComprobante,
+        ambiente: comprobante.ambiente,
+      })
+    : { numeroDisplay: cotizacionRef(reserva.id), cae: null, caeVencimiento: null, tipoComprobanteNombre: null, ambiente: null };
 
   return (
     <div className="space-y-3">
@@ -943,9 +968,9 @@ function ReciboContent({
       </div>
 
       {formato === 'ticket' ? (
-        <TicketReceipt reserva={reserva} hotelName={hotelName} fiscal={fiscal} isReceipt={isReceipt} numeroDisplay={numeroDisplay} loadingComprobante={isReceipt && loadingComprobante} onPrint={handlePrint} />
+        <TicketReceipt reserva={reserva} hotelName={hotelName} fiscal={fiscal} isReceipt={isReceipt} comprobante={comprobanteInfo} loadingComprobante={isReceipt && loadingComprobante} onPrint={handlePrint} />
       ) : (
-        <A4Receipt reserva={reserva} hotelName={hotelName} fiscal={fiscal} isReceipt={isReceipt} numeroDisplay={numeroDisplay} loadingComprobante={isReceipt && loadingComprobante} onPrint={handlePrint} />
+        <A4Receipt reserva={reserva} hotelName={hotelName} fiscal={fiscal} isReceipt={isReceipt} comprobante={comprobanteInfo} loadingComprobante={isReceipt && loadingComprobante} onPrint={handlePrint} />
       )}
     </div>
   );
@@ -956,14 +981,14 @@ interface ReceiptFormatProps {
   hotelName: string;
   fiscal: DatosFiscales | null;
   isReceipt: boolean;
-  numeroDisplay: string | null;
+  comprobante: ComprobanteDisplay | null;
   loadingComprobante: boolean;
   onPrint: () => void;
 }
 
 /* =================== FORMATO TICKET (compacto) =================== */
 
-function TicketReceipt({ reserva, hotelName, fiscal, isReceipt, numeroDisplay, loadingComprobante, onPrint }: ReceiptFormatProps) {
+function TicketReceipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loadingComprobante, onPrint }: ReceiptFormatProps) {
   const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
   const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
   const nochesEntre = useHotelStore(s => s.nochesEntre);
@@ -998,11 +1023,19 @@ function TicketReceipt({ reserva, hotelName, fiscal, isReceipt, numeroDisplay, l
         <Separator className="my-2" />
         <div className="flex items-center justify-center gap-2">
           <Hash className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-sm font-mono font-semibold">{loadingComprobante ? '...' : (numeroDisplay || '—')}</span>
+          <span className="text-sm font-mono font-semibold">{loadingComprobante ? '...' : (comprobante?.numeroDisplay || '—')}</span>
         </div>
         <p className="text-xs font-semibold mt-1 uppercase tracking-widest">
-          {isReceipt ? 'RECIBO DE PAGO' : 'COTIZACIÓN'}
+          {comprobante?.tipoComprobanteNombre ? `${comprobante.tipoComprobanteNombre} ELECTRÓNICA` : (isReceipt ? 'RECIBO DE PAGO' : 'COTIZACIÓN')}
         </p>
+        {comprobante?.cae && (
+          <p className="text-[10px] text-muted-foreground font-mono">
+            CAE: {comprobante.cae}{comprobante.caeVencimiento ? ` · Vto: ${new Date(comprobante.caeVencimiento).toLocaleDateString('es-AR')}` : ''}
+          </p>
+        )}
+        {comprobante?.ambiente === 'homologacion' && (
+          <p className="text-[9px] font-bold text-destructive uppercase tracking-wide">Comprobante de prueba (homologación) — sin validez fiscal</p>
+        )}
         <p className="text-[10px] text-muted-foreground">{formattedDateTime}</p>
       </div>
 
@@ -1146,7 +1179,7 @@ function TicketReceipt({ reserva, hotelName, fiscal, isReceipt, numeroDisplay, l
         <p className="text-center text-[10px] text-muted-foreground">
           Documento generado por {razonSocial} — {formattedDateTime}
         </p>
-        {isReceipt && (
+        {isReceipt && !comprobante?.cae && (
           <p className="text-center text-[9px] text-muted-foreground/70 print:text-black">
             Comprobante interno — no reemplaza la factura electrónica oficial de AFIP.
           </p>
@@ -1164,7 +1197,7 @@ function TicketReceipt({ reserva, hotelName, fiscal, isReceipt, numeroDisplay, l
 
 /* =================== FORMATO A4 (para imprimir en hoja completa) =================== */
 
-function A4Receipt({ reserva, hotelName, fiscal, isReceipt, numeroDisplay, loadingComprobante, onPrint }: ReceiptFormatProps) {
+function A4Receipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loadingComprobante, onPrint }: ReceiptFormatProps) {
   const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
   const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
   const nochesEntre = useHotelStore(s => s.nochesEntre);
@@ -1208,9 +1241,19 @@ function A4Receipt({ reserva, hotelName, fiscal, isReceipt, numeroDisplay, loadi
             </div>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-xs font-semibold uppercase tracking-widest">{isReceipt ? 'Recibo' : 'Cotización'}</p>
-            <p className="text-lg font-mono font-bold mt-0.5">{loadingComprobante ? '...' : (numeroDisplay || '—')}</p>
+            <p className="text-xs font-semibold uppercase tracking-widest">
+              {comprobante?.tipoComprobanteNombre || (isReceipt ? 'Recibo' : 'Cotización')}
+            </p>
+            <p className="text-lg font-mono font-bold mt-0.5">{loadingComprobante ? '...' : (comprobante?.numeroDisplay || '—')}</p>
             <p className="text-xs text-muted-foreground print:text-black/70 mt-1">Fecha: {fechaEmision}</p>
+            {comprobante?.cae && (
+              <p className="text-xs text-muted-foreground print:text-black/70 font-mono mt-1">
+                CAE: {comprobante.cae}<br />Vto: {comprobante.caeVencimiento ? new Date(comprobante.caeVencimiento).toLocaleDateString('es-AR') : '—'}
+              </p>
+            )}
+            {comprobante?.ambiente === 'homologacion' && (
+              <p className="text-[10px] font-bold text-destructive uppercase tracking-wide mt-1">Prueba — sin validez fiscal</p>
+            )}
           </div>
         </div>
 
@@ -1297,7 +1340,7 @@ function A4Receipt({ reserva, hotelName, fiscal, isReceipt, numeroDisplay, loadi
           <p className="text-center text-[10px] text-muted-foreground print:text-black/60">
             {razonSocial} — Documento generado el {fechaEmision}
           </p>
-          {isReceipt && (
+          {isReceipt && !comprobante?.cae && (
             <p className="text-center text-[9px] text-muted-foreground/70 print:text-black/50">
               Comprobante interno — no reemplaza la factura electrónica oficial de AFIP.
             </p>
