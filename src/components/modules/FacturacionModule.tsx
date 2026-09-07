@@ -1247,11 +1247,13 @@ function A4Receipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loading
 
   const esFacturaOficial = isReceipt && !!comprobante?.cae && !!comprobante.tipoComprobanteCodigo;
 
-  // ── Vista previa: dejar ver el formato oficial (con datos de ejemplo,
-  // bien marcado como MODELO) aunque todavía no haya un CAE real — así se
-  // puede revisar/ajustar el diseño sin depender de AFIP. Nunca se muestra
-  // sola en la hoja: siempre lleva el aviso de "no válido" bien visible. ──
-  const [vistaPrevia, setVistaPrevia] = useState(false);
+  // ── Vista previa: mostrar el formato oficial (con datos de ejemplo, bien
+  // marcado como MODELO) aunque todavía no haya un CAE real — así se puede
+  // revisar/ajustar el diseño sin depender de AFIP. Arranca activada por
+  // default (es lo que se quiere ver al elegir A4), con opción de volver
+  // al recibo simple de siempre. Nunca se muestra sola en la hoja: siempre
+  // lleva el aviso de "no válido" bien visible. ──
+  const [vistaPrevia, setVistaPrevia] = useState(true);
   const comprobantePreview: ComprobanteDisplay = useMemo(() => {
     const tipo = fiscal?.iva ? tipoComprobantePorCondicionIva(fiscal.iva) : CBTE_TIPO.FACTURA_B;
     return {
@@ -1301,9 +1303,9 @@ function A4Receipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loading
 
       {isReceipt && !esFacturaOficial && (
         <div className="flex justify-center mb-2 print:hidden">
-          <Button size="sm" variant={vistaPrevia ? 'default' : 'outline'} className="h-7 text-xs gap-1.5" onClick={() => setVistaPrevia(v => !v)}>
-            {vistaPrevia ? <XCircle className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
-            {vistaPrevia ? 'Salir de la vista previa' : 'Vista previa del formato oficial'}
+          <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => setVistaPrevia(v => !v)}>
+            {vistaPrevia ? <FileText className="w-3.5 h-3.5" /> : <Hash className="w-3.5 h-3.5" />}
+            {vistaPrevia ? 'Ver formato simple (sin AFIP)' : 'Ver formato oficial (modelo)'}
           </Button>
         </div>
       )}
