@@ -943,7 +943,20 @@ function ReciboContent({
     // (se remonta por completo vía key={reciboReserva.id} en el padre).
   }, []);
 
-  const handlePrint = () => window.print();
+  // Imprimir solo el comprobante, no "una foto" de la página con el modal
+  // encima: la clase activa el aislamiento de impresión definido en
+  // globals.css (oculta todo excepto #comprobante-imprimible, y neutraliza
+  // el transform/overflow del Dialog para que el comprobante pueda ocupar
+  // la hoja entera en vez de quedar recortado al tamaño del modal).
+  const handlePrint = () => {
+    document.body.classList.add('imprimir-comprobante');
+    const limpiar = () => {
+      document.body.classList.remove('imprimir-comprobante');
+      window.removeEventListener('afterprint', limpiar);
+    };
+    window.addEventListener('afterprint', limpiar);
+    window.print();
+  };
 
   const comprobanteInfo: ComprobanteDisplay | null = isReceipt
     ? (loadingComprobante || !comprobante ? null : {
@@ -1006,7 +1019,7 @@ function TicketReceipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loa
   const razonSocial = fiscal?.razonSocial || hotelName;
 
   return (
-    <div className="border-2 border-dashed border-muted rounded-lg p-6 space-y-4 bg-card print:border-solid print:border-black print:bg-white">
+    <div id="comprobante-imprimible" data-formato="ticket" className="border-2 border-dashed border-muted rounded-lg p-6 space-y-4 bg-card print:border-solid print:border-black print:bg-white">
       {/* ── Hotel Branding Header ── */}
       <div className="text-center space-y-2">
         {fiscal?.facturaLogoUrl ? (
@@ -1215,7 +1228,7 @@ function A4Receipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loading
   const razonSocial = fiscal?.razonSocial || hotelName;
 
   return (
-    <div className="bg-card print:bg-white text-foreground print:text-black">
+    <div id="comprobante-imprimible" data-formato="a4" className="bg-card print:bg-white text-foreground print:text-black">
       <style>{'@media print { @page { size: A4; margin: 15mm; } }'}</style>
 
       <div className="border rounded-lg p-8 space-y-6 print:border-none print:p-0">

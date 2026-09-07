@@ -822,6 +822,81 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
+   AISLAMIENTO DE IMPRESIÓN — imprimir SOLO un elemento (p.ej. el
+   comprobante de Facturación), aunque esté adentro de un Dialog.
+   Sin esto, window.print() imprime la página completa: el módulo de
+   fondo, el overlay oscuro del modal y el recuadro del Dialog alrededor
+   del comprobante (ver captura reportada — no es un bug de layout, es
+   que nada evitaba que se imprimiera el documento completo).
+
+   Se activa agregando la clase "imprimir-comprobante" a <body> antes de
+   window.print() (y quitándola en el evento "afterprint"). Usa
+   visibility (no display) porque necesita que el nodo objetivo, anidado
+   varios niveles adentro del Dialog, siga "encontrable" — display:none
+   en un ancestro se lleva puestos a los descendientes, visibility:hidden
+   se puede revertir en un descendiente puntual.
+   ───────────────────────────────────────────────────────────── */
+@media print {
+  body.imprimir-comprobante * {
+    visibility: hidden !important;
+  }
+  body.imprimir-comprobante #comprobante-imprimible,
+  body.imprimir-comprobante #comprobante-imprimible * {
+    visibility: visible !important;
+  }
+
+  /* El Dialog de Radix posiciona su contenido con transform + overflow
+     hidden — eso crea un "containing block" que recortaría el
+     comprobante al tamaño del modal aunque esté con position:fixed. Se
+     neutraliza solo durante esta impresión puntual. */
+  body.imprimir-comprobante [data-slot="dialog-content"] {
+    position: static !important;
+    transform: none !important;
+    overflow: visible !important;
+    max-height: none !important;
+    max-width: none !important;
+    width: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  body.imprimir-comprobante [data-slot="dialog-scroll-area"] {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  /* Tablas con scroll interno (p.ej. el desglose de pagos del ticket) —
+     en pantalla tiene sentido recortarlas con scroll, en la hoja impresa
+     tienen que verse completas. */
+  body.imprimir-comprobante #comprobante-imprimible .overflow-y-auto {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* position:absolute (no fixed): un comprobante largo (muchos pagos) debe
+     poder fluir a una segunda hoja — position:fixed en impresión paginada
+     se repite o se recorta según el navegador, absolute fluye bien. Ya no
+     queda ningún ancestro con transform/overflow que lo recorte (ver
+     arriba), así que igual queda bien ubicado desde el borde de la hoja. */
+  body.imprimir-comprobante #comprobante-imprimible {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    margin: 0 !important;
+  }
+  /* El formato A4 está pensado para ocupar toda la hoja. */
+  body.imprimir-comprobante #comprobante-imprimible[data-formato="a4"] {
+    width: 100% !important;
+  }
+  /* El ticket está pensado para verse angosto, como un comprobante real —
+     el mismo ancho que ya usa en pantalla (sm:max-w-lg = 32rem). Sin este
+     límite, al quedar position:absolute ocuparía todo el ancho de la hoja
+     A4 y perdería el aspecto de ticket. */
+  body.imprimir-comprobante #comprobante-imprimible[data-formato="ticket"] {
+    width: 32rem !important;
+    max-width: 100% !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
    Round 9d — Landing page polish animations & utilities
    ───────────────────────────────────────────────────────────── */
 
