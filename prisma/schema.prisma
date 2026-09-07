@@ -294,6 +294,16 @@ model Reserva {
   createdAt                DateTime      @default(now())
   updatedAt                DateTime      @updatedAt
 
+  // Numeración de comprobante — se asigna una única vez, de forma atómica,
+  // la primera vez que se emite/visualiza el RECIBO de esta reserva (post
+  // check-out; antes de eso el documento es una "Cotización" sin validez
+  // fiscal y no consume numeración). Ver POST /api/reservas/[id]/comprobante.
+  // Se guarda como snapshot (no se recalcula) para que el número impreso no
+  // cambie aunque después se edite el punto de venta en Configuración.
+  comprobanteNumero        Int?
+  comprobantePuntoVenta    Int?
+  comprobanteFecha         DateTime?
+
   acompanantes             Acompanante[]
   menores                  Menor[]
   pagos                    Pago[]
@@ -305,6 +315,10 @@ model Reserva {
   @@index([tenantId, estado])
   @@index([tenantId, habitacion, checkin, checkout])
   @@unique([tenantId, externalUid])
+  // Evita números de comprobante duplicados dentro del mismo punto de
+  // venta. Postgres no considera duplicados los NULL, así que las reservas
+  // sin comprobante emitido todavía no chocan entre sí.
+  @@unique([tenantId, comprobantePuntoVenta, comprobanteNumero])
 }
 
 model Acompanante {
@@ -554,6 +568,7 @@ model TenantConfig {
   sidebarFijo         Boolean  @default(true)
   moduloInicio        String   @default("dashboard")
   hotelNombre         String?
+  hotelRazonSocial    String?
   hotelDireccion      String?
   hotelCiudad         String?
   hotelPais           String?
@@ -562,8 +577,13 @@ model TenantConfig {
   hotelCuit           String?
   hotelIva            String?
   hotelLogoUrl        String?
+  facturaLogoUrl      String?
   precioPorCamaGlobal Int?
   puntoVenta          Int?
+  // Cantidad de comprobantes ya emitidos (0 = ninguno todavía). El próximo
+  // número a asignar es numeroFactura + 1. Se incrementa de forma atómica en
+  // POST /api/pagos/[id]/comprobante. Solo puede reconfigurarse manualmente
+  // (numeroInicio) mientras siga en 0 — ver /api/configuracion/fiscal.
   numeroFactura       Int      @default(0)
   featureFlags        Json     @default("{}")
   tarifasPublicas     Json     @default("{}")

@@ -9,18 +9,23 @@ import { randomUUID } from 'crypto';
 export async function POST(req: NextRequest) {
   try {
     const tenantId = await requireOwner();
-    await requireFeatureFlag(tenantId, 'landingPage');
 
     const body = await req.json();
     const { tipo, habitacion, contentType, size } = body as {
-      tipo?: 'hotel' | 'habitacion';
+      tipo?: 'hotel' | 'habitacion' | 'factura';
       habitacion?: string;
       contentType?: string;
       size?: number;
     };
 
-    if (tipo !== 'hotel' && tipo !== 'habitacion') {
-      return NextResponse.json({ error: 'tipo debe ser "hotel" o "habitacion"' }, { status: 400 });
+    if (tipo !== 'hotel' && tipo !== 'habitacion' && tipo !== 'factura') {
+      return NextResponse.json({ error: 'tipo debe ser "hotel", "habitacion" o "factura"' }, { status: 400 });
+    }
+    // El logo de landing/habitaciones requiere el feature flag de landing page.
+    // El logo de factura es parte del módulo base de Facturación (no de la
+    // landing), así que no se gatea con ese flag.
+    if (tipo === 'hotel' || tipo === 'habitacion') {
+      await requireFeatureFlag(tenantId, 'landingPage');
     }
     if (!contentType || !isAllowedImageType(contentType)) {
       return NextResponse.json({ error: 'Formato no permitido (solo jpg, png, webp)' }, { status: 400 });
@@ -39,6 +44,8 @@ export async function POST(req: NextRequest) {
       });
       if (!hab) return NextResponse.json({ error: 'Habitación no encontrada' }, { status: 404 });
       key = `tenants/${tenantId}/habitaciones/${habitacion.trim()}/${randomUUID()}.${extForContentType(contentType)}`;
+    } else if (tipo === 'factura') {
+      key = `tenants/${tenantId}/factura/${randomUUID()}.${extForContentType(contentType)}`;
     } else {
       key = `tenants/${tenantId}/hotel/${randomUUID()}.${extForContentType(contentType)}`;
     }

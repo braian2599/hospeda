@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { formatMoney, formatFecha, formatFechaHora, todayLocal } from '@/lib/format';
 import type { Reserva, Pago } from '@/lib/types';
@@ -81,14 +81,30 @@ function getMetodoIcon(metodo: string): 'credit' | 'bank' | 'wallet' | 'cash' {
   return 'cash';
 }
 
-/** Generate a receipt number from reserva ID */
-function receiptNumber(reservaId: string): string {
+/** Referencia (no fiscal) para cotizaciones — no consumen numeración real. */
+function cotizacionRef(reservaId: string): string {
   const num = reservaId.replace(/\D/g, '');
   const suffix = num ? num.padStart(4, '0') : reservaId.slice(0, 4).toUpperCase().padEnd(4, '0');
   const date = new Date();
   const yy = String(date.getFullYear()).slice(2);
   const mm = String(date.getMonth() + 1).padStart(2, '0');
-  return `RCP-${yy}${mm}-${suffix}`;
+  return `COT-${yy}${mm}-${suffix}`;
+}
+
+/** Formatea el número de comprobante persistido como "0001-00000042". */
+function formatComprobante(numero: number, puntoVenta: number): string {
+  return `${String(puntoVenta).padStart(4, '0')}-${String(numero).padStart(8, '0')}`;
+}
+
+interface DatosFiscales {
+  razonSocial: string;
+  cuit: string;
+  iva: string;
+  direccionFiscal: string;
+  ciudad: string;
+  facturaLogoUrl: string;
+  telefono: string;
+  email: string;
 }
 
 export default function FacturacionModule() {
@@ -161,6 +177,7 @@ export default function FacturacionModule() {
   // Receipt dialog
   const [reciboDialogOpen, setReciboDialogOpen] = useState(false);
   const [reciboReservaId, setReciboReservaId] = useState<string | null>(null);
+  const [reciboFormato, setReciboFormato] = useState<'ticket' | 'a4'>('ticket');
 
   // Resolve method filter ID to name for comparison
   const filtroMetodoNombre = histFiltroMetodo !== 'todos'
@@ -797,7 +814,7 @@ export default function FacturacionModule() {
 
       {/* =================== MODAL RECIBO (ENHANCED) =================== */}
       <Dialog open={reciboDialogOpen} onOpenChange={() => setReciboDialogOpen(false)}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh]">
+        <DialogContent className={`max-h-[90vh] ${reciboFormato === 'a4' ? 'sm:max-w-3xl' : 'sm:max-w-lg'}`}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
@@ -805,7 +822,18 @@ export default function FacturacionModule() {
             </DialogTitle>
           </DialogHeader>
 
-          {reciboReserva && <ReciboContent reserva={reciboReserva} hotelName={hotelName} />}
+          {reciboReserva && (
+            // key={reciboReserva.id}: fuerza un montaje nuevo por reserva, así
+            // el estado de carga del comprobante (useState inicial) arranca
+            // correcto sin necesidad de resetearlo a mano en un efecto.
+            <ReciboContent
+              key={reciboReserva.id}
+              reserva={reciboReserva}
+              hotelName={hotelName}
+              formato={reciboFormato}
+              onFormatoChange={setReciboFormato}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
@@ -837,7 +865,105 @@ function MetodoIconBadge({ type, name }: { type: 'credit' | 'bank' | 'wallet' | 
 
 /* =================== RECIBO COMPONENT (ENHANCED) =================== */
 
-function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: string }) {
+function ReciboContent({
+  reserva, hotelName, formato, onFormatoChange,
+}: {
+  reserva: Reserva; hotelName: string; formato: 'ticket' | 'a4'; onFormatoChange: (f: 'ticket' | 'a4') => void;
+}) {
+  const isReceipt = reserva.estado === 'Check-Out realizado';
+
+  // ── Datos fiscales reales (Configuración → Fiscal) — reemplazan los
+  // valores hardcodeados que tenía el ticket originalmente. ──
+  const [fiscal, setFiscal] = useState<DatosFiscales | null>(null);
+  const [comprobante, setComprobante] = useState<{ numero: number; puntoVenta: number } | null>(null);
+  // fetchingComprobante solo importa cuando isReceipt es true — se deriva
+  // más abajo, así el efecto nunca necesita "resetear" este estado a mano
+  // en la rama !isReceipt (evita un setState sincrónico innecesario).
+  const [fetchingComprobante, setFetchingComprobante] = useState(isReceipt);
+  const loadingComprobante = isReceipt && fetchingComprobante;
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      fetch('/api/configuracion/fiscal').then(r => r.json()).catch(() => null),
+      fetch('/api/configuracion/hotel').then(r => r.json()).catch(() => null),
+    ]).then(([f, h]) => {
+      if (cancelled) return;
+      setFiscal({
+        razonSocial: f?.razonSocial || '',
+        cuit: f?.cuit || '',
+        iva: f?.iva || '',
+        direccionFiscal: f?.direccionFiscal || '',
+        ciudad: f?.ciudad || '',
+        facturaLogoUrl: f?.facturaLogoUrl || '',
+        telefono: h?.hotelTelefono || '',
+        email: h?.hotelEmail || '',
+      });
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // isReceipt puede cambiar si la reserva pasa a check-out mientras el
+  // diálogo está abierto (poco probable, pero mantiene el comportamiento
+  // correcto sin recargar el modal).
+  useEffect(() => {
+    if (!isReceipt) return;
+    let cancelled = false;
+    fetch(`/api/reservas/${reserva.id}/comprobante`, { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        if (data.numeroComprobante != null) {
+          setComprobante({ numero: data.numeroComprobante, puntoVenta: data.puntoVenta || 1 });
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setFetchingComprobante(false); });
+    return () => { cancelled = true; };
+    // reserva.id/isReceipt no cambian dentro de la vida de este componente
+    // (se remonta por completo vía key={reciboReserva.id} en el padre).
+  }, []);
+
+  const handlePrint = () => window.print();
+
+  const numeroDisplay = isReceipt
+    ? (loadingComprobante ? null : (comprobante ? formatComprobante(comprobante.numero, comprobante.puntoVenta) : null))
+    : cotizacionRef(reserva.id);
+
+  return (
+    <div className="space-y-3">
+      {/* ── Selector de formato (no se imprime) ── */}
+      <div className="flex items-center justify-center gap-1.5 print:hidden">
+        <Button size="sm" variant={formato === 'ticket' ? 'default' : 'outline'} className="h-7 text-xs" onClick={() => onFormatoChange('ticket')}>
+          Ticket
+        </Button>
+        <Button size="sm" variant={formato === 'a4' ? 'default' : 'outline'} className="h-7 text-xs" onClick={() => onFormatoChange('a4')}>
+          A4
+        </Button>
+      </div>
+
+      {formato === 'ticket' ? (
+        <TicketReceipt reserva={reserva} hotelName={hotelName} fiscal={fiscal} isReceipt={isReceipt} numeroDisplay={numeroDisplay} loadingComprobante={isReceipt && loadingComprobante} onPrint={handlePrint} />
+      ) : (
+        <A4Receipt reserva={reserva} hotelName={hotelName} fiscal={fiscal} isReceipt={isReceipt} numeroDisplay={numeroDisplay} loadingComprobante={isReceipt && loadingComprobante} onPrint={handlePrint} />
+      )}
+    </div>
+  );
+}
+
+interface ReceiptFormatProps {
+  reserva: Reserva;
+  hotelName: string;
+  fiscal: DatosFiscales | null;
+  isReceipt: boolean;
+  numeroDisplay: string | null;
+  loadingComprobante: boolean;
+  onPrint: () => void;
+}
+
+/* =================== FORMATO TICKET (compacto) =================== */
+
+function TicketReceipt({ reserva, hotelName, fiscal, isReceipt, numeroDisplay, loadingComprobante, onPrint }: ReceiptFormatProps) {
   const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
   const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
   const nochesEntre = useHotelStore(s => s.nochesEntre);
@@ -850,30 +976,29 @@ function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: st
   const noches = nochesEntre(reserva.checkin, reserva.checkout);
   const hab = habitaciones[reserva.habitacion];
   const reservasPagos = pagos.filter(p => p.idReserva === reserva.id).sort((a, b) => a.fecha.localeCompare(b.fecha));
-  const reciboNum = receiptNumber(reserva.id);
-  const isReceipt = reserva.estado === 'Check-Out realizado';
   const now = new Date();
   const formattedDateTime = `${now.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })} — ${now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`;
-
-  const handlePrint = () => {
-    window.print();
-  };
+  const razonSocial = fiscal?.razonSocial || hotelName;
 
   return (
     <div className="border-2 border-dashed border-muted rounded-lg p-6 space-y-4 bg-card print:border-solid print:border-black print:bg-white">
       {/* ── Hotel Branding Header ── */}
       <div className="text-center space-y-2">
-        {/* Logo placeholder */}
-        <div className="mx-auto w-14 h-14 rounded-xl bg-primary flex items-center justify-center">
-          <Building2 className="w-7 h-7 text-white" />
-        </div>
-        <h3 className="text-xl font-bold tracking-wide text-primary">{hotelName.toUpperCase()}</h3>
-        <p className="text-xs text-muted-foreground">Dirección del hotel, Ciudad, País</p>
-        <p className="text-xs text-muted-foreground">Tel: (000) 000-0000 · info@hotel.com</p>
+        {fiscal?.facturaLogoUrl ? (
+          <img src={fiscal.facturaLogoUrl} alt={razonSocial} className="mx-auto w-14 h-14 rounded-xl object-contain bg-white" />
+        ) : (
+          <div className="mx-auto w-14 h-14 rounded-xl bg-primary flex items-center justify-center">
+            <Building2 className="w-7 h-7 text-white" />
+          </div>
+        )}
+        <h3 className="text-xl font-bold tracking-wide text-primary">{razonSocial.toUpperCase()}</h3>
+        <p className="text-xs text-muted-foreground">{fiscal?.direccionFiscal || fiscal?.ciudad ? `${fiscal?.direccionFiscal || ''}${fiscal?.direccionFiscal && fiscal?.ciudad ? ', ' : ''}${fiscal?.ciudad || ''}` : 'Dirección no configurada'}</p>
+        <p className="text-xs text-muted-foreground">{[fiscal?.telefono && `Tel: ${fiscal.telefono}`, fiscal?.email].filter(Boolean).join(' · ') || '—'}</p>
+        {fiscal?.cuit && <p className="text-xs text-muted-foreground">CUIT: {fiscal.cuit}{fiscal.iva ? ` · ${fiscal.iva}` : ''}</p>}
         <Separator className="my-2" />
         <div className="flex items-center justify-center gap-2">
           <Hash className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-sm font-mono font-semibold">{reciboNum}</span>
+          <span className="text-sm font-mono font-semibold">{loadingComprobante ? '...' : (numeroDisplay || '—')}</span>
         </div>
         <p className="text-xs font-semibold mt-1 uppercase tracking-widest">
           {isReceipt ? 'RECIBO DE PAGO' : 'COTIZACIÓN'}
@@ -1019,14 +1144,172 @@ function ReciboContent({ reserva, hotelName }: { reserva: Reserva; hotelName: st
       {/* ── Footer with print button ── */}
       <div className="border-t-2 border-dashed border-muted pt-3 space-y-3">
         <p className="text-center text-[10px] text-muted-foreground">
-          Documento generado por {hotelName} — {formattedDateTime}
+          Documento generado por {razonSocial} — {formattedDateTime}
         </p>
+        {isReceipt && (
+          <p className="text-center text-[9px] text-muted-foreground/70 print:text-black">
+            Comprobante interno — no reemplaza la factura electrónica oficial de AFIP.
+          </p>
+        )}
         <div className="flex justify-center print:hidden">
-          <Button onClick={handlePrint} variant="outline" size="sm" className="gap-1.5">
+          <Button onClick={onPrint} variant="outline" size="sm" className="gap-1.5">
             <Printer className="w-4 h-4" />
             Imprimir
           </Button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* =================== FORMATO A4 (para imprimir en hoja completa) =================== */
+
+function A4Receipt({ reserva, hotelName, fiscal, isReceipt, numeroDisplay, loadingComprobante, onPrint }: ReceiptFormatProps) {
+  const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
+  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
+  const nochesEntre = useHotelStore(s => s.nochesEntre);
+  const pagos = useHotelStore(s => s.pagos);
+  const metodosPago = useHotelStore(s => s.metodosPago);
+  const habitaciones = useHotelStore(s => s.habitaciones);
+  const total = calcularTotalReserva(reserva.id);
+  const pagado = calcularTotalPagado(reserva.id);
+  const saldo = total - pagado;
+  const noches = nochesEntre(reserva.checkin, reserva.checkout);
+  const hab = habitaciones[reserva.habitacion];
+  const reservasPagos = pagos.filter(p => p.idReserva === reserva.id).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const now = new Date();
+  const fechaEmision = now.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const razonSocial = fiscal?.razonSocial || hotelName;
+
+  return (
+    <div className="bg-card print:bg-white text-foreground print:text-black">
+      <style>{'@media print { @page { size: A4; margin: 15mm; } }'}</style>
+
+      <div className="border rounded-lg p-8 space-y-6 print:border-none print:p-0">
+        {/* ── Header: logo + datos del emisor / N° de comprobante ── */}
+        <div className="flex items-start justify-between gap-6 pb-4 border-b-2 border-foreground/20">
+          <div className="flex items-center gap-4 min-w-0">
+            {fiscal?.facturaLogoUrl ? (
+              <img src={fiscal.facturaLogoUrl} alt={razonSocial} className="w-16 h-16 rounded-lg object-contain bg-white shrink-0" />
+            ) : (
+              <div className="w-16 h-16 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                <Building2 className="w-8 h-8 text-white" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold leading-tight truncate">{razonSocial}</h3>
+              {fiscal?.cuit && <p className="text-xs text-muted-foreground print:text-black/70">CUIT: {fiscal.cuit}{fiscal.iva ? ` — ${fiscal.iva}` : ''}</p>}
+              <p className="text-xs text-muted-foreground print:text-black/70">
+                {[fiscal?.direccionFiscal, fiscal?.ciudad].filter(Boolean).join(', ') || 'Dirección no configurada'}
+              </p>
+              <p className="text-xs text-muted-foreground print:text-black/70">
+                {[fiscal?.telefono, fiscal?.email].filter(Boolean).join(' · ')}
+              </p>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-xs font-semibold uppercase tracking-widest">{isReceipt ? 'Recibo' : 'Cotización'}</p>
+            <p className="text-lg font-mono font-bold mt-0.5">{loadingComprobante ? '...' : (numeroDisplay || '—')}</p>
+            <p className="text-xs text-muted-foreground print:text-black/70 mt-1">Fecha: {fechaEmision}</p>
+          </div>
+        </div>
+
+        {/* ── Datos del huésped / reserva ── */}
+        <div className="grid grid-cols-2 gap-6 text-sm">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground print:text-black/60">Huésped</p>
+            <p className="font-medium">{reserva.huesped}</p>
+            <p className="text-muted-foreground print:text-black/70">DNI: {reserva.dni}</p>
+            {reserva.telefono && <p className="text-muted-foreground print:text-black/70">Tel: {reserva.telefono}</p>}
+            {reserva.email && <p className="text-muted-foreground print:text-black/70">{reserva.email}</p>}
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground print:text-black/60">Estadía</p>
+            <p>Habitación {reserva.habitacion} ({hab?.tipo || '—'})</p>
+            <p className="text-muted-foreground print:text-black/70">{formatFecha(reserva.checkin)} — {formatFecha(reserva.checkout)} · {noches} noche{noches !== 1 ? 's' : ''}</p>
+            <p className="text-muted-foreground print:text-black/70">
+              {reserva.personas} adulto{reserva.personas !== 1 ? 's' : ''}{reserva.ninos ? ` + ${reserva.ninos} niño${reserva.ninos > 1 ? 's' : ''}` : ''}
+              {' · '}Tarifa {(reserva.tipoTarifa || 'normal').charAt(0).toUpperCase() + (reserva.tipoTarifa || 'normal').slice(1)}
+            </p>
+          </div>
+        </div>
+
+        {/* ── Detalle de pagos (tabla completa) ── */}
+        <div>
+          <Table>
+            <TableHeader>
+              <TableRow className="border-foreground/20">
+                <TableHead>Fecha</TableHead>
+                <TableHead>Concepto</TableHead>
+                <TableHead>Método</TableHead>
+                <TableHead className="text-right">Monto</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reservasPagos.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground print:text-black/60">No hay pagos registrados.</TableCell></TableRow>
+              ) : (
+                reservasPagos.map(p => {
+                  const metodoNombre = metodosPago.find(m => m.id === p.metodo)?.nombre || p.metodo;
+                  return (
+                    <TableRow key={p.id} className="border-foreground/10">
+                      <TableCell>{formatFecha(p.fecha)}</TableCell>
+                      <TableCell>{p.nota || `Alojamiento hab. ${reserva.habitacion}`}</TableCell>
+                      <TableCell>{metodoNombre}</TableCell>
+                      <TableCell className="text-right font-medium">{formatMoney(p.monto)}</TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* ── Totales ── */}
+        <div className="flex justify-end">
+          <div className="w-64 space-y-1.5">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground print:text-black/70">Total reserva</span>
+              <span className="font-medium">{formatMoney(total)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground print:text-black/70">Total pagado</span>
+              <span className="font-medium">{formatMoney(pagado)}</span>
+            </div>
+            <div className="border-t border-foreground/20 pt-1.5 flex justify-between text-base font-bold">
+              <span>{saldo > 0 ? 'Saldo pendiente' : 'Estado'}</span>
+              <span className={saldo > 0 ? 'text-destructive print:text-black' : 'text-primary print:text-black'}>
+                {saldo > 0 ? formatMoney(saldo) : 'PAGADO'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {reserva.notas && (
+          <div className="text-sm border-t border-foreground/10 pt-3">
+            <span className="text-muted-foreground print:text-black/70">Notas: </span>
+            <span>{reserva.notas}</span>
+          </div>
+        )}
+
+        {/* ── Footer legal ── */}
+        <div className="border-t border-foreground/20 pt-3 space-y-1">
+          <p className="text-center text-[10px] text-muted-foreground print:text-black/60">
+            {razonSocial} — Documento generado el {fechaEmision}
+          </p>
+          {isReceipt && (
+            <p className="text-center text-[9px] text-muted-foreground/70 print:text-black/50">
+              Comprobante interno — no reemplaza la factura electrónica oficial de AFIP.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-center pt-4 print:hidden">
+        <Button onClick={onPrint} variant="outline" size="sm" className="gap-1.5">
+          <Printer className="w-4 h-4" />
+          Imprimir A4
+        </Button>
       </div>
     </div>
   );

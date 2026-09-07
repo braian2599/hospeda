@@ -484,32 +484,92 @@ function ContactInfoCard({ icon: Icon, label, value, color }: { icon: React.Comp
 // 2. DATOS FISCALES (enhanced)
 // ═══════════════════════════════════════════
 function FiscalSection() {
-  const [form, setForm] = useState({ cuit: '', iva: '', direccionFiscal: '', ciudad: '', puntoVenta: 1, numeroInicio: 1 });
+  const [form, setForm] = useState({ cuit: '', iva: '', direccionFiscal: '', ciudad: '', puntoVenta: 1, numeroInicio: 1, razonSocial: '', facturaLogoUrl: '' });
+  const [numeroFactura, setNumeroFactura] = useState(0); // comprobantes ya emitidos
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/configuracion/fiscal')
+  const cargarFiscal = useCallback(() => {
+    return fetch('/api/configuracion/fiscal')
       .then(r => r.json())
-      .then(data => { if (!data.error) setForm({ cuit: data.cuit || '', iva: data.iva || '', direccionFiscal: data.direccionFiscal || '', ciudad: data.ciudad || '', puntoVenta: data.puntoVenta || 1, numeroInicio: 1 }); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .then(data => {
+        if (data.error) return;
+        setForm(prev => ({
+          ...prev,
+          cuit: data.cuit || '', iva: data.iva || '', direccionFiscal: data.direccionFiscal || '',
+          ciudad: data.ciudad || '', puntoVenta: data.puntoVenta || 1,
+          razonSocial: data.razonSocial || '', facturaLogoUrl: data.facturaLogoUrl || '',
+          numeroInicio: (data.numeroFactura || 0) + 1,
+        }));
+        setNumeroFactura(data.numeroFactura || 0);
+      });
   }, []);
+
+  useEffect(() => { cargarFiscal().catch(() => {}).finally(() => setLoading(false)); }, [cargarFiscal]);
+
+  const numeracionYaUsada = numeroFactura > 0;
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // API only supports these fields; numeroInicio is UI-only.
-      const payload = {
+      const payload: Record<string, unknown> = {
         cuit: form.cuit, iva: form.iva, direccionFiscal: form.direccionFiscal,
         ciudad: form.ciudad, puntoVenta: form.puntoVenta,
+        razonSocial: form.razonSocial, facturaLogoUrl: form.facturaLogoUrl,
       };
+      // Solo se envía mientras no se haya emitido ningún comprobante todavía
+      // (el servidor lo rechaza igual si ya se usó, pero evitamos el 400
+      // innecesario cuando el campo ni siquiera se muestra editable).
+      if (!numeracionYaUsada) payload.numeroInicio = form.numeroInicio;
+
       const res = await fetch('/api/configuracion/fiscal', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Error'); return; }
       toast.success('Datos fiscales guardados');
+      await cargarFiscal();
     } catch { toast.error('Error de conexión'); }
     setSaving(false);
+  };
+
+  const handleUploadLogo = async (file: File) => {
+    setUploadingLogo(true);
+    try {
+      const url = await uploadFoto(file, 'factura');
+      const prevUrl = form.facturaLogoUrl;
+      setForm(prev => ({ ...prev, facturaLogoUrl: url }));
+      const res = await fetch('/api/configuracion/fiscal', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cuit: form.cuit, iva: form.iva, direccionFiscal: form.direccionFiscal, ciudad: form.ciudad, puntoVenta: form.puntoVenta, razonSocial: form.razonSocial, facturaLogoUrl: url }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      if (prevUrl) fetch('/api/uploads/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: prevUrl }) }).catch(() => {});
+      toast.success('Logo actualizado');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al subir el logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    const prevUrl = form.facturaLogoUrl;
+    if (!prevUrl) return;
+    setForm(prev => ({ ...prev, facturaLogoUrl: '' }));
+    try {
+      const res = await fetch('/api/configuracion/fiscal', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cuit: form.cuit, iva: form.iva, direccionFiscal: form.direccionFiscal, ciudad: form.ciudad, puntoVenta: form.puntoVenta, razonSocial: form.razonSocial, facturaLogoUrl: '' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      fetch('/api/uploads/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: prevUrl }) }).catch(() => {});
+      toast.success('Logo eliminado');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al eliminar el logo');
+      setForm(prev => ({ ...prev, facturaLogoUrl: prevUrl }));
+    }
   };
 
   // Compute verification digit
@@ -535,6 +595,14 @@ function FiscalSection() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                Razón social
+              </Label>
+              <Input value={form.razonSocial} onChange={e => setForm({ ...form, razonSocial: e.target.value })} placeholder="Nombre legal / razón social registrada ante AFIP" />
+              <p className="text-xs text-muted-foreground">Puede ser distinto del nombre comercial del hotel — es el que figura en la factura.</p>
+            </div>
             <div className="space-y-1.5">
               <Label className="text-sm font-medium flex items-center gap-2">
                 <FileText className="w-3.5 h-3.5 text-muted-foreground" />
@@ -607,9 +675,51 @@ function FiscalSection() {
                 <Receipt className="w-3.5 h-3.5 text-muted-foreground" />
                 Número de inicio de facturación
               </Label>
-              <Input type="number" min={1} value={form.numeroInicio} onChange={e => setForm({ ...form, numeroInicio: parseInt(e.target.value) || 1 })} />
-              <p className="text-xs text-muted-foreground">Primer número de comprobante a emitir</p>
+              <Input
+                type="number" min={1} value={form.numeroInicio}
+                disabled={numeracionYaUsada}
+                onChange={e => setForm({ ...form, numeroInicio: parseInt(e.target.value) || 1 })}
+              />
+              <p className="text-xs text-muted-foreground">
+                {numeracionYaUsada
+                  ? `Ya se emitieron ${numeroFactura} comprobante${numeroFactura === 1 ? '' : 's'} — no se puede modificar. Próximo número: ${numeroFactura + 1}.`
+                  : 'Primer número de comprobante a emitir. Se puede cambiar solo hasta que emitas el primero.'}
+              </p>
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />
+              Logo para la factura
+            </Label>
+            <div className="flex items-center gap-3">
+              <div className="w-16 h-16 rounded-lg border bg-white flex items-center justify-center overflow-hidden shrink-0">
+                {form.facturaLogoUrl ? (
+                  <img src={form.facturaLogoUrl} alt="Logo de factura" className="w-full h-full object-contain" />
+                ) : (
+                  <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" disabled={uploadingLogo} asChild>
+                  <label className="cursor-pointer">
+                    {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Upload className="w-4 h-4 mr-1.5" />}
+                    {form.facturaLogoUrl ? 'Cambiar logo' : 'Subir logo'}
+                    <input
+                      type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={uploadingLogo}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadLogo(f); e.target.value = ''; }}
+                    />
+                  </label>
+                </Button>
+                {form.facturaLogoUrl && (
+                  <Button variant="ghost" size="sm" onClick={handleRemoveLogo} disabled={uploadingLogo}>
+                    <Trash2 className="w-4 h-4 mr-1.5" /> Quitar
+                  </Button>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">Aparece en el encabezado del comprobante en formato A4. JPG, PNG o WEBP, hasta 8MB.</p>
           </div>
 
           <div className="flex justify-end">
@@ -671,7 +781,7 @@ function FiscalSection() {
 const MAX_FOTO_BYTES = 8 * 1024 * 1024;
 const ALLOWED_FOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
-async function uploadFoto(file: File, tipo: 'hotel' | 'habitacion', habitacion?: string): Promise<string> {
+async function uploadFoto(file: File, tipo: 'hotel' | 'habitacion' | 'factura', habitacion?: string): Promise<string> {
   if (!ALLOWED_FOTO_TYPES.has(file.type)) {
     throw new Error('Formato no permitido (solo jpg, png, webp)');
   }
