@@ -31,7 +31,7 @@ import { toast } from 'sonner';
 import PaginationBar from '@/components/ui/pagination-bar';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import QRCode from 'qrcode';
-import { docReceptor, letraComprobante, DOC_TIPO } from '@/lib/afip/config';
+import { docReceptor, letraComprobante, DOC_TIPO, CBTE_TIPO, tipoComprobantePorCondicionIva, nombreTipoComprobante } from '@/lib/afip/config';
 import { urlQrAfip } from '@/lib/afip/qr';
 import { montoALetras } from '@/lib/numero-a-letras';
 
@@ -1245,37 +1245,73 @@ function A4Receipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loading
   const fechaEmision = now.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const razonSocial = fiscal?.razonSocial || hotelName;
 
-  // ── QR obligatorio de AFIP (RG 4892) — solo existe cuando hay CAE real. ──
+  const esFacturaOficial = isReceipt && !!comprobante?.cae && !!comprobante.tipoComprobanteCodigo;
+
+  // ── Vista previa: dejar ver el formato oficial (con datos de ejemplo,
+  // bien marcado como MODELO) aunque todavía no haya un CAE real — así se
+  // puede revisar/ajustar el diseño sin depender de AFIP. Nunca se muestra
+  // sola en la hoja: siempre lleva el aviso de "no válido" bien visible. ──
+  const [vistaPrevia, setVistaPrevia] = useState(false);
+  const comprobantePreview: ComprobanteDisplay = useMemo(() => {
+    const tipo = fiscal?.iva ? tipoComprobantePorCondicionIva(fiscal.iva) : CBTE_TIPO.FACTURA_B;
+    return {
+      numeroDisplay: comprobante?.numeroDisplay || '0001-00000001',
+      numero: comprobante?.numero || 1,
+      puntoVenta: comprobante?.puntoVenta || 1,
+      fecha: new Date().toISOString(),
+      cae: '00000000000000',
+      caeVencimiento: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+      tipoComprobanteNombre: nombreTipoComprobante(tipo),
+      tipoComprobanteCodigo: tipo,
+      ambiente: null,
+    };
+  }, [fiscal?.iva, comprobante?.numeroDisplay, comprobante?.numero, comprobante?.puntoVenta]);
+
+  const modoDocumento: 'factura' | 'presupuesto' | 'interno' =
+    !isReceipt ? 'presupuesto' : (esFacturaOficial || vistaPrevia) ? 'factura' : 'interno';
+  const comprobanteEfectivo: ComprobanteDisplay | null =
+    modoDocumento === 'factura' ? (esFacturaOficial ? comprobante : comprobantePreview) : comprobante;
+
+  // ── QR obligatorio de AFIP (RG 4892) — solo existe cuando hay CAE real
+  // (o en la vista previa, con datos de ejemplo). ──
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   useEffect(() => {
-    if (!comprobante?.cae || !comprobante.tipoComprobanteCodigo || !fiscal?.cuit) return;
+    if (modoDocumento !== 'factura' || !comprobanteEfectivo?.cae || !comprobanteEfectivo.tipoComprobanteCodigo || !fiscal?.cuit) return;
     let cancelled = false;
     const { docTipo, docNro } = docReceptor(reserva.dni);
     const url = urlQrAfip({
-      fecha: comprobante.fecha ? new Date(comprobante.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+      fecha: comprobanteEfectivo.fecha ? new Date(comprobanteEfectivo.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
       cuit: fiscal.cuit,
-      ptoVta: comprobante.puntoVenta,
-      cbteTipo: comprobante.tipoComprobanteCodigo,
-      nroCmp: comprobante.numero,
+      ptoVta: comprobanteEfectivo.puntoVenta,
+      cbteTipo: comprobanteEfectivo.tipoComprobanteCodigo,
+      nroCmp: comprobanteEfectivo.numero,
       importe: pagado,
       docTipo, docNro,
-      cae: comprobante.cae,
+      cae: comprobanteEfectivo.cae,
     });
     QRCode.toDataURL(url, { margin: 0, width: 200 })
       .then(dataUrl => { if (!cancelled) setQrDataUrl(dataUrl); })
       .catch(() => { if (!cancelled) setQrDataUrl(null); });
     return () => { cancelled = true; };
-  }, [comprobante?.cae, comprobante?.tipoComprobanteCodigo, comprobante?.puntoVenta, comprobante?.numero, comprobante?.fecha, fiscal?.cuit, pagado, reserva.dni]);
-
-  const esFacturaOficial = isReceipt && !!comprobante?.cae && !!comprobante.tipoComprobanteCodigo;
+  }, [modoDocumento, comprobanteEfectivo?.cae, comprobanteEfectivo?.tipoComprobanteCodigo, comprobanteEfectivo?.puntoVenta, comprobanteEfectivo?.numero, comprobanteEfectivo?.fecha, fiscal?.cuit, pagado, reserva.dni]);
 
   return (
     <div id="comprobante-imprimible" data-formato="a4" className="bg-card print:bg-white text-foreground print:text-black">
       <style>{'@media print { @page { size: A4; margin: 12mm; } }'}</style>
 
-      {esFacturaOficial ? (
+      {isReceipt && !esFacturaOficial && (
+        <div className="flex justify-center mb-2 print:hidden">
+          <Button size="sm" variant={vistaPrevia ? 'default' : 'outline'} className="h-7 text-xs gap-1.5" onClick={() => setVistaPrevia(v => !v)}>
+            {vistaPrevia ? <XCircle className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+            {vistaPrevia ? 'Salir de la vista previa' : 'Vista previa del formato oficial'}
+          </Button>
+        </div>
+      )}
+
+      {modoDocumento !== 'interno' ? (
         <FacturaOficial
-          reserva={reserva} fiscal={fiscal} comprobante={comprobante} pagado={pagado}
+          modo={modoDocumento} vistaPrevia={modoDocumento === 'factura' && !esFacturaOficial}
+          reserva={reserva} fiscal={fiscal} comprobante={comprobanteEfectivo!} pagado={pagado}
           noches={noches} hab={hab} fechaEmision={fechaEmision} qrDataUrl={qrDataUrl}
         />
       ) : (
@@ -1303,7 +1339,7 @@ function A4Receipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loading
             </div>
             <div className="text-right shrink-0">
               <p className="text-xs font-semibold uppercase tracking-widest">
-                {isReceipt ? 'Recibo' : 'Cotización'}
+                Recibo
               </p>
               <p className="text-lg font-mono font-bold mt-0.5">{loadingComprobante ? '...' : (comprobante?.numeroDisplay || '—')}</p>
               <p className="text-xs text-muted-foreground print:text-black/70 mt-1">Fecha: {fechaEmision}</p>
@@ -1418,8 +1454,10 @@ function A4Receipt({ reserva, hotelName, fiscal, isReceipt, comprobante, loading
    monto en letras, QR obligatorio (RG 4892) y CAE. */
 
 function FacturaOficial({
-  reserva, fiscal, comprobante, pagado, noches, hab, fechaEmision, qrDataUrl,
+  modo, vistaPrevia, reserva, fiscal, comprobante, pagado, noches, hab, fechaEmision, qrDataUrl,
 }: {
+  modo: 'factura' | 'presupuesto';
+  vistaPrevia: boolean;
   reserva: Reserva;
   fiscal: DatosFiscales | null;
   comprobante: ComprobanteDisplay;
@@ -1429,15 +1467,22 @@ function FacturaOficial({
   fechaEmision: string;
   qrDataUrl: string | null;
 }) {
-  const cbteTipo = comprobante.tipoComprobanteCodigo!;
-  const letra = letraComprobante(cbteTipo);
+  const esFactura = modo === 'factura';
+  const cbteTipo = comprobante.tipoComprobanteCodigo;
+  const letra = cbteTipo ? letraComprobante(cbteTipo) : 'P';
   const { docTipo, docNro } = docReceptor(reserva.dni);
   const sitTributaria = docTipo === DOC_TIPO.CUIT ? 'Responsable Inscripto / Monotributo' : 'Consumidor Final';
   const etiquetaDoc = docTipo === DOC_TIPO.CUIT ? 'C.U.I.T.' : 'DNI';
   const concepto = `Alojamiento — Hab. ${reserva.habitacion}${hab?.tipo ? ` (${hab.tipo})` : ''} — ${formatFecha(reserva.checkin)} a ${formatFecha(reserva.checkout)} (${noches} noche${noches !== 1 ? 's' : ''})`;
 
   return (
-    <div className="border-2 border-foreground print:border-black text-[13px]">
+    <div className="border-2 border-foreground print:border-black text-[13px] relative">
+      {vistaPrevia && (
+        <div className="bg-destructive text-white text-center text-xs font-bold uppercase tracking-widest py-1">
+          Vista previa — modelo, no es un comprobante válido
+        </div>
+      )}
+
       {/* ── Encabezado: emisor | letra | datos del comprobante ── */}
       <div className="grid grid-cols-[1fr_auto_1fr] border-b-2 border-foreground print:border-black">
         <div className="p-4 flex items-start gap-3 min-w-0">
@@ -1456,13 +1501,13 @@ function FacturaOficial({
         </div>
         <div className="border-x-2 border-foreground print:border-black w-20 flex flex-col items-center justify-center px-2">
           <span className="text-4xl font-bold leading-none">{letra}</span>
-          <span className="text-[9px] mt-1">Código {cbteTipo}</span>
+          {esFactura && <span className="text-[9px] mt-1">Código {cbteTipo}</span>}
         </div>
         <div className="p-4 text-right">
-          <p className="text-xl font-bold tracking-wide">FACTURA</p>
+          <p className="text-xl font-bold tracking-wide">{esFactura ? 'FACTURA' : 'PRESUPUESTO'}</p>
           <p className="font-semibold mt-1">N° {comprobante.numeroDisplay}</p>
           <p>Fecha: {fechaEmision}</p>
-          <p className="mt-1">C.U.I.T.: {fiscal?.cuit}</p>
+          {fiscal?.cuit && <p className="mt-1">C.U.I.T.: {fiscal.cuit}</p>}
         </div>
       </div>
 
@@ -1498,11 +1543,17 @@ function FacturaOficial({
         </table>
       </div>
 
-      {/* ── Pie: monto en letras + QR | totales + CAE ── */}
+      {/* ── Pie: monto en letras + QR/CAE (factura) o nota (presupuesto) | totales ── */}
       <div className="grid grid-cols-[1fr_auto] border-t-2 border-foreground print:border-black">
         <div className="p-3 border-r-2 border-foreground print:border-black">
           <p className="text-xs font-semibold">Son pesos: {montoALetras(pagado)}</p>
-          {qrDataUrl && <img src={qrDataUrl} alt="QR AFIP" className="w-24 h-24 mt-2" />}
+          {esFactura ? (
+            qrDataUrl && <img src={qrDataUrl} alt="QR AFIP" className="w-24 h-24 mt-2" />
+          ) : (
+            <p className="text-[10px] text-muted-foreground print:text-black/60 mt-2">
+              Presupuesto sin validez fiscal — el comprobante definitivo se emite recién al confirmar el pago.
+            </p>
+          )}
         </div>
         <div className="p-3 w-56 text-sm">
           <div className="flex justify-between"><span>Subtotal</span><span>{formatMoney(pagado)}</span></div>
@@ -1510,14 +1561,16 @@ function FacturaOficial({
           <div className="flex justify-between font-bold text-base border-t border-foreground print:border-black mt-1 pt-1">
             <span>TOTAL</span><span>{formatMoney(pagado)}</span>
           </div>
-          <div className="border-t border-foreground print:border-black mt-2 pt-1 text-xs font-mono">
-            <p><span className="font-sans font-semibold">C.A.E.: </span>{comprobante.cae}</p>
-            <p><span className="font-sans font-semibold">Vto. C.A.E.: </span>{comprobante.caeVencimiento ? new Date(comprobante.caeVencimiento).toLocaleDateString('es-AR') : '—'}</p>
-          </div>
+          {esFactura && (
+            <div className="border-t border-foreground print:border-black mt-2 pt-1 text-xs font-mono">
+              <p><span className="font-sans font-semibold">C.A.E.: </span>{comprobante.cae}</p>
+              <p><span className="font-sans font-semibold">Vto. C.A.E.: </span>{comprobante.caeVencimiento ? new Date(comprobante.caeVencimiento).toLocaleDateString('es-AR') : '—'}</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {comprobante.ambiente === 'homologacion' && (
+      {esFactura && !vistaPrevia && comprobante.ambiente === 'homologacion' && (
         <p className="text-center text-[10px] font-bold text-destructive print:text-black py-1 border-t-2 border-foreground print:border-black uppercase tracking-wide">
           Comprobante de prueba (homologación) — sin validez fiscal
         </p>
