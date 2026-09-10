@@ -12,7 +12,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const tenantId = await requirePermission(['facturacion', 'reservas', 'checkin']);
+    const tenantId = await requirePermission(['comprobantes', 'reservas', 'checkin']);
     const session = await getAuthSession();
     const { id } = await params;
 

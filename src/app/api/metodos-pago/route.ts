@@ -17,7 +17,7 @@ const TIPO_TO_DB: Record<TipoMetodoPagoUI, PrismaTipoMetodoPago> = {
 // GET /api/metodos-pago — Listar métodos de pago activos del tenant
 export async function GET() {
   try {
-    const tenantId = await requirePermission('facturacion');
+    const tenantId = await requirePermission('comprobantes');
 
     const metodos = await db.metodoPago.findMany({
       where: { tenantId, activo: true },
@@ -37,7 +37,7 @@ export async function GET() {
 // POST /api/metodos-pago — Crear método de pago
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('facturacion');
+    const tenantId = await requirePermission('comprobantes');
     const body = await req.json();
     const { nombre, tipo, recargo, cuotas, orden } = body;
 

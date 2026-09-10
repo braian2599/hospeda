@@ -9,7 +9,7 @@ import { requirePermission, AuthError } from '@/lib/auth/utils';
 // sistema abierto, salvo que recargue la página.
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission(['facturacion', 'reservas', 'checkin']);
+    const tenantId = await requirePermission(['comprobantes', 'reservas', 'checkin']);
     const { searchParams } = new URL(req.url);
     const sinceParam = searchParams.get('since');
     const ahora = new Date();

@@ -191,7 +191,7 @@ const SKELETON_MAP: Partial<Record<ModuloId, React.FC>> = {
   checkin: SkelCheckIn,
   reservas: () => <SkelTableModule cols={8} rows={6} hasFilters />,
   clientes: () => <SkelTableModule cols={6} rows={6} hasSearch />,
-  facturacion: () => <SkelTableModule cols={6} rows={5} />,
+  comprobantes: () => <SkelTableModule cols={6} rows={5} />,
   limpieza: () => <SkelCardGrid count={10} cols="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5" />,
   caja: () => <SkelTableModule cols={5} rows={5} />,
   reportes: () => (

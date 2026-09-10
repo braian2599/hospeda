@@ -103,7 +103,7 @@ export function useGlobalSearch(query: string): SearchResult[] {
           title: huesped || `Pago ${p.id}`,
           subtitle: `Pago · ${p.metodo} · ${formatMoney(p.monto)}`,
           icon: 'Receipt',
-          modulo: 'facturacion',
+          modulo: 'comprobantes',
         });
       }
     });

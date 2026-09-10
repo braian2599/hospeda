@@ -287,7 +287,7 @@ export interface HabitacionDisponible extends Omit<Habitacion, 'estado' | 'probl
   camasLibres?: number;
 }
 
-export type ModuloId = 'dashboard' | 'habitaciones' | 'reservas' | 'checkin' | 'facturacion' | 'limpieza' | 'caja' | 'clientes' | 'reportes' | 'usuarios' | 'tarifas' | 'configuracion';
+export type ModuloId = 'dashboard' | 'habitaciones' | 'reservas' | 'checkin' | 'comprobantes' | 'limpieza' | 'caja' | 'clientes' | 'reportes' | 'usuarios' | 'tarifas' | 'configuracion';
 
 export const MODULOS_SISTEMA: { id: ModuloId; label: string; icon: string; grupo?: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
@@ -297,7 +297,7 @@ export const MODULOS_SISTEMA: { id: ModuloId; label: string; icon: string; grupo
   { id: 'reservas', label: 'Reservas', icon: 'CalendarDays', grupo: 'comercial' },
   { id: 'clientes', label: 'Clientes', icon: 'Users', grupo: 'comercial' },
   { id: 'tarifas', label: 'Tarifas', icon: 'Tags', grupo: 'comercial' },
-  { id: 'facturacion', label: 'Facturación', icon: 'Receipt', grupo: 'financiero' },
+  { id: 'comprobantes', label: 'Comprobantes', icon: 'Receipt', grupo: 'financiero' },
   { id: 'caja', label: 'Caja', icon: 'Wallet', grupo: 'financiero' },
   { id: 'reportes', label: 'Reportes', icon: 'BarChart3', grupo: 'financiero' },
   { id: 'usuarios', label: 'Usuarios', icon: 'UserCog', grupo: 'admin' },

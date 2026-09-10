@@ -6,7 +6,7 @@ import { requirePermission, AuthError } from '@/lib/auth/utils';
 // Query params: ?desde=YYYY-MM-DD&hasta=YYYY-MM-DD&tipo=string
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('facturacion');
+    const tenantId = await requirePermission('comprobantes');
     const { searchParams } = req.nextUrl;
 
     const desde = searchParams.get('desde');
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
 // POST /api/gastos — Crear gasto
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('facturacion');
+    const tenantId = await requirePermission('comprobantes');
     const body = await req.json();
     const { tipo, descripcion, monto, fecha, empleadoId, empleado } = body;
 

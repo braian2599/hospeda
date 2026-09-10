@@ -68,6 +68,37 @@ export function letraComprobante(cbteTipo: number): string {
   return '?';
 }
 
+export type TipoComprobanteGenerico = 'Factura' | 'Presupuesto' | 'Recibo' | 'Remito' | 'NotaCredito' | 'NotaDebito';
+
+/**
+ * Letra a mostrar en el recuadro grande del comprobante, según su tipo —
+ * usada por la plantilla única de PDF/pantalla que comparten todos los
+ * documentos (Factura, Presupuesto, Recibo, Remito, Notas de Crédito/Débito).
+ * Factura y Notas de Crédito/Débito reflejan la condición de IVA del emisor
+ * (B/C); Remito usa la letra oficial 'R'; Presupuesto y Recibo no tienen
+ * validez fiscal y usan 'X', la convención habitual para documentos no
+ * fiscales.
+ */
+export function letraPorTipoComprobante(tipo: TipoComprobanteGenerico, cbteTipoFactura: number | null): string {
+  if (tipo === 'Factura' || tipo === 'NotaCredito' || tipo === 'NotaDebito') {
+    return cbteTipoFactura ? letraComprobante(cbteTipoFactura) : 'X';
+  }
+  if (tipo === 'Remito') return 'R';
+  return 'X';
+}
+
+/** Aviso al pie del comprobante cuando NO tiene CAE (todavía no está conectado a AFIP). */
+export function notaSinValidezFiscal(tipo: TipoComprobanteGenerico): string {
+  switch (tipo) {
+    case 'Presupuesto': return 'Presupuesto sin validez fiscal. El comprobante definitivo se emite al confirmar el pago.';
+    case 'Recibo': return 'Comprobante interno — no reemplaza la factura electrónica oficial de AFIP.';
+    case 'Remito': return 'Remito interno — no reemplaza la factura electrónica oficial de AFIP.';
+    case 'NotaCredito': return 'Nota de crédito interna — no reemplaza un comprobante fiscal autorizado por AFIP.';
+    case 'NotaDebito': return 'Nota de débito interna — no reemplaza un comprobante fiscal autorizado por AFIP.';
+    default: return '';
+  }
+}
+
 /** Determina tipo/número de documento del receptor a partir del DNI cargado en la reserva. */
 export function docReceptor(dni: string): { docTipo: number; docNro: string } {
   const digits = (dni || '').replace(/\D/g, '');

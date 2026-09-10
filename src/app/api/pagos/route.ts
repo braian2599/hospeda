@@ -15,7 +15,7 @@ class CajaCerradaError extends Error {}
 // ─────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission(['facturacion', 'reservas', 'checkin']);
+    const tenantId = await requirePermission(['comprobantes', 'reservas', 'checkin']);
     const { searchParams } = new URL(req.url);
 
     const reservaId = searchParams.get('reservaId');
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
 // ─────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission(['facturacion', 'reservas', 'checkin']);
+    const tenantId = await requirePermission(['comprobantes', 'reservas', 'checkin']);
     const session = await getAuthSession();
     const body = await req.json();
 

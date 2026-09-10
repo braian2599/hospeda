@@ -52,7 +52,7 @@ const MODULOS_PROFESIONAL: ModuloId[] = [
   'checkin',
   'limpieza',
   'tarifas',
-  'facturacion',
+  'comprobantes',
   'caja',
   'usuarios',
 ];
@@ -200,7 +200,7 @@ export const NOMBRES_MODULOS: Record<ModuloId, string> = {
   habitaciones: 'Habitaciones',
   reservas: 'Reservas',
   checkin: 'Check-In/Out',
-  facturacion: 'Facturación',
+  comprobantes: 'Comprobantes',
   limpieza: 'Limpieza y Mantenimiento',
   caja: 'Caja',
   clientes: 'Clientes',

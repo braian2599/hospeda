@@ -145,8 +145,8 @@ const ROLES: RoleInfo[] = [
 ];
 
 const PERMISOS_POR_ROL: Record<string, ModuloId[]> = {
-  owner: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'facturacion', 'limpieza', 'caja', 'clientes', 'reportes', 'usuarios', 'tarifas'],
-  admin: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'facturacion', 'limpieza', 'caja', 'clientes', 'reportes', 'usuarios', 'tarifas'],
+  owner: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'comprobantes', 'limpieza', 'caja', 'clientes', 'reportes', 'usuarios', 'tarifas'],
+  admin: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'comprobantes', 'limpieza', 'caja', 'clientes', 'reportes', 'usuarios', 'tarifas'],
   recepcion: ['dashboard', 'habitaciones', 'reservas', 'checkin', 'clientes', 'tarifas'],
   limpieza: ['dashboard', 'habitaciones', 'limpieza'],
 };

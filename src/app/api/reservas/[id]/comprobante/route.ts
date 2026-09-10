@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { afipDisponible, emitirComprobanteAfip } from '@/lib/afip/tenant-afip';
-import { AfipError, nombreTipoComprobante } from '@/lib/afip/config';
+import { AfipError, nombreTipoComprobante, docReceptor, letraPorTipoComprobante, DOC_TIPO } from '@/lib/afip/config';
 
 // ─────────────────────────────────────────────────────────
 // POST /api/reservas/[id]/comprobante
@@ -34,6 +34,54 @@ const SELECT_COMPROBANTE = {
   comprobanteCae: true, comprobanteCaeVencimiento: true, comprobanteTipoAfip: true, comprobanteAmbiente: true,
 } as const;
 
+type ReservaParaMirror = {
+  huesped: string; dni: string; domicilio: string | null;
+  habitacion: string; checkin: Date; checkout: Date;
+};
+
+/**
+ * Refleja la Factura/Recibo recién emitida en el ledger genérico
+ * "Comprobante" — no reemplaza a Reserva.comprobante* (que sigue siendo la
+ * fuente rápida que usa la UI del recibo), pero le da a Reportes y a las
+ * Notas de Crédito/Débito una única tabla desde donde consultar "todos los
+ * comprobantes emitidos" sin importar el tipo. Si esto falla, no debe tirar
+ * abajo la emisión real del comprobante — se loguea y se sigue.
+ */
+async function mirrorComprobante(
+  tenantId: string, reservaId: string, reserva: ReservaParaMirror,
+  info: { numero: number; puntoVenta: number; cae: string | null; caeVencimiento: Date | null; tipoAfip: number | null; ambiente: string | null },
+) {
+  try {
+    const { docTipo, docNro } = docReceptor(reserva.dni);
+    const condicionIvaReceptor = docTipo === DOC_TIPO.CUIT ? 'Responsable Inscripto / Monotributo' : 'Consumidor Final';
+    // A nivel de ledger siempre es tipo "Factura" (misma numeración que
+    // Reserva.comprobanteNumero) — que todavía no tenga CAE (info.cae null)
+    // es lo que distingue un comprobante interno de uno autorizado por
+    // AFIP, no un tipo de documento distinto.
+    const tipo = 'Factura' as const;
+    const letra = letraPorTipoComprobante(tipo, info.tipoAfip);
+    const agg = await db.pago.aggregate({ where: { tenantId, reservaId }, _sum: { monto: true } });
+    const importe = agg._sum.monto || 0; // centavos, igual que Pago.monto
+
+    await db.comprobante.create({
+      data: {
+        tenantId, tipo, letra,
+        puntoVenta: info.puntoVenta, numero: info.numero,
+        reservaId,
+        razonSocialReceptor: reserva.huesped,
+        docTipoReceptor: docTipo, docReceptor: docNro,
+        domicilioReceptor: reserva.domicilio,
+        condicionIvaReceptor,
+        concepto: `Alojamiento — Hab. ${reserva.habitacion} — ${reserva.checkin.toISOString().slice(0, 10)} a ${reserva.checkout.toISOString().slice(0, 10)}`,
+        importe,
+        cae: info.cae, caeVencimiento: info.caeVencimiento, tipoAfip: info.tipoAfip, ambiente: info.ambiente,
+      },
+    });
+  } catch (err) {
+    console.error('mirrorComprobante:', err);
+  }
+}
+
 function formatResponse(r: ReservaComprobante) {
   return {
     numeroComprobante: r.comprobanteNumero,
@@ -52,12 +100,16 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const tenantId = await requirePermission(['facturacion', 'reservas', 'checkin']);
+    const tenantId = await requirePermission(['comprobantes', 'reservas', 'checkin']);
     const { id } = await params;
 
     const reserva = await db.reserva.findFirst({
       where: { id, tenantId },
-      select: { estado: true, ...SELECT_COMPROBANTE },
+      select: {
+        estado: true, huesped: true, dni: true, domicilio: true,
+        habitacion: true, checkin: true, checkout: true,
+        ...SELECT_COMPROBANTE,
+      },
     });
     if (!reserva) {
       return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 });
@@ -109,6 +161,10 @@ export async function POST(
           },
           select: SELECT_COMPROBANTE,
         });
+        await mirrorComprobante(tenantId, id, reserva, {
+          numero: afip.cbteNro, puntoVenta: afip.puntoVenta,
+          cae: afip.cae, caeVencimiento: afip.caeFchVto, tipoAfip: afip.cbteTipo, ambiente: afip.ambiente,
+        });
         return NextResponse.json(formatResponse(actualizado));
       }
 
@@ -127,6 +183,10 @@ export async function POST(
           comprobanteFecha: new Date(),
         },
         select: SELECT_COMPROBANTE,
+      });
+      await mirrorComprobante(tenantId, id, reserva, {
+        numero: config.numeroFactura, puntoVenta: config.puntoVenta ?? 1,
+        cae: null, caeVencimiento: null, tipoAfip: null, ambiente: null,
       });
       return NextResponse.json(formatResponse(actualizado));
     } catch (err) {

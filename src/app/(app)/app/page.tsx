@@ -9,7 +9,7 @@ import HabitacionesModule from '@/components/modules/HabitacionesModule';
 import ClientesModule from '@/components/modules/ClientesModule';
 import CheckInModule from '@/components/modules/CheckInModule';
 import ReservasModule from '@/components/modules/ReservasModule';
-import FacturacionModule from '@/components/modules/FacturacionModule';
+import ComprobantesModule from '@/components/modules/ComprobantesModule';
 import LimpiezaModule from '@/components/modules/LimpiezaModule';
 import CajaModule from '@/components/modules/CajaModule';
 import TarifasModule from '@/components/modules/TarifasModule';
@@ -31,7 +31,7 @@ const modules: Partial<Record<ModuloId, React.ComponentType>> = {
   habitaciones: HabitacionesModule,
   reservas: ReservasModule,
   checkin: CheckInModule,
-  facturacion: FacturacionModule,
+  comprobantes: ComprobantesModule,
   limpieza: LimpiezaModule,
   caja: CajaModule,
   clientes: ClientesModule,

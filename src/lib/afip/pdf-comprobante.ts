@@ -1,4 +1,4 @@
-// ==================== Generación nativa del PDF de factura/presupuesto ====================
+// ==================== Generación nativa del PDF de comprobantes ====================
 // Dibuja el comprobante directamente con las primitivas de jsPDF (texto,
 // líneas, rectángulos) en vez de convertir HTML/CSS a imagen. Esto evita
 // por completo los problemas de recortado del diálogo de impresión del
@@ -6,19 +6,37 @@
 // color-mix) que usa el tema de la app — acá se controla cada color y
 // coordenada a mano, así que el resultado es siempre el mismo sin
 // importar el navegador ni el tema.
+//
+// Es una única plantilla para TODOS los documentos (Factura, Presupuesto,
+// Recibo, Remito, Nota de Crédito, Nota de Débito): lo único que cambia
+// entre uno y otro es el título, la letra del recuadro y si tiene o no
+// CAE/QR de AFIP — la distribución (encabezado, receptor, detalle, pie)
+// es siempre la misma, tal como pidió el dueño del negocio: "el diseño
+// siempre debe ocupar toda la hoja... debe ser como el diseño real, sin
+// importar qué tipo de comprobante sea".
 
 import jsPDF from 'jspdf';
 
-export interface DatosFacturaPdf {
-  modo: 'factura' | 'presupuesto';
-  vistaPrevia: boolean;
+export type TipoComprobantePdf = 'Factura' | 'Presupuesto' | 'Recibo' | 'Remito' | 'NotaCredito' | 'NotaDebito';
+
+export const TITULO_POR_TIPO: Record<TipoComprobantePdf, string> = {
+  Factura: 'FACTURA',
+  Presupuesto: 'PRESUPUESTO',
+  Recibo: 'RECIBO',
+  Remito: 'REMITO',
+  NotaCredito: 'NOTA DE CRÉDITO',
+  NotaDebito: 'NOTA DE DÉBITO',
+};
+
+export interface DatosComprobantePdf {
+  tipo: TipoComprobantePdf;
+  letra: string; // 'B' | 'C' (fiscal) | 'R' (Remito) | 'X' (sin validez fiscal)
+  codigoTipo: number | null; // código de comprobante AFIP (CbteTipo) — solo si es fiscal
   razonSocialEmisor: string;
   direccionEmisor: string;
   condicionIvaEmisor: string;
   cuitEmisor: string;
   logoDataUrl: string | null;
-  letra: string;
-  codigoTipo: number | null;
   numeroDisplay: string;
   fecha: string;
   razonSocialReceptor: string;
@@ -26,12 +44,15 @@ export interface DatosFacturaPdf {
   sitTributariaReceptor: string;
   etiquetaDocReceptor: string;
   docReceptor: string;
+  notaReceptor: string | null; // p.ej. "Ref: Factura B 0001-00000042" en Notas de Crédito/Débito
   concepto: string;
   importe: number;
   montoEnLetras: string;
   cae: string | null;
   caeVencimiento: string | null;
   qrDataUrl: string | null;
+  notaSinFiscal: string | null; // reemplaza al QR/CAE cuando cae es null (aviso de que no tiene validez fiscal)
+  avisoBanner: string | null; // franja roja al pie (vista previa / homologación) — null si no corresponde
 }
 
 const NEGRO: [number, number, number] = [0, 0, 0];
@@ -56,10 +77,17 @@ function envolver(doc: jsPDF, texto: string, anchoMm: number): string[] {
   return doc.splitTextToSize(texto, anchoMm) as string[];
 }
 
-/** Descarga una imagen (p.ej. el logo, hosteado en R2) y la convierte a data URL para poder embeberla en el PDF. */
+/**
+ * Descarga una imagen (p.ej. el logo, hosteado en R2) y la convierte a data
+ * URL para poder embeberla en el PDF. Pasa por /api/uploads/imagen-remota
+ * (mismo origen) en vez de hacer fetch directo a R2: un <img> puede mostrar
+ * una imagen cross-origin sin problema, pero fetch() sí necesita CORS, y el
+ * bucket de R2 no lo tiene habilitado para el dominio de la app.
+ */
 export async function cargarImagenComoDataUrl(url: string): Promise<string | null> {
   try {
-    const res = await fetch(url);
+    const proxied = `/api/uploads/imagen-remota?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxied);
     if (!res.ok) return null;
     const blob = await res.blob();
     return await new Promise((resolve, reject) => {
@@ -73,9 +101,9 @@ export async function cargarImagenComoDataUrl(url: string): Promise<string | nul
   }
 }
 
-export function generarFacturaPdf(d: DatosFacturaPdf): jsPDF {
+export function generarComprobantePdf(d: DatosComprobantePdf): jsPDF {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const esFactura = d.modo === 'factura';
+  const esFiscal = d.cae !== null;
   const MY = 15; // margen superior/inferior (mm)
   const ALTO_PAGINA = 297;
   let y = MY;
@@ -125,7 +153,7 @@ export function generarFacturaPdf(d: DatosFacturaPdf): jsPDF {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(34);
   doc.text(d.letra, (COL2_X + COL3_X) / 2, y + 21, { align: 'center' });
-  if (esFactura && d.codigoTipo) {
+  if (d.codigoTipo) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.text(`Código ${d.codigoTipo}`, (COL2_X + COL3_X) / 2, y + 27, { align: 'center' });
@@ -134,7 +162,7 @@ export function generarFacturaPdf(d: DatosFacturaPdf): jsPDF {
   // Datos del comprobante
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
-  doc.text(esFactura ? 'FACTURA' : 'PRESUPUESTO', BX - 3, y + 10, { align: 'right' });
+  doc.text(TITULO_POR_TIPO[d.tipo], BX - 3, y + 10, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.text(`N° ${d.numeroDisplay}`, BX - 3, y + 18, { align: 'right' });
@@ -144,7 +172,7 @@ export function generarFacturaPdf(d: DatosFacturaPdf): jsPDF {
   y += headerH;
 
   // ── Datos del receptor ──
-  const receptorH = 25;
+  const receptorH = d.notaReceptor ? 30 : 25;
   doc.setLineWidth(0.5);
   doc.rect(AX, y, BX - AX, receptorH);
   doc.setFont('helvetica', 'normal');
@@ -154,15 +182,22 @@ export function generarFacturaPdf(d: DatosFacturaPdf): jsPDF {
   doc.text(`Domicilio: ${d.domicilioReceptor || '—'}`, AX + 3, y + 14);
   doc.text(`Sit. Tributaria: ${d.sitTributariaReceptor}`, AX + 3, y + 21);
   doc.text(`${d.etiquetaDocReceptor}: ${d.docReceptor}`, BX - 3, y + 21, { align: 'right' });
+  if (d.notaReceptor) {
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8);
+    doc.setTextColor(...GRIS);
+    doc.text(d.notaReceptor, AX + 3, y + 27);
+    doc.setTextColor(...NEGRO);
+  }
 
   y += receptorH;
 
   // ── Pie: monto en letras + QR/nota | totales + CAE — anclado cerca del
-  // borde inferior de la hoja, no pegado abajo del detalle. Así la factura
-  // ocupa siempre toda la hoja de arriba a abajo, tenga uno o diez ítems —
-  // exactamente como un comprobante real (la tabla de ítems se estira para
-  // llenar el espacio disponible, no al revés). ──
-  const footerH = esFactura ? 46 : 34;
+  // borde inferior de la hoja, no pegado abajo del detalle. Así el
+  // comprobante ocupa siempre toda la hoja de arriba a abajo, tenga uno o
+  // diez ítems — exactamente como un comprobante real (la tabla de ítems
+  // se estira para llenar el espacio disponible, no al revés). ──
+  const footerH = esFiscal ? 46 : 34;
   const footerY = ALTO_PAGINA - MY - footerH;
 
   // ── Detalle (ítems) — ocupa todo el espacio libre entre el receptor y el pie ──
@@ -205,15 +240,15 @@ export function generarFacturaPdf(d: DatosFacturaPdf): jsPDF {
     doc.text(linea, AX + 3, sonPesosY);
     sonPesosY += 4;
   }
-  if (esFactura) {
+  if (esFiscal) {
     if (d.qrDataUrl) {
       try { doc.addImage(d.qrDataUrl, AX + 3, sonPesosY + 2, 24, 24, undefined, 'FAST'); } catch { /* sin QR si falla */ }
     }
-  } else {
+  } else if (d.notaSinFiscal) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(...GRIS);
-    for (const linea of envolver(doc, 'Presupuesto sin validez fiscal. El comprobante definitivo se emite al confirmar el pago.', footerColX - AX - 6)) {
+    for (const linea of envolver(doc, d.notaSinFiscal, footerColX - AX - 6)) {
       doc.text(linea, AX + 3, sonPesosY + 4);
       sonPesosY += 4;
     }
@@ -239,7 +274,7 @@ export function generarFacturaPdf(d: DatosFacturaPdf): jsPDF {
   doc.text('TOTAL', totX, ty);
   doc.text(moneyAr(d.importe), totXVal, ty, { align: 'right' });
 
-  if (esFactura) {
+  if (esFiscal) {
     ty += 3;
     doc.setLineWidth(0.2);
     doc.line(totX, ty, totXVal, ty);
@@ -253,16 +288,14 @@ export function generarFacturaPdf(d: DatosFacturaPdf): jsPDF {
 
   y += footerH;
 
-  // ── Avisos (vista previa / homologación) ──
-  if (esFactura && d.vistaPrevia) {
+  // ── Aviso (vista previa / homologación) — franja roja al pie, solo si corresponde. ──
+  if (d.avisoBanner) {
     doc.setFillColor(...ROJO);
     doc.rect(AX, y, BX - AX, 6, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    doc.text('VISTA PREVIA — MODELO, NO ES UN COMPROBANTE VÁLIDO', (AX + BX) / 2, y + 4, { align: 'center' });
-  } else if (esFactura && !d.vistaPrevia && d.cae === null) {
-    // no debería pasar (solo se llama esta función con CAE o en vista previa), pero por las dudas no rompe nada
+    doc.text(d.avisoBanner, (AX + BX) / 2, y + 4, { align: 'center' });
   }
 
   doc.setTextColor(...NEGRO);

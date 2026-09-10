@@ -34,6 +34,11 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
+import {
+  TicketComprobante, ComprobanteOficial,
+  type ReservaTicketData, type PagoDetalleTicket, type DatosFiscales, type ComprobanteDisplay,
+} from '@/components/modules/ComprobantesModule';
+import { tipoComprobantePorCondicionIva, nombreTipoComprobante } from '@/lib/afip/config';
 
 const CheckoutDialog = dynamic(
   () => import('@/components/payments/CheckoutDialog'),
@@ -749,46 +754,95 @@ function FiscalSection() {
         </CardContent>
       </Card>
 
-      {/* Print format preview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Printer className="w-4 h-4" style={{ color: forest }} />
-            Vista previa de comprobante
-          </CardTitle>
-          <CardDescription>Así se verá el próximo comprobante emitido</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mx-auto max-w-sm bg-card border border-border rounded-md shadow-sm p-5 text-foreground font-mono text-xs space-y-2">
-            <div className="flex justify-between items-start border-b border-dashed border-border pb-2">
-              <div>
-                <p className="font-bold text-sm">{form.ciudad || 'Ciudad'}</p>
-                <p className="text-muted-foreground">{form.direccionFiscal || 'Dirección fiscal'}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{form.iva || 'Condición IVA'}</p>
-                <p className="text-[10px] text-muted-foreground">CUIT: {form.cuit || '—'}</p>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-bold uppercase">Comprobante</p>
-                <p className="text-muted-foreground text-[10px]">Punto de venta: {String(form.puntoVenta || 1).padStart(4, '0')}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-muted-foreground">N°</p>
-                <p className="font-bold">{invoicePreview}</p>
-              </div>
-            </div>
-            <div className="border-t border-dashed border-border pt-2 space-y-1 text-[11px]">
-              <div className="flex justify-between"><span className="text-muted-foreground">Fecha</span><span>{new Date().toLocaleDateString('es-AR')}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span>Consumidor Final</span></div>
-              <div className="flex justify-between border-t border-dashed border-border pt-1 mt-1"><span className="font-bold">TOTAL</span><span className="font-bold">$ 0,00</span></div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Vista previa del comprobante — usa los mismos componentes que
+          Comprobantes, con datos de ejemplo, así nunca puede desincronizarse
+          de cómo se ve realmente al emitir uno. */}
+      <FiscalPreviewCard form={form} invoicePreview={invoicePreview} />
     </div>
+  );
+}
+
+function FiscalPreviewCard({
+  form, invoicePreview,
+}: {
+  form: { razonSocial: string; cuit: string; iva: string; direccionFiscal: string; ciudad: string; facturaLogoUrl: string; puntoVenta: number; numeroInicio: number };
+  invoicePreview: string;
+}) {
+  const [formato, setFormato] = useState<'ticket' | 'a4'>('ticket');
+
+  const demoFiscal: DatosFiscales = {
+    razonSocial: form.razonSocial || 'Tu razón social',
+    cuit: form.cuit || '20-00000000-0',
+    iva: form.iva || 'Responsable Inscripto',
+    direccionFiscal: form.direccionFiscal,
+    ciudad: form.ciudad,
+    facturaLogoUrl: form.facturaLogoUrl,
+    telefono: '',
+    email: '',
+  };
+
+  const hoy = new Date();
+  const checkin = hoy.toISOString().slice(0, 10);
+  const checkout = new Date(hoy.getTime() + 2 * 86400000).toISOString().slice(0, 10);
+  const demoReserva: ReservaTicketData = {
+    huesped: 'Juan Pérez', telefono: '11-2345-6789', email: 'huesped@ejemplo.com', dni: '30123456',
+    habitacion: '101', checkin, checkout, personas: 2, ninos: 0, tipoTarifa: 'normal', notas: '',
+  };
+  const demoHab = { tipo: 'Doble' };
+  const demoPagos: PagoDetalleTicket[] = [{ id: 'demo', fecha: checkin, monto: 45000, metodoNombre: 'Efectivo' }];
+
+  const cbteTipoDemo = tipoComprobantePorCondicionIva(demoFiscal.iva);
+  const demoComprobante: ComprobanteDisplay = {
+    numeroDisplay: invoicePreview,
+    numero: form.numeroInicio || 1,
+    puntoVenta: form.puntoVenta || 1,
+    fecha: hoy.toISOString(),
+    cae: '00000000000000',
+    caeVencimiento: new Date(hoy.getTime() + 10 * 86400000).toISOString(),
+    tipoComprobanteNombre: nombreTipoComprobante(cbteTipoDemo),
+    tipoComprobanteCodigo: cbteTipoDemo,
+    ambiente: null,
+  };
+  const avisoBanner = 'MODELO — VISTA PREVIA, NO ES UN COMPROBANTE VÁLIDO';
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Printer className="w-4 h-4" style={{ color: forest }} />
+          Vista previa de comprobante
+        </CardTitle>
+        <CardDescription>Así se ve un comprobante con estos datos — mismo formato que usa Comprobantes al emitir uno real.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-center gap-1.5">
+          <Button size="sm" variant={formato === 'ticket' ? 'default' : 'outline'} className="h-7 text-xs" onClick={() => setFormato('ticket')}>
+            Ticket
+          </Button>
+          <Button size="sm" variant={formato === 'a4' ? 'default' : 'outline'} className="h-7 text-xs" onClick={() => setFormato('a4')}>
+            A4
+          </Button>
+        </div>
+
+        {formato === 'ticket' ? (
+          <div className="mx-auto max-w-sm">
+            <TicketComprobante
+              reserva={demoReserva} hotelName={demoFiscal.razonSocial} fiscal={demoFiscal} isReceipt
+              comprobante={demoComprobante} loadingComprobante={false}
+              total={90000} pagado={45000} noches={2} hab={demoHab} pagosDetalle={demoPagos}
+            />
+          </div>
+        ) : (
+          <div className="mx-auto max-w-2xl">
+            <ComprobanteOficial
+              tipo="Factura" reserva={demoReserva} fiscal={demoFiscal} comprobante={demoComprobante}
+              pagado={45000} noches={2} hab={demoHab} fechaEmision={hoy.toLocaleDateString('es-AR')}
+              qrDataUrl={null} avisoBanner={avisoBanner}
+            />
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

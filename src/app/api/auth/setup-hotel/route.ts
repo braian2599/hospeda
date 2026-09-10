@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
           nombreCompleto: user.name || 'Propietario',
           permisos: [
             'dashboard', 'habitaciones', 'reservas', 'checkin',
-            'facturacion', 'limpieza', 'caja', 'clientes',
+            'comprobantes', 'limpieza', 'caja', 'clientes',
             'reportes', 'usuarios', 'tarifas',
           ],
         },

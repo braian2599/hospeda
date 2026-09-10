@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
           password: hashedPassword,
           permisos: [
             'dashboard', 'habitaciones', 'reservas', 'checkin',
-            'facturacion', 'limpieza', 'caja', 'clientes',
+            'comprobantes', 'limpieza', 'caja', 'clientes',
             'reportes', 'usuarios', 'tarifas',
           ],
         },

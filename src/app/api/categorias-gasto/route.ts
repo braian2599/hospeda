@@ -5,7 +5,7 @@ import { requirePermission, AuthError } from '@/lib/auth/utils';
 // GET /api/categorias-gasto — Listar categorías de gasto
 export async function GET() {
   try {
-    const tenantId = await requirePermission('facturacion');
+    const tenantId = await requirePermission('comprobantes');
 
     const categorias = await db.categoriaGasto.findMany({
       where: { tenantId },
@@ -25,7 +25,7 @@ export async function GET() {
 // POST /api/categorias-gasto — Crear categoría de gasto
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('facturacion');
+    const tenantId = await requirePermission('comprobantes');
     const body = await req.json();
     const { nombre, orden } = body;
 

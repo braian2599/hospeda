@@ -64,6 +64,8 @@ model Tenant {
   canalesExternos CanalExterno[]
   mercadoPago    TenantMercadoPago?
   afip           TenantAfip?
+  comprobantes   Comprobante[]
+  comprobanteContadores ComprobanteContador[]
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -316,6 +318,7 @@ model Reserva {
   acompanantes             Acompanante[]
   menores                  Menor[]
   pagos                    Pago[]
+  comprobantes             Comprobante[]
   cliente                  Cliente?      @relation(fields: [clienteId], references: [id])
   tenant                   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   reservaVinculada         Reserva?      @relation("ReservaVinculada", fields: [reservaVinculadaId], references: [id], onDelete: SetNull, onUpdate: Cascade)
@@ -678,6 +681,78 @@ model TenantAfip {
 }
 
 // ═══════════════════════════════════════════════════════════
+// COMPROBANTES — ledger genérico para Remito, Presupuesto
+// (formal), Nota de Crédito y Nota de Débito. La Factura sigue
+// viviendo en Reserva.comprobante* (numeración AFIP/interna ya
+// probada, no se toca) pero también se refleja acá con una fila
+// espejo para que Reportes y las Notas de Crédito/Débito tengan
+// una única tabla desde donde consultar "todos los comprobantes
+// emitidos", sin importar el tipo.
+// ═══════════════════════════════════════════════════════════
+
+model Comprobante {
+  id                    String            @id @default(cuid())
+  tenantId              String
+  tipo                  TipoComprobante
+  puntoVenta            Int
+  numero                Int
+  letra                 String            // 'B' | 'C' (Factura/Nota) | 'R' (Remito) | 'X' (Presupuesto, sin validez fiscal)
+  fecha                 DateTime          @default(now())
+
+  reservaId             String?
+  reserva               Reserva?          @relation(fields: [reservaId], references: [id], onDelete: SetNull)
+
+  // Notas de Crédito/Débito: el comprobante que están ajustando.
+  comprobanteAsociadoId String?
+  comprobanteAsociado   Comprobante?      @relation("ComprobanteAsociado", fields: [comprobanteAsociadoId], references: [id], onDelete: SetNull)
+  notasAsociadas        Comprobante[]     @relation("ComprobanteAsociado")
+
+  razonSocialReceptor   String
+  docTipoReceptor       Int?
+  docReceptor           String?
+  domicilioReceptor     String?
+  condicionIvaReceptor  String?
+
+  concepto              String
+  importe               Int               // centavos
+  motivo                String?           // solo Notas de Crédito/Débito
+
+  // Si en el futuro se conecta a AFIP (hoy es "interno" para todo lo que
+  // no sea Factura), se completan estos campos igual que en Reserva.
+  cae                   String?
+  caeVencimiento        DateTime?
+  tipoAfip              Int?
+  ambiente              String?
+
+  estado                String            @default("emitido") // 'emitido' | 'anulado'
+
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  tenant                Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tipo, puntoVenta, numero])
+  @@index([tenantId, reservaId])
+  @@index([tenantId, tipo])
+}
+
+// Numeración atómica por tenant + tipo + punto de venta (mismo patrón de
+// "reclamar con UPDATE condicional" que ya usa TenantConfig.numeroFactura,
+// ver POST /api/comprobantes). Solo se usa para los tipos que no tienen ya
+// su propio contador (Remito, Presupuesto, Nota de Crédito, Nota de Débito).
+model ComprobanteContador {
+  id           String          @id @default(cuid())
+  tenantId     String
+  tipo         TipoComprobante
+  puntoVenta   Int
+  ultimoNumero Int             @default(0)
+
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tipo, puntoVenta])
+}
+
+// ═══════════════════════════════════════════════════════════
 // SUPER ADMIN — CONFIGURACIÓN DE PLATAFORMA
 // ═══════════════════════════════════════════════════════════
 
@@ -756,6 +831,14 @@ enum RolTenant {
   admin
   recepcion
   limpieza
+}
+
+enum TipoComprobante {
+  Factura
+  Presupuesto
+  Remito
+  NotaCredito
+  NotaDebito
 }
 
 enum TipoMetodoPago {

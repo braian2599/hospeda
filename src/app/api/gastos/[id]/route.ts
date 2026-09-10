@@ -9,7 +9,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('facturacion');
+    const tenantId = await requirePermission('comprobantes');
     const { id } = await params;
     const body = await req.json();
     const { tipo, descripcion, monto, fecha, empleadoId, empleado } = body;
@@ -70,7 +70,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('facturacion');
+    const tenantId = await requirePermission('comprobantes');
     const { id } = await params;
 
     // Buscar gasto con su movimiento vinculado
