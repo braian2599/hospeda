@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -911,6 +911,11 @@ interface ComprobanteListado {
   letra: string;
   fecha: string;
   razonSocialReceptor: string;
+  docTipoReceptor: number | null;
+  docReceptor: string | null;
+  domicilioReceptor: string | null;
+  condicionIvaReceptor: string | null;
+  concepto: string;
   importe: number;
   cae: string | null;
   caeVencimiento: string | null;
@@ -920,24 +925,51 @@ interface ComprobanteListado {
   comprobanteAsociadoDisplay: string | null;
 }
 
-function OtrosComprobantesTab() {
-  const usuarioActual = useHotelStore(s => s.usuarioActual);
-  const hotelName = usuarioActual?.tenantNombre || 'Hospi';
+/** Arma el receptor/concepto de un comprobante ya emitido a partir de lo
+ * guardado — usado tanto para la vista previa en pantalla como para el PDF,
+ * así los dos nunca pueden mostrar datos distintos. */
+function receptorDesdeItem(item: ComprobanteListado): ReceptorComprobante {
+  return {
+    razonSocial: item.razonSocialReceptor,
+    domicilio: item.domicilioReceptor || '',
+    sitTributaria: item.condicionIvaReceptor || 'Consumidor Final',
+    etiquetaDoc: item.docTipoReceptor === DOC_TIPO.CUIT ? 'C.U.I.T.' : item.docTipoReceptor === DOC_TIPO.DNI ? 'DNI' : 'Documento',
+    docNro: item.docReceptor || '—',
+  };
+}
 
+function conceptoDesdeItem(item: ComprobanteListado): string {
+  const partes = [item.concepto];
+  if (item.comprobanteAsociadoDisplay) partes.push(`Ref: ${item.comprobanteAsociadoDisplay}`);
+  if (item.motivo) partes.push(`Motivo: ${item.motivo}`);
+  return partes.join(' — ');
+}
+
+function OtrosComprobantesTab() {
   const [fiscal, setFiscal] = useState<DatosFiscales | null>(null);
   const [items, setItems] = useState<ComprobanteListado[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [descargandoId, setDescargandoId] = useState<string | null>(null);
+  const [verItem, setVerItem] = useState<ComprobanteListado | null>(null);
 
-  const cargarLista = useCallback(() => {
-    setLoadingList(true);
+  // fetchComprobantes no dispara setState de forma sincrónica (su primera
+  // instrucción es el fetch, no un setState) — así se puede llamar
+  // directamente desde el efecto de montaje sin el warning de
+  // react-hooks/set-state-in-effect. `recargar` sí marca "cargando" de
+  // entrada, pero se invoca desde un click (al emitir un comprobante
+  // nuevo), nunca desde un efecto.
+  const fetchComprobantes = useCallback(() => {
     return fetch('/api/comprobantes')
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setItems(data); })
       .catch(() => {})
       .finally(() => setLoadingList(false));
   }, []);
+
+  const recargar = useCallback(() => {
+    setLoadingList(true);
+    fetchComprobantes();
+  }, [fetchComprobantes]);
 
   useEffect(() => {
     fetch('/api/configuracion/fiscal').then(r => r.json()).then(f => {
@@ -947,44 +979,8 @@ function OtrosComprobantesTab() {
         facturaLogoUrl: f?.facturaLogoUrl || '', telefono: '', email: '',
       });
     }).catch(() => {});
-    cargarLista();
-  }, [cargarLista]);
-
-  const handleDescargarPdf = async (item: ComprobanteListado) => {
-    setDescargandoId(item.id);
-    try {
-      const logoDataUrl = fiscal?.facturaLogoUrl ? await cargarImagenComoDataUrl(fiscal.facturaLogoUrl) : null;
-      const tipo = item.tipo as TipoComprobanteGenerico;
-      const doc = generarComprobantePdf({
-        tipo, letra: item.letra, codigoTipo: null,
-        razonSocialEmisor: fiscal?.razonSocial || '—',
-        direccionEmisor: [fiscal?.direccionFiscal, fiscal?.ciudad].filter(Boolean).join(', '),
-        condicionIvaEmisor: fiscal?.iva || '',
-        cuitEmisor: fiscal?.cuit || '',
-        logoDataUrl,
-        numeroDisplay: item.numeroDisplay,
-        fecha: new Date(item.fecha).toLocaleDateString('es-AR'),
-        razonSocialReceptor: item.razonSocialReceptor,
-        domicilioReceptor: '',
-        sitTributariaReceptor: '',
-        etiquetaDocReceptor: '',
-        docReceptor: '',
-        notaReceptor: item.comprobanteAsociadoDisplay ? `Ref: ${item.comprobanteAsociadoDisplay}${item.motivo ? ` — ${item.motivo}` : ''}` : null,
-        concepto: item.motivo || NOMBRE_TIPO_EMITIBLE[tipo as TipoEmitible] || tipo,
-        importe: item.importe,
-        montoEnLetras: montoALetras(item.importe),
-        cae: item.cae, caeVencimiento: item.caeVencimiento ? new Date(item.caeVencimiento).toLocaleDateString('es-AR') : null,
-        qrDataUrl: null,
-        notaSinFiscal: item.cae ? null : notaSinValidezFiscal(tipo),
-        avisoBanner: null,
-      });
-      doc.save(`${TITULO_POR_TIPO[tipo].replace(/\s+/g, '-')}-${item.numeroDisplay}.pdf`);
-    } catch {
-      toast.error('No se pudo generar el PDF');
-    } finally {
-      setDescargandoId(null);
-    }
-  };
+    fetchComprobantes();
+  }, [fetchComprobantes]);
 
   return (
     <div className="space-y-4">
@@ -1005,7 +1001,7 @@ function OtrosComprobantesTab() {
                   <TableHead>Receptor</TableHead>
                   <TableHead className="text-right">Importe</TableHead>
                   <TableHead>Fecha</TableHead>
-                  <TableHead className="text-right">PDF</TableHead>
+                  <TableHead className="text-right">Ver</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1015,15 +1011,15 @@ function OtrosComprobantesTab() {
                   <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Todavía no emitiste presupuestos, remitos ni notas.</TableCell></TableRow>
                 ) : (
                   items.map(item => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className="cursor-pointer hover:bg-[#F1F5F933]" onClick={() => setVerItem(item)}>
                       <TableCell><Badge variant="outline">{NOMBRE_TIPO_EMITIBLE[item.tipo as TipoEmitible] || item.tipo}</Badge></TableCell>
                       <TableCell className="font-mono text-xs">{item.numeroDisplay}</TableCell>
                       <TableCell>{item.razonSocialReceptor}</TableCell>
                       <TableCell className="text-right">{formatMoney(item.importe)}</TableCell>
                       <TableCell className="text-xs">{formatFecha(item.fecha)}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" className="h-8 w-8" disabled={descargandoId === item.id} onClick={() => handleDescargarPdf(item)}>
-                          {descargandoId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={e => { e.stopPropagation(); setVerItem(item); }}>
+                          <FileText className="w-3.5 h-3.5" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -1035,8 +1031,99 @@ function OtrosComprobantesTab() {
         </CardContent>
       </Card>
 
-      <EmitirComprobanteDialog open={dialogOpen} onOpenChange={setDialogOpen} onEmitido={cargarLista} />
+      <EmitirComprobanteDialog open={dialogOpen} onOpenChange={setDialogOpen} onEmitido={recargar} />
+      <VerComprobanteDialog item={verItem} onOpenChange={open => { if (!open) setVerItem(null); }} fiscal={fiscal} />
     </div>
+  );
+}
+
+/* =================== VER COMPROBANTE (Presupuesto/Remito/NC/ND) =================== */
+/* Mismo patrón que "Ver recibo": primero se ve el comprobante con la
+   plantilla oficial, y desde ahí se descarga el PDF — no se descarga a
+   ciegas con un solo click como antes. */
+
+function VerComprobanteDialog({
+  item, onOpenChange, fiscal,
+}: {
+  item: ComprobanteListado | null;
+  onOpenChange: (open: boolean) => void;
+  fiscal: DatosFiscales | null;
+}) {
+  const [generandoPdf, setGenerandoPdf] = useState(false);
+  if (!item) return null;
+
+  const tipo = item.tipo as TipoComprobanteGenerico;
+  const receptor = receptorDesdeItem(item);
+  const concepto = conceptoDesdeItem(item);
+  const comprobante: ComprobanteDisplay = {
+    numeroDisplay: item.numeroDisplay,
+    numero: 0, puntoVenta: 0,
+    fecha: item.fecha,
+    cae: item.cae,
+    caeVencimiento: item.caeVencimiento,
+    tipoComprobanteNombre: NOMBRE_TIPO_EMITIBLE[tipo as TipoEmitible] || tipo,
+    tipoComprobanteCodigo: null,
+    ambiente: item.ambiente as 'homologacion' | 'produccion' | null,
+  };
+
+  const handleDescargarPdf = async () => {
+    setGenerandoPdf(true);
+    try {
+      const logoDataUrl = fiscal?.facturaLogoUrl ? await cargarImagenComoDataUrl(fiscal.facturaLogoUrl) : null;
+      const doc = generarComprobantePdf({
+        tipo, letra: item.letra, codigoTipo: null,
+        razonSocialEmisor: fiscal?.razonSocial || '—',
+        direccionEmisor: [fiscal?.direccionFiscal, fiscal?.ciudad].filter(Boolean).join(', '),
+        condicionIvaEmisor: fiscal?.iva || '',
+        cuitEmisor: fiscal?.cuit || '',
+        logoDataUrl,
+        numeroDisplay: item.numeroDisplay,
+        fecha: new Date(item.fecha).toLocaleDateString('es-AR'),
+        razonSocialReceptor: receptor.razonSocial,
+        domicilioReceptor: receptor.domicilio,
+        sitTributariaReceptor: receptor.sitTributaria,
+        etiquetaDocReceptor: receptor.etiquetaDoc,
+        docReceptor: receptor.docNro,
+        notaReceptor: null,
+        concepto,
+        importe: item.importe,
+        montoEnLetras: montoALetras(item.importe),
+        cae: item.cae, caeVencimiento: item.caeVencimiento ? new Date(item.caeVencimiento).toLocaleDateString('es-AR') : null,
+        qrDataUrl: null,
+        notaSinFiscal: item.cae ? null : notaSinValidezFiscal(tipo),
+        avisoBanner: null,
+      });
+      doc.save(`${TITULO_POR_TIPO[tipo].replace(/\s+/g, '-')}-${item.numeroDisplay}.pdf`);
+    } catch {
+      toast.error('No se pudo generar el PDF');
+    } finally {
+      setGenerandoPdf(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!item} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5" /> {NOMBRE_TIPO_EMITIBLE[tipo as TipoEmitible] || tipo} {item.numeroDisplay}
+          </DialogTitle>
+        </DialogHeader>
+
+        <ComprobanteOficial
+          tipo={tipo} receptor={receptor} concepto={concepto} fiscal={fiscal} comprobante={comprobante}
+          pagado={item.importe} fechaEmision={new Date(item.fecha).toLocaleDateString('es-AR')}
+          qrDataUrl={null} avisoBanner={null}
+        />
+
+        <div className="flex justify-center pt-2">
+          <Button onClick={handleDescargarPdf} disabled={generandoPdf} size="sm" className="gap-1.5" style={{ backgroundColor: '#0F766E' }}>
+            {generandoPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Descargar PDF
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1112,6 +1199,7 @@ function EmitirComprobanteDialog({
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Receipt className="w-5 h-5" /> Emitir comprobante</DialogTitle>
+          <DialogDescription>Presupuesto, Remito, Nota de Crédito o Nota de Débito — con numeración propia, interno por ahora (sin AFIP).</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
@@ -1637,6 +1725,21 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
     ? 'COMPROBANTE DE PRUEBA (HOMOLOGACIÓN) — SIN VALIDEZ FISCAL'
     : null;
 
+  // ── Receptor y concepto — calculados una sola vez, y usados tanto en la
+  // vista en pantalla (ComprobanteOficial) como al descargar el PDF, así
+  // nunca pueden desincronizarse entre sí. ──
+  const receptor: ReceptorComprobante = useMemo(() => {
+    const { docTipo, docNro } = docReceptor(reserva.dni);
+    return {
+      razonSocial: reserva.huesped,
+      domicilio: reserva.domicilio || '',
+      sitTributaria: docTipo === DOC_TIPO.CUIT ? 'Responsable Inscripto / Monotributo' : 'Consumidor Final',
+      etiquetaDoc: docTipo === DOC_TIPO.CUIT ? 'C.U.I.T.' : 'DNI',
+      docNro,
+    };
+  }, [reserva.dni, reserva.huesped, reserva.domicilio]);
+  const concepto = `Alojamiento — Hab. ${reserva.habitacion}${hab?.tipo ? ` (${hab.tipo})` : ''} — ${formatFecha(reserva.checkin)} a ${formatFecha(reserva.checkout)} (${noches} noche${noches !== 1 ? 's' : ''})`;
+
   // ── Descargar PDF: se dibuja el comprobante con las primitivas de jsPDF
   // (texto/líneas/rectángulos) en vez de convertir HTML a imagen — así
   // sale siempre igual, sin depender del diálogo de impresión del
@@ -1646,10 +1749,6 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
     setGenerandoPdf(true);
     try {
       const logoDataUrl = fiscal?.facturaLogoUrl ? await cargarImagenComoDataUrl(fiscal.facturaLogoUrl) : null;
-      const { docTipo, docNro } = docReceptor(reserva.dni);
-      const sitTributaria = docTipo === DOC_TIPO.CUIT ? 'Responsable Inscripto / Monotributo' : 'Consumidor Final';
-      const etiquetaDoc = docTipo === DOC_TIPO.CUIT ? 'C.U.I.T.' : 'DNI';
-      const concepto = `Alojamiento — Hab. ${reserva.habitacion}${hab?.tipo ? ` (${hab.tipo})` : ''} — ${formatFecha(reserva.checkin)} a ${formatFecha(reserva.checkout)} (${noches} noche${noches !== 1 ? 's' : ''})`;
       const letra = letraPorTipoComprobante(tipoDocumento, comprobante?.tipoComprobanteCodigo ?? null);
 
       const doc = generarComprobantePdf({
@@ -1663,11 +1762,11 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
         logoDataUrl,
         numeroDisplay: comprobante?.numeroDisplay || '—',
         fecha: fechaEmision,
-        razonSocialReceptor: reserva.huesped,
-        domicilioReceptor: reserva.domicilio || '',
-        sitTributariaReceptor: sitTributaria,
-        etiquetaDocReceptor: etiquetaDoc,
-        docReceptor: docNro,
+        razonSocialReceptor: receptor.razonSocial,
+        domicilioReceptor: receptor.domicilio,
+        sitTributariaReceptor: receptor.sitTributaria,
+        etiquetaDocReceptor: receptor.etiquetaDoc,
+        docReceptor: receptor.docNro,
         notaReceptor: null,
         concepto,
         importe: pagado,
@@ -1698,8 +1797,8 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
       ) : (
         <ComprobanteOficial
           tipo={tipoDocumento}
-          reserva={reserva} fiscal={fiscal} comprobante={comprobante} pagado={pagado}
-          noches={noches} hab={hab} fechaEmision={fechaEmision} qrDataUrl={qrDataUrl}
+          receptor={receptor} concepto={concepto} fiscal={fiscal} comprobante={comprobante} pagado={pagado}
+          fechaEmision={fechaEmision} qrDataUrl={qrDataUrl}
           avisoBanner={avisoBanner}
         />
       )}
@@ -1726,26 +1825,29 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
    cambia entre un tipo y otro es el título, la letra y ese bloque final —
    la distribución es siempre la misma. */
 
+export interface ReceptorComprobante {
+  razonSocial: string;
+  domicilio: string;
+  sitTributaria: string;
+  etiquetaDoc: string;
+  docNro: string;
+}
+
 export function ComprobanteOficial({
-  tipo, reserva, fiscal, comprobante, pagado, noches, hab, fechaEmision, qrDataUrl, avisoBanner,
+  tipo, receptor, concepto, fiscal, comprobante, pagado, fechaEmision, qrDataUrl, avisoBanner,
 }: {
   tipo: TipoComprobanteGenerico;
-  reserva: Pick<Reserva, 'habitacion' | 'huesped' | 'domicilio' | 'dni' | 'checkin' | 'checkout'>;
+  receptor: ReceptorComprobante;
+  concepto: string;
   fiscal: DatosFiscales | null;
   comprobante: ComprobanteDisplay;
   pagado: number;
-  noches: number;
-  hab: { tipo?: string } | undefined;
   fechaEmision: string;
   qrDataUrl: string | null;
   avisoBanner: string | null;
 }) {
   const esFiscal = !!comprobante.cae;
   const letra = letraPorTipoComprobante(tipo, comprobante.tipoComprobanteCodigo);
-  const { docTipo, docNro } = docReceptor(reserva.dni);
-  const sitTributaria = docTipo === DOC_TIPO.CUIT ? 'Responsable Inscripto / Monotributo' : 'Consumidor Final';
-  const etiquetaDoc = docTipo === DOC_TIPO.CUIT ? 'C.U.I.T.' : 'DNI';
-  const concepto = `Alojamiento — Hab. ${reserva.habitacion}${hab?.tipo ? ` (${hab.tipo})` : ''} — ${formatFecha(reserva.checkin)} a ${formatFecha(reserva.checkout)} (${noches} noche${noches !== 1 ? 's' : ''})`;
 
   return (
     <div className="border-2 border-foreground print:border-black text-[13px] relative">
@@ -1779,12 +1881,12 @@ export function ComprobanteOficial({
 
       {/* ── Datos del receptor ── */}
       <div className="grid grid-cols-[1fr_auto] border-b-2 border-foreground print:border-black p-3 gap-x-4 gap-y-0.5 text-xs">
-        <p><span className="font-semibold">Razón Social:</span> {reserva.huesped}</p>
+        <p><span className="font-semibold">Razón Social:</span> {receptor.razonSocial}</p>
         <p></p>
-        <p><span className="font-semibold">Domicilio:</span> {reserva.domicilio || '—'}</p>
+        <p><span className="font-semibold">Domicilio:</span> {receptor.domicilio || '—'}</p>
         <p></p>
-        <p><span className="font-semibold">Sit. Tributaria:</span> {sitTributaria}</p>
-        <p className="font-semibold">{etiquetaDoc}: {docNro}</p>
+        <p><span className="font-semibold">Sit. Tributaria:</span> {receptor.sitTributaria}</p>
+        <p className="font-semibold">{receptor.etiquetaDoc}: {receptor.docNro}</p>
       </div>
 
       {/* ── Detalle (ítems) ── */}

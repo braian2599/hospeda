@@ -22,7 +22,9 @@ const TIPOS_EMITIBLES = new Set<TipoComprobante>(['Presupuesto', 'Remito', 'Nota
 
 function formatComprobante(c: {
   id: string; tipo: string; puntoVenta: number; numero: number; letra: string; fecha: Date;
-  razonSocialReceptor: string; importe: number; cae: string | null; caeVencimiento: Date | null;
+  razonSocialReceptor: string; docTipoReceptor: number | null; docReceptor: string | null;
+  domicilioReceptor: string | null; condicionIvaReceptor: string | null; concepto: string;
+  importe: number; cae: string | null; caeVencimiento: Date | null;
   ambiente: string | null; estado: string; motivo: string | null;
   comprobanteAsociado: { tipo: string; puntoVenta: number; numero: number } | null;
 }) {
@@ -33,6 +35,11 @@ function formatComprobante(c: {
     letra: c.letra,
     fecha: c.fecha,
     razonSocialReceptor: c.razonSocialReceptor,
+    docTipoReceptor: c.docTipoReceptor,
+    docReceptor: c.docReceptor,
+    domicilioReceptor: c.domicilioReceptor,
+    condicionIvaReceptor: c.condicionIvaReceptor,
+    concepto: c.concepto,
     importe: c.importe / 100,
     cae: c.cae,
     caeVencimiento: c.caeVencimiento,

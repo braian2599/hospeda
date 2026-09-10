@@ -835,8 +835,11 @@ function FiscalPreviewCard({
         ) : (
           <div className="mx-auto max-w-2xl">
             <ComprobanteOficial
-              tipo="Factura" reserva={demoReserva} fiscal={demoFiscal} comprobante={demoComprobante}
-              pagado={45000} noches={2} hab={demoHab} fechaEmision={hoy.toLocaleDateString('es-AR')}
+              tipo="Factura"
+              receptor={{ razonSocial: demoReserva.huesped, domicilio: '', sitTributaria: 'Consumidor Final', etiquetaDoc: 'DNI', docNro: demoReserva.dni }}
+              concepto={`Alojamiento — Hab. ${demoReserva.habitacion} (${demoHab.tipo}) — ${demoReserva.checkin} a ${demoReserva.checkout} (2 noches)`}
+              fiscal={demoFiscal} comprobante={demoComprobante}
+              pagado={45000} fechaEmision={hoy.toLocaleDateString('es-AR')}
               qrDataUrl={null} avisoBanner={avisoBanner}
             />
           </div>
