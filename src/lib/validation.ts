@@ -44,15 +44,36 @@ const redisClient = (() => {
   return null;
 })();
 
-// Crear el rate limiter distribuido si Redis está configurado
-const redisRatelimiter = redisClient
-  ? new Ratelimit({
-      redis: redisClient,
-      limiter: Ratelimit.slidingWindow(100, '1 m'), // default: 100 req/min
-      prefix: 'hospeda:rl',
-      analytics: true,
-    })
-  : null;
+// @upstash/ratelimit fija el límite y la ventana en el momento de construir
+// el Ratelimit — su .limit() NO admite pasarle un límite/ventana distintos
+// por llamada (el único override que existe, `rate`, es un costo en tokens,
+// no una forma de cambiar cuántos requests entran en la ventana). Antes acá
+// había UNA sola instancia compartida con (100, '1 m') fijo, y cada llamada
+// a rateLimit() le pasaba un segundo argumento { rate, period } que esa
+// librería ignora por completo — con Redis configurado, TODOS los límites
+// pedidos por los distintos endpoints (login, cambio de contraseña, SMS,
+// reservas públicas, etc.) terminaban aplicando ese único límite de
+// 100 req/min sin importar qué pidieron, mucho más débil de lo que cada uno
+// necesitaba. Ahora se cachea una instancia de Ratelimit por cada política
+// (maxAttempts, windowMs) distinta que se pida, y se reutiliza.
+const redisRatelimiters = new Map<string, Ratelimit>();
+
+function getRedisRatelimiter(maxAttempts: number, windowMs: number): Ratelimit | null {
+  if (!redisClient) return null;
+  const cacheKey = `${maxAttempts}:${windowMs}`;
+  const cached = redisRatelimiters.get(cacheKey);
+  if (cached) return cached;
+
+  const windowSeconds = Math.ceil(windowMs / 1000);
+  const limiter = new Ratelimit({
+    redis: redisClient,
+    limiter: Ratelimit.slidingWindow(maxAttempts, `${windowSeconds} s`),
+    prefix: 'hospeda:rl',
+    analytics: true,
+  });
+  redisRatelimiters.set(cacheKey, limiter);
+  return limiter;
+}
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -93,13 +114,10 @@ export async function rateLimit(
   windowMs: number
 ): Promise<RateLimitResult> {
   // ── Redis distribuido (preferido) ──
+  const redisRatelimiter = getRedisRatelimiter(maxAttempts, windowMs);
   if (redisRatelimiter) {
     try {
-      const windowSeconds = Math.ceil(windowMs / 1000);
-      const { success, reset } = await redisRatelimiter.limit(
-        `${key}:${windowSeconds}`,
-        { rate: maxAttempts, period: windowSeconds }
-      );
+      const { success, reset } = await redisRatelimiter.limit(key);
       return {
         allowed: success,
         retryAfterSeconds: success ? 0 : Math.ceil((reset - Date.now()) / 1000),
