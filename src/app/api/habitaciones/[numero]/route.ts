@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { TIPOS_HABITACION_VALIDOS } from '@/lib/types';
+import { deleteObject, extractKeyFromPublicUrl } from '@/lib/storage/r2';
 
 // PUT /api/habitaciones/[numero] — Editar habitación
 export async function PUT(
@@ -159,6 +160,28 @@ export async function DELETE(
     await db.habitacion.delete({
       where: { tenantId_numero: { tenantId, numero } },
     });
+
+    // ── Limpiar las fotos de la habitación en R2 ──
+    // Sin esto, cada habitación borrada dejaba sus fotos huérfanas en el
+    // bucket para siempre (nadie vuelve a referenciarlas, pero tampoco se
+    // borran solas) — ocupando espacio de storage sin necesidad. Es
+    // best-effort: si R2 no está configurado o una key puntual falla, no
+    // bloquea la eliminación de la habitación (que ya se confirmó en la
+    // base) — solo se loguea para poder limpiar manualmente si hace falta.
+    if (hab.fotos.length > 0) {
+      await Promise.allSettled(
+        hab.fotos.map(async (url) => {
+          const key = extractKeyFromPublicUrl(url);
+          if (!key || !key.startsWith(`tenants/${tenantId}/`)) return;
+          await deleteObject(key);
+        })
+      ).then((results) => {
+        const fallidas = results.filter((r) => r.status === 'rejected').length;
+        if (fallidas > 0) {
+          console.error(`[DELETE habitaciones] ${fallidas}/${hab.fotos.length} fotos no se pudieron borrar de R2 (habitación ${numero}, tenant ${tenantId})`);
+        }
+      });
+    }
 
     // Auditoría
     await db.auditoria.create({
