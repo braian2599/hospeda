@@ -122,11 +122,13 @@ export async function issueCsrfToken(sessionToken: string): Promise<string> {
  * - Comparación de tiempo constante para evitar timing attacks.
  * - Si no hay token almacenado (expirado o nunca emitido) → false.
  *
- * @param token Token recibido del cliente (header `X-CSRF-Token`).
+ * @param token Token recibido del cliente (header `X-CSRF-Token`) — se tipa
+ * como `string | null` porque eso es lo que devuelve `Headers.get()` en la
+ * vida real cuando el header no vino; ya está contemplado más abajo.
  * @param sessionToken Identificador de sesión del usuario (userId).
  */
 export async function validateCsrfToken(
-  token: string,
+  token: string | null,
   sessionToken: string
 ): Promise<boolean> {
   if (!token || !sessionToken) return false;

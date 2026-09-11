@@ -3,6 +3,8 @@
  * Incluye manejo de errores, redirección a login si 401, y CSRF tokens.
  */
 
+import type { TipoHabitacion } from './types';
+
 class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -310,7 +312,7 @@ export const api = {
 // ═══════════════════════════════════════════════════════════
 
 export interface DbHabitacion {
-  id: string; tenantId: string; numero: string; tipo: string;
+  id: string; tenantId: string; numero: string; tipo: TipoHabitacion;
   capacidad: number; camasMatrimoniales: number; camasSimples: number;
   estado: string; problema?: string | null; precioPorCama?: number | null;
   bloqueaDisponibilidad?: boolean; bloqueadoHasta?: string | null;

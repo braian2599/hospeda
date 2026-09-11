@@ -27,7 +27,8 @@ export async function PUT(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
-    const rlKey = `pwd-change:${tenantId}:${session.user.id}`;
+    const userId = session.user.id;
+    const rlKey = `pwd-change:${tenantId}:${userId}`;
     const rl = await rateLimit(rlKey, 5, 15 * 60 * 1000);
     if (!rl.allowed) {
       return NextResponse.json(
@@ -37,7 +38,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const tenantUser = await db.tenantUser.findFirst({
-      where: { userId: session.user.id, tenantId, activo: true },
+      where: { userId, tenantId, activo: true },
       select: { id: true, password: true },
     });
 
@@ -68,7 +69,7 @@ export async function PUT(req: NextRequest) {
 
       // Invalidar TODAS las sesiones del usuario (fuerza re-login)
       await tx.session.deleteMany({
-        where: { userId: session.user.id },
+        where: { userId },
       });
     });
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { TIPOS_HABITACION_VALIDOS } from '@/lib/types';
 
 // PUT /api/habitaciones/[numero] — Editar habitación
 export async function PUT(
@@ -30,6 +31,10 @@ export async function PUT(
       if (existing) {
         return NextResponse.json({ error: 'Ya existe una habitación con ese número' }, { status: 409 });
       }
+    }
+
+    if (tipo !== undefined && !TIPOS_HABITACION_VALIDOS.includes(tipo)) {
+      return NextResponse.json({ error: `Tipo de habitación inválido: "${tipo}"` }, { status: 400 });
     }
 
     // Validar transición de estado si se solicita

@@ -30,6 +30,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { exportReportAsPdf, type PdfReportData } from '@/lib/pdf-export';
 import { downloadCSV } from '@/lib/csv-export';
+import type { TurnoCaja, CierreCaja } from '@/lib/types';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, BarChart, Bar, PieChart, Pie, Cell, Legend,
@@ -253,6 +254,16 @@ function OccupancyBadge({ pct }: { pct: number }) {
 // excluyen del resumen de desempeño de Reportes > Empleados (siguen visibles
 // en la Auditoría completa, ahí sí importa la trazabilidad total).
 const EMPLEADOS_EXCLUIDOS_DE_REPORTE = new Set(['Sistema', 'Super Admin']);
+
+// caja.historial solo guarda turnos ya cerrados (el turno abierto vive aparte,
+// en caja.apertura/movimientos) — pero TurnoCaja.cierre está tipado como
+// nullable porque el mismo tipo podría en teoría representar uno abierto.
+// Este filtro hace explícito y chequeado en runtime lo que hoy es solo un
+// supuesto: nunca mostramos/exportamos un turno de historial sin cierre.
+type TurnoCajaCerrado = TurnoCaja & { cierre: CierreCaja };
+function esTurnoCerrado(t: TurnoCaja): t is TurnoCajaCerrado {
+  return t.cierre !== null;
+}
 
 // ==================== COMPONENT ====================
 
@@ -788,7 +799,7 @@ export default function ReportesModule() {
 
   // ==================== PDF EXPORT HANDLER ====================
 
-  const cajaTurnosAMostrar = cajaHistorialFiltrado || caja.historial;
+  const cajaTurnosAMostrar = (cajaHistorialFiltrado || caja.historial).filter(esTurnoCerrado);
 
   const handleExportPDF = useCallback(() => {
     const hotelName = usuarioActual?.tenantNombre || 'Hospi';
@@ -982,7 +993,7 @@ export default function ReportesModule() {
     return Array.from({ length: Math.min(9, total) }, (_, i) => start + i);
   }, [auditTotalPages, safeAuditPage]);
 
-  const selectedCajaTurno = cajaDetailIdx !== null ? (cajaHistorialFiltrado || caja.historial)[cajaDetailIdx] : null;
+  const selectedCajaTurno = cajaDetailIdx !== null ? cajaTurnosAMostrar[cajaDetailIdx] : null;
 
   // ==================== RENDER ====================
 

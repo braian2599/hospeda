@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { TIPOS_HABITACION_VALIDOS } from '@/lib/types';
 
 // GET /api/habitaciones — Listar todas las habitaciones del tenant
 export async function GET(req: NextRequest) {
@@ -32,6 +33,9 @@ export async function POST(req: NextRequest) {
     // Validaciones
     if (!numero?.trim() || !tipo || !capacidad) {
       return NextResponse.json({ error: 'Faltan campos obligatorios: numero, tipo, capacidad' }, { status: 400 });
+    }
+    if (!TIPOS_HABITACION_VALIDOS.includes(tipo)) {
+      return NextResponse.json({ error: `Tipo de habitación inválido: "${tipo}"` }, { status: 400 });
     }
 
     // Verificar que no exista el número

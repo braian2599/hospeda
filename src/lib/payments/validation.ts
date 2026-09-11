@@ -7,6 +7,15 @@
 import { db } from '@/lib/db';
 import type { PlanTipo } from '@/lib/plan-config';
 
+const VALID_PLAN_TYPES: PlanTipo[] = ['profesional', 'premium', 'elite'];
+
+/** Type guard real (no solo un `.includes()` con cast) — así el chequeo
+ * de abajo de verdad angosta el tipo de planTipo para el resto de la
+ * función, incluida la consulta a Prisma (Plan.type es un enum). */
+function esPlanTipoValido(x: string): x is PlanTipo {
+  return VALID_PLAN_TYPES.includes(x as PlanTipo);
+}
+
 export interface PaymentValidationResult {
   valid: boolean;
   reason?: string;
@@ -27,8 +36,7 @@ export async function validatePaymentAmount(
   amountPaidInCents: number
 ): Promise<PaymentValidationResult> {
   // Validar que el planTipo sea válido (no permitir 'trial' ni 'basico', retirado de la venta)
-  const VALID_PLAN_TYPES: PlanTipo[] = ['profesional', 'premium', 'elite'];
-  if (!VALID_PLAN_TYPES.includes(planTipo as PlanTipo)) {
+  if (!esPlanTipoValido(planTipo)) {
     return { valid: false, reason: `Tipo de plan inválido: ${planTipo}` };
   }
 

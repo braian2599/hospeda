@@ -2,6 +2,12 @@
 
 export type TipoHabitacion = 'Simple' | 'Doble' | 'Triple' | 'Cuádruple' | 'Compartida';
 
+/** Los 5 valores válidos de TipoHabitacion — para validar en runtime (la
+ * columna Habitacion.tipo es un String libre en la base, no un enum de
+ * Postgres, así que esto es lo único que garantiza que no entre cualquier
+ * texto). */
+export const TIPOS_HABITACION_VALIDOS: TipoHabitacion[] = ['Simple', 'Doble', 'Triple', 'Cuádruple', 'Compartida'];
+
 /** Capacidad automática por tipo (Compartida se define manualmente) */
 export const CAPACIDAD_POR_TIPO: Record<TipoHabitacion, number | null> = {
   Simple: 1,

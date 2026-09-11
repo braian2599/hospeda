@@ -6,8 +6,9 @@ import type {
   HabitacionDisponible, MovimientoCaja, CierreCaja, Estadia,
   EstadoReserva, EstadoHabitacion, TurnoCaja,
   ModoCobro, RangoPrecio, CampoPersonalizado,
-  PromocionesTarifa,
+  PromocionesTarifa, TipoHabitacion,
 } from './types';
+import { TIPOS_HABITACION_VALIDOS } from './types';
 import { type PlanTipo, type PlanInfo, modulosEfectivos as calcModulosEfectivos, PLANES } from './plan-config';
 import { api } from './api-client';
 import { useNotificationStore, type NotificationCategory, type NotificationPriority } from './notification-store';
@@ -238,8 +239,8 @@ interface HotelStore {
   _registrarAuditoria: (tipo: string, detalle: string) => void;
 
   // Habitaciones
-  agregarHabitacion: (numero: string, tipo: string, capacidad: number, camasMatrimoniales: number, camasSimples: number, piso?: number) => Promise<boolean>;
-  editarHabitacion: (numeroOriginal: string, numeroNuevo: string, tipo: string, capacidad: number, camasMatrimoniales: number, camasSimples: number, piso?: number) => Promise<boolean>;
+  agregarHabitacion: (numero: string, tipo: TipoHabitacion, capacidad: number, camasMatrimoniales: number, camasSimples: number, piso?: number) => Promise<boolean>;
+  editarHabitacion: (numeroOriginal: string, numeroNuevo: string, tipo: TipoHabitacion, capacidad: number, camasMatrimoniales: number, camasSimples: number, piso?: number) => Promise<boolean>;
   eliminarHabitacion: (numero: string) => Promise<boolean>;
   cambiarEstadoHabitacion: (numero: string, nuevoEstado: EstadoHabitacion) => Promise<boolean>;
   /** Guarda el orden de visualización elegido a mano (array de números de habitación, en el orden deseado). */
