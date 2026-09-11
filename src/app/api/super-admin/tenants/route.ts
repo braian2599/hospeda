@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requireSuperAdmin } from '@/lib/super-admin/auth';
 import { FEATURE_FLAGS, parseFeatureFlags, type FeatureFlag } from '@/lib/feature-flags';
 import { setFeatureFlag } from '@/lib/feature-flags-server';
+import { deleteAllTenantObjects } from '@/lib/storage/r2';
 import bcrypt from 'bcryptjs';
 
 // GET /api/super-admin/tenants — Listar todos los tenants con info de suscripción
@@ -446,6 +447,12 @@ export async function DELETE(req: NextRequest) {
         }
       }
     });
+
+    // Limpiar el storage de R2 del tenant (fotos de hotel, de cada
+    // habitación, logo de factura, etc.) — el tenant ya se borró de la
+    // base, así que nada vuelve a apuntar a estos objetos; sin esto
+    // quedaban huérfanos en el bucket para siempre.
+    await deleteAllTenantObjects(tenantId);
 
     // Log estructurado (persistente via PlatformConfig)
     console.log(`[super-admin] Tenant eliminado: ${tenant.nombre} (${tenant.email}) por ${adminEmail}. ID: ${tenantId}`);

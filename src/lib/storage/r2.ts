@@ -1,6 +1,6 @@
 // ==================== Cloudflare R2 (S3-compatible) — fotos de hotel/habitaciones ====================
 
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -90,5 +90,57 @@ export async function deleteObjectsBestEffort(urls: string[], tenantId: string, 
   const fallidas = results.filter((r) => r.status === 'rejected').length;
   if (fallidas > 0) {
     console.error(`[R2] ${fallidas}/${urls.length} fotos no se pudieron borrar (${context})`);
+  }
+}
+
+/**
+ * Borra TODO lo que un tenant tiene en R2, de una sola vez, listando por su
+ * prefijo (`tenants/{tenantId}/`) en vez de ir campo por campo de la base
+ * (fotos de hotel, fotos de cada habitación, logo de factura, lo que sea
+ * que se suba a futuro bajo ese prefijo — presign/route.ts arma TODAS las
+ * keys de este tenant con ese mismo prefijo, así que alcanza con este uno
+ * para no dejar nada afuera). Se usa al borrar un hotel entero.
+ *
+ * Best-effort igual que deleteObjectsBestEffort: nunca tira. El tenant ya
+ * se borró de la base cuando esto se llama — un objeto que quede sin
+ * borrar en R2 es recuperable a mano después, pero no hay ninguna fila
+ * apuntando a él, así que tampoco es urgente.
+ */
+export async function deleteAllTenantObjects(tenantId: string): Promise<void> {
+  const prefix = `tenants/${tenantId}/`;
+  let borradas = 0;
+  let fallidas = 0;
+  try {
+    const client = getR2Client();
+    const bucket = getBucket();
+    let continuationToken: string | undefined;
+    do {
+      const listed = await client.send(new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      }));
+      const keys = (listed.Contents || []).map((o) => o.Key).filter((k): k is string => !!k);
+      if (keys.length > 0) {
+        // DeleteObjects acepta hasta 1000 keys por llamada — ListObjectsV2
+        // también pagina de a 1000, así que cada tanda ya entra justa.
+        const result = await client.send(new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
+        }));
+        fallidas += result.Errors?.length || 0;
+        borradas += keys.length - (result.Errors?.length || 0);
+      }
+      continuationToken = listed.IsTruncated ? listed.NextContinuationToken : undefined;
+    } while (continuationToken);
+  } catch (err) {
+    console.error(`[R2] Error al borrar el storage del tenant ${tenantId}:`, err);
+    return;
+  }
+  if (fallidas > 0) {
+    console.error(`[R2] ${fallidas} objetos no se pudieron borrar del storage del tenant ${tenantId}`);
+  }
+  if (borradas > 0 || fallidas > 0) {
+    console.log(`[R2] Storage del tenant ${tenantId} limpiado: ${borradas} objetos borrados, ${fallidas} fallidos`);
   }
 }
