@@ -66,3 +66,29 @@ export function extractKeyFromPublicUrl(url: string): string | null {
 export function extForContentType(contentType: string): string {
   return { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[contentType] || 'jpg';
 }
+
+/**
+ * Borra de R2, en paralelo y best-effort, un conjunto de fotos a partir de
+ * sus URLs públicas guardadas en la base — para cuando se borran filas que
+ * las referenciaban (una habitación, fotos sacadas de una galería, etc.) y
+ * hay que limpiar el storage detrás, no solo el registro en la base.
+ *
+ * "Best-effort" a propósito: nunca tira — si R2 no está configurado o falla
+ * una key puntual, se loguea y se sigue. El caller ya confirmó el cambio en
+ * la base; que un objeto quede sin borrar en R2 es recuperable a mano
+ * después, pero bloquear la operación principal por eso no lo es.
+ */
+export async function deleteObjectsBestEffort(urls: string[], tenantId: string, context: string): Promise<void> {
+  if (urls.length === 0) return;
+  const results = await Promise.allSettled(
+    urls.map(async (url) => {
+      const key = extractKeyFromPublicUrl(url);
+      if (!key || !key.startsWith(`tenants/${tenantId}/`)) return;
+      await deleteObject(key);
+    })
+  );
+  const fallidas = results.filter((r) => r.status === 'rejected').length;
+  if (fallidas > 0) {
+    console.error(`[R2] ${fallidas}/${urls.length} fotos no se pudieron borrar (${context})`);
+  }
+}

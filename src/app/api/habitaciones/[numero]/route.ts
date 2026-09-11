@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { TIPOS_HABITACION_VALIDOS } from '@/lib/types';
-import { deleteObject, extractKeyFromPublicUrl } from '@/lib/storage/r2';
+import { deleteObjectsBestEffort } from '@/lib/storage/r2';
 
 // PUT /api/habitaciones/[numero] — Editar habitación
 export async function PUT(
@@ -73,6 +73,14 @@ export async function PUT(
       }
     }
 
+    // Fotos que salen del array (si vino uno nuevo) — se borran de R2 una vez
+    // confirmado el update, para no depender de que el navegador dispare un
+    // segundo pedido aparte (ver deleteObjectsBestEffort): ese fetch desde
+    // el cliente puede fallar en silencio (red, pestaña cerrada) y dejar el
+    // archivo huérfano en el bucket sin que nadie se entere.
+    const fotosNuevas = Array.isArray(fotos) ? fotos.filter((f: unknown) => typeof f === 'string') : null;
+    const fotosQuitadas = fotosNuevas ? hab.fotos.filter((url) => !fotosNuevas.includes(url)) : [];
+
     // Actualizar
     const updated = await db.habitacion.update({
       where: { tenantId_numero: { tenantId, numero: numeroOriginal } },
@@ -85,10 +93,12 @@ export async function PUT(
         ...(precioPorCama !== undefined && { precioPorCama: precioPorCama ? parseInt(precioPorCama) : null }),
         ...(piso !== undefined && { piso: piso ? parseInt(piso) : null }),
         ...(nuevoEstado && { estado: nuevoEstado }),
-        ...(Array.isArray(fotos) && { fotos: fotos.filter((f: unknown) => typeof f === 'string') }),
+        ...(fotosNuevas && { fotos: fotosNuevas }),
         ...(descripcion !== undefined && { descripcion: typeof descripcion === 'string' ? descripcion : null }),
       },
     });
+
+    await deleteObjectsBestEffort(fotosQuitadas, tenantId, `foto quitada de habitación ${numeroOriginal}`);
 
     // Si cambió el número, actualizar reservas y mantenimiento
     if (nuevoNumero !== numeroOriginal) {
@@ -161,27 +171,8 @@ export async function DELETE(
       where: { tenantId_numero: { tenantId, numero } },
     });
 
-    // ── Limpiar las fotos de la habitación en R2 ──
-    // Sin esto, cada habitación borrada dejaba sus fotos huérfanas en el
-    // bucket para siempre (nadie vuelve a referenciarlas, pero tampoco se
-    // borran solas) — ocupando espacio de storage sin necesidad. Es
-    // best-effort: si R2 no está configurado o una key puntual falla, no
-    // bloquea la eliminación de la habitación (que ya se confirmó en la
-    // base) — solo se loguea para poder limpiar manualmente si hace falta.
-    if (hab.fotos.length > 0) {
-      await Promise.allSettled(
-        hab.fotos.map(async (url) => {
-          const key = extractKeyFromPublicUrl(url);
-          if (!key || !key.startsWith(`tenants/${tenantId}/`)) return;
-          await deleteObject(key);
-        })
-      ).then((results) => {
-        const fallidas = results.filter((r) => r.status === 'rejected').length;
-        if (fallidas > 0) {
-          console.error(`[DELETE habitaciones] ${fallidas}/${hab.fotos.length} fotos no se pudieron borrar de R2 (habitación ${numero}, tenant ${tenantId})`);
-        }
-      });
-    }
+    // Limpiar en R2 las fotos que tenía — ver deleteObjectsBestEffort.
+    await deleteObjectsBestEffort(hab.fotos, tenantId, `habitación ${numero} eliminada`);
 
     // Auditoría
     await db.auditoria.create({

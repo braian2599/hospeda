@@ -1528,11 +1528,14 @@ function LandingSection() {
     if (!habitacionActual) return;
     const next = habitacionActual.fotos.filter((f) => f !== url);
     try {
+      // El borrado en R2 de la foto que sale del array lo hace el propio
+      // endpoint (PUT /api/habitaciones/[numero]) una vez confirmado el
+      // update — no hace falta (ni conviene) un segundo fetch desde acá,
+      // que además podría fallar en silencio.
       const res = await fetch(`/api/habitaciones/${encodeURIComponent(habitacionActual.numero)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fotos: next }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setHabitacionesList((prev) => prev.map((h) => (h.numero === habitacionActual.numero ? { ...h, fotos: next } : h)));
-      borrarDeR2(url);
       toast.success('Foto eliminada');
     } catch (err: unknown) {
       toast.error((err as Error).message || 'Error al eliminar');
