@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { type PlanTipo, diasRestantesTrial, trialVencido, NOMBRES_MODULOS } from '@/lib/plan-config';
+import type { ModuloId } from '@/lib/types';
 import { usePlans } from '@/hooks/usePlans';
 import { useBankDetails } from '@/hooks/useBankDetails';
 import PlanCard from '@/components/payments/PlanCard';
@@ -36,6 +37,20 @@ export default function SuscripcionModule() {
     esRecurrente?: boolean;
     proximoCobro?: string | null;
   } | null>(null);
+  // Plan actual traído de /api/subscription (fresco, consultado a la BD en
+  // cada carga de esta pantalla) — NO usar planActual del store global acá:
+  // ese solo se refresca en momentos puntuales del ciclo de vida de la app
+  // (login, sync inicial), así que si un super-admin cambia el plan de un
+  // hotel mientras el dueño ya tiene la sesión abierta, planActual queda
+  // desactualizado hasta el próximo refresh — y esta pantalla terminaba
+  // mostrando el badge de estado correcto (ese sí viene de acá) pero el
+  // nombre del plan y el cartel de "período de prueba" con el dato viejo,
+  // una mezcla incoherente ("dice que está activo pero no lo está").
+  const [freshPlan, setFreshPlan] = useState<{
+    nombre: string;
+    precioDisplay: string;
+    modulos: ModuloId[];
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanTipo, 'trial'> | null>(null);
@@ -52,6 +67,7 @@ export default function SuscripcionModule() {
         const subData = await subRes.json();
         if (subRes.ok && subData.subscription) {
           setSubscriptionData(subData.subscription);
+          if (subData.plan) setFreshPlan(subData.plan);
         }
       } catch {
         // Silently fail — use store data
@@ -106,8 +122,11 @@ export default function SuscripcionModule() {
     setTimeout(() => setCopiedField(''), 2000);
   };
 
-  const plan = plans[planActual];
-  const isTrial = planActual === 'trial';
+  // Preferir siempre el dato fresco de /api/subscription — el store global
+  // (plans[planActual]) es solo el fallback para el breve instante antes de
+  // que la petición resuelva, o si llegó a fallar.
+  const plan = freshPlan ?? plans[planActual];
+  const isTrial = subscriptionData ? subscriptionData.estado === 'trial' : planActual === 'trial';
   const diasTrial = fechaVencimientoTrial ? diasRestantesTrial(fechaVencimientoTrial) : 0;
   const trialExpired = isTrial && fechaVencimientoTrial && trialVencido(fechaVencimientoTrial);
   const isRecurring = subscriptionData?.esRecurrente === true;
