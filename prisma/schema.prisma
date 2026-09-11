@@ -104,6 +104,7 @@ model Subscription {
   esRecurrente      Boolean   @default(false)
   mpPlanId          String?
   mpPreapprovalId   String?   @unique
+  stripeSubscriptionId String? @unique
   proximoCobro      DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
