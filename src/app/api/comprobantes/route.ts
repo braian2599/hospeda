@@ -21,19 +21,24 @@ import type { TipoComprobante } from '@prisma/client';
 const TIPOS_EMITIBLES = new Set<TipoComprobante>(['Presupuesto', 'Remito', 'NotaCredito', 'NotaDebito']);
 
 function formatComprobante(c: {
-  id: string; tipo: string; puntoVenta: number; numero: number; letra: string; fecha: Date;
+  id: string; tipo: string; puntoVenta: number; numero: number; numeroInterno: number | null; letra: string; fecha: Date;
+  reservaId: string | null;
   razonSocialReceptor: string; docTipoReceptor: number | null; docReceptor: string | null;
   domicilioReceptor: string | null; condicionIvaReceptor: string | null; concepto: string;
-  importe: number; cae: string | null; caeVencimiento: Date | null;
-  ambiente: string | null; estado: string; motivo: string | null;
+  importe: number; cae: string | null; caeVencimiento: Date | null; tipoAfip: number | null;
+  ambiente: string | null; estado: string; anuladoAt: Date | null; motivo: string | null;
   comprobanteAsociado: { tipo: string; puntoVenta: number; numero: number } | null;
 }) {
   return {
     id: c.id,
     tipo: c.tipo,
+    puntoVenta: c.puntoVenta,
+    numero: c.numero,
     numeroDisplay: `${String(c.puntoVenta).padStart(4, '0')}-${String(c.numero).padStart(8, '0')}`,
+    numeroInternoDisplay: c.numeroInterno != null ? `${String(c.puntoVenta).padStart(4, '0')}-${String(c.numeroInterno).padStart(8, '0')}` : null,
     letra: c.letra,
     fecha: c.fecha,
+    reservaId: c.reservaId,
     razonSocialReceptor: c.razonSocialReceptor,
     docTipoReceptor: c.docTipoReceptor,
     docReceptor: c.docReceptor,
@@ -43,8 +48,10 @@ function formatComprobante(c: {
     importe: c.importe / 100,
     cae: c.cae,
     caeVencimiento: c.caeVencimiento,
+    tipoAfip: c.tipoAfip,
     ambiente: c.ambiente,
     estado: c.estado,
+    anuladoAt: c.anuladoAt,
     motivo: c.motivo,
     comprobanteAsociadoDisplay: c.comprobanteAsociado
       ? `${c.comprobanteAsociado.tipo} ${String(c.comprobanteAsociado.puntoVenta).padStart(4, '0')}-${String(c.comprobanteAsociado.numero).padStart(8, '0')}`

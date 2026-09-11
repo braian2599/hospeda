@@ -314,6 +314,14 @@ model Reserva {
   comprobanteCaeVencimiento DateTime?
   comprobanteTipoAfip      Int?
   comprobanteAmbiente      String?
+  // Número interno (recibo) que tenía este comprobante ANTES de facturarse
+  // con AFIP — ver POST /api/reservas/[id]/facturar-afip. El check-out ya
+  // no factura solo: siempre asigna primero este número interno, y recién
+  // si más adelante se factura con AFIP, comprobanteNumero pasa a ser el
+  // número oficial de AFIP (una numeración totalmente distinta) y el
+  // interno queda acá como referencia, para no perder el rastro de qué
+  // recibo se convirtió en qué factura.
+  comprobanteNumeroInterno Int?
 
   acompanantes             Acompanante[]
   menores                  Menor[]
@@ -725,6 +733,12 @@ model Comprobante {
   ambiente              String?
 
   estado                String            @default("emitido") // 'emitido' | 'anulado'
+  anuladoAt             DateTime?         // solo Remito/Presupuesto pueden anularse — Factura y Notas de Crédito/Débito son permanentes.
+
+  // Número interno (Recibo) que tenía este comprobante antes de facturarse
+  // con AFIP — solo aplica a tipo Factura. Ver comprobanteNumeroInterno en
+  // Reserva para más contexto.
+  numeroInterno         Int?
 
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt

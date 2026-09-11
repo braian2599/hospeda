@@ -794,6 +794,7 @@ function FiscalPreviewCard({
   const cbteTipoDemo = tipoComprobantePorCondicionIva(demoFiscal.iva);
   const demoComprobante: ComprobanteDisplay = {
     numeroDisplay: invoicePreview,
+    numeroInternoDisplay: null,
     numero: form.numeroInicio || 1,
     puntoVenta: form.puntoVenta || 1,
     fecha: hoy.toISOString(),
