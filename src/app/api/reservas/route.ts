@@ -4,6 +4,7 @@ import { requirePermission, requireActiveSubscription, getAuthSession, AuthError
 import { validateCsrfToken } from '@/lib/csrf';
 import { Prisma } from '@prisma/client';
 import { createReservaSchema, formatZodError } from '@/lib/validation-schemas';
+import { lockHabitacion, ReservaConflictError } from '@/lib/db-lock';
 
 // ─────────────────────────────────────────────────────────
 // GET /api/reservas — Listar reservas con filtros
@@ -173,49 +174,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `La habitación "${habitacion}" no existe` }, { status: 404 });
     }
 
-    // ── Verificar disponibilidad ──
-    if (room.tipo === 'Compartida') {
-      // Habitación compartida: varias reservas conviven en el mismo rango de
-      // fechas mientras haya camas libres — solo rechazar si la ocupación
-      // total (reservas existentes + esta) supera la capacidad, igual que el
-      // chequeo que ya hace el cliente en buscarDisponibilidad().
-      const overlappingReservas = await db.reserva.findMany({
-        where: {
-          tenantId,
-          habitacion: habitacion.trim(),
-          estado: { in: ['Confirmada', 'CheckIn_realizado'] },
-          checkin: { lt: checkoutDate },
-          checkout: { gt: checkinDate },
-        },
-        select: { personas: true },
-      });
-      const personasOcupadas = overlappingReservas.reduce((sum, r) => sum + (r.personas || 1), 0);
-      const personasSolicitadas = parseInt(personas) || 1;
-      const camasLibres = room.capacidad - personasOcupadas;
-      if (personasSolicitadas > camasLibres) {
-        return NextResponse.json(
-          { error: `La habitación "${habitacion}" no tiene camas suficientes libres en ese rango de fechas (disponibles: ${Math.max(0, camasLibres)})` },
-          { status: 409 }
-        );
-      }
-    } else {
-      const overlapping = await db.reserva.count({
-        where: {
-          tenantId,
-          habitacion: habitacion.trim(),
-          estado: { in: ['Confirmada', 'CheckIn_realizado'] },
-          checkin: { lt: checkoutDate },
-          checkout: { gt: checkinDate },
-        },
-      });
-      if (overlapping > 0) {
-        return NextResponse.json(
-          { error: `La habitación "${habitacion}" ya tiene una reserva activa en ese rango de fechas` },
-          { status: 409 }
-        );
-      }
-    }
-
     const nights = Math.ceil(
       (checkoutDate.getTime() - checkinDate.getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -228,67 +186,120 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'datosAdicionales debe ser un objeto' }, { status: 400 });
     }
 
-    // ── Create the reserva ──
-    const reserva = await db.reserva.create({
-      data: {
-        tenantId,
-        clienteId: clienteId || null,
-        huesped: huesped.trim(),
-        dni: dni.trim(),
-        telefono: (telefono as string)?.trim() || '',
-        email: email?.trim() || null,
-        domicilio: domicilio?.trim() || null,
-        habitacion: habitacion.trim(),
-        checkin: checkinDate,
-        checkout: checkoutDate,
-        personas: parseInt(personas) || 1,
-        ninos: ninos != null ? parseInt(ninos) : null,
-        total: total != null ? parseInt(total) : null,
-        tipoTarifa: tipoTarifa || null,
-        metodoPagoId: metodoPagoId || null,
-        cuotas: cuotas ? parseInt(cuotas) : null,
-        recargoPorcentaje: recargoPorcentaje ? parseInt(recargoPorcentaje) : null,
-        notas: notas || '',
-        observacionesHuesped: observacionesHuesped || null,
-        agenciaNombre: agenciaNombre?.trim() || null,
-        agenciaConvenio: agenciaConvenio?.trim() || null,
-        agenciaVendedor: agenciaVendedor?.trim() || null,
-        contactoEmergenciaNombre: contactoEmergenciaNombre?.trim() || null,
-        contactoEmergenciaTel: contactoEmergenciaTel?.trim() || null,
-        datosAdicionales: datosAdicionalesClean ?? Prisma.JsonNull,
-        acompanantes: {
-          create: (acompanantes || []).map(
-            (a: { nombre: string; dni: string; celular?: string }) => ({
-              nombre: a.nombre.trim(),
-              dni: a.dni.trim(),
-              celular: a.celular?.trim() || null,
-            })
-          ),
+    // ── Verificar disponibilidad + crear, todo dentro de una misma
+    //    transacción con lock de la habitación (ver src/lib/db-lock.ts) —
+    //    si no, dos pedidos concurrentes para la misma habitación podrían
+    //    los dos leer "está libre" antes de que ninguno confirme, y
+    //    terminar doble-reservada. ──
+    const reserva = await db.$transaction(async (tx) => {
+      await lockHabitacion(tx, tenantId, habitacion.trim());
+
+      if (room.tipo === 'Compartida') {
+        // Habitación compartida: varias reservas conviven en el mismo rango de
+        // fechas mientras haya camas libres — solo rechazar si la ocupación
+        // total (reservas existentes + esta) supera la capacidad, igual que el
+        // chequeo que ya hace el cliente en buscarDisponibilidad().
+        const overlappingReservas = await tx.reserva.findMany({
+          where: {
+            tenantId,
+            habitacion: habitacion.trim(),
+            estado: { in: ['Confirmada', 'CheckIn_realizado'] },
+            checkin: { lt: checkoutDate },
+            checkout: { gt: checkinDate },
+          },
+          select: { personas: true },
+        });
+        const personasOcupadas = overlappingReservas.reduce((sum, r) => sum + (r.personas || 1), 0);
+        const personasSolicitadas = parseInt(personas) || 1;
+        const camasLibres = room.capacidad - personasOcupadas;
+        if (personasSolicitadas > camasLibres) {
+          throw new ReservaConflictError(
+            `La habitación "${habitacion}" no tiene camas suficientes libres en ese rango de fechas (disponibles: ${Math.max(0, camasLibres)})`,
+            409
+          );
+        }
+      } else {
+        const overlapping = await tx.reserva.count({
+          where: {
+            tenantId,
+            habitacion: habitacion.trim(),
+            estado: { in: ['Confirmada', 'CheckIn_realizado'] },
+            checkin: { lt: checkoutDate },
+            checkout: { gt: checkinDate },
+          },
+        });
+        if (overlapping > 0) {
+          throw new ReservaConflictError(`La habitación "${habitacion}" ya tiene una reserva activa en ese rango de fechas`, 409);
+        }
+      }
+
+      // ── Create the reserva ──
+      const nueva = await tx.reserva.create({
+        data: {
+          tenantId,
+          clienteId: clienteId || null,
+          huesped: huesped.trim(),
+          dni: dni.trim(),
+          telefono: (telefono as string)?.trim() || '',
+          email: email?.trim() || null,
+          domicilio: domicilio?.trim() || null,
+          habitacion: habitacion.trim(),
+          checkin: checkinDate,
+          checkout: checkoutDate,
+          personas: parseInt(personas) || 1,
+          ninos: ninos != null ? parseInt(ninos) : null,
+          total: total != null ? parseInt(total) : null,
+          tipoTarifa: tipoTarifa || null,
+          metodoPagoId: metodoPagoId || null,
+          cuotas: cuotas ? parseInt(cuotas) : null,
+          recargoPorcentaje: recargoPorcentaje ? parseInt(recargoPorcentaje) : null,
+          notas: notas || '',
+          observacionesHuesped: observacionesHuesped || null,
+          agenciaNombre: agenciaNombre?.trim() || null,
+          agenciaConvenio: agenciaConvenio?.trim() || null,
+          agenciaVendedor: agenciaVendedor?.trim() || null,
+          contactoEmergenciaNombre: contactoEmergenciaNombre?.trim() || null,
+          contactoEmergenciaTel: contactoEmergenciaTel?.trim() || null,
+          datosAdicionales: datosAdicionalesClean ?? Prisma.JsonNull,
+          acompanantes: {
+            create: (acompanantes || []).map(
+              (a: { nombre: string; dni: string; celular?: string }) => ({
+                nombre: a.nombre.trim(),
+                dni: a.dni.trim(),
+                celular: a.celular?.trim() || null,
+              })
+            ),
+          },
         },
-      },
-      include: { acompanantes: true },
-    });
+        include: { acompanantes: true },
+      });
 
-    // ── Set room estado to Reservada ──
-    await db.habitacion.update({
-      where: { tenantId_numero: { tenantId, numero: habitacion.trim() } },
-      data: { estado: 'Reservada' },
-    });
+      // ── Set room estado to Reservada ──
+      await tx.habitacion.update({
+        where: { tenantId_numero: { tenantId, numero: habitacion.trim() } },
+        data: { estado: 'Reservada' },
+      });
 
-    // ── Auditoría con empleado real ──
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: 'reserva_creada',
-        detalle: `Reserva ${reserva.id}: ${huesped.trim()} → Hab. ${habitacion.trim()}, ${nights} noche${nights !== 1 ? 's' : ''} (${checkinDate.toLocaleDateString()} → ${checkoutDate.toLocaleDateString()})`,
-        empleado: empleadoNombre,
-      },
+      // ── Auditoría con empleado real ──
+      await tx.auditoria.create({
+        data: {
+          tenantId,
+          tipo: 'reserva_creada',
+          detalle: `Reserva ${nueva.id}: ${huesped.trim()} → Hab. ${habitacion.trim()}, ${nights} noche${nights !== 1 ? 's' : ''} (${checkinDate.toLocaleDateString()} → ${checkoutDate.toLocaleDateString()})`,
+          empleado: empleadoNombre,
+        },
+      });
+
+      return nueva;
     });
 
     return NextResponse.json(reserva, { status: 201 });
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
+    if (error instanceof ReservaConflictError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error('POST reservas:', error);
     return NextResponse.json({ error: 'Error al crear reserva' }, { status: 500 });

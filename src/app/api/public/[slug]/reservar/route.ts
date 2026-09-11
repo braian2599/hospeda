@@ -13,6 +13,7 @@ function parseCamposPersonalizados(raw: unknown): CampoPersonalizado[] {
   return raw.filter((c): c is CampoPersonalizado => !!c && typeof c === 'object' && typeof (c as CampoPersonalizado).nombre === 'string');
 }
 import { getValidAccessToken, createDepositCheckout, PORCENTAJE_SENA } from '@/lib/payments/mp-connect';
+import { lockTiposHabitacion } from '@/lib/db-lock';
 
 function clientIp(req: NextRequest): string {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
@@ -184,6 +185,11 @@ export async function POST(
   let habitacionReservada2: string | null = null;
   try {
     const { r1, r2 } = await db.$transaction(async (tx) => {
+      // ── Lock de concurrencia: serializa cualquier otro pedido que compita
+      //    por el mismo tipo de habitación (y el segundo tipo, si es una
+      //    combinación) antes de leer disponibilidad — ver src/lib/db-lock.ts. ──
+      await lockTiposHabitacion(tx, tenant.id, tipo2 ? [tipo, tipo2] : [tipo]);
+
       // ── Cliente: mismos datos que pide el módulo interno de Reservas, para
       //    no dejar el registro de cliente a medias — se busca por DNI y si ya
       //    existe se completan los campos que faltaban, igual que crearReserva
