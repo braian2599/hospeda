@@ -249,6 +249,11 @@ function OccupancyBadge({ pct }: { pct: number }) {
   );
 }
 
+// Registros de auditoría cuyo "empleado" no es personal del hotel — se
+// excluyen del resumen de desempeño de Reportes > Empleados (siguen visibles
+// en la Auditoría completa, ahí sí importa la trazabilidad total).
+const EMPLEADOS_EXCLUIDOS_DE_REPORTE = new Set(['Sistema', 'Super Admin']);
+
 // ==================== COMPONENT ====================
 
 export default function ReportesModule() {
@@ -579,7 +584,12 @@ export default function ReportesModule() {
       .sort((a, b) => b.totalGastado - a.totalGastado);
   }, [clientes, clienteMinEstadias]);
 
-  // Empleados resumen — basado en registros de auditoría (quién ejecutó cada acción)
+  // Empleados resumen — basado en registros de auditoría (quién ejecutó cada acción).
+  // 'Sistema' (acciones server-to-server sin usuario logueado: webhooks, cron) y
+  // 'Super Admin' (acciones del dueño de la plataforma sobre la cuenta del hotel,
+  // no de su personal) no son empleados del hotel — se excluyen de este resumen
+  // de desempeño, aunque siguen apareciendo en la Auditoría completa para
+  // trazabilidad. 'Landing pública' sí se deja: son reservas que entraron solas.
   const empleadosResumen = useMemo(() => {
     const resumen: Record<string, { nombre: string; checkins: number; checkouts: number; pagos: number; gastos: number; reservas: number; auditorias: number }> = {};
     usuarios.forEach(u => {
@@ -587,6 +597,7 @@ export default function ReportesModule() {
       resumen[nombre] = { nombre, checkins: 0, checkouts: 0, pagos: 0, gastos: 0, reservas: 0, auditorias: 0 };
     });
     auditoriaEnPeriodo.forEach(a => {
+      if (EMPLEADOS_EXCLUIDOS_DE_REPORTE.has(a.empleado)) return;
       if (!resumen[a.empleado]) resumen[a.empleado] = { nombre: a.empleado, checkins: 0, checkouts: 0, pagos: 0, gastos: 0, reservas: 0, auditorias: 0 };
       resumen[a.empleado].auditorias++;
       if (a.tipo === 'Check-In') resumen[a.empleado].checkins++;
