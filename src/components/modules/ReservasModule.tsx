@@ -528,6 +528,7 @@ interface CombinacionSugerencia {
 
 export default function ReservasModule() {
  const reservas = useHotelStore(s => s.reservas);
+ const clientes = useHotelStore(s => s.clientes);
  const habitaciones = useHotelStore(s => s.habitaciones);
  const tarifas = useHotelStore(s => s.tarifas);
  const tiposTarifa = useHotelStore(s => s.tiposTarifa);
@@ -944,26 +945,31 @@ export default function ReservasModule() {
  const cuotaVal = r.cuotas && r.recargoPorcentaje !== undefined
  ? `${r.cuotas}|${r.recargoPorcentaje}`
  : '1|0';
+ // Reserva no guarda nacionalidad/fechaNacimiento (son del Cliente) — hay que
+ // buscarlas en el cliente vinculado.
+ const cliente = clientes.find(c => c.id === r.idCliente);
+ // Partir de emptyForm (no un objeto armado a mano) para que sea imposible
+ // que un campo nuevo de NuevaReservaForm quede sin inicializar acá — eso fue
+ // justo lo que rompió esta pantalla: faltaban nacionalidad/fechaNacimiento,
+ // quedaban undefined, y el guardado explotaba en un .trim() de undefined.
  setForm({
+ ...emptyForm,
  checkin: r.checkin,
  checkout: r.checkout,
  personasBusqueda: String(r.personas),
  personas: String(r.personas),
- personas2: '1',
  tipoTarifa: r.tipoTarifa || 'normal',
  habitacion: r.habitacion,
- habitacion2: '',
- reservaMultiple: false,
- filtroMatrimonial: false,
  clienteId: r.idCliente,
  huesped: r.huesped,
  dni: r.dni,
  telefono: r.telefono,
  email: r.email,
  domicilio: r.domicilio || '',
+ nacionalidad: cliente?.nacionalidad || '',
+ fechaNacimiento: cliente?.fechaNacimiento || '',
  datosAdicionales: (r as Reserva & { datosAdicionales?: Record<string, string> }).datosAdicionales || {},
  pagoTipo: 'ninguno',
- pagoMonto: '',
  pagoMetodo: r.metodoPagoId || '',
  pagoCuotas: cuotaVal,
  ninos: String(r.ninos || 0),

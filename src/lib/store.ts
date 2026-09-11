@@ -252,7 +252,10 @@ interface HotelStore {
   buscarCliente: (termino: string) => Cliente[];
 
   // Reservas
-  crearReserva: (datos: Partial<Reserva> & { checkin: string; checkout: string; habitacion: string; huesped: string; dni: string; personas: number }) => Promise<Reserva | null>;
+  // nacionalidad/fechaNacimiento no viven en Reserva (son del Cliente) — se
+  // aceptan acá porque crearReserva los usa para crear/completar el Cliente
+  // vinculado (ver "Fix 6" más abajo en la implementación).
+  crearReserva: (datos: Partial<Reserva> & { checkin: string; checkout: string; habitacion: string; huesped: string; dni: string; personas: number; nacionalidad?: string; fechaNacimiento?: string }) => Promise<Reserva | null>;
   modificarReserva: (id: string, datos: Partial<Reserva>) => Promise<boolean>;
   cancelarReserva: (id: string) => Promise<boolean>;
   buscarDisponibilidad: (desde: string, hasta: string, excludeReservaId?: string) => HabitacionDisponible[];
@@ -738,7 +741,7 @@ export const useHotelStore = create<HotelStore>()(
         let clienteFueCreadoAhora = false;
         try {
           try {
-            const dbCliente = await api.clientes.create({ nombre: datos.huesped, dni: datos.dni, telefono: datos.telefono || '', email: datos.email, fechaNacimiento: (datos as any).fechaNacimiento, nacionalidad: (datos as any).nacionalidad, domicilio: datos.domicilio, preferencias: '' });
+            const dbCliente = await api.clientes.create({ nombre: datos.huesped, dni: datos.dni, telefono: datos.telefono || '', email: datos.email, fechaNacimiento: datos.fechaNacimiento, nacionalidad: datos.nacionalidad, domicilio: datos.domicilio, preferencias: '' });
             clienteRealId = dbCliente.id;
             clienteFueCreadoAhora = true;
             const currentClientes = get().clientes;
