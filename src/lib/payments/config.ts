@@ -102,6 +102,7 @@ export const PAYMENT_CONFIG = {
       basico: process.env.STRIPE_PRICE_BASICO || 'price_basico_placeholder',
       profesional: process.env.STRIPE_PRICE_PROFESIONAL || 'price_profesional_placeholder',
       premium: process.env.STRIPE_PRICE_PREMIUM || 'price_premium_placeholder',
+      elite: process.env.STRIPE_PRICE_ELITE || 'price_elite_placeholder',
     } as Record<string, string>,
   },
 
