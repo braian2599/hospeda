@@ -613,6 +613,14 @@ model TenantConfig {
   senaWhatsapp        String?
   senaEmail           String?
   senaInstrucciones   String?
+  // Límite de fechas para reservas hechas desde la landing pública — los
+  // hoteles habilitan la venta por temporada (cambian precios en Tarifas
+  // seguido) y no quieren que alguien reserve fechas de una temporada que
+  // todavía no cargaron. null = sin límite. Es un tope duro para la landing
+  // (calendario + validación en el servidor); el personal sigue pudiendo
+  // cargar una reserva a mano más allá de esta fecha desde el módulo
+  // Reservas (ahí solo se le avisa, no se le bloquea).
+  reservasHabilitadasHasta DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

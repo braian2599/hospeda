@@ -57,6 +57,7 @@ interface LandingTabsProps {
   promociones: PromocionPublica[];
   mostrarSeccionAgencias: boolean;
   textoAgencias: string | null;
+  reservasHabilitadasHasta: string | null;
 }
 
 export default function LandingTabs({
@@ -64,6 +65,7 @@ export default function LandingTabs({
   horaCheckin, horaCheckout, politicaCancelacion, servicios,
   direccionCompleta, tieneCoordenadas, mapaLat, mapaLng, nombreHotel,
   galeria, promociones, mostrarSeccionAgencias, textoAgencias,
+  reservasHabilitadasHasta,
 }: LandingTabsProps) {
   const hayPoliticas = !!(horaCheckin || horaCheckout || politicaCancelacion);
   const hayUbicacion = tieneCoordenadas || !!direccionCompleta;
@@ -98,6 +100,7 @@ export default function LandingTabs({
                   moneda={moneda}
                   precioDesde={precioDesde}
                   badges={badges}
+                  reservasHabilitadasHasta={reservasHabilitadasHasta}
                 />
               </FadeIn>
             ))}
@@ -229,7 +232,13 @@ export default function LandingTabs({
             <div className="mx-auto max-w-4xl space-y-5">
               {promociones.map((p, i) => (
                 <FadeIn key={p.tarifaId} delay={i * 60}>
-                  <PromocionCard slug={slug} moneda={moneda} promocion={p} habitaciones={habitacionesRaw} />
+                  <PromocionCard
+                    slug={slug}
+                    moneda={moneda}
+                    promocion={p}
+                    habitaciones={habitacionesRaw}
+                    reservasHabilitadasHasta={reservasHabilitadasHasta}
+                  />
                 </FadeIn>
               ))}
             </div>

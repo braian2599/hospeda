@@ -571,6 +571,15 @@ export default function ReservasModule() {
 
  // ==================== FORM STATE ====================
  const [form, setForm] = useState<NuevaReservaForm>(emptyForm);
+ // Límite de reservas de la landing pública — al personal solo se le avisa,
+ // nunca se le bloquea, así que alcanza con un fetch liviano al montar.
+ const [reservasHabilitadasHasta, setReservasHabilitadasHasta] = useState<string | null>(null);
+ useEffect(() => {
+   fetch('/api/configuracion/hotel')
+     .then(r => r.json())
+     .then(data => setReservasHabilitadasHasta(data.reservasHabilitadasHasta || null))
+     .catch(() => {});
+ }, []);
  const [tab, setTab] = useState('disponibilidad');
  const [disponibles, setDisponibles] = useState<HabitacionDisponible[]>([]);
  const [busquedaCliente, setBusquedaCliente] = useState('');
@@ -2043,6 +2052,12 @@ export default function ReservasModule() {
  onChangeCheckout={v => updateForm({ checkout: v })}
  label="Fechas"
  />
+ {reservasHabilitadasHasta && form.checkout && form.checkout > reservasHabilitadasHasta && (
+ <p className="flex items-center gap-1.5 text-xs text-amber-600">
+ <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+ Esta reserva supera la fecha hasta la que la landing pública tiene reservas habilitadas ({format(new Date(reservasHabilitadasHasta + 'T12:00:00'), 'dd/MM/yyyy')}) — solo es una advertencia, la podés cargar igual.
+ </p>
+ )}
  </div>
  <div className="grid gap-1.5">
  <Label>Personas (búsqueda)</Label>

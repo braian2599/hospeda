@@ -44,7 +44,7 @@ function formatMoney(n: number, moneda: string): string {
 }
 
 export default function HabitacionCard({
-  slug, habitacion, telefonoHotel, moneda, precioDesde, badges,
+  slug, habitacion, telefonoHotel, moneda, precioDesde, badges, reservasHabilitadasHasta,
 }: {
   slug: string;
   habitacion: HabitacionPublica;
@@ -52,10 +52,14 @@ export default function HabitacionCard({
   moneda: string;
   precioDesde: number | null;
   badges: string[];
+  reservasHabilitadasHasta: string | null;
 }) {
   const router = useRouter();
   const [detalleAbierto, setDetalleAbierto] = useState(false);
   const [fotoIndex, setFotoIndex] = useState(0);
+
+  // El día límite todavía se puede reservar — el hotel lo habilitó hasta esa fecha inclusive.
+  const fechaLimite = reservasHabilitadasHasta ? new Date(`${reservasHabilitadasHasta}T23:59:59`) : null;
 
   const [rango, setRango] = useState<DateRange | undefined>();
   const [calendarioAbierto, setCalendarioAbierto] = useState(false);
@@ -262,10 +266,15 @@ export default function HabitacionCard({
                         mode="range"
                         selected={rango}
                         onSelect={handleSelectRango}
-                        disabled={{ before: new Date() }}
+                        disabled={fechaLimite ? { before: new Date(), after: fechaLimite } : { before: new Date() }}
                         numberOfMonths={2}
                         min={1}
                       />
+                      {fechaLimite && (
+                        <p className="px-3 pb-2.5 text-xs text-muted-foreground text-center">
+                          Reservas disponibles hasta el {fechaLimite.toLocaleDateString('es-AR')}
+                        </p>
+                      )}
                     </PopoverContent>
                   </Popover>
                   <div className="flex items-center gap-2 rounded-md border px-3 py-2 bg-background">

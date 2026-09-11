@@ -109,7 +109,7 @@ export async function POST(
     }
   }
 
-  const fechas = parseFechasConsulta(body.checkin, body.checkout);
+  const fechas = parseFechasConsulta(body.checkin, body.checkout, tenant.configuracion?.reservasHabilitadasHasta);
   if ('error' in fechas) return NextResponse.json({ error: fechas.error }, { status: 400 });
 
   const personas = parsePersonasConsulta(body.personas);

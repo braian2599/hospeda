@@ -201,6 +201,7 @@ export default async function HotelLandingPage(
           promociones={promociones}
           mostrarSeccionAgencias={!!config?.mostrarSeccionAgencias}
           textoAgencias={config?.textoAgencias || null}
+          reservasHabilitadasHasta={config?.reservasHabilitadasHasta ? new Date(config.reservasHabilitadasHasta).toISOString().slice(0, 10) : null}
         />
       </div>
 

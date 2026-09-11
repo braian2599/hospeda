@@ -31,6 +31,7 @@ import {
   Settings, Copy, Info, BedDouble, KeyRound, Database, Receipt,
   Users, History, CheckCircle2, XCircle, Lock, Printer, MessageCircle,
   Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban, Instagram, Facebook, Zap, Share2,
+  CalendarClock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -1234,7 +1235,7 @@ function LandingSection() {
   const [savingRedes, setSavingRedes] = useState(false);
 
   // Políticas
-  const [politicas, setPoliticas] = useState({ horaCheckin: '', horaCheckout: '', politicaCancelacion: '' });
+  const [politicas, setPoliticas] = useState({ horaCheckin: '', horaCheckout: '', politicaCancelacion: '', reservasHabilitadasHasta: '' });
   const [savingPoliticas, setSavingPoliticas] = useState(false);
 
   // Fotos y descripción
@@ -1301,6 +1302,7 @@ function LandingSection() {
       setPoliticas({
         horaCheckin: hotelData.horaCheckin || '', horaCheckout: hotelData.horaCheckout || '',
         politicaCancelacion: hotelData.politicaCancelacion || '',
+        reservasHabilitadasHasta: hotelData.reservasHabilitadasHasta || '',
       });
       setDescripcion(hotelData.descripcion || '');
       setFotosHotel(hotelData.fotos || []);
@@ -1799,6 +1801,19 @@ function LandingSection() {
                         onChange={(e) => setPoliticas({ ...politicas, politicaCancelacion: e.target.value })}
                         placeholder="Ej: Cancelaciones con más de 48hs de anticipación reciben reembolso total. Dentro de las 48hs, se retiene la seña."
                         rows={3}
+                      />
+                    </ConfigField>
+                  </div>
+                  <div className="md:col-span-2">
+                    <ConfigField
+                      label="Reservas habilitadas hasta"
+                      icon={CalendarClock}
+                      hint="La landing pública no va a dejar reservar fechas posteriores a esta — usalo cuando todavía no cargaste los precios de la próxima temporada. Dejalo vacío para no poner límite. El personal sigue pudiendo cargar reservas a mano más allá de esta fecha desde el módulo Reservas."
+                    >
+                      <Input
+                        type="date"
+                        value={politicas.reservasHabilitadasHasta}
+                        onChange={(e) => setPoliticas({ ...politicas, reservasHabilitadasHasta: e.target.value })}
                       />
                     </ConfigField>
                   </div>

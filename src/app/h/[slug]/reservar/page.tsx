@@ -30,7 +30,7 @@ export default async function ReservarPage(
   if (!tenant) return <AvisoVolver slug={slug} hotelNombre="el hotel" mensaje="No encontramos este hotel." />;
 
   const habitacion = numero ? tenant.habitaciones.find((h) => h.numero === numero) : undefined;
-  const fechas = parseFechasConsulta(checkin, checkout);
+  const fechas = parseFechasConsulta(checkin, checkout, tenant.configuracion?.reservasHabilitadasHasta);
   const personas = parsePersonasConsulta(personasStr || '1');
   const ninos = Math.max(0, Math.min(20, parseInt(ninosStr || '0') || 0));
 

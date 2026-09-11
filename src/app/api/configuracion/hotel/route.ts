@@ -21,6 +21,7 @@ export async function GET() {
             hotelPais: true, hotelTelefono: true, hotelEmail: true, hotelLogoUrl: true,
             featureFlags: true, tarifasPublicas: true, mostrarSeccionAgencias: true, textoAgencias: true,
             modoCobroSena: true, senaWhatsapp: true, senaEmail: true, senaInstrucciones: true,
+            reservasHabilitadasHasta: true,
           },
         },
       },
@@ -65,6 +66,7 @@ export async function GET() {
       senaWhatsapp: config.senaWhatsapp || '',
       senaEmail: config.senaEmail || '',
       senaInstrucciones: config.senaInstrucciones || '',
+      reservasHabilitadasHasta: config.reservasHabilitadasHasta ? (config.reservasHabilitadasHasta as Date).toISOString().slice(0, 10) : null,
     });
   } catch (error) {
     if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.statusCode });
@@ -83,6 +85,7 @@ export async function PUT(req: NextRequest) {
       horaCheckin, horaCheckout, politicaCancelacion, mapaLat, mapaLng, instagramUrl, facebookUrl,
       tarifasPublicas, mostrarSeccionAgencias, textoAgencias,
       modoCobroSena, senaWhatsapp, senaEmail, senaInstrucciones,
+      reservasHabilitadasHasta,
     } = body;
 
     if (modoCobroSena !== undefined && modoCobroSena !== 'mercadopago' && modoCobroSena !== 'manual') {
@@ -99,6 +102,18 @@ export async function PUT(req: NextRequest) {
     }
     if (facebookUrl && (typeof facebookUrl !== 'string' || !/^https?:\/\//i.test(facebookUrl))) {
       return NextResponse.json({ error: 'El link de Facebook debe empezar con http:// o https://' }, { status: 400 });
+    }
+    let reservasHabilitadasHastaDate: Date | null | undefined;
+    if (reservasHabilitadasHasta !== undefined) {
+      if (reservasHabilitadasHasta === null || reservasHabilitadasHasta === '') {
+        reservasHabilitadasHastaDate = null; // "sin límite"
+      } else {
+        const parsed = new Date(reservasHabilitadasHasta);
+        if (typeof reservasHabilitadasHasta !== 'string' || isNaN(parsed.getTime())) {
+          return NextResponse.json({ error: 'Fecha límite de reservas inválida' }, { status: 400 });
+        }
+        reservasHabilitadasHastaDate = parsed;
+      }
     }
 
     // Update Tenant
@@ -137,6 +152,7 @@ export async function PUT(req: NextRequest) {
     if (senaWhatsapp !== undefined) configExtra.senaWhatsapp = senaWhatsapp;
     if (senaEmail !== undefined) configExtra.senaEmail = senaEmail;
     if (senaInstrucciones !== undefined) configExtra.senaInstrucciones = senaInstrucciones;
+    if (reservasHabilitadasHasta !== undefined) configExtra.reservasHabilitadasHasta = reservasHabilitadasHastaDate;
 
     // Upsert TenantConfig
     await db.tenantConfig.upsert({

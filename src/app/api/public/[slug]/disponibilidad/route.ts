@@ -13,7 +13,7 @@ export async function GET(
   if (!tenant) return NextResponse.json({ error: 'Hotel no encontrado' }, { status: 404 });
 
   const { searchParams } = req.nextUrl;
-  const fechas = parseFechasConsulta(searchParams.get('checkin'), searchParams.get('checkout'));
+  const fechas = parseFechasConsulta(searchParams.get('checkin'), searchParams.get('checkout'), tenant.configuracion?.reservasHabilitadasHasta);
   if ('error' in fechas) return NextResponse.json({ error: fechas.error }, { status: 400 });
 
   const personas = parsePersonasConsulta(searchParams.get('personas') || '2');

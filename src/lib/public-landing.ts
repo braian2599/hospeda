@@ -39,6 +39,7 @@ export async function getPublicTenant(slug: string) {
           featureFlags: true, tarifasPublicas: true,
           mostrarSeccionAgencias: true, textoAgencias: true,
           modoCobroSena: true, senaWhatsapp: true, senaEmail: true, senaInstrucciones: true,
+          reservasHabilitadasHasta: true,
         },
       },
       habitaciones: {
@@ -70,8 +71,20 @@ export interface FechasValidadas {
   noches: number;
 }
 
-/** Valida y parsea fechas de una consulta pública (YYYY-MM-DD). */
-export function parseFechasConsulta(checkinStr: unknown, checkoutStr: unknown): FechasValidadas | { error: string } {
+/**
+ * Valida y parsea fechas de una consulta pública (YYYY-MM-DD).
+ *
+ * `reservasHabilitadasHasta` es el tope que carga el hotel en Configuración
+ * (null = sin tope) — los hoteles habilitan la venta por temporada y no
+ * quieren que alguien reserve fechas de una temporada que todavía no
+ * cargaron en Tarifas. Se valida acá, en un único lugar compartido por
+ * disponibilidad y reservar (los dos endpoints públicos que aceptan fechas
+ * de un visitante sin autenticar), así ningún endpoint nuevo puede
+ * olvidarse de aplicar el límite.
+ */
+export function parseFechasConsulta(
+  checkinStr: unknown, checkoutStr: unknown, reservasHabilitadasHasta?: Date | null,
+): FechasValidadas | { error: string } {
   if (typeof checkinStr !== 'string' || typeof checkoutStr !== 'string' || !checkinStr || !checkoutStr) {
     return { error: 'Faltan las fechas de check-in y check-out' };
   }
@@ -87,6 +100,14 @@ export function parseFechasConsulta(checkinStr: unknown, checkoutStr: unknown): 
 
   const noches = Math.round((checkout.getTime() - checkin.getTime()) / (1000 * 60 * 60 * 24));
   if (noches > MAX_NOCHES_CONSULTA) return { error: `Máximo ${MAX_NOCHES_CONSULTA} noches por consulta` };
+
+  if (reservasHabilitadasHasta) {
+    const limite = new Date(reservasHabilitadasHasta);
+    limite.setHours(23, 59, 59, 999); // el día del límite todavía cuenta como habilitado
+    if (checkout > limite) {
+      return { error: `Este hotel solo tiene reservas habilitadas hasta el ${limite.toLocaleDateString('es-AR')}.` };
+    }
+  }
 
   return { checkin, checkout, noches };
 }

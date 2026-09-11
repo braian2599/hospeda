@@ -78,15 +78,19 @@ function IconCircle({ icon: Icon }: { icon: typeof Zap }) {
 }
 
 export default function PromocionCard({
-  slug, moneda, promocion, habitaciones,
+  slug, moneda, promocion, habitaciones, reservasHabilitadasHasta,
 }: {
   slug: string;
   moneda: string;
   promocion: PromocionPublica;
   habitaciones: HabitacionPublica[];
+  reservasHabilitadasHasta: string | null;
 }) {
   const router = useRouter();
   const [dialogAbierto, setDialogAbierto] = useState(false);
+
+  // El día límite todavía se puede reservar — el hotel lo habilitó hasta esa fecha inclusive.
+  const fechaLimite = reservasHabilitadasHasta ? new Date(`${reservasHabilitadasHasta}T23:59:59`) : null;
   const [rango, setRango] = useState<DateRange>();
   const [calendarioAbierto, setCalendarioAbierto] = useState(false);
   const [personas, setPersonas] = useState(2);
@@ -254,10 +258,15 @@ export default function PromocionCard({
                     mode="range"
                     selected={rango}
                     onSelect={handleSelectRango}
-                    disabled={{ before: new Date() }}
+                    disabled={fechaLimite ? { before: new Date(), after: fechaLimite } : { before: new Date() }}
                     numberOfMonths={2}
                     min={1}
                   />
+                  {fechaLimite && (
+                    <p className="px-3 pb-2.5 text-xs text-muted-foreground text-center">
+                      Reservas disponibles hasta el {fechaLimite.toLocaleDateString('es-AR')}
+                    </p>
+                  )}
                 </PopoverContent>
               </Popover>
               <div className="flex items-center gap-2 rounded-md border px-3 py-2 bg-background">
