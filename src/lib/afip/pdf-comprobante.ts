@@ -16,6 +16,7 @@
 // importar qué tipo de comprobante sea".
 
 import jsPDF from 'jspdf';
+import { proxiedImageUrl } from '@/lib/image-proxy';
 
 export type TipoComprobantePdf = 'Factura' | 'Presupuesto' | 'Recibo' | 'Remito' | 'NotaCredito' | 'NotaDebito';
 
@@ -79,15 +80,14 @@ function envolver(doc: jsPDF, texto: string, anchoMm: number): string[] {
 
 /**
  * Descarga una imagen (p.ej. el logo, hosteado en R2) y la convierte a data
- * URL para poder embeberla en el PDF. Pasa por /api/uploads/imagen-remota
- * (mismo origen) en vez de hacer fetch directo a R2: un <img> puede mostrar
- * una imagen cross-origin sin problema, pero fetch() sí necesita CORS, y el
- * bucket de R2 no lo tiene habilitado para el dominio de la app.
+ * URL para poder embeberla en el PDF. Pasa por el proxy propio (ver
+ * lib/image-proxy.ts) en vez de hacer fetch directo a R2: fetch() necesita
+ * CORS (que R2 no manda para el dominio de la app) y además algunas redes
+ * bloquean el acceso directo a dominios de almacenamiento en la nube.
  */
 export async function cargarImagenComoDataUrl(url: string): Promise<string | null> {
   try {
-    const proxied = `/api/uploads/imagen-remota?url=${encodeURIComponent(url)}`;
-    const res = await fetch(proxied);
+    const res = await fetch(proxiedImageUrl(url));
     if (!res.ok) return null;
     const blob = await res.blob();
     return await new Promise((resolve, reject) => {

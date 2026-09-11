@@ -39,6 +39,7 @@ import { docReceptor, DOC_TIPO, letraPorTipoComprobante, notaSinValidezFiscal, t
 import { urlQrAfip } from '@/lib/afip/qr';
 import { montoALetras } from '@/lib/numero-a-letras';
 import { generarComprobantePdf, cargarImagenComoDataUrl, TITULO_POR_TIPO } from '@/lib/afip/pdf-comprobante';
+import { proxiedImageUrl } from '@/lib/image-proxy';
 
 // formatFecha, formatMoney, formatFechaHora, todayLocal imported from @/lib/format
 
@@ -1706,7 +1707,7 @@ export function TicketComprobante({
       {/* ── Hotel Branding Header ── */}
       <div className="text-center space-y-2">
         {fiscal?.facturaLogoUrl ? (
-          <img src={fiscal.facturaLogoUrl} alt={razonSocial} className="mx-auto w-14 h-14 rounded-xl object-contain bg-white" />
+          <img src={proxiedImageUrl(fiscal.facturaLogoUrl)} alt={razonSocial} className="mx-auto w-14 h-14 rounded-xl object-contain bg-white" />
         ) : (
           <div className="mx-auto w-14 h-14 rounded-xl bg-primary flex items-center justify-center">
             <Building2 className="w-7 h-7 text-white" />
@@ -2128,7 +2129,7 @@ export function ComprobanteOficial({
       <div className="grid grid-cols-[1fr_auto_1fr] border-b-2 border-foreground print:border-black">
         <div className="p-4 flex items-start gap-3 min-w-0">
           {fiscal?.facturaLogoUrl ? (
-            <img src={fiscal.facturaLogoUrl} alt={fiscal.razonSocial} className="w-14 h-14 object-contain shrink-0" />
+            <img src={proxiedImageUrl(fiscal.facturaLogoUrl)} alt={fiscal.razonSocial} className="w-14 h-14 object-contain shrink-0" />
           ) : (
             <div className="w-14 h-14 rounded bg-primary flex items-center justify-center shrink-0">
               <Building2 className="w-7 h-7 text-white" />

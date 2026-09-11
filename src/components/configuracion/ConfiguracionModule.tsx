@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
+import { proxiedImageUrl } from '@/lib/image-proxy';
 import {
   TicketComprobante, ComprobanteOficial,
   type ReservaTicketData, type PagoDetalleTicket, type DatosFiscales, type ComprobanteDisplay,
@@ -344,7 +345,7 @@ function HotelSection() {
             {/* Logo placeholder */}
             <div className="w-20 h-20 rounded-2xl border-4 border-background bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
               {form.logoUrl ? (
-                <img src={form.logoUrl} alt="Logo" className="w-full h-full object-contain" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                <img src={proxiedImageUrl(form.logoUrl)} alt="Logo" className="w-full h-full object-contain" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
               ) : (
                 <Hotel className="w-8 h-8 text-muted-foreground" />
               )}
@@ -452,7 +453,7 @@ function HotelSection() {
 
           {form.logoUrl && (
             <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F1F5F980]">
-              <img src={form.logoUrl} alt="Logo" className="w-12 h-12 rounded-lg object-contain bg-white p-1" onError={e => (e.currentTarget.style.display = 'none')} />
+              <img src={proxiedImageUrl(form.logoUrl)} alt="Logo" className="w-12 h-12 rounded-lg object-contain bg-white p-1" onError={e => (e.currentTarget.style.display = 'none')} />
               <span className="text-sm text-muted-foreground">Vista previa del logo</span>
             </div>
           )}
@@ -719,7 +720,7 @@ function FiscalSection() {
             <div className="flex items-center gap-3">
               <div className="w-16 h-16 rounded-lg border bg-white flex items-center justify-center overflow-hidden shrink-0">
                 {form.facturaLogoUrl ? (
-                  <img src={form.facturaLogoUrl} alt="Logo de factura" className="w-full h-full object-contain" />
+                  <img src={proxiedImageUrl(form.facturaLogoUrl)} alt="Logo de factura" className="w-full h-full object-contain" />
                 ) : (
                   <ImageIcon className="w-6 h-6 text-muted-foreground" />
                 )}
