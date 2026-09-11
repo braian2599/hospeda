@@ -101,6 +101,8 @@ export async function PUT(
       firmaConformidad,
       acompanantes,
       datosAdicionales,
+      nacionalidad,
+      fechaNacimiento,
     } = body;
 
     // ── Validate dates if provided ──
@@ -240,6 +242,21 @@ export async function PUT(
       data: updateData,
       include: { acompanantes: true, menores: true },
     });
+
+    // ── Sincronizar nacionalidad/fechaNacimiento con el Cliente vinculado ──
+    // Reserva no tiene estas columnas (viven en Cliente) — a diferencia de
+    // huesped/dni/telefono/email/domicilio, que Reserva sí duplica. Sin este
+    // paso, editar estos dos campos desde el módulo de Reservas no se
+    // guardaba nunca (el formulario los mostraba, pero se perdían al guardar).
+    if ((nacionalidad !== undefined || fechaNacimiento !== undefined) && existing.clienteId) {
+      await db.cliente.update({
+        where: { id: existing.clienteId },
+        data: {
+          ...(nacionalidad !== undefined && { nacionalidad: nacionalidad?.trim() || null }),
+          ...(fechaNacimiento !== undefined && { fechaNacimiento: fechaNacimiento ? new Date(fechaNacimiento) : null }),
+        },
+      });
+    }
 
     // ── Room state management ──
     if (habitacionChanged) {

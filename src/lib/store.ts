@@ -256,7 +256,10 @@ interface HotelStore {
   // aceptan acá porque crearReserva los usa para crear/completar el Cliente
   // vinculado (ver "Fix 6" más abajo en la implementación).
   crearReserva: (datos: Partial<Reserva> & { checkin: string; checkout: string; habitacion: string; huesped: string; dni: string; personas: number; nacionalidad?: string; fechaNacimiento?: string }) => Promise<Reserva | null>;
-  modificarReserva: (id: string, datos: Partial<Reserva>) => Promise<boolean>;
+  // Mismo motivo que en crearReserva: nacionalidad/fechaNacimiento no son
+  // parte de Reserva, pero modificarReserva los reenvía para sincronizar el
+  // Cliente vinculado cuando se editan desde el módulo de Reservas.
+  modificarReserva: (id: string, datos: Partial<Reserva> & { nacionalidad?: string; fechaNacimiento?: string }) => Promise<boolean>;
   cancelarReserva: (id: string) => Promise<boolean>;
   buscarDisponibilidad: (desde: string, hasta: string, excludeReservaId?: string) => HabitacionDisponible[];
   calcularTotalReserva: (idReserva: string) => number;
