@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import AuthProvider from '@/components/providers/SessionProvider';
 import { useHotelStore, SESSION_RESTORED_KEY, clearSessionRestoredFlag } from '@/lib/store';
-import { usePlans } from '@/hooks/usePlans';
+import { usePlansStatus } from '@/hooks/usePlans';
 import { usePresence } from '@/hooks/usePresence';
 import { useLandingEventsPolling } from '@/hooks/useLandingEventsPolling';
 import { Button } from '@/components/ui/button';
@@ -314,17 +314,30 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     }
   }, [status, session, usuarioActual, loginFromSession, router, processMeData, syncFromServer]);
 
-  // Sync plans from DB into store so modulosEfectivos uses live prices/limits
-  const dbPlans = usePlans();
+  // Sync plans from DB into store so modulosEfectivos uses live prices/limits.
+  //
+  // El ref arranca en null a propósito: inicializarlo con el primer valor de
+  // dbPlans hacía que ese primer valor nunca se empujara al store. usePlans()
+  // cachea los planes a nivel de módulo, y ese caché sobrevive a las
+  // navegaciones internas — así que si al montar este layout el caché ya
+  // venía caliente, el primer render ya traía los planes buenos, la
+  // comparación daba "sin cambios", setPlans no se llamaba nunca y el store
+  // se quedaba para siempre con la tabla estática de respaldo.
+  //
+  // Solo se empuja al store cuando el pedido YA resolvió (loaded): antes de
+  // eso lo que devuelve el hook es el respaldo estático, y mandarlo marcaría
+  // el catálogo como "cargado" sin serlo, que es justo lo que setModulo usa
+  // para saber si puede negar un acceso.
+  const { plans: dbPlans, loaded: plansLoaded } = usePlansStatus();
   const setPlans = useHotelStore(s => s.setPlans);
-  const prevDbPlansRef = useRef(dbPlans);
+  const prevDbPlansRef = useRef<typeof dbPlans | null>(null);
   useEffect(() => {
-    if (dbPlans !== prevDbPlansRef.current) {
+    if (plansLoaded && dbPlans !== prevDbPlansRef.current) {
       prevDbPlansRef.current = dbPlans;
       // Defer setState to break synchronous chain (react-hooks/set-state-in-effect)
       queueMicrotask(() => setPlans(dbPlans));
     }
-  }, [dbPlans, setPlans]);
+  }, [dbPlans, plansLoaded, setPlans]);
 
   useEffect(() => {
     if (needsSetup && pathname !== '/setup-hotel') {

@@ -9,7 +9,7 @@ import type {
   PromocionesTarifa, TipoHabitacion,
 } from './types';
 import { TIPOS_HABITACION_VALIDOS } from './types';
-import { type PlanTipo, type PlanInfo, modulosEfectivos as calcModulosEfectivos, PLANES } from './plan-config';
+import { type PlanTipo, type PlanInfo, modulosEfectivos as calcModulosEfectivos, moduloDisponible, PLANES } from './plan-config';
 import { api } from './api-client';
 import { useNotificationStore, type NotificationCategory, type NotificationPriority } from './notification-store';
 import {
@@ -225,6 +225,13 @@ interface HotelStore {
   fechaVencimientoTrial: string | null;
   moduloBloqueado: ModuloId | null;
   planes: Record<string, PlanInfo>;
+  /**
+   * true una vez que llegó el catálogo de planes real desde /api/plans.
+   * Mientras sea false, `planes` es todavía la tabla estática de respaldo del
+   * código: alcanza para pintar la UI, pero NO para negarle el acceso a nadie
+   * (ver setModulo).
+   */
+  _planesCargados: boolean;
   setModuloBloqueado: (m: ModuloId | null) => void;
   setPlanActual: (p: PlanTipo) => void;
   setPlans: (p: Record<string, PlanInfo>) => void;
@@ -367,18 +374,48 @@ export const useHotelStore = create<HotelStore>()(
       fechaVencimientoTrial: null,
       moduloBloqueado: null,
       planes: PLANES as Record<string, PlanInfo>,
+      _planesCargados: false,
       setModuloBloqueado: (m) => set({ moduloBloqueado: m }),
       setPlanActual: (p) => set({ planActual: p }),
-      setPlans: (p) => set({ planes: p as Record<string, PlanInfo> }),
+      setPlans: (p) => {
+        const planes = p as Record<string, PlanInfo>;
+        set({ planes, _planesCargados: true });
+
+        // Soltar un bloqueo que quedó trabado con la tabla vieja.
+        // setModulo decide en el momento del clic y deja el resultado
+        // latcheado en moduloBloqueado; si ese clic se resolvió con datos
+        // incompletos (el catálogo real todavía viajando), el bloqueo nunca
+        // se volvía a evaluar y el usuario quedaba con el cartel "Módulo no
+        // disponible" hasta recargar la página. Ahora, cuando llega el
+        // catálogo bueno, se re-evalúa: si el módulo sí estaba permitido, se
+        // completa la navegación que el usuario había pedido.
+        const { moduloBloqueado, usuarioActual, planActual } = get();
+        if (!moduloBloqueado || !usuarioActual) return;
+        const isFullAccess = usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin';
+        const permitido = isFullAccess
+          ? moduloDisponible(moduloBloqueado, planActual, planes)
+          : calcModulosEfectivos(usuarioActual.permisos, planActual, planes).includes(moduloBloqueado);
+        if (permitido) {
+          set({ moduloActivo: moduloBloqueado, moduloBloqueado: null });
+        }
+      },
       setSidebarFixed: (v) => set({ sidebarFixed: v }),
       setStartModule: (m) => set({ startModule: m }),
 
       setModulo: (modulo) => {
-        const { planActual, usuarioActual, sidebarOpen, planes } = get();
+        const { planActual, usuarioActual, planes, _planesCargados } = get();
         // Owner y admin tienen acceso a todo
         const isFullAccess = usuarioActual?.rol === 'owner' || usuarioActual?.rol === 'admin';
-        // Configuracion es owner/admin-only, no depende del plan
-        if (modulo !== 'configuracion' && usuarioActual && !isFullAccess) {
+        // Configuracion es owner/admin-only, no depende del plan.
+        //
+        // _planesCargados: mientras el catálogo real no llegó, `planes` es la
+        // tabla estática del código, que puede no coincidir con lo que tiene
+        // contratado el hotel. Negar el acceso con ese dato provisorio deja el
+        // bloqueo latcheado (ver setPlans) por una carrera de carga, no por
+        // una restricción real. Se deja pasar: el render de la página aplica
+        // igual su propio chequeo, y ESE sí se recalcula solo cuando llegan
+        // los planes, sin necesidad de recargar nada.
+        if (modulo !== 'configuracion' && usuarioActual && !isFullAccess && _planesCargados) {
           const efectivos = calcModulosEfectivos(usuarioActual.permisos, planActual, planes);
           if (!efectivos.includes(modulo)) {
             set({ moduloBloqueado: modulo, sidebarOpen: false });

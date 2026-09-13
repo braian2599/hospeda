@@ -147,14 +147,50 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
 
 // ─── Helpers ───
 
+/**
+ * Info de un plan resolviendo BD → tabla estática. Devuelve null solo si el
+ * tipo no existe en ninguna de las dos (dato corrupto o un plan que se borró
+ * de la BD): así quien lo consuma decide qué mostrar, en vez de reventar con
+ * "cannot read property of undefined" a mitad del render.
+ */
+export function getPlanInfo(planTipo: PlanTipo, plans?: Record<string, PlanInfo>): PlanInfo | null {
+  return plans?.[planTipo] ?? PLANES[planTipo] ?? null;
+}
+
+/** Una lista de módulos sirve como tal solo si es un array CON contenido. */
+function esListaDeModulos(x: unknown): x is ModuloId[] {
+  return Array.isArray(x) && x.length > 0;
+}
+
+/**
+ * Módulos que habilita un plan — única fuente de verdad para TODA decisión de
+ * acceso (ver modulosEfectivos y moduloDisponible).
+ *
+ * El respaldo a la tabla estática se chequea con esListaDeModulos y no con un
+ * `||`, porque en JavaScript un array vacío es "truthy": con `||`, un plan que
+ * llegara de la BD con la lista vacía (Plan.modulos es una columna Json, puede
+ * traer cualquier cosa — y /api/plans normaliza a [] justamente cuando el dato
+ * no es un array) se quedaba con ese [] en vez de caer al respaldo, y dejaba
+ * TODOS los módulos bloqueados de golpe para ese plan.
+ *
+ * Si el tipo de plan no existe en ninguna de las dos tablas devuelve [] (sin
+ * acceso) en lugar de tirar: ante un dato que no entendemos, no se regala
+ * acceso ni se rompe la pantalla.
+ */
+export function modulosDelPlan(planTipo: PlanTipo, plans?: Record<string, PlanInfo>): ModuloId[] {
+  const deLaBd = plans?.[planTipo]?.modulos;
+  if (esListaDeModulos(deLaBd)) return deLaBd;
+  const estatico = PLANES[planTipo]?.modulos;
+  return esListaDeModulos(estatico) ? estatico : [];
+}
+
 /** Intersección entre permisos del usuario y módulos del plan */
 export function modulosEfectivos(
   permisosUsuario: string[],
   planTipo: PlanTipo,
   plans?: Record<string, PlanInfo>
 ): ModuloId[] {
-  const source = plans || PLANES;
-  const modulosPlan = source[planTipo]?.modulos || PLANES[planTipo].modulos;
+  const modulosPlan = modulosDelPlan(planTipo, plans);
   return permisosUsuario.filter((p): p is ModuloId => modulosPlan.includes(p as ModuloId));
 }
 
@@ -174,21 +210,25 @@ export function trialVencido(fechaVencimiento: string): boolean {
 
 /** Si un módulo está disponible en el plan actual */
 export function moduloDisponible(moduloId: ModuloId, planTipo: PlanTipo, plans?: Record<string, PlanInfo>): boolean {
-  const source = plans || PLANES;
-  const modulos = source[planTipo]?.modulos || PLANES[planTipo].modulos;
-  return modulos.includes(moduloId);
+  return modulosDelPlan(planTipo, plans).includes(moduloId);
 }
 
 /** Obtener el siguiente plan superior */
 export function proximoPlan(planTipo: PlanTipo, plans?: Record<string, PlanInfo>): PlanInfo | null {
-  const source = plans || PLANES;
-  const orden: PlanTipo[] = ['trial', 'profesional', 'premium', 'elite'];
+  // 'basico' va incluido aunque esté retirado de la venta: los hoteles que ya
+  // lo tienen siguen existiendo, y si falta de esta lista su indexOf da -1 y
+  // el recorrido arranca desde el principio, ofreciéndoles "subir" al plan
+  // trial (gratis) como si fuera un upgrade. Estar en la lista no lo vuelve
+  // ofrecible — el filtro por `activo` de abajo igual lo saltea.
+  const orden: PlanTipo[] = ['trial', 'basico', 'profesional', 'premium', 'elite'];
   const idx = orden.indexOf(planTipo);
+  // Plan desconocido: no inventar una sugerencia.
+  if (idx === -1) return null;
   // Salta cualquier plan retirado de la venta (activo: false) en el camino —
   // sugerir upgrade a un plan que ya no se vende termina rechazado por la
   // API de checkout, así que directamente se ofrece el siguiente disponible.
   for (let i = idx + 1; i < orden.length; i++) {
-    const candidato = source[orden[i]] || PLANES[orden[i]];
+    const candidato = getPlanInfo(orden[i], plans);
     if (candidato?.activo) return candidato;
   }
   return null;
@@ -216,8 +256,10 @@ export function puedeAgregarHabitacion(
   planTipo: PlanTipo,
   plans?: Record<string, PlanInfo>
 ): boolean {
-  const source = plans || PLANES;
-  const max = source[planTipo]?.maxHabitaciones ?? PLANES[planTipo].maxHabitaciones;
+  // Plan desconocido → 0 (sin tope). Es un chequeo de UX: el límite real lo
+  // aplica el servidor, así que ante un dato raro conviene no trabar la
+  // pantalla en vez de tirar un error a mitad del render.
+  const max = getPlanInfo(planTipo, plans)?.maxHabitaciones ?? 0;
   return max === 0 || actuales < max;
 }
 
@@ -227,7 +269,7 @@ export function puedeAgregarUsuario(
   planTipo: PlanTipo,
   plans?: Record<string, PlanInfo>
 ): boolean {
-  const source = plans || PLANES;
-  const max = source[planTipo]?.maxUsuarios ?? PLANES[planTipo].maxUsuarios;
+  // Mismo criterio que puedeAgregarHabitacion.
+  const max = getPlanInfo(planTipo, plans)?.maxUsuarios ?? 0;
   return max === 0 || actuales < max;
 }

@@ -8,11 +8,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { PLANES, type PlanTipo, type PlanInfo } from '@/lib/plan-config';
 
-// Cache a nivel de módulo — compartido entre todas las instancias del hook
-let cachedPlans: Record<PlanTipo, PlanInfo> | null = null;
-let fetchPromise: Promise<Record<PlanTipo, PlanInfo>> | null = null;
+type Plans = Record<PlanTipo, PlanInfo>;
 
-async function fetchPlans(): Promise<Record<PlanTipo, PlanInfo>> {
+// Cache a nivel de módulo — compartido entre todas las instancias del hook
+let cachedPlans: Plans | null = null;
+let fetchPromise: Promise<Plans> | null = null;
+// true una vez que el pedido terminó, haya traído los planes de la BD o haya
+// caído al respaldo estático. Distingue "todavía no sabemos" de "ya sabemos,
+// y la respuesta es la tabla estática" — dos situaciones que miran igual si
+// solo se compara el objeto devuelto (ver usePlansStatus).
+let plansResueltos = false;
+
+async function fetchPlans(): Promise<Plans> {
   if (cachedPlans) return cachedPlans;
   if (fetchPromise) return fetchPromise;
 
@@ -20,14 +27,41 @@ async function fetchPlans(): Promise<Record<PlanTipo, PlanInfo>> {
     .then(r => r.json())
     .then(data => {
       if (data.plans && typeof data.plans === 'object') {
-        cachedPlans = data.plans as Record<PlanTipo, PlanInfo>;
+        cachedPlans = data.plans as Plans;
         return cachedPlans;
       }
       return PLANES;
     })
-    .catch(() => PLANES);
+    .catch(() => PLANES)
+    .finally(() => { plansResueltos = true; });
 
   return fetchPromise;
+}
+
+/**
+ * Planes desde la BD, más si el pedido ya terminó.
+ *
+ * `loaded` importa para cualquier decisión de ACCESO: mientras sea false, lo
+ * que devuelve `plans` es el respaldo estático del código, que puede no
+ * coincidir con lo que el hotel tiene contratado. Para solo mostrar precios o
+ * nombres alcanza con `plans` (por eso usePlans() sigue existiendo tal cual).
+ */
+export function usePlansStatus(): { plans: Plans; loaded: boolean } {
+  const [state, setState] = useState<{ plans: Plans; loaded: boolean }>(() => ({
+    plans: cachedPlans || PLANES,
+    loaded: plansResueltos,
+  }));
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    fetchPlans().then(dbPlans => {
+      if (mounted.current) setState({ plans: dbPlans, loaded: true });
+    });
+    return () => { mounted.current = false; };
+  }, []);
+
+  return state;
 }
 
 /**
@@ -35,23 +69,13 @@ async function fetchPlans(): Promise<Record<PlanTipo, PlanInfo>> {
  * Durante la carga retorna los PLANES estáticos como fallback
  * (no hay flash visual porque los valores iniciales son los mismos).
  */
-export function usePlans(): Record<PlanTipo, PlanInfo> {
-  const [plans, setPlans] = useState<Record<PlanTipo, PlanInfo>>(cachedPlans || PLANES);
-  const mounted = useRef(false);
-
-  useEffect(() => {
-    mounted.current = true;
-    fetchPlans().then(dbPlans => {
-      if (mounted.current) setPlans(dbPlans);
-    });
-    return () => { mounted.current = false; };
-  }, []);
-
-  return plans;
+export function usePlans(): Plans {
+  return usePlansStatus().plans;
 }
 
 /** Forzar recarga de planes (ej: después de cambiar plan en Super Admin) */
 export function invalidatePlansCache() {
   cachedPlans = null;
   fetchPromise = null;
+  plansResueltos = false;
 }

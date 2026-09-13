@@ -2,8 +2,7 @@
 
 import { useHotelStore } from '@/lib/store';
 import {
-  NOMBRES_MODULOS, proximoPlan,
-  type PlanTipo,
+  NOMBRES_MODULOS, proximoPlan, getPlanInfo,
 } from '@/lib/plan-config';
 import { usePlans } from '@/hooks/usePlans';
 import {
@@ -28,7 +27,10 @@ export default function ModuleLockedDialog() {
   if (!moduloBloqueado) return null;
 
   const moduloNombre = NOMBRES_MODULOS[moduloBloqueado];
-  const planActualInfo = plans[planActual];
+  // Resuelve BD → tabla estática; si el plan no se conoce en ninguna, no se
+  // abre el diálogo en vez de reventar indexando undefined.
+  const planActualInfo = getPlanInfo(planActual, plans);
+  if (!planActualInfo) return null;
   const sigPlan = proximoPlan(planActual, plans);
 
   const handleClose = () => {

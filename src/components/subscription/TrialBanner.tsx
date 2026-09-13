@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { diasRestantesTrial, trialVencido, proximoPlan, type PlanTipo } from '@/lib/plan-config';
+import { diasRestantesTrial, trialVencido, proximoPlan, getPlanInfo, type PlanTipo } from '@/lib/plan-config';
 import { usePlans } from '@/hooks/usePlans';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,14 +36,20 @@ export default function TrialBanner() {
 
   if (!usuarioActual || !fechaVencimientoTrial || dismissed) return null;
 
+  // Resuelve BD → tabla estática. Si ni así se conoce el plan, no se muestra
+  // la barra: antes se indexaba directo (plans[planActual].nombre) y un plan
+  // que no estuviera en la lista rompía el render de toda la app.
+  const planInfo = getPlanInfo(planActual, plans);
+  if (!planInfo) return null;
+
   // If plan is not trial and not expired, show a small plan indicator
   if (planActual !== 'trial') {
     return (
       <>
         <div className="flex items-center justify-between px-4 py-1.5 bg-[#F1F5F980] border-b border-border text-xs text-muted-foreground">
           <span>
-            Plan <span className="font-medium text-foreground">{plans[planActual].nombre}</span>
-            <span className="ml-1">{plans[planActual].precioDisplay}/mes</span>
+            Plan <span className="font-medium text-foreground">{planInfo.nombre}</span>
+            <span className="ml-1">{planInfo.precioDisplay}/mes</span>
           </span>
           <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={handleUpgrade}>
             Cambiar plan
@@ -60,7 +66,6 @@ export default function TrialBanner() {
 
   const dias = diasRestantesTrial(fechaVencimientoTrial);
   const vencido = trialVencido(fechaVencimientoTrial);
-  const plan = plans[planActual];
 
   // Trial vencido — full-width warning
   if (vencido) {
@@ -113,7 +118,7 @@ export default function TrialBanner() {
               {dias === 1 ? 'Último día' : `${dias} días restantes`} de prueba gratuita
             </p>
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-              {plan.nombre}
+              {planInfo.nombre}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
