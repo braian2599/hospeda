@@ -4,6 +4,27 @@ const nextConfig: NextConfig = {
   output: "standalone", // Requerido para deploy Docker/VPS
   /* config options here */
   reactStrictMode: true,
+
+  // ── Sacar de las funciones los motores de bases que no usamos ──
+  // Prisma empaqueta los motores de las 5 bases que soporta, aunque el
+  // schema declare `provider = "postgresql"` y las otras cuatro no se
+  // carguen nunca. En Vercel cada ruta de /api es una función aparte con su
+  // propia copia de todo: con ~100 rutas, esos motores de más son ~4,3 GB
+  // por deploy, y eso es lo que desbordaba la cuota de Functions Storage.
+  //
+  // Verificado contra un PostgreSQL real antes de aplicarlo: borrando estos
+  // 32 archivos del disco, Prisma sigue conectando, insertando y leyendo sin
+  // problema. Solo se excluyen mysql/sqlite/sqlserver/cockroachdb — el motor
+  // de postgresql y el binario nativo (libquery_engine-*.so.node) NO entran
+  // en estos patrones y se siguen empaquetando.
+  outputFileTracingExcludes: {
+    '**/*': [
+      './node_modules/@prisma/client/runtime/*mysql*',
+      './node_modules/@prisma/client/runtime/*sqlite*',
+      './node_modules/@prisma/client/runtime/*sqlserver*',
+      './node_modules/@prisma/client/runtime/*cockroachdb*',
+    ],
+  },
   async headers() {
     return [{
       source: '/(.*)',
