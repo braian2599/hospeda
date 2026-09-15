@@ -5,6 +5,7 @@ import { validateCsrfToken } from '@/lib/csrf';
 import { Prisma } from '@prisma/client';
 import { createReservaSchema, formatZodError } from '@/lib/validation-schemas';
 import { lockHabitacion, ReservaConflictError } from '@/lib/db-lock';
+import { camasDeReserva, camasLibresDe, esCompartida, ocupaHabitacionEntera } from '@/lib/ocupacion';
 
 // ─────────────────────────────────────────────────────────
 // GET /api/reservas — Listar reservas con filtros
@@ -194,12 +195,12 @@ export async function POST(req: NextRequest) {
     const reserva = await db.$transaction(async (tx) => {
       await lockHabitacion(tx, tenantId, habitacion.trim());
 
-      if (room.tipo === 'Compartida') {
+      if (esCompartida(room.tipo)) {
         // Habitación compartida: varias reservas conviven en el mismo rango de
         // fechas mientras haya camas libres — solo rechazar si la ocupación
-        // total (reservas existentes + esta) supera la capacidad, igual que el
-        // chequeo que ya hace el cliente en buscarDisponibilidad().
-        const overlappingReservas = await tx.reserva.findMany({
+        // total (reservas existentes + esta) supera la capacidad. La cuenta de
+        // camas es la misma en todo el sistema (src/lib/ocupacion.ts).
+        const solapadas = await tx.reserva.findMany({
           where: {
             tenantId,
             habitacion: habitacion.trim(),
@@ -207,14 +208,18 @@ export async function POST(req: NextRequest) {
             checkin: { lt: checkoutDate },
             checkout: { gt: checkinDate },
           },
-          select: { personas: true },
+          select: { personas: true, ninos: true },
         });
-        const personasOcupadas = overlappingReservas.reduce((sum, r) => sum + (r.personas || 1), 0);
-        const personasSolicitadas = parseInt(personas) || 1;
-        const camasLibres = room.capacidad - personasOcupadas;
-        if (personasSolicitadas > camasLibres) {
+        const libres = camasLibresDe(room, solapadas);
+        // Se cuenta exactamente lo que se va a guardar más abajo en el create,
+        // para que nunca se valide un número distinto del que queda en la base.
+        const solicitadas = camasDeReserva({
+          personas: parseInt(personas) || 1,
+          ninos: ninos != null ? parseInt(ninos) : null,
+        });
+        if (solicitadas > libres) {
           throw new ReservaConflictError(
-            `La habitación "${habitacion}" no tiene camas suficientes libres en ese rango de fechas (disponibles: ${Math.max(0, camasLibres)})`,
+            `La habitación "${habitacion}" no tiene camas suficientes libres en ese rango de fechas (disponibles: ${libres})`,
             409
           );
         }
@@ -275,10 +280,14 @@ export async function POST(req: NextRequest) {
       });
 
       // ── Set room estado to Reservada ──
-      await tx.habitacion.update({
-        where: { tenantId_numero: { tenantId, numero: habitacion.trim() } },
-        data: { estado: 'Reservada' },
-      });
+      // Una compartida NO se marca: le quedan camas y tiene que seguir
+      // apareciendo disponible para el próximo huésped.
+      if (ocupaHabitacionEntera(room.tipo)) {
+        await tx.habitacion.update({
+          where: { tenantId_numero: { tenantId, numero: habitacion.trim() } },
+          data: { estado: 'Reservada' },
+        });
+      }
 
       // ── Auditoría con empleado real ──
       await tx.auditoria.create({

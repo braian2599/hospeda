@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { parseFeatureFlags } from '@/lib/feature-flags';
 import { parseTarifaPrecios, calcularDesgloseTarifa, type DesgloseTarifa } from '@/lib/tarifa-calc';
 import { promoBadgesPublicos, promoBadgesTab, describeNochesCortesia } from '@/lib/tarifas-format';
+import { agruparPorHabitacion, camasLibresDe } from '@/lib/ocupacion';
 import type { CampoPersonalizado } from '@/lib/types';
 
 const MAX_NOCHES_CONSULTA = 30;
@@ -135,6 +136,13 @@ export interface HabitacionDisponiblePublica {
   numero: string;
   tipo: string;
   capacidad: number;
+  /**
+   * Lugares realmente disponibles en el rango consultado. En una habitación
+   * compartida son las camas que quedan (puede ser menor que `capacidad`, que
+   * es el total de la habitación); en el resto siempre es igual a `capacidad`,
+   * porque o está entera libre o no aparece en el listado.
+   */
+  camasLibres: number;
   camasMatrimoniales: number;
   camasSimples: number;
   total: number;
@@ -159,28 +167,42 @@ interface HabitacionLibre {
   numero: string;
   tipo: string;
   capacidad: number;
+  /** Lugares libres en el rango: camas sueltas si es compartida, capacidad entera si no. */
+  camasLibres: number;
   camasMatrimoniales: number;
   camasSimples: number;
 }
 
-/** Todas las habitaciones libres del hotel (cualquier tipo) en el rango [checkin, checkout). */
+/**
+ * Habitaciones con lugar en el rango [checkin, checkout), con sus camas libres.
+ *
+ * Una compartida se vende por cama: sigue disponible mientras le quede al
+ * menos una libre, así que no alcanza con saber si hay alguna reserva que
+ * pisa el rango — hay que sumar cuánta gente tiene cada una. El resto de los
+ * tipos se reserva entero, así que una sola reserva solapada los saca del
+ * listado. Toda esa regla vive en src/lib/ocupacion.ts, igual que en el panel.
+ */
 async function habitacionesLibres(tenant: PublicTenant, checkin: Date, checkout: Date): Promise<HabitacionLibre[]> {
-  const ocupadas = await db.reserva.findMany({
+  const solapadas = await db.reserva.findMany({
     where: {
       tenantId: tenant.id,
       estado: { in: ['Confirmada', 'CheckIn_realizado'] },
       checkin: { lt: checkout },
       checkout: { gt: checkin },
     },
-    select: { habitacion: true },
+    select: { habitacion: true, personas: true, ninos: true },
   });
-  const ocupadasSet = new Set(ocupadas.map((r) => r.habitacion));
-  return tenant.habitaciones
-    .filter((h) => !ocupadasSet.has(h.numero))
-    .map((h) => ({
-      numero: h.numero, tipo: h.tipo, capacidad: h.capacidad,
+  const porHabitacion = agruparPorHabitacion(solapadas);
+  const libres: HabitacionLibre[] = [];
+  for (const h of tenant.habitaciones) {
+    const camasLibres = camasLibresDe(h, porHabitacion.get(h.numero) ?? []);
+    if (camasLibres <= 0) continue;
+    libres.push({
+      numero: h.numero, tipo: h.tipo, capacidad: h.capacidad, camasLibres,
       camasMatrimoniales: h.camasMatrimoniales, camasSimples: h.camasSimples,
-    }));
+    });
+  }
+  return libres;
 }
 
 function etiquetaUnitaria(d: DesgloseTarifa): string {
@@ -246,14 +268,16 @@ function buscarCombinaciones(
     for (let j = i + 1; j < candidatas.length && resultados.length < 3; j++) {
       const a = candidatas[i];
       const b = candidatas[j];
-      const capacidadTotal = a.capacidad + b.capacidad;
+      // Se reparte sobre los lugares REALMENTE libres, no sobre la capacidad
+      // total: una compartida con 2 de 6 camas libres aporta 2, no 6.
+      const capacidadTotal = a.camasLibres + b.camasLibres;
       if (capacidadTotal < personas) continue;
 
       // a ya no alcanza sola para el grupo completo (si no, no llegaríamos a combinar) —
-      // le asignamos su capacidad completa y el resto va a b.
-      const personasA = Math.min(a.capacidad, personas);
+      // le asignamos todos sus lugares libres y el resto va a b.
+      const personasA = Math.min(a.camasLibres, personas);
       const personasB = personas - personasA;
-      if (personasB < 1 || personasB > b.capacidad) continue;
+      if (personasB < 1 || personasB > b.camasLibres) continue;
 
       const precioA = precioDeTipo(tenant, tarifasPublicas, a.tipo, personasA, fechas);
       const precioB = precioDeTipo(tenant, tarifasPublicas, b.tipo, personasB, fechas);
@@ -291,7 +315,7 @@ export async function buscarDisponibilidad(
   const resultados: HabitacionDisponiblePublica[] = [];
 
   for (const h of libres) {
-    if (h.capacidad < personas) continue;
+    if (h.camasLibres < personas) continue;
 
     if (!precioPorTipo.has(h.tipo)) {
       precioPorTipo.set(h.tipo, precioDeTipo(tenant, tarifasPublicas, h.tipo, personas, fechas));
@@ -303,6 +327,7 @@ export async function buscarDisponibilidad(
       numero: h.numero,
       tipo: h.tipo,
       capacidad: h.capacidad,
+      camasLibres: h.camasLibres,
       camasMatrimoniales: h.camasMatrimoniales,
       camasSimples: h.camasSimples,
       total: precio.total,
@@ -466,7 +491,7 @@ export async function buscarDisponibilidadPorTarifa(
   const resultados: HabitacionDisponiblePublica[] = [];
 
   for (const h of libres) {
-    if (h.capacidad < totalOcupantes) continue;
+    if (h.camasLibres < totalOcupantes) continue;
     const desglose = calcularDesgloseTarifa({ promo: precios }, 'promo', totalOcupantes, fechas.noches, {
       checkin: fechas.checkin.toISOString().slice(0, 10),
       ninos: ninosEfectivos > 0 ? ninosEfectivos : undefined,
@@ -477,6 +502,7 @@ export async function buscarDisponibilidadPorTarifa(
       numero: h.numero,
       tipo: h.tipo,
       capacidad: h.capacidad,
+      camasLibres: h.camasLibres,
       camasMatrimoniales: h.camasMatrimoniales,
       camasSimples: h.camasSimples,
       total: desglose.total,

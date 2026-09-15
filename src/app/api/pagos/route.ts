@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError, getAuthSession } from '@/lib/auth/utils';
 import { Prisma } from '@prisma/client';
+import { ocupaHabitacionEntera } from '@/lib/ocupacion';
 
 // El cliente ya bloquea el cobro si su copia local de `caja.estado` no está
 // 'abierta', pero esa copia puede estar desactualizada (otra pestaña/usuario
@@ -177,12 +178,20 @@ export async function POST(req: NextRequest) {
       });
 
       // La reserva pasa a 'Confirmada': igual que toda reserva confirmada del
-      // sistema, la habitación pasa a 'Reservada' recién ahora.
+      // sistema, la habitación pasa a 'Reservada' recién ahora. Salvo que sea
+      // compartida: esa se reserva por cama y nunca se bloquea entera, así que
+      // tiene que seguir apareciendo disponible para el próximo huésped.
       if (nuevoEstadoReserva) {
-        await tx.habitacion.update({
+        const habitacionReserva = await tx.habitacion.findUnique({
           where: { tenantId_numero: { tenantId, numero: reserva.habitacion } },
-          data: { estado: 'Reservada' },
+          select: { tipo: true },
         });
+        if (habitacionReserva && ocupaHabitacionEntera(habitacionReserva.tipo)) {
+          await tx.habitacion.update({
+            where: { tenantId_numero: { tenantId, numero: reserva.habitacion } },
+            data: { estado: 'Reservada' },
+          });
+        }
       }
 
       return { pago, estadoPago: updated.estadoPago, estado: updated.estado, confirmada: !!nuevoEstadoReserva };

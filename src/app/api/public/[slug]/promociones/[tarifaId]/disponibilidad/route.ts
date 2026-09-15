@@ -35,6 +35,9 @@ export async function GET(
       numero: r.numero,
       tipo: r.tipo,
       capacidad: r.capacidad,
+      // Lugares realmente libres en el rango — en una compartida puede ser
+      // menor que la capacidad de la habitación.
+      camasLibres: r.camasLibres,
       camasMatrimoniales: r.camasMatrimoniales,
       camasSimples: r.camasSimples,
       total: r.total,

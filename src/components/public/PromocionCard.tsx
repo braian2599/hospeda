@@ -43,6 +43,8 @@ interface ResultadoPromo {
   numero: string;
   tipo: string;
   capacidad: number;
+  /** Lugares realmente libres en el rango: en una compartida puede ser menor que la capacidad. */
+  camasLibres: number;
   camasMatrimoniales: number;
   camasSimples: number;
   total: number;
@@ -353,7 +355,13 @@ export default function PromocionCard({
                           </div>
                           <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
-                              <Users className="w-3.5 h-3.5 shrink-0" /> Hasta {r.capacidad}
+                              {/* En una compartida se venden camas sueltas: mostrar la
+                                  capacidad total diría "hasta 6" en una habitación a la
+                                  que solo le quedan 2 lugares. */}
+                              <Users className="w-3.5 h-3.5 shrink-0" />{' '}
+                              {r.camasLibres < r.capacidad
+                                ? `${r.camasLibres} lugar${r.camasLibres !== 1 ? 'es' : ''} libre${r.camasLibres !== 1 ? 's' : ''}`
+                                : `Hasta ${r.capacidad}`}
                             </span>
                             {camas && (
                               <span className="flex items-center gap-1">

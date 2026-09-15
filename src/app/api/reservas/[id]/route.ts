@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requirePermission, getAuthSession, AuthError } from '@/lib/auth/utils';
 import { Prisma } from '@prisma/client';
 import { lockHabitacion, ReservaConflictError } from '@/lib/db-lock';
+import { camasDeReserva, camasLibresDe, esCompartida, ocupaHabitacionEntera } from '@/lib/ocupacion';
 
 // ─────────────────────────────────────────────────────────
 // GET /api/reservas/[id] — Obtener reserva con pagos y acompañantes
@@ -156,12 +157,16 @@ export async function PUT(
 
       // ── Check date overlap for current room (or new room if changed) ──
       if (room) {
-        if (room.tipo === 'Compartida') {
+        if (esCompartida(room.tipo)) {
           // Habitación compartida: varias reservas conviven en el mismo rango
           // mientras haya camas libres — solo rechazar si la ocupación total
           // (existente + esta) supera la capacidad, igual que en POST /api/reservas.
-          const personasFinal = personas !== undefined ? (parseInt(personas) || 1) : existing.personas;
-          const overlappingReservas = await tx.reserva.findMany({
+          // La cuenta de camas es la misma en todo el sistema (src/lib/ocupacion.ts).
+          const solicitadas = camasDeReserva({
+            personas: personas !== undefined ? (parseInt(personas) || 1) : existing.personas,
+            ninos: ninos !== undefined ? (ninos !== null ? parseInt(ninos) : null) : existing.ninos,
+          });
+          const solapadas = await tx.reserva.findMany({
             where: {
               tenantId,
               habitacion: habitacionFinal,
@@ -170,13 +175,12 @@ export async function PUT(
               checkin: { lt: checkoutDate },
               checkout: { gt: checkinDate },
             },
-            select: { personas: true },
+            select: { personas: true, ninos: true },
           });
-          const personasOcupadas = overlappingReservas.reduce((sum, r) => sum + (r.personas || 1), 0);
-          const camasLibres = room.capacidad - personasOcupadas;
-          if (personasFinal > camasLibres) {
+          const libres = camasLibresDe(room, solapadas);
+          if (solicitadas > libres) {
             throw new ReservaConflictError(
-              `La habitación "${habitacionFinal}" no tiene camas suficientes libres en ese rango de fechas (disponibles: ${Math.max(0, camasLibres)})`,
+              `La habitación "${habitacionFinal}" no tiene camas suficientes libres en ese rango de fechas (disponibles: ${libres})`,
               409
             );
           }
@@ -268,25 +272,36 @@ export async function PUT(
       }
 
       // ── Room state management ──
+      // Las compartidas quedan afuera de todo esto: nunca se marcan 'Reservada'
+      // (siguen admitiendo huéspedes mientras les queden camas) y por lo tanto
+      // tampoco hay que "liberarlas" — pasarlas a 'Disponible' pisaría su estado
+      // real (Limpieza, Mantenimiento) aunque sigan con otras reservas activas.
       if (habitacionChanged) {
-        // Free up old room if it was Reservada for this reserva only
-        const oldRoomReservas = await tx.reserva.count({
-          where: {
-            tenantId,
-            habitacion: existing.habitacion,
-            estado: { in: ['Confirmada', 'CheckIn_realizado'] },
-            id: { not: id },
-          },
+        const habAnterior = await tx.habitacion.findUnique({
+          where: { tenantId_numero: { tenantId, numero: existing.habitacion } },
+          select: { tipo: true },
         });
-        if (oldRoomReservas === 0) {
-          await tx.habitacion.update({
-            where: { tenantId_numero: { tenantId, numero: existing.habitacion } },
-            data: { estado: 'Disponible' },
+
+        // Free up old room if it was Reservada for this reserva only
+        if (habAnterior && ocupaHabitacionEntera(habAnterior.tipo)) {
+          const oldRoomReservas = await tx.reserva.count({
+            where: {
+              tenantId,
+              habitacion: existing.habitacion,
+              estado: { in: ['Confirmada', 'CheckIn_realizado'] },
+              id: { not: id },
+            },
           });
+          if (oldRoomReservas === 0) {
+            await tx.habitacion.update({
+              where: { tenantId_numero: { tenantId, numero: existing.habitacion } },
+              data: { estado: 'Disponible' },
+            });
+          }
         }
 
         // Set new room to Reservada (unless already checked in)
-        if (existing.estado !== 'CheckIn_realizado') {
+        if (existing.estado !== 'CheckIn_realizado' && room && ocupaHabitacionEntera(room.tipo)) {
           await tx.habitacion.update({
             where: { tenantId_numero: { tenantId, numero: habitacionFinal } },
             data: { estado: 'Reservada' },
@@ -362,8 +377,15 @@ export async function DELETE(
       data: { estado: 'Cancelada' },
     });
 
-    // Free up the room ONLY if it was 'Reservada' (not 'Ocupada' from check-in)
+    // Free up the room ONLY if it was 'Reservada' (not 'Ocupada' from check-in).
+    // Una compartida nunca se marcó 'Reservada' al reservarla, así que tampoco
+    // se libera: pasarla a 'Disponible' pisaría su estado real.
     if (reserva.estado === 'Confirmada') {
+      const habitacionReserva = await db.habitacion.findUnique({
+        where: { tenantId_numero: { tenantId, numero: reserva.habitacion } },
+        select: { tipo: true },
+      });
+
       // Check if there are other active reservations for this room
       const otherActive = await db.reserva.count({
         where: {
@@ -374,7 +396,7 @@ export async function DELETE(
         },
       });
 
-      if (otherActive === 0) {
+      if (otherActive === 0 && habitacionReserva && ocupaHabitacionEntera(habitacionReserva.tipo)) {
         await db.habitacion.update({
           where: { tenantId_numero: { tenantId, numero: reserva.habitacion } },
           data: { estado: 'Disponible' },

@@ -16,6 +16,7 @@ import {
   normalizarRangos, calcularTotalSegunTarifa,
   type CalcTarifaOptions,
 } from './tarifa-calc';
+import { camasDeReserva, camasLibresDe, esCompartida, ocupaHabitacionEntera } from './ocupacion';
 
 
 // ==================== NOTIFICATION HELPER ====================
@@ -726,12 +727,11 @@ export const useHotelStore = create<HotelStore>()(
             }
           }
 
-          if (hab.tipo === 'Compartida') {
-            const personasOcupadas = reservas
+          if (esCompartida(hab.tipo)) {
+            const solapadas = reservas
               .filter(r => r.habitacion === num && r.id !== excludeReservaId && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado')
-              .filter(r => { const rD = new Date(r.checkin + 'T12:00:00'); const rH = new Date(r.checkout + 'T12:00:00'); return rD < fechaHasta && rH > fechaDesde; })
-              .reduce((sum, r) => sum + (r.personas || 1), 0);
-            const camasLibres = hab.capacidad - personasOcupadas;
+              .filter(r => { const rD = new Date(r.checkin + 'T12:00:00'); const rH = new Date(r.checkout + 'T12:00:00'); return rD < fechaHasta && rH > fechaDesde; });
+            const camasLibres = camasLibresDe(hab, solapadas);
             if (camasLibres > 0) disponibles.push({ numero: num, tipo: hab.tipo, capacidad: hab.capacidad, camasMatrimoniales: hab.camasMatrimoniales, camasSimples: hab.camasSimples, precioPorCama: hab.precioPorCama, camasLibres });
             continue;
           }
@@ -758,9 +758,9 @@ export const useHotelStore = create<HotelStore>()(
         const habElegida = disponibles.find(h => h.numero === datos.habitacion);
         if (!habElegida) return null;
 
-        const totalOcupantes = datos.personas + (datos.ninos || 0);
+        const totalOcupantes = camasDeReserva(datos);
         // Para compartidas: validar contra camasLibres; para normales: contra capacidad
-        if (habElegida.tipo === 'Compartida') {
+        if (esCompartida(habElegida.tipo)) {
           if (totalOcupantes > (habElegida.camasLibres || 0)) return null;
         } else {
           if (totalOcupantes > habElegida.capacidad) return null;
@@ -818,7 +818,7 @@ export const useHotelStore = create<HotelStore>()(
         const prevHabitaciones = state.habitaciones;
         const newHabitaciones = { ...prevHabitaciones };
 
-        if (habElegida.tipo !== 'Compartida' && newHabitaciones[datos.habitacion]) {
+        if (ocupaHabitacionEntera(habElegida.tipo) && newHabitaciones[datos.habitacion]) {
           newHabitaciones[datos.habitacion] = { ...newHabitaciones[datos.habitacion], estado: 'Reservada' };
         }
 
@@ -864,7 +864,7 @@ export const useHotelStore = create<HotelStore>()(
           const currentHabs = get().habitaciones;
           set({
             reservas: currentReservas.filter(r => r.id !== tempId),
-            habitaciones: habElegida.tipo === 'Compartida' ? currentHabs : {
+            habitaciones: esCompartida(habElegida.tipo) ? currentHabs : {
               ...currentHabs,
               [datos.habitacion]: prevHabitaciones[datos.habitacion],
             },
@@ -911,10 +911,10 @@ export const useHotelStore = create<HotelStore>()(
         if (datos.habitacion && datos.habitacion !== reserva.habitacion) {
           const newHabs = { ...state.habitaciones };
           const habAnterior = newHabs[reserva.habitacion];
-          if (habAnterior && habAnterior.tipo !== 'Compartida' && habAnterior.estado === 'Reservada') {
+          if (habAnterior && ocupaHabitacionEntera(habAnterior.tipo) && habAnterior.estado === 'Reservada') {
             newHabs[reserva.habitacion] = { ...habAnterior, estado: 'Disponible' };
           }
-          if (newHabs[datos.habitacion] && newHabs[datos.habitacion].tipo !== 'Compartida') {
+          if (newHabs[datos.habitacion] && ocupaHabitacionEntera(newHabs[datos.habitacion].tipo)) {
             newHabs[datos.habitacion] = { ...newHabs[datos.habitacion], estado: 'Reservada' };
           }
           set({ habitaciones: newHabs });
@@ -963,7 +963,7 @@ export const useHotelStore = create<HotelStore>()(
         const newReservas = state.reservas.map(r => r.id === id ? { ...r, estado: 'Cancelada' as const } : r);
         const newHabs = { ...state.habitaciones };
         const hab = newHabs[reserva.habitacion];
-        if (hab && hab.tipo !== 'Compartida' && hab.estado === 'Reservada') {
+        if (hab && ocupaHabitacionEntera(hab.tipo) && hab.estado === 'Reservada') {
           newHabs[reserva.habitacion] = { ...hab, estado: 'Disponible' };
         }
         set({ reservas: newReservas, habitaciones: newHabs });
@@ -2032,6 +2032,13 @@ export const useHotelStore = create<HotelStore>()(
               // Corregir a Disponible; los overrides de limpieza/mantenimiento abajo
               // ajustarán si es necesario.
               hab.estado = 'Disponible';
+            } else if (!ocupaHabitacionEntera(hab.tipo)) {
+              // Compartida: se reserva por cama y NUNCA se bloquea entera, así
+              // que tener reservas confirmadas no la pasa a 'Reservada'. Si
+              // quedó marcada así (datos viejos, de cuando la API la marcaba),
+              // se corrige acá — si no, el mapa la mostraría llena teniendo
+              // camas libres.
+              if (hab.estado === 'Reservada') hab.estado = 'Disponible';
             } else if (signals?.hasConfirmed && (hab.estado === 'Disponible')) {
               // Hay reserva confirmada y la habitación está libre → Reservada
               hab.estado = 'Reservada';

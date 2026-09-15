@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { isCronAuthorized, isCronConfigured } from '@/lib/cron-auth';
+import { ocupaHabitacionEntera } from '@/lib/ocupacion';
 
 const EXPIRACION_MINUTOS_MP = 30;
 const EXPIRACION_HORAS_MANUAL = 24;
@@ -28,6 +29,10 @@ export async function GET(req: NextRequest) {
   // 'Reservada' al crearse (quedan 'Confirmada' desde el inicio) — hay que
   // liberarlas al cancelarlas. Las de modo manual nunca llegaron a tocar la
   // habitación (siguen 'AConfirmar'), así que no necesitan liberación.
+  //
+  // Las compartidas tampoco: nunca se marcan 'Reservada' al reservarlas, así
+  // que pasarlas a 'Disponible' pisaría su estado real (Limpieza,
+  // Mantenimiento) aunque sigan teniendo otras reservas activas.
   const expiradasMpRows = await db.reserva.findMany({
     where: {
       origen: 'landing',
@@ -60,6 +65,12 @@ export async function GET(req: NextRequest) {
 
   await Promise.all(
     Array.from(habitacionesAfectadas.values()).map(async ({ tenantId, habitacion }) => {
+      const hab = await db.habitacion.findUnique({
+        where: { tenantId_numero: { tenantId, numero: habitacion } },
+        select: { tipo: true },
+      }).catch(() => null);
+      if (!hab || !ocupaHabitacionEntera(hab.tipo)) return;
+
       const otraActiva = await db.reserva.count({
         where: { tenantId, habitacion, estado: { in: ['Confirmada', 'CheckIn_realizado'] } },
       }).catch(() => 1);

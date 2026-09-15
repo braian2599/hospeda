@@ -14,6 +14,7 @@ function parseCamposPersonalizados(raw: unknown): CampoPersonalizado[] {
 }
 import { getValidAccessToken, createDepositCheckout, PORCENTAJE_SENA } from '@/lib/payments/mp-connect';
 import { lockTiposHabitacion } from '@/lib/db-lock';
+import { agruparPorHabitacion, camasDeReserva, camasLibresDe, hayLugarEn, ocupaHabitacionEntera } from '@/lib/ocupacion';
 
 function clientIp(req: NextRequest): string {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
@@ -56,6 +57,28 @@ function resolverTarifaPorId(
   const precios = parseTarifaPrecios(tarifaDb.precios);
   if (precios.rangos.length === 0) return null;
   return { tarifaNombre: tarifaDb.nombre, precios, camposPersonalizados: parseCamposPersonalizados(tarifaDb.camposPersonalizados) };
+}
+
+/**
+ * Texto para la auditoría cuando la habitación es compartida: la reserva se
+ * lleva camas, no la habitación entera. Devuelve '' para el resto de los tipos.
+ *
+ * `aConfirmar` = modo de seña manual: la reserva nace 'AConfirmar' y todavía no
+ * descuenta camas (no entra en el filtro de estados que cuentan ocupación), así
+ * que ahí no se informa un remanente que no es real.
+ */
+function detalleCamasCompartida(
+  hab: { tipo: string; capacidad: number },
+  solapadas: readonly { personas?: number | null; ninos?: number | null }[],
+  nueva: { personas?: number | null; ninos?: number | null },
+  aConfirmar: boolean
+): string {
+  if (ocupaHabitacionEntera(hab.tipo)) return '';
+  const camas = camasDeReserva(nueva);
+  const plural = camas !== 1 ? 's' : '';
+  if (aConfirmar) return ` (compartida: pide ${camas} cama${plural})`;
+  const quedan = camasLibresDe(hab, [...solapadas, nueva]);
+  return ` (compartida: ${camas} cama${plural}, quedan ${quedan})`;
 }
 
 // POST /api/public/[slug]/reservar
@@ -181,10 +204,13 @@ export async function POST(
 
   let reservaId: string | null = null;
   let reservaId2: string | null = null;
-  let habitacionReservada1: string | null = null;
-  let habitacionReservada2: string | null = null;
+  // Habitaciones que esta llamada dejó realmente en 'Reservada' — solo esas se
+  // liberan si después falla el checkout. Las compartidas nunca entran acá: no
+  // se bloquean al reservar, así que tampoco hay nada que liberar.
+  let habitacionesBloqueadas: string[] = [];
   try {
-    const { r1, r2 } = await db.$transaction(async (tx) => {
+    const { r1, r2, bloqueadas } = await db.$transaction(async (tx) => {
+      const bloqueadas: string[] = [];
       // ── Lock de concurrencia: serializa cualquier otro pedido que compita
       //    por el mismo tipo de habitación (y el segundo tipo, si es una
       //    combinación) antes de leer disponibilidad — ver src/lib/db-lock.ts. ──
@@ -230,7 +256,12 @@ export async function POST(
         throw new Error('NO_DISPONIBLE');
       }
 
-      const ocupadas1 = await tx.reserva.findMany({
+      // Una compartida se vende por cama: no alcanza con saber si tiene alguna
+      // reserva que pisa el rango, hay que sumar cuánta gente tiene cada una y
+      // ver si todavía entra este grupo. El resto de los tipos se reserva
+      // entero. La regla es la misma que usa el panel (src/lib/ocupacion.ts).
+      const ocupantes1 = personas + ninosEfectivos;
+      const solapadas1 = await tx.reserva.findMany({
         where: {
           tenantId: tenant.id,
           habitacion: { in: habsDeTipo1.map((h) => h.numero) },
@@ -238,12 +269,13 @@ export async function POST(
           checkin: { lt: fechas.checkout },
           checkout: { gt: fechas.checkin },
         },
-        select: { habitacion: true },
+        select: { habitacion: true, personas: true, ninos: true },
       });
-      const ocupadasSet1 = new Set(ocupadas1.map((r) => r.habitacion));
-      const libre1 = habitacionSolicitada
-        ? habsDeTipo1.find((h) => h.numero === habitacionSolicitada && !ocupadasSet1.has(h.numero))
-        : habsDeTipo1.find((h) => !ocupadasSet1.has(h.numero));
+      const porHabitacion1 = agruparPorHabitacion(solapadas1);
+      const candidatas1 = habitacionSolicitada
+        ? habsDeTipo1.filter((h) => h.numero === habitacionSolicitada)
+        : habsDeTipo1;
+      const libre1 = candidatas1.find((h) => hayLugarEn(h, porHabitacion1.get(h.numero) ?? [], ocupantes1));
       if (!libre1) throw new Error('NO_DISPONIBLE');
 
       // Reserva.total se guarda en CENTAVOS en toda la base (igual que las reservas
@@ -283,13 +315,24 @@ export async function POST(
         },
       });
 
+      // En una compartida la reserva se lleva camas, no la habitación: que la
+      // auditoría lo diga, así el personal ve de una cuántas quedaron. En modo
+      // manual la reserva queda 'AConfirmar' y todavía NO descuenta camas, así
+      // que ahí solo se deja constancia de cuántas pidió.
+      const detalleCamas1 = detalleCamasCompartida(
+        libre1,
+        porHabitacion1.get(libre1.numero) ?? [],
+        { personas, ninos: ninosEfectivos },
+        modoCobroSena === 'manual'
+      );
+
       await tx.auditoria.create({
         data: {
           tenantId: tenant.id,
           tipo: 'Reserva',
           detalle: modoCobroSena === 'manual'
-            ? `Nueva reserva (a confirmar) desde la landing pública: ${huesped} — Hab. ${libre1.numero} (${body.checkin} a ${body.checkout}). No ocupa la habitación hasta que el personal confirme el pago de la seña.`
-            : `Nueva reserva desde la landing pública: ${huesped} — Hab. ${libre1.numero} (${body.checkin} a ${body.checkout}). Esperando pago de seña.`,
+            ? `Nueva reserva (a confirmar) desde la landing pública: ${huesped} — Hab. ${libre1.numero}${detalleCamas1} (${body.checkin} a ${body.checkout}). No ocupa la habitación hasta que el personal confirme el pago de la seña.`
+            : `Nueva reserva desde la landing pública: ${huesped} — Hab. ${libre1.numero}${detalleCamas1} (${body.checkin} a ${body.checkout}). Esperando pago de seña.`,
           empleado: 'Landing pública',
         },
       });
@@ -298,11 +341,15 @@ export async function POST(
       // reserva interna), así que la habitación pasa a 'Reservada' de inmediato. Modo
       // manual: la reserva queda 'AConfirmar' y la habitación NO se toca todavía —
       // recién se reserva cuando el personal confirme el pago de la seña.
-      if (modoCobroSena !== 'manual') {
+      //
+      // Una compartida nunca se marca 'Reservada': le quedan camas y tiene que
+      // seguir apareciendo disponible para el próximo huésped.
+      if (modoCobroSena !== 'manual' && ocupaHabitacionEntera(libre1.tipo)) {
         await tx.habitacion.update({
           where: { tenantId_numero: { tenantId: tenant.id, numero: libre1.numero } },
           data: { estado: 'Reservada' },
         });
+        bloqueadas.push(libre1.numero);
       }
 
       // ── Leg 2 (combinación) — misma lógica, excluyendo la habitación ya asignada al leg 1 ──
@@ -316,7 +363,10 @@ export async function POST(
           throw new Error('NO_DISPONIBLE');
         }
 
-        const ocupadas2 = await tx.reserva.findMany({
+        // Mismo reparto por camas que el leg 1. La habitación del leg 1 ya
+        // quedó excluida más arriba, así que la reserva recién creada no puede
+        // interferir en esta cuenta.
+        const solapadas2 = await tx.reserva.findMany({
           where: {
             tenantId: tenant.id,
             habitacion: { in: habsDeTipo2.map((h) => h.numero) },
@@ -324,13 +374,21 @@ export async function POST(
             checkin: { lt: fechas.checkout },
             checkout: { gt: fechas.checkin },
           },
-          select: { habitacion: true },
+          select: { habitacion: true, personas: true, ninos: true },
         });
-        const ocupadasSet2 = new Set(ocupadas2.map((r) => r.habitacion));
-        const libre2 = habitacion2Solicitada
-          ? habsDeTipo2.find((h) => h.numero === habitacion2Solicitada && !ocupadasSet2.has(h.numero))
-          : habsDeTipo2.find((h) => !ocupadasSet2.has(h.numero));
+        const porHabitacion2 = agruparPorHabitacion(solapadas2);
+        const candidatas2 = habitacion2Solicitada
+          ? habsDeTipo2.filter((h) => h.numero === habitacion2Solicitada)
+          : habsDeTipo2;
+        const libre2 = candidatas2.find((h) => hayLugarEn(h, porHabitacion2.get(h.numero) ?? [], personas2!));
         if (!libre2) throw new Error('NO_DISPONIBLE');
+
+        const detalleCamas2 = detalleCamasCompartida(
+          libre2,
+          porHabitacion2.get(libre2.numero) ?? [],
+          { personas: personas2 },
+          modoCobroSena === 'manual'
+        );
 
         const total2 = calcularTotalSegunTarifa({ [tipo2]: tarifa2.precios }, tipo2, personas2, fechas.noches, {
           checkin: fechas.checkin.toISOString().slice(0, 10),
@@ -368,29 +426,27 @@ export async function POST(
             tenantId: tenant.id,
             tipo: 'Reserva',
             detalle: modoCobroSena === 'manual'
-              ? `Nueva reserva (combinación, a confirmar) desde la landing pública: ${huesped} — Hab. ${libre2.numero} (${body.checkin} a ${body.checkout}), vinculada a la reserva de Hab. ${libre1.numero}. No ocupa la habitación hasta que el personal confirme el pago.`
-              : `Nueva reserva (combinación) desde la landing pública: ${huesped} — Hab. ${libre2.numero} (${body.checkin} a ${body.checkout}), vinculada a la reserva de Hab. ${libre1.numero}. Esperando pago de seña.`,
+              ? `Nueva reserva (combinación, a confirmar) desde la landing pública: ${huesped} — Hab. ${libre2.numero}${detalleCamas2} (${body.checkin} a ${body.checkout}), vinculada a la reserva de Hab. ${libre1.numero}. No ocupa la habitación hasta que el personal confirme el pago.`
+              : `Nueva reserva (combinación) desde la landing pública: ${huesped} — Hab. ${libre2.numero}${detalleCamas2} (${body.checkin} a ${body.checkout}), vinculada a la reserva de Hab. ${libre1.numero}. Esperando pago de seña.`,
             empleado: 'Landing pública',
           },
         });
 
-        if (modoCobroSena !== 'manual') {
+        if (modoCobroSena !== 'manual' && ocupaHabitacionEntera(libre2.tipo)) {
           await tx.habitacion.update({
             where: { tenantId_numero: { tenantId: tenant.id, numero: libre2.numero } },
             data: { estado: 'Reservada' },
           });
+          bloqueadas.push(libre2.numero);
         }
       }
 
-      return { r1: nueva1, r2: nueva2 };
+      return { r1: nueva1, r2: nueva2, bloqueadas };
     });
 
     reservaId = r1.id;
     reservaId2 = r2?.id ?? null;
-    if (modoCobroSena !== 'manual') {
-      habitacionReservada1 = r1.habitacion;
-      habitacionReservada2 = r2?.habitacion ?? null;
-    }
+    habitacionesBloqueadas = bloqueadas;
 
     // r1.total/r2.total están en centavos (recién guardados así arriba) — todo lo que
     // sigue (Mercado Pago, la respuesta al widget) trabaja en pesos.
@@ -444,7 +500,7 @@ export async function POST(
   } catch (err: unknown) {
     if (err instanceof Error && err.message === 'NO_DISPONIBLE') {
       return NextResponse.json(
-        { error: 'Se acaba de ocupar la última habitación disponible para esas fechas. Probá otras fechas.' },
+        { error: 'Se acabó de ocupar el último lugar disponible para esas fechas. Probá otras fechas.' },
         { status: 409 }
       );
     }
@@ -458,8 +514,7 @@ export async function POST(
       // Estas reservas habían quedado 'Confirmada' (modo Mercado Pago) y ya habían
       // pasado su habitación a 'Reservada' — al cancelarlas por la falla del
       // checkout, hay que liberarlas si ninguna otra reserva activa las ocupa.
-      const habsALiberar = [habitacionReservada1, habitacionReservada2].filter((h): h is string => !!h);
-      for (const numero of habsALiberar) {
+      for (const numero of habitacionesBloqueadas) {
         const otraActiva = await db.reserva.count({
           where: { tenantId: tenant.id, habitacion: numero, estado: { in: ['Confirmada', 'CheckIn_realizado'] } },
         }).catch(() => 1);
