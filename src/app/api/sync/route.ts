@@ -54,8 +54,10 @@ export async function GET() {
         include: { movimientos: { orderBy: { fecha: 'desc' } } },
         orderBy: { fechaApertura: 'desc' },
       }),
+      // Incluye 'en_progreso': una limpieza empezada sigue siendo trabajo sin
+      // terminar, y el panel la tiene que seguir mostrando como pendiente.
       db.tareaLimpieza.findMany({
-        where: { tenantId, estado: 'pendiente' },
+        where: { tenantId, estado: { in: ['pendiente', 'en_progreso'] } },
         orderBy: [{ estado: 'asc' }, { fechaCreacion: 'desc' }],
       }),
       db.mantenimiento.findMany({

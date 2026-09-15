@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { TIPOS_HABITACION_VALIDOS } from '@/lib/types';
 import { deleteObjectsBestEffort } from '@/lib/storage/r2';
+import { esCompartida, estadoValidoParaTipo, picoDeOcupacion } from '@/lib/ocupacion';
 
 // PUT /api/habitaciones/[numero] — Editar habitación
 export async function PUT(
@@ -38,6 +39,12 @@ export async function PUT(
       return NextResponse.json({ error: `Tipo de habitación inválido: "${tipo}"` }, { status: 400 });
     }
 
+    // Tipo y capacidad con los que va a quedar la habitación después de este
+    // update — las validaciones de abajo tienen que mirar el resultado final,
+    // no el estado anterior (este mismo pedido puede estar cambiando el tipo).
+    const tipoFinal: string = tipo !== undefined ? tipo : hab.tipo;
+    const capacidadFinal: number = capacidad ? (parseInt(capacidad) || hab.capacidad) : hab.capacidad;
+
     // Validar transición de estado si se solicita
     const VALID_ESTADOS = ['Disponible', 'Reservada', 'Ocupada', 'Limpieza', 'Mantenimiento', 'FueraDeServicio'];
     if (nuevoEstado !== undefined) {
@@ -52,24 +59,51 @@ export async function PUT(
       if (hab.estado === 'Ocupada' && nuevoEstado !== 'Ocupada') {
         return NextResponse.json({ error: 'La habitación está ocupada. Use check-out para liberarla.' }, { status: 400 });
       }
+      // Una compartida no lleva estado de ocupación: se ocupa por camas y
+      // nunca se bloquea entera (ver src/lib/ocupacion.ts).
+      if (!estadoValidoParaTipo(tipoFinal, nuevoEstado)) {
+        return NextResponse.json(
+          { error: `Una habitación compartida no se marca como "${nuevoEstado}": se ocupa cama por cama y sigue disponible mientras le queden libres.` },
+          { status: 400 }
+        );
+      }
     }
 
-    // No editar si está ocupada y se reduce capacidad por debajo de huéspedes actuales
-    if (hab.estado === 'Ocupada') {
-      const nuevaCap = parseInt(capacidad) || hab.capacidad;
-      if (nuevaCap < hab.capacidad) {
-        // Verificar que no haya reservas activas con más personas
-        const reservasActivas = await db.reserva.count({
-          where: {
-            tenantId,
-            habitacion: numeroOriginal,
-            estado: 'CheckIn_realizado',
-            personas: { gt: nuevaCap },
+    // ── No reducir la capacidad por debajo de lo ya comprometido ──
+    // Antes esto solo corría con la habitación en 'Ocupada' y comparaba reserva
+    // por reserva. Una compartida nunca está 'Ocupada', así que el chequeo no
+    // corría nunca y se podía dejar un dormi de 6 en 2 camas con 4 personas
+    // adentro. Ahora se mira el pico real de camas comprometidas a futuro, que
+    // en una habitación normal equivale a la reserva más grande.
+    if (capacidadFinal < hab.capacidad) {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const activas = await db.reserva.findMany({
+        where: {
+          tenantId,
+          habitacion: numeroOriginal,
+          estado: { in: ['Confirmada', 'CheckIn_realizado'] },
+          checkout: { gt: hoy },
+        },
+        select: { checkin: true, checkout: true, personas: true, ninos: true },
+      });
+      const pico = picoDeOcupacion(
+        activas.map((r) => ({
+          checkin: r.checkin.toISOString().slice(0, 10),
+          checkout: r.checkout.toISOString().slice(0, 10),
+          personas: r.personas,
+          ninos: r.ninos,
+        }))
+      );
+      if (pico > capacidadFinal) {
+        return NextResponse.json(
+          {
+            error: esCompartida(tipoFinal)
+              ? `No se puede reducir la capacidad a ${capacidadFinal}: hay reservas que llegan a ocupar ${pico} camas a la vez.`
+              : `No se puede reducir la capacidad a ${capacidadFinal}: hay una reserva de ${pico} personas.`,
           },
-        });
-        if (reservasActivas > 0) {
-          return NextResponse.json({ error: 'No se puede reducir la capacidad: hay huéspedes con más personas' }, { status: 400 });
-        }
+          { status: 400 }
+        );
       }
     }
 

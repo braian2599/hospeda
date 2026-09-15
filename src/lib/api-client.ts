@@ -153,7 +153,7 @@ export const api = {
     checkin: (id: string, body?: Record<string, any>) =>
       apiFetch<DbReserva>(`/reservas/${id}/checkin`, { method: 'POST', body: JSON.stringify(body || {}) }),
     checkout: (id: string, body?: { fechaCheckoutReal?: string }) =>
-      apiFetch<{ noches: number; total: number }>(`/reservas/${id}/checkout`, { method: 'POST', body: JSON.stringify(body || {}) }),
+      apiFetch<{ success: boolean; habitacionLiberada: boolean; esCompartida: boolean; tareaLimpiezaId: string }>(`/reservas/${id}/checkout`, { method: 'POST', body: JSON.stringify(body || {}) }),
   },
 
   // ── Pagos ──

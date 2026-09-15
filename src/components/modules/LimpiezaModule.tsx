@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import PaginationBar from '@/components/ui/pagination-bar';
 import type { ModuloId, Reserva } from '@/lib/types';
+import { tieneCheckIn } from '@/lib/ocupacion';
 
 const PAGE_SIZE = 15;
 
@@ -123,6 +124,7 @@ export default function LimpiezaModule() {
   const reservasAfectadasPorMantenimiento = useHotelStore(s => s.reservasAfectadasPorMantenimiento);
   const resolverMantenimiento = useHotelStore(s => s.resolverMantenimiento);
   const mantenimientoPendientes = useHotelStore(s => s.mantenimientoPendientes);
+  const limpiezaPendientes = useHotelStore(s => s.limpiezaPendientes);
   const historialMantenimiento = useHotelStore(s => s.historialMantenimiento);
   const reservas = useHotelStore(s => s.reservas);
   const setModulo = useHotelStore(s => s.setModulo);
@@ -164,7 +166,13 @@ export default function LimpiezaModule() {
   const [markingClean, setMarkingClean] = useState<string | null>(null);
 
   // ── Derived room state ──
-  const porLimpiar = Object.entries(habitaciones).filter(([, h]) => h.estado === 'Limpieza');
+  // Una compartida puede seguir ocupada por otros huéspedes y tener igual una
+  // cama sin limpiar: en ese caso su estado es 'Disponible' y la pendiente vive
+  // en la tarea de limpieza. Por eso la lista mira las dos fuentes — antes solo
+  // miraba el estado, y esas camas no aparecían en ningún lado.
+  const porLimpiar = Object.entries(habitaciones).filter(
+    ([num, h]) => h.estado === 'Limpieza' || !!limpiezaPendientes[num]
+  );
   // Una habitación con reporte pendiente puede seguir en estado 'Ocupada' (no
   // se le cambia el estado si tenía un huésped adentro al reportar — ver
   // reportarMantenimiento en el store), así que mantenimientoPendientes es la
@@ -339,6 +347,10 @@ export default function LimpiezaModule() {
             ) : porLimpiar.map(([num, h], index) => {
               const lastCheckoutMs = getLastCheckoutMs(num, reservas);
               const sinceCheckoutMs = lastCheckoutMs > 0 ? now - lastCheckoutMs : 0;
+              // Compartida con gente todavía adentro: hay que limpiar la cama
+              // que se desocupó, no el cuarto entero.
+              const sigueOcupada = h.estado !== 'Limpieza'
+                && reservas.some(r => r.habitacion === num && tieneCheckIn(r.estado));
               // High priority if checkout was >= 2h ago
               const isHighPriority = lastCheckoutMs > 0 && (sinceCheckoutMs / 3_600_000) >= 2;
 
@@ -372,6 +384,7 @@ export default function LimpiezaModule() {
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {h.tipo} · {h.capacidad} persona{h.capacidad !== 1 ? 's' : ''}
+                          {sigueOcupada && ' · cama libre, la habitación sigue ocupada'}
                         </p>
                         {lastCheckoutMs > 0 && sinceCheckoutMs > 0 && (
                           <span className={cn('inline-flex items-center gap-1 text-[10px] mt-1', isHighPriority ? 'text-destructive font-semibold' : 'text-muted-foreground')}>

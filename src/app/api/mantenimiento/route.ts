@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { ocupaHabitacionEntera } from '@/lib/ocupacion';
 
 // GET /api/mantenimiento — Listar reportes de mantenimiento
 export async function GET(req: NextRequest) {
@@ -73,13 +74,20 @@ export async function POST(req: NextRequest) {
       bloqueadoHasta = fecha;
     }
 
-    // Si la habitación está ocupada por un huésped, no la marcamos como
-    // "Mantenimiento" — el mapa de habitaciones solo muestra la info del
-    // huésped cuando estado === 'Ocupada', así que el cambio lo haría
-    // "desaparecer" del mapa. El reporte se crea igual; el resto de los
-    // campos (problema/bloqueaDisponibilidad/bloqueadoHasta) sigue
-    // bloqueando disponibilidad futura de la habitación.
-    const nuevoEstado = hab.estado === 'Ocupada' ? hab.estado : 'Mantenimiento';
+    // Si la habitación tiene un huésped adentro, no la marcamos como
+    // "Mantenimiento" — el mapa de habitaciones muestra la info del huésped a
+    // partir del estado, así que el cambio lo haría "desaparecer". El reporte
+    // se crea igual; el resto de los campos (problema/bloqueaDisponibilidad/
+    // bloqueadoHasta) sigue bloqueando disponibilidad futura.
+    //
+    // En una compartida el estado nunca es 'Ocupada' (se ocupa por camas), así
+    // que "hay alguien adentro" se pregunta a las reservas.
+    const hayHuespedAdentro = ocupaHabitacionEntera(hab.tipo)
+      ? hab.estado === 'Ocupada'
+      : (await db.reserva.count({
+          where: { tenantId, habitacion: numero, estado: 'CheckIn_realizado' },
+        })) > 0;
+    const nuevoEstado = hayHuespedAdentro ? hab.estado : 'Mantenimiento';
 
     const [reporte] = await db.$transaction([
       db.mantenimiento.create({

@@ -62,10 +62,16 @@ export async function PUT(
       data,
     });
 
-    // Si se completó la tarea, actualizar la habitación a Disponible
+    // Si se completó la tarea, liberar la habitación — pero SOLO si estaba
+    // justamente esperando limpieza. Antes se forzaba 'Disponible' sin mirar
+    // nada, así que terminar una limpieza borraba un 'Mantenimiento' o un
+    // 'Fuera de servicio', y en una compartida que sigue ocupada por otros
+    // huéspedes no hay nada que liberar: la tarea era de una cama, no del
+    // cuarto. `updateMany` con el estado en el filtro lo resuelve en una sola
+    // consulta atómica (si otro cambió el estado en el medio, no se pisa).
     if (estado === 'completada' && tarea.habitacion) {
-      await db.habitacion.update({
-        where: { tenantId_numero: { tenantId, numero: tarea.habitacion } },
+      await db.habitacion.updateMany({
+        where: { tenantId, numero: tarea.habitacion, estado: 'Limpieza' },
         data: { estado: 'Disponible' },
       }).catch(() => {
         // No bloquear la respuesta si la habitación ya fue actualizada o no existe

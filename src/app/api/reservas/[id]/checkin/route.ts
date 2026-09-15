@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, requireActiveSubscription, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { ocupaHabitacionEntera } from '@/lib/ocupacion';
 
 interface MenorPayload {
   nombre: string;
@@ -136,18 +137,31 @@ export async function POST(
 
     const empleadoNombre = session?.user?.name || 'Sistema';
 
-    // ── Transacción: actualizar reserva + habitación ──
-    const [updated] = await db.$transaction([
-      db.reserva.update({
+    // ── ¿El check-in ocupa la habitación entera? ──
+    // Solo si NO es compartida. En una compartida el huésped ocupa camas: la
+    // habitación sigue admitiendo gente y marcarla 'Ocupada' dejaría al
+    // personal sin poder tocarla (ver src/lib/ocupacion.ts).
+    const habitacion = await db.habitacion.findUnique({
+      where: { tenantId_numero: { tenantId, numero: reserva.habitacion } },
+      select: { tipo: true },
+    });
+    const bloqueaHabitacion = !!habitacion && ocupaHabitacionEntera(habitacion.tipo);
+
+    // ── Transacción: actualizar reserva + (si corresponde) habitación ──
+    const updated = await db.$transaction(async (tx) => {
+      const reservaActualizada = await tx.reserva.update({
         where: { id },
         data: updateData,
         include: { acompanantes: true, menores: true },
-      }),
-      db.habitacion.update({
-        where: { tenantId_numero: { tenantId, numero: reserva.habitacion } },
-        data: { estado: 'Ocupada' },
-      }),
-    ]);
+      });
+      if (bloqueaHabitacion) {
+        await tx.habitacion.update({
+          where: { tenantId_numero: { tenantId, numero: reserva.habitacion } },
+          data: { estado: 'Ocupada' },
+        });
+      }
+      return reservaActualizada;
+    });
 
     // ── Auditoría ──
     const detalleMenores = cantNinos > 0 ? ` (${cantNinos} menor${cantNinos > 1 ? 'es' : ''})` : '';
@@ -155,7 +169,7 @@ export async function POST(
       data: {
         tenantId,
         tipo: 'checkin_realizado',
-        detalle: `Check-in: ${reserva.huesped} → Hab. ${reserva.habitacion} a las ${horaCheckin}${detalleMenores}`,
+        detalle: `Check-in: ${reserva.huesped} → Hab. ${reserva.habitacion}${bloqueaHabitacion ? '' : ' (compartida: ocupa camas, la habitación sigue disponible)'} a las ${horaCheckin}${detalleMenores}`,
         empleado: empleadoNombre,
       },
     }).catch(() => {});

@@ -16,7 +16,7 @@ import {
   normalizarRangos, calcularTotalSegunTarifa,
   type CalcTarifaOptions,
 } from './tarifa-calc';
-import { camasDeReserva, camasLibresDe, esCompartida, ocupaHabitacionEntera } from './ocupacion';
+import { camasDeReserva, camasLibresDe, esCompartida, esEstadoDeOcupacion, ocupaHabitacionEntera, tieneCheckIn } from './ocupacion';
 
 
 // ==================== NOTIFICATION HELPER ====================
@@ -198,6 +198,12 @@ interface HotelStore {
   caja: CajaState;
   historialMantenimiento: HistorialMantenimientoEntry[];
   mantenimientoPendientes: Record<string, string>; // habitacion -> reportId
+  // habitacion -> id de la tarea de limpieza abierta. La limpieza ya no se
+  // deduce solo de `Habitacion.estado === 'Limpieza'`: en una compartida la
+  // habitación puede seguir ocupada por otros huéspedes y tener igual una cama
+  // sin limpiar. Esta es la fuente de verdad de "tiene limpieza pendiente",
+  // igual que mantenimientoPendientes lo es para los reportes.
+  limpiezaPendientes: Record<string, string>;
   tarifas: Record<string, TarifaPrecios>;
   tiposTarifa: string[];
   metodosPago: MetodoPago[];
@@ -352,6 +358,7 @@ export const useHotelStore = create<HotelStore>()(
       caja: { estado: 'cerrada', apertura: null, movimientos: [], historial: [] },
       historialMantenimiento: [],
       mantenimientoPendientes: {},
+      limpiezaPendientes: {},
       tarifas: defaultTarifas,
       tiposTarifa: ['compartida'],
       metodosPago: defaultMetodosPago,
@@ -1017,9 +1024,13 @@ export const useHotelStore = create<HotelStore>()(
           };
         });
 
+        // El check-in ocupa la habitación entera solo si NO es compartida: en
+        // una compartida el huésped toma camas y el cuarto sigue admitiendo
+        // gente (misma regla que aplica la API — src/lib/ocupacion.ts).
         const newHabs = { ...state.habitaciones };
-        if (newHabs[reserva.habitacion]) {
-          newHabs[reserva.habitacion] = { ...newHabs[reserva.habitacion], estado: 'Ocupada' };
+        const habCheckIn = newHabs[reserva.habitacion];
+        if (habCheckIn && ocupaHabitacionEntera(habCheckIn.tipo)) {
+          newHabs[reserva.habitacion] = { ...habCheckIn, estado: 'Ocupada' };
         }
 
         set({ reservas: updatedReservas, habitaciones: newHabs });
@@ -1073,11 +1084,22 @@ export const useHotelStore = create<HotelStore>()(
           return { ...r, horaCheckout, checkout: fechaSalidaReal, estado: 'Check-Out realizado' as const };
         });
 
+        // La habitación pasa a 'Limpieza' solo si se fue el último huésped: en
+        // una compartida pueden quedar otros adentro. Igual queda anotada la
+        // limpieza pendiente (la API crea la tarea), así el trabajo no se
+        // pierde por más que el cuarto siga ocupado.
+        const quedanAdentro = updatedReservas.some(
+          r => r.id !== idReserva && r.habitacion === reserva.habitacion && tieneCheckIn(r.estado)
+        );
+        // Tampoco se pisa un 'Mantenimiento' ni un 'Fuera de servicio': el
+        // check-out no resuelve un problema de la habitación. Misma regla que
+        // aplica la API, así el optimista y el servidor no se contradicen.
+        const habCheckOut = state.habitaciones[reserva.habitacion];
+        const estadoBloqueante = habCheckOut?.estado === 'Mantenimiento' || habCheckOut?.estado === 'Fuera de servicio';
         const newHabs = { ...state.habitaciones };
-        if (newHabs[reserva.habitacion]) {
-          newHabs[reserva.habitacion] = { ...newHabs[reserva.habitacion], estado: 'Limpieza' };
+        if (habCheckOut && !quedanAdentro && !estadoBloqueante) {
+          newHabs[reserva.habitacion] = { ...habCheckOut, estado: 'Limpieza' };
         }
-
         // Registrar estadía en cliente
         const newClientes = state.clientes.map(c => {
           if (c.id !== reserva.idCliente) return c;
@@ -1090,11 +1112,17 @@ export const useHotelStore = create<HotelStore>()(
 
         set({ reservas: updatedReservas, habitaciones: newHabs, clientes: newClientes });
         state._registrarAuditoria('Check-Out', `Check-Out: ${reserva.huesped} - Hab ${reserva.habitacion} (Total: ${total})`);
-        pushNotif('info', `Hab. ${reserva.habitacion} requiere limpieza`, `Check-out de ${reserva.huesped}`, 'limpieza', 'info', 'habitaciones', 'Ver habitación');
+        pushNotif('info', quedanAdentro ? `Hab. ${reserva.habitacion}: cama para limpiar` : `Hab. ${reserva.habitacion} requiere limpieza`, `Check-out de ${reserva.huesped}`, 'limpieza', 'info', 'habitaciones', 'Ver habitación');
 
         // 2) Llamar a la API
         try {
-          await api.reservas.checkout(idReserva, { fechaCheckoutReal: fechaSalidaReal });
+          // La respuesta trae el id REAL de la tarea de limpieza que quedó
+          // abierta: se guarda recién acá (no antes) para no inventar un id que
+          // después no existiría al querer completarla.
+          const resp = await api.reservas.checkout(idReserva, { fechaCheckoutReal: fechaSalidaReal });
+          if (resp?.tareaLimpiezaId) {
+            set({ limpiezaPendientes: { ...get().limpiezaPendientes, [reserva.habitacion]: resp.tareaLimpiezaId } });
+          }
         } catch (err) {
           console.error('[realizarCheckOut] Error al guardar en BD:', err);
           // Rollback: revertir estado local
@@ -1179,27 +1207,52 @@ export const useHotelStore = create<HotelStore>()(
 
       // ===== LIMPIEZA =====
       marcarComoLimpia: async (numero) => {
-        const { habitaciones } = get();
+        const { habitaciones, limpiezaPendientes } = get();
         const hab = habitaciones[numero];
-        if (!hab || hab.estado !== 'Limpieza') return;
+        // Sirve en los dos casos: la habitación entera esperando limpieza, o
+        // una compartida que sigue ocupada pero tiene una cama sin limpiar
+        // (ahí el estado es 'Disponible' y la pendiente está en la tarea).
+        if (!hab) return;
+        const estabaEnLimpieza = hab.estado === 'Limpieza';
+        if (!estabaEnLimpieza && !limpiezaPendientes[numero]) return;
 
         const prevHabitaciones = get().habitaciones;
+        const prevLimpiezaPendientes = limpiezaPendientes;
 
         try {
-          // 1. Marcar tarea de limpieza como completada (o crear una)
-          // La API de limpieza al completar también actualiza la habitación a Disponible en BD
-          const tasks = await api.limpieza.list('pendiente');
-          const existing = (tasks as any[]).find((t: any) => t.habitacion === numero);
-          if (existing) {
-            await api.limpieza.update(existing.id, { estado: 'completada' });
+          // 1. Marcar la tarea de limpieza como completada.
+          // Se usa primero el id que trajo el sync (limpiezaPendientes), que
+          // incluye las 'en_progreso': buscar solo entre las 'pendiente' dejaba
+          // colgada una tarea ya empezada y creaba otra al lado.
+          // La API, al completarla, libera la habitación en la BD si estaba
+          // esperando limpieza.
+          const idTarea = prevLimpiezaPendientes[numero];
+          if (idTarea) {
+            await api.limpieza.update(idTarea, { estado: 'completada' });
           } else {
-            // No hay tarea pendiente — crear y completar inmediatamente
-            const tarea = await api.limpieza.create({ habitacion: numero });
-            await api.limpieza.update((tarea as any).id, { estado: 'completada' });
+            const tasks = await api.limpieza.list('pendiente');
+            const existing = (tasks as any[]).find((t: any) => t.habitacion === numero);
+            if (existing) {
+              await api.limpieza.update(existing.id, { estado: 'completada' });
+            } else {
+              // No hay ninguna tarea abierta — crear y completar en el momento
+              const tarea = await api.limpieza.create({ habitacion: numero });
+              await api.limpieza.update((tarea as any).id, { estado: 'completada' });
+            }
           }
 
-          // 2. Todo OK — actualizar estado local
-          set({ habitaciones: { ...prevHabitaciones, [numero]: { ...hab, estado: 'Disponible' as const } } });
+          // 2. Todo OK — actualizar estado local.
+          // La habitación vuelve a 'Disponible' solo si estaba esperando
+          // limpieza: si es una compartida que sigue ocupada, su estado ya era
+          // 'Disponible' y lo único que hay que sacar es la pendiente.
+          const { [numero]: _quitada, ...restoPendientes } = prevLimpiezaPendientes;
+          void _quitada;
+          set({
+            habitaciones: estabaEnLimpieza
+              ? { ...prevHabitaciones, [numero]: { ...hab, estado: 'Disponible' as const } }
+              : prevHabitaciones,
+            limpiezaPendientes: restoPendientes,
+          });
           get()._registrarAuditoria('Limpieza', `Habitación ${numero} marcada como limpia`);
           pushNotif('success', 'Limpieza completada', `Habitación ${numero} disponible`, 'limpieza', 'info', 'habitaciones', 'Ver habitación');
         } catch (err) {
@@ -1259,15 +1312,19 @@ export const useHotelStore = create<HotelStore>()(
           });
 
           // 3. Todo OK — actualizar estado local
-          // Si la habitación está ocupada, no la marcamos como "Mantenimiento"
-          // — el mapa solo muestra la info del huésped cuando estado ===
-          // 'Ocupada', así que el huésped "desaparecería" del mapa (ver misma
-          // lógica en POST /api/mantenimiento).
+          // Si hay un huésped adentro, no la marcamos como "Mantenimiento" —
+          // el mapa muestra la info del huésped a partir del estado, así que
+          // "desaparecería" (misma lógica en POST /api/mantenimiento). En una
+          // compartida el estado nunca es 'Ocupada', así que se les pregunta a
+          // las reservas.
+          const hayHuespedAdentro = ocupaHabitacionEntera(hab.tipo)
+            ? hab.estado === 'Ocupada'
+            : reservas.some(r => r.habitacion === numero && tieneCheckIn(r.estado));
           const newHabs = {
             ...habitaciones,
             [numero]: {
               ...hab,
-              estado: hab.estado === 'Ocupada' ? hab.estado : 'Mantenimiento' as const,
+              estado: hayHuespedAdentro ? hab.estado : 'Mantenimiento' as const,
               problema: descripcion,
               bloqueaDisponibilidad: bloquear,
               bloqueadoHasta: bloquear ? (hasta || undefined) : undefined,
@@ -2024,6 +2081,21 @@ export const useHotelStore = create<HotelStore>()(
           for (const [numero, hab] of Object.entries(habitaciones)) {
             const signals = roomReservaSignals[numero];
 
+            // ── Compartidas: su estado describe la HABITACIÓN, no la ocupación ──
+            // La ocupan camas sueltas, así que 'Reservada' y 'Ocupada' no le
+            // aplican nunca: marcarlas así las mostraba llenas teniendo camas
+            // libres y dejaba al personal sin poder editarlas ni mandarlas a
+            // mantenimiento. Los estados que sí le corresponden ('Limpieza',
+            // 'Mantenimiento', 'Fuera de servicio') se respetan, salvo
+            // 'Limpieza' con gente adentro: si hay huéspedes, la habitación no
+            // está "en limpieza" — la cama pendiente vive en limpiezaPendientes
+            // y se ve igual en el módulo de Limpieza.
+            if (!ocupaHabitacionEntera(hab.tipo)) {
+              if (esEstadoDeOcupacion(hab.estado)) hab.estado = 'Disponible';
+              else if (hab.estado === 'Limpieza' && signals?.hasCheckIn) hab.estado = 'Disponible';
+              continue;
+            }
+
             if (signals?.hasCheckIn) {
               // Prioridad máxima: hay alguien check-in → siempre Ocupada
               hab.estado = 'Ocupada';
@@ -2032,13 +2104,6 @@ export const useHotelStore = create<HotelStore>()(
               // Corregir a Disponible; los overrides de limpieza/mantenimiento abajo
               // ajustarán si es necesario.
               hab.estado = 'Disponible';
-            } else if (!ocupaHabitacionEntera(hab.tipo)) {
-              // Compartida: se reserva por cama y NUNCA se bloquea entera, así
-              // que tener reservas confirmadas no la pasa a 'Reservada'. Si
-              // quedó marcada así (datos viejos, de cuando la API la marcaba),
-              // se corrige acá — si no, el mapa la mostraría llena teniendo
-              // camas libres.
-              if (hab.estado === 'Reservada') hab.estado = 'Disponible';
             } else if (signals?.hasConfirmed && (hab.estado === 'Disponible')) {
               // Hay reserva confirmada y la habitación está libre → Reservada
               hab.estado = 'Reservada';
@@ -2066,12 +2131,21 @@ export const useHotelStore = create<HotelStore>()(
           }
 
           // Override: limpieza pendiente (solo si la habitación quedó Disponible
-          // después de todos los overrides anteriores)
+          // después de todos los overrides anteriores).
+          //
+          // limpiezaPendientes es la fuente de verdad de "tiene limpieza sin
+          // hacer", igual que mantenimientoPendientes lo es para los reportes:
+          // en una compartida el cuarto puede seguir ocupado por otros
+          // huéspedes y tener igual una cama sin limpiar, y eso no entra en el
+          // estado de la habitación.
+          const limpiezaPend: Record<string, string> = {};
           for (const t of data.limpiezaTasks) {
+            if (!limpiezaPend[t.habitacion]) limpiezaPend[t.habitacion] = t.id;
             const hab = habitaciones[t.habitacion];
-            if (hab && hab.estado === 'Disponible') {
-              hab.estado = 'Limpieza';
-            }
+            if (!hab || hab.estado !== 'Disponible') continue;
+            // Una compartida con gente adentro no se pinta "en limpieza".
+            if (!ocupaHabitacionEntera(hab.tipo) && roomReservaSignals[t.habitacion]?.hasCheckIn) continue;
+            hab.estado = 'Limpieza';
           }
 
           // Mapear auditoría desde BD (ordenadas por createdAt desc del servidor)
@@ -2095,6 +2169,7 @@ export const useHotelStore = create<HotelStore>()(
             tiposTarifa, metodosPago, categoriasGastos, caja,
             _categoriaGastoIds, _tarifaIds,
             mantenimientoPendientes: pendientes, historialMantenimiento: historial,
+            limpiezaPendientes: limpiezaPend,
             auditoria,
             _synced: true,
           });
@@ -2151,6 +2226,7 @@ export const useHotelStore = create<HotelStore>()(
         caja: { estado: 'cerrada', apertura: null, movimientos: [], historial: [] },
         historialMantenimiento: [],
         mantenimientoPendientes: {},
+        limpiezaPendientes: {},
         tarifas: defaultTarifas,
         tiposTarifa: ['compartida'],
         metodosPago: defaultMetodosPago,

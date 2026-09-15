@@ -16,7 +16,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { type EstadoHabitacion, type Habitacion } from '@/lib/types';
-import { todayLocal, safeDate } from '@/lib/format';
+import { todayLocal } from '@/lib/format';
+import { esCompartida, huespedesEnHabitacion, ocupacionHabitacion } from '@/lib/ocupacion';
 
 // ── Status visual configuration for the map ──
 type StatusMapConfig = {
@@ -136,14 +137,10 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
   }, [sortedRooms]);
 
   // Find active guest for a room
-  const getHuespedActual = useCallback((num: string) => {
-    const todayDate = safeDate(today).getTime();
-    return reservas.find(r =>
-      r.habitacion === num &&
-      (r.estado === 'Check-In realizado' || r.estado === 'Confirmada') &&
-      safeDate(r.checkin).getTime() <= todayDate &&
-      safeDate(r.checkout).getTime() >= todayDate
-    );
+  // Una compartida puede tener VARIOS huéspedes a la vez: devolver el primero
+  // (lo que hacía un .find()) mostraba un solo nombre habiendo tres.
+  const getHuespedesActuales = useCallback((num: string) => {
+    return huespedesEnHabitacion(num, reservas, today);
   }, [reservas, today]);
 
   // ── Detail dialog helpers ──
@@ -151,7 +148,11 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
   const closeDetail = () => setDetailRoom(null);
 
   const detailHab = detailRoom ? habitaciones[detailRoom] : null;
-  const detailHuesped = detailHab ? getHuespedActual(detailHab.numero) : null;
+  const detailHuespedes = detailHab ? getHuespedesActuales(detailHab.numero) : [];
+  const detailHuesped = detailHuespedes[0] ?? null;
+  const detailOcupacion = detailHab
+    ? ocupacionHabitacion(detailHab, detailHab.numero, reservas, today)
+    : null;
 
   // ── Empty state ──
   if (total === 0) {
@@ -198,8 +199,16 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
             {rooms.map((hab, roomIdx) => {
               const config = configByEstado[hab.estado] || STATUS_MAP_CONFIG[0];
               const Icon = config.icon;
-              const huesped = (hab.estado === 'Ocupada' || hab.estado === 'Reservada')
-                ? getHuespedActual(hab.numero)
+              const compartida = esCompartida(hab.tipo);
+              // En una compartida el estado nunca dice 'Ocupada' (se ocupa por
+              // camas), así que los huéspedes hay que buscarlos siempre — si no,
+              // el cuarto se ve vacío teniendo gente adentro.
+              const huespedes = (compartida || hab.estado === 'Ocupada' || hab.estado === 'Reservada')
+                ? getHuespedesActuales(hab.numero)
+                : [];
+              const huesped = huespedes[0];
+              const ocupacion = compartida
+                ? ocupacionHabitacion(hab, hab.numero, reservas, today)
                 : null;
 
               return (
@@ -251,9 +260,11 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
                         {hab.tipo}
                       </span>
 
-                      {/* Capacity */}
+                      {/* Capacity — en una compartida, camas tomadas sobre el total */}
                       <span className="text-[10px] text-[#64748BB3] leading-tight mt-0.5">
-                        Cap. {hab.capacidad}
+                        {ocupacion
+                          ? `${ocupacion.camasOcupadas}/${ocupacion.capacidad} camas`
+                          : `Cap. ${hab.capacidad}`}
                       </span>
 
                       {/* Status label */}
@@ -264,13 +275,13 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
                         {config.label}
                       </span>
 
-                      {/* Guest name if occupied */}
+                      {/* Guest name if occupied — con varios, la cantidad */}
                       {huesped && (
                         <span
                           className="text-[11px] font-medium text-foreground truncate w-full mt-1.5 leading-tight"
-                          title={huesped.huesped}
+                          title={huespedes.map(h => h.huesped).join(', ')}
                         >
-                          {huesped.huesped}
+                          {huespedes.length > 1 ? `${huespedes.length} huéspedes` : huesped.huesped}
                         </span>
                       )}
                     </button>
@@ -278,9 +289,9 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
                   <TooltipContent side="top" className="text-xs">
                     <div className="flex flex-col gap-0.5">
                       <span className="font-semibold">Hab. {hab.numero}</span>
-                      <span>{hab.tipo} · Cap. {hab.capacidad}</span>
+                      <span>{hab.tipo} · {ocupacion ? `${ocupacion.camasOcupadas}/${ocupacion.capacidad} camas` : `Cap. ${hab.capacidad}`}</span>
                       <span style={{ color: config.color }} className="font-medium">{hab.estado}</span>
-                      {huesped && <span>Huésped: {huesped.huesped}</span>}
+                      {huespedes.map(h => <span key={h.id}>Huésped: {h.huesped}</span>)}
                       {hab.problema && <span>Problema: {hab.problema}</span>}
                     </div>
                   </TooltipContent>
@@ -304,8 +315,8 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
           {detailHab && (() => {
             const config = configByEstado[detailHab.estado] || STATUS_MAP_CONFIG[0];
             const StatusIcon = config.icon;
-            const camasText = detailHab.tipo === 'Compartida'
-              ? `${detailHab.capacidad} camas`
+            const camasText = esCompartida(detailHab.tipo)
+              ? `${detailOcupacion?.camasLibres ?? detailHab.capacidad} libres de ${detailHab.capacidad}`
               : [
                   detailHab.camasMatrimoniales > 0 ? `${detailHab.camasMatrimoniales} matr.` : '',
                   detailHab.camasSimples > 0 ? `${detailHab.camasSimples} indiv.` : '',
@@ -353,14 +364,25 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
                   </div>
                 </div>
 
-                {/* Guest info */}
+                {/* Guest info — en una compartida conviven varios a la vez */}
                 {detailHuesped && (
-                  <div className="rounded-lg border-l-[3px] p-3 bg-[#D977060D]" style={{ borderLeftColor: 'var(--brand-amber)' }}>
-                    <div className="text-xs font-semibold text-muted-foreground mb-1">Huésped actual</div>
-                    <div className="text-sm font-semibold text-foreground">{detailHuesped.huesped}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Check-in: {detailHuesped.checkin} → Check-out: {detailHuesped.checkout}
+                  <div className="rounded-lg border-l-[3px] p-3 bg-[#D977060D] space-y-2" style={{ borderLeftColor: 'var(--brand-amber)' }}>
+                    <div className="text-xs font-semibold text-muted-foreground">
+                      {detailHuespedes.length > 1 ? `Huéspedes actuales (${detailHuespedes.length})` : 'Huésped actual'}
                     </div>
+                    {detailHuespedes.map(h => (
+                      <div key={h.id}>
+                        <div className="text-sm font-semibold text-foreground">
+                          {h.huesped}
+                          {esCompartida(detailHab.tipo) && (
+                            <span className="font-normal text-muted-foreground"> · {h.personas} cama{h.personas !== 1 ? 's' : ''}</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Check-in: {h.checkin} → Check-out: {h.checkout}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 

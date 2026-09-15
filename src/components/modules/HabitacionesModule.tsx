@@ -29,7 +29,8 @@ import {
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
-import { type TipoHabitacion, type EstadoHabitacion, type Habitacion, CAPACIDAD_POR_TIPO } from '@/lib/types';
+import { type TipoHabitacion, type EstadoHabitacion, type Habitacion, type Reserva, CAPACIDAD_POR_TIPO } from '@/lib/types';
+import { camasOcupadasPor, esCompartida, huespedesEnHabitacion } from '@/lib/ocupacion';
 import { todayLocal, safeDate } from '@/lib/format';
 import { exportToCSV } from '@/lib/csv-export';
 import RoomStatusMap from './RoomStatusMap';
@@ -460,13 +461,14 @@ function StatusChangePopover({
 
 function EnhancedRoomCard({
   hab,
-  huesped,
+  huespedes,
   onEdit,
   onDelete,
   onStatusChange,
 }: {
   hab: Habitacion;
-  huesped: ReturnType<typeof useHotelStore> extends { reservas: any } ? any : any;
+  // Lista, no uno solo: en una compartida conviven varios huéspedes a la vez.
+  huespedes: Reserva[];
   onEdit: (num: string) => void;
   onDelete: (num: string) => void;
   onStatusChange: (num: string, estado: EstadoHabitacion) => void;
@@ -474,9 +476,10 @@ function EnhancedRoomCard({
   const vis = STATUS_VISUAL[hab.estado] || STATUS_VISUAL.Disponible;
   const StatusIcon = vis.icon;
   const TipoIcon = tipoIconMap[hab.tipo] || Bed;
+  const huesped = huespedes[0];
 
-  const camasText = hab.tipo === 'Compartida'
-    ? `${hab.capacidad} camas`
+  const camasText = esCompartida(hab.tipo)
+    ? `${camasOcupadasPor(huespedes)}/${hab.capacidad} camas`
     : [
         hab.camasMatrimoniales > 0 ? `${hab.camasMatrimoniales} matr.` : '',
         hab.camasSimples > 0 ? `${hab.camasSimples} indiv.` : '',
@@ -529,10 +532,15 @@ function EnhancedRoomCard({
         {huesped ? (
           <div className="flex items-center gap-1 min-w-0">
             <UserCheck className="w-2.5 h-2.5 text-warning shrink-0" />
-            <span className="text-[10px] font-semibold text-foreground truncate" title={huesped.huesped}>
-              {huesped.huesped}
+            <span
+              className="text-[10px] font-semibold text-foreground truncate"
+              title={huespedes.map(h => `${h.huesped} (${h.checkin}→${h.checkout})`).join('\n')}
+            >
+              {huespedes.length > 1 ? `${huespedes.length} huéspedes` : huesped.huesped}
             </span>
-            <span className="text-[9px] text-muted-foreground shrink-0">{huesped.checkin}→{huesped.checkout}</span>
+            {huespedes.length === 1 && (
+              <span className="text-[9px] text-muted-foreground shrink-0">{huesped.checkin}→{huesped.checkout}</span>
+            )}
           </div>
         ) : hab.problema ? (
           <div className="flex items-center gap-1 min-w-0">
@@ -602,7 +610,7 @@ function FloorGroup({
   floorNum,
   rooms,
   isFloorPattern,
-  getHuespedActual,
+  getHuespedesActuales,
   onEdit,
   onDelete,
   onStatusChange,
@@ -611,7 +619,7 @@ function FloorGroup({
   floorNum: number;
   rooms: Habitacion[];
   isFloorPattern: boolean;
-  getHuespedActual: (num: string) => any;
+  getHuespedesActuales: (num: string) => Reserva[];
   onEdit: (num: string) => void;
   onDelete: (num: string) => void;
   onStatusChange: (num: string, estado: EstadoHabitacion) => void;
@@ -680,14 +688,17 @@ function FloorGroup({
           <div className="p-3 pt-0">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 card-grid-stagger">
               {rooms.map(hab => {
-                const huesped = (hab.estado === 'Ocupada' || hab.estado === 'Reservada')
-                  ? getHuespedActual(hab.numero)
-                  : null;
+                // En una compartida el estado nunca dice 'Ocupada' (se ocupa por
+                // camas), así que los huéspedes hay que buscarlos siempre — si
+                // no, el cuarto se ve vacío teniendo gente adentro.
+                const huespedes = (esCompartida(hab.tipo) || hab.estado === 'Ocupada' || hab.estado === 'Reservada')
+                  ? getHuespedesActuales(hab.numero)
+                  : [];
                 return (
                   <EnhancedRoomCard
                     key={hab.numero}
                     hab={hab}
-                    huesped={huesped}
+                    huespedes={huespedes}
                     onEdit={onEdit}
                     onDelete={onDelete}
                     onStatusChange={onStatusChange}
@@ -738,15 +749,11 @@ export default function HabitacionesModule() {
     [habitaciones]
   );
 
-  // Find the active guest for a room
-  const getHuespedActual = useCallback((num: string) => {
-    const todayDate = safeDate(today).getTime();
-    return reservas.find(r =>
-      r.habitacion === num &&
-      (r.estado === 'Check-In realizado' || r.estado === 'Confirmada') &&
-      safeDate(r.checkin).getTime() <= todayDate &&
-      safeDate(r.checkout).getTime() >= todayDate
-    );
+  // Huéspedes que están hoy en la habitación. Devuelve una LISTA: en una
+  // compartida hay varios a la vez y quedarse con el primero (un .find())
+  // mostraba un solo nombre habiendo tres.
+  const getHuespedesActuales = useCallback((num: string) => {
+    return huespedesEnHabitacion(num, reservas, today);
   }, [reservas, today]);
 
   // Detect if room numbers follow a floor pattern (e.g., 1xx = floor 1)
@@ -983,7 +990,7 @@ export default function HabitacionesModule() {
                 floorNum={group.floorNum}
                 rooms={group.rooms}
                 isFloorPattern={isFloorPattern}
-                getHuespedActual={getHuespedActual}
+                getHuespedesActuales={getHuespedesActuales}
                 onEdit={openEdit}
                 onDelete={openDelete}
                 onStatusChange={handleStatusChange}
