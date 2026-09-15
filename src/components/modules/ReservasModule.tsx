@@ -598,10 +598,6 @@ export default function ReservasModule() {
  const [errors, setErrors] = useState<string[]>([]);
  const [saving, setSaving] = useState(false);
 
- // ==================== COMPUTED: MODO DE COBRO ACTUAL ====================
- const modoCobroActual: string = tarifas[form.tipoTarifa]?.modoCobro || 'porGrupo';
- const esTarifaPorCama = modoCobroActual === 'porCama';
-
  // ==================== COMPUTED: CAMPOS PERSONALIZADOS ====================
  const tarifaActual = tarifas[form.tipoTarifa];
  const camposPersonalizados: CampoPersonalizado[] = useMemo(() => {
@@ -831,9 +827,8 @@ export default function ReservasModule() {
  // ==================== COMPUTED: HABITACIONES FILTRADAS POR CAPACIDAD ====================
  const personasBusqueda = parseInt(form.personasBusqueda) || 1;
  const disponiblesFiltradas = useMemo(() => {
- // El listado ya NO depende de la tarifa seleccionada (esTarifaPorCama):
- // elegir una habitación compartida cambia la tarifa por debajo, pero eso
- // no debe hacer desaparecer al resto de las habitaciones de la lista.
+ // El listado no depende de la tarifa seleccionada: la tarifa no limita
+ // qué habitaciones se pueden reservar.
  const compartidas = disponibles.filter(h => h.tipo === 'Compartida');
  const individualesCompartidas = form.filtroMatrimonial
  ? compartidas.filter(h => h.camasMatrimoniales > 0)
@@ -904,20 +899,11 @@ export default function ReservasModule() {
  setBusquedaCliente('');
  };
 
+ // Elegir habitación NO toca la tarifa: cualquier tipo de habitación se puede
+ // cobrar con cualquier tarifa. Lo único que se limpia es la segunda
+ // habitación, porque elegir una sola cancela una combinación previa.
  const selectRoom = (hab: HabitacionDisponible) => {
-  setForm(prev => {
-    const next = { ...prev, habitacion: hab.numero, habitacion2: '', reservaMultiple: false };
-    const esCompartida = hab.tipo === 'Compartida';
-    const modoActual = tarifas[prev.tipoTarifa]?.modoCobro || 'porGrupo';
-    if (esCompartida && modoActual !== 'porCama') {
-      const porCamaTarifa = tiposTarifa.find(t => tarifas[t]?.modoCobro === 'porCama');
-      if (porCamaTarifa) next.tipoTarifa = porCamaTarifa;
-    } else if (!esCompartida && modoActual === 'porCama') {
-      const normalTarifa = tiposTarifa.find(t => (tarifas[t]?.modoCobro || 'porGrupo') !== 'porCama');
-      if (normalTarifa) next.tipoTarifa = normalTarifa;
-    }
-    return next;
-  });
+ setForm(prev => ({ ...prev, habitacion: hab.numero, habitacion2: '', reservaMultiple: false }));
  };
 
  const selectCombinacion = (sug: CombinacionSugerencia) => {
@@ -1037,16 +1023,10 @@ export default function ReservasModule() {
  const errs: string[] = [];
  if (!form.habitacion) errs.push('Debe seleccionar una habitación');
 
- // Validar compatibilidad tarifa porCama ↔ habitación compartida
- if (form.habitacion && habitaciones[form.habitacion]) {
- const esHabCompartida = habitaciones[form.habitacion].tipo === 'Compartida';
- if (esTarifaPorCama && !esHabCompartida) {
- errs.push('La tarifa "Por cama" solo se puede usar con habitaciones compartidas');
- }
- if (!esTarifaPorCama && esHabCompartida) {
- errs.push('Las habitaciones compartidas solo usan tarifa "Por cama"');
- }
- }
+ // Ya NO se valida "tarifa por cama ↔ habitación compartida": cualquier
+ // habitación se puede cobrar con cualquier tarifa. Cómo se ocupa la
+ // habitación lo decide su tipo, no la tarifa — una compartida reserva
+ // camas y sigue admitiendo huéspedes; el resto se bloquea entero.
  const n1 = tieneNinosDiferenciado ? (parseInt(form.ninos) || 0) : 0;
  if (form.habitacion && habitaciones[form.habitacion]) {
  const p1 = parseInt(form.personas) || 1;
@@ -2082,14 +2062,10 @@ export default function ReservasModule() {
  }}>
  <SelectTrigger><SelectValue /></SelectTrigger>
  <SelectContent>
+ {/* Sin filtrar por tipo de habitación: cualquier habitación se puede
+ cobrar con cualquier tarifa. Filtrar acá además dejaba el desplegable
+ vacío en hoteles con tarifas de una sola clase. */}
  {tiposTarifa
- .filter(t => {
- const modo = tarifas[t]?.modoCobro || 'porGrupo';
- const habSeleccionada = form.habitacion ? habitaciones[form.habitacion] : null;
- const esCompartida = habSeleccionada?.tipo === 'Compartida';
- if (esCompartida) return modo === 'porCama';
- return modo !== 'porCama';
- })
  .map(t => (
  <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>
  ))}
