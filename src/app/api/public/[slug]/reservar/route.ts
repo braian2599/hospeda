@@ -15,6 +15,7 @@ function parseCamposPersonalizados(raw: unknown): CampoPersonalizado[] {
 import { getValidAccessToken, createDepositCheckout, PORCENTAJE_SENA } from '@/lib/payments/mp-connect';
 import { lockTiposHabitacion } from '@/lib/db-lock';
 import { agruparPorHabitacion, camasDeReserva, camasLibresDe, hayLugarEn, ocupaHabitacionEntera } from '@/lib/ocupacion';
+import { calcularVencimiento, marcarReservaPorExpirar } from '@/lib/expiracion';
 
 function clientIp(req: NextRequest): string {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
@@ -447,6 +448,19 @@ export async function POST(
     reservaId = r1.id;
     reservaId2 = r2?.id ?? null;
     habitacionesBloqueadas = bloqueadas;
+
+    // ── Avisarle al cron que hay algo que podría expirar ──
+    // Sin esto el cron tiene que preguntarle a Postgres cada 15 minutos, las 24
+    // horas, y despertar la base para casi siempre no hacer nada (ver
+    // src/lib/expiracion.ts). Se anota DESPUÉS de que la transacción cerró bien
+    // y con el createdAt real de la fila, para que el vencimiento anotado
+    // coincida exactamente con el que va a calcular el barrido.
+    // Es best-effort: si falla, el barrido periódico lo levanta igual.
+    const esManual = modoCobroSena === 'manual';
+    await marcarReservaPorExpirar(r1.id, calcularVencimiento(r1.createdAt, esManual));
+    if (r2) {
+      await marcarReservaPorExpirar(r2.id, calcularVencimiento(r2.createdAt, esManual));
+    }
 
     // r1.total/r2.total están en centavos (recién guardados así arriba) — todo lo que
     // sigue (Mercado Pago, la respuesta al widget) trabaja en pesos.

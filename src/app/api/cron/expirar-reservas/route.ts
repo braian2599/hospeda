@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { isCronAuthorized, isCronConfigured } from '@/lib/cron-auth';
 import { ocupaHabitacionEntera } from '@/lib/ocupacion';
-
-const EXPIRACION_MINUTOS_MP = 30;
-const EXPIRACION_HORAS_MANUAL = 24;
+import {
+  hayQueBarrer, limpiarProcesadas,
+  EXPIRACION_MINUTOS_MP, EXPIRACION_HORAS_MANUAL,
+} from '@/lib/expiracion';
 
 // GET /api/cron/expirar-reservas?secret=... — Libera reservas de la landing que
 // quedaron sin resolver:
@@ -22,8 +23,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  const limiteMp = new Date(Date.now() - EXPIRACION_MINUTOS_MP * 60 * 1000);
-  const limiteManual = new Date(Date.now() - EXPIRACION_HORAS_MANUAL * 60 * 60 * 1000);
+  // ── ¿Hace falta despertar Postgres? ──
+  // Este cron corre cada ~15 minutos las 24 horas, y casi siempre no hay nada
+  // que expirar. Como Neon se apaga recién 5 minutos después de la última
+  // consulta, cada disparo al vacío costaba 5 minutos de base encendida.
+  // Redis guarda cuándo vence cada reserva de la landing y responde sin tocar
+  // la base (ver src/lib/expiracion.ts). Ante cualquier duda, se barre igual.
+  const ahora = Date.now();
+  const decision = await hayQueBarrer(ahora);
+  if (!decision.barrer) {
+    return NextResponse.json({ canceladas: 0, barrido: false, motivo: decision.motivo });
+  }
+
+  // Se usa el mismo `ahora` que decidió el barrido: con dos Date.now() podían
+  // quedar unos milisegundos de diferencia entre lo que Redis dio por vencido y
+  // lo que Postgres considera vencido, y una reserva justo en el borde se
+  // saltaba una vuelta.
+  const limiteMp = new Date(ahora - EXPIRACION_MINUTOS_MP * 60 * 1000);
+  const limiteManual = new Date(ahora - EXPIRACION_HORAS_MANUAL * 60 * 60 * 1000);
 
   // Las reservas de Mercado Pago sin pagar ya habían pasado su habitación a
   // 'Reservada' al crearse (quedan 'Confirmada' desde el inicio) — hay que
@@ -83,5 +100,14 @@ export async function GET(req: NextRequest) {
     })
   );
 
-  return NextResponse.json({ canceladas: expiradasMp.count + expiradasManual.count });
+  // Ya se procesó todo lo que vencía hasta `ahora`: se saca del conjunto para
+  // que el próximo disparo no vuelva a barrer por lo mismo. Las anotaciones con
+  // vencimiento futuro quedan.
+  await limpiarProcesadas(ahora);
+
+  return NextResponse.json({
+    canceladas: expiradasMp.count + expiradasManual.count,
+    barrido: true,
+    motivo: decision.motivo,
+  });
 }
