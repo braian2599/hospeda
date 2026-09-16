@@ -169,7 +169,7 @@ export function NotificationCenter({ open, onOpenChange }: NotificationCenterPro
   const markAllRead = useNotificationStore(s => s.markAllRead);
   const dismiss = useNotificationStore(s => s.dismiss);
   const clearAll = useNotificationStore(s => s.clearAll);
-  const clearHasNew = useNotificationStore(s => s.clearHasNew);
+  const setPanelAbierto = useNotificationStore(s => s.setPanelAbierto);
   const hasNew = useNotificationStore(s => s.hasNew);
 
   const unreadCount = useMemo(
@@ -195,10 +195,11 @@ export function NotificationCenter({ open, onOpenChange }: NotificationCenterPro
 
   const handleOpenChange = useCallback((newOpen: boolean) => {
     setIsOpen(newOpen);
-    if (newOpen) {
-      clearHasNew();
-    }
-  }, [setIsOpen, clearHasNew]);
+    // El store necesita saber si el panel esta a la vista: mientras lo este,
+    // no descarta nada solo. Abrirlo cuenta como haber visto lo que hay
+    // adentro, asi que tampoco se descartan despues de cerrarlo.
+    setPanelAbierto(newOpen);
+  }, [setIsOpen, setPanelAbierto]);
 
   return (
     <>

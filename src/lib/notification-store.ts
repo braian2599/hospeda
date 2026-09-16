@@ -36,10 +36,16 @@ export interface Notification {
   actionLabel?: string;
   /** If true, notification survives auto-dismiss and page reload */
   persisted: boolean;
+  /**
+   * El usuario tuvo el panel abierto con esta notificacion adentro. A partir
+   * de ahi NUNCA se descarta sola: solo se va si la borra a mano.
+   * No la setea quien crea la notificacion — la marca el store.
+   */
+  vista?: boolean;
 }
 
 /** Input type for adding a notification (omits auto-generated fields) */
-export type NotificationInput = Omit<Notification, 'id' | 'timestamp' | 'read'>;
+export type NotificationInput = Omit<Notification, 'id' | 'timestamp' | 'read' | 'vista'>;
 
 /** Smart group: merged similar notifications */
 export interface NotificationGroup {
@@ -58,12 +64,18 @@ interface NotificationStore {
   notifications: Notification[];
   /** Track if a new notification was just added (for bell animation) */
   hasNew: boolean;
+  /**
+   * El panel de notificaciones esta abierto en pantalla. Mientras lo este,
+   * NADA se descarta solo: lo que llega se marca como visto de una.
+   */
+  panelAbierto: boolean;
+  /** Lo llama el NotificationCenter al abrir y cerrar el panel. */
+  setPanelAbierto: (abierto: boolean) => void;
   addNotification: (n: NotificationInput) => void;
   markRead: (id: string) => void;
   markAllRead: () => void;
   dismiss: (id: string) => void;
   clearAll: () => void;
-  clearHasNew: () => void;
   /** Get unread count */
   getUnreadCount: () => number;
   /** Get grouped notifications for a category */
@@ -72,10 +84,20 @@ interface NotificationStore {
 
 let nextId = 0;
 
-/** Auto-dismiss timers (non-persisted, non-urgent notifications) */
+/**
+ * Cuanto vive una notificacion menor que NADIE mira.
+ *
+ * OJO con el significado: el reloj mide "nadie la vio", no "pasaron 10
+ * segundos". Antes era lo segundo, y por eso una notificacion se borraba
+ * delante del usuario mientras la estaba leyendo. Cualquier señal de que la
+ * vio (abrir el panel, marcarla leida) cancela el reloj para siempre.
+ */
+export const MS_AUTO_DESCARTE = 10_000;
+
+/** Relojes de auto-descarte, uno por notificacion. */
 const dismissTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-/** Clean up a timer */
+/** Apaga el reloj de una notificacion. */
 function clearDismissTimer(id: string) {
   const timer = dismissTimers.get(id);
   if (timer) {
@@ -84,63 +106,103 @@ function clearDismissTimer(id: string) {
   }
 }
 
+/** Apaga TODOS los relojes. Se usa al abrir el panel y al limpiar todo. */
+function clearAllDismissTimers() {
+  for (const timer of dismissTimers.values()) clearTimeout(timer);
+  dismissTimers.clear();
+}
+
+/**
+ * hasNew enciende la campanita. Si la ultima notificacion sin leer se fue
+ * (descartada sola o borrada a mano), tiene que apagarse: si no, la campanita
+ * queda llamando la atencion sobre un panel vacio.
+ */
+function recalcularHasNew(previo: boolean, restantes: Notification[]): boolean {
+  return previo && restantes.some(n => !n.read);
+}
+
 export const useNotificationStore = create<NotificationStore>()((set, get) => ({
   notifications: [],
   hasNew: false,
+  panelAbierto: false,
+
+  setPanelAbierto: (abierto) => {
+    if (abierto) {
+      // Abrir el panel ES verlas. Se apagan todos los relojes y lo que hay
+      // adentro queda marcado como visto, asi que ya no se descarta solo
+      // aunque el panel se cierre en el segundo siguiente.
+      clearAllDismissTimers();
+      set({
+        panelAbierto: true,
+        hasNew: false,
+        notifications: get().notifications.map(n => n.vista ? n : { ...n, vista: true }),
+      });
+      return;
+    }
+    // Al cerrar NO se vuelven a armar relojes: lo visto, visto queda.
+    set({ panelAbierto: false });
+  },
 
   addNotification: (n) => {
     const id = `notif-${++nextId}-${Date.now()}`;
+    const panelAbierto = get().panelAbierto;
     const notification: Notification = {
       ...n,
       id,
       timestamp: new Date().toISOString(),
       read: false,
+      // Si el panel esta abierto, la esta viendo aparecer.
+      vista: panelAbierto,
     };
-    set({
-      notifications: [notification, ...get().notifications].slice(0, 100),
-      hasNew: true,
-    });
 
-    // Auto-dismiss non-persisted, non-urgent notifications after 10 seconds
-    if (!n.persisted && n.priority !== 'urgent') {
+    const siguientes = [notification, ...get().notifications];
+    // El tope de 100 descarta las mas viejas: hay que apagarles el reloj o
+    // queda una entrada colgada en el Map por cada una.
+    const recortadas = siguientes.slice(0, 100);
+    for (const vieja of siguientes.slice(100)) clearDismissTimer(vieja.id);
+
+    set({ notifications: recortadas, hasNew: !panelAbierto });
+
+    // Solo se arma el reloj para las menores, y solo si NADIE esta mirando.
+    if (!n.persisted && n.priority !== 'urgent' && !panelAbierto) {
       clearDismissTimer(id);
       dismissTimers.set(id, setTimeout(() => {
-        set({ notifications: get().notifications.filter(x => x.id !== id) });
         dismissTimers.delete(id);
-      }, 10_000));
+        const restantes = get().notifications.filter(x => x.id !== id);
+        set({ notifications: restantes, hasNew: recalcularHasNew(get().hasNew, restantes) });
+      }, MS_AUTO_DESCARTE));
     }
   },
 
   markRead: (id) => {
+    // Marcarla leida tambien es haberla visto.
+    clearDismissTimer(id);
     set({
       notifications: get().notifications.map(n =>
-        n.id === id ? { ...n, read: true } : n
+        n.id === id ? { ...n, read: true, vista: true } : n
       ),
     });
   },
 
   markAllRead: () => {
+    clearAllDismissTimers();
     set({
-      notifications: get().notifications.map(n => ({ ...n, read: true })),
+      notifications: get().notifications.map(n => ({ ...n, read: true, vista: true })),
+      hasNew: false,
     });
   },
 
   dismiss: (id) => {
     clearDismissTimer(id);
-    set({ notifications: get().notifications.filter(n => n.id !== id) });
+    const restantes = get().notifications.filter(n => n.id !== id);
+    set({ notifications: restantes, hasNew: recalcularHasNew(get().hasNew, restantes) });
   },
 
   clearAll: () => {
-    // Clear all timers
-    for (const id of dismissTimers.keys()) {
-      clearDismissTimer(id);
-    }
-    set({ notifications: [] });
+    clearAllDismissTimers();
+    set({ notifications: [], hasNew: false });
   },
 
-  clearHasNew: () => {
-    set({ hasNew: false });
-  },
 
   getUnreadCount: () => {
     return get().notifications.filter(n => !n.read).length;
