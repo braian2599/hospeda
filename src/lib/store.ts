@@ -483,6 +483,10 @@ export const useHotelStore = create<HotelStore>()(
         if (usuarioActual) {
           get()._registrarAuditoria('Logout', `Cierre de sesión: ${usuarioActual.nombre}`);
         }
+        // Las notificaciones guardadas en este navegador se van con la sesion:
+        // el turno siguiente entra en la misma maquina y no tiene por que ver
+        // los avisos del anterior.
+        useNotificationStore.getState().olvidar();
         set({ usuarioActual: null, moduloActivo: 'dashboard' });
       },
 

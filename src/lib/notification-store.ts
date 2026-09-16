@@ -62,6 +62,8 @@ export interface NotificationGroup {
 
 interface NotificationStore {
   notifications: Notification[];
+  /** `${tenantId}:${tenantUserId}` de la sesion actual. null = todavia no hidrato. */
+  duenio: string | null;
   /** Track if a new notification was just added (for bell animation) */
   hasNew: boolean;
   /**
@@ -71,6 +73,14 @@ interface NotificationStore {
   panelAbierto: boolean;
   /** Lo llama el NotificationCenter al abrir y cerrar el panel. */
   setPanelAbierto: (abierto: boolean) => void;
+  /**
+   * Carga lo guardado en este navegador para ESTE usuario de ESTE hotel.
+   * Lo llama el layout una vez que sabe quien inicio sesion. Si lo guardado
+   * es de otro usuario, se descarta.
+   */
+  hidratar: (tenantId: string, tenantUserId: string) => void;
+  /** Borra todo, de memoria y del navegador. Se llama al cerrar sesion. */
+  olvidar: () => void;
   addNotification: (n: NotificationInput) => void;
   markRead: (id: string) => void;
   markAllRead: () => void;
@@ -80,6 +90,81 @@ interface NotificationStore {
   getUnreadCount: () => number;
   /** Get grouped notifications for a category */
   getGrouped: (category?: NotificationCategory | 'all') => NotificationGroup[];
+}
+
+// ═══════════════════════════════════════════════════════════
+// GUARDADO EN EL NAVEGADOR
+// ═══════════════════════════════════════════════════════════
+// Las notificaciones NO van a la base: Neon cobra por tiempo despierto y esto
+// no vale una consulta. Van al localStorage del navegador, que es gratis.
+//
+// Lo que eso implica, y esta bien que asi sea:
+//   - son por dispositivo: si el dueño entra desde el celular, ve las suyas
+//   - se pierden si limpia los datos del navegador
+//   - nunca salen de esa maquina
+//
+// DUEÑO: en el hotel se cambia de turno en la MISMA computadora. Lo guardado
+// lleva marcado a que hotel y a que usuario pertenece; si al hidratar no
+// coincide con quien esta entrando, se descarta entero. Nadie hereda las
+// notificaciones del turno anterior.
+
+const CLAVE_GUARDADO = 'hospi:notificaciones:v1';
+
+/** Cuanto vive una notificacion guardada. Mas vieja que esto, se tira al entrar. */
+export const DIAS_DE_VIDA = 7;
+
+/** Tope de notificaciones, en memoria y en el guardado. */
+export const TOPE_NOTIFICACIONES = 100;
+
+interface Guardado {
+  duenio: string;
+  notifications: Notification[];
+}
+
+/** Identidad de quien es dueño de lo guardado. */
+function claveDuenio(tenantId: string, tenantUserId: string): string {
+  return `${tenantId}:${tenantUserId}`;
+}
+
+/**
+ * Todo acceso al storage va envuelto: en modo incognito, con las cookies
+ * bloqueadas o con el disco lleno, tirar una excepcion acá dejaria la
+ * campanita rota. Una notificacion perdida no es grave; una pantalla en
+ * blanco, si.
+ */
+function leerGuardado(): Guardado | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const crudo = window.localStorage.getItem(CLAVE_GUARDADO);
+    if (!crudo) return null;
+    const dato = JSON.parse(crudo) as Partial<Guardado>;
+    if (typeof dato?.duenio !== 'string' || !Array.isArray(dato.notifications)) return null;
+    return { duenio: dato.duenio, notifications: dato.notifications as Notification[] };
+  } catch {
+    return null;
+  }
+}
+
+function escribirGuardado(g: Guardado | null): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (g === null) window.localStorage.removeItem(CLAVE_GUARDADO);
+    else window.localStorage.setItem(CLAVE_GUARDADO, JSON.stringify(g));
+  } catch {
+    // Sin storage se sigue funcionando: las notificaciones viven en memoria.
+  }
+}
+
+/** Una notificacion sirve para guardar si es de las que no se descartan solas. */
+function vaAlGuardado(n: Notification): boolean {
+  return n.persisted || n.priority === 'urgent';
+}
+
+function estaVencida(n: Notification, ahora: number): boolean {
+  const t = Date.parse(n.timestamp);
+  // Una fecha ilegible se trata como vencida: mejor perderla que dejarla para siempre.
+  if (Number.isNaN(t)) return true;
+  return ahora - t > DIAS_DE_VIDA * 86_400_000;
 }
 
 let nextId = 0;
@@ -121,10 +206,58 @@ function recalcularHasNew(previo: boolean, restantes: Notification[]): boolean {
   return previo && restantes.some(n => !n.read);
 }
 
+/**
+ * Vuelca al navegador lo que vale la pena guardar.
+ *
+ * No escribe NADA mientras duenio sea null: antes de hidratar no sabemos de
+ * quien es la maquina, y guardar ahi le pisaria las notificaciones al usuario
+ * del turno anterior con una lista vacia.
+ */
+function sincronizar(estado: { duenio: string | null; notifications: Notification[] }): void {
+  if (!estado.duenio) return;
+  escribirGuardado({
+    duenio: estado.duenio,
+    notifications: estado.notifications.filter(vaAlGuardado).slice(0, TOPE_NOTIFICACIONES),
+  });
+}
+
 export const useNotificationStore = create<NotificationStore>()((set, get) => ({
   notifications: [],
   hasNew: false,
   panelAbierto: false,
+  duenio: null,
+
+  hidratar: (tenantId, tenantUserId) => {
+    const duenio = claveDuenio(tenantId, tenantUserId);
+    const guardado = leerGuardado();
+
+    // Lo guardado es de otro usuario (cambio de turno en la misma maquina) o
+    // no hay nada: se arranca limpio y se pisa el guardado ajeno.
+    if (!guardado || guardado.duenio !== duenio) {
+      clearAllDismissTimers();
+      set({ duenio, notifications: [], hasNew: false });
+      escribirGuardado({ duenio, notifications: [] });
+      return;
+    }
+
+    const ahora = Date.now();
+    const rescatadas = guardado.notifications
+      .filter(n => n && typeof n.id === 'string' && vaAlGuardado(n) && !estaVencida(n, ahora))
+      // Vienen de una sesion anterior: ya fueron vistas, asi que nunca se
+      // descartan solas ni vuelven a hacer rebotar la campanita.
+      .map(n => ({ ...n, vista: true }))
+      .slice(0, TOPE_NOTIFICACIONES);
+
+    clearAllDismissTimers();
+    set({ duenio, notifications: rescatadas, hasNew: false });
+    escribirGuardado({ duenio, notifications: rescatadas });
+  },
+
+  olvidar: () => {
+    clearAllDismissTimers();
+    set({ notifications: [], hasNew: false, panelAbierto: false, duenio: null });
+    escribirGuardado(null);
+  },
 
   setPanelAbierto: (abierto) => {
     if (abierto) {
@@ -137,6 +270,7 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
         hasNew: false,
         notifications: get().notifications.map(n => n.vista ? n : { ...n, vista: true }),
       });
+      sincronizar(get());
       return;
     }
     // Al cerrar NO se vuelven a armar relojes: lo visto, visto queda.
@@ -156,12 +290,13 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
     };
 
     const siguientes = [notification, ...get().notifications];
-    // El tope de 100 descarta las mas viejas: hay que apagarles el reloj o
+    // El tope descarta las mas viejas: hay que apagarles el reloj o
     // queda una entrada colgada en el Map por cada una.
-    const recortadas = siguientes.slice(0, 100);
-    for (const vieja of siguientes.slice(100)) clearDismissTimer(vieja.id);
+    const recortadas = siguientes.slice(0, TOPE_NOTIFICACIONES);
+    for (const vieja of siguientes.slice(TOPE_NOTIFICACIONES)) clearDismissTimer(vieja.id);
 
     set({ notifications: recortadas, hasNew: !panelAbierto });
+    sincronizar(get());
 
     // Solo se arma el reloj para las menores, y solo si NADIE esta mirando.
     if (!n.persisted && n.priority !== 'urgent' && !panelAbierto) {
@@ -170,6 +305,7 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
         dismissTimers.delete(id);
         const restantes = get().notifications.filter(x => x.id !== id);
         set({ notifications: restantes, hasNew: recalcularHasNew(get().hasNew, restantes) });
+        sincronizar(get());
       }, MS_AUTO_DESCARTE));
     }
   },
@@ -182,6 +318,7 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
         n.id === id ? { ...n, read: true, vista: true } : n
       ),
     });
+    sincronizar(get());
   },
 
   markAllRead: () => {
@@ -190,17 +327,20 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
       notifications: get().notifications.map(n => ({ ...n, read: true, vista: true })),
       hasNew: false,
     });
+    sincronizar(get());
   },
 
   dismiss: (id) => {
     clearDismissTimer(id);
     const restantes = get().notifications.filter(n => n.id !== id);
     set({ notifications: restantes, hasNew: recalcularHasNew(get().hasNew, restantes) });
+    sincronizar(get());
   },
 
   clearAll: () => {
     clearAllDismissTimers();
     set({ notifications: [], hasNew: false });
+    sincronizar(get());
   },
 
 

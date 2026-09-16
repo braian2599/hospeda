@@ -8,6 +8,7 @@ import { useHotelStore, SESSION_RESTORED_KEY, clearSessionRestoredFlag } from '@
 import { usePlansStatus } from '@/hooks/usePlans';
 import { usePresenceHeartbeat } from '@/hooks/usePresence';
 import { useLandingEventsPolling } from '@/hooks/useLandingEventsPolling';
+import { useNotificationStore } from '@/lib/notification-store';
 import { Button } from '@/components/ui/button';
 import { LogOut, Hotel, ChevronRight, Loader2, KeyRound, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -206,6 +207,17 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
 
   // ── Polling liviano: avisa reservas y pagos de seña de la landing ──
   useLandingEventsPolling();
+
+  // ── Notificaciones guardadas en este navegador ──
+  // Se cargan cuando ya sabemos quien entro. Lo guardado lleva marcado a que
+  // hotel y usuario pertenece: en el hotel se cambia de turno en la misma
+  // computadora, y nadie tiene que heredar las notificaciones del anterior.
+  const hidratarNotificaciones = useNotificationStore(s => s.hidratar);
+  const tenantId = usuarioActual?.tenantId;
+  const tenantUserId = usuarioActual?.tenantUserId;
+  useEffect(() => {
+    if (tenantId && tenantUserId) hidratarNotificaciones(tenantId, tenantUserId);
+  }, [tenantId, tenantUserId, hidratarNotificaciones]);
 
   // Actualizar el JWT de NextAuth con el tenantId seleccionado
   const loginAndUpdateSession = useCallback(async (data: Record<string, any>) => {
