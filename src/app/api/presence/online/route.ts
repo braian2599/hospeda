@@ -1,48 +1,49 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { NextResponse } from 'next/server';
+import { getAuthSession, AuthError } from '@/lib/auth/utils';
+import { usuariosConectados } from '@/lib/presence';
 
 /**
  * GET /api/presence/online
  *
- * Returns the list of tenantUserIds that are currently online
- * (lastSeenAt within the last 90 seconds) for the current tenant.
+ * Devuelve los tenantUserIds del hotel que dieron señales en los últimos 90 s.
  *
- * Also returns a count and a cleanup flag (for internal use).
+ * Dos cosas cambiaron acá, y las dos son para que Postgres no reciba nada:
+ *
+ * 1. Los datos salen de Redis (src/lib/presence.ts), no de la tabla
+ *    UserPresence. Antes eran un SELECT + un DELETE cada 15 segundos.
+ *
+ * 2. La autorización se resuelve con el JWT (getAuthSession) en vez de
+ *    requirePermission('usuarios'), que hace 2 consultas a Postgres en CADA
+ *    llamada — con eso solo, este endpoint seguía impidiendo que Neon durmiera.
+ *    El aislamiento entre hoteles se mantiene: el tenantId sale del JWT
+ *    firmado, así que nadie puede pedir la lista de otro hotel. Lo que se
+ *    expone es únicamente una lista de ids internos del propio hotel y su
+ *    cantidad: ni nombres, ni mails, ni permisos.
  */
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const tenantId = await requirePermission('usuarios');
+    const session = await getAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
 
-    // Threshold: 90 seconds ago
-    const threshold = new Date(Date.now() - 90_000);
+    const tenantId = session.user.tenantId;
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Sesión incompleta' }, { status: 401 });
+    }
 
-    const onlineUsers = await db.userPresence.findMany({
-      where: {
-        tenantId,
-        lastSeenAt: { gte: threshold },
-      },
-      select: {
-        tenantUserId: true,
-        lastSeenAt: true,
-      },
-      orderBy: { lastSeenAt: 'desc' },
-    });
+    const conectados = await usuariosConectados(tenantId);
 
-    // Periodically clean up stale entries (last seen > 10 minutes)
-    // This is a lightweight cleanup — only runs when someone queries online status
-    const staleThreshold = new Date(Date.now() - 600_000);
-    const deleted = await db.userPresence.deleteMany({
-      where: {
-        tenantId,
-        lastSeenAt: { lt: staleThreshold },
-      },
-    });
+    // null = no hay Redis configurado. Se distingue de "nadie conectado" para
+    // que la pantalla no muestre a todo el mundo como desconectado.
+    if (conectados === null) {
+      return NextResponse.json({ onlineUserIds: [], onlineCount: 0, disponible: false });
+    }
 
     return NextResponse.json({
-      onlineUserIds: onlineUsers.map(u => u.tenantUserId),
-      onlineCount: onlineUsers.length,
-      cleanedUp: deleted.count,
+      onlineUserIds: conectados,
+      onlineCount: conectados.length,
+      disponible: true,
     });
   } catch (error) {
     if (error instanceof AuthError) {

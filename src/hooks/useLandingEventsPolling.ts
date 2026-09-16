@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { notify } from '@/lib/notify';
 import { formatMoney } from '@/lib/format';
+import { hayActividadReciente } from './usePresence';
 
 // ═══════════════════════════════════════════════════════════
 // CONSTANTS
@@ -56,7 +57,11 @@ export function useLandingEventsPolling() {
   const sinceRef = useRef<string | null>(null);
 
   const poll = useCallback(async () => {
-    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    // Pestaña visible NO alcanza: en la recepción dejan el sistema abierto en
+    // pantalla toda la noche. Sin actividad real del usuario esto no se manda,
+    // porque cada consulta despierta Postgres y le impide dormir a Neon
+    // (ver el comentario largo en src/hooks/usePresence.ts).
+    if (!hayActividadReciente()) return;
     try {
       const params = sinceRef.current ? `?since=${encodeURIComponent(sinceRef.current)}` : '';
       const res = await fetch(`/api/notificaciones/recientes${params}`, { credentials: 'same-origin' });
@@ -133,6 +138,8 @@ export function useLandingEventsPolling() {
     startTimer = setTimeout(start, START_DELAY);
 
     const onVisibility = () => {
+      // Volver a la pestaña cuenta como actividad, así que acá sí se consulta
+      // al toque: hayActividadReciente() ya lo va a dar por bueno.
       if (document.visibilityState === 'visible') poll();
     };
     document.addEventListener('visibilitychange', onVisibility);

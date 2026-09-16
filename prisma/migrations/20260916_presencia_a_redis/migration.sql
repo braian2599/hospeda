@@ -1,0 +1,14 @@
+-- La presencia de usuarios (quién está conectado) se mudó a Redis.
+--
+-- La tabla recibía un upsert cada 30 segundos y un SELECT + DELETE cada 15
+-- segundos por cada usuario con el sistema abierto. Neon apaga la base a los
+-- ~5 minutos sin actividad y solo cobra el tiempo que estuvo despierta: con
+-- ese tráfico no se apagaba nunca, así que un solo hotel consumía las 100
+-- CU-hrs del plan gratis con la base encendida las 24 horas.
+--
+-- El dato es efímero (vale 90 segundos) y no tiene por qué sobrevivir a nada,
+-- así que ahora vive en Redis (src/lib/presence.ts) y Postgres no recibe nada.
+--
+-- Borrar la tabla es OPCIONAL: el código ya no la usa. Si no se corre, queda
+-- ahí sin consumir nada más que unos kilobytes.
+DROP TABLE IF EXISTS "UserPresence";

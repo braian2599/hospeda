@@ -29,6 +29,7 @@ import ModuleHeader from '@/components/layout/ModuleHeader';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { toast } from 'sonner';
 import { usePresenceStore } from '@/lib/presence-store';
+import { useOnlineUsers } from '@/hooks/usePresence';
 
 // ═══════════════════════════════════════════════════════════
 // HELPERS
@@ -250,7 +251,10 @@ export default function UsuariosModule() {
   // ═══════════════════════════════════════════════════════════
 
   // ── Real-time online status ──
-  const { onlineUserIds, onlineCount, loaded: presenceLoaded } = usePresenceStore();
+  // La lista de conectados se pide solo mientras esta pantalla está abierta:
+  // es el único lugar donde se ve el punto verde.
+  useOnlineUsers();
+  const { onlineUserIds, onlineCount, loaded: presenceLoaded, disponible: presenceDisponible } = usePresenceStore();
 
   const stats = useMemo(() => {
     const total = usuarios.length;
@@ -521,9 +525,11 @@ export default function UsuariosModule() {
                   <AnimatedNumber value={onlineCount} format={n => String(Math.round(n))} className="text-2xl font-bold text-primary" />
                   <span className="text-[10px] text-muted-foreground">/ {stats.activos}</span>
                 </div>
-                {!presenceLoaded && (
+                {!presenceLoaded ? (
                   <p className="text-[10px] text-muted-foreground animate-pulse">Detectando...</p>
-                )}
+                ) : !presenceDisponible ? (
+                  <p className="text-[10px] text-muted-foreground">No disponible</p>
+                ) : null}
               </div>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${onlineCount > 0 ? 'bg-[#0F766E33]' : 'bg-[#0F766E1A]'}`}>
                 <Activity className={`w-5 h-5 ${onlineCount > 0 ? 'text-primary' : 'text-primary'}`} />

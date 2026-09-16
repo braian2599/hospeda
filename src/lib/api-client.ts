@@ -303,7 +303,7 @@ export const api = {
   // ── Presence (online status) ──
   presence: {
     heartbeat: () => apiFetch<{ ok: boolean }>('/presence/heartbeat', { method: 'POST' }),
-    online: () => apiFetch<{ onlineUserIds: string[]; onlineCount: number }>('/presence/online'),
+    online: () => apiFetch<{ onlineUserIds: string[]; onlineCount: number; disponible: boolean }>('/presence/online'),
   },
 };
 

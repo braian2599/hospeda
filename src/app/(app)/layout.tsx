@@ -6,7 +6,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import AuthProvider from '@/components/providers/SessionProvider';
 import { useHotelStore, SESSION_RESTORED_KEY, clearSessionRestoredFlag } from '@/lib/store';
 import { usePlansStatus } from '@/hooks/usePlans';
-import { usePresence } from '@/hooks/usePresence';
+import { usePresenceHeartbeat } from '@/hooks/usePresence';
 import { useLandingEventsPolling } from '@/hooks/useLandingEventsPolling';
 import { Button } from '@/components/ui/button';
 import { LogOut, Hotel, ChevronRight, Loader2, KeyRound, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
@@ -199,8 +199,10 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
 
   const syncFromServer = useHotelStore(s => s.syncFromServer);
 
-  // ── Real-time presence tracking (heartbeat + online users) ──
-  usePresence();
+  // ── Presencia: solo el latido ──
+  // La lista de conectados NO se pide acá: se pide en el módulo de Usuarios,
+  // que es el único lugar donde se muestra (ver src/hooks/usePresence.ts).
+  usePresenceHeartbeat();
 
   // ── Polling liviano: avisa reservas y pagos de seña de la landing ──
   useLandingEventsPolling();

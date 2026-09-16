@@ -880,13 +880,7 @@ enum TipoMovimientoCaja {
 // PRESENCIA / ONLINE STATUS
 // ═══════════════════════════════════════════════════════════
 
-model UserPresence {
-  id             String   @id @default(cuid())
-  tenantUserId   String   @unique
-  tenantId       String
-  lastSeenAt     DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([tenantId, lastSeenAt])
-}
+// UserPresence se eliminó: la presencia (quién está conectado) pasó a Redis.
+// Era un upsert cada 30 s y un SELECT + DELETE cada 15 s por usuario, lo que
+// mantenía la base de Neon despierta las 24 h y consumía todo el plan gratis.
+// Ver src/lib/presence.ts.

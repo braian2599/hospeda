@@ -1,15 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { NextResponse } from 'next/server';
 import { getAuthSession, AuthError } from '@/lib/auth/utils';
+import { registrarLatido } from '@/lib/presence';
 
 /**
  * POST /api/presence/heartbeat
  *
- * Each authenticated client sends a heartbeat every ~30 s.
- * We upsert a row in UserPresence with the current timestamp.
- * A user is considered "online" if their lastSeenAt is within 90 s.
+ * Cada cliente conectado avisa que sigue activo (~1 vez por minuto, y solo si
+ * hubo actividad real del usuario — ver src/hooks/usePresence.ts).
+ *
+ * Esto NO toca Postgres: la presencia vive en Redis (src/lib/presence.ts).
+ * Antes hacía un upsert en la tabla UserPresence cada 30 s, lo que mantenía la
+ * base de Neon despierta las 24 h y consumía todo el plan.
  */
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
@@ -18,26 +21,15 @@ export async function POST(req: NextRequest) {
 
     const tenantId = session.user.tenantId;
     const tenantUserId = session.user.tenantUserId;
-
     if (!tenantId || !tenantUserId) {
       return NextResponse.json({ error: 'Sesión incompleta' }, { status: 401 });
     }
 
-    const now = new Date();
+    const registrado = await registrarLatido(tenantId, tenantUserId);
 
-    await db.userPresence.upsert({
-      where: { tenantUserId },
-      create: {
-        tenantUserId,
-        tenantId,
-        lastSeenAt: now,
-      },
-      update: {
-        lastSeenAt: now,
-      },
-    });
-
-    return NextResponse.json({ ok: true });
+    // Sin Redis configurado la presencia queda apagada. A propósito NO se cae
+    // de vuelta a Postgres: eso es exactamente lo que estábamos sacando.
+    return NextResponse.json({ ok: true, disponible: registrado });
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
