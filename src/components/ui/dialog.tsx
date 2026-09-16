@@ -46,14 +46,42 @@ function DialogOverlay({
   )
 }
 
+// ==================== TAMAÑOS DE DIALOG ====================
+// Los cuatro anchos que usa TODO el sistema. No agregar medidas sueltas:
+// si algo no entra en ninguno, se discute y se cambia la escala acá, no en
+// la pantalla que lo necesita.
+//
+//   chico   448px — confirmaciones, avisos, borrar algo
+//   medio   512px — formularios simples de una columna
+//   grande  768px — formularios con secciones o pestañas
+//   trabajo 1024px — pantallas de trabajo (Nueva Reserva, editor de Tarifas)
+export const ANCHOS_DIALOG = {
+  chico: 'sm:max-w-md',
+  medio: 'sm:max-w-lg',
+  grande: 'sm:max-w-3xl',
+  trabajo: 'sm:max-w-5xl',
+} as const;
+
+export type TamanoDialog = keyof typeof ANCHOS_DIALOG;
+
+/** Alto máximo único. Los dialogs cortos igual se achican a su contenido. */
+export const ALTO_DIALOG = 'max-h-[90vh]';
+
 function DialogContent({
   className,
   children,
   showCloseButton = true,
   scrollBody = true,
   bodyClassName,
+  size = 'medio',
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  /**
+   * Ancho del dialog. SIEMPRE usar esta prop en vez de escribir un
+   * `sm:max-w-*` suelto en className — el ancho a mano fue lo que dejó 8
+   * medidas distintas conviviendo en el sistema.
+   */
+  size?: TamanoDialog
   showCloseButton?: boolean
   /**
    * Cuando el contenido no entra en el alto disponible, el scroll debe pasar
@@ -72,7 +100,9 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 flex flex-col w-full max-w-[calc(100%-2rem)] max-h-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] rounded-lg border shadow-lg duration-200 sm:max-w-lg dialog-content-animated overflow-hidden",
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 flex flex-col w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] rounded-lg border shadow-lg duration-200 dialog-content-animated overflow-hidden",
+          ANCHOS_DIALOG[size],
+          ALTO_DIALOG,
           scrollBody ? undefined : "grid gap-4 p-6",
           className
         )}

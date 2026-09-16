@@ -1002,7 +1002,7 @@ export default function HabitacionesModule() {
 
       {/* ── Modal Nueva / Editar ── */}
       <Dialog open={modal === 'nueva' || modal === 'editar'} onOpenChange={() => setModal(null)}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh]">
+        <DialogContent size="medio">
           <DialogHeader>
             <DialogTitle>{modal === 'nueva' ? 'Nueva Habitación' : `Editar ${sel}`}</DialogTitle>
           </DialogHeader>
@@ -1110,7 +1110,7 @@ export default function HabitacionesModule() {
 
       {/* ── Modal Eliminar ── */}
       <Dialog open={modal === 'eliminar'} onOpenChange={() => setModal(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent size="chico">
           <DialogHeader><DialogTitle className="text-destructive">Eliminar Habitación</DialogTitle></DialogHeader>
           <p>¿Está seguro de eliminar la habitación <strong>{sel}</strong>?</p>
           <p className="text-sm text-muted-foreground">Las reservas futuras serán canceladas.</p>

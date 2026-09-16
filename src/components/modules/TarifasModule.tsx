@@ -409,7 +409,7 @@ function ComparisonModal({ tariffs, onClose }: {
   const campoDiffers = new Set(campoCounts).size > 1;
 
   return (
-    <DialogContent className="sm:max-w-4xl max-h-[90vh]">
+    <DialogContent size="trabajo">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2 text-xl">
           <GitCompareArrows className="w-5 h-5 text-primary" />
@@ -1356,7 +1356,7 @@ export default function TarifasModule() {
 
       {/* ==================== MODAL: TARIFA (CREAR/EDITAR — WIZARD) ==================== */}
       <Dialog open={modalTarifa} onOpenChange={setModalTarifa}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh]" bodyClassName="p-5">
+        <DialogContent size="grande" bodyClassName="p-5">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               {editandoTarifa ? <><Pencil className="w-5 h-5" />Editar - {editandoTarifa}</> : <><Sparkles className="w-5 h-5 text-primary" />Nueva Tarifa</>}
@@ -1808,7 +1808,7 @@ export default function TarifasModule() {
             onClose={() => setShowComparison(false)}
           />
         ) : (
-          <DialogContent className="sm:max-w-md">
+          <DialogContent size="chico">
             <DialogHeader>
               <DialogTitle>Comparación de tarifas</DialogTitle>
             </DialogHeader>
@@ -1822,7 +1822,7 @@ export default function TarifasModule() {
 
       {/* ==================== MODAL: MÉTODO DE PAGO ==================== */}
       <Dialog open={modalMetodo} onOpenChange={setModalMetodo}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh]">
+        <DialogContent size="medio">
           <DialogHeader>
             <DialogTitle>{editandoMetodo ? 'Editar Método de Pago' : 'Nuevo Método de Pago'}</DialogTitle>
           </DialogHeader>
@@ -1881,7 +1881,7 @@ export default function TarifasModule() {
 
       {/* ==================== MODAL: CATEGORÍA DE GASTO ==================== */}
       <Dialog open={modalCategoria} onOpenChange={setModalCategoria}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent size="chico">
           <DialogHeader>
             <DialogTitle>{editandoCat ? 'Editar Categoría' : 'Nueva Categoría'}</DialogTitle>
           </DialogHeader>
@@ -1900,7 +1900,7 @@ export default function TarifasModule() {
 
       {/* ==================== DIALOG: CONFIRMACIÓN ==================== */}
       <Dialog open={confirmDialog.open} onOpenChange={v => setConfirmDialog({ ...confirmDialog, open: v })}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent size="chico">
           <DialogHeader>
             <DialogTitle>{confirmDialog.titulo}</DialogTitle>
           </DialogHeader>

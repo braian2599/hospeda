@@ -471,7 +471,7 @@ export default function LimpiezaModule() {
       </div>
 
       <Dialog open={showReportForm} onOpenChange={(open) => { setShowReportForm(open); if (!open) setRepConfirm(false); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent size="chico">
           <DialogHeader>
             <DialogTitle>Reportar mantenimiento</DialogTitle>
           </DialogHeader>
@@ -662,7 +662,7 @@ export default function LimpiezaModule() {
 
       {/* ── Modal: Resolver Mantenimiento ── */}
       <Dialog open={!!modalResolver} onOpenChange={() => setModalResolver(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent size="chico">
           <DialogHeader>
             <DialogTitle>Resolver Mantenimiento - Habitación {modalResolver}</DialogTitle>
           </DialogHeader>

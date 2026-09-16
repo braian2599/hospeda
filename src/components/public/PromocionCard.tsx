@@ -240,7 +240,7 @@ export default function PromocionCard({
       </div>
 
       <Dialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh]">
+        <DialogContent size="grande">
           <div className="space-y-4">
             <DialogTitle>{promocion.nombre}</DialogTitle>
 

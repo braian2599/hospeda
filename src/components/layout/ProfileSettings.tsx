@@ -119,7 +119,7 @@ export default function ProfileSettings({ open, onOpenChange }: ProfileSettingsP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh]">
+      <DialogContent size="medio">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <User className="w-5 h-5" />

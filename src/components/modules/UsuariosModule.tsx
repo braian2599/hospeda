@@ -754,7 +754,7 @@ export default function UsuariosModule() {
 
       {/* ═══════════ DIALOG: CREAR / EDITAR USUARIO (existing) ═══════════ */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh]">
+        <DialogContent size="medio">
           <DialogHeader>
             <DialogTitle>
               {ownerEditing ? 'Editar tu perfil' : (editingId ? 'Editar usuario' : 'Crear nuevo usuario')}
@@ -871,7 +871,7 @@ export default function UsuariosModule() {
 
       {/* ═══════════ DIALOG: ELIMINAR / SUSPENDER ═══════════ */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent size="chico">
           <DialogHeader>
             <DialogTitle>Suspender usuario</DialogTitle>
           </DialogHeader>
@@ -891,7 +891,7 @@ export default function UsuariosModule() {
 
       {/* ═══════════ DIALOG: INVITAR USUARIO ═══════════ */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent size="chico">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Mail className="w-5 h-5 text-primary" />
@@ -997,7 +997,7 @@ export default function UsuariosModule() {
 
       {/* ═══════════ DIALOG: RESTABLECER CONTRASEÑA ═══════════ */}
       <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent size="chico">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <KeyRound className="w-5 h-5 text-primary" />

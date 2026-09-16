@@ -304,7 +304,7 @@ export default function RoomStatusMap({ onEditRoom, onDeleteRoom }: RoomStatusMa
 
       {/* ── Detail Dialog ── */}
       <Dialog open={detailRoom !== null} onOpenChange={(open) => { if (!open) closeDetail(); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent size="chico">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bed className="w-5 h-5 text-primary" />

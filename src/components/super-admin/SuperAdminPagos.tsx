@@ -340,7 +340,7 @@ export default function SuperAdminPagos() {
 
       {/* ─── Dialog: Registrar pago manual ─── */}
       <Dialog open={newPayOpen} onOpenChange={setNewPayOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent size="chico">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Wallet className="w-5 h-5" />

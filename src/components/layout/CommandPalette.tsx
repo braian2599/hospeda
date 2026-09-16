@@ -357,10 +357,7 @@ export default function CommandPalette() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent
-        className="p-0 gap-0 overflow-hidden max-w-xl sm:max-w-lg"
-        onKeyDown={handleKeyDown}
-      >
+      <DialogContent size="medio" className="p-0 gap-0 overflow-hidden" onKeyDown={handleKeyDown}>
         <DialogTitle className="sr-only">Búsqueda rápida</DialogTitle>
         <div className="flex items-center gap-2 px-3 border-b">
           <Search className="w-4 h-4 text-muted-foreground shrink-0" />

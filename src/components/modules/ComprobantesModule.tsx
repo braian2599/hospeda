@@ -773,7 +773,7 @@ export default function ComprobantesModule() {
 
       {/* =================== MODAL PAGO =================== */}
       <Dialog open={pagoDialogOpen} onOpenChange={() => setPagoDialogOpen(false)}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh]">
+        <DialogContent size="medio">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <DollarSign className="w-5 h-5" />
@@ -861,7 +861,7 @@ export default function ComprobantesModule() {
 
       {/* =================== MODAL RECIBO (ENHANCED) =================== */}
       <Dialog open={reciboDialogOpen} onOpenChange={() => setReciboDialogOpen(false)}>
-        <DialogContent className={`max-h-[90vh] ${reciboFormato === 'a4' ? 'sm:max-w-3xl' : 'sm:max-w-lg'}`}>
+        <DialogContent size={reciboFormato === 'a4' ? 'grande' : 'medio'}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
@@ -1273,7 +1273,7 @@ function VerComprobanteDialog({
   return (
     <>
     <Dialog open={!!item} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent size="grande">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" /> {NOMBRE_TIPO_LISTA[item.tipo as TipoListado] || item.tipo} {item.numeroDisplay}
@@ -1403,7 +1403,7 @@ function EmitirComprobanteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent size="medio">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Receipt className="w-5 h-5" /> Emitir comprobante</DialogTitle>
           <DialogDescription>Presupuesto, Remito, Nota de Crédito o Nota de Débito — con numeración propia, interno por ahora (sin AFIP).</DialogDescription>

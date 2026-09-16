@@ -1820,7 +1820,7 @@ export default function ReservasModule() {
 
  {/* ==================== MODAL DETALLE ==================== */}
  <Dialog open={modalDetalleOpen} onOpenChange={setModalDetalleOpen}>
- <DialogContent className="sm:max-w-3xl max-h-[85vh]">
+ <DialogContent size="grande">
  <DialogHeader>
  <DialogTitle>Detalle de Reserva #{detalleReserva?.id}</DialogTitle>
  </DialogHeader>
@@ -1951,7 +1951,7 @@ export default function ReservasModule() {
 
  {/* ==================== MODAL NUEVA/EDITAR RESERVA ==================== */}
  <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
- <DialogContent className="sm:max-w-5xl max-h-[90vh]">
+ <DialogContent size="trabajo">
  <DialogHeader>
  <div className="flex items-center gap-3">
  <div className="w-10 h-10 rounded-xl bg-[#0F766E1A] flex items-center justify-center shrink-0">
@@ -2469,7 +2469,7 @@ export default function ReservasModule() {
 
  {/* ==================== MODAL CANCELAR ==================== */}
  <Dialog open={modalCancelOpen} onOpenChange={() => setModalCancelOpen(false)}>
- <DialogContent className="sm:max-w-md">
+ <DialogContent size="chico">
  <DialogHeader>
  <DialogTitle className="text-destructive">Cancelar reserva</DialogTitle>
  </DialogHeader>
@@ -2493,7 +2493,7 @@ export default function ReservasModule() {
 
  {/* ==================== MODAL CONFIRMAR PAGO (reserva "A confirmar") ==================== */}
  <Dialog open={!!confirmarPagoReserva} onOpenChange={(open) => { if (!open) setConfirmarPagoReserva(null); }}>
- <DialogContent className="sm:max-w-md">
+ <DialogContent size="chico">
  <DialogHeader>
  <DialogTitle>Confirmar pago de seña</DialogTitle>
  </DialogHeader>
@@ -2532,7 +2532,7 @@ export default function ReservasModule() {
 
  {/* ==================== MODAL ACOMPAÑANTE SIN CARGO ==================== */}
  <Dialog open={modalChoferOpen} onOpenChange={setModalChoferOpen}>
- <DialogContent className="sm:max-w-md">
+ <DialogContent size="chico">
  <DialogHeader>
  <DialogTitle>{acompananteEtiqueta}</DialogTitle>
  </DialogHeader>

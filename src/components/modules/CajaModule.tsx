@@ -846,7 +846,7 @@ export default function CajaModule() {
   const canFinalizar = !diffExceedsThreshold || discrepancyExplain.trim().length >= 5;
 
   const closeDialog = (
-    <DialogContent key={`cierre-${cierreOpenCount}`} className="sm:max-w-2xl max-h-[92vh] overflow-y-auto">
+    <DialogContent size="grande" key={`cierre-${cierreOpenCount}`}>
       <ClosingWizard
         step={closingStep}
         setStep={setClosingStep}
@@ -1537,7 +1537,7 @@ export default function CajaModule() {
 
       {/* ═══════ EDIT MOVEMENT DIALOG ═══════ */}
       <Dialog open={!!editingMov} onOpenChange={() => setEditingMov(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent size="chico">
           <DialogHeader>
             <DialogTitle>Editar movimiento</DialogTitle>
           </DialogHeader>

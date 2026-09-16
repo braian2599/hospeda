@@ -140,7 +140,7 @@ export default function SmsVerificationSettings() {
 
       {/* Change phone dialog */}
       <Dialog open={changeDialogOpen} onOpenChange={setChangeDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent size="chico">
           <DialogHeader>
             <DialogTitle>Cambiar teléfono</DialogTitle>
             <DialogDescription>
