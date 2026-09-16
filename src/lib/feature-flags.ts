@@ -2,7 +2,7 @@
 // Sin dependencias de servidor (Prisma) — importable desde componentes cliente.
 // Los helpers que tocan la BD viven en @/lib/feature-flags-server.
 
-export type FeatureFlag = 'bookingSync' | 'airbnbSync' | 'facturacionArca' | 'landingPage';
+export type FeatureFlag = 'bookingSync' | 'airbnbSync' | 'facturacionArca' | 'landingPage' | 'asistente';
 
 export const FEATURE_FLAGS: Record<FeatureFlag, { label: string; description: string }> = {
   bookingSync: {
@@ -21,6 +21,10 @@ export const FEATURE_FLAGS: Record<FeatureFlag, { label: string; description: st
     label: 'Landing page pública',
     description: 'Página pública del hotel con fotos, habitaciones y reservas online',
   },
+  asistente: {
+    label: 'Asistente IA',
+    description: 'Asistente que guía al personal a usar el sistema (consume API paga por consulta)',
+  },
 };
 
 export const DEFAULT_FLAGS: Record<FeatureFlag, boolean> = {
@@ -28,6 +32,7 @@ export const DEFAULT_FLAGS: Record<FeatureFlag, boolean> = {
   airbnbSync: false,
   facturacionArca: false,
   landingPage: false,
+  asistente: false,
 };
 
 export function parseFeatureFlags(raw: unknown): Record<FeatureFlag, boolean> {

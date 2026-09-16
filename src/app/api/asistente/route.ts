@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requireFeatureFlag } from '@/lib/feature-flags-server';
 import { rateLimit, checkBodySize } from '@/lib/validation';
 import { preguntarAsistente, type MensajeAsistente } from '@/lib/ai/asistente';
 
@@ -51,6 +52,12 @@ export async function POST(req: NextRequest) {
   try {
     checkBodySize(req, 50_000);
     const tenantId = await requireTenantId();
+
+    // El asistente se vende por plan (Premium y Elite). Se chequea acá y no
+    // solo en la pantalla porque cada consulta le pega a una API paga: sin
+    // esto, cualquier hotel de cualquier plan podría llamarla directo.
+    // requireFeatureFlag lanza AuthError(403), que el catch de abajo traduce.
+    await requireFeatureFlag(tenantId, 'asistente');
 
     // 15 preguntas cada 5 minutos por tenant — alcanza para uso normal
     // y limita el costo de la API si algo se pone en loop.
