@@ -81,7 +81,12 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     maxTarifas: 0,
     maxReservasMes: 0,
     modulos: MODULOS_PREMIUM,
-    featureFlags: { ...DEFAULT_FLAGS },
+    // La prueba muestra la landing pública y la facturación electrónica: son
+    // las dos funciones que justifican pagar, y tenerlas apagadas durante los
+    // 30 días hacía que el hotel probara el producto sin verlas nunca.
+    // El asistente queda afuera a propósito: consume una API paga por consulta
+    // y no conviene regalarlo en la prueba.
+    featureFlags: { ...DEFAULT_FLAGS, landingPage: true, facturacionArca: true },
     duracionDias: 30,
     activo: true,
   },
@@ -111,7 +116,11 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     maxTarifas: 10,
     maxReservasMes: 1000,
     modulos: MODULOS_PROFESIONAL,
-    featureFlags: { ...DEFAULT_FLAGS },
+    // La landing pública es el argumento de venta del sistema (reserva directa
+    // sin comisión de Booking) y la facturación electrónica es una obligación
+    // legal en Argentina, no un lujo: tenerlas recién en Premium dejaba afuera
+    // justo a los hoteles chicos que las necesitan.
+    featureFlags: { ...DEFAULT_FLAGS, landingPage: true, facturacionArca: true },
     duracionDias: 30,
     activo: true,
   },
@@ -125,7 +134,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     maxTarifas: 0,
     maxReservasMes: 0,
     modulos: MODULOS_PREMIUM,
-    featureFlags: { ...DEFAULT_FLAGS, facturacionArca: true, asistente: true },
+    featureFlags: { ...DEFAULT_FLAGS, landingPage: true, facturacionArca: true, asistente: true },
     duracionDias: 30,
     activo: true,
   },

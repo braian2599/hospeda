@@ -35,6 +35,15 @@ export async function getPublicTenant(slug: string) {
       instagramUrl: true,
       facebookUrl: true,
       activo: true,
+      // La suscripción se trae en la misma consulta (no en una aparte) porque
+      // decide dos cosas: qué flags trae el plan, y si el hotel está al día.
+      subscription: {
+        select: {
+          estado: true,
+          fechaVencimiento: true,
+          plan: { select: { featureFlags: true } },
+        },
+      },
       configuracion: {
         select: {
           featureFlags: true, tarifasPublicas: true,
@@ -58,8 +67,24 @@ export async function getPublicTenant(slug: string) {
   });
   if (!tenant || !tenant.activo) return null;
 
-  const flags = parseFeatureFlags(tenant.configuracion?.featureFlags);
-  if (!flags.landingPage) return null;
+  // ── La landing se apaga si el hotel dejó de estar al día ──
+  // Sin esto, un hotel con la prueba vencida o la suscripción cancelada seguía
+  // con su página pública tomando reservas y cobrando señas reales. Antes no se
+  // notaba porque el plan de prueba no traía la landing; ahora que sí la trae,
+  // todos los hoteles en prueba caerían en ese agujero. Mismo criterio que
+  // requireActiveSubscription usa para el panel.
+  const sub = tenant.subscription;
+  if (!sub) return null;
+  if (sub.estado !== 'activa' && sub.estado !== 'trial') return null;
+  if (sub.fechaVencimiento && sub.fechaVencimiento < new Date()) return null;
+
+  // ── Flags efectivas: las del plan + las excepciones manuales del hotel ──
+  // Antes esto miraba SOLO TenantConfig, así que activar la landing en un plan
+  // no tenía ningún efecto acá y había que prenderla hotel por hotel a mano.
+  // Es la misma combinación que hace getFeatureFlags en feature-flags-server.
+  const flagsDelPlan = parseFeatureFlags(sub.plan?.featureFlags);
+  const flagsDelHotel = parseFeatureFlags(tenant.configuracion?.featureFlags);
+  if (!flagsDelPlan.landingPage && !flagsDelHotel.landingPage) return null;
 
   return tenant;
 }
