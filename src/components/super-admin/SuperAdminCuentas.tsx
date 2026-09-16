@@ -43,7 +43,13 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Search, ChevronDown, ChevronRight, RefreshCw, CreditCard, Clock, KeyRound, Power, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { FEATURE_FLAGS, type FeatureFlag } from '@/lib/feature-flags';
+import {
+  FEATURE_FLAGS,
+  modoDeFlag,
+  type FeatureFlag,
+  type FlagOverrides,
+  type ModoFlag,
+} from '@/lib/feature-flags';
 
 // ─── Types ───
 interface TenantUser {
@@ -81,8 +87,12 @@ interface Tenant {
     reservas: number;
     usuariosActivos: number;
   };
+  /** Resultado final: lo que el hotel realmente ve. */
   featureFlags: Record<FeatureFlag, boolean>;
+  /** Lo que trae su plan de fábrica. */
   featureFlagsPlan: Record<FeatureFlag, boolean>;
+  /** Excepciones de este hotel. Clave ausente = sigue a su plan. */
+  featureFlagsOverrides: FlagOverrides;
 }
 
 interface PlanOption {
@@ -266,7 +276,9 @@ export default function SuperAdminCuentas() {
     }
   };
 
-  const handleToggleFlag = async (tenant: Tenant, flag: FeatureFlag, enabled: boolean) => {
+  const handleSetFlagModo = async (tenant: Tenant, flag: FeatureFlag, modo: ModoFlag) => {
+    if (modoDeFlag(tenant.featureFlagsOverrides, flag) === modo) return;
+
     const key = `${tenant.id}:${flag}`;
     setFlagLoading((prev) => new Set(prev).add(key));
     try {
@@ -277,15 +289,31 @@ export default function SuperAdminCuentas() {
           tenantId: tenant.id,
           action: 'toggleFeatureFlag',
           flag,
-          enabled,
+          modo,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      // El servidor devuelve las excepciones Y el resultado final: se guardan
+      // los dos para no recalcular acá y arriesgarse a que la pantalla diga
+      // una cosa distinta de la que aplica el sistema.
       setTenants((prev) =>
-        prev.map((t) => (t.id === tenant.id ? { ...t, featureFlags: data.featureFlags } : t))
+        prev.map((t) =>
+          t.id === tenant.id
+            ? {
+                ...t,
+                featureFlags: data.featureFlags,
+                featureFlagsOverrides: data.featureFlagsOverrides,
+              }
+            : t
+        )
       );
-      toast.success(`${FEATURE_FLAGS[flag].label}: ${enabled ? 'activada' : 'desactivada'}`);
+      const quedo = data.featureFlags?.[flag] ? 'activada' : 'desactivada';
+      toast.success(
+        modo === 'plan'
+          ? `${FEATURE_FLAGS[flag].label}: sigue a su plan (${quedo})`
+          : `${FEATURE_FLAGS[flag].label}: forzada ${quedo}`
+      );
     } catch (err: unknown) {
       toast.error((err as Error).message || 'Error al cambiar la funcionalidad');
     } finally {
@@ -530,38 +558,84 @@ export default function SuperAdminCuentas() {
                               <div className="space-y-2">
                                 {(Object.keys(FEATURE_FLAGS) as FeatureFlag[]).map((flag) => {
                                   const loadingKey = `${t.id}:${flag}`;
-                                  const incluidaPorPlan = t.featureFlagsPlan?.[flag];
+                                  const cargando = flagLoading.has(loadingKey);
+                                  const incluidaPorPlan = !!t.featureFlagsPlan?.[flag];
+                                  const modo = modoDeFlag(t.featureFlagsOverrides, flag);
+                                  const activa = !!t.featureFlags?.[flag];
+                                  const opciones: { modo: ModoFlag; label: string; title: string }[] = [
+                                    {
+                                      modo: 'plan',
+                                      label: 'Según el plan',
+                                      title: incluidaPorPlan
+                                        ? 'Su plan la trae: queda activada, y sigue cualquier cambio que hagas en el plan'
+                                        : 'Su plan no la trae: queda desactivada, y sigue cualquier cambio que hagas en el plan',
+                                    },
+                                    {
+                                      modo: 'on',
+                                      label: 'Prendida',
+                                      title: 'Activada para este hotel aunque su plan no la traiga',
+                                    },
+                                    {
+                                      modo: 'off',
+                                      label: 'Apagada',
+                                      title: 'Desactivada para este hotel aunque su plan sí la traiga',
+                                    },
+                                  ];
                                   return (
                                     <div
                                       key={flag}
-                                      className="flex items-center justify-between p-2 rounded-lg border bg-card"
+                                      className="flex flex-col gap-2 p-2 rounded-lg border bg-card sm:flex-row sm:items-center sm:justify-between"
                                     >
                                       <div className="min-w-0">
-                                        <p className="text-sm font-medium flex items-center gap-1.5">
+                                        <p className="text-sm font-medium flex items-center gap-1.5 flex-wrap">
                                           {FEATURE_FLAGS[flag].label}
                                           {incluidaPorPlan && (
                                             <Badge variant="outline" className="text-[10px] font-normal text-primary border-[#0F766E66]">
                                               Incluida en el plan
                                             </Badge>
                                           )}
+                                          {modo !== 'plan' && (
+                                            <Badge variant="outline" className="text-[10px] font-normal text-amber-600 border-amber-500/40">
+                                              Excepción
+                                            </Badge>
+                                          )}
                                         </p>
                                         <p className="text-xs text-muted-foreground">{FEATURE_FLAGS[flag].description}</p>
+                                        <p className="text-xs mt-0.5">
+                                          <span className={activa ? 'text-primary' : 'text-muted-foreground'}>
+                                            {activa ? 'Activada' : 'Desactivada'}
+                                          </span>
+                                          <span className="text-muted-foreground">
+                                            {' '}para este hotel
+                                          </span>
+                                        </p>
                                       </div>
-                                      {incluidaPorPlan ? (
-                                        <Switch checked disabled title="La trae el plan actual del hotel — se apaga cambiando el plan, no acá" />
-                                      ) : (
-                                        <Switch
-                                          checked={t.featureFlags[flag]}
-                                          disabled={flagLoading.has(loadingKey)}
-                                          onCheckedChange={(checked) => handleToggleFlag(t, flag, checked)}
-                                        />
-                                      )}
+                                      <div className="flex shrink-0 rounded-md border overflow-hidden">
+                                        {opciones.map((o) => (
+                                          <button
+                                            key={o.modo}
+                                            type="button"
+                                            title={o.title}
+                                            disabled={cargando}
+                                            onClick={() => handleSetFlagModo(t, flag, o.modo)}
+                                            className={`px-2.5 py-1 text-xs transition-colors disabled:opacity-50 border-l first:border-l-0 ${
+                                              modo === o.modo
+                                                ? 'bg-primary text-primary-foreground font-medium'
+                                                : 'bg-background text-muted-foreground hover:bg-muted'
+                                            }`}
+                                          >
+                                            {o.label}
+                                          </button>
+                                        ))}
+                                      </div>
                                     </div>
                                   );
                                 })}
                               </div>
                               <p className="text-xs text-muted-foreground mt-2">
-                                Lo tildado acá es una excepción puntual para este hotel, además de lo que ya trae su plan.
+                                &quot;Según el plan&quot; es lo normal: el hotel sigue lo que traiga su plan, hoy y cuando lo cambies.
+                                &quot;Prendida&quot; y &quot;Apagada&quot; son excepciones solo para este hotel — sirven para probar una
+                                integración nueva en unos pocos hoteles, o para sacársela a uno sin tocarle el plan a nadie.
                               </p>
                             </div>
                           </TableCell>

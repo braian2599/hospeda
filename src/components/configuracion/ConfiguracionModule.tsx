@@ -173,7 +173,7 @@ const forestAlpha = (alpha: number) => `color-mix(in srgb, var(--primary) ${alph
 export default function ConfiguracionModule() {
   const [activeSection, setActiveSection] = useState<SectionId>('hotel');
   const [fotosHabilitadas, setFotosHabilitadas] = useState(false);
-  const [arcaHabilitadaManual, setArcaHabilitadaManual] = useState(false);
+  const [arcaHabilitada, setArcaHabilitada] = useState(false);
   const { usuarioActual } = useHotelStore();
   const planActual = useHotelStore(s => s.planActual);
   const planes = usePlans();
@@ -184,16 +184,15 @@ export default function ConfiguracionModule() {
       .then((data) => {
         const flags = data?.featureFlags;
         setFotosHabilitadas(!!flags?.landingPage);
-        setArcaHabilitadaManual(!!flags?.facturacionArca);
+        setArcaHabilitada(!!flags?.facturacionArca);
       })
       .catch(() => {});
   }, []);
 
-  // Igual que en el servidor (getFeatureFlags): lo que trae el plan actual
-  // O una excepción manual cargada para este tenant — cualquiera de las dos
-  // alcanza.
-  const arcaHabilitada = !!planes[planActual]?.featureFlags?.facturacionArca || arcaHabilitadaManual;
-
+  // Las flags que devuelve /api/configuracion/hotel YA vienen resueltas (plan
+  // + la excepción cargada para este hotel), así que acá no hay que volver a
+  // combinarlas con el plan: hacerlo revivía una integración que Super Admin
+  // hubiera forzado apagada para este hotel puntual.
   const visibleGroups = SECTION_GROUPS
     .map(g => ({
       ...g,

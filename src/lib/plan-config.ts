@@ -70,6 +70,13 @@ const MODULOS_ELITE: ModuloId[] = MODULOS_PREMIUM;
 // ─── Planes estáticos (FALLBACK) ───
 // Se usan SOLAMENTE cuando la BD no responde o está vacía.
 // En operación normal, todos leen desde la BD.
+//
+// OJO: las integraciones (featureFlags) van TODAS apagadas acá a propósito.
+// Qué integración trae cada plan se decide en Super Admin → Planes, y qué
+// hotel se aparta de su plan en Super Admin → Cuentas. Si se repitieran acá,
+// este archivo quedaría desactualizado en silencio cada vez que se cambia
+// algo desde el panel, y nadie se enteraría hasta que la BD fallara y el
+// fallback contradijera a la realidad. No agregar integraciones acá.
 export const PLANES: Record<PlanTipo, PlanInfo> = {
   trial: {
     tipo: 'trial',
@@ -81,12 +88,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     maxTarifas: 0,
     maxReservasMes: 0,
     modulos: MODULOS_PREMIUM,
-    // La prueba muestra la landing pública y la facturación electrónica: son
-    // las dos funciones que justifican pagar, y tenerlas apagadas durante los
-    // 30 días hacía que el hotel probara el producto sin verlas nunca.
-    // El asistente queda afuera a propósito: consume una API paga por consulta
-    // y no conviene regalarlo en la prueba.
-    featureFlags: { ...DEFAULT_FLAGS, landingPage: true, facturacionArca: true },
+    featureFlags: { ...DEFAULT_FLAGS },
     duracionDias: 30,
     activo: true,
   },
@@ -116,11 +118,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     maxTarifas: 10,
     maxReservasMes: 1000,
     modulos: MODULOS_PROFESIONAL,
-    // La landing pública es el argumento de venta del sistema (reserva directa
-    // sin comisión de Booking) y la facturación electrónica es una obligación
-    // legal en Argentina, no un lujo: tenerlas recién en Premium dejaba afuera
-    // justo a los hoteles chicos que las necesitan.
-    featureFlags: { ...DEFAULT_FLAGS, landingPage: true, facturacionArca: true },
+    featureFlags: { ...DEFAULT_FLAGS },
     duracionDias: 30,
     activo: true,
   },
@@ -134,7 +132,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     maxTarifas: 0,
     maxReservasMes: 0,
     modulos: MODULOS_PREMIUM,
-    featureFlags: { ...DEFAULT_FLAGS, landingPage: true, facturacionArca: true, asistente: true },
+    featureFlags: { ...DEFAULT_FLAGS },
     duracionDias: 30,
     activo: true,
   },
@@ -148,7 +146,7 @@ export const PLANES: Record<PlanTipo, PlanInfo> = {
     maxTarifas: 0,
     maxReservasMes: 0,
     modulos: MODULOS_ELITE,
-    featureFlags: { landingPage: true, bookingSync: true, airbnbSync: true, facturacionArca: true, asistente: true },
+    featureFlags: { ...DEFAULT_FLAGS },
     duracionDias: 30,
     activo: true,
   },

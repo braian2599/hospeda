@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireSuperAdmin } from '@/lib/super-admin/auth';
-import { FEATURE_FLAGS, parseFeatureFlags, type FeatureFlag } from '@/lib/feature-flags';
-import { setFeatureFlag } from '@/lib/feature-flags-server';
+import {
+  FEATURE_FLAGS,
+  parseFeatureFlags,
+  parseFlagOverrides,
+  resolverFlags,
+  valorDeModo,
+  type FeatureFlag,
+  type ModoFlag,
+} from '@/lib/feature-flags';
+import { setFeatureFlag, getPlanFeatureFlags } from '@/lib/feature-flags-server';
 import { deleteAllTenantObjects } from '@/lib/storage/r2';
 import bcrypt from 'bcryptjs';
 
@@ -93,11 +101,17 @@ export async function GET(req: NextRequest) {
           reservas: t._count.reservas,
           usuariosActivos: t._count.users,
         },
-        // featureFlags: la excepción manual cargada para este hotel (independiente del plan).
-        // featureFlagsPlan: lo que trae por defecto su plan actual — para mostrar en la UI
-        // cuál de las dos cosas está prendiendo cada integración.
-        featureFlags: parseFeatureFlags(t.configuracion?.featureFlags),
+        // Tres cosas distintas, porque la UI necesita las tres:
+        //   featureFlagsPlan → lo que trae el plan del hotel (el default del nivel)
+        //   featureFlagsOverrides → las excepciones cargadas para ESTE hotel.
+        //     Una clave ausente significa "sigue a su plan", no "apagada".
+        //   featureFlags → el resultado final, que es lo que el hotel ve.
         featureFlagsPlan: parseFeatureFlags(sub?.plan?.featureFlags),
+        featureFlagsOverrides: parseFlagOverrides(t.configuracion?.featureFlags),
+        featureFlags: resolverFlags(
+          parseFeatureFlags(sub?.plan?.featureFlags),
+          parseFlagOverrides(t.configuracion?.featureFlags),
+        ),
       };
     });
 
@@ -219,29 +233,53 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: true, activo: updated.activo });
     }
 
-    // ── Activar/Desactivar una feature flag ──
+    // ── Fijar el modo de una integración para este hotel ──
+    // modo: 'plan' (sigue a su plan) | 'on' (forzada prendida) | 'off' (forzada apagada).
+    // Se acepta además el formato viejo { enabled: boolean } por si queda
+    // alguna pestaña abierta con el build anterior: equivale a 'on'/'plan'.
     if (action === 'toggleFeatureFlag') {
-      const { flag, enabled } = data;
-      if (!flag || typeof enabled !== 'boolean' || !(flag in FEATURE_FLAGS)) {
-        return NextResponse.json({ error: 'Falta flag válida o enabled (boolean)' }, { status: 400 });
+      const { flag } = data;
+      if (!flag || !(flag in FEATURE_FLAGS)) {
+        return NextResponse.json({ error: 'Falta una integración válida' }, { status: 400 });
+      }
+
+      let modo: ModoFlag;
+      if (data.modo !== undefined) {
+        if (data.modo !== 'plan' && data.modo !== 'on' && data.modo !== 'off') {
+          return NextResponse.json({ error: "modo debe ser 'plan', 'on' u 'off'" }, { status: 400 });
+        }
+        modo = data.modo;
+      } else if (typeof data.enabled === 'boolean') {
+        modo = data.enabled ? 'on' : 'plan';
+      } else {
+        return NextResponse.json({ error: "Falta modo ('plan', 'on' u 'off')" }, { status: 400 });
       }
 
       const tenant = await db.tenant.findUnique({ where: { id: tenantId }, select: { id: true } });
       if (!tenant) return NextResponse.json({ error: 'Tenant no encontrado' }, { status: 404 });
 
-      const flags = await setFeatureFlag(tenantId, flag as FeatureFlag, enabled);
+      const overrides = await setFeatureFlag(tenantId, flag as FeatureFlag, valorDeModo(modo));
+      const planFlags = await getPlanFeatureFlags(tenantId);
+      const efectivas = resolverFlags(planFlags, overrides);
+
+      const comoQueda = efectivas[flag as FeatureFlag] ? 'activada' : 'desactivada';
+      const porQue = modo === 'plan' ? 'según su plan' : 'forzada por super-admin';
 
       await db.auditoria.create({
         data: {
           tenantId,
           tipo: 'Feature Flag',
-          detalle: `"${FEATURE_FLAGS[flag as FeatureFlag].label}" ${enabled ? 'activada' : 'desactivada'} por super-admin.`,
+          detalle: `"${FEATURE_FLAGS[flag as FeatureFlag].label}" quedó ${comoQueda} (${porQue}).`,
           empleado: 'Super Admin',
           empleadoId: null,
         },
       });
 
-      return NextResponse.json({ success: true, featureFlags: flags });
+      return NextResponse.json({
+        success: true,
+        featureFlagsOverrides: overrides,
+        featureFlags: efectivas,
+      });
     }
 
     // ── Resetear contraseña de un perfil ──

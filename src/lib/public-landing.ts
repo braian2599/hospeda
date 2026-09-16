@@ -2,7 +2,7 @@
 // Compartido entre la página /h/[slug] y las APIs públicas de disponibilidad/reserva.
 
 import { db } from '@/lib/db';
-import { parseFeatureFlags } from '@/lib/feature-flags';
+import { parseFeatureFlags, parseFlagOverrides, resolverFlags } from '@/lib/feature-flags';
 import { parseTarifaPrecios, calcularDesgloseTarifa, type DesgloseTarifa } from '@/lib/tarifa-calc';
 import { promoBadgesPublicos, promoBadgesTab, describeNochesCortesia } from '@/lib/tarifas-format';
 import { agruparPorHabitacion, camasLibresDe } from '@/lib/ocupacion';
@@ -78,13 +78,16 @@ export async function getPublicTenant(slug: string) {
   if (sub.estado !== 'activa' && sub.estado !== 'trial') return null;
   if (sub.fechaVencimiento && sub.fechaVencimiento < new Date()) return null;
 
-  // ── Flags efectivas: las del plan + las excepciones manuales del hotel ──
-  // Antes esto miraba SOLO TenantConfig, así que activar la landing en un plan
-  // no tenía ningún efecto acá y había que prenderla hotel por hotel a mano.
-  // Es la misma combinación que hace getFeatureFlags en feature-flags-server.
-  const flagsDelPlan = parseFeatureFlags(sub.plan?.featureFlags);
-  const flagsDelHotel = parseFeatureFlags(tenant.configuracion?.featureFlags);
-  if (!flagsDelPlan.landingPage && !flagsDelHotel.landingPage) return null;
+  // ── Flags efectivas ──
+  // Se resuelve con resolverFlags, el mismo criterio que usa getFeatureFlags
+  // en el panel. Antes acá había una combinación escrita a mano que solo sabía
+  // SUMAR, así que un hotel al que le forzaran la landing apagada desde Super
+  // Admin igual seguía publicando su página.
+  const flags = resolverFlags(
+    parseFeatureFlags(sub.plan?.featureFlags),
+    parseFlagOverrides(tenant.configuracion?.featureFlags),
+  );
+  if (!flags.landingPage) return null;
 
   return tenant;
 }

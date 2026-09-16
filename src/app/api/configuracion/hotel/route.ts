@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireOwner, AuthError } from '@/lib/auth/utils';
-import { parseFeatureFlags } from '@/lib/feature-flags';
+import { parseFeatureFlags, parseFlagOverrides, resolverFlags } from '@/lib/feature-flags';
 
 // GET /api/configuracion/hotel (owner-only)
 export async function GET() {
@@ -24,11 +24,23 @@ export async function GET() {
             reservasHabilitadasHasta: true,
           },
         },
+        subscription: { select: { plan: { select: { featureFlags: true } } } },
       },
     });
     if (!tenant) return NextResponse.json({ error: 'Hotel no encontrado' }, { status: 404 });
 
     const config = (tenant.configuracion || {}) as Record<string, unknown>;
+
+    // Flags EFECTIVAS (plan + excepción de este hotel). Antes se devolvían
+    // crudas las de TenantConfig, así que el panel del hotel no veía lo que
+    // traía su plan y tampoco respetaba una excepción forzada en apagado.
+    // Se resuelve con lo que ya trajo la consulta de arriba en vez de llamar a
+    // getFeatureFlags, que abriría dos consultas más contra la base.
+    const featureFlags = resolverFlags(
+      parseFeatureFlags(tenant.subscription?.plan?.featureFlags),
+      parseFlagOverrides(config.featureFlags),
+    );
+
     return NextResponse.json({
       nombre: tenant.nombre,
       slug: tenant.slug,
@@ -58,7 +70,7 @@ export async function GET() {
       hotelPais: config.hotelPais || tenant.pais || 'Argentina',
       hotelTelefono: config.hotelTelefono || tenant.telefono || '',
       hotelEmail: config.hotelEmail || tenant.email,
-      featureFlags: parseFeatureFlags(config.featureFlags),
+      featureFlags,
       tarifasPublicas: (config.tarifasPublicas && typeof config.tarifasPublicas === 'object') ? config.tarifasPublicas : {},
       mostrarSeccionAgencias: !!config.mostrarSeccionAgencias,
       textoAgencias: config.textoAgencias || '',
