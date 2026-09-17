@@ -1,6 +1,6 @@
 // ==================== useBankDetails HOOK ====================
 // Carga los datos bancarios desde /api/bank-details.
-// Usado por SuscripcionModule y ConfiguracionModule > SuscripcionSection.
+// Usado por ConfiguracionModule > SuscripcionSection.
 // Si la API falla o no hay datos configurados, devuelve campos vacíos.
 
 'use client';
