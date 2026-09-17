@@ -7,6 +7,11 @@
 // Configuración → Suscripción, y el único aviso que saltaba solo era el de
 // "Prueba vencida" — cuando ya se había quedado afuera.
 //
+// AVISA POR CUALQUIER PLAN QUE VENZA, no solo por la prueba. Antes solo miraba
+// el plan 'trial', y un hotel con Premium por 30 días —una cortesía, o un pago
+// único que no se renueva— no veía ni un aviso: el día 31 se le cortaba el
+// check-in en el medio del turno.
+//
 // QUIÉN VE QUÉ, y por qué:
 // - La cuenta regresiva la ve TODO el mundo. Que el sistema deje de andar en
 //   tres días le importa igual a la recepcionista del turno noche.
@@ -19,7 +24,8 @@
 
 import { useState } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { diasRestantesTrial, trialVencido, proximoPlan, getPlanInfo, type PlanTipo } from '@/lib/plan-config';
+import { proximoPlan, getPlanInfo, type PlanTipo } from '@/lib/plan-config';
+import { resumenDeSuscripcion } from '@/lib/suscripcion';
 import { usePlans } from '@/hooks/usePlans';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,7 +39,7 @@ const CheckoutDialog = dynamic(
 
 export default function TrialBanner() {
   const planActual = useHotelStore(s => s.planActual);
-  const fechaVencimientoTrial = useHotelStore(s => s.fechaVencimientoTrial);
+  const suscripcion = useHotelStore(s => s.suscripcion);
   const usuarioActual = useHotelStore(s => s.usuarioActual);
   const [dismissed, setDismissed] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -51,7 +57,9 @@ export default function TrialBanner() {
     setCheckoutOpen(true);
   };
 
-  if (!usuarioActual || !fechaVencimientoTrial || dismissed) return null;
+  if (!usuarioActual || dismissed) return null;
+
+  const resumen = resumenDeSuscripcion(suscripcion);
 
   // Solo el dueño puede pagar: requireOwner() en todos los endpoints de pago.
   const esDuenio = usuarioActual.rol === 'owner';
@@ -62,9 +70,9 @@ export default function TrialBanner() {
   const planInfo = getPlanInfo(planActual, plans);
   if (!planInfo) return null;
 
-  // Plan pago: una línea discreta con el plan y el precio. Solo para el dueño
-  // (ver el encabezado del archivo).
-  if (planActual !== 'trial') {
+  // Se renueva sola: no hay nada que recordar. Una línea discreta con el plan,
+  // el precio y la fecha del próximo cobro. Solo para el dueño.
+  if (resumen.renuevaSola) {
     if (!esDuenio) return null;
     return (
       <>
@@ -72,6 +80,7 @@ export default function TrialBanner() {
           <span>
             Plan <span className="font-medium text-foreground">{planInfo.nombre}</span>
             <span className="ml-1">{planInfo.precioDisplay}/mes</span>
+            <span className="ml-2">· {resumen.queVaAPasar}</span>
           </span>
           <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={handleUpgrade}>
             Cambiar plan
@@ -90,22 +99,21 @@ export default function TrialBanner() {
     );
   }
 
-  const dias = diasRestantesTrial(fechaVencimientoTrial);
-  const vencido = trialVencido(fechaVencimientoTrial);
+  const dias = resumen.dias ?? 0;
 
-  // Trial vencido — full-width warning
-  if (vencido) {
+  // Vencida — aviso rojo, no se puede seguir trabajando
+  if (resumen.vencida) {
     return (
       <>
         <div className="flex items-center gap-3 px-4 py-3 bg-[#EF44441A] border-b border-[#EF444433]">
           <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-destructive">
-              Tu prueba gratuita venció
+              {suscripcion.origen === 'cortesia' ? 'Se terminó la cortesía' : 'Tu suscripción venció'}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {esDuenio
-                ? 'Elegí un plan para seguir usando Hospi con todos los módulos.'
+                ? `${resumen.queVaAPasar} El hotel no puede cargar reservas, hacer check-in ni abrir la caja hasta entonces.`
                 : 'Avisale al dueño del hotel para que elija un plan.'}
             </p>
           </div>
@@ -126,8 +134,10 @@ export default function TrialBanner() {
     );
   }
 
-  // Trial activo — countdown banner
-  const urgencia = dias <= 7;
+  // Nada que avisar: no vence, o falta mucho y ya está todo resuelto.
+  if (resumen.dias === null) return null;
+
+  const urgencia = resumen.tono === 'aviso' || resumen.tono === 'urgente';
   return (
     <>
       <div className={`flex items-center gap-3 px-4 py-2.5 border-b ${
@@ -147,7 +157,7 @@ export default function TrialBanner() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className={`text-sm font-medium ${urgencia ? 'text-warning' : ''}`}>
-              {dias === 1 ? 'Último día' : `${dias} días restantes`} de prueba gratuita
+              {dias === 1 ? 'Último día' : `${dias} días restantes`} de {resumen.comoLoTiene.toLowerCase()}
             </p>
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
               {planInfo.nombre}
@@ -155,12 +165,10 @@ export default function TrialBanner() {
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {esDuenio
-              ? (urgencia
-                  ? 'Tu prueba está por vencer. Elegí un plan para no perder el acceso.'
-                  : 'Disfrutá todos los módulos. Podés elegir un plan cuando quieras.')
+              ? resumen.queVaAPasar
               : (urgencia
-                  ? 'La prueba del hotel está por vencer. Avisale al dueño.'
-                  : 'El hotel está usando la prueba gratuita.')
+                  ? `${resumen.queVaAPasar} Avisale al dueño del hotel.`
+                  : resumen.queVaAPasar)
             }
           </p>
         </div>

@@ -26,7 +26,12 @@ const CheckoutDialog = dynamic(
 );
 
 export default function SuscripcionModule() {
-  const { usuarioActual, planActual, fechaVencimientoTrial } = useHotelStore();
+  // OJO: este archivo NO ESTÁ EN USO. Nadie lo importa. La pantalla viva es
+  // SuscripcionSection, adentro de ConfiguracionModule.tsx, que ya muestra el
+  // origen del plan, si se renueva solo y cuándo vence. Esta copia se quedó
+  // sin nada de eso. Se deja compilando para no romper el build, pero es una
+  // segunda versión peor de la misma pantalla y habría que borrarla.
+  const { usuarioActual, planActual, fechaVencimiento: fechaVencimientoTrial } = useHotelStore();
   const plans = usePlans();
   const bankDetails = useBankDetails();
   const [subscriptionData, setSubscriptionData] = useState<{

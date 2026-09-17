@@ -145,6 +145,10 @@ export default function SuperAdminCuentas() {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState('');
   const [duracionMeses, setDuracionMeses] = useState('1');
+  // Cortesía por defecto: si quien cambia el plan no aclara nada, se asume que
+  // nadie pagó. Es el caso que más avisa, y el que no deja a un hotel creyendo
+  // que tiene una suscripción que se renueva sola.
+  const [origenPlan, setOrigenPlan] = useState<'cortesia' | 'transferencia'>('cortesia');
   const [selectedUserId, setSelectedUserId] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [extendDays, setExtendDays] = useState('');
@@ -206,6 +210,7 @@ export default function SuperAdminCuentas() {
           action: 'changePlan',
           planId: selectedPlanId,
           duracionMeses: parseInt(duracionMeses) || 1,
+          origen: origenPlan,
         }),
       });
       const data = await res.json();
@@ -709,6 +714,27 @@ export default function SuperAdminCuentas() {
                 value={duracionMeses}
                 onChange={(e) => setDuracionMeses(e.target.value)}
               />
+            </div>
+
+            {/* Sin esto una cortesía quedaba escrita igual que una suscripción
+                pagada: el hotel veía "Plan Actual" y el día del vencimiento se
+                le cortaba el servicio sin haberlo visto venir. */}
+            <div className="space-y-2">
+              <Label>¿Hubo un pago?</Label>
+              <Select value={origenPlan} onValueChange={(v) => setOrigenPlan(v as 'cortesia' | 'transferencia')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cortesia">No — cortesía o prueba de la plataforma</SelectItem>
+                  <SelectItem value="transferencia">Sí — pagó por transferencia</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {origenPlan === 'cortesia'
+                  ? 'El hotel va a ver "Cortesía" y que no se renueva sola. Al vencer se le corta el servicio y tiene que elegir un plan.'
+                  : 'El hotel va a ver que está al día por transferencia, y que tiene que volver a pagar antes del vencimiento.'}
+              </p>
             </div>
           </div>
           <DialogFooter>

@@ -152,6 +152,7 @@ export async function POST(request: NextRequest) {
           where: { tenantId },
           data: {
             estado: 'activa',
+            origen: 'mercadopago',
             planId: amountValidation.plan?.id || plan?.id || subscription.planId,
             paymentProviderId: String(paymentId),
             trialUsado: true,
@@ -308,6 +309,7 @@ async function handlePreapprovalEvent(preapprovalId: string | undefined) {
         where: { mpPreapprovalId: preapprovalId },
         data: {
           estado: 'activa',
+          origen: 'mercadopago',
           ...(amountValidation.plan ? { planId: amountValidation.plan.id } : {}),
           trialUsado: true,
           esRecurrente: true,

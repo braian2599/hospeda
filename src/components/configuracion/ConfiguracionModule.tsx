@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { NOMBRES_MODULOS, diasRestantesTrial, type PlanTipo } from '@/lib/plan-config';
+import { NOMBRES_MODULOS, type PlanTipo } from '@/lib/plan-config';
+import { resumenDeSuscripcion } from '@/lib/suscripcion';
 import { usePlans } from '@/hooks/usePlans';
 import { useBankDetails } from '@/hooks/useBankDetails';
 import { Button } from '@/components/ui/button';
@@ -2818,7 +2819,7 @@ function ExportarSection() {
 // ═══════════════════════════════════════════
 
 function SuscripcionSection() {
-  const { planActual, fechaVencimientoTrial } = useHotelStore();
+  const { planActual, suscripcion } = useHotelStore();
   const [usage, setUsage] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -2840,9 +2841,11 @@ function SuscripcionSection() {
   useEffect(() => { queueMicrotask(() => fetchUsage()); }, [fetchUsage]);
 
   const planInfo = plans[planActual];
-  const diasTrial = fechaVencimientoTrial ? diasRestantesTrial(fechaVencimientoTrial) : 0;
+  // La verdad de la suscripción: de dónde salió el plan, si se renueva sola y
+  // cuándo se termina. Antes acá solo había planActual y una fecha, y por eso
+  // un plan de cortesía figuraba idéntico a uno pagado todos los meses.
+  const resumen = resumenDeSuscripcion(suscripcion);
   const isTrial = planActual === 'trial';
-  const trialExpired = isTrial && fechaVencimientoTrial && diasTrial === 0;
 
   const handlePagar = (tipo: Exclude<PlanTipo, 'trial'>) => {
     setSelectedPlan(tipo);
@@ -2869,7 +2872,7 @@ function SuscripcionSection() {
               <div>
                 <CardTitle className="text-lg">Plan Actual</CardTitle>
                 <CardDescription>
-                  {isTrial ? `Prueba gratuita — ${diasTrial} días restantes` : `Renovación mensual`}
+                  {resumen.comoLoTiene} · {resumen.queVaAPasar}
                 </CardDescription>
               </div>
             </div>
@@ -2879,16 +2882,40 @@ function SuscripcionSection() {
           </div>
         </CardHeader>
 
-        {isTrial && diasTrial <= 7 && (
+        {(resumen.tono === 'aviso' || resumen.tono === 'urgente' || resumen.vencida) && (
           <CardContent className="pt-0">
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F59E0B1A] border border-[#F59E0B33]">
-              <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
-              <p className="text-sm text-warning">
-                Tu prueba vence en {diasTrial} días. Seleccioná un plan para no perder acceso.
+            <div className={`flex items-center gap-2 p-3 rounded-lg border ${
+              resumen.vencida
+                ? 'bg-[#EF44441A] border-[#EF444433]'
+                : 'bg-[#F59E0B1A] border-[#F59E0B33]'
+            }`}>
+              <AlertTriangle className={`w-4 h-4 shrink-0 ${resumen.vencida ? 'text-destructive' : 'text-warning'}`} />
+              <p className={`text-sm ${resumen.vencida ? 'text-destructive' : 'text-warning'}`}>
+                {resumen.queVaAPasar}
               </p>
             </div>
           </CardContent>
         )}
+
+        {/* Forma de pago y renovación. Es lo que faltaba: hasta ahora el dueño
+            no tenía manera de saber si su plan se iba a renovar solo o si
+            alguien tenía que hacer algo antes de la fecha. */}
+        <CardContent className="pt-0">
+          <div className="grid gap-3 sm:grid-cols-2 text-sm">
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Cómo lo conseguiste</p>
+              <p className="font-medium mt-0.5">{resumen.comoLoTiene}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Renovación</p>
+              <p className="font-medium mt-0.5">
+                {resumen.renuevaSola
+                  ? 'Automática — se cobra sola'
+                  : 'Manual — hay que renovarla antes del vencimiento'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
 
         {!isTrial && usage?.subscription && (
           <CardContent className="pt-0">
@@ -2941,8 +2968,20 @@ function SuscripcionSection() {
             return (
               <Card key={tipo} className={`relative ${isCurrent ? 'border-primary ring-1 ring-primary' : ''}`}>
                 {isCurrent && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground">Plan Actual</Badge>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                    {/* El badge dice CÓMO lo tiene, no solo que lo tiene. Antes
+                        decía "Plan Actual" igual para un hotel que paga todos
+                        los meses y para uno al que se le regaló el plan. */}
+                    <Badge className={
+                      resumen.vencida ? 'bg-destructive text-white'
+                      : suscripcion.origen === 'cortesia' ? 'bg-warning text-white'
+                      : 'bg-primary text-primary-foreground'
+                    }>
+                      {resumen.vencida ? 'Vencido'
+                        : suscripcion.origen === 'cortesia' ? 'Cortesía'
+                        : resumen.renuevaSola ? 'Plan Actual · se renueva solo'
+                        : 'Plan Actual · no se renueva solo'}
+                    </Badge>
                   </div>
                 )}
                 <CardHeader className="text-center pb-2">
@@ -2980,13 +3019,18 @@ function SuscripcionSection() {
                     ))}
                   </div>
 
-                  {!isCurrent && (
+                  {/* En el plan que ya se tiene también hay botón cuando NO se
+                      renueva solo: es el caso de la cortesía y del pago único,
+                      donde el dueño necesita justamente contratarlo de verdad.
+                      Antes ahí no había nada y la única salida visible era
+                      pasarse a otro plan. */}
+                  {(!isCurrent || !resumen.renuevaSola) && (
                     <Button
                       className="w-full"
-                      variant="default"
+                      variant={isCurrent ? 'default' : 'outline'}
                       onClick={() => handlePagar(tipo)}
                     >
-                      Pagar con Mercado Pago
+                      {isCurrent ? 'Contratar este plan' : 'Cambiar a este plan'}
                       <ArrowRight className="w-4 h-4 ml-1" />
                     </Button>
                   )}

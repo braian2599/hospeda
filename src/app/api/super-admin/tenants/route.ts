@@ -162,14 +162,31 @@ export async function PATCH(req: NextRequest) {
 
       const planAnterior = await db.plan.findUnique({ where: { id: subscription.planId } });
 
+      // Quien cambia el plan a mano tiene que declarar si hubo plata de por
+      // medio. Sin esto, una cortesía quedaba escrita igual que una suscripción
+      // pagada y el hotel figuraba como suscripto: el día del vencimiento se le
+      // cortaba el servicio sin que nadie lo hubiera visto venir.
+      // Se asume cortesía cuando no se aclara: es el caso que más avisa.
+      const origen = data.origen === 'transferencia' ? 'transferencia' : 'cortesia';
+
+      // Una cortesía no se renueva sola ni tiene cobro programado. Si este
+      // hotel venía de una suscripción de Mercado Pago, esos rastros se
+      // limpian: si no, la pantalla seguiría prometiendo un cobro automático
+      // que ya no va a ocurrir.
+      const cortaLaRecurrencia = origen === 'cortesia'
+        ? { esRecurrente: false, mpPreapprovalId: null, proximoCobro: null, paymentProviderId: null }
+        : {};
+
       const updated = await db.subscription.update({
         where: { tenantId },
         data: {
           planId,
           estado: 'activa',
+          origen,
           fechaInicio,
           fechaVencimiento,
           trialUsado: true,
+          ...cortaLaRecurrencia,
         },
         include: { plan: true },
       });
@@ -179,7 +196,7 @@ export async function PATCH(req: NextRequest) {
         data: {
           tenantId,
           tipo: 'Cambio de Plan',
-          detalle: `Plan cambiado de "${planAnterior?.nombre || 'desconocido'}" a "${plan.nombre}" por ${meses} mes(es). Vencimiento: ${fechaVencimiento.toLocaleDateString('es-AR')}.`,
+          detalle: `Plan cambiado de "${planAnterior?.nombre || 'desconocido'}" a "${plan.nombre}" por ${meses} mes(es) — ${origen === 'cortesia' ? 'CORTESÍA, sin pago asociado' : 'pago por transferencia'}. Vencimiento: ${fechaVencimiento.toLocaleDateString('es-AR')}.`,
           empleado: 'Super Admin',
           empleadoId: null,
         },

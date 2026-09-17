@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
           where: { tenantId },
           data: {
             estado: 'activa',
+            origen: 'stripe',
             planId: amountValidation.plan?.id || subscription.planId,
             paymentProviderId: stripeSubscriptionId,
             stripeSubscriptionId,
@@ -157,6 +158,7 @@ export async function POST(request: NextRequest) {
           data: {
             // Recupera la suscripción si venía 'vencida' de un cobro anterior fallido.
             estado: 'activa',
+            origen: 'stripe',
             fechaVencimiento,
           },
         });

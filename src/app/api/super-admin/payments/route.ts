@@ -130,6 +130,8 @@ export async function POST(req: NextRequest) {
         where: { tenantId },
         data: {
           estado: 'activa',
+          // Hubo plata de verdad: deja de ser cortesía aunque lo fuera antes.
+          origen: metodo === 'mercadopago' ? 'mercadopago' : 'transferencia',
           fechaVencimiento: nuevoVencimiento,
           trialUsado: true,
         },

@@ -2,7 +2,8 @@
 
 import { Suspense } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { modulosVisiblesPara, trialVencido } from '@/lib/plan-config';
+import { modulosVisiblesPara } from '@/lib/plan-config';
+import { resumenDeSuscripcion } from '@/lib/suscripcion';
 import Sidebar from '@/components/layout/Sidebar';
 import DashboardModule from '@/components/modules/DashboardModule';
 import HabitacionesModule from '@/components/modules/HabitacionesModule';
@@ -45,7 +46,8 @@ const modules: Partial<Record<ModuloId, React.ComponentType>> = {
 };
 
 export default function AppPage() {
-  const { usuarioActual, moduloActivo, planActual, fechaVencimientoTrial, planes } = useHotelStore();
+  const { usuarioActual, moduloActivo, planActual, suscripcion, planes } = useHotelStore();
+  const resumen = resumenDeSuscripcion(suscripcion);
 
   if (!usuarioActual) return null;
 
@@ -62,21 +64,34 @@ export default function AppPage() {
 
   const tienePermiso = modulosVisiblesPara(usuarioActual, planActual, planes).includes(moduloActivo);
 
-  // If trial expired, block everything except dashboard
-  const trialExpirado = fechaVencimientoTrial && planActual === 'trial' && trialVencido(fechaVencimientoTrial);
-  const bloqueadoPorTrial = trialExpirado && moduloActivo !== 'dashboard';
+  // Suscripción vencida: se corta en seco y el hotel tiene que elegir un plan.
+  //
+  // Antes esto solo miraba el plan de prueba (planActual === 'trial'), y ahí
+  // había un agujero feo: a un hotel con Premium vencido —una cortesía que se
+  // terminó, o un pago que no se renovó— la pantalla lo dejaba entrar a todos
+  // los módulos, pero el servidor le rechazaba cargar una reserva, hacer un
+  // check-in o abrir la caja con un 403. Podía trabajar media hora creyendo
+  // que estaba todo bien y chocarse al guardar.
+  //
+  // Ahora la pantalla dice lo mismo que el servidor, para cualquier plan.
+  // El Dashboard queda abierto para poder mirar, y Configuración se maneja
+  // aparte más arriba: es donde el dueño elige el plan nuevo.
+  const suscripcionVencida = resumen.vencida;
+  const bloqueadoPorPago = suscripcionVencida && moduloActivo !== 'dashboard';
 
-  if (!tienePermiso || bloqueadoPorTrial) {
+  if (!tienePermiso || bloqueadoPorPago) {
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <p className="text-4xl mb-3">🔒</p>
           <h2 className="text-xl font-bold text-destructive">
-            {bloqueadoPorTrial ? 'Prueba vencida' : 'Módulo no disponible'}
+            {bloqueadoPorPago
+              ? (suscripcion.origen === 'cortesia' ? 'Se terminó la cortesía' : 'Suscripción vencida')
+              : 'Módulo no disponible'}
           </h2>
           <p className="text-muted-foreground mt-1 max-w-sm">
-            {bloqueadoPorTrial
-              ? 'Tu período de prueba gratuita terminó. Elegí un plan en Configuración para seguir usando todos los módulos.'
+            {bloqueadoPorPago
+              ? `${resumen.queVaAPasar} Entrá a Configuración → Suscripción para elegir con qué plan seguir trabajando.`
               : 'Este módulo no está incluido en tu plan actual. Cambiá tu plan desde Configuración.'}
           </p>
         </div>

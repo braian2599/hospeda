@@ -96,6 +96,14 @@ model Subscription {
   tenantId          String    @unique
   planId            String
   estado            String    @default("trial")
+  /// De dónde salió este plan: trial | mercadopago | stripe | transferencia | cortesia.
+  /// Lo escribe quien toca la suscripción. NO se deduce después: un hotel que
+  /// pagó por transferencia en marzo y al que se le regala abril tiene un pago
+  /// viejo que lo haría pasar por pagador. Por defecto 'cortesia' a propósito:
+  /// si alguien agrega un camino nuevo y se olvida de setearlo, el sistema
+  /// avisa de más (dice que nadie pagó) en vez de prometer en silencio una
+  /// renovación automática que no existe.
+  origen            String    @default("cortesia")
   fechaInicio       DateTime  @default(now())
   fechaVencimiento  DateTime
   trialUsado        Boolean   @default(false)

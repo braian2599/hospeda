@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { origenValido } from '@/lib/suscripcion';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/config';
 import { db } from '@/lib/db';
@@ -150,6 +151,20 @@ function buildSessionResponse(user: any, tenantUser: any) {
     fechaInicioTrial: subscription?.fechaInicio?.toISOString() || new Date().toISOString(),
     subscriptionEstado: subscription?.estado || 'trial',
     subscriptionVencimiento: subscription?.fechaVencimiento?.toISOString() || null,
+    // Estado real de la suscripción: de dónde salió el plan y si se renueva
+    // sola. Sale de la MISMA consulta que ya se hacía (la suscripción viene
+    // con include), así que no cuesta ni una lectura más a la base.
+    //
+    // Antes esto no viajaba, y por eso la pantalla de Suscripción no podía
+    // distinguir un hotel que paga todos los meses de uno al que se le regaló
+    // el plan: los dos figuraban como "Plan Actual".
+    suscripcion: {
+      origen: origenValido(subscription?.origen),
+      estado: subscription?.estado || 'trial',
+      vencimiento: subscription?.fechaVencimiento?.toISOString() || null,
+      seRenuevaSola: !!subscription?.esRecurrente && !!subscription?.mpPreapprovalId,
+      proximoCobro: subscription?.proximoCobro?.toISOString() || null,
+    },
     // Avisos de inicio de sesion. Viaja en esta respuesta, que ya se hace al
     // entrar: no agrega ni una consulta. La consulta usa include sin select,
     // asi que la columna viene sola.

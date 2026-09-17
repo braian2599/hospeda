@@ -18,6 +18,31 @@ import {
 } from './tarifa-calc';
 import { camasDeReserva, camasLibresDe, esCompartida, esEstadoDeOcupacion, ocupaHabitacionEntera, tieneCheckIn } from './ocupacion';
 import { sesionDesdeRespuesta } from './sesion';
+import { origenValido, type Suscripcion } from './suscripcion';
+
+/** Lo que se asume mientras no llegó la sesión: nada vencido, nada prometido. */
+const SUSCRIPCION_VACIA: Suscripcion = {
+  origen: 'trial', estado: 'trial', vencimiento: null, seRenuevaSola: false, proximoCobro: null,
+};
+
+/**
+ * Lee el estado de la suscripción de la respuesta de /api/auth/me.
+ *
+ * Tolerante con respuestas viejas: si el navegador tiene cargada una versión
+ * anterior del sistema y el bloque no viene, se arma con lo que sí llegó en
+ * vez de dejar al hotel sin ningún aviso de vencimiento.
+ */
+function suscripcionDesdeRespuesta(data: Record<string, unknown>): Suscripcion {
+  const bloque = (data.suscripcion ?? {}) as Record<string, unknown>;
+  const texto = (v: unknown) => (typeof v === 'string' && v ? v : null);
+  return {
+    origen: origenValido(bloque.origen),
+    estado: texto(bloque.estado) || texto(data.subscriptionEstado) || 'trial',
+    vencimiento: texto(bloque.vencimiento) || texto(data.subscriptionVencimiento),
+    seRenuevaSola: bloque.seRenuevaSola === true,
+    proximoCobro: texto(bloque.proximoCobro),
+  };
+}
 
 
 // ==================== NOTIFICATION HELPER ====================
@@ -230,7 +255,18 @@ interface HotelStore {
   // Plan / Suscripción
   planActual: PlanTipo;
   fechaInicioTrial: string | null;
-  fechaVencimientoTrial: string | null;
+  /**
+   * Cuándo vence la suscripción, de CUALQUIER plan.
+   *
+   * El nombre viejo era `fechaVencimientoTrial` y guardaba exactamente lo
+   * mismo. El nombre engañó: el aviso de vencimiento solo se mostraba para el
+   * plan de prueba, porque quien lo escribió leyó "Trial" y asumió que a un
+   * plan pago no le aplicaba. Un hotel con Premium por 30 días no veía ni un
+   * aviso y se quedaba sin sistema de un día para el otro.
+   */
+  fechaVencimiento: string | null;
+  /** De dónde salió el plan y si se renueva sola. Ver src/lib/suscripcion.ts. */
+  suscripcion: Suscripcion;
   moduloBloqueado: ModuloId | null;
   planes: Record<string, PlanInfo>;
   /**
@@ -382,7 +418,8 @@ export const useHotelStore = create<HotelStore>()(
       // Plan / Suscripción
       planActual: 'trial' as PlanTipo,
       fechaInicioTrial: null,
-      fechaVencimientoTrial: null,
+      fechaVencimiento: null,
+      suscripcion: SUSCRIPCION_VACIA,
       moduloBloqueado: null,
       planes: PLANES as Record<string, PlanInfo>,
       _planesCargados: false,
@@ -454,8 +491,9 @@ export const useHotelStore = create<HotelStore>()(
           set({ fechaInicioTrial: sessionData.fechaInicioTrial });
         }
         if (sessionData.subscriptionVencimiento) {
-          set({ fechaVencimientoTrial: sessionData.subscriptionVencimiento });
+          set({ fechaVencimiento: sessionData.subscriptionVencimiento });
         }
+        set({ suscripcion: suscripcionDesdeRespuesta(sessionData) });
         if (sessionData.planActual) {
           set({ planActual: sessionData.planActual });
         }
@@ -2196,7 +2234,8 @@ export const useHotelStore = create<HotelStore>()(
                 set({ usuarioActual: freshSesion });
                 // Refrescar plan/fechas si vienen
                 if (meData.fechaInicioTrial) set({ fechaInicioTrial: meData.fechaInicioTrial });
-                if (meData.subscriptionVencimiento) set({ fechaVencimientoTrial: meData.subscriptionVencimiento });
+                if (meData.subscriptionVencimiento) set({ fechaVencimiento: meData.subscriptionVencimiento });
+                set({ suscripcion: suscripcionDesdeRespuesta(meData) });
                 if (meData.planActual) set({ planActual: meData.planActual });
               }
             }
