@@ -289,7 +289,7 @@ interface HotelStore {
   setAvisosVistos: (avisosVistos: Record<string, number>) => void;
 
   // Auditoria
-  _registrarAuditoria: (tipo: string, detalle: string) => void;
+  _registrarAuditoria: (tipo: string, detalle: string, opciones?: { alSalir?: boolean }) => void;
 
   // Habitaciones
   agregarHabitacion: (numero: string, tipo: TipoHabitacion, capacidad: number, camasMatrimoniales: number, camasSimples: number, piso?: number) => Promise<boolean>;
@@ -518,7 +518,9 @@ export const useHotelStore = create<HotelStore>()(
       logout: () => {
         const { usuarioActual } = get();
         if (usuarioActual) {
-          get()._registrarAuditoria('Logout', `Cierre de sesión: ${usuarioActual.nombre}`);
+          // alSalir: el pedido tiene que sobrevivir a la navegación que viene
+          // inmediatamente después (ver _registrarAuditoria).
+          get()._registrarAuditoria('Logout', `Cierre de sesión: ${usuarioActual.nombre}`, { alSalir: true });
         }
         // Las notificaciones guardadas en este navegador se van con la sesion:
         // el turno siguiente entra en la misma maquina y no tiene por que ver
@@ -528,7 +530,7 @@ export const useHotelStore = create<HotelStore>()(
       },
 
       // Auditoria
-      _registrarAuditoria: (tipo, detalle) => {
+      _registrarAuditoria: (tipo, detalle, opciones) => {
         const { usuarioActual, auditoria } = get();
         const empleado = usuarioActual?.nombreCompleto || usuarioActual?.nombre || 'Sistema';
         const entry: AuditoriaEntry = {
@@ -536,6 +538,9 @@ export const useHotelStore = create<HotelStore>()(
           tipo,
           detalle,
           empleado,
+          // El servidor lo vuelve a poner desde la sesión al persistir; acá se
+          // guarda para que el reporte de horas funcione sin esperar un sync.
+          empleadoId: usuarioActual?.tenantUserId ?? null,
           fecha: new Date().toISOString(),
         };
         set({ auditoria: [entry, ...auditoria] });
@@ -546,6 +551,14 @@ export const useHotelStore = create<HotelStore>()(
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ tipo, detalle, empleado, tenantId: usuarioActual.tenantId }),
+            // AL SALIR ESTO NO ES OPCIONAL.
+            //
+            // Un fetch normal lo cancela el navegador en cuanto la página
+            // navega, y cerrar sesión navega enseguida. O sea: el pedido del
+            // Logout se perdía la mayoría de las veces, y el turno quedaba
+            // abierto sin que hubiera fallado nada. keepalive le dice al
+            // navegador que lo termine igual aunque la página se vaya.
+            keepalive: opciones?.alSalir === true,
           }).catch((err) => {
             console.warn('[auditoria] No se pudo persistir entrada:', err);
           });
@@ -2195,6 +2208,11 @@ export const useHotelStore = create<HotelStore>()(
             tipo: a.tipo,
             detalle: a.detalle,
             empleado: a.empleado,
+            // Sin esto el reporte de horas no puede distinguir dos perfiles con
+            // el mismo nombre. Es el mismo descuido que ya nos costó el bug de
+            // las integraciones: un objeto armado a mano al que se le olvida
+            // un campo.
+            empleadoId: a.empleadoId ?? null,
             fecha: a.createdAt,
           }));
 

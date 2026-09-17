@@ -171,7 +171,15 @@ export interface AuditoriaEntry {
   id: string;
   tipo: string;
   detalle: string;
+  /** El nombre, para mostrar. Puede cambiar si renombran a la persona. */
   empleado: string;
+  /**
+   * El id del perfil (TenantUser). Es la identidad estable.
+   *
+   * Opcional porque las entradas anteriores a este cambio no lo tienen: el
+   * reporte de horas las engancha por nombre (ver src/lib/horas-trabajadas.ts).
+   */
+  empleadoId?: string | null;
   fecha: string;
 }
 

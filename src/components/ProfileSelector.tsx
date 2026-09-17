@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ShieldCheck, Shield, UserCog, Sparkles, ChevronRight, Loader2, LogOut, Lock, Eye, EyeOff } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
+import { cerrarSesion } from '@/lib/cerrar-sesion';
 import { useHotelStore, clearSessionRestoredFlag } from '@/lib/store';
 
 const ROL_INFO: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
@@ -214,7 +215,7 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
         </div>
 
         <div className="text-center">
-          <Button variant="ghost" size="sm" onClick={() => { clearSessionRestoredFlag(); signOut({ callbackUrl: '/login' }); }}>
+          <Button variant="ghost" size="sm" onClick={() => cerrarSesion()}>
             <LogOut className="w-4 h-4 mr-2" /> Cerrar sesion
           </Button>
         </div>

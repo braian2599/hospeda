@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
+import { cerrarSesion } from '@/lib/cerrar-sesion';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import AuthProvider from '@/components/providers/SessionProvider';
@@ -84,7 +85,7 @@ function HotelSelector({ hoteles, userName, onSelected }: {
           ))}
         </div>
         <div className="text-center">
-          <Button variant="ghost" size="sm" onClick={() => { clearSessionRestoredFlag(); signOut({ callbackUrl: '/login' }); }}>
+          <Button variant="ghost" size="sm" onClick={() => cerrarSesion()}>
             <LogOut className="w-4 h-4 mr-2" /> Cerrar sesion
           </Button>
         </div>
@@ -289,8 +290,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     }
     // Post-logout con un solo perfil → cerrar sesión completamente
     if (isLoggingOut) {
-      clearSessionRestoredFlag();
-      signOut({ callbackUrl: '/login' });
+      cerrarSesion();
       return;
     }
     // Un solo perfil con contraseña → login directo
@@ -368,9 +368,11 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
       // Con el store sin persist, el principal riesgo ya no existe,
       // pero esto protege contra futuros cambios.
       if (e.key === 'nextauth.session-token' && !e.newValue && usuarioActual) {
-        // Token eliminado en otra pestaña → cerrar sesión aquí también
-        clearSessionRestoredFlag();
-        signOut({ callbackUrl: '/login' });
+        // Token eliminado en otra pestaña → cerrar sesión acá también.
+        // ACÁ SÍ HAY UN TURNO ABIERTO (usuarioActual está puesto), así que
+        // este camino tiene que registrar el Logout: antes salía por signOut()
+        // directo y el turno quedaba abierto para siempre.
+        cerrarSesion();
       }
     };
     window.addEventListener('storage', handler);
@@ -429,7 +431,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
               setError(null); setLoading(true);
               fetch('/api/auth/me', { cache: 'no-store' }).then(res => res.json()).then(data => processMeData(data)).catch(() => { setError('No se pudo conectar.'); setLoading(false); });
             }}>Reintentar</Button>
-            <Button variant="ghost" onClick={() => { clearSessionRestoredFlag(); signOut({ callbackUrl: '/login' }); }}>
+            <Button variant="ghost" onClick={() => cerrarSesion()}>
               <LogOut className="w-4 h-4 mr-2" /> Cerrar sesion
             </Button>
           </div>

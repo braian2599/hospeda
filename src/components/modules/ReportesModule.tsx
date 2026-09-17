@@ -4,6 +4,9 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { api, type DbTenantUser } from '@/lib/api-client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import TablaHoras from '@/components/modules/reportes/TablaHoras';
+import { useHorasTrabajadas } from '@/hooks/useHorasTrabajadas';
+import { comoHoras, horasDecimales, HORAS_SOSPECHOSAS } from '@/lib/horas-trabajadas';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -283,6 +286,8 @@ export default function ReportesModule() {
   const isMobile = useIsMobile();
 
   const [activeTab, setActiveTab] = useState('financiero');
+  // Horas trabajadas: se piden al servidor solo cuando la pestaña Empleados
+  // está abierta (ver useHorasTrabajadas).
   const [desde, setDesde] = useState(haceNDias(30));
   const [hasta, setHasta] = useState(hoy());
 
@@ -601,6 +606,8 @@ export default function ReportesModule() {
   // no de su personal) no son empleados del hotel — se excluyen de este resumen
   // de desempeño, aunque siguen apareciendo en la Auditoría completa para
   // trazabilidad. 'Landing pública' sí se deja: son reservas que entraron solas.
+  const horas = useHorasTrabajadas(desde, hasta, activeTab === 'empleados');
+
   const empleadosResumen = useMemo(() => {
     const resumen: Record<string, { nombre: string; checkins: number; checkouts: number; pagos: number; gastos: number; reservas: number; auditorias: number }> = {};
     usuarios.forEach(u => {
@@ -789,13 +796,43 @@ export default function ReportesModule() {
         const rows = auditFiltrada.map(a => [a.fecha, a.tipo, a.detalle, a.empleado]);
         downloadCSV(`reporte_auditoria_${dateLabel}.csv`, headers, rows);
         toast.success('CSV exportado', { description: `${rows.length} registros exportados` });
+      } else if (activeTab === 'empleados') {
+        // Acá va el detalle COMPLETO, turno por turno. En la pantalla se
+        // muestran cuatro filas y se abre lo que interesa; en una planilla se
+        // puede filtrar, ordenar y sumar. Es el lugar de la información masiva.
+        //
+        // Las horas van también en decimal porque es lo que se multiplica por
+        // un valor hora: "7 h 30 m" no se puede sumar en Excel.
+        const headers = ['Empleado', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Horas (decimal)', 'Cerrado', 'Observación'];
+        const rows: (string | number)[][] = [];
+        for (const f of horas.filas) {
+          for (const d of f.dias) {
+            for (const t of d.turnos) {
+              const entrada = new Date(t.entrada);
+              rows.push([
+                f.nombre,
+                d.fecha,
+                entrada.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                t.salida ? new Date(t.salida).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : '',
+                t.salida ? comoHoras(t.minutos) : '',
+                t.salida ? horasDecimales(t.minutos) : 0,
+                t.salida ? 'si' : 'NO',
+                t.salida
+                  ? (t.sospechoso ? `Dura más de ${HORAS_SOSPECHOSAS} h — revisar` : '')
+                  : 'Sin cierre registrado: no se cuenta',
+              ]);
+            }
+          }
+        }
+        downloadCSV(`horas_trabajadas_${dateLabel}.csv`, headers, rows);
+        toast.success('CSV exportado', { description: `${rows.length} turnos exportados` });
       } else {
         toast.info('Exportar', { description: 'No hay datos exportables en esta pestaña' });
       }
     } catch (err) {
       toast.error('Error al exportar CSV');
     }
-  }, [activeTab, desde, hasta, pagosFiltrados, gastosFiltrados, habResumen, clientesFrecuentes, auditFiltrada, reservaMap]);
+  }, [activeTab, desde, hasta, pagosFiltrados, gastosFiltrados, habResumen, clientesFrecuentes, auditFiltrada, reservaMap, horas.filas]);
 
   // ==================== PDF EXPORT HANDLER ====================
 
@@ -2113,11 +2150,11 @@ export default function ReportesModule() {
               colorFamily="green"
             />
             <KpiCard
-              label="Más Activo"
-              value={empleadosResumen[0]?.nombre || '—'}
+              label="Más horas"
+              value={horas.filas[0]?.nombre || '—'}
               icon={<TrendingUp className="w-5 h-5" />}
               colorFamily="amber"
-              subtext={empleadosResumen[0] ? `${empleadosResumen[0].auditorias} acciones` : ''}
+              subtext={horas.filas[0] ? comoHoras(horas.filas[0].minutos) : ''}
             />
             <KpiCard
               label="Gastos Registrados"
@@ -2128,6 +2165,24 @@ export default function ReportesModule() {
             />
           </KpiRow>
 
+          {/* Horas trabajadas: login → logout. Va ARRIBA de la tabla de
+              acciones porque es el dato con el que se paga; las acciones son
+              contexto. */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold">Horas trabajadas</h3>
+            <p className="text-xs text-muted-foreground">
+              Desde el inicio de sesión hasta el cierre. Tocá una persona para ver sus días,
+              y un día para ver los turnos con hora de entrada y salida.
+            </p>
+            <TablaHoras
+              filas={horas.filas}
+              cargando={horas.cargando}
+              error={horas.error}
+              recortado={horas.recortado}
+            />
+          </div>
+
+          <h3 className="text-sm font-semibold pt-2">Acciones registradas</h3>
           <Card>
             <div className="overflow-x-auto -mx-4 sm:mx-0">
               <Table>
