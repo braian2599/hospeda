@@ -144,7 +144,9 @@ export default function SuperAdminCuentas() {
   // Form states
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState('');
-  const [duracionMeses, setDuracionMeses] = useState('1');
+  // Respaldo del servidor cuando no se manda una fecha exacta. El diálogo
+  // ahora siempre manda fecha, así que en la práctica no se usa.
+  const [duracionMeses] = useState('1');
   // Cortesía por defecto: si quien cambia el plan no aclara nada, se asume que
   // nadie pagó. Es el caso que más avisa, y el que no deja a un hotel creyendo
   // que tiene una suscripción que se renueva sola.
@@ -152,6 +154,8 @@ export default function SuperAdminCuentas() {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [extendDays, setExtendDays] = useState('');
+  /** El vencimiento que se está editando, en formato YYYY-MM-DD del <input type="date">. */
+  const [nuevoVencimiento, setNuevoVencimiento] = useState('');
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [flagLoading, setFlagLoading] = useState<Set<string>>(new Set());
@@ -197,6 +201,30 @@ export default function SuperAdminCuentas() {
     });
   };
 
+  /** Una fecha ISO, como la pide un <input type="date"> en hora local. */
+  const aInputDate = (iso: string | null | undefined) => {
+    if (!iso) return '';
+    const f = new Date(iso);
+    if (Number.isNaN(f.getTime())) return '';
+    // Se resta el desfase horario ANTES de recortar: con toISOString() a secas,
+    // en Argentina (UTC-3) una fecha guardada a las 21:00 se mostraría un día
+    // antes. Con el vencimiento de un hotel, un día importa.
+    return new Date(f.getTime() - f.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  };
+
+  /** Mueve la fecha que está en el cuadro, sin pedirle nada al servidor. */
+  const moverVencimiento = (dias: number) => {
+    const base = nuevoVencimiento ? new Date(`${nuevoVencimiento}T12:00:00`) : new Date();
+    base.setDate(base.getDate() + dias);
+    setNuevoVencimiento(aInputDate(base.toISOString()));
+  };
+
+  /** El 10 del mes que viene: el día en que cierra el ciclo de facturación. */
+  const diezDelMesQueViene = () => {
+    const hoy = new Date();
+    setNuevoVencimiento(aInputDate(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 10, 12).toISOString()));
+  };
+
   // ─── Actions ───
   const handleChangePlan = async () => {
     if (!selectedTenant || !selectedPlanId) return;
@@ -211,6 +239,10 @@ export default function SuperAdminCuentas() {
           planId: selectedPlanId,
           duracionMeses: parseInt(duracionMeses) || 1,
           origen: origenPlan,
+          // Si se fijó una fecha, manda ESA. Sin esto el servidor siempre
+          // reiniciaba el reloj a "hoy + N meses": cambiarle el plan a un
+          // hotel un día 17 le corría el ciclo del 10 al 17.
+          fechaVencimiento: nuevoVencimiento ? `${nuevoVencimiento}T12:00:00` : undefined,
         }),
       });
       const data = await res.json();
@@ -256,7 +288,7 @@ export default function SuperAdminCuentas() {
   };
 
   const handleExtend = async () => {
-    if (!selectedTenant || !extendDays || parseInt(extendDays) <= 0) return;
+    if (!selectedTenant || !nuevoVencimiento) return;
     setActionLoading(true);
     try {
       const res = await fetch('/api/super-admin/tenants', {
@@ -265,17 +297,20 @@ export default function SuperAdminCuentas() {
         body: JSON.stringify({
           tenantId: selectedTenant.id,
           action: 'extendSubscription',
-          dias: parseInt(extendDays),
+          // Se manda la fecha exacta, no una cantidad de días. Un ciclo que
+          // cierra "el 10 de cada mes" es una fecha: no se acierta sumando.
+          // El mediodía evita que el desfase horario la corra un día.
+          fecha: `${nuevoVencimiento}T12:00:00`,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success(`Suscripción extendida ${extendDays} días`);
+      toast.success(`Vencimiento fijado al ${new Date(`${nuevoVencimiento}T12:00:00`).toLocaleDateString('es-AR')}`);
       setExtendOpen(false);
       setExtendDays('');
       fetchTenants();
     } catch (err: unknown) {
-      toast.error((err as Error).message || 'Error al extender suscripción');
+      toast.error((err as Error).message || 'Error al ajustar el vencimiento');
     } finally {
       setActionLoading(false);
     }
@@ -350,9 +385,10 @@ export default function SuperAdminCuentas() {
   };
 
   const openChangePlan = (tenant: Tenant) => {
+    setNuevoVencimiento(aInputDate(tenant.suscripcion?.fechaVencimiento));
     setSelectedTenant(tenant);
     setSelectedPlanId(tenant.suscripcion?.planType === 'trial' ? '' : tenant.suscripcion?.planType || '');
-    setDuracionMeses('1');
+    setOrigenPlan('cortesia');
     setChangePlanOpen(true);
   };
 
@@ -366,6 +402,9 @@ export default function SuperAdminCuentas() {
   const openExtend = (tenant: Tenant) => {
     setSelectedTenant(tenant);
     setExtendDays('30');
+    // Se abre con la fecha que el hotel tiene HOY, no vacío: casi siempre lo
+    // que se quiere es correrla unos días, no escribirla de cero.
+    setNuevoVencimiento(aInputDate(tenant.suscripcion?.fechaVencimiento));
     setExtendOpen(true);
   };
 
@@ -707,13 +746,28 @@ export default function SuperAdminCuentas() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Duración (meses)</Label>
+              <Label>Vence el</Label>
               <Input
-                type="number"
-                min={1}
-                value={duracionMeses}
-                onChange={(e) => setDuracionMeses(e.target.value)}
+                type="date"
+                value={nuevoVencimiento}
+                onChange={(e) => setNuevoVencimiento(e.target.value)}
               />
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {[-7, -1, 1, 7, 30].map(d => (
+                  <Button key={d} type="button" variant="outline" size="sm" className="h-7 px-2 text-xs"
+                    onClick={() => moverVencimiento(d)}>
+                    {d > 0 ? `+${d}` : d} {Math.abs(d) === 1 ? 'día' : 'días'}
+                  </Button>
+                ))}
+                <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs"
+                  onClick={diezDelMesQueViene}>
+                  10 del mes que viene
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Viene cargado el vencimiento que el hotel tiene hoy. Cambiar el plan ya no
+                reinicia el contador: si su ciclo cierra el 10, dejalo en el 10.
+              </p>
             </div>
 
             {/* Sin esto una cortesía quedaba escrita igual que una suscripción
@@ -791,32 +845,67 @@ export default function SuperAdminCuentas() {
       <Dialog open={extendOpen} onOpenChange={setExtendOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Extender suscripción — {selectedTenant?.nombre}</DialogTitle>
+            <DialogTitle>Vencimiento — {selectedTenant?.nombre}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">
-              Se agregarán días a partir de la fecha de vencimiento actual.
-            </p>
-            <div className="space-y-2">
-              <Label>Días a extender</Label>
-              <Input
-                type="number"
-                min={1}
-                value={extendDays}
-                onChange={(e) => setExtendDays(e.target.value)}
-              />
+            <div className="rounded-lg border p-3 text-sm">
+              <span className="text-muted-foreground">Vence hoy: </span>
+              <span className="font-medium">
+                {selectedTenant?.suscripcion
+                  ? new Date(selectedTenant.suscripcion.fechaVencimiento).toLocaleDateString('es-AR')
+                  : '—'}
+              </span>
             </div>
+
+            <div className="space-y-2">
+              <Label>Nuevo vencimiento</Label>
+              <Input
+                type="date"
+                value={nuevoVencimiento}
+                onChange={(e) => setNuevoVencimiento(e.target.value)}
+              />
+              {/* Atajos. Mover la fecha acá no le pide nada al servidor: recién
+                  al guardar se manda la fecha final. Así se puede tantear sin
+                  dejar al hotel en un estado a medio camino. */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {[-30, -7, -1, 1, 7, 30].map(d => (
+                  <Button
+                    key={d}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => moverVencimiento(d)}
+                  >
+                    {d > 0 ? `+${d}` : d} {Math.abs(d) === 1 ? 'día' : 'días'}
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={diezDelMesQueViene}
+                >
+                  10 del mes que viene
+                </Button>
+              </div>
+            </div>
+
+            {nuevoVencimiento && new Date(`${nuevoVencimiento}T23:59:59`) < new Date() && (
+              <p className="text-xs text-destructive">
+                Esa fecha ya pasó. Al guardar, el hotel queda sin poder cargar reservas,
+                hacer check-in ni abrir la caja hasta que elija un plan.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setExtendOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleExtend}
-              disabled={!extendDays || parseInt(extendDays) <= 0 || actionLoading}
-            >
+            <Button onClick={handleExtend} disabled={!nuevoVencimiento || actionLoading}>
               {actionLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              Extender
+              Guardar
             </Button>
           </DialogFooter>
         </DialogContent>

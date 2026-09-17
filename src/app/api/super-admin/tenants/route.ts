@@ -124,6 +124,25 @@ export async function GET(req: NextRequest) {
 }
 
 // PATCH /api/super-admin/tenants — Cambiar plan, activar/desactivar, resetear contraseña
+/**
+ * Una fecha de vencimiento válida, o null.
+ *
+ * Se acepta una fecha en el pasado a propósito: es la forma de cortarle el
+ * servicio a un hotel ahora mismo, sin esperar. Lo que no se acepta es una
+ * fecha absurda —diez años, o el año 1900— que casi siempre es un dedazo
+ * escribiendo el año.
+ */
+function vencimientoValido(crudo: unknown): Date | null {
+  if (typeof crudo !== 'string' || !crudo.trim()) return null;
+  const fecha = new Date(crudo);
+  if (Number.isNaN(fecha.getTime())) return null;
+  const ahora = Date.now();
+  const unAnioAtras = ahora - 365 * 86400000;
+  const cincoAniosAdelante = ahora + 5 * 365 * 86400000;
+  if (fecha.getTime() < unAnioAtras || fecha.getTime() > cincoAniosAdelante) return null;
+  return fecha;
+}
+
 export async function PATCH(req: NextRequest) {
   const { error, session } = await requireSuperAdmin();
   if (error) return error;
@@ -157,8 +176,13 @@ export async function PATCH(req: NextRequest) {
       if (!subscription) return NextResponse.json({ error: 'Suscripción no encontrada' }, { status: 404 });
 
       const fechaInicio = new Date();
-      const fechaVencimiento = new Date(fechaInicio);
-      fechaVencimiento.setMonth(fechaVencimiento.getMonth() + meses);
+      // Por defecto el ciclo arranca hoy y dura `meses`. Pero se puede fijar la
+      // fecha exacta: si el hotel factura el 10 de cada mes, cambiarle el plan
+      // un día 17 no tiene por qué correrle el ciclo al 17. Antes esto siempre
+      // reiniciaba el reloj a "hoy + N meses" y no había forma de evitarlo.
+      const fechaElegida = vencimientoValido(data.fechaVencimiento);
+      const fechaVencimiento = fechaElegida ?? new Date(fechaInicio);
+      if (!fechaElegida) fechaVencimiento.setMonth(fechaVencimiento.getMonth() + meses);
 
       const planAnterior = await db.plan.findUnique({ where: { id: subscription.planId } });
 
@@ -196,7 +220,7 @@ export async function PATCH(req: NextRequest) {
         data: {
           tenantId,
           tipo: 'Cambio de Plan',
-          detalle: `Plan cambiado de "${planAnterior?.nombre || 'desconocido'}" a "${plan.nombre}" por ${meses} mes(es) — ${origen === 'cortesia' ? 'CORTESÍA, sin pago asociado' : 'pago por transferencia'}. Vencimiento: ${fechaVencimiento.toLocaleDateString('es-AR')}.`,
+          detalle: `Plan cambiado de "${planAnterior?.nombre || 'desconocido'}" a "${plan.nombre}" ${fechaElegida ? '' : ` por ${meses} mes(es)`} — ${origen === 'cortesia' ? 'CORTESÍA, sin pago asociado' : 'pago por transferencia'}. Vencimiento: ${fechaVencimiento.toLocaleDateString('es-AR')}.`,
           empleado: 'Super Admin',
           empleadoId: null,
         },
@@ -348,22 +372,45 @@ export async function PATCH(req: NextRequest) {
     // ── Extender suscripción ──
     if (action === 'extendSubscription') {
       const { dias } = data;
-      const diasNum = Number(dias);
-      if (!diasNum || diasNum <= 0) {
-        return NextResponse.json({ error: 'Falta días o debe ser mayor a 0' }, { status: 400 });
-      }
-      // Límite de seguridad: no extender más de 365 días en una sola acción
-      if (diasNum > 365) {
-        return NextResponse.json({ error: 'No se pueden extender más de 365 días por acción' }, { status: 400 });
-      }
-
       const subscription = await db.subscription.findUnique({ where: { tenantId } });
       if (!subscription) return NextResponse.json({ error: 'Suscripción no encontrada' }, { status: 404 });
 
-      const baseDate = new Date(subscription.fechaVencimiento) > new Date()
-        ? new Date(subscription.fechaVencimiento)
-        : new Date();
-      baseDate.setDate(baseDate.getDate() + diasNum);
+      // Dos formas de ajustar el vencimiento:
+      //  - `fecha`: se pone esa fecha, tal cual. Es lo que hace falta cuando el
+      //    ciclo del hotel es "el 10 de cada mes": una fecha no se acierta
+      //    sumando y restando días.
+      //  - `dias`: se corre desde el vencimiento actual. Ahora acepta números
+      //    NEGATIVOS. Antes rechazaba todo lo que no fuera positivo, así que un
+      //    vencimiento que se había pasado de largo no se podía volver atrás
+      //    y había que cambiar el plan entero, lo que reiniciaba el reloj.
+      const fechaFijada = vencimientoValido(data.fecha);
+      let baseDate: Date;
+      let detalleAuditoria: string;
+
+      if (fechaFijada) {
+        baseDate = fechaFijada;
+        detalleAuditoria = `Vencimiento fijado al ${baseDate.toLocaleDateString('es-AR')} por super-admin.`;
+      } else {
+        const diasNum = Number(dias);
+        if (!Number.isInteger(diasNum) || diasNum === 0) {
+          return NextResponse.json({ error: 'Indicá una fecha, o una cantidad de días distinta de cero' }, { status: 400 });
+        }
+        if (Math.abs(diasNum) > 365) {
+          return NextResponse.json({ error: 'No se pueden mover más de 365 días por acción' }, { status: 400 });
+        }
+        // Sumar parte del vencimiento actual (o de hoy si ya se pasó); restar
+        // siempre parte del vencimiento actual: si no, restarle días a una
+        // suscripción ya vencida la mandaría todavía más atrás sin sentido.
+        baseDate = diasNum > 0 && new Date(subscription.fechaVencimiento) <= new Date()
+          ? new Date()
+          : new Date(subscription.fechaVencimiento);
+        baseDate.setDate(baseDate.getDate() + diasNum);
+
+        if (!vencimientoValido(baseDate.toISOString())) {
+          return NextResponse.json({ error: 'La fecha que queda es absurda. Revisá el número de días.' }, { status: 400 });
+        }
+        detalleAuditoria = `Suscripción ${diasNum > 0 ? 'extendida' : 'acortada'} ${Math.abs(diasNum)} día(s) por super-admin. Nuevo vencimiento: ${baseDate.toLocaleDateString('es-AR')}.`;
+      }
 
       const updated = await db.subscription.update({
         where: { tenantId },
@@ -375,8 +422,8 @@ export async function PATCH(req: NextRequest) {
       await db.auditoria.create({
         data: {
           tenantId,
-          tipo: 'Extensión de Suscripción',
-          detalle: `Suscripción extendida ${diasNum} día(s) por super-admin. Nuevo vencimiento: ${baseDate.toLocaleDateString('es-AR')}.`,
+          tipo: 'Ajuste de Suscripción',
+          detalle: detalleAuditoria,
           empleado: 'Super Admin',
           empleadoId: null,
         },
