@@ -137,16 +137,12 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 4. Registrar en auditoría del tenant
-      await tx.auditoria.create({
-        data: {
-          tenantId,
-          tipo: 'Pago Manual',
-          detalle: `Pago manual de $${(monto / 100).toLocaleString('es-AR')} registrado por super-admin. Período: ${fechaDesde.toLocaleDateString('es-AR')} - ${fechaHasta.toLocaleDateString('es-AR')}. Vencimiento extendido al ${nuevoVencimiento.toLocaleDateString('es-AR')}.`,
-          empleado: 'Super Admin',
-          empleadoId: null,
-        },
-      });
+      // 4. Sin auditoría en el hotel
+      // El super admin NO deja rastro en la auditoría del hotel: está por
+      // encima de todos y sus acciones no son actividad del personal. La
+      // trazabilidad de quién hizo esto queda en el log del servidor
+      // ('[super-admin] …'), que es donde corresponde — es información de la
+      // plataforma, no del hotel. Ver src/lib/auditoria-actores.ts.
 
       return { payment, nuevoVencimiento };
     });

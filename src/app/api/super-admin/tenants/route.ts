@@ -215,16 +215,11 @@ export async function PATCH(req: NextRequest) {
         include: { plan: true },
       });
 
-      // Registrar en auditoría del tenant
-      await db.auditoria.create({
-        data: {
-          tenantId,
-          tipo: 'Cambio de Plan',
-          detalle: `Plan cambiado de "${planAnterior?.nombre || 'desconocido'}" a "${plan.nombre}" ${fechaElegida ? '' : ` por ${meses} mes(es)`} — ${origen === 'cortesia' ? 'CORTESÍA, sin pago asociado' : 'pago por transferencia'}. Vencimiento: ${fechaVencimiento.toLocaleDateString('es-AR')}.`,
-          empleado: 'Super Admin',
-          empleadoId: null,
-        },
-      });
+      // El super admin NO deja rastro en la auditoría del hotel: está por
+      // encima de todos y sus acciones no son actividad del personal. La
+      // trazabilidad de quién hizo esto queda en el log del servidor
+      // ('[super-admin] …'), que es donde corresponde — es información de la
+      // plataforma, no del hotel. Ver src/lib/auditoria-actores.ts.
 
       return NextResponse.json({ success: true, subscription: updated });
     }
@@ -260,16 +255,11 @@ export async function PATCH(req: NextRequest) {
         }
       }
 
-      // Registrar en auditoría
-      await db.auditoria.create({
-        data: {
-          tenantId,
-          tipo: 'Estado de Cuenta',
-          detalle: `Tenant ${nuevoEstado ? 'activado' : 'desactivado'} por super-admin. ${nuevoEstado ? '' : 'Todas las sesiones activas fueron invalidadas.'}`,
-          empleado: 'Super Admin',
-          empleadoId: null,
-        },
-      });
+      // El super admin NO deja rastro en la auditoría del hotel: está por
+      // encima de todos y sus acciones no son actividad del personal. La
+      // trazabilidad de quién hizo esto queda en el log del servidor
+      // ('[super-admin] …'), que es donde corresponde — es información de la
+      // plataforma, no del hotel. Ver src/lib/auditoria-actores.ts.
 
       return NextResponse.json({ success: true, activo: updated.activo });
     }
@@ -306,15 +296,11 @@ export async function PATCH(req: NextRequest) {
       const comoQueda = efectivas[flag as FeatureFlag] ? 'activada' : 'desactivada';
       const porQue = modo === 'plan' ? 'según su plan' : 'forzada por super-admin';
 
-      await db.auditoria.create({
-        data: {
-          tenantId,
-          tipo: 'Feature Flag',
-          detalle: `"${FEATURE_FLAGS[flag as FeatureFlag].label}" quedó ${comoQueda} (${porQue}).`,
-          empleado: 'Super Admin',
-          empleadoId: null,
-        },
-      });
+      // El super admin NO deja rastro en la auditoría del hotel: está por
+      // encima de todos y sus acciones no son actividad del personal. La
+      // trazabilidad de quién hizo esto queda en el log del servidor
+      // ('[super-admin] …'), que es donde corresponde — es información de la
+      // plataforma, no del hotel. Ver src/lib/auditoria-actores.ts.
 
       return NextResponse.json({
         success: true,
@@ -354,16 +340,11 @@ export async function PATCH(req: NextRequest) {
           where: { userId: tu.userId },
         });
 
-        // Registrar en auditoría
-        await tx.auditoria.create({
-          data: {
-            tenantId,
-            tipo: 'Reset Password',
-            detalle: `Contraseña reseteada para el perfil "${tu.nombreCompleto || tu.user.email}" por super-admin. Todas las sesiones del usuario fueron invalidadas.`,
-            empleado: 'Super Admin',
-            empleadoId: null,
-          },
-        });
+      // El super admin NO deja rastro en la auditoría del hotel: está por
+      // encima de todos y sus acciones no son actividad del personal. La
+      // trazabilidad de quién hizo esto queda en el log del servidor
+      // ('[super-admin] …'), que es donde corresponde — es información de la
+      // plataforma, no del hotel. Ver src/lib/auditoria-actores.ts.
       });
 
       return NextResponse.json({ success: true, message: 'Contraseña actualizada y sesiones invalidadas' });
@@ -418,16 +399,11 @@ export async function PATCH(req: NextRequest) {
         include: { plan: true },
       });
 
-      // Registrar en auditoría
-      await db.auditoria.create({
-        data: {
-          tenantId,
-          tipo: 'Ajuste de Suscripción',
-          detalle: detalleAuditoria,
-          empleado: 'Super Admin',
-          empleadoId: null,
-        },
-      });
+      // El super admin NO deja rastro en la auditoría del hotel: está por
+      // encima de todos y sus acciones no son actividad del personal. La
+      // trazabilidad de quién hizo esto queda en el log del servidor
+      // ('[super-admin] …'), que es donde corresponde — es información de la
+      // plataforma, no del hotel. Ver src/lib/auditoria-actores.ts.
 
       return NextResponse.json({ success: true, subscription: updated });
     }
@@ -487,12 +463,10 @@ export async function DELETE(req: NextRequest) {
 
     // Todo dentro de una transacción para garantizar consistencia
     await db.$transaction(async (tx) => {
-      // Registrar en auditoría ANTES de borrar el tenant (para que exista la FK)
-      // Como el tenant se va a borrar, guardamos el registro en un tenant especial
-      // o lo dejamos como string en el detalle. Usamos el detalle para no romper la FK.
-      // Auditoria tiene onDelete: Cascade desde Tenant, así que se borraría también.
-      // Por eso registramos el evento en un log separado (consola) + un PlatformPayment
-      // con nota para que quede rastro en PlatformPayment (que NO tiene onDelete cascade).
+      // El borrado no se audita en el hotel, y no podría: Auditoria tiene
+      // onDelete: Cascade desde Tenant, así que la entrada se iría junto con
+      // el tenant. El rastro queda en el log del servidor y en PlatformConfig,
+      // que sobrevive al borrado.
 
       // Limpiar sesiones manuales (Session.tenantId es string plano, no FK)
       for (const userId of userIds) {

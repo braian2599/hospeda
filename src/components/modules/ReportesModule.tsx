@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import TablaHoras from '@/components/modules/reportes/TablaHoras';
 import { useHorasTrabajadas } from '@/hooks/useHorasTrabajadas';
 import { comoHoras, horasDecimales, HORAS_SOSPECHOSAS } from '@/lib/horas-trabajadas';
+import { esActorDelSistema } from '@/lib/auditoria-actores';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -253,10 +254,14 @@ function OccupancyBadge({ pct }: { pct: number }) {
   );
 }
 
-// Registros de auditoría cuyo "empleado" no es personal del hotel — se
-// excluyen del resumen de desempeño de Reportes > Empleados (siguen visibles
-// en la Auditoría completa, ahí sí importa la trazabilidad total).
-const EMPLEADOS_EXCLUIDOS_DE_REPORTE = new Set(['Sistema', 'Super Admin']);
+// Quién NO es personal del hotel (y por lo tanto no va al resumen de
+// desempeño de Reportes > Empleados) se decide en un solo lugar:
+// src/lib/auditoria-actores.ts. Antes era un Set declarado acá adentro y
+// aplicado en una sola línea, así que cada pantalla nueva se lo olvidaba.
+//
+// 'Sistema' y las sincronizaciones sí siguen visibles en la Auditoría
+// completa: ahí importa la trazabilidad total. El super admin no, y ya
+// ni se escribe.
 
 // caja.historial solo guarda turnos ya cerrados (el turno abierto vive aparte,
 // en caja.apertura/movimientos) — pero TurnoCaja.cierre está tipado como
@@ -615,7 +620,7 @@ export default function ReportesModule() {
       resumen[nombre] = { nombre, checkins: 0, checkouts: 0, pagos: 0, gastos: 0, reservas: 0, auditorias: 0 };
     });
     auditoriaEnPeriodo.forEach(a => {
-      if (EMPLEADOS_EXCLUIDOS_DE_REPORTE.has(a.empleado)) return;
+      if (esActorDelSistema(a.empleado)) return;
       if (!resumen[a.empleado]) resumen[a.empleado] = { nombre: a.empleado, checkins: 0, checkouts: 0, pagos: 0, gastos: 0, reservas: 0, auditorias: 0 };
       resumen[a.empleado].auditorias++;
       if (a.tipo === 'Check-In') resumen[a.empleado].checkins++;

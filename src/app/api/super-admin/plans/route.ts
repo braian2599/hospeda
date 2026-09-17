@@ -133,25 +133,19 @@ export async function PUT(req: NextRequest) {
       cambios.push(`integraciones actualizadas`);
     }
 
-    // Auditar en TODOS los tenants que tienen este plan (para que quede registro en cada uno)
+    // Cuántos hoteles quedan afectados por el cambio (solo para el log).
     const tenantsConPlan = await db.subscription.findMany({
       where: { planId: id },
       select: { tenantId: true },
     });
 
     if (tenantsConPlan.length > 0 && cambios.length > 0) {
-      const detalleAudit = `Plan "${plan.nombre}" modificado por super-admin. Cambios: ${cambios.join(', ')}.`;
-      const empleadoAudit = 'Super Admin';
-
-      await db.auditoria.createMany({
-        data: tenantsConPlan.map(t => ({
-          tenantId: t.tenantId,
-          tipo: 'Modificación de Plan',
-          detalle: detalleAudit,
-          empleado: empleadoAudit,
-          empleadoId: null,
-        })),
-      });
+      // El super admin NO deja rastro en la auditoría de los hoteles: está por
+      // encima de todos y sus acciones no son actividad del personal. Este
+      // bloque además escribía una entrada en CADA hotel con el plan — varias
+      // decenas de filas por un cambio que el hotel ve igual en su pantalla de
+      // Suscripción. La trazabilidad queda en el log del servidor.
+      console.log(`[super-admin] Plan "${plan.nombre}" modificado. Cambios: ${cambios.join(', ')}. Hoteles afectados: ${tenantsConPlan.length}`);
     }
 
     // Invalidar caches para que los cambios se reflejen inmediatamente

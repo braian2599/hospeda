@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { TIPO_LOGIN, TIPO_LOGOUT } from '@/lib/horas-trabajadas';
+import { SIN_SUPER_ADMIN } from '@/lib/auditoria-actores';
 
 /** Tope de eventos por consulta. 4 personas × 2 eventos × 90 días ≈ 720. */
 const MAX_EVENTOS = 5000;
@@ -68,6 +69,8 @@ export async function GET(req: NextRequest) {
         tenantId,
         tipo: { in: [TIPO_LOGIN, TIPO_LOGOUT] },
         createdAt: { gte: inicio, lt: fin },
+        // El super admin no es personal del hotel: no tiene horas que pagar.
+        ...SIN_SUPER_ADMIN,
       },
       select: { tipo: true, createdAt: true, empleado: true, empleadoId: true },
       orderBy: { createdAt: 'asc' },

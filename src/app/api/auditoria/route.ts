@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireActor, AuthError } from '@/lib/auth/utils';
+import { esSuperAdmin, ACTOR_SISTEMA } from '@/lib/auditoria-actores';
+
+/**
+ * El nombre que se graba. Nunca el del super admin: ese se filtra al leer, y
+ * dejar que el body lo use sería una forma de esconder acciones propias.
+ */
+function nombreDelActor(empleado: unknown): string {
+  const nombre = String(empleado || ACTOR_SISTEMA).slice(0, 100);
+  return esSuperAdmin(nombre) ? ACTOR_SISTEMA : nombre;
+}
 
 // POST /api/auditoria — Crear entrada de auditoría
 export async function POST(req: NextRequest) {
@@ -18,7 +28,11 @@ export async function POST(req: NextRequest) {
         tenantId,
         tipo: String(tipo).slice(0, 50),
         detalle: String(detalle).slice(0, 500),
-        empleado: String(empleado || 'Sistema').slice(0, 100),
+        // El nombre del super admin se filtra al leer, así que aceptarlo acá
+        // desde el body sería un agujero al revés: cualquiera con sesión
+        // podría firmar sus propias acciones como "Super Admin" y las dejaría
+        // invisibles en la auditoría del hotel. No se acepta.
+        empleado: nombreDelActor(empleado),
         // El id del perfil sale de la SESIÓN, nunca del cuerpo del pedido.
         //
         // Hasta acá se guardaba solo el nombre como texto, y con eso el

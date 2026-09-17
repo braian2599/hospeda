@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { SIN_SUPER_ADMIN } from '@/lib/auditoria-actores';
 import { db } from '@/lib/db';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
 
@@ -64,9 +65,17 @@ export async function GET() {
         where: { tenantId },
         orderBy: [{ resuelto: 'asc' }, { fecha: 'desc' }],
       }),
-      // Auditoría: últimas 200 entradas
+      // Auditoría: últimas 200 entradas.
+      //
+      // Se deja afuera al super admin. Lo que escribe la plataforma no es
+      // actividad del hotel, y filtrarlo ACÁ —y no en cada pantalla— es lo
+      // único que no se puede olvidar: antes el filtro vivía adentro de
+      // ReportesModule y se aplicaba en un solo lugar, así que la lista de
+      // auditoría, la actividad reciente de Usuarios y el reporte de horas lo
+      // mostraban igual. Los endpoints del super admin ya no escriben nada;
+      // esto tapa lo que quedó de antes.
       db.auditoria.findMany({
-        where: { tenantId },
+        where: { tenantId, ...SIN_SUPER_ADMIN },
         orderBy: { createdAt: 'desc' },
         take: 200,
       }),

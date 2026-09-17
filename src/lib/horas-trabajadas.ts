@@ -23,6 +23,8 @@
 // descartarlo en silencio volvería a esconder el problema.
 
 /** Más de esto no es un turno: es una sesión que quedó abierta. Se marca. */
+import { esActorDelSistema } from './auditoria-actores';
+
 export const HORAS_SOSPECHOSAS = 14;
 
 const MINUTOS_SOSPECHOSOS = HORAS_SOSPECHOSAS * 60;
@@ -197,6 +199,10 @@ export function horasTrabajadas(
   for (const e of eventos) {
     if (e.tipo !== TIPO_LOGIN && e.tipo !== TIPO_LOGOUT) continue;
     if (!e.fecha || Number.isNaN(new Date(e.fecha).getTime())) continue;
+    // El super admin y las acciones automáticas no son personas a las que
+    // haya que pagarles horas. El servidor ya filtra al super admin; esto
+    // vale también cuando el cálculo se usa con datos de otra fuente.
+    if (esActorDelSistema(e.empleado)) continue;
     const clave = claveDe(e, idsPorNombre);
     const grupo = porPersona.get(clave);
     if (grupo) {
