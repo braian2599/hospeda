@@ -451,6 +451,7 @@ export const useHotelStore = create<HotelStore>()(
           tenantNombre: sessionData.tenantNombre,
           email: sessionData.email,
           avisosVistos: sessionData.avisosVistos || {},
+          featureFlags: sessionData.featureFlags || {},
         };
         // Apply start module preference (from store, in memory only)
         const isFullAccess = sesion.rol === 'owner' || sesion.rol === 'admin';

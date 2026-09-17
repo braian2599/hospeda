@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { rateLimit } from '@/lib/validation';
 import bcrypt from 'bcryptjs';
 import { parseAvisosVistos } from '@/lib/avisos';
+import { parseFeatureFlags, parseFlagOverrides, resolverFlags } from '@/lib/feature-flags';
 
 // GET /api/auth/me
 export async function GET(req: NextRequest) {
@@ -153,6 +154,13 @@ function buildSessionResponse(user: any, tenantUser: any) {
     // entrar: no agrega ni una consulta. La consulta usa include sin select,
     // asi que la columna viene sola.
     avisosVistos: parseAvisosVistos(tenantUser.avisosVistos),
+    // Integraciones efectivas. Se arma con lo que la consulta YA trajo (el plan
+    // de la suscripción y la config del hotel), así que no cuesta una consulta
+    // más. La usa el cliente solo para decidir qué mostrar.
+    featureFlags: resolverFlags(
+      parseFeatureFlags(plan?.featureFlags),
+      parseFlagOverrides(tenant.configuracion?.featureFlags),
+    ),
     needsPassword,
   });
 }

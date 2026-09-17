@@ -150,6 +150,12 @@ export interface UsuarioSesion {
   email?: string;
   /** Veces que este usuario vio cada aviso de inicio de sesion. Ver src/lib/avisos.ts. */
   avisosVistos?: Record<string, number>;
+  /**
+   * Integraciones EFECTIVAS del hotel (plan + la excepción cargada en Super
+   * Admin). Solo para decidir qué mostrar: el permiso de verdad lo chequea
+   * cada endpoint con requireFeatureFlag.
+   */
+  featureFlags?: Record<string, boolean>;
 }
 
 export interface Gasto {

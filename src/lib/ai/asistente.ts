@@ -75,11 +75,30 @@ export interface MensajeAsistente {
   content: string;
 }
 
-export async function preguntarAsistente(historial: MensajeAsistente[]): Promise<string> {
+/**
+ * Le agrega al prompt en qué pantalla está parado el usuario.
+ *
+ * Sin esto, "¿cómo hago esto?" no se puede contestar: el asistente no ve la
+ * pantalla. Con esto, la mayoría de las preguntas cortas se responden solas.
+ * El nombre del módulo lo arma el servidor a partir de un id validado, nunca
+ * con texto libre del cliente.
+ */
+function conPantalla(pantalla: string | null): string {
+  if (!pantalla) return SYSTEM_PROMPT;
+  return `${SYSTEM_PROMPT}
+
+## Dónde está parado ahora
+El usuario tiene abierto el módulo **${pantalla}**. Si su pregunta es vaga ("¿cómo hago esto?", "¿para qué sirve?"), asumí que habla de esta pantalla. Si claramente pregunta por otra cosa, contestá por esa otra cosa sin mencionar dónde está.`;
+}
+
+export async function preguntarAsistente(
+  historial: MensajeAsistente[],
+  pantalla: string | null = null,
+): Promise<string> {
   const response = await client.messages.create({
     model: ASISTENTE_MODEL,
     max_tokens: MAX_TOKENS_RESPUESTA,
-    system: SYSTEM_PROMPT,
+    system: conPantalla(pantalla),
     messages: historial,
   });
 

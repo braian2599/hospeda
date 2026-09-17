@@ -25,6 +25,7 @@ import CommandPalette from '@/components/layout/CommandPalette';
 import ModuleLockedDialog from '@/components/subscription/ModuleLockedDialog';
 import PaymentResultBanner from '@/components/payments/PaymentResultBanner';
 import AvisosDialog from '@/components/avisos/AvisosDialog';
+import AsistenteBurbuja from '@/components/asistente/AsistenteBurbuja';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 
 const modules: Partial<Record<ModuloId, React.ComponentType>> = {
@@ -56,6 +57,7 @@ export default function AppPage() {
         </ModuleErrorBoundary>
         <ModuleLockedDialog />
         <AvisosDialog />
+        <AsistenteBurbuja />
       </AppShell>
     );
   }
@@ -113,6 +115,7 @@ export default function AppPage() {
       <CommandPalette />
       <ModuleLockedDialog />
       <AvisosDialog />
+      <AsistenteBurbuja />
     </AppShell>
   );
 }

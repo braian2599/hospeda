@@ -1,0 +1,123 @@
+/* ==================== HOSPI ====================
+   El dibujo sale del HTML de referencia del dueño: son piezas con posición
+   absoluta dentro de un lienzo de 190x230. NO se reescribió a SVG a propósito
+   — se conserva tal cual y se achica con transform, así las proporciones
+   quedan exactas y cualquier retoque futuro se hace sobre las mismas medidas.
+
+   Los colores van fijos y no atados al tema: Hospi es un personaje, no parte
+   del cromado de la interfaz. Se tiene que ver igual en claro y en oscuro. */
+
+/* Clase marcadora: los selectores .burbuja .cara y .retrato .cara la usan
+   para darle a cada lugar su propia escala sin tocar el dibujo. */
+.cara { }
+
+/* Las piezas del dibujo miden CON su borde incluido. No se hereda del reset
+   global a propósito: los encuadres (scale + translate) están calculados sobre
+   estas medidas, así que si un día cambia el reset, Hospi no se descoloca. */
+.hospi, .hospi * { box-sizing: border-box; }
+
+.hospi {
+  position: relative;
+  width: 190px;
+  height: 230px;
+  transform-origin: top left;
+}
+
+.gorro {
+  position: absolute; left: 22px; top: 0; width: 146px; height: 45px;
+  border-radius: 80px 80px 12px 12px;
+  background: #CCFBF1; border: 5px solid #0F172A; z-index: 4;
+}
+.gorro::after {
+  content: 'H'; position: absolute; left: 59px; top: 3px;
+  color: #0F172A; font-weight: 800; font-size: 25px; line-height: 1;
+}
+
+.oreja {
+  position: absolute; top: 51px; width: 27px; height: 42px;
+  border: 5px solid #0F172A; background: #fff; border-radius: 50%;
+}
+.orejaIzq { left: 8px; }
+.orejaDer { right: 8px; }
+
+.cabeza {
+  position: absolute; left: 25px; top: 8px; width: 140px; height: 125px;
+  border: 5px solid #0F172A; border-radius: 48% 48% 44% 44%; background: #fff;
+}
+
+.ojo {
+  position: absolute; top: 52px; width: 15px; height: 21px;
+  background: #0F172A; border-radius: 50%; z-index: 3;
+  animation: parpadeo 4.5s infinite;
+}
+.ojoIzq { left: 38px; }
+.ojoDer { right: 38px; }
+
+.sonrisa {
+  position: absolute; left: 52px; top: 78px; width: 37px; height: 18px;
+  border-bottom: 4px solid #0F172A; border-radius: 0 0 30px 30px; z-index: 3;
+}
+
+@keyframes parpadeo {
+  0%, 45%, 48%, 100% { transform: scaleY(1); }
+  46%, 47% { transform: scaleY(.08); }
+}
+
+/* ── Hospi flotando en la esquina, sin círculo ──
+   La medida sale del dibujo: la cara con orejas mide 174 de ancho por 133 de
+   alto, así que a escala .338 da 59x45 y el botón se ajusta a eso. */
+.burbuja {
+  position: fixed; right: 24px; bottom: 24px;
+  width: 59px; height: 45px; padding: 0;
+  border: 0; background: transparent; cursor: pointer; z-index: 50;
+  transition: transform .18s ease;
+}
+/* El flote va en una capa aparte: si se anima el botón, la animación le gana
+   al transform del hover y el agrandar al pasar el mouse nunca se ve. */
+.flota { animation: flotar 4.5s ease-in-out infinite; }
+.burbuja .cara {
+  transform: scale(.338) translate(-8px, 0);
+  /* La sombra sigue el contorno del dibujo, no una caja: sin esto Hospi queda
+     pegado al fondo y no se lee como algo que se puede tocar. */
+  filter: drop-shadow(0 5px 7px rgba(15, 23, 42, .22));
+}
+.burbuja:hover { transform: scale(1.08); }
+.burbuja:active { transform: scale(.96); }
+.burbuja:focus-visible { outline: 3px solid #99F6E4; outline-offset: 4px; border-radius: 14px; }
+/* Mientras vuela la copia, el original se apaga sin transición y sin el hover:
+   si no, el tamaño del hover falsea la medición del punto de partida. */
+.volando { opacity: 0; pointer-events: none; transform: none; transition: none; }
+.volando .flota { animation: none; }
+
+@keyframes flotar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* La copia que viaja de la esquina al encabezado del chat. */
+.volador { position: fixed; z-index: 60; pointer-events: none; transform-origin: top left; }
+
+/* ── Hospi dentro del encabezado del chat ──
+   OJO: el círculo mide 54 pero tiene 2px de borde, y los hijos se ubican
+   contra el borde INTERNO — el área útil son 50x50, no 54x54. A escala .25 la
+   cara mide 43,5 x 33,25 y queda con 3,25 de aire a cada lado. */
+.retrato {
+  /* Explícito y no heredado del reset global: los 54px tienen que incluir el
+     borde de 2px, porque el encuadre del dibujo está calculado sobre los 50px
+     de área interna. Si un día cambia el reset, esto no se descoloca. */
+  box-sizing: border-box;
+  width: 54px; height: 54px; border-radius: 50%;
+  background: #CCFBF1; border: 2px solid #0F172A;
+  overflow: hidden; position: relative; flex-shrink: 0;
+  opacity: 0; transition: opacity .18s ease;
+}
+.retratoListo { opacity: 1; }
+.retrato .cara {
+  transform: scale(.25) translate(5px, 33.5px);
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flota, .ojo { animation: none; }
+  .burbuja, .retrato { transition: none; }
+}

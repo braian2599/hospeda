@@ -8,6 +8,22 @@ import { requireTenantId, AuthError } from '@/lib/auth/utils';
 import { requireFeatureFlag } from '@/lib/feature-flags-server';
 import { rateLimit, checkBodySize } from '@/lib/validation';
 import { preguntarAsistente, type MensajeAsistente } from '@/lib/ai/asistente';
+import { nombreDeModulo } from '@/lib/ai/sugerencias';
+import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
+
+/**
+ * Traduce el módulo que manda el cliente a su nombre del menú.
+ *
+ * Se valida contra la lista real de módulos y NO se usa el texto que llega:
+ * si se metiera crudo en el prompt, cualquiera con sesión podría inyectarle
+ * instrucciones al asistente desde el cuerpo del pedido.
+ */
+function pantallaValida(crudo: unknown): string | null {
+  if (typeof crudo !== 'string') return null;
+  const ids = [...MODULOS_SISTEMA.map(m => m.id), 'configuracion'] as string[];
+  if (!ids.includes(crudo)) return null;
+  return nombreDeModulo(crudo as ModuloId);
+}
 
 const MAX_MENSAJES_HISTORIAL = 20;
 const MAX_CHARS_POR_MENSAJE = 4000;
@@ -71,10 +87,11 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const historial = validarHistorial(body);
+    const pantalla = pantallaValida((body as { modulo?: unknown })?.modulo);
 
     let respuesta: string;
     try {
-      respuesta = await preguntarAsistente(historial);
+      respuesta = await preguntarAsistente(historial, pantalla);
     } catch (aiError) {
       console.error('POST /api/asistente (Claude):', aiError);
       if (aiError instanceof Anthropic.RateLimitError) {
