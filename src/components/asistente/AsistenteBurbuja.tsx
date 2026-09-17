@@ -25,6 +25,7 @@ import type { MensajeAsistente } from '@/lib/ai/asistente';
 import { crearLector } from '@/lib/ai/asistente-stream';
 import HospiCara from './HospiCara';
 import TextoFormateado from './TextoFormateado';
+import BotonCopiar from './BotonCopiar';
 import estilos from './hospi.module.css';
 
 /** Tope del historial que se manda. El servidor rechaza más de 20. */
@@ -397,19 +398,23 @@ export default function AsistenteBurbuja() {
               ¡Hola! Soy Hospi 👋 ¿En qué puedo ayudarte?
             </div>
           )}
-          {historial.map((m, i) => (
+          {/* Lo que escribe el usuario va tal cual. Lo que contesta Hospi pasa
+              por el formateador (el prompt le pide pasos numerados y negritas,
+              y sin esto se veían los asteriscos crudos) y lleva el botón de
+              copiar: son instrucciones para hacer en otra pantalla. */}
+          {historial.map((m, i) => m.role === 'user' ? (
             <div
               key={i}
-              className={`max-w-[84%] px-3 py-2 text-[13.5px] leading-relaxed rounded-xl ${
-                m.role === 'user'
-                  ? 'self-end bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap'
-                  : 'self-start bg-muted rounded-bl-sm'
-              }`}
+              className="max-w-[84%] self-end rounded-xl rounded-br-sm bg-primary px-3 py-2 text-[13.5px] leading-relaxed whitespace-pre-wrap text-primary-foreground"
             >
-              {/* Lo que escribe el usuario va tal cual. Lo que contesta Hospi
-                  pasa por el formateador: el prompt le pide pasos numerados y
-                  negritas, y sin esto se veían los asteriscos crudos. */}
-              {m.role === 'user' ? m.content : <TextoFormateado texto={m.content} />}
+              {m.content}
+            </div>
+          ) : (
+            <div key={i} className="flex max-w-[84%] flex-col items-start gap-0.5 self-start">
+              <div className="rounded-xl rounded-bl-sm bg-muted px-3 py-2 text-[13.5px] leading-relaxed">
+                <TextoFormateado texto={m.content} />
+              </div>
+              <BotonCopiar texto={m.content} />
             </div>
           ))}
           {parcial && (

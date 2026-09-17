@@ -140,3 +140,27 @@ export function aBloques(texto: string): Bloque[] {
   cerrarParrafo();
   return bloques;
 }
+
+/**
+ * La respuesta en texto llano, para copiar y pegar.
+ *
+ * Sale de los bloques ya parseados y NO del texto original, a propósito: lo
+ * que se copia tiene que ser lo que se ve en pantalla. Copiando el original,
+ * al pegarlo en un WhatsApp aparecerían los asteriscos de las negritas y los
+ * numeritos de las listas quedarían sin sangría.
+ */
+export function aTextoPlano(texto: string): string {
+  const llano = (partes: Trozo[]) => partes.map(p => p.texto).join('');
+
+  return aBloques(texto)
+    .map(b => {
+      if (b.tipo === 'titulo') return llano(b.partes);
+      if (b.tipo === 'lista') {
+        return b.items
+          .map((item, i) => (b.ordenada ? `${b.desde + i}. ` : '• ') + llano(item))
+          .join('\n');
+      }
+      return b.lineas.map(llano).join('\n');
+    })
+    .join('\n\n');
+}
