@@ -23,6 +23,7 @@ import { sugerenciasDe, nombreDeModulo } from '@/lib/ai/sugerencias';
 import type { MensajeAsistente } from '@/lib/ai/asistente';
 import { crearLector } from '@/lib/ai/asistente-stream';
 import HospiCara from './HospiCara';
+import TextoFormateado from './TextoFormateado';
 import estilos from './hospi.module.css';
 
 /** Tope del historial que se manda. El servidor rechaza más de 20. */
@@ -361,18 +362,21 @@ export default function AsistenteBurbuja() {
           {historial.map((m, i) => (
             <div
               key={i}
-              className={`max-w-[84%] px-3 py-2 text-[13.5px] leading-relaxed whitespace-pre-wrap rounded-xl ${
+              className={`max-w-[84%] px-3 py-2 text-[13.5px] leading-relaxed rounded-xl ${
                 m.role === 'user'
-                  ? 'self-end bg-primary text-primary-foreground rounded-br-sm'
+                  ? 'self-end bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap'
                   : 'self-start bg-muted rounded-bl-sm'
               }`}
             >
-              {m.content}
+              {/* Lo que escribe el usuario va tal cual. Lo que contesta Hospi
+                  pasa por el formateador: el prompt le pide pasos numerados y
+                  negritas, y sin esto se veían los asteriscos crudos. */}
+              {m.role === 'user' ? m.content : <TextoFormateado texto={m.content} />}
             </div>
           ))}
           {parcial && (
-            <div className="max-w-[84%] self-start bg-muted rounded-xl rounded-bl-sm px-3 py-2 text-[13.5px] leading-relaxed whitespace-pre-wrap">
-              {parcial}
+            <div className="max-w-[84%] self-start bg-muted rounded-xl rounded-bl-sm px-3 py-2 text-[13.5px] leading-relaxed">
+              <TextoFormateado texto={parcial} />
             </div>
           )}
           {cargando && !parcial && (

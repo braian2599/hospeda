@@ -1,12 +1,13 @@
 // POST /api/asistente
 // Asistente IA (Claude) que guía al dueño del hotel a usar el sistema.
-// Rate limit por tenant porque cada request le pega a una API paga.
+// Cupos por persona y por hotel, porque cada consulta le pega a una API paga.
 
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requireActor, AuthError } from '@/lib/auth/utils';
 import { requireFeatureFlag } from '@/lib/feature-flags-server';
-import { rateLimit, checkBodySize } from '@/lib/validation';
+import { checkBodySize } from '@/lib/validation';
+import { hayCupo } from '@/lib/ai/cupos';
 import { abrirAsistenteEnVivo, ASISTENTE_MODEL, type AsistenteEnVivo, type MensajeAsistente } from '@/lib/ai/asistente';
 import { armarCuerpo, TIPO_CONTENIDO } from '@/lib/ai/asistente-stream';
 import { hayPresupuesto, registrarGasto } from '@/lib/ai/tope-gasto';
@@ -69,7 +70,7 @@ function validarHistorial(body: unknown): MensajeAsistente[] {
 export async function POST(req: NextRequest) {
   try {
     checkBodySize(req, 50_000);
-    const tenantId = await requireTenantId();
+    const { tenantId, actorId } = await requireActor();
 
     // El asistente se vende por plan (Premium y Elite). Se chequea acá y no
     // solo en la pantalla porque cada consulta le pega a una API paga: sin
@@ -77,13 +78,12 @@ export async function POST(req: NextRequest) {
     // requireFeatureFlag lanza AuthError(403), que el catch de abajo traduce.
     await requireFeatureFlag(tenantId, 'asistente');
 
-    // 15 preguntas cada 5 minutos por tenant — alcanza para uso normal
-    // y limita el costo de la API si algo se pone en loop.
-    const rl = await rateLimit(`asistente:${tenantId}`, 15, 5 * 60 * 1000);
-    if (!rl.allowed) {
+    // Cupo por persona y techo por hotel (ver src/lib/ai/cupos.ts).
+    const cupo = await hayCupo(actorId, tenantId);
+    if (!cupo.hay) {
       return NextResponse.json(
-        { error: `Demasiadas consultas. Esperá ${rl.retryAfterSeconds} segundos.` },
-        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+        { error: cupo.mensaje },
+        { status: 429, headers: { 'Retry-After': String(cupo.segundos) } }
       );
     }
 

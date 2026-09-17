@@ -45,6 +45,34 @@ export async function requireTenantId(): Promise<string> {
 }
 
 /**
+ * Quién está preguntando, sin tocar la base de datos.
+ *
+ * Sale todo del JWT. `actorId` identifica el PERFIL, no la cuenta: es lo que
+ * distingue a la recepcionista del turno mañana de la del turno tarde cuando
+ * comparten la misma computadora y el mismo navegador.
+ *
+ * Se usa para poner cupos por persona sin despertar a Postgres. Una consulta
+ * a la BD por cada pregunta al asistente mantendría la base despierta todo el
+ * día, que es justo lo que venimos evitando.
+ */
+export async function requireActor(): Promise<{ tenantId: string; actorId: string }> {
+  const session = await getAuthSession();
+  if (!session?.user?.id) {
+    throw new AuthError('No autenticado', 401);
+  }
+  if (!session.user.tenantId) {
+    throw new AuthError('Sesión expirada. Volvé a ingresar.', 401);
+  }
+  return {
+    tenantId: session.user.tenantId,
+    // Si el perfil no vino (login directo, sin elegir perfil), se cae al id de
+    // la cuenta. Nunca al tenantId solo: eso devolvería todo el hotel a
+    // compartir un único cupo, que es exactamente el problema a arreglar.
+    actorId: session.user.tenantUserId || session.user.id,
+  };
+}
+
+/**
  * Requiere que el usuario sea owner del tenant actual.
  * Lanza AuthError(403) si no es owner o si el tenant está desactivado.
  */
