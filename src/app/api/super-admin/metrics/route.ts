@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resumenDeSuscripcion, origenValido } from '@/lib/suscripcion';
 import { db } from '@/lib/db';
 import { requireSuperAdmin } from '@/lib/super-admin/auth';
 import { handleApiError } from '@/lib/api-error';
@@ -117,22 +118,80 @@ export async function GET() {
       ? Math.round(((ingresosMesActual - ingresosMesPasado) / ingresosMesPasado) * 100)
       : ingresosMesActual > 0 ? 100 : 0;
 
-    // ── Suscripciones próximas a vencer ──
-    const proximasAVencer = await db.subscription.findMany({
-      where: {
-        estado: { in: ['activa', 'trial'] },
-        fechaVencimiento: {
-          gte: now,
-          lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+    // ── Vencimientos: lo que hay que mirar ──
+    //
+    // Esta consulta tenía tres agujeros:
+    //
+    // 1) `gte: now` — solo miraba hacia ADELANTE. Una suscripción que ya
+    //    venció desaparecía de la lista justo cuando más importa: el hotel
+    //    quedó cortado y en el panel no figuraba en ninguna parte.
+    // 2) Solo 'activa' y 'trial'. Una suscripción 'suspensa' (Mercado Pago no
+    //    pudo cobrar) o 'pendiente_pago' tampoco aparecía, y son exactamente
+    //    las que hay que salir a resolver.
+    // 3) No distinguía si se renueva sola. Una suscripción recurrente de
+    //    Mercado Pago no necesita que nadie haga nada, pero ocupaba un lugar
+    //    en la lista y enterraba a las que sí.
+    const DIAS_ATRAS = 30;
+    const DIAS_ADELANTE = 7;
+    const ventana = {
+      gte: new Date(now.getTime() - DIAS_ATRAS * 86400000),
+      lte: new Date(now.getTime() + DIAS_ADELANTE * 86400000),
+    };
+    const ESTADOS_A_MIRAR = ['activa', 'trial', 'vencida', 'suspensa', 'pendiente_pago'];
+
+    const [enVentana, totalEnVentana] = await Promise.all([
+      db.subscription.findMany({
+        where: { estado: { in: ESTADOS_A_MIRAR }, fechaVencimiento: ventana },
+        include: {
+          tenant: { select: { nombre: true, email: true } },
+          plan: { select: { nombre: true, type: true } },
         },
-      },
-      include: {
-        tenant: { select: { nombre: true, email: true } },
-        plan: { select: { nombre: true, type: true } },
-      },
-      orderBy: { fechaVencimiento: 'asc' },
-      take: 10,
-    });
+        orderBy: { fechaVencimiento: 'asc' },
+        take: 50,
+      }),
+      db.subscription.count({
+        where: { estado: { in: ESTADOS_A_MIRAR }, fechaVencimiento: ventana },
+      }),
+    ]);
+
+    const vencimientos = enVentana
+      .map(s => {
+        // El MISMO resumen que ve el dueño del hotel en su pantalla de
+        // Suscripción (src/lib/suscripcion.ts). Compartirlo es a propósito: no
+        // puede pasar que el panel diga una cosa y el hotel vea otra.
+        const resumen = resumenDeSuscripcion({
+          origen: origenValido(s.origen),
+          estado: s.estado,
+          vencimiento: s.fechaVencimiento.toISOString(),
+          seRenuevaSola: !!s.esRecurrente && !!s.mpPreapprovalId,
+          proximoCobro: s.proximoCobro?.toISOString() || null,
+        }, now);
+        return {
+          tenantId: s.tenantId,
+          tenantNombre: s.tenant.nombre,
+          tenantEmail: s.tenant.email,
+          planNombre: s.plan.nombre,
+          planType: s.plan.type,
+          origen: origenValido(s.origen),
+          comoLoTiene: resumen.comoLoTiene,
+          queVaAPasar: resumen.queVaAPasar,
+          estado: s.estado,
+          renuevaSola: resumen.renuevaSola,
+          vencida: resumen.vencida,
+          fechaVencimiento: s.fechaVencimiento.toISOString(),
+          // A diferencia del resumen que ve el hotel, acá el número va en
+          // NEGATIVO cuando ya venció: "hace 3 días" es el dato que hace falta
+          // para saber a quién llamar primero.
+          diasRestantes: Math.ceil((s.fechaVencimiento.getTime() - now.getTime()) / 86400000),
+          // Lo que se renueva solo no necesita que nadie haga nada.
+          requiereAccion: !resumen.renuevaSola,
+        };
+      })
+      // Primero lo que hay que resolver, y dentro de eso lo más urgente.
+      .sort((a, b) => {
+        if (a.requiereAccion !== b.requiereAccion) return a.requiereAccion ? -1 : 1;
+        return a.diasRestantes - b.diasRestantes;
+      });
 
     // ── Tenants más recientes ──
     const tenantsRecientes = await db.tenant.findMany({
@@ -177,15 +236,15 @@ export async function GET() {
         porMes: Object.values(subsPorMes),
       },
       alertas: {
-        proximasAVencer: proximasAVencer.map(s => ({
-          tenantId: s.tenantId,
-          tenantNombre: s.tenant.nombre,
-          tenantEmail: s.tenant.email,
-          planNombre: s.plan.nombre,
-          planType: s.plan.type,
-          fechaVencimiento: s.fechaVencimiento.toISOString(),
-          diasRestantes: Math.ceil((s.fechaVencimiento.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
-        })),
+        vencimientos,
+        /** Cuántas necesitan que alguien haga algo. Es el número que importa. */
+        requierenAccion: vencimientos.filter(v => v.requiereAccion).length,
+        /** Ya vencidas: el hotel está cortado ahora mismo. */
+        yaVencidas: vencimientos.filter(v => v.vencida).length,
+        /** Total en la ventana, para saber si la lista quedó recortada. */
+        totalEnVentana,
+        diasAtras: DIAS_ATRAS,
+        diasAdelante: DIAS_ADELANTE,
       },
       ultimosPagos,
       tenantsRecientes,

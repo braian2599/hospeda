@@ -48,15 +48,28 @@ interface MetricsData {
     }[];
   };
   alertas: {
-    proximasAVencer: {
+    vencimientos: {
       tenantId: string;
       tenantNombre: string;
       tenantEmail: string;
       planNombre: string;
       planType: string;
+      origen: string;
+      comoLoTiene: string;
+      queVaAPasar: string;
+      estado: string;
+      renuevaSola: boolean;
+      vencida: boolean;
       fechaVencimiento: string;
+      /** Negativo cuando ya venció. */
       diasRestantes: number;
+      requiereAccion: boolean;
     }[];
+    requierenAccion: number;
+    yaVencidas: number;
+    totalEnVentana: number;
+    diasAtras: number;
+    diasAdelante: number;
   };
   ultimosPagos: {
     id: string;
@@ -79,6 +92,92 @@ interface MetricsData {
       plan: { nombre: string };
     } | null;
   }[];
+}
+
+// ─── Tabla de vencimientos ───
+
+type FilaVencimiento = MetricsData['alertas']['vencimientos'][number];
+
+/** Cómo consiguió el plan. La cortesía se marca distinto: nadie pagó por ella. */
+function BadgeOrigen({ fila }: { fila: FilaVencimiento }) {
+  const esCortesia = fila.origen === 'cortesia';
+  return (
+    <Badge
+      variant="outline"
+      className={esCortesia ? 'border-[#F59E0B80] text-warning' : undefined}
+    >
+      {fila.comoLoTiene}
+    </Badge>
+  );
+}
+
+/**
+ * Los días, en palabras.
+ *
+ * "-3d" no se entiende de un vistazo, y en esta tabla el signo es justamente
+ * la diferencia entre "hay tiempo" y "el hotel está cortado ahora mismo".
+ */
+function cuantoFalta(dias: number): string {
+  if (dias < 0) return `hace ${Math.abs(dias)} ${Math.abs(dias) === 1 ? 'día' : 'días'}`;
+  if (dias === 0) return 'hoy';
+  if (dias === 1) return 'mañana';
+  return `en ${dias} días`;
+}
+
+function TablaVencimientos({ filas, vacio }: { filas: FilaVencimiento[]; vacio: string }) {
+  if (filas.length === 0) {
+    return vacio ? <p className="text-sm text-muted-foreground text-center py-4">{vacio}</p> : null;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Hotel</TableHead>
+            <TableHead className="hidden md:table-cell">Email</TableHead>
+            <TableHead>Plan</TableHead>
+            <TableHead>Cómo lo tiene</TableHead>
+            <TableHead>Vence</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filas.map((t) => (
+            <TableRow key={t.tenantId} className={t.vencida ? 'bg-[#EF444410]' : undefined}>
+              <TableCell className="font-medium">
+                {t.tenantNombre}
+                {t.vencida && (
+                  <span className="block text-xs font-normal text-destructive">
+                    Cortado: no puede cargar reservas ni abrir la caja
+                  </span>
+                )}
+              </TableCell>
+              <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                {t.tenantEmail}
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline">{t.planNombre}</Badge>
+              </TableCell>
+              <TableCell>
+                <BadgeOrigen fila={t} />
+                {!t.renuevaSola && !t.vencida && (
+                  <span className="block text-xs text-muted-foreground mt-0.5">no se renueva sola</span>
+                )}
+              </TableCell>
+              <TableCell className="text-sm whitespace-nowrap">
+                <span className={t.vencida ? 'text-destructive font-medium' : undefined}>
+                  {cuantoFalta(t.diasRestantes)}
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {formatDate(t.fechaVencimiento)}
+                </span>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }
 
 // ─── Helpers ───
@@ -297,16 +396,28 @@ export default function SuperAdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* ─── Próximos a vencer ─── */}
-      <Card>
+      {/* ─── Vencimientos ───
+          La lista se parte en dos a propósito. Arriba lo que necesita que
+          alguien haga algo; abajo, plegado, lo que se cobra solo. Antes iba
+          todo mezclado y una suscripción recurrente de Mercado Pago —que no
+          requiere nada— ocupaba lugar y enterraba a una cortesía que estaba
+          por cortarle el sistema a un hotel. */}
+      <Card className={data && data.alertas.yaVencidas > 0 ? 'border-destructive' : undefined}>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-warning" />
-            <CardTitle className="text-base">Próximos a vencer</CardTitle>
-            <Badge variant="secondary" className="ml-auto">
-              {data?.alertas.proximasAVencer.length ?? 0}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Clock className={`w-4 h-4 ${data && data.alertas.requierenAccion > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
+            <CardTitle className="text-base">Vencimientos</CardTitle>
+            {data && data.alertas.yaVencidas > 0 && (
+              <Badge variant="destructive">{data.alertas.yaVencidas} ya cortado{data.alertas.yaVencidas === 1 ? '' : 's'}</Badge>
+            )}
+            <Badge variant={data && data.alertas.requierenAccion > 0 ? 'default' : 'secondary'} className="ml-auto">
+              {data?.alertas.requierenAccion ?? 0} por resolver
             </Badge>
           </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Últimos {data?.alertas.diasAtras ?? 30} días y próximos {data?.alertas.diasAdelante ?? 7}.
+            Lo que se cobra solo va aparte, abajo.
+          </p>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -315,47 +426,35 @@ export default function SuperAdminDashboard() {
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
-          ) : data && data.alertas.proximasAVencer.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Hotel</TableHead>
-                    <TableHead className="hidden sm:table-cell">Email</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead>Vencimiento</TableHead>
-                    <TableHead className="text-right">Días</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.alertas.proximasAVencer.map((t) => (
-                    <TableRow key={t.tenantId}>
-                      <TableCell className="font-medium">{t.tenantNombre}</TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                        {t.tenantEmail}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{t.planNombre}</Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDate(t.fechaVencimiento)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge
-                          variant={t.diasRestantes <= 2 ? 'destructive' : 'secondary'}
-                        >
-                          {t.diasRestantes}d
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
+          ) : !data || data.alertas.vencimientos.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">
-              No hay suscripciones próximas a vencer en los próximos 7 días.
+              Ningún vencimiento en la ventana. Nada que resolver.
             </p>
+          ) : (
+            <div className="space-y-5">
+              <TablaVencimientos
+                filas={data.alertas.vencimientos.filter(v => v.requiereAccion)}
+                vacio="Nada por resolver: todo lo que vence en esta ventana se cobra solo."
+              />
+
+              {data.alertas.vencimientos.some(v => !v.requiereAccion) && (
+                <details className="group">
+                  <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+                    {data.alertas.vencimientos.filter(v => !v.requiereAccion).length} se renuevan solas
+                    {' '}(no hace falta hacer nada) — ver
+                  </summary>
+                  <div className="mt-3">
+                    <TablaVencimientos filas={data.alertas.vencimientos.filter(v => !v.requiereAccion)} vacio="" />
+                  </div>
+                </details>
+              )}
+
+              {data.alertas.totalEnVentana > data.alertas.vencimientos.length && (
+                <p className="text-xs text-muted-foreground">
+                  Se muestran {data.alertas.vencimientos.length} de {data.alertas.totalEnVentana}.
+                </p>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

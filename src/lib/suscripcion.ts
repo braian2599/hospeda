@@ -65,12 +65,21 @@ export interface ResumenSuscripcion {
   vencida: boolean;
 }
 
-/** Días completos que faltan. 0 cuando la fecha ya pasó. */
-export function diasHasta(fechaISO: string | null): number | null {
+/**
+ * Días completos que faltan. 0 cuando la fecha ya pasó.
+ *
+ * `ahora` se puede pasar a propósito: quien calcula varias suscripciones de
+ * una sola vez —el panel de la plataforma— necesita que todas se midan contra
+ * el MISMO instante. Leyendo el reloj por dentro, una fila podía dar "vencida"
+ * y el número de días de la misma fila calcularse con un reloj distinto unos
+ * milisegundos después. Y sin esto no se puede probar el borde exacto del
+ * vencimiento, que es justo el que importa.
+ */
+export function diasHasta(fechaISO: string | null, ahora: Date = new Date()): number | null {
   if (!fechaISO) return null;
   const fecha = new Date(fechaISO);
   if (Number.isNaN(fecha.getTime())) return null;
-  return Math.max(0, Math.ceil((fecha.getTime() - Date.now()) / 86_400_000));
+  return Math.max(0, Math.ceil((fecha.getTime() - ahora.getTime()) / 86_400_000));
 }
 
 function comoFecha(fechaISO: string | null): string {
@@ -89,8 +98,8 @@ const ESTADOS_CAIDOS = new Set(['vencida', 'cancelada', 'suspensa', 'pendiente_p
  * aunque falten dos meses. Es la diferencia entre "ya está resuelto" y "acordate
  * de hacer algo", y es exactamente lo que el sistema no decía.
  */
-export function resumenDeSuscripcion(s: Suscripcion): ResumenSuscripcion {
-  const dias = diasHasta(s.vencimiento);
+export function resumenDeSuscripcion(s: Suscripcion, ahora: Date = new Date()): ResumenSuscripcion {
+  const dias = diasHasta(s.vencimiento, ahora);
   const fecha = comoFecha(s.vencimiento);
   const comoLoTiene = NOMBRE_ORIGEN[s.origen];
   const caido = ESTADOS_CAIDOS.has(s.estado);
