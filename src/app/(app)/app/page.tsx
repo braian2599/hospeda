@@ -23,6 +23,7 @@ import { Menu } from 'lucide-react';
 import ProfileSettings from '@/components/layout/ProfileSettings';
 import CommandPalette from '@/components/layout/CommandPalette';
 import ModuleLockedDialog from '@/components/subscription/ModuleLockedDialog';
+import TrialBanner from '@/components/subscription/TrialBanner';
 import PaymentResultBanner from '@/components/payments/PaymentResultBanner';
 import AvisosDialog from '@/components/avisos/AvisosDialog';
 import AsistenteBurbuja from '@/components/asistente/AsistenteBurbuja';
@@ -116,6 +117,14 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <Suspense fallback={null}>
           <PaymentResultBanner />
         </Suspense>
+
+        {/* Estado del plan / cuenta regresiva de la prueba.
+            Va pegado arriba de todo porque un hotel en prueba tiene que
+            enterarse de que se le vence MIENTRAS trabaja. Hasta ahora los días
+            restantes solo estaban adentro de Configuración → Suscripción, y el
+            único aviso que saltaba solo era el de "Prueba vencida": llegaba
+            cuando el hotel ya se había quedado afuera. */}
+        <TrialBanner />
 
         {/* Quick stats bar — mobile only, above the mobile header */}
         {usuarioActual && <QuickStatsBar />}

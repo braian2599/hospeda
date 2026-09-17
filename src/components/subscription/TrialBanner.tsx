@@ -1,5 +1,22 @@
 'use client';
 
+// Barra de estado del plan, arriba de todo.
+//
+// Existe porque hasta ahora un hotel en prueba no se enteraba de nada
+// mientras trabajaba: los días restantes solo estaban adentro de
+// Configuración → Suscripción, y el único aviso que saltaba solo era el de
+// "Prueba vencida" — cuando ya se había quedado afuera.
+//
+// QUIÉN VE QUÉ, y por qué:
+// - La cuenta regresiva la ve TODO el mundo. Que el sistema deje de andar en
+//   tres días le importa igual a la recepcionista del turno noche.
+// - El botón de pagar lo ve SOLO el dueño. Todos los endpoints de pago exigen
+//   ser owner (ni el administrador pasa), así que a cualquier otro el botón
+//   lo llevaría a un 403. En vez del botón, se le dice a quién avisarle.
+// - La línea del plan pago (nombre y precio) la ve solo el dueño. Al resto no
+//   le sirve de nada y no hace falta que el personal sepa cuánto paga el
+//   hotel por mes.
+
 import { useState } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { diasRestantesTrial, trialVencido, proximoPlan, getPlanInfo, type PlanTipo } from '@/lib/plan-config';
@@ -36,14 +53,19 @@ export default function TrialBanner() {
 
   if (!usuarioActual || !fechaVencimientoTrial || dismissed) return null;
 
+  // Solo el dueño puede pagar: requireOwner() en todos los endpoints de pago.
+  const esDuenio = usuarioActual.rol === 'owner';
+
   // Resuelve BD → tabla estática. Si ni así se conoce el plan, no se muestra
   // la barra: antes se indexaba directo (plans[planActual].nombre) y un plan
   // que no estuviera en la lista rompía el render de toda la app.
   const planInfo = getPlanInfo(planActual, plans);
   if (!planInfo) return null;
 
-  // If plan is not trial and not expired, show a small plan indicator
+  // Plan pago: una línea discreta con el plan y el precio. Solo para el dueño
+  // (ver el encabezado del archivo).
   if (planActual !== 'trial') {
+    if (!esDuenio) return null;
     return (
       <>
         <div className="flex items-center justify-between px-4 py-1.5 bg-[#F1F5F980] border-b border-border text-xs text-muted-foreground">
@@ -55,11 +77,15 @@ export default function TrialBanner() {
             Cambiar plan
           </Button>
         </div>
-        <CheckoutDialog
-          open={checkoutOpen}
-          onOpenChange={setCheckoutOpen}
-          selectedPlan={selectedPlan}
-        />
+        {/* Solo se monta para quien puede pagar: así el resto del personal ni
+            siquiera se baja el paquete del checkout. */}
+        {esDuenio && (
+          <CheckoutDialog
+            open={checkoutOpen}
+            onOpenChange={setCheckoutOpen}
+            selectedPlan={selectedPlan}
+          />
+        )}
       </>
     );
   }
@@ -78,18 +104,24 @@ export default function TrialBanner() {
               Tu prueba gratuita venció
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Elegí un plan para seguir usando Hospi con todos los módulos.
+              {esDuenio
+                ? 'Elegí un plan para seguir usando Hospi con todos los módulos.'
+                : 'Avisale al dueño del hotel para que elija un plan.'}
             </p>
           </div>
-          <Button size="sm" className="shrink-0" onClick={handleUpgrade}>
-            Elegir plan
-          </Button>
+          {esDuenio && (
+            <Button size="sm" className="shrink-0" onClick={handleUpgrade}>
+              Elegir plan
+            </Button>
+          )}
         </div>
-        <CheckoutDialog
-          open={checkoutOpen}
-          onOpenChange={setCheckoutOpen}
-          selectedPlan={selectedPlan}
-        />
+        {esDuenio && (
+          <CheckoutDialog
+            open={checkoutOpen}
+            onOpenChange={setCheckoutOpen}
+            selectedPlan={selectedPlan}
+          />
+        )}
       </>
     );
   }
@@ -122,23 +154,29 @@ export default function TrialBanner() {
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {urgencia
-              ? 'Tu prueba está por vencer. Upgradeá a un plan para no perder acceso.'
-              : 'Disfrutá todos los módulos. Upgradeá cuando quieras.'
+            {esDuenio
+              ? (urgencia
+                  ? 'Tu prueba está por vencer. Elegí un plan para no perder el acceso.'
+                  : 'Disfrutá todos los módulos. Podés elegir un plan cuando quieras.')
+              : (urgencia
+                  ? 'La prueba del hotel está por vencer. Avisale al dueño.'
+                  : 'El hotel está usando la prueba gratuita.')
             }
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <Button
-            variant={urgencia ? 'default' : 'outline'}
-            size="sm"
-            className="h-7 text-xs"
-            onClick={handleUpgrade}
-          >
-            <Sparkles className="w-3 h-3 mr-1" />
-            {urgencia ? 'Suscribirme' : 'Upgrade'}
-          </Button>
+          {esDuenio && (
+            <Button
+              variant={urgencia ? 'default' : 'outline'}
+              size="sm"
+              className="h-7 text-xs"
+              onClick={handleUpgrade}
+            >
+              <Sparkles className="w-3 h-3 mr-1" />
+              {urgencia ? 'Suscribirme' : 'Elegir plan'}
+            </Button>
+          )}
           <button
             onClick={() => setDismissed(true)}
             className="p-1 rounded-md hover:bg-accent transition-colors"
@@ -149,11 +187,13 @@ export default function TrialBanner() {
         </div>
       </div>
 
-      <CheckoutDialog
-        open={checkoutOpen}
-        onOpenChange={setCheckoutOpen}
-        selectedPlan={selectedPlan}
-      />
+      {esDuenio && (
+        <CheckoutDialog
+          open={checkoutOpen}
+          onOpenChange={setCheckoutOpen}
+          selectedPlan={selectedPlan}
+        />
+      )}
     </>
   );
 }
