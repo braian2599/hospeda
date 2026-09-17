@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireOwner, AuthError } from '@/lib/auth/utils';
 import { syncCanalExterno } from '@/lib/ical-sync';
+import { olvidarQueNoHayCanales } from '@/lib/ical-portero';
 
 // PATCH /api/integraciones/canales/[id] — Actualizar importUrl y/o sincronizar
 export async function PATCH(
@@ -19,6 +20,9 @@ export async function PATCH(
 
     if (importUrl !== undefined) {
       await db.canalExterno.update({ where: { id }, data: { importUrl: importUrl.trim() || null } });
+      // Cargar la URL de importación es lo que vuelve sincronizable al canal:
+      // se borra la marca de "no hay canales" para que el cron lo tome ya.
+      await olvidarQueNoHayCanales();
       canal.importUrl = importUrl.trim() || null;
     }
 

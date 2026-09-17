@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requireOwner, AuthError } from '@/lib/auth/utils';
 import { requireFeatureFlag } from '@/lib/feature-flags-server';
 import type { FeatureFlag } from '@/lib/feature-flags';
+import { olvidarQueNoHayCanales } from '@/lib/ical-portero';
 
 const CANAL_FLAG: Record<string, FeatureFlag> = {
   booking: 'bookingSync',
@@ -73,6 +74,11 @@ export async function POST(req: NextRequest) {
     const created = await db.canalExterno.create({
       data: { tenantId, habitacion: habitacion.trim(), canal },
     });
+
+    // El cron de iCal se guarda en Redis que "no hay canales" para no
+    // despertar la base por gusto. Ahora sí hay uno: se borra esa marca para
+    // que la próxima corrida lo mire, sin esperar a que expire el TTL.
+    await olvidarQueNoHayCanales();
 
     return NextResponse.json({
       id: created.id,
