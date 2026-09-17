@@ -248,6 +248,8 @@ interface HotelStore {
   // Auth
   loginFromSession: (sessionData: Record<string, any>, options?: { skipAudit?: boolean }) => Promise<boolean>;
   logout: () => void;
+  /** Refresca los avisos ya vistos tras cerrar la ventana de bienvenida/novedades. */
+  setAvisosVistos: (avisosVistos: Record<string, number>) => void;
 
   // Auditoria
   _registrarAuditoria: (tipo: string, detalle: string) => void;
@@ -448,6 +450,7 @@ export const useHotelStore = create<HotelStore>()(
           tenantId: sessionData.tenantId,
           tenantNombre: sessionData.tenantNombre,
           email: sessionData.email,
+          avisosVistos: sessionData.avisosVistos || {},
         };
         // Apply start module preference (from store, in memory only)
         const isFullAccess = sesion.rol === 'owner' || sesion.rol === 'admin';
@@ -476,6 +479,12 @@ export const useHotelStore = create<HotelStore>()(
         // NOTA: syncFromServer debe llamarse DESPUÉS de actualizar el JWT,
         // no aquí, para evitar race condition con las API routes.
         return true;
+      },
+
+      setAvisosVistos: (avisosVistos) => {
+        const { usuarioActual } = get();
+        if (!usuarioActual) return;
+        set({ usuarioActual: { ...usuarioActual, avisosVistos } });
       },
 
       logout: () => {

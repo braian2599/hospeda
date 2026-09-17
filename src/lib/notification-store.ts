@@ -37,6 +37,13 @@ export interface Notification {
   /** If true, notification survives auto-dismiss and page reload */
   persisted: boolean;
   /**
+   * Clave estable para no duplicar. Si ya hay una notificacion con esta
+   * misma clave, la nueva se descarta. La usan los avisos de novedades, que
+   * se muestran en dos inicios de sesion distintos y no tienen que dejar dos
+   * entradas iguales en la campanita.
+   */
+  clave?: string;
+  /**
    * El usuario tuvo el panel abierto con esta notificacion adentro. A partir
    * de ahi NUNCA se descarta sola: solo se va si la borra a mano.
    * No la setea quien crea la notificacion — la marca el store.
@@ -278,6 +285,9 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
   },
 
   addNotification: (n) => {
+    // Misma clave = misma notificacion. No se duplica ni se reordena.
+    if (n.clave && get().notifications.some(x => x.clave === n.clave)) return;
+
     const id = `notif-${++nextId}-${Date.now()}`;
     const panelAbierto = get().panelAbierto;
     const notification: Notification = {

@@ -182,6 +182,9 @@ model TenantUser {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   password       String?
+  // Cuantas veces vio cada aviso de inicio de sesion (bienvenida y novedades).
+  // Clave = id del aviso, valor = veces mostradas. Ver src/lib/avisos.ts.
+  avisosVistos   Json      @default("{}")
 
   tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)

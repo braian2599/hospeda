@@ -24,6 +24,7 @@ import ProfileSettings from '@/components/layout/ProfileSettings';
 import CommandPalette from '@/components/layout/CommandPalette';
 import ModuleLockedDialog from '@/components/subscription/ModuleLockedDialog';
 import PaymentResultBanner from '@/components/payments/PaymentResultBanner';
+import AvisosDialog from '@/components/avisos/AvisosDialog';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 
 const modules: Partial<Record<ModuloId, React.ComponentType>> = {
@@ -54,6 +55,7 @@ export default function AppPage() {
           <ConfiguracionModule />
         </ModuleErrorBoundary>
         <ModuleLockedDialog />
+        <AvisosDialog />
       </AppShell>
     );
   }
@@ -110,6 +112,7 @@ export default function AppPage() {
       <ProfileSettings open={perfilOpen} onOpenChange={setPerfilOpen} />
       <CommandPalette />
       <ModuleLockedDialog />
+      <AvisosDialog />
     </AppShell>
   );
 }

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/config';
 import { db } from '@/lib/db';
 import { rateLimit } from '@/lib/validation';
 import bcrypt from 'bcryptjs';
+import { parseAvisosVistos } from '@/lib/avisos';
 
 // GET /api/auth/me
 export async function GET(req: NextRequest) {
@@ -148,6 +149,10 @@ function buildSessionResponse(user: any, tenantUser: any) {
     fechaInicioTrial: subscription?.fechaInicio?.toISOString() || new Date().toISOString(),
     subscriptionEstado: subscription?.estado || 'trial',
     subscriptionVencimiento: subscription?.fechaVencimiento?.toISOString() || null,
+    // Avisos de inicio de sesion. Viaja en esta respuesta, que ya se hace al
+    // entrar: no agrega ni una consulta. La consulta usa include sin select,
+    // asi que la columna viene sola.
+    avisosVistos: parseAvisosVistos(tenantUser.avisosVistos),
     needsPassword,
   });
 }

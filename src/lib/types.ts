@@ -148,6 +148,8 @@ export interface UsuarioSesion {
   tenantId?: string;
   tenantNombre?: string;
   email?: string;
+  /** Veces que este usuario vio cada aviso de inicio de sesion. Ver src/lib/avisos.ts. */
+  avisosVistos?: Record<string, number>;
 }
 
 export interface Gasto {
