@@ -31,6 +31,10 @@ export async function GET(req: NextRequest) {
   // la base (ver src/lib/expiracion.ts). Ante cualquier duda, se barre igual.
   const ahora = Date.now();
   const decision = await hayQueBarrer(ahora);
+  // Queda en los logs de Vercel a propósito: es la única forma de saber, desde
+  // afuera, por qué este cron despertó (o no) a Postgres. Sin esto hay que
+  // adivinar mirando el contador de Neon.
+  console.log(`[cron/expirar-reservas] barrer=${decision.barrer} motivo=${decision.motivo}`);
   if (!decision.barrer) {
     return NextResponse.json({ canceladas: 0, barrido: false, motivo: decision.motivo });
   }

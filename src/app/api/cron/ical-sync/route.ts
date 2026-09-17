@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
   // con eso la base no duerme nunca. Ver src/lib/ical-portero.ts.
   // Falla abierto: sin Redis o con Redis caído, se sincroniza igual que antes.
   const decision = await hayQueSincronizar();
+  console.log(`[cron/ical-sync] sincronizar=${decision.sincronizar} motivo=${decision.motivo}`);
   if (!decision.sincronizar) {
     return NextResponse.json({
       procesados: 0,
