@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import * as Icons from 'lucide-react';
 import { useHotelStore } from '@/lib/store';
 import { useNotificationStore } from '@/lib/notification-store';
-import { modulosEfectivos, moduloDisponible } from '@/lib/plan-config';
+import { modulosVisiblesPara } from '@/lib/plan-config';
 import { MODULOS_SISTEMA } from '@/lib/types';
 import {
   avisoParaMostrar,
@@ -101,16 +101,8 @@ export default function AvisosDialog() {
   // Módulos que este hotel REALMENTE tiene: no se le prometen los de un plan
   // que no contrató.
   const grupos = useMemo(() => {
-    // Mismo calculo que hace la pantalla para armar el menu (ver app/page.tsx):
-    // owner y admin no tienen todos los modulos listados en permisos, asi que
-    // para ellos manda el plan. Con modulosEfectivos a secas la bienvenida les
-    // escondia modulos que si tienen.
-    const esDueño = usuarioActual?.rol === 'owner' || usuarioActual?.rol === 'admin';
-    const disponibles = esDueño
-      ? MODULOS_SISTEMA.map(m => m.id).filter(id => moduloDisponible(id, planActual, planes))
-      : modulosEfectivos(usuarioActual?.permisos || [], planActual, planes);
-    return gruposDeBienvenida(disponibles);
-  }, [planActual, planes, usuarioActual?.permisos, usuarioActual?.rol]);
+    return gruposDeBienvenida(modulosVisiblesPara(usuarioActual, planActual, planes));
+  }, [planActual, planes, usuarioActual]);
 
   const cerrar = useCallback(async () => {
     setCerrado(true);

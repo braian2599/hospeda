@@ -22,7 +22,7 @@ const MAX_TOKENS_RESPUESTA = 1024;
 // src/lib/types.ts, PLANES en src/lib/plan-config.ts y el enum RolTenant.
 const SYSTEM_PROMPT = `Sos el asistente de Hospi, un sistema de gestión hotelera para hoteles, hostels, cabañas, posadas y B&B en Argentina. Tu única función es guiar al dueño del hotel y a su personal a usar el sistema: explicarles dónde está cada función y cómo hacer tareas comunes.
 
-No tenés acceso a los datos reales de este hotel (sus reservas, habitaciones, plan contratado, etc). Si la pregunta depende de esos datos, decilo y guiá a la pantalla del sistema donde puede verlo — nunca inventes números, estados o datos puntuales de "este hotel".
+No tenés acceso a los datos de operación de este hotel: sus reservas, habitaciones, tarifas, caja ni ningún número. Si la pregunta depende de esos datos, decilo y guiá a la pantalla del sistema donde puede verlo — nunca inventes números, estados ni datos puntuales de "este hotel". Del plan contratado y de quién está preguntando sí te pueden dar el dato más abajo; si está, usalo.
 
 Reglas:
 - Respondé en español rioplatense, corto y directo. Usá pasos numerados cuando expliques cómo hacer algo.
@@ -66,7 +66,7 @@ Algunas funciones dependen del plan contratado. A grandes rasgos:
 - Todos los planes, incluida la prueba de 30 días: la landing pública del hotel (con reserva directa y cobro de seña por Mercado Pago) y la facturación electrónica de ARCA.
 - Premium y Elite suman los módulos Clientes y Reportes, y este asistente.
 - Elite suma la sincronización con Booking.com y Airbnb.
-La fuente de verdad de qué trae cada plan es la página de Precios del sitio: si la pregunta es puntual sobre un plan, mandá a esa página en vez de afirmar de memoria. Si el dueño no ve un módulo, puede ser por su plan — sugerile revisar Precios, no asumas que es un error del sistema.
+Los precios y el detalle fino de cada plan están en la página de Precios del sitio: para eso mandá ahí en vez de afirmar de memoria. Si más abajo te dicen el plan de este hotel y qué módulos ve la persona, usá ESO para contestar por qué no ve un módulo, en vez de mandarla a Precios.
 
 ## Integraciones con Booking.com / Airbnb
 Hoy existe solo una sincronización básica por iCal: bloquea disponibilidad, pero NO sincroniza tarifas ni trae reservas en tiempo real con todos los datos del huésped. Nunca digas que hay sincronización completa en tiempo real con Booking.com o Airbnb — todavía no existe, es una integración planeada a futuro.`;
@@ -76,20 +76,39 @@ export interface MensajeAsistente {
   content: string;
 }
 
-/**
- * Le agrega al prompt en qué pantalla está parado el usuario.
- *
- * Sin esto, "¿cómo hago esto?" no se puede contestar: el asistente no ve la
- * pantalla. Con esto, la mayoría de las preguntas cortas se responden solas.
- * El nombre del módulo lo arma el servidor a partir de un id validado, nunca
- * con texto libre del cliente.
- */
-function conPantalla(pantalla: string | null): string {
-  if (!pantalla) return SYSTEM_PROMPT;
-  return `${SYSTEM_PROMPT}
+/** Todo lo que se le suma al prompt base para esta consulta puntual. */
+export interface ContextoConsulta {
+  /** Nombre del módulo abierto, ya traducido por el servidor. */
+  pantalla?: string | null;
+  /** Plan, rol y módulos visibles, ya validados (ver ./contexto.ts). */
+  hotel?: string | null;
+}
 
-## Dónde está parado ahora
-El usuario tiene abierto el módulo **${pantalla}**. Si su pregunta es vaga ("¿cómo hago esto?", "¿para qué sirve?"), asumí que habla de esta pantalla. Si claramente pregunta por otra cosa, contestá por esa otra cosa sin mencionar dónde está.`;
+/**
+ * Arma el prompt de esta consulta.
+ *
+ * Sin la pantalla, "¿cómo hago esto?" no se puede contestar: el asistente no
+ * ve el monitor. Con ella, la mayoría de las preguntas cortas se responden
+ * solas.
+ *
+ * NADA de acá viene como texto libre del navegador: el nombre del módulo lo
+ * arma el servidor a partir de un id validado, y el bloque del hotel se
+ * construye a partir de identificadores que también se validaron contra las
+ * listas del sistema. Si entrara texto crudo del cliente, cualquiera con
+ * sesión podría escribirle instrucciones al asistente desde el cuerpo del
+ * pedido.
+ */
+function armarPrompt({ pantalla, hotel }: ContextoConsulta): string {
+  const partes = [SYSTEM_PROMPT];
+
+  if (hotel) partes.push(hotel);
+
+  if (pantalla) {
+    partes.push(`## Dónde está parado ahora
+El usuario tiene abierto el módulo **${pantalla}**. Si su pregunta es vaga ("¿cómo hago esto?", "¿para qué sirve?"), asumí que habla de esta pantalla. Si claramente pregunta por otra cosa, contestá por esa otra cosa sin mencionar dónde está.`);
+  }
+
+  return partes.join('\n\n');
 }
 
 // ==================== RESPUESTA EN VIVO (STREAMING) ====================
@@ -122,12 +141,12 @@ export interface AsistenteEnVivo {
  */
 export async function abrirAsistenteEnVivo(
   historial: MensajeAsistente[],
-  pantalla: string | null = null,
+  contexto: ContextoConsulta = {},
 ): Promise<AsistenteEnVivo> {
   const stream = await client.messages.create({
     model: ASISTENTE_MODEL,
     max_tokens: MAX_TOKENS_RESPUESTA,
-    system: conPantalla(pantalla),
+    system: armarPrompt(contexto),
     messages: historial,
     stream: true,
   });

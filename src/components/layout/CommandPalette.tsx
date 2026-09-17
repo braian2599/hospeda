@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useHotelStore } from '@/lib/store';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
-import { modulosEfectivos } from '@/lib/plan-config';
+import { modulosVisiblesPara } from '@/lib/plan-config';
 import { useGlobalSearch } from '@/hooks/use-global-search';
 import { Search, CornerDownLeft, Lock, LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, Users, BarChart3, UserCog, Tags, Settings } from 'lucide-react';
 
@@ -99,10 +99,9 @@ export default function CommandPalette() {
   const commands = useMemo<CommandItem[]>(() => {
     if (!usuarioActual) return [];
     const isFullAccess = usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin';
-    const efectivos = isFullAccess
-      ? MODULOS_SISTEMA.map(m => m.id)
-      : modulosEfectivos(usuarioActual.permisos, planActual, planes);
-    const efectivosSet = new Set(efectivos);
+    // Antes acá al dueño no se le filtraba por plan, así que la paleta le
+    // ofrecía módulos que la pantalla después le bloqueaba.
+    const efectivosSet = new Set(modulosVisiblesPara(usuarioActual, planActual, planes));
     const visibles = MODULOS_SISTEMA.filter(
       m => isFullAccess || usuarioActual.permisos.includes(m.id)
     );

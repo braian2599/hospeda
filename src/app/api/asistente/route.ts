@@ -4,10 +4,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { requireActor, AuthError } from '@/lib/auth/utils';
+import { requireActor, getAuthSession, AuthError } from '@/lib/auth/utils';
 import { requireFeatureFlag } from '@/lib/feature-flags-server';
 import { checkBodySize } from '@/lib/validation';
 import { hayCupo } from '@/lib/ai/cupos';
+import { contextoDelHotel } from '@/lib/ai/contexto';
 import { abrirAsistenteEnVivo, ASISTENTE_MODEL, type AsistenteEnVivo, type MensajeAsistente } from '@/lib/ai/asistente';
 import { armarCuerpo, TIPO_CONTENIDO } from '@/lib/ai/asistente-stream';
 import { hayPresupuesto, registrarGasto } from '@/lib/ai/tope-gasto';
@@ -70,7 +71,7 @@ function validarHistorial(body: unknown): MensajeAsistente[] {
 export async function POST(req: NextRequest) {
   try {
     checkBodySize(req, 50_000);
-    const { tenantId, actorId } = await requireActor();
+    const { tenantId, actorId, rol } = await requireActor();
 
     // El asistente se vende por plan (Premium y Elite). Se chequea acá y no
     // solo en la pantalla porque cada consulta le pega a una API paga: sin
@@ -105,14 +106,19 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const historial = validarHistorial(body);
-    const pantalla = pantallaValida((body as { modulo?: unknown })?.modulo);
+    const datos = (body ?? {}) as { modulo?: unknown; plan?: unknown; modulos?: unknown };
+
+    // El ROL sale de la sesión, no del navegador: es el único de los tres que
+    // no se puede falsear, y el que decide si a alguien se le explica cómo
+    // administrar el hotel o se lo manda a pedírselo a quien sí puede.
+    const hotel = contextoDelHotel({ plan: datos.plan, modulos: datos.modulos, rol });
 
     // Se abre la respuesta en vivo. Si la API falla (saturada, caída, clave
     // mal puesta), falla en este await y todavía estamos a tiempo de devolver
     // el código de estado correcto en vez de un 200 con un error adentro.
     let enVivo: AsistenteEnVivo;
     try {
-      enVivo = await abrirAsistenteEnVivo(historial, pantalla);
+      enVivo = await abrirAsistenteEnVivo(historial, { pantalla: pantallaValida(datos.modulo), hotel });
     } catch (aiError) {
       console.error('POST /api/asistente (Claude):', aiError);
       if (aiError instanceof Anthropic.RateLimitError) {

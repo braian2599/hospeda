@@ -55,7 +55,7 @@ export async function requireTenantId(): Promise<string> {
  * a la BD por cada pregunta al asistente mantendría la base despierta todo el
  * día, que es justo lo que venimos evitando.
  */
-export async function requireActor(): Promise<{ tenantId: string; actorId: string }> {
+export async function requireActor(): Promise<{ tenantId: string; actorId: string; rol: string | null }> {
   const session = await getAuthSession();
   if (!session?.user?.id) {
     throw new AuthError('No autenticado', 401);
@@ -69,6 +69,10 @@ export async function requireActor(): Promise<{ tenantId: string; actorId: strin
     // la cuenta. Nunca al tenantId solo: eso devolvería todo el hotel a
     // compartir un único cupo, que es exactamente el problema a arreglar.
     actorId: session.user.tenantUserId || session.user.id,
+    // El rol también viene del JWT. Es el dato del que más depende el tono de
+    // una respuesta —a recepción no se le explica cómo cambiar el plan— y es
+    // el único de todos que el navegador no puede falsear.
+    rol: session.user.tenantRole || null,
   };
 }
 

@@ -19,6 +19,7 @@ import { X, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useHotelStore } from '@/lib/store';
+import { modulosVisiblesPara } from '@/lib/plan-config';
 import { sugerenciasDe, nombreDeModulo } from '@/lib/ai/sugerencias';
 import type { MensajeAsistente } from '@/lib/ai/asistente';
 import { crearLector } from '@/lib/ai/asistente-stream';
@@ -48,6 +49,8 @@ function marcarSaludado(tenantUserId: string): void {
 export default function AsistenteBurbuja() {
   const usuarioActual = useHotelStore(s => s.usuarioActual);
   const moduloActivo = useHotelStore(s => s.moduloActivo);
+  const planActual = useHotelStore(s => s.planActual);
+  const planes = useHotelStore(s => s.planes);
 
   const [abierto, setAbierto] = useState(false);
   const [enVuelo, setEnVuelo] = useState(false);
@@ -58,6 +61,8 @@ export default function AsistenteBurbuja() {
   const [cargando, setCargando] = useState(false);
   /** Lo que va llegando de la respuesta todavía sin terminar. */
   const [parcial, setParcial] = useState('');
+  /** Cuántos píxeles del fondo de la pantalla tapa el teclado del celular. */
+  const [teclado, setTeclado] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const burbujaRef = useRef<HTMLButtonElement>(null);
@@ -71,6 +76,13 @@ export default function AsistenteBurbuja() {
   const tenantUserId = usuarioActual?.tenantUserId;
 
   const sugerencias = useMemo(() => sugerenciasDe(moduloActivo), [moduloActivo]);
+  // Qué módulos ve ESTA persona. Va en la consulta para que Hospi pueda
+  // contestar "no lo ves porque…" en vez de explicarle cómo usar algo que no
+  // tiene en el menú. El servidor lo valida contra la lista real de módulos.
+  const modulosVisibles = useMemo(
+    () => modulosVisiblesPara(usuarioActual, planActual, planes),
+    [usuarioActual, planActual, planes],
+  );
   const nombreModulo = useMemo(() => nombreDeModulo(moduloActivo), [moduloActivo]);
 
   // ── Saludo: una vez por inicio de sesión ──
@@ -213,6 +225,30 @@ export default function AsistenteBurbuja() {
     setAbierto(false);
   }, [enVuelo, abierto, volar]);
 
+  // ── El teclado del celular tapaba el cuadro de escribir ──
+  // En Android el teclado NO achica la ventana: se dibuja encima. Así que un
+  // panel pegado al borde de abajo queda justo debajo del teclado, y el
+  // recepcionista escribe a ciegas o directamente no ve dónde tocar.
+  //
+  // visualViewport es lo único que reporta cuánto quedó tapado de verdad. Ese
+  // número se pasa como variable CSS y el panel se despega del piso esa misma
+  // cantidad. En una pantalla grande vale siempre cero y no cambia nada.
+  useEffect(() => {
+    if (!abierto) { setTeclado(0); return; }
+    const vv = window.visualViewport;
+    if (!vv) return; // navegador viejo: queda como estaba, sin empeorar nada
+    const medir = () => {
+      setTeclado(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+    };
+    medir();
+    vv.addEventListener('resize', medir);
+    vv.addEventListener('scroll', medir);
+    return () => {
+      vv.removeEventListener('resize', medir);
+      vv.removeEventListener('scroll', medir);
+    };
+  }, [abierto]);
+
   useEffect(() => {
     if (!abierto) return;
     const alTeclear = (e: KeyboardEvent) => { if (e.key === 'Escape') cerrar(); };
@@ -251,7 +287,7 @@ export default function AsistenteBurbuja() {
       const res = await fetch('/api/asistente', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ historial: siguiente, modulo: moduloActivo }),
+        body: JSON.stringify({ historial: siguiente, modulo: moduloActivo, plan: planActual, modulos: modulosVisibles }),
       });
 
       // Los errores previos a la respuesta (sin plan, tope de gasto, demasiadas
@@ -295,7 +331,7 @@ export default function AsistenteBurbuja() {
     } finally {
       setCargando(false);
     }
-  }, [historial, cargando, moduloActivo]);
+  }, [historial, cargando, moduloActivo, planActual, modulosVisibles]);
 
   // El chat baja solo a medida que se escribe la respuesta, no solo al final.
   useEffect(() => {
@@ -330,9 +366,11 @@ export default function AsistenteBurbuja() {
         role="dialog"
         aria-label="Asistente Hospi"
         aria-hidden={!abierto}
+        style={{ ['--teclado' as string]: `${teclado}px` }}
         className={`fixed z-[49] flex flex-col overflow-hidden border bg-background shadow-2xl transition-opacity duration-200
           right-6 bottom-[82px] w-[370px] h-[min(560px,calc(100vh-130px))] rounded-xl
-          max-sm:right-0 max-sm:left-0 max-sm:bottom-0 max-sm:w-auto max-sm:h-[88vh] max-sm:rounded-b-none
+          max-sm:right-0 max-sm:left-0 max-sm:w-auto max-sm:rounded-b-none
+          max-sm:top-[12vh] max-sm:h-auto max-sm:bottom-[var(--teclado,0px)]
           ${abierto ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       >
         <div className="relative flex items-center justify-center gap-3 px-11 py-4 border-b bg-gradient-to-b from-muted/40 to-background">

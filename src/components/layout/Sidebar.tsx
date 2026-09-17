@@ -5,7 +5,7 @@ import { signOut, useSession } from 'next-auth/react';
 import { useHotelStore, clearSessionRestoredFlag } from '@/lib/store';
 // Notification store no longer needed here — NotificationCenter is self-contained
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
-import { modulosEfectivos, moduloDisponible } from '@/lib/plan-config';
+import { modulosVisiblesPara } from '@/lib/plan-config';
 import { Button } from '@/components/ui/button';
 import { NotificationCenter } from '@/components/ui/notification-center';
 import { LogOut, X, Lock, Settings, Users, LayoutDashboard, Search, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, BarChart3, UserCog, Tags } from 'lucide-react';
@@ -198,14 +198,7 @@ export default function Sidebar() {
 
   if (!usuarioActual) return null;
 
-  const isFullAccess = usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin';
-  // El owner/admin tiene todos los permisos, pero igual queda sujeto al plan
-  // contratado — antes se le daba acceso a todos los módulos sin chequear el
-  // plan, así que el candado de "no incluido en tu plan" nunca le aplicaba.
-  const efectivos = isFullAccess
-    ? MODULOS_SISTEMA.map(m => m.id).filter(id => moduloDisponible(id, planActual, planes))
-    : modulosEfectivos(usuarioActual.permisos, planActual, planes);
-  const efectivosSet = new Set(efectivos);
+  const efectivosSet = new Set(modulosVisiblesPara(usuarioActual, planActual, planes));
   const modulosVisibles = MODULOS_SISTEMA.filter(m => usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin' || usuarioActual.permisos.includes(m.id));
   const userName = usuarioActual.nombreCompleto || usuarioActual.nombre;
   const isExpanded = desktopExpanded || sidebarFixed;

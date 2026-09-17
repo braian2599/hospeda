@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { modulosEfectivos, moduloDisponible, trialVencido } from '@/lib/plan-config';
+import { modulosVisiblesPara, trialVencido } from '@/lib/plan-config';
 import Sidebar from '@/components/layout/Sidebar';
 import DashboardModule from '@/components/modules/DashboardModule';
 import HabitacionesModule from '@/components/modules/HabitacionesModule';
@@ -59,15 +59,7 @@ export default function AppPage() {
     );
   }
 
-  // Compute effective modules: intersection of user permissions and plan modules.
-  // owner/admin tienen todos los permisos, pero igual quedan sujetos al plan
-  // contratado — antes bypaseaban el chequeo de plan por completo.
-  const isFullAccess = usuarioActual.rol === 'owner' || usuarioActual.rol === 'admin';
-  const efectivos = isFullAccess
-    ? MODULOS_SISTEMA.map(m => m.id).filter(id => moduloDisponible(id, planActual, planes))
-    : modulosEfectivos(usuarioActual.permisos, planActual, planes);
-
-  const tienePermiso = efectivos.includes(moduloActivo);
+  const tienePermiso = modulosVisiblesPara(usuarioActual, planActual, planes).includes(moduloActivo);
 
   // If trial expired, block everything except dashboard
   const trialExpirado = fechaVencimientoTrial && planActual === 'trial' && trialVencido(fechaVencimientoTrial);

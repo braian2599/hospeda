@@ -6,7 +6,7 @@
 //   - Client: usePlans() hook de @/hooks/usePlans
 //   - API: GET /api/plans
 
-import type { ModuloId } from './types';
+import { MODULOS_SISTEMA, type ModuloId } from './types';
 import { DEFAULT_FLAGS, type FeatureFlag } from './feature-flags';
 
 // 'basico' se mantiene en el tipo por compatibilidad con suscripciones viejas,
@@ -199,6 +199,30 @@ export function modulosEfectivos(
 ): ModuloId[] {
   const modulosPlan = modulosDelPlan(planTipo, plans);
   return permisosUsuario.filter((p): p is ModuloId => modulosPlan.includes(p as ModuloId));
+}
+
+/**
+ * Los módulos que esta persona puede usar de verdad: los que le habilita su
+ * rol o sus permisos Y que además trae el plan contratado.
+ *
+ * Existe porque este cálculo estaba copiado en cuatro pantallas y las copias
+ * ya se habían empezado a separar: la paleta de comandos (Ctrl+K) se había
+ * quedado sin el filtro por plan, así que le ofrecía al dueño módulos que la
+ * pantalla después le bloqueaba. Una puerta que da a un cuarto cerrado.
+ *
+ * El dueño y el administrador no tienen todos los módulos listados en
+ * `permisos`: para ellos manda el plan y nada más.
+ */
+export function modulosVisiblesPara(
+  usuario: { rol?: string | null; permisos?: string[] | null } | null | undefined,
+  planTipo: PlanTipo,
+  plans?: Record<string, PlanInfo>,
+): ModuloId[] {
+  if (!usuario) return [];
+  const mandaSoloElPlan = usuario.rol === 'owner' || usuario.rol === 'admin';
+  return mandaSoloElPlan
+    ? MODULOS_SISTEMA.map(m => m.id).filter(id => moduloDisponible(id, planTipo, plans))
+    : modulosEfectivos(usuario.permisos || [], planTipo, plans);
 }
 
 /** Días restantes del trial usando fechaVencimiento como fuente de verdad */
