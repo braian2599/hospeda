@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { requirePermission, getAuthSession, AuthError } from '@/lib/auth/utils';
+import { hayQueConsultar } from '@/lib/eventos-landing';
 
 // GET /api/notificaciones/recientes?since=<ISO> — Reservas y pagos de seña
 // llegados desde la landing pública después de `since`. Alimenta el panel de
@@ -9,7 +10,6 @@ import { requirePermission, AuthError } from '@/lib/auth/utils';
 // sistema abierto, salvo que recargue la página.
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission(['comprobantes', 'reservas', 'checkin']);
     const { searchParams } = new URL(req.url);
     const sinceParam = searchParams.get('since');
     const ahora = new Date();
@@ -20,6 +20,36 @@ export async function GET(req: NextRequest) {
     const maxAtras = new Date(ahora.getTime() - 6 * 60 * 60 * 1000);
     let since = sinceParam ? new Date(sinceParam) : maxAtras;
     if (Number.isNaN(since.getTime()) || since < maxAtras) since = maxAtras;
+
+    // ── Camino rápido: preguntarle a Redis si hay algo ──
+    // Este tramo NO puede tocar Postgres, ni siquiera para chequear permisos:
+    // requirePermission son 2 consultas, y con el panel preguntando cada 60 s
+    // eso solo ya le impedía dormir a la base. Acá el tenantId sale del JWT
+    // firmado, así que sigue siendo imposible espiar otro hotel.
+    //
+    // Lo único que se filtra en este camino es que NO hay nada nuevo, a un
+    // usuario que ya tiene sesión en ese hotel. Cuando sí hay algo, se cae al
+    // camino completo y ahí sí se verifican los permisos antes de devolver
+    // un solo dato.
+    const sesion = await getAuthSession();
+    const tenantDelToken = sesion?.user?.tenantId;
+    if (!sesion?.user?.id || !tenantDelToken) {
+      throw new AuthError('Sesión expirada. Volvé a ingresar.', 401);
+    }
+
+    const decision = await hayQueConsultar(tenantDelToken, since.getTime());
+    if (!decision.consultar) {
+      // Sin novedades: se devuelve el mismo formato de siempre, con listas
+      // vacías. El panel avanza su cursor y no se entera de nada raro.
+      return NextResponse.json({
+        ahora: ahora.toISOString(),
+        reservasNuevas: [],
+        pagosNuevos: [],
+      });
+    }
+
+    // ── Camino completo: ahora sí, permisos y datos ──
+    const tenantId = await requirePermission(['comprobantes', 'reservas', 'checkin']);
 
     const [reservasCrudas, pagosCrudos] = await Promise.all([
       db.reserva.findMany({

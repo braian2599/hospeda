@@ -15,6 +15,7 @@ import type { Prisma, Reserva } from '@prisma/client';
 import {
   getValidAccessToken, getMpPayment, verifyMpConnectWebhookSignature, PORCENTAJE_SENA,
 } from '@/lib/payments/mp-connect';
+import { marcarEventoLanding } from '@/lib/eventos-landing';
 
 const MONTO_TOLERANCIA = 1; // pesos, por redondeo
 
@@ -160,6 +161,13 @@ export async function POST(req: NextRequest) {
         await creditarReserva(tx, reserva, payment.transaction_amount, String(paymentId), '');
       }
     });
+
+    // ── Avisarle al panel del hotel que se pagó una seña ──
+    // Igual que en la reserva: sin esta marca el panel tiene que preguntarle a
+    // Postgres cada 60 s y la base no duerme nunca (ver src/lib/eventos-landing.ts).
+    // Va DESPUÉS de la transacción y es best-effort: si Redis falla, el pago ya
+    // quedó guardado y el panel lo ve igual al no encontrar marca.
+    await marcarEventoLanding(reserva.tenantId);
 
     return NextResponse.json({ received: true });
   } catch (err: unknown) {

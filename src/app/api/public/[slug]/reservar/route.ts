@@ -16,6 +16,7 @@ import { getValidAccessToken, createDepositCheckout, PORCENTAJE_SENA } from '@/l
 import { lockTiposHabitacion } from '@/lib/db-lock';
 import { agruparPorHabitacion, camasDeReserva, camasLibresDe, hayLugarEn, ocupaHabitacionEntera } from '@/lib/ocupacion';
 import { calcularVencimiento, marcarReservaPorExpirar } from '@/lib/expiracion';
+import { marcarEventoLanding } from '@/lib/eventos-landing';
 
 function clientIp(req: NextRequest): string {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
@@ -461,6 +462,15 @@ export async function POST(
     if (r2) {
       await marcarReservaPorExpirar(r2.id, calcularVencimiento(r2.createdAt, esManual));
     }
+
+    // ── Avisarle al panel del hotel que llegó una reserva ──
+    // El panel pregunta cada 60 s si hay algo nuevo. Sin esta marca tiene que
+    // preguntarle a Postgres, y preguntar cada minuto le impide dormir a la
+    // base todo el día (ver src/lib/eventos-landing.ts). Con la marca, le
+    // pregunta a Redis y solo va a Postgres cuando hay algo de verdad.
+    // Best-effort y fuera de la transacción: si Redis falla, la reserva del
+    // huésped no se cae por eso, y el panel consulta igual al no ver marca.
+    await marcarEventoLanding(tenant.id, r1.createdAt.getTime());
 
     // r1.total/r2.total están en centavos (recién guardados así arriba) — todo lo que
     // sigue (Mercado Pago, la respuesta al widget) trabaja en pesos.
