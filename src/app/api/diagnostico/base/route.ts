@@ -13,11 +13,12 @@ import { requireOwner, AuthError } from '@/lib/auth/utils';
 import { hayQueBarrer, CLAVE_PENDIENTES } from '@/lib/expiracion';
 import { hayQueSincronizar } from '@/lib/ical-portero';
 import { hayQueConsultar } from '@/lib/eventos-landing';
+import { hayPresupuesto } from '@/lib/ai/tope-gasto';
 import { Redis } from '@upstash/redis';
 
 export async function GET() {
   try {
-    await requireOwner();
+    const tenantId = await requireOwner();
 
     const hayRedis = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
     const ahora = Date.now();
@@ -26,10 +27,11 @@ export async function GET() {
     // acá puede tomar esa marca y hacer que el cron siguiente NO haga el
     // barrido periódico. Es aceptable —el barrido igual ocurre por pendientes—
     // y se avisa en la respuesta para que nadie se sorprenda.
-    const [expirar, ical, landing] = await Promise.all([
+    const [expirar, ical, landing, presupuesto] = await Promise.all([
       hayQueBarrer(ahora),
       hayQueSincronizar(ahora),
       hayQueConsultar('diagnostico', ahora),
+      hayPresupuesto(tenantId),
     ]);
 
     // Cuántas reservas quedaron anotadas como pendientes de expirar. Si esto
@@ -69,6 +71,15 @@ export async function GET() {
           motivo: landing.motivo,
           nota: 'Se consulta con un hotel de prueba: "sin-marca" acá es lo normal.',
         },
+      },
+      asistente: {
+        // Redondeado a 4 decimales: una pregunta cuesta milésimas de dólar.
+        gastadoEsteMesUsd: Number(presupuesto.gastadoUsd.toFixed(4)),
+        topeDeLaPlataformaUsd: presupuesto.topeUsd,
+        gastadoPorEsteHotelUsd: Number(presupuesto.gastadoHotelUsd.toFixed(4)),
+        topePorHotelUsd: presupuesto.topeHotelUsd,
+        puedeResponder: presupuesto.permitido,
+        motivo: presupuesto.motivo,
       },
       reservasAnotadasParaExpirar: pendientes,
       deEsasYaVencidas: vencidasAhora,

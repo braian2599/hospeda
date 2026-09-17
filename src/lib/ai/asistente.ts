@@ -91,10 +91,16 @@ function conPantalla(pantalla: string | null): string {
 El usuario tiene abierto el módulo **${pantalla}**. Si su pregunta es vaga ("¿cómo hago esto?", "¿para qué sirve?"), asumí que habla de esta pantalla. Si claramente pregunta por otra cosa, contestá por esa otra cosa sin mencionar dónde está.`;
 }
 
+export interface RespuestaAsistente {
+  texto: string;
+  /** Tokens que consumió la consulta. Lo usa el tope de gasto para cobrarla. */
+  uso: Anthropic.Usage;
+}
+
 export async function preguntarAsistente(
   historial: MensajeAsistente[],
   pantalla: string | null = null,
-): Promise<string> {
+): Promise<RespuestaAsistente> {
   const response = await client.messages.create({
     model: ASISTENTE_MODEL,
     max_tokens: MAX_TOKENS_RESPUESTA,
@@ -105,5 +111,5 @@ export async function preguntarAsistente(
   const textBlock = response.content.find(
     (block): block is Anthropic.TextBlock => block.type === 'text'
   );
-  return textBlock?.text ?? '';
+  return { texto: textBlock?.text ?? '', uso: response.usage };
 }

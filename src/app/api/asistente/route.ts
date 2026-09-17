@@ -7,7 +7,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
 import { requireFeatureFlag } from '@/lib/feature-flags-server';
 import { rateLimit, checkBodySize } from '@/lib/validation';
-import { preguntarAsistente, type MensajeAsistente } from '@/lib/ai/asistente';
+import { preguntarAsistente, ASISTENTE_MODEL, type MensajeAsistente } from '@/lib/ai/asistente';
+import { hayPresupuesto, registrarGasto } from '@/lib/ai/tope-gasto';
 import { nombreDeModulo } from '@/lib/ai/sugerencias';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 
@@ -85,13 +86,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ── Tope de gasto mensual ──
+    // Va DESPUÉS del rate limit y ANTES de llamar a la API paga. A diferencia
+    // del resto de los porteros del sistema, este falla CERRADO: si no se
+    // puede contar el gasto, no se gasta (ver src/lib/ai/tope-gasto.ts).
+    const presupuesto = await hayPresupuesto(tenantId);
+    if (!presupuesto.permitido) {
+      console.warn(`[asistente] Bloqueado por ${presupuesto.motivo} — tenant ${tenantId}, US$${presupuesto.gastadoUsd.toFixed(4)} de US$${presupuesto.topeUsd}`);
+      const esDelHotel = presupuesto.motivo === 'tope-hotel';
+      return NextResponse.json({
+        error: esDelHotel
+          ? 'Este hotel llegó al límite de consultas del asistente para este mes.'
+          : 'El asistente no está disponible por ahora. Probá más tarde.',
+        motivo: presupuesto.motivo,
+      }, { status: 503 });
+    }
+
     const body = await req.json();
     const historial = validarHistorial(body);
     const pantalla = pantallaValida((body as { modulo?: unknown })?.modulo);
 
     let respuesta: string;
     try {
-      respuesta = await preguntarAsistente(historial, pantalla);
+      const resultado = await preguntarAsistente(historial, pantalla);
+      respuesta = resultado.texto;
+      // Se anota lo que costó de verdad, con los tokens que informó la API.
+      // No se espera a que termine de escribirse en Redis para contestar: la
+      // respuesta ya está y el usuario no tiene por qué esperar por la
+      // contabilidad. Si falla, el módulo lo registra y sigue.
+      void registrarGasto(tenantId, resultado.uso, ASISTENTE_MODEL);
     } catch (aiError) {
       console.error('POST /api/asistente (Claude):', aiError);
       if (aiError instanceof Anthropic.RateLimitError) {
