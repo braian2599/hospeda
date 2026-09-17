@@ -45,12 +45,29 @@ export function buildIcsFeed(hotelNombre: string, habitacion: string, ranges: Ic
 }
 
 export interface IcsParsedEvent {
-  uid: string;
+  /**
+   * El UID tal cual vino, o null si el VEVENT no traía ninguno.
+   *
+   * ANTES ACÁ HABÍA UN BUG: cuando faltaba el UID se inventaba uno con las
+   * fechas (`20260101-20260105`). Dos reservas distintas del mismo rango
+   * —habitual en un hostel— colapsaban en el mismo identificador, y como la
+   * clave de importación es única por hotel, la segunda pisaba a la primera.
+   * Peor: dos habitaciones distintas podían chocar entre sí. Ahora el parser
+   * dice la verdad (no había UID) y quien importa arma un identificador que
+   * incluye el canal y la habitación.
+   */
+  uid: string | null;
   checkin: Date;
   checkout: Date;
 }
 
-/** Parser mínimo de VEVENTs de un feed .ics externo (Booking.com / Airbnb). Ignora recurrencia. */
+/**
+ * Parser mínimo de VEVENTs de un feed .ics externo (Booking.com / Airbnb).
+ * Ignora recurrencia.
+ *
+ * NO valida que las fechas tengan sentido: eso lo decide quien importa, que
+ * es el único que puede reportarle el problema al hotel.
+ */
 export function parseIcsEvents(icsText: string): IcsParsedEvent[] {
   const events: IcsParsedEvent[] = [];
   const veventBlocks = icsText.split('BEGIN:VEVENT').slice(1);
@@ -62,13 +79,15 @@ export function parseIcsEvents(icsText: string): IcsParsedEvent[] {
     const dtendMatch = body.match(/DTEND[^:]*:(\d{8})/);
     if (!dtstartMatch || !dtendMatch) continue;
 
+    // Las fechas de bloqueo son de día completo: se leen en UTC a medianoche
+    // para que no se corran con el huso horario del servidor.
     const parseYmd = (s: string) => new Date(`${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T00:00:00.000Z`);
+    const checkin = parseYmd(dtstartMatch[1]);
+    const checkout = parseYmd(dtendMatch[1]);
+    if (Number.isNaN(checkin.getTime()) || Number.isNaN(checkout.getTime())) continue;
 
-    events.push({
-      uid: uidMatch?.[1]?.trim() || `${dtstartMatch[1]}-${dtendMatch[1]}`,
-      checkin: parseYmd(dtstartMatch[1]),
-      checkout: parseYmd(dtendMatch[1]),
-    });
+    const uid = uidMatch?.[1]?.trim();
+    events.push({ uid: uid || null, checkin, checkout });
   }
 
   return events;

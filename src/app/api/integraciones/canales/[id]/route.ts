@@ -37,7 +37,15 @@ export async function PATCH(
     }
 
     const updated = await db.canalExterno.findUnique({ where: { id } });
-    return NextResponse.json({ success: true, canal: updated, eventosImportados: result.eventosImportados });
+    // Los choques viajan en la respuesta: una sincronización que importó 18 de
+    // 20 reservas NO es un éxito a secas, y quien apretó el botón tiene que
+    // enterarse ahí mismo y no revisando la actividad del hotel más tarde.
+    return NextResponse.json({
+      success: true,
+      canal: updated,
+      eventosImportados: result.eventosImportados,
+      omitidos: result.omitidos ?? [],
+    });
   } catch (error) {
     if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.statusCode });
     console.error('PATCH /api/integraciones/canales/[id]:', error);

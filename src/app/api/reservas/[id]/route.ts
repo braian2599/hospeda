@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requirePermission, getAuthSession, AuthError } from '@/lib/auth/utils';
 import { Prisma } from '@prisma/client';
 import { lockHabitacion, ReservaConflictError } from '@/lib/db-lock';
+import { chequearLugar } from '@/lib/disponibilidad';
 import { camasDeReserva, camasLibresDe, esCompartida, ocupaHabitacionEntera } from '@/lib/ocupacion';
 
 // ─────────────────────────────────────────────────────────
@@ -157,47 +158,21 @@ export async function PUT(
 
       // ── Check date overlap for current room (or new room if changed) ──
       if (room) {
-        if (esCompartida(room.tipo)) {
-          // Habitación compartida: varias reservas conviven en el mismo rango
-          // mientras haya camas libres — solo rechazar si la ocupación total
-          // (existente + esta) supera la capacidad, igual que en POST /api/reservas.
-          // La cuenta de camas es la misma en todo el sistema (src/lib/ocupacion.ts).
-          const solicitadas = camasDeReserva({
+        // Mismo chequeo que el alta y que la importación de canales externos
+        // (src/lib/disponibilidad.ts). `excluirReservaId` es lo que evita que
+        // una reserva choque consigo misma al editarla.
+        const veredicto = await chequearLugar(tx, room, {
+          tenantId,
+          habitacion: habitacionFinal,
+          checkin: checkinDate,
+          checkout: checkoutDate,
+          camas: camasDeReserva({
             personas: personas !== undefined ? (parseInt(personas) || 1) : existing.personas,
             ninos: ninos !== undefined ? (ninos !== null ? parseInt(ninos) : null) : existing.ninos,
-          });
-          const solapadas = await tx.reserva.findMany({
-            where: {
-              tenantId,
-              habitacion: habitacionFinal,
-              estado: { in: ['Confirmada', 'CheckIn_realizado'] },
-              id: { not: id },
-              checkin: { lt: checkoutDate },
-              checkout: { gt: checkinDate },
-            },
-            select: { personas: true, ninos: true },
-          });
-          const libres = camasLibresDe(room, solapadas);
-          if (solicitadas > libres) {
-            throw new ReservaConflictError(
-              `La habitación "${habitacionFinal}" no tiene camas suficientes libres en ese rango de fechas (disponibles: ${libres})`,
-              409
-            );
-          }
-        } else {
-          const overlapping = await tx.reserva.count({
-            where: {
-              tenantId,
-              habitacion: habitacionFinal,
-              estado: { in: ['Confirmada', 'CheckIn_realizado'] },
-              id: { not: id }, // Exclude the current reserva
-              checkin: { lt: checkoutDate },
-              checkout: { gt: checkinDate },
-            },
-          });
-          if (overlapping > 0) {
-            throw new ReservaConflictError(`La habitación "${habitacionFinal}" ya tiene una reserva en ese rango de fechas`, 409);
-          }
+          }),
+        });
+        if (!veredicto.entra) {
+          throw new ReservaConflictError(veredicto.motivo, 409);
         }
       }
 

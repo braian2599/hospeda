@@ -51,11 +51,15 @@ export async function GET(req: NextRequest) {
   );
 
   const exitosos = resultados.filter((r) => r.success).length;
+  // Cuántas reservas del feed NO se importaron por chocar con algo ya vendido.
+  // Va en el resumen para que se vea en los logs sin abrir cada canal.
+  const omitidos = resultados.reduce((t, r) => t + (r.omitidos?.length ?? 0), 0);
 
   return NextResponse.json({
     procesados: resultados.length,
     exitosos,
     fallidos: resultados.length - exitosos,
+    omitidos,
     sincronizado: true,
     motivo: decision.motivo,
     resultados,

@@ -2258,7 +2258,18 @@ function IntegracionesSection() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success(`Sincronizado: ${data.eventosImportados} evento(s)`);
+      // Una sincronización que importó 18 de 20 no es un éxito a secas: si
+      // hubo choques, quien apretó el botón tiene que enterarse ACÁ, no
+      // descubriéndolo en el mostrador cuando llegan dos huéspedes.
+      const omitidos: unknown[] = Array.isArray(data.omitidos) ? data.omitidos : [];
+      if (omitidos.length > 0) {
+        toast.warning(
+          `Importadas ${data.eventosImportados}. ${omitidos.length} no se ${omitidos.length === 1 ? 'importó' : 'importaron'} por chocar con reservas que ya tenías.`,
+          { description: 'El detalle quedó en la actividad reciente del hotel.', duration: 10_000 },
+        );
+      } else {
+        toast.success(`Sincronizado: ${data.eventosImportados} evento(s)`);
+      }
       fetchCanales();
     } catch (err: unknown) {
       toast.error((err as Error).message || 'Error al sincronizar');
@@ -2351,7 +2362,21 @@ function IntegracionesSection() {
                 </ConfigField>
 
                 <div className="text-xs text-muted-foreground">
-                  {c.lastSyncError ? (
+                  {/* lastSyncError puede ser dos cosas distintas: que la
+                      sincronización no se pudo hacer (el feed no respondió), o
+                      que se hizo pero hubo reservas que no se importaron por
+                      chocar con algo ya vendido. Se distinguen por lastSyncAt:
+                      si hay fecha, la sincronización SÍ corrió. Decir "el
+                      intento falló" en ese caso sería mentira, y encima taparía
+                      lo importante, que es que hay un choque para resolver. */}
+                  {c.lastSyncError && c.lastSyncAt ? (
+                    <span className="text-destructive">
+                      ⚠ {c.lastSyncError}
+                      <span className="block text-muted-foreground">
+                        Última sincronización: {new Date(c.lastSyncAt).toLocaleString('es-AR')}
+                      </span>
+                    </span>
+                  ) : c.lastSyncError ? (
                     <span className="text-destructive">Último intento falló: {c.lastSyncError}</span>
                   ) : c.lastSyncAt ? (
                     <span>Última sincronización: {new Date(c.lastSyncAt).toLocaleString('es-AR')}</span>
