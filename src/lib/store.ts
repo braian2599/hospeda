@@ -17,6 +17,7 @@ import {
   type CalcTarifaOptions,
 } from './tarifa-calc';
 import { camasDeReserva, camasLibresDe, esCompartida, esEstadoDeOcupacion, ocupaHabitacionEntera, tieneCheckIn } from './ocupacion';
+import { sesionDesdeRespuesta } from './sesion';
 
 
 // ==================== NOTIFICATION HELPER ====================
@@ -440,19 +441,7 @@ export const useHotelStore = create<HotelStore>()(
 
       // Auth
       loginFromSession: async (sessionData: Record<string, any>, options?: { skipAudit?: boolean }) => {
-        const sesion: UsuarioSesion = {
-          id: sessionData.id,
-          tenantUserId: sessionData.tenantUserId,
-          nombre: sessionData.nombre,
-          nombreCompleto: sessionData.nombreCompleto,
-          permisos: sessionData.permisos || [],
-          rol: sessionData.rol,
-          tenantId: sessionData.tenantId,
-          tenantNombre: sessionData.tenantNombre,
-          email: sessionData.email,
-          avisosVistos: sessionData.avisosVistos || {},
-          featureFlags: sessionData.featureFlags || {},
-        };
+        const sesion: UsuarioSesion = sesionDesdeRespuesta(sessionData);
         // Apply start module preference (from store, in memory only)
         const isFullAccess = sesion.rol === 'owner' || sesion.rol === 'admin';
         const storedStart = get().startModule || 'dashboard';
@@ -2199,17 +2188,11 @@ export const useHotelStore = create<HotelStore>()(
             if (meRes.ok) {
               const meData = await meRes.json();
               if (meData.tenantId && !meData.selectHotel && !meData.needsSetup && !meData.selectProfile && !meData.error && !meData.needsPassword) {
-                const freshSesion: UsuarioSesion = {
-                  id: meData.id,
-                  tenantUserId: meData.tenantUserId,
-                  nombre: meData.nombre,
-                  nombreCompleto: meData.nombreCompleto,
-                  permisos: meData.permisos || [],
-                  rol: meData.rol,
-                  tenantId: meData.tenantId,
-                  tenantNombre: meData.tenantNombre,
-                  email: meData.email,
-                };
+                // MISMA función que usa el login. Antes acá había una copia
+                // escrita a mano que se olvidaba de las integraciones y de los
+                // avisos vistos, y pisaba la sesión buena un segundo después
+                // de entrar.
+                const freshSesion: UsuarioSesion = sesionDesdeRespuesta(meData);
                 set({ usuarioActual: freshSesion });
                 // Refrescar plan/fechas si vienen
                 if (meData.fechaInicioTrial) set({ fechaInicioTrial: meData.fechaInicioTrial });
