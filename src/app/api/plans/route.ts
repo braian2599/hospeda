@@ -51,7 +51,7 @@ export async function GET() {
     // plan en el sidebar, etc.) rompía con "undefined.propiedad" para ESE
     // tipo, incluso para tenants que ya estaban en ese plan. Ahora se
     // devuelven todos los planes con su flag `activo`, y cada consumidor
-    // decide si lo ofrece para compra (precios/PlanIndicator lo ocultan) o
+    // decide si lo ofrece para compra (la página de Precios lo oculta) o
     // lo sigue mostrando igual (el tenant que ya está en ese plan).
     const dbPlans = await db.plan.findMany({
       orderBy: { precioMensual: 'asc' },
