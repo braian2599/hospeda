@@ -21,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useHotelStore } from '@/lib/store';
 import { sugerenciasDe, nombreDeModulo } from '@/lib/ai/sugerencias';
 import type { MensajeAsistente } from '@/lib/ai/asistente';
+import { crearLector } from '@/lib/ai/asistente-stream';
 import HospiCara from './HospiCara';
 import estilos from './hospi.module.css';
 
@@ -54,6 +55,8 @@ export default function AsistenteBurbuja() {
   const [historial, setHistorial] = useState<MensajeAsistente[]>([]);
   const [pregunta, setPregunta] = useState('');
   const [cargando, setCargando] = useState(false);
+  /** Lo que va llegando de la respuesta todavía sin terminar. */
+  const [parcial, setParcial] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const burbujaRef = useRef<HTMLButtonElement>(null);
@@ -217,6 +220,10 @@ export default function AsistenteBurbuja() {
   }, [abierto, cerrar]);
 
   // ── Conversación ──
+  // La respuesta llega en vivo: el servidor manda una línea JSON por pedazo de
+  // texto ({"t":"…"}), y cierra con {"fin":true}. Ese {"fin":true} es lo que
+  // deja distinguir una respuesta terminada de una cortada por el camino: sin
+  // él, media instrucción se mostraría como si estuviera completa.
   const preguntar = useCallback(async (texto: string) => {
     const limpio = texto.trim();
     if (!limpio || cargando) return;
@@ -227,7 +234,17 @@ export default function AsistenteBurbuja() {
     setHistorial(siguiente);
     setPregunta('');
     setError(null);
+    setParcial('');
     setCargando(true);
+
+    // Ante cualquier falla la charla vuelve a como estaba y la pregunta al
+    // cuadro de texto, para no obligar a reescribirla.
+    const deshacer = (mensaje: string) => {
+      setError(mensaje);
+      setHistorial(historial);
+      setPregunta(limpio);
+      setParcial('');
+    };
 
     try {
       const res = await fetch('/api/asistente', {
@@ -235,28 +252,54 @@ export default function AsistenteBurbuja() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ historial: siguiente, modulo: moduloActivo }),
       });
-      const data = await res.json();
+
+      // Los errores previos a la respuesta (sin plan, tope de gasto, demasiadas
+      // consultas) siguen llegando como JSON con su código de estado.
       if (!res.ok) {
-        setError(data?.error || 'No pude responder. Probá de nuevo en un rato.');
-        // La pregunta se deja en el cuadro para que no haya que reescribirla.
-        setHistorial(historial);
-        setPregunta(limpio);
+        const data = await res.json().catch(() => null);
+        deshacer(data?.error || 'No pude responder. Probá de nuevo en un rato.');
         return;
       }
-      setHistorial([...siguiente, { role: 'assistant' as const, content: String(data.respuesta ?? '') }]);
+      if (!res.body) {
+        deshacer('No se pudo leer la respuesta.');
+        return;
+      }
+
+      // getReader() y no `for await (… of res.body)`: iterar el cuerpo así no
+      // existe en Chrome, y el personal del hotel usa Chrome.
+      const flujo = res.body.getReader();
+      const decodificador = new TextDecoder();
+      const lector = crearLector(setParcial);
+
+      for (;;) {
+        const { done, value } = await flujo.read();
+        if (done) break;
+        // stream:true para que no se parta una letra con acento entre dos
+        // pedazos y salga un rombito negro en la mitad de una palabra.
+        lector.empujar(decodificador.decode(value, { stream: true }));
+      }
+      lector.empujar(decodificador.decode());
+      lector.cerrar();
+
+      if (lector.fallo) { deshacer(lector.fallo); return; }
+      if (!lector.termino || !lector.texto.trim()) {
+        deshacer('Se cortó la respuesta. Probá de nuevo.');
+        return;
+      }
+
+      setHistorial([...siguiente, { role: 'assistant' as const, content: lector.texto }]);
+      setParcial('');
     } catch {
-      setError('No se pudo conectar. Revisá la conexión.');
-      setHistorial(historial);
-      setPregunta(limpio);
+      deshacer('No se pudo conectar. Revisá la conexión.');
     } finally {
       setCargando(false);
     }
   }, [historial, cargando, moduloActivo]);
 
-  // El chat baja solo con cada mensaje nuevo.
+  // El chat baja solo a medida que se escribe la respuesta, no solo al final.
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
-  }, [historial, cargando]);
+  }, [historial, parcial, cargando]);
 
   if (!habilitado || !usuarioActual) return null;
 
@@ -327,7 +370,12 @@ export default function AsistenteBurbuja() {
               {m.content}
             </div>
           ))}
-          {cargando && (
+          {parcial && (
+            <div className="max-w-[84%] self-start bg-muted rounded-xl rounded-bl-sm px-3 py-2 text-[13.5px] leading-relaxed whitespace-pre-wrap">
+              {parcial}
+            </div>
+          )}
+          {cargando && !parcial && (
             <div className="self-start flex items-center gap-2 text-xs text-muted-foreground px-1">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               Pensando…

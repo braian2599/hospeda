@@ -44,7 +44,7 @@ const modules: Partial<Record<ModuloId, React.ComponentType>> = {
 };
 
 export default function AppPage() {
-  const { usuarioActual, moduloActivo, perfilOpen, setPerfilOpen, planActual, fechaVencimientoTrial, planes } = useHotelStore();
+  const { usuarioActual, moduloActivo, planActual, fechaVencimientoTrial, planes } = useHotelStore();
 
   if (!usuarioActual) return null;
 
@@ -55,9 +55,6 @@ export default function AppPage() {
         <ModuleErrorBoundary moduleName="Configuración">
           <ConfiguracionModule />
         </ModuleErrorBoundary>
-        <ModuleLockedDialog />
-        <AvisosDialog />
-        <AsistenteBurbuja />
       </AppShell>
     );
   }
@@ -90,7 +87,6 @@ export default function AppPage() {
               : 'Este módulo no está incluido en tu plan actual. Cambiá tu plan desde Configuración.'}
           </p>
         </div>
-        <ModuleLockedDialog />
       </AppShell>
     );
   }
@@ -111,11 +107,6 @@ export default function AppPage() {
           <h2 className="text-xl font-bold">Módulo no encontrado</h2>
         </div>
       )}
-      <ProfileSettings open={perfilOpen} onOpenChange={setPerfilOpen} />
-      <CommandPalette />
-      <ModuleLockedDialog />
-      <AvisosDialog />
-      <AsistenteBurbuja />
     </AppShell>
   );
 }
@@ -123,6 +114,8 @@ export default function AppPage() {
 function AppShell({ children }: { children: React.ReactNode }) {
   const setSidebarOpen = useHotelStore(s => s.setSidebarOpen);
   const usuarioActual = useHotelStore(s => s.usuarioActual);
+  const perfilOpen = useHotelStore(s => s.perfilOpen);
+  const setPerfilOpen = useHotelStore(s => s.setPerfilOpen);
   return (
     <div className="fixed inset-0 bg-background flex">
       <Sidebar />
@@ -149,6 +142,24 @@ function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
+      {/* Todo lo que flota por encima del módulo se monta ACÁ y no adentro de
+          cada rama del return. Las dos razones fueron bugs de verdad:
+
+          1) La pantalla de "Módulo no disponible / Prueba vencida" no montaba
+             al asistente. Era justo la pantalla donde el usuario más necesita
+             preguntar por qué no puede entrar, y Hospi no estaba.
+
+          2) Configuración devuelve un árbol distinto al del resto de los
+             módulos, así que React desmontaba y volvía a montar al asistente
+             al entrar y al salir: la conversación se perdía en el camino.
+
+          Colgados del shell están siempre presentes y siempre en la misma
+          posición del árbol, así que cambiar de módulo ya no los reinicia. */}
+      <ProfileSettings open={perfilOpen} onOpenChange={setPerfilOpen} />
+      <CommandPalette />
+      <ModuleLockedDialog />
+      <AvisosDialog />
+      <AsistenteBurbuja />
     </div>
   );
 }

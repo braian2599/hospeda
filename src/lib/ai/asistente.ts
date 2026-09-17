@@ -8,6 +8,7 @@
 // pantalla correspondiente del sistema.
 
 import Anthropic from '@anthropic-ai/sdk';
+import type { UsoTokens } from './tope-gasto';
 
 const client = new Anthropic(); // lee ANTHROPIC_API_KEY del entorno
 
@@ -91,25 +92,78 @@ function conPantalla(pantalla: string | null): string {
 El usuario tiene abierto el módulo **${pantalla}**. Si su pregunta es vaga ("¿cómo hago esto?", "¿para qué sirve?"), asumí que habla de esta pantalla. Si claramente pregunta por otra cosa, contestá por esa otra cosa sin mencionar dónde está.`;
 }
 
-export interface RespuestaAsistente {
-  texto: string;
-  /** Tokens que consumió la consulta. Lo usa el tope de gasto para cobrarla. */
-  uso: Anthropic.Usage;
+// ==================== RESPUESTA EN VIVO (STREAMING) ====================
+// Sin esto el usuario mira "Pensando…" cuatro o cinco segundos con la pantalla
+// muerta. Son los mismos tokens y el mismo precio: lo único que cambia es que
+// las palabras aparecen a medida que se escriben.
+
+export interface AsistenteEnVivo {
+  /** El texto, de a pedazos, en el orden en que lo va escribiendo Claude. */
+  fragmentos: AsyncGenerator<string>;
+  /**
+   * Lo consumido HASTA AHORA. Se puede leer en cualquier momento, no solo al
+   * final: si el usuario cierra la pestaña a mitad de la respuesta, esos tokens
+   * ya se gastaron igual y el tope los tiene que contar.
+   */
+  uso: () => UsoTokens;
+  /** Corta la llamada a la API. Se usa cuando el navegador se va. */
+  cortar: () => void;
 }
 
-export async function preguntarAsistente(
+/**
+ * Abre la respuesta en vivo.
+ *
+ * OJO: el `await` de acá adentro es a propósito. La petición HTTP se hace en
+ * esta línea, así que un 429 o un 500 de la API explotan ACÁ, antes de que la
+ * route haya empezado a contestar — y entonces todavía puede devolver el
+ * código de estado que corresponde. Si se difiriera hasta el primer pedazo, el
+ * navegador ya habría recibido un 200 y el error llegaría disfrazado de
+ * respuesta buena.
+ */
+export async function abrirAsistenteEnVivo(
   historial: MensajeAsistente[],
   pantalla: string | null = null,
-): Promise<RespuestaAsistente> {
-  const response = await client.messages.create({
+): Promise<AsistenteEnVivo> {
+  const stream = await client.messages.create({
     model: ASISTENTE_MODEL,
     max_tokens: MAX_TOKENS_RESPUESTA,
     system: conPantalla(pantalla),
     messages: historial,
+    stream: true,
   });
 
-  const textBlock = response.content.find(
-    (block): block is Anthropic.TextBlock => block.type === 'text'
-  );
-  return { texto: textBlock?.text ?? '', uso: response.usage };
+  // El total se arma a mano con los eventos que manda la API y NO con el
+  // acumulador del SDK: el tope de gasto depende de este número, y no quiero
+  // que dependa de un detalle interno de una librería que mañana cambia de
+  // versión. message_start trae la entrada; message_delta trae la salida
+  // acumulada (cada uno pisa al anterior, no se suman).
+  const uso: UsoTokens = {
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: 0,
+  };
+
+  async function* recorrer(): AsyncGenerator<string> {
+    for await (const evento of stream) {
+      if (evento.type === 'message_start') {
+        const u = evento.message.usage;
+        uso.input_tokens = u.input_tokens;
+        uso.output_tokens = u.output_tokens;
+        uso.cache_creation_input_tokens = u.cache_creation_input_tokens;
+        uso.cache_read_input_tokens = u.cache_read_input_tokens;
+      } else if (evento.type === 'message_delta') {
+        uso.output_tokens = evento.usage.output_tokens;
+        if (typeof evento.usage.input_tokens === 'number') uso.input_tokens = evento.usage.input_tokens;
+      } else if (evento.type === 'content_block_delta' && evento.delta.type === 'text_delta') {
+        yield evento.delta.text;
+      }
+    }
+  }
+
+  return {
+    fragmentos: recorrer(),
+    uso: () => ({ ...uso }),
+    cortar: () => stream.controller.abort(),
+  };
 }

@@ -7,7 +7,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
 import { requireFeatureFlag } from '@/lib/feature-flags-server';
 import { rateLimit, checkBodySize } from '@/lib/validation';
-import { preguntarAsistente, ASISTENTE_MODEL, type MensajeAsistente } from '@/lib/ai/asistente';
+import { abrirAsistenteEnVivo, ASISTENTE_MODEL, type AsistenteEnVivo, type MensajeAsistente } from '@/lib/ai/asistente';
+import { armarCuerpo, TIPO_CONTENIDO } from '@/lib/ai/asistente-stream';
 import { hayPresupuesto, registrarGasto } from '@/lib/ai/tope-gasto';
 import { nombreDeModulo } from '@/lib/ai/sugerencias';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
@@ -106,15 +107,12 @@ export async function POST(req: NextRequest) {
     const historial = validarHistorial(body);
     const pantalla = pantallaValida((body as { modulo?: unknown })?.modulo);
 
-    let respuesta: string;
+    // Se abre la respuesta en vivo. Si la API falla (saturada, caída, clave
+    // mal puesta), falla en este await y todavía estamos a tiempo de devolver
+    // el código de estado correcto en vez de un 200 con un error adentro.
+    let enVivo: AsistenteEnVivo;
     try {
-      const resultado = await preguntarAsistente(historial, pantalla);
-      respuesta = resultado.texto;
-      // Se anota lo que costó de verdad, con los tokens que informó la API.
-      // No se espera a que termine de escribirse en Redis para contestar: la
-      // respuesta ya está y el usuario no tiene por qué esperar por la
-      // contabilidad. Si falla, el módulo lo registra y sigue.
-      void registrarGasto(tenantId, resultado.uso, ASISTENTE_MODEL);
+      enVivo = await abrirAsistenteEnVivo(historial, pantalla);
     } catch (aiError) {
       console.error('POST /api/asistente (Claude):', aiError);
       if (aiError instanceof Anthropic.RateLimitError) {
@@ -126,7 +124,25 @@ export async function POST(req: NextRequest) {
       throw aiError;
     }
 
-    return NextResponse.json({ respuesta });
+    // El gasto se anota cuando el stream termina (bien o mal): ahí ya se sabe
+    // cuántos tokens se consumieron de verdad. No se espera a que Redis
+    // conteste, la respuesta del usuario no tiene por qué esperar por la
+    // contabilidad; si falla, el módulo lo registra y sigue.
+    const cuerpo = armarCuerpo(enVivo, () => {
+      void registrarGasto(tenantId, enVivo.uso(), ASISTENTE_MODEL);
+    });
+
+    return new Response(cuerpo, {
+      status: 200,
+      headers: {
+        'Content-Type': TIPO_CONTENIDO,
+        'Cache-Control': 'no-store, no-transform',
+        // Le pide a cualquier proxy del camino que no junte la respuesta antes
+        // de mandarla. Sin esto, streamear no sirve de nada: el texto igual
+        // llegaría todo junto al final.
+        'X-Accel-Buffering': 'no',
+      },
+    });
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
