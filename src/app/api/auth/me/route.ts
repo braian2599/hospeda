@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { origenValido } from '@/lib/suscripcion';
+import { tolerandoColumnaFaltante } from '@/lib/db-tolerante';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/config';
 import { db } from '@/lib/db';
@@ -7,6 +8,57 @@ import { rateLimit } from '@/lib/validation';
 import bcrypt from 'bcryptjs';
 import { parseAvisosVistos } from '@/lib/avisos';
 import { parseFeatureFlags, parseFlagOverrides, resolverFlags } from '@/lib/feature-flags';
+
+/**
+ * Las columnas que el login necesita, y SOLO las que existen desde hace
+ * tiempo. Es el plan B cuando falta una migración.
+ *
+ * NO AGREGUES COLUMNAS NUEVAS ACÁ. Su único trabajo es ser la última forma
+ * que se sabe que la base tiene. Cada columna que se agregue es una columna
+ * más que puede faltar, y entonces el plan B se cae igual que el plan A y no
+ * sirvió para nada.
+ *
+ * Lo que no está acá —hoy `origen` en la suscripción y `avisosVistos` en el
+ * perfil— llega como undefined, y los parsers de buildSessionResponse lo
+ * traducen a su valor por defecto. El hotel entra y trabaja; lo nuevo aparece
+ * recién cuando la migración se corre.
+ */
+const SELECTO_ESTABLE = {
+  id: true,
+  email: true,
+  name: true,
+  tenants: {
+    where: { activo: true },
+    select: {
+      id: true,
+      tenantId: true,
+      rol: true,
+      permisos: true,
+      nombreCompleto: true,
+      password: true,
+      createdAt: true,
+      tenant: {
+        select: {
+          id: true,
+          nombre: true,
+          slug: true,
+          subscription: {
+            select: {
+              estado: true,
+              fechaInicio: true,
+              fechaVencimiento: true,
+              esRecurrente: true,
+              mpPreapprovalId: true,
+              proximoCobro: true,
+              plan: { select: { type: true, nombre: true, featureFlags: true } },
+            },
+          },
+          configuracion: { select: { featureFlags: true } },
+        },
+      },
+    },
+  },
+} as const;
 
 // GET /api/auth/me
 export async function GET(req: NextRequest) {
@@ -24,22 +76,37 @@ export async function GET(req: NextRequest) {
     const requestedTenantId = searchParams.get('tenantId');
     const requestedProfileId = searchParams.get('profileId');
 
-    const user = await db.user.findUnique({
-      where: { email: session.user.email },
-      include: {
-        tenants: {
-          where: { activo: true },
-          include: {
-            tenant: {
-              include: {
-                subscription: { include: { plan: true } },
-                configuracion: true,
+    // Esta consulta usa `include`, así que Prisma pide TODAS las columnas de
+    // cinco modelos (User, TenantUser, Tenant, Subscription, Plan y la config).
+    // Una columna nueva en cualquiera de ellos, con la migración sin correr,
+    // tira esta consulta entera y nadie puede entrar al sistema. Ya pasó.
+    //
+    // Si eso ocurre, se reintenta con SELECTO_ESTABLE: las columnas viejas y
+    // nada más. Lo nuevo llega vacío y los valores por defecto se encargan
+    // (ver src/lib/db-tolerante.ts).
+    const user = await tolerandoColumnaFaltante(
+      '/api/auth/me',
+      () => db.user.findUnique({
+        where: { email: session.user!.email! },
+        include: {
+          tenants: {
+            where: { activo: true },
+            include: {
+              tenant: {
+                include: {
+                  subscription: { include: { plan: true } },
+                  configuracion: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      }),
+      () => db.user.findUnique({
+        where: { email: session.user!.email! },
+        select: SELECTO_ESTABLE,
+      }),
+    );
 
     if (!user) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
@@ -213,18 +280,31 @@ export async function POST(req: NextRequest) {
 
     // Obtener el perfil con su password
     // Filtro: tenantUser activo Y tenant activo (previene selección de hoteles desactivados)
-    const tenantUser = await db.tenantUser.findFirst({
-      where: { id: profileId, activo: true, tenant: { activo: true } },
-      include: {
-        user: true,
-        tenant: {
-          include: {
-            subscription: { include: { plan: true } },
-            configuracion: true,
+    // Mismo colchón que el GET: este es el otro camino por el que se entra al
+    // sistema (elegir perfil y poner la contraseña). Si se cae por una
+    // migración pendiente, entrar con contraseña deja de funcionar.
+    const tenantUser = await tolerandoColumnaFaltante(
+      '/api/auth/me POST',
+      () => db.tenantUser.findFirst({
+        where: { id: profileId, activo: true, tenant: { activo: true } },
+        include: {
+          user: true,
+          tenant: {
+            include: {
+              subscription: { include: { plan: true } },
+              configuracion: true,
+            },
           },
         },
-      },
-    });
+      }),
+      () => db.tenantUser.findFirst({
+        where: { id: profileId, activo: true, tenant: { activo: true } },
+        select: {
+          ...SELECTO_ESTABLE.tenants.select,
+          user: { select: { id: true, email: true, name: true } },
+        },
+      }),
+    );
 
     if (!tenantUser || tenantUser.user.email !== session.user.email) {
       return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 403 });
