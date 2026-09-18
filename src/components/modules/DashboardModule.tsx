@@ -19,6 +19,7 @@ import { useMemo, useState, useCallback, useRef, useEffect, type ComponentType }
 import { createPortal } from 'react-dom';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 
+import TraspasoDeTurno from './dashboard/TraspasoDeTurno';
 import GuestTimeline from './dashboard/GuestTimeline';
 import RoomTypeDistribution from './dashboard/RoomTypeDistribution';
 import ReservasSenaKPI from './dashboard/ReservasSenaKPI';
@@ -1160,6 +1161,12 @@ export default function DashboardModule() {
           </Button>
         ))}
       </div>
+
+      {/* Qué pasó mientras no estabas — va arriba de todo lo demás porque es
+          lo primero que necesita el que entra, y pierde valor con cada minuto
+          que pasa. Se puede plegar: al que lleva seis horas de turno ya no le
+          sirve. */}
+      <TraspasoDeTurno />
 
       {/* Calendario Gantt de Ocupación */}
       <CalendarioGantt habitaciones={habitaciones} reservas={reservas} fechaInicioBase={hoy} />
