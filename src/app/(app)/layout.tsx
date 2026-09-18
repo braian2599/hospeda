@@ -5,7 +5,7 @@ import { cerrarSesion } from '@/lib/cerrar-sesion';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import AuthProvider from '@/components/providers/SessionProvider';
-import { useHotelStore, SESSION_RESTORED_KEY, clearSessionRestoredFlag } from '@/lib/store';
+import { useHotelStore } from '@/lib/store';
 import { usePlansStatus } from '@/hooks/usePlans';
 import { usePresenceHeartbeat } from '@/hooks/usePresence';
 import { useLandingEventsPolling } from '@/hooks/useLandingEventsPolling';
@@ -236,17 +236,13 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
       }
     }
     // 2) Ahora sí setear el store (después del JWT).
-    // Este es el auto-login de un solo perfil que SessionLoader dispara
-    // solo, apenas detecta una cookie de NextAuth válida — pasa exactamente
-    // igual tanto en un login real recién hecho como en un simple recargado
-    // de página (el store en memoria se pierde en el recargado, la cookie
-    // no). Sin esta marca, cada F5 quedaba registrado como un login nuevo
-    // en la auditoría. sessionStorage sobrevive recargados pero no se
-    // comparte entre pestañas ni sobrevive a un logout explícito (se limpia
-    // en handleLogout), así que un login real posterior sí se audita.
-    const isReload = typeof window !== 'undefined' && sessionStorage.getItem(SESSION_RESTORED_KEY) === '1';
-    await loginFromSession(data, { skipAudit: isReload });
-    if (typeof window !== 'undefined') sessionStorage.setItem(SESSION_RESTORED_KEY, '1');
+    //
+    // Distinguir este auto-login de un simple F5 ya no es problema del
+    // navegador: lo resuelve el servidor mirando si el JWT ya traía este
+    // mismo perfil (ver src/lib/registro-de-sesion.ts). Antes se hacía con
+    // una marca en sessionStorage que no se compartía entre pestañas y que
+    // había que acordarse de limpiar en cada salida.
+    await loginFromSession(data);
     // 3) Sincronizar datos del servidor (el JWT ya tiene tenantId)
     await syncFromServer();
   }, [loginFromSession, update, syncFromServer]);

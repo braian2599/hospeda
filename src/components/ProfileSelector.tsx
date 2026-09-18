@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ShieldCheck, Shield, UserCog, Sparkles, ChevronRight, Loader2, LogOut, Lock, Eye, EyeOff } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { cerrarSesion } from '@/lib/cerrar-sesion';
-import { useHotelStore, clearSessionRestoredFlag } from '@/lib/store';
+import { useHotelStore } from '@/lib/store';
 
 const ROL_INFO: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
   owner: { label: 'Administrador Principal', icon: ShieldCheck, color: 'bg-[#D9770626] text-warning' },

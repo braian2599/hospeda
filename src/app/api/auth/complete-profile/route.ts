@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/config';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { validatePassword, rateLimit, checkBodySize } from '@/lib/validation';
+import { registrarLogin } from '@/lib/registro-de-sesion';
 
 // POST /api/auth/complete-profile
 // Owner crea/edita su contraseña y nombre (se guarda en TenantUser)
@@ -45,6 +46,26 @@ export async function POST(req: NextRequest) {
       await db.user.update({
         where: { email: session.user.email },
         data: { name: nombre.trim() },
+      });
+    }
+
+    // El dueño entra al sistema recién acá.
+    //
+    // La primera vez, /api/auth/me devuelve needsPassword y NO registra la
+    // entrada (todavía no entró nadie: lo que sigue es esta pantalla). Después
+    // de guardarla, el navegador reusa los datos que ya tenía y no vuelve a
+    // pedir /api/auth/me, así que si no se registra acá el primer turno del
+    // dueño de cada hotel se pierde para siempre.
+    //
+    // Este mismo endpoint se usa para CAMBIAR la contraseña más adelante. En
+    // ese caso el JWT ya tiene el perfil puesto y registrarLogin lo descarta
+    // como recarga, así que cambiar la contraseña no abre un turno nuevo.
+    if (tenantUser) {
+      await registrarLogin({
+        tenantId: tenantUser.tenantId,
+        tenantUserId: tenantUser.id,
+        nombre: nombre?.trim() || tenantUser.nombreCompleto || session.user.name || '',
+        perfilEnLaSesion: (session.user as Record<string, unknown>).tenantUserId as string | undefined,
       });
     }
 

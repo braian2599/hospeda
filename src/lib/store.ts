@@ -283,7 +283,7 @@ interface HotelStore {
   setStartModule: (m: string) => void;
 
   // Auth
-  loginFromSession: (sessionData: Record<string, any>, options?: { skipAudit?: boolean }) => Promise<boolean>;
+  loginFromSession: (sessionData: Record<string, any>) => Promise<boolean>;
   logout: () => void;
   /** Refresca los avisos ya vistos tras cerrar la ventana de bienvenida/novedades. */
   setAvisosVistos: (avisosVistos: Record<string, number>) => void;
@@ -366,20 +366,6 @@ interface HotelStore {
 
   // Reset
   resetData: () => void;
-}
-
-// ==================== SESSION RESTORE FLAG ====================
-// Marca, por pestaña (sessionStorage), si esta pestaña ya restauró una
-// sesión de NextAuth existente al menos una vez. loginFromSession() la usa
-// para no volver a escribir un registro de auditoría "Login" en cada
-// recargado de página (el store en memoria se pierde en el recargado, pero
-// la cookie de sesión no) — ver SessionLoader en (app)/layout.tsx.
-// Los flujos de logout/cambio de perfil deben llamar a
-// clearSessionRestoredFlag() para que un login real posterior sí se audite.
-export const SESSION_RESTORED_KEY = 'hospeda-session-restored';
-
-export function clearSessionRestoredFlag() {
-  if (typeof window !== 'undefined') sessionStorage.removeItem(SESSION_RESTORED_KEY);
 }
 
 // ==================== STORE ====================
@@ -477,7 +463,7 @@ export const useHotelStore = create<HotelStore>()(
       setUsuarioActual: (u) => set({ usuarioActual: u }),
 
       // Auth
-      loginFromSession: async (sessionData: Record<string, any>, options?: { skipAudit?: boolean }) => {
+      loginFromSession: async (sessionData: Record<string, any>) => {
         const sesion: UsuarioSesion = sesionDesdeRespuesta(sessionData);
         // Apply start module preference (from store, in memory only)
         const isFullAccess = sesion.rol === 'owner' || sesion.rol === 'admin';
@@ -498,12 +484,18 @@ export const useHotelStore = create<HotelStore>()(
           set({ planActual: sessionData.planActual });
         }
         set({ usuarioActual: sesion, moduloActivo: startModule, moduloBloqueado: null });
-        // skipAudit: true cuando esto es solo restaurar una sesión ya
-        // existente (ej. recargar la página) — no un login nuevo de verdad.
-        // Ver SessionLoader en (app)/layout.tsx.
-        if (!options?.skipAudit) {
-          get()._registrarAuditoria('Login', `Inicio de sesión: ${sesion.nombreCompleto || sesion.nombre}`);
-        }
+        // El Login NO se registra acá.
+        //
+        // Se escribía en esta línea, y no llegaba nunca: las tres pantallas por
+        // las que se entra llaman a esto ANTES de ponerle el hotel al JWT, así
+        // que el POST salía sin tenantId y el servidor lo rechazaba con un 401
+        // que no rechaza la promesa de fetch —o sea, en silencio absoluto—. La
+        // entrada quedaba en este store y desaparecía en la primera
+        // sincronización. Por eso el reporte mostraba salidas sin entradas.
+        //
+        // Ahora lo escribe el servidor, en /api/auth/me, que es el único lugar
+        // por donde pasan los tres caminos y donde el hotel y el perfil ya
+        // están resueltos. Ver src/lib/registro-de-sesion.ts.
         // NOTA: syncFromServer debe llamarse DESPUÉS de actualizar el JWT,
         // no aquí, para evitar race condition con las API routes.
         return true;

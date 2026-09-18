@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { origenValido } from '@/lib/suscripcion';
+import { registrarLogin } from '@/lib/registro-de-sesion';
 import { tolerandoColumnaFaltante } from '@/lib/db-tolerante';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/config';
@@ -75,6 +76,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const requestedTenantId = searchParams.get('tenantId');
     const requestedProfileId = searchParams.get('profileId');
+
+    // El perfil que ya venía en el JWT: distingue una entrada nueva de un F5.
+    // Al iniciar sesión el JWT no trae perfil (jwt() lo borra a propósito), así
+    // que si acá viene el mismo que se está resolviendo, es una recarga.
+    const perfilEnLaSesion = (session.user as Record<string, unknown>).tenantUserId as string | undefined;
 
     // Esta consulta usa `include`, así que Prisma pide TODAS las columnas de
     // cinco modelos (User, TenantUser, Tenant, Subscription, Plan y la config).
@@ -183,7 +189,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 403 });
     }
 
-    return buildSessionResponse(user, tenantUser);
+    return buildSessionResponse(user, tenantUser, perfilEnLaSesion);
 
   } catch (error: unknown) {
     const err = error as Error;
@@ -197,17 +203,41 @@ export async function GET(req: NextRequest) {
   }
 }
 
-function buildSessionResponse(user: any, tenantUser: any) {
+async function buildSessionResponse(user: any, tenantUser: any, perfilEnLaSesion?: string | null) {
   const tenant = tenantUser.tenant;
   const subscription = tenant.subscription;
   const plan = subscription?.plan;
   const needsPassword = tenantUser.rol === 'owner' && !tenantUser.password;
+  const nombre = tenantUser.nombreCompleto || user.name || '';
+
+  // ── Acá empieza el turno ──
+  // Este es el único punto por el que se entra al sistema: lo usan los tres
+  // caminos (auto-login, selector de perfil y perfil con contraseña). Por eso
+  // el Login se registra acá y no en el navegador, que lo mandaba antes de que
+  // el JWT tuviera hotel y se lo comía un 401 mudo — ver
+  // src/lib/registro-de-sesion.ts.
+  //
+  // Se espera a propósito: en Vercel la función se congela apenas se devuelve
+  // la respuesta, así que un fire-and-forget acá se pierde. Es un insert sobre
+  // una conexión que ya está abierta, y registrarLogin nunca lanza: si la
+  // escritura falla, la persona entra igual.
+  //
+  // Con needsPassword todavía no entró nadie: la pantalla que sigue es la de
+  // crear la contraseña, no el sistema.
+  if (!needsPassword) {
+    await registrarLogin({
+      tenantId: tenant.id,
+      tenantUserId: tenantUser.id,
+      nombre,
+      perfilEnLaSesion,
+    });
+  }
 
   return NextResponse.json({
     id: user.id,
     tenantUserId: tenantUser.id,
-    nombre: tenantUser.nombreCompleto || user.name || '',
-    nombreCompleto: tenantUser.nombreCompleto || user.name || '',
+    nombre,
+    nombreCompleto: nombre,
     email: user.email,
     permisos: tenantUser.permisos,
     rol: tenantUser.rol,
@@ -272,6 +302,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Falta profileId' }, { status: 400 });
     }
 
+    // El perfil que ya venía en el JWT: distingue una entrada nueva de un F5.
+    // Al iniciar sesión el JWT no trae perfil (jwt() lo borra a propósito), así
+    // que si acá viene el mismo que se está resolviendo, es una recarga.
+    const perfilEnLaSesion = (session.user as Record<string, unknown>).tenantUserId as string | undefined;
+
     const body = await req.json();
     const { password } = body;
     if (!password) {
@@ -319,7 +354,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Contraseña incorrecta' }, { status: 401 });
     }
 
-    return buildSessionResponse(tenantUser.user, tenantUser);
+    return buildSessionResponse(tenantUser.user, tenantUser, perfilEnLaSesion);
 
   } catch (error: unknown) {
     const err = error as Error;

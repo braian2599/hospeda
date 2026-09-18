@@ -10,12 +10,11 @@
 // el reporte de horas trabajadas se calcula emparejando Login con Logout, un
 // Logout que no se registra es un turno que no se paga.
 //
-// Por eso ahora hay una sola puerta de salida, y hace las tres cosas que
-// siempre hay que hacer: cerrar el turno, limpiar la marca de sesión
-// restaurada, y salir de verdad.
+// Por eso ahora hay una sola puerta de salida, y hace las dos cosas que
+// siempre hay que hacer: cerrar el turno y salir de verdad.
 
 import { signOut } from 'next-auth/react';
-import { useHotelStore, clearSessionRestoredFlag } from '@/lib/store';
+import { useHotelStore } from '@/lib/store';
 
 /**
  * Cierra la sesión y vuelve al login.
@@ -29,6 +28,5 @@ import { useHotelStore, clearSessionRestoredFlag } from '@/lib/store';
  */
 export function cerrarSesion(callbackUrl = '/login'): void {
   useHotelStore.getState().logout();
-  clearSessionRestoredFlag();
   void signOut({ callbackUrl });
 }
