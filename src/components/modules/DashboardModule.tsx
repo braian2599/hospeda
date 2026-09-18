@@ -20,6 +20,7 @@ import { createPortal } from 'react-dom';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 
 import TraspasoDeTurno from './dashboard/TraspasoDeTurno';
+import ReservasDeLaWeb from './dashboard/ReservasDeLaWeb';
 import GuestTimeline from './dashboard/GuestTimeline';
 import RoomTypeDistribution from './dashboard/RoomTypeDistribution';
 import ReservasSenaKPI from './dashboard/ReservasSenaKPI';
@@ -1167,6 +1168,12 @@ export default function DashboardModule() {
           que pasa. Se puede plegar: al que lleva seis horas de turno ya no le
           sirve. */}
       <TraspasoDeTurno />
+
+      {/* Las reservas que entraron por la página del hotel. Va justo debajo
+          del traspaso porque es la otra cosa que el que llega necesita saber
+          y que no se entera por ningún otro lado. Si no hay nada, la tarjeta
+          no se renderiza. */}
+      <ReservasDeLaWeb />
 
       {/* Calendario Gantt de Ocupación */}
       <CalendarioGantt habitaciones={habitaciones} reservas={reservas} fechaInicioBase={hoy} />

@@ -109,6 +109,8 @@ function mapDbReservaToStore(r: any, totalOverride?: number): Reserva {
     horaCheckout: r.horaCheckout || undefined,
     datosAdicionales: (r.datosAdicionales as Record<string, string>) || undefined,
     origen: r.origen || undefined,
+    // El dato ya venía en la respuesta del sync; solo faltaba mapearlo.
+    creadaEn: r.createdAt ? new Date(r.createdAt).toISOString() : undefined,
   };
 }
 

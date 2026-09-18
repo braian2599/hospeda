@@ -91,6 +91,8 @@ export interface Reserva {
   horaCheckout?: string;
   datosAdicionales?: Record<string, string>;
   origen?: string;
+  /** Cuándo se creó, en ISO. Ver el Dashboard de reservas de la web. */
+  creadaEn?: string;
 }
 
 export type EstadoReserva = 'Confirmada' | 'Cancelada' | 'Check-In realizado' | 'Check-Out realizado' | 'A confirmar';
