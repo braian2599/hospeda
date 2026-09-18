@@ -19,7 +19,7 @@ export const SUGERENCIAS: Record<ModuloId, string[]> = {
   tarifas: ['Crear una tarifa por cama', 'Noches de cortesía', 'Precio diferenciado de niños'],
   comprobantes: ['Emitir una factura', 'Anular un remito', '¿Qué es el CAE?'],
   caja: ['Abrir la caja', 'Cerrar el turno', 'Me da diferencia el cierre'],
-  reportes: ['Ocupación del mes', '¿Qué es el ADR?', 'Exportar un reporte'],
+  reportes: ['Ocupación del mes', '¿Qué es el ADR?', 'Horas trabajadas del equipo'],
   usuarios: ['Dar de alta a alguien del equipo', 'Qué ve cada rol'],
   configuracion: ['Configurar la landing del hotel', 'Cargar los datos fiscales', 'Conectar Mercado Pago'],
 };

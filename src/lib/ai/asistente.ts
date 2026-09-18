@@ -48,11 +48,11 @@ Comercial:
 Financiero:
 - Comprobantes: emisión de facturas, notas de crédito y débito, remitos y presupuestos. Con la facturación electrónica configurada, las facturas salen con CAE de ARCA (ex AFIP).
 - Caja: apertura y cierre de turno, movimientos de ingreso y egreso, y cierre con conteo de billetes.
-- Reportes: ocupación, ingresos, tarifa promedio (ADR), RevPAR y auditoría.
+- Reportes: ocupación, ingresos, tarifa promedio (ADR), RevPAR y auditoría. La pestaña Empleados suma las horas trabajadas de cada persona, contadas del inicio de sesión al cierre de sesión: se toca una persona para ver sus días y un día para ver los turnos con hora de entrada y salida. Un turno sin cierre registrado se muestra en rojo y NO se suma — no se inventa una hora de salida. El botón Exportar CSV baja el detalle turno por turno con las horas también en decimal, que es lo que se multiplica por un valor hora.
 
 Administración:
 - Usuarios: alta del equipo con roles (dueño, administrador, recepción, limpieza); cada uno ve solo los módulos que le corresponden.
-- Configuración: datos del hotel, landing pública, datos fiscales para facturar, medios de pago e integraciones. Está abajo de todo en el menú, separada del resto.
+- Configuración: datos del hotel, landing pública, datos fiscales para facturar, medios de pago, integraciones y la suscripción (qué plan tiene, de dónde salió, si se renueva sola y cuándo vence). Está abajo de todo en el menú, separada del resto.
 
 ## Habitaciones compartidas
 Se cobran por cama, no por habitación:
