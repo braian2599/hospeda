@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PanelLeftClose, User, Lock, Save, Rocket, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { PanelLeftClose, User, Lock, Save, Rocket, Eye, EyeOff, Loader2, Compass } from 'lucide-react';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 
@@ -26,6 +26,7 @@ export default function ProfileSettings({ open, onOpenChange }: ProfileSettingsP
   const setSidebarFixed = useHotelStore(s => s.setSidebarFixed);
   const setStartModule = useHotelStore(s => s.setStartModule);
   const setUsuarioActual = useHotelStore(s => s.setUsuarioActual);
+  const pedirBienvenida = useHotelStore(s => s.pedirBienvenida);
 
   const [nombre, setNombre] = useState('');
   const [currentPass, setCurrentPass] = useState('');
@@ -163,6 +164,42 @@ export default function ProfileSettings({ open, onOpenChange }: ProfileSettingsP
                   Este módulo se cargará automáticamente al iniciar sesión
                 </p>
               </div>
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* ── Guía del sistema ── */}
+          {/*
+            LA ÚNICA PUERTA DE VUELTA, y por eso está acá y no en otro lado.
+
+            La bienvenida se muestra una sola vez, y la notificación que queda
+            se borra al cerrar sesión (la campanita no hereda nada del turno
+            anterior), o sea que dura un turno. Sin este acceso, alguien que
+            tocó "Mirar solo" un día de mucho trabajo perdería la guía para
+            siempre después de tres segundos en pantalla.
+
+            Configuración no servía: es owner/admin-only, así que una
+            recepcionista no podría volver nunca. El asistente tampoco: es
+            Premium/Elite más el flag. Este diálogo lo abre el botón del
+            nombre, que está en la sidebar de escritorio Y en el cajón de
+            mobile, sin ninguna restricción de rol ni de plan.
+          */}
+          <section>
+            <h3 className="text-sm font-semibold flex items-center gap-2 mb-4">
+              <Compass className="w-4 h-4 text-muted-foreground" />
+              Guía del sistema
+            </h3>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F1F5F966]">
+              <div>
+                <Label className="text-sm font-medium block">Ver el recorrido por los módulos</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Qué hace cada pantalla y por dónde conviene empezar
+                </p>
+              </div>
+              <Button variant="outline" className="ml-auto shrink-0" onClick={pedirBienvenida}>
+                Ver guía
+              </Button>
             </div>
           </section>
 

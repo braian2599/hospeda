@@ -12,6 +12,19 @@ import { create } from 'zustand';
 /** Notification categories aligned with hotel operations */
 export type NotificationCategory = 'reserva' | 'pago' | 'checkin' | 'habitacion' | 'sistema' | 'limpieza';
 
+/**
+ * Lo que hace una notificación al tocarla, cuando NO es ir a un módulo.
+ *
+ * El click siempre terminaba en setModulo(actionUrl), así que lo único que la
+ * campanita sabía hacer era cambiar de pantalla. Pasarle algo que no es un
+ * módulo dejaba moduloActivo en un valor inexistente y rompía el render, así
+ * que hacía falta una puerta aparte y con nombre propio.
+ *
+ * Es una lista cerrada a propósito: si mañana alguien inventa una acción, el
+ * compilador obliga a atenderla en el centro de notificaciones.
+ */
+export type AccionNotificacion = 'abrir-bienvenida';
+
 /** Priority levels for notifications */
 export type NotificationPriority = 'info' | 'warning' | 'urgent';
 
@@ -34,6 +47,11 @@ export interface Notification {
   actionUrl?: string;
   /** Label for the action button (e.g. "Ver reserva", "Cobrar") */
   actionLabel?: string;
+  /**
+   * Acción especial en lugar de navegar a un módulo. Tiene prioridad sobre
+   * actionUrl: si está, no se navega a ningún lado.
+   */
+  accion?: AccionNotificacion;
   /** If true, notification survives auto-dismiss and page reload */
   persisted: boolean;
   /**

@@ -21,6 +21,7 @@ import {
   PRIORITY_INDICATOR,
 } from '@/lib/notification-store';
 import { useHotelStore } from '@/lib/store';
+import type { ModuloId } from '@/lib/types';
 
 // ═══════════════════════════════════════════════════════════
 // CATEGORY ICON MAP
@@ -63,7 +64,7 @@ function NotificationItem({
   notification: Notification;
   onMarkRead: (id: string) => void;
   onDismiss: (id: string) => void;
-  onNavigate: (url: string) => void;
+  onNavigate: (n: Notification) => void;
   index: number;
 }) {
   const n = notification;
@@ -102,9 +103,9 @@ function NotificationItem({
         )}
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">{timeAgo(n.timestamp)}</span>
-          {n.actionLabel && n.actionUrl && (
+          {n.actionLabel && (n.actionUrl || n.accion) && (
             <button
-              onClick={() => onNavigate(n.actionUrl!)}
+              onClick={() => onNavigate(n)}
               className="text-[10px] font-medium text-primary hover:underline inline-flex items-center gap-0.5"
             >
               {n.actionLabel}
@@ -183,10 +184,15 @@ export function NotificationCenter({ open, onOpenChange }: NotificationCenterPro
     return sorted.filter(n => n.category === activeTab);
   }, [notifications, activeTab]);
 
-  const handleNavigate = useCallback((url: string) => {
-    // Navigate to the module via store
+  const handleNavigate = useCallback((n: Notification) => {
     try {
-      useHotelStore.getState().setModulo(url as any);
+      // Las acciones con nombre propio se atienden PRIMERO: no son módulos, y
+      // pasarlas por setModulo dejaría moduloActivo en un valor inexistente.
+      if (n.accion === 'abrir-bienvenida') {
+        useHotelStore.getState().pedirBienvenida();
+      } else if (n.actionUrl) {
+        useHotelStore.getState().setModulo(n.actionUrl as ModuloId);
+      }
     } catch {
       // Fallback: just close the sheet
     }

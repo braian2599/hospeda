@@ -244,12 +244,23 @@ interface HotelStore {
   moduloActivo: ModuloId;
   sidebarOpen: boolean;
   perfilOpen: boolean;
+  /**
+   * Alguien pidió volver a ver la bienvenida (desde la campanita o desde el
+   * perfil). No es lo mismo que la bienvenida automática del primer ingreso:
+   * esa la decide AvisosDialog al montarse, mirando los avisos ya vistos.
+   *
+   * Vive acá y no adentro del diálogo porque quien la pide está en otro lado
+   * de la pantalla, y no hay ninguna relación de padre-hijo entre los dos.
+   */
+  bienvenidaPedida: boolean;
   sidebarFixed: boolean;
   _syncing: boolean;
   startModule: string;
   setModulo: (modulo: ModuloId) => void;
   setSidebarOpen: (open: boolean) => void;
   setPerfilOpen: (open: boolean) => void;
+  pedirBienvenida: () => void;
+  bienvenidaAtendida: () => void;
   setUsuarioActual: (u: UsuarioSesion) => void;
 
   // Plan / Suscripción
@@ -397,6 +408,7 @@ export const useHotelStore = create<HotelStore>()(
       moduloActivo: 'dashboard',
       sidebarOpen: false,
       perfilOpen: false,
+      bienvenidaPedida: false,
       sidebarFixed: false,
       _syncing: false,
       startModule: 'dashboard',
@@ -460,6 +472,12 @@ export const useHotelStore = create<HotelStore>()(
       },
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setPerfilOpen: (open) => set({ perfilOpen: open }),
+
+      // El que pide la bienvenida (campanita, perfil) la enciende; el diálogo
+      // la apaga apenas la abre. Si quedara encendida, no se podría volver a
+      // pedir después de cerrarla.
+      pedirBienvenida: () => set({ bienvenidaPedida: true, perfilOpen: false }),
+      bienvenidaAtendida: () => set({ bienvenidaPedida: false }),
       setUsuarioActual: (u) => set({ usuarioActual: u }),
 
       // Auth
