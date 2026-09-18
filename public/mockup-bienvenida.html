@@ -8,120 +8,80 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* Tokens REALES del sistema (src/app/globals.css). No inventar colores acá:
-     si un mockup usa una paleta propia, lo que se aprueba no es lo que se ve
-     después en la pantalla. */
+  /* Tokens REALES del sistema (src/app/globals.css). Un mockup con paleta
+     propia hace que lo aprobado no sea lo que después se ve en pantalla. */
   :root {
     --background:#F8FAFC; --foreground:#0F172A;
-    --card:#FFFFFF; --card-foreground:#0F172A;
+    --card:#FFFFFF;
     --primary:#0F766E; --primary-foreground:#FFFFFF;
     --muted:#F1F5F9; --muted-foreground:#64748B;
     --border:#E2E8F0;
-    --success:#059669; --warning:#D97706; --info:#0284C7;
+    --success:#059669; --warning:#D97706;
     --radius:10px;
     --primary-soft:#0F766E1A; --primary-softer:#0F766E12; --primary-ring:#0F766E40;
     --page:#EEF2F5;
   }
   body[data-theme="dark"] {
     --background:#0C1B19; --foreground:#E2E8F0;
-    --card:#132624; --card-foreground:#E2E8F0;
+    --card:#132624;
     --primary:#2D7A6E; --primary-foreground:#FFFFFF;
     --muted:#1A2F2C; --muted-foreground:#94A3B8;
     --border:rgba(255,255,255,0.08);
-    --success:#34D399; --warning:#FBBF24; --info:#38BDF8;
+    --success:#34D399; --warning:#FBBF24;
     --primary-soft:#2D7A6E33; --primary-softer:#2D7A6E22; --primary-ring:#2D7A6E66;
     --page:#081310;
   }
 
   *{margin:0;padding:0;box-sizing:border-box}
-  body{
-    font-family:'Inter',system-ui,-apple-system,sans-serif;
-    background:var(--page); color:var(--foreground);
-    padding:28px 16px 80px; -webkit-font-smoothing:antialiased;
-  }
-
+  body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--page);color:var(--foreground);padding:28px 16px 90px;-webkit-font-smoothing:antialiased}
   .wrap{max-width:1180px;margin:0 auto}
   .topbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px}
-  h1{font-size:19px;font-weight:700;letter-spacing:-0.01em}
-  .sub{font-size:13px;color:var(--muted-foreground);margin-bottom:26px;max-width:70ch;line-height:1.55}
-  .toggle{
-    margin-left:auto;display:flex;gap:2px;background:var(--card);
-    border:1px solid var(--border);border-radius:99px;padding:3px
-  }
-  .toggle button{
-    font:inherit;font-size:12px;font-weight:600;padding:5px 14px;border:0;border-radius:99px;
-    background:transparent;color:var(--muted-foreground);cursor:pointer
-  }
+  h1{font-size:19px;font-weight:700;letter-spacing:-.01em}
+  .sub{font-size:13px;color:var(--muted-foreground);margin-bottom:26px;max-width:74ch;line-height:1.55}
+  .toggle{margin-left:auto;display:flex;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:99px;padding:3px}
+  .toggle button{font:inherit;font-size:12px;font-weight:600;padding:5px 14px;border:0;border-radius:99px;background:transparent;color:var(--muted-foreground);cursor:pointer}
   .toggle button[aria-pressed="true"]{background:var(--primary);color:var(--primary-foreground)}
 
-  /* ── Bloque por opción ── */
   section{margin-bottom:46px}
   .head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-  .tag{
-    font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
-    padding:3px 9px;border-radius:99px;border:1px solid var(--border);
-    background:var(--muted);color:var(--muted-foreground)
-  }
+  .tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:99px;border:1px solid var(--border);background:var(--muted);color:var(--muted-foreground)}
   .tag.now{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
   body[data-theme="dark"] .tag.now{background:#3B2F0B;color:#FBBF24;border-color:#5C4708}
   .tag.pick{background:var(--primary-soft);color:var(--primary);border-color:var(--primary-ring)}
-  h2{font-size:16px;font-weight:700;letter-spacing:-0.01em}
-  .note{font-size:12.5px;color:var(--muted-foreground);line-height:1.6;max-width:76ch;margin-bottom:16px}
+  h2{font-size:16px;font-weight:700;letter-spacing:-.01em}
+  .note{font-size:12.5px;color:var(--muted-foreground);line-height:1.62;max-width:78ch;margin-bottom:16px}
   .note b{color:var(--foreground);font-weight:600}
   .w{font-size:11px;color:var(--muted-foreground);font-weight:500;margin-bottom:10px}
 
-  /* ── El dialog ── */
   .stage{background:var(--background);border:1px solid var(--border);border-radius:16px;padding:28px 18px;display:flex;justify-content:center}
-  .dlg{
-    background:var(--card);color:var(--card-foreground);
-    border:1px solid var(--border);border-radius:var(--radius);
-    box-shadow:0 10px 38px rgba(2,10,20,.13);
-    width:100%;padding:24px;position:relative
-  }
-  .dlg.w-trabajo{max-width:1024px}
-  .dlg.w-grande{max-width:768px}
-  .dlg.w-medio{max-width:512px}
+  .dlg{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 38px rgba(2,10,20,.13);width:100%;padding:24px;position:relative}
+  .w-grande{max-width:768px} .w-medio{max-width:512px}
   .x{position:absolute;top:14px;right:14px;color:var(--muted-foreground);opacity:.6}
 
   .dhead{display:flex;align-items:center;gap:12px;margin-bottom:18px}
   .dicon{width:40px;height:40px;border-radius:12px;background:var(--primary-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)}
-  .dtitle{font-size:20px;font-weight:600;line-height:1.2;letter-spacing:-0.01em}
+  .dtitle{font-size:20px;font-weight:600;line-height:1.2;letter-spacing:-.01em}
   .dsub{font-size:12px;color:var(--muted-foreground);margin-top:3px}
 
-  .grp{font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--muted-foreground);margin-bottom:8px}
-  .cards{display:grid;gap:10px;grid-template-columns:repeat(3,1fr)}
-  @media(max-width:860px){.cards{grid-template-columns:1fr}}
-  .mod{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);background:var(--card);border-radius:8px;padding:12px}
-  .mico{width:32px;height:32px;border-radius:8px;background:var(--primary-softer);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)}
-  .mname{font-size:13.5px;font-weight:500;line-height:1.2}
-  .mdesc{font-size:12px;color:var(--muted-foreground);line-height:1.35;margin-top:2px}
-
-  .dfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:16px;margin-top:20px}
-  .dfoot .fine{font-size:12px;color:var(--muted-foreground)}
-  .btn{
-    font:inherit;font-size:13.5px;font-weight:500;border:0;border-radius:8px;
-    padding:9px 17px;background:var(--primary);color:var(--primary-foreground);
-    display:inline-flex;align-items:center;gap:7px;cursor:default
-  }
+  .dfoot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:16px;margin-top:20px}
+  .fine{font-size:12px;color:var(--muted-foreground)}
+  .btn{font:inherit;font-size:13.5px;font-weight:500;border:0;border-radius:8px;padding:9px 17px;background:var(--primary);color:var(--primary-foreground);display:inline-flex;align-items:center;gap:7px;cursor:pointer}
   .btn.ghost{background:transparent;color:var(--muted-foreground)}
   .btn.out{background:transparent;color:var(--foreground);border:1px solid var(--border)}
   .btn.sm{font-size:12.5px;padding:7px 13px}
+  .btn:disabled{opacity:.35;cursor:default}
   .ml{margin-left:auto}
 
-  /* ── Pasos (opción A) ── */
+  /* ── pasos ── */
   .prog{display:flex;align-items:center;gap:12px;margin-bottom:16px}
   .bar{flex:1;height:6px;border-radius:99px;background:var(--muted);overflow:hidden}
-  .bar i{display:block;height:100%;background:var(--primary);border-radius:99px}
+  .bar i{display:block;height:100%;background:var(--primary);border-radius:99px;transition:width .3s ease}
   .progtxt{font-size:12px;font-weight:600;color:var(--muted-foreground);white-space:nowrap}
-
   .steps{display:grid;gap:10px}
-  .step{display:flex;gap:13px;align-items:flex-start;border:1px solid var(--border);border-radius:10px;padding:14px 15px;background:var(--card)}
+  .step{display:flex;gap:13px;align-items:flex-start;border:1px solid var(--border);border-radius:10px;padding:14px 15px}
   .step.on{border-color:var(--primary-ring);background:var(--primary-softer)}
   .step.done{opacity:.72}
-  .num{
-    width:26px;height:26px;border-radius:99px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-    font-size:12.5px;font-weight:700;background:var(--muted);color:var(--muted-foreground);margin-top:1px
-  }
+  .num{width:26px;height:26px;border-radius:99px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;background:var(--muted);color:var(--muted-foreground);margin-top:1px}
   .step.on .num{background:var(--primary);color:var(--primary-foreground)}
   .step.done .num{background:var(--success);color:#fff}
   .sbody{min-width:0;flex:1}
@@ -131,17 +91,48 @@
   .chip.ok{background:#05966918;color:var(--success);border-color:#05966940}
   .chip.opt{background:transparent}
   .sact{flex-shrink:0;align-self:center}
-
   .later{font-size:12.5px;color:var(--muted-foreground);line-height:1.6;margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)}
   .later b{color:var(--foreground);font-weight:600}
 
-  /* ── Día (opción B) ── */
-  .day{display:grid;gap:10px;grid-template-columns:repeat(3,1fr)}
-  @media(max-width:760px){.day{grid-template-columns:1fr}}
-  .dcard{border:1px solid var(--border);border-radius:10px;padding:15px;background:var(--card)}
-  .dcard .mico{width:36px;height:36px;border-radius:9px;margin-bottom:10px}
-  .dcard h4{font-size:14px;font-weight:600;line-height:1.25}
-  .dcard p{font-size:12.5px;color:var(--muted-foreground);line-height:1.5;margin-top:4px}
+  /* ── GUÍA ── */
+  .guia-body{
+    /* Alto fijo: si cada paso mide distinto, la ventana salta en cada click.
+       Es lo primero que delata un carrusel mal hecho. */
+    min-height:318px; overflow:hidden; position:relative
+  }
+  .gpaso{display:none}
+  .gpaso.activo{display:block}
+  .gpaso.activo.der{animation:entraDer .26s cubic-bezier(.22,.61,.36,1) both}
+  .gpaso.activo.izq{animation:entraIzq .26s cubic-bezier(.22,.61,.36,1) both}
+  @keyframes entraDer{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+  @keyframes entraIzq{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){
+    .gpaso.activo.der,.gpaso.activo.izq{animation:aparece .18s ease both}
+    @keyframes aparece{from{opacity:0}to{opacity:1}}
+    .bar i{transition:none}
+  }
+  .ghead{display:flex;align-items:center;gap:13px;margin-bottom:14px}
+  .gnum{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--primary)}
+  .gtitle{font-size:19px;font-weight:600;letter-spacing:-.01em;line-height:1.2;margin-top:2px}
+  .glead{font-size:13px;color:var(--muted-foreground);line-height:1.6;margin-bottom:16px;max-width:60ch}
+  .gmods{display:grid;gap:9px}
+  .gmod{display:flex;gap:11px;align-items:flex-start;border:1px solid var(--border);border-radius:9px;padding:12px 13px;background:var(--background)}
+  .gmico{width:32px;height:32px;border-radius:8px;background:var(--primary-softer);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)}
+  .gmname{font-size:13.5px;font-weight:600;line-height:1.2}
+  .gmdesc{font-size:12.5px;color:var(--muted-foreground);line-height:1.45;margin-top:2px}
+
+  .dots{display:flex;gap:6px;align-items:center}
+  .dot{width:7px;height:7px;border-radius:99px;background:var(--border);border:0;padding:0;cursor:pointer;transition:all .2s ease}
+  .dot.on{width:20px;background:var(--primary)}
+
+  /* ── campanita y perfil ── */
+  .mini{max-width:420px;border:1px solid var(--border);border-radius:12px;background:var(--card);padding:14px;box-shadow:0 4px 18px rgba(2,10,20,.08)}
+  .nrow{display:flex;gap:11px;align-items:flex-start}
+  .ndot{width:8px;height:8px;border-radius:99px;background:var(--primary);flex-shrink:0;margin-top:6px}
+  .ntitle{font-size:13.5px;font-weight:600}
+  .ntext{font-size:12.5px;color:var(--muted-foreground);line-height:1.5;margin-top:2px}
+  .prow{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--border);border-radius:10px;background:var(--card);max-width:520px}
+  .prow .gmico{width:34px;height:34px}
 
   .cmp{display:grid;gap:12px;grid-template-columns:1fr 1fr;margin-top:14px}
   @media(max-width:760px){.cmp{grid-template-columns:1fr}}
@@ -149,8 +140,8 @@
   .box h5{font-size:12.5px;font-weight:700;margin-bottom:7px}
   .box ul{margin:0;padding-left:17px}
   .box li{font-size:12.5px;color:var(--muted-foreground);line-height:1.65;margin-bottom:3px}
-  .box.good h5{color:var(--success)}
-  .box.bad h5{color:var(--warning)}
+  .box.good h5{color:var(--success)} .box.bad h5{color:var(--warning)}
+  .hint{font-size:11.5px;color:var(--primary);font-weight:600;margin-bottom:10px}
   [data-lucide]{width:18px;height:18px}
 </style>
 </head>
@@ -158,99 +149,67 @@
 <div class="wrap">
 
   <div class="topbar">
-    <h1>Ventana de bienvenida — opciones</h1>
+    <h1>Ventana de bienvenida — flujo definitivo</h1>
     <div class="toggle" role="group" aria-label="Tema">
       <button id="bl" aria-pressed="true">Claro</button>
       <button id="bd" aria-pressed="false">Oscuro</button>
     </div>
   </div>
   <p class="sub">
-    Todo con los colores reales del sistema (<code>globals.css</code>) y los anchos reales de dialog
-    (chico 448 · medio 512 · grande 768 · trabajo 1024). Nada de paleta inventada: si el mockup usa
-    otros colores, lo que se aprueba no es lo que se ve después.
+    Colores reales de <code>globals.css</code> y anchos reales de dialog.
+    <b>La guía rápida es clickeable de verdad</b>: probá ATRÁS, SIGUIENTE, los puntitos y las flechas
+    del teclado. La animación es la misma que va a tener, hecha con CSS (no con framer-motion).
   </p>
 
-  <!-- ══════════════════════════ HOY ══════════════════════════ -->
+  <!-- ══════════ 1 · MINI BIENVENIDA ══════════ -->
   <section>
     <div class="head">
-      <span class="tag now">Hoy</span>
-      <h2>Lo que ve un hotel nuevo</h2>
+      <span class="tag pick">1 · Lo primero que ve</span>
+      <h2>Mini bienvenida — una sola vez por persona</h2>
     </div>
     <p class="note">
-      Once tarjetas agrupadas por área. El problema no es cómo se ve — se ve bien — sino <b>qué dice</b>:
-      es el menú lateral repetido. Y el día que alguien ve esto, el hotel tiene cero habitaciones,
-      cero tarifas y cero equipo, así que de los once módulos no puede usar ninguno todavía.
+      Tres caminos y nada más. No enseña el sistema: pregunta qué querés hacer.
+      <b>Cerrar con la X se comporta igual que "Mirar solo"</b> — nunca se pierden los dos caminos en silencio.
     </p>
-    <p class="w">Ancho actual: <b>1024px</b> (trabajo)</p>
+    <p class="w">Ancho: <b>512px</b> (medio)</p>
+    <p class="hint">↓ Los tres botones funcionan: tocalos para ver a dónde llevan</p>
     <div class="stage">
-      <div class="dlg w-trabajo">
+      <div class="dlg w-medio">
         <i data-lucide="x" class="x"></i>
-        <div class="dhead">
-          <div class="dicon"><i data-lucide="hand"></i></div>
-          <div>
-            <div class="dtitle">¡Bienvenido a Hospi, Braian!</div>
-            <div class="dsub">Esto es lo que vas a encontrar en el sistema.</div>
+        <div style="text-align:center;padding:10px 6px 0">
+          <div class="dicon" style="width:52px;height:52px;border-radius:16px;margin:0 auto 14px">
+            <i data-lucide="hand" style="width:24px;height:24px"></i>
           </div>
-        </div>
-
-        <div style="display:grid;gap:16px">
-          <div>
-            <p class="grp">Operativo</p>
-            <div class="cards">
-              <div class="mod"><div class="mico"><i data-lucide="door-open"></i></div><div><p class="mname">Habitaciones</p><p class="mdesc">Mapa con el estado de cada habitación y quién está alojado</p></div></div>
-              <div class="mod"><div class="mico"><i data-lucide="log-in"></i></div><div><p class="mname">Check-In/Out</p><p class="mdesc">Registrar el ingreso y la salida de los huéspedes</p></div></div>
-              <div class="mod"><div class="mico"><i data-lucide="sparkles"></i></div><div><p class="mname">Limpieza y Mant.</p><p class="mdesc">Tareas de limpieza y reporte de desperfectos</p></div></div>
-            </div>
+          <div class="dtitle" style="font-size:22px">¡Bienvenido a Hospi, Braian!</div>
+          <p class="dsub" style="font-size:13.5px;line-height:1.6;margin-top:8px;max-width:44ch;margin-left:auto;margin-right:auto">
+            Tu hotel todavía está vacío. Podés dejarlo listo en tres pasos, o dar una vuelta
+            rápida por el sistema antes de arrancar.
+          </p>
+          <div style="display:flex;gap:9px;justify-content:center;margin-top:20px;flex-wrap:wrap">
+            <button class="btn ghost" onclick="irA('campanita')">Mirar solo</button>
+            <button class="btn out" onclick="irA('guia')">Guía rápida</button>
+            <button class="btn" onclick="irA('pasos')">Primeros pasos <i data-lucide="arrow-right" style="width:15px;height:15px"></i></button>
           </div>
-          <div>
-            <p class="grp">Comercial</p>
-            <div class="cards">
-              <div class="mod"><div class="mico"><i data-lucide="calendar-days"></i></div><div><p class="mname">Reservas</p><p class="mdesc">Alta de reservas y control de disponibilidad</p></div></div>
-              <div class="mod"><div class="mico"><i data-lucide="users"></i></div><div><p class="mname">Clientes</p><p class="mdesc">Ficha de cada huésped con su historial de estadías</p></div></div>
-              <div class="mod"><div class="mico"><i data-lucide="tags"></i></div><div><p class="mname">Tarifas</p><p class="mdesc">Precios por grupo, por habitación o por cama</p></div></div>
-            </div>
-          </div>
-          <div>
-            <p class="grp">Financiero</p>
-            <div class="cards">
-              <div class="mod"><div class="mico"><i data-lucide="receipt"></i></div><div><p class="mname">Comprobantes</p><p class="mdesc">Facturas con CAE de ARCA, remitos y presupuestos</p></div></div>
-              <div class="mod"><div class="mico"><i data-lucide="wallet"></i></div><div><p class="mname">Caja</p><p class="mdesc">Apertura y cierre de turno con conteo de billetes</p></div></div>
-              <div class="mod"><div class="mico"><i data-lucide="bar-chart-3"></i></div><div><p class="mname">Reportes</p><p class="mdesc">Ocupación, ingresos, tarifa promedio y RevPAR</p></div></div>
-            </div>
-          </div>
-          <div>
-            <p class="grp">Administración</p>
-            <div class="cards">
-              <div class="mod"><div class="mico"><i data-lucide="user-cog"></i></div><div><p class="mname">Usuarios</p><p class="mdesc">Alta del equipo y qué puede ver cada uno</p></div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="dfoot">
-          <p class="fine">Te lo mostramos una vez más al próximo ingreso, y después queda en la campanita.</p>
-          <button class="btn ml">Empezar</button>
+          <p class="fine" style="font-size:11.5px;margin-top:16px">
+            Esto se muestra una sola vez. Después queda en tu perfil, abajo del menú.
+          </p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════════════════════ OPCIÓN A ══════════════════════════ -->
-  <section>
+  <!-- ══════════ 2 · PRIMEROS PASOS ══════════ -->
+  <section id="pasos">
     <div class="head">
-      <span class="tag pick">Opción A — recomendada</span>
-      <h2>Primeros pasos, con el estado real del hotel</h2>
+      <span class="tag pick">2 · "Primeros pasos"</span>
+      <h2>Checklist con el estado real del hotel</h2>
     </div>
     <p class="note">
-      Deja de enumerar el menú y contesta la única pregunta que tiene alguien el primer día:
-      <b>¿por dónde empiezo?</b> Los tres pasos son los que habilitan todo lo demás — sin habitaciones
-      no hay reserva, sin tarifas no hay precio. Cada uno lleva a su pantalla.
-      <br><br>
-      Lo importante: <b>el estado sale de datos reales</b>, no es una lista fija. El store ya tiene
-      habitaciones, tarifas y usuarios, así que si el hotel vuelve a entrar con dos pasos hechos, la
-      ventana lo reconoce y le muestra solo lo que falta. Una bienvenida que miente ("cargá tus
-      habitaciones" a alguien que ya cargó 20) es peor que ninguna.
+      El estado sale de datos reales (habitaciones, tarifas y usuarios ya están en el store), así que
+      al volver a entrar reconoce lo que ya hiciste. Una bienvenida que le dice "cargá tus habitaciones"
+      a alguien que cargó 20 es peor que ninguna.
     </p>
-    <p class="w">Ancho propuesto: <b>768px</b> (grande) — la mitad de ancho que hoy</p>
+    <p class="w">Ancho: <b>768px</b> (grande)</p>
     <div class="stage">
       <div class="dlg w-grande">
         <i data-lucide="x" class="x"></i>
@@ -261,12 +220,7 @@
             <div class="dsub">Tres pasos y el hotel queda listo para recibir su primera reserva.</div>
           </div>
         </div>
-
-        <div class="prog">
-          <div class="bar"><i style="width:4%"></i></div>
-          <span class="progtxt">0 de 3</span>
-        </div>
-
+        <div class="prog"><div class="bar"><i style="width:4%"></i></div><span class="progtxt">0 de 3</span></div>
         <div class="steps">
           <div class="step on">
             <div class="num">1</div>
@@ -288,56 +242,24 @@
             <div class="num">3</div>
             <div class="sbody">
               <p class="stitle">Sumá a tu equipo <span class="chip opt">Opcional</span></p>
-              <p class="stext">Cada persona entra con su propio perfil y ve solo los módulos de su rol. Podés dejarlo para más adelante.</p>
+              <p class="stext">Cada persona entra con su propio perfil y ve solo los módulos de su rol.</p>
             </div>
             <div class="sact"><button class="btn out sm">Ir a Usuarios</button></div>
           </div>
         </div>
-
         <p class="later">
           Con eso listo ya podés usar <b>Reservas</b>, <b>Check-In/Out</b>, <b>Limpieza</b>, <b>Caja</b>,
           <b>Comprobantes</b> y <b>Reportes</b>. Están todos en el menú de la izquierda.
         </p>
-
         <div class="dfoot">
-          <p class="fine">Esto vuelve a aparecer hasta que los pasos estén hechos.</p>
+          <p class="fine">Vuelve a aparecer hasta que los pasos estén hechos.</p>
           <button class="btn ghost ml">Lo hago después</button>
           <button class="btn">Empezar por las habitaciones</button>
         </div>
       </div>
     </div>
 
-    <div class="cmp">
-      <div class="box good">
-        <h5>Qué gana</h5>
-        <ul>
-          <li>Contesta "¿por dónde empiezo?", que es lo que realmente se pregunta.</li>
-          <li>Reconoce lo que el hotel ya hizo en vez de repetir el mismo discurso.</li>
-          <li>La mitad de ancho y un tercio del texto: se lee en diez segundos.</li>
-          <li>Cada paso es un botón: la ventana deja de ser un cartel y pasa a ser una herramienta.</li>
-        </ul>
-      </div>
-      <div class="box bad">
-        <h5>Qué cuesta</h5>
-        <ul>
-          <li>Ya no presenta los once módulos uno por uno (quedan en una línea al pie).</li>
-          <li>Hay que decidir qué pasa si el hotel nunca los completa: hoy propongo que siga apareciendo, no las dos veces fijas de ahora.</li>
-          <li>Necesita leer habitaciones, tarifas y usuarios del store — si todavía no sincronizó, hay que mostrar los pasos sin tilde en vez de adivinar.</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════════════════ OPCIÓN A2 ══════════════════════════ -->
-  <section>
-    <div class="head">
-      <span class="tag">Opción A — segunda visita</span>
-      <h2>La misma ventana, con el hotel a medio cargar</h2>
-    </div>
-    <p class="note">
-      Así se ve al volver a entrar cuando ya cargó las habitaciones. No es una pantalla distinta:
-      es la misma leyendo el estado. Esto es lo que hace que no se sienta un cartel automático.
-    </p>
+    <p class="note" style="margin-top:18px"><b>Al volver a entrar</b>, con las habitaciones y el equipo ya cargados:</p>
     <div class="stage">
       <div class="dlg w-grande">
         <i data-lucide="x" class="x"></i>
@@ -348,18 +270,11 @@
             <div class="dsub">Te falta un paso para poder cargar tu primera reserva.</div>
           </div>
         </div>
-
-        <div class="prog">
-          <div class="bar"><i style="width:66%"></i></div>
-          <span class="progtxt">2 de 3</span>
-        </div>
-
+        <div class="prog"><div class="bar"><i style="width:66%"></i></div><span class="progtxt">2 de 3</span></div>
         <div class="steps">
           <div class="step done">
             <div class="num"><i data-lucide="check" style="width:14px;height:14px"></i></div>
-            <div class="sbody">
-              <p class="stitle">Habitaciones cargadas <span class="chip ok">12 habitaciones</span></p>
-            </div>
+            <div class="sbody"><p class="stitle">Habitaciones cargadas <span class="chip ok">12 habitaciones</span></p></div>
           </div>
           <div class="step on">
             <div class="num">2</div>
@@ -371,14 +286,11 @@
           </div>
           <div class="step done">
             <div class="num"><i data-lucide="check" style="width:14px;height:14px"></i></div>
-            <div class="sbody">
-              <p class="stitle">Equipo cargado <span class="chip ok">3 personas</span></p>
-            </div>
+            <div class="sbody"><p class="stitle">Equipo cargado <span class="chip ok">3 personas</span></p></div>
           </div>
         </div>
-
         <div class="dfoot">
-          <p class="fine">Esto vuelve a aparecer hasta que los pasos estén hechos.</p>
+          <p class="fine">Vuelve a aparecer hasta que los pasos estén hechos.</p>
           <button class="btn ghost ml">Lo hago después</button>
           <button class="btn">Ir a Tarifas</button>
         </div>
@@ -386,100 +298,180 @@
     </div>
   </section>
 
-  <!-- ══════════════════════════ OPCIÓN B ══════════════════════════ -->
-  <section>
+  <!-- ══════════ 3 · GUÍA RÁPIDA ══════════ -->
+  <section id="guia">
     <div class="head">
-      <span class="tag pick">Opción B — va junto con A</span>
-      <h2>La otra cara: el que no configura nada</h2>
+      <span class="tag pick">3 · "Guía rápida"</span>
+      <h2>Cinco pasos, agrupados por área</h2>
     </div>
     <p class="note">
-      Hoy la recepcionista que el dueño da de alta el mes que viene ve <b>exactamente la misma ventana</b>
-      que el dueño el día uno: un tour de once módulos, con pasos de configuración que ella no puede
-      ni va a hacer. Es la misma ventana con otro contenido según el rol — no es una pantalla nueva.
+      Solo muestra los módulos que <b>esa persona realmente ve</b> según su plan y su rol, así que nunca
+      le promete algo que no va a encontrar. Si le quedan menos de 3 pasos —un perfil de limpieza, por
+      ejemplo— el botón "Guía rápida" directamente no aparece: dos pasos no son un recorrido.
       <br><br>
-      Solo muestra los módulos que su rol realmente ve, así que nunca le promete algo que no va a encontrar.
+      El paso 5 hace doble función: presenta Usuarios y <b>cierra</b> la guía. Un recorrido necesita un
+      final, no cortarse.
     </p>
-    <p class="w">Ancho propuesto: <b>512px</b> (medio)</p>
+    <p class="w">Ancho: <b>768px</b> (grande) · alto fijo para que no salte entre pasos</p>
+    <p class="hint">↓ Clickeable: ATRÁS · SIGUIENTE · los puntitos · flechas ← → del teclado</p>
     <div class="stage">
-      <div class="dlg w-medio">
+      <div class="dlg w-grande" id="guiaDlg" tabindex="0">
         <i data-lucide="x" class="x"></i>
-        <div class="dhead">
-          <div class="dicon"><i data-lucide="hand"></i></div>
-          <div>
-            <div class="dtitle">¡Hola, Ana!</div>
-            <div class="dsub">Esto es lo que vas a usar todos los días.</div>
-          </div>
+
+        <div class="prog" style="margin-bottom:18px">
+          <div class="bar"><i id="gbar" style="width:20%"></i></div>
+          <span class="progtxt" id="gtxt">1 de 5</span>
         </div>
 
-        <div class="steps">
-          <div class="step">
-            <div class="mico" style="width:34px;height:34px"><i data-lucide="log-in"></i></div>
-            <div class="sbody">
-              <p class="stitle">Recibir y despedir huéspedes</p>
-              <p class="stext">Check-In/Out: el ingreso, la salida y los acompañantes.</p>
+        <div class="guia-body">
+          <!-- 1 -->
+          <div class="gpaso activo der" data-paso="1">
+            <div class="ghead">
+              <div class="dicon"><i data-lucide="layout-dashboard"></i></div>
+              <div><p class="gnum">Paso 1 de 5</p><p class="gtitle">Tu pantalla de todos los días</p></div>
+            </div>
+            <p class="glead">Cuando entrás, aterrizás acá. De un vistazo: quién llega hoy, quién se va, cómo está la ocupación y qué necesita atención.</p>
+            <div class="gmods">
+              <div class="gmod">
+                <div class="gmico"><i data-lucide="layout-dashboard"></i></div>
+                <div><p class="gmname">Dashboard</p><p class="gmdesc">El calendario de ocupación, los check-ins y check-outs del día, los indicadores y las alertas.</p></div>
+              </div>
             </div>
           </div>
-          <div class="step">
-            <div class="mico" style="width:34px;height:34px"><i data-lucide="calendar-days"></i></div>
-            <div class="sbody">
-              <p class="stitle">Cargar reservas</p>
-              <p class="stext">Reservas: buscás disponibilidad por fecha y el sistema no te deja superponer.</p>
+          <!-- 2 -->
+          <div class="gpaso" data-paso="2">
+            <div class="ghead">
+              <div class="dicon"><i data-lucide="door-open"></i></div>
+              <div><p class="gnum">Paso 2 de 5</p><p class="gtitle">El día a día</p></div>
+            </div>
+            <p class="glead">Lo que tocás en cada turno, desde que el huésped llega hasta que la habitación queda lista otra vez.</p>
+            <div class="gmods">
+              <div class="gmod"><div class="gmico"><i data-lucide="door-open"></i></div><div><p class="gmname">Habitaciones</p><p class="gmdesc">El mapa con el estado de cada una y quién está alojado.</p></div></div>
+              <div class="gmod"><div class="gmico"><i data-lucide="log-in"></i></div><div><p class="gmname">Check-In/Out</p><p class="gmdesc">El ingreso, la salida y los acompañantes.</p></div></div>
+              <div class="gmod"><div class="gmico"><i data-lucide="sparkles"></i></div><div><p class="gmname">Limpieza y Mant.</p><p class="gmdesc">Qué falta limpiar y cómo reportar un desperfecto.</p></div></div>
             </div>
           </div>
-          <div class="step">
-            <div class="mico" style="width:34px;height:34px"><i data-lucide="wallet"></i></div>
-            <div class="sbody">
-              <p class="stitle">Abrir y cerrar tu turno</p>
-              <p class="stext">Caja: la apertura, los movimientos del día y el cierre con conteo de billetes.</p>
+          <!-- 3 -->
+          <div class="gpaso" data-paso="3">
+            <div class="ghead">
+              <div class="dicon"><i data-lucide="calendar-days"></i></div>
+              <div><p class="gnum">Paso 3 de 5</p><p class="gtitle">Vender y cobrar</p></div>
+            </div>
+            <p class="glead">Dónde entra la plata: las reservas, la gente que vuelve y los precios con los que cobrás.</p>
+            <div class="gmods">
+              <div class="gmod"><div class="gmico"><i data-lucide="calendar-days"></i></div><div><p class="gmname">Reservas</p><p class="gmdesc">Alta y búsqueda por fecha. El sistema no te deja superponer dos en la misma habitación.</p></div></div>
+              <div class="gmod"><div class="gmico"><i data-lucide="users"></i></div><div><p class="gmname">Clientes</p><p class="gmdesc">La ficha de cada huésped con su historial de estadías.</p></div></div>
+              <div class="gmod"><div class="gmico"><i data-lucide="tags"></i></div><div><p class="gmname">Tarifas</p><p class="gmdesc">Precios por grupo, por habitación o por cama, con promociones y precio de niños.</p></div></div>
+            </div>
+          </div>
+          <!-- 4 -->
+          <div class="gpaso" data-paso="4">
+            <div class="ghead">
+              <div class="dicon"><i data-lucide="wallet"></i></div>
+              <div><p class="gnum">Paso 4 de 5</p><p class="gtitle">La plata</p></div>
+            </div>
+            <p class="glead">Lo que respalda cada peso: el comprobante, el turno de caja y los números del mes.</p>
+            <div class="gmods">
+              <div class="gmod"><div class="gmico"><i data-lucide="receipt"></i></div><div><p class="gmname">Comprobantes</p><p class="gmdesc">Facturas con CAE de ARCA, notas de crédito y débito, remitos y presupuestos.</p></div></div>
+              <div class="gmod"><div class="gmico"><i data-lucide="wallet"></i></div><div><p class="gmname">Caja</p><p class="gmdesc">Apertura y cierre de turno, movimientos y cierre con conteo de billetes.</p></div></div>
+              <div class="gmod"><div class="gmico"><i data-lucide="bar-chart-3"></i></div><div><p class="gmname">Reportes</p><p class="gmdesc">Ocupación, ingresos, ADR, RevPAR y las horas trabajadas de cada persona.</p></div></div>
+            </div>
+          </div>
+          <!-- 5 -->
+          <div class="gpaso" data-paso="5">
+            <div class="ghead">
+              <div class="dicon"><i data-lucide="user-cog"></i></div>
+              <div><p class="gnum">Paso 5 de 5</p><p class="gtitle">Tu equipo, y a trabajar</p></div>
+            </div>
+            <p class="glead">Última parada. Después de esto ya podés arrancar: todo lo que viste está siempre en el menú de la izquierda.</p>
+            <div class="gmods">
+              <div class="gmod"><div class="gmico"><i data-lucide="user-cog"></i></div><div><p class="gmname">Usuarios</p><p class="gmdesc">Cada persona entra con su propio perfil y ve solo los módulos de su rol.</p></div></div>
+              <div class="gmod" style="border-style:dashed;background:transparent">
+                <div class="gmico"><i data-lucide="check"></i></div>
+                <div><p class="gmname">Eso es todo</p><p class="gmdesc">Podés volver a ver esta guía cuando quieras desde tu perfil, abajo del menú.</p></div>
+              </div>
             </div>
           </div>
         </div>
-
-        <p class="later">
-          ¿Algo no te cierra? Preguntale al asistente con el botón de abajo a la derecha:
-          sabe dónde está cada cosa.
-        </p>
 
         <div class="dfoot">
-          <p class="fine">Queda en la campanita por una semana.</p>
-          <button class="btn ml">Empezar</button>
+          <button class="btn ghost sm" id="gsaltar">Saltar guía</button>
+          <div class="dots ml" id="gdots"></div>
+          <button class="btn out sm ml" id="gatras" disabled><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Atrás</button>
+          <button class="btn sm" id="gsig">Siguiente <i data-lucide="arrow-right" style="width:14px;height:14px"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cmp">
+      <div class="box good">
+        <h5>Por qué adentro de la ventana y no señalando la pantalla real</h5>
+        <ul>
+          <li>La sidebar está oculta en celular y colapsada en escritorio: un "spotlight" tendría que abrir y cerrar el cajón en cada paso.</li>
+          <li>El día 1 todos los módulos están vacíos: un tour que aterriza en un Reservas sin nada parece roto.</li>
+          <li>Anclar a elementos del DOM se rompe en silencio con cualquier cambio de layout — no lo agarra ni el build.</li>
+        </ul>
+      </div>
+      <div class="box bad">
+        <h5>Lo que cuesta</h5>
+        <ul>
+          <li>No le muestra la pantalla real: describe, no señala.</li>
+          <li>Hay que esperar a que los planes estén cargados antes de ofrecer el botón, o la guía arranca prometiendo módulos que el hotel no tiene.</li>
+          <li>Si se cierra a la mitad, arranca de nuevo (así no hay nada que guardar).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 4 · CAMPANITA ══════════ -->
+  <section id="campanita">
+    <div class="head">
+      <span class="tag pick">4 · "Mirar solo"</span>
+      <h2>Una sola notificación, que reabre la mini bienvenida</h2>
+    </div>
+    <p class="note">
+      No manda directo a un camino: vuelve a abrir la ventana con los tres botones, para que la persona
+      elija de nuevo. Eso es lo que hace que una sola entrada alcance.
+      <br><br>
+      <b>Ojo con esto:</b> la campanita se borra al cerrar sesión (está escrito así a propósito —
+      "nadie hereda las notificaciones del turno anterior"). O sea que esta notificación dura, en la
+      práctica, hasta que esa persona termina su turno. Sirve como recordatorio del momento, no como
+      archivo.
+    </p>
+    <div class="stage">
+      <div class="mini">
+        <div class="nrow">
+          <div class="ndot"></div>
+          <div style="flex:1">
+            <p class="ntitle">Te queda pendiente la bienvenida</p>
+            <p class="ntext">Podés dejar el hotel listo en tres pasos o dar una vuelta rápida por el sistema.</p>
+            <button class="btn sm" style="margin-top:9px" onclick="irA('top')">Ver</button>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════════════════════ OPCIÓN C ══════════════════════════ -->
+  <!-- ══════════ 5 · PERFIL ══════════ -->
   <section>
     <div class="head">
-      <span class="tag">Opción C — la alternativa corta</span>
-      <h2>Si te parece que A es demasiado</h2>
+      <span class="tag pick">5 · La puerta de vuelta</span>
+      <h2>Una línea en el diálogo de perfil</h2>
     </div>
     <p class="note">
-      Por si preferís no meterle lógica de estado. Una ventana chica, cálida, con <b>una sola acción</b>
-      y nada más. No enseña el sistema: lo empuja a entrar. Es menos útil que A, pero es honesta y no
-      promete nada que después haya que mantener.
+      El único lugar que alcanzan <b>todos los roles y todos los planes</b>. Configuración no sirve
+      (es owner/admin-only) y el asistente tampoco (es Premium/Elite + flag): una recepcionista de un
+      hotel Profesional se quedaría sin las dos cosas. El botón del perfil está en la sidebar de
+      escritorio y en el cajón de mobile, sin ninguna restricción.
     </p>
-    <p class="w">Ancho propuesto: <b>512px</b> (medio)</p>
     <div class="stage">
-      <div class="dlg w-medio">
-        <i data-lucide="x" class="x"></i>
-        <div style="text-align:center;padding:10px 6px 0">
-          <div class="dicon" style="width:52px;height:52px;border-radius:16px;margin:0 auto 14px">
-            <i data-lucide="hand" style="width:24px;height:24px"></i>
-          </div>
-          <div class="dtitle" style="font-size:22px">¡Bienvenido a Hospi, Braian!</div>
-          <p class="dsub" style="font-size:13.5px;line-height:1.6;margin-top:8px;max-width:42ch;margin-left:auto;margin-right:auto">
-            Tu hotel todavía está vacío. Empezá cargando las habitaciones: con eso ya podés tomar
-            reservas, hacer check-in y cobrar.
-          </p>
-          <div style="display:flex;gap:10px;justify-content:center;margin-top:20px">
-            <button class="btn out">Miro solo</button>
-            <button class="btn">Cargar mis habitaciones <i data-lucide="arrow-right" style="width:15px;height:15px"></i></button>
-          </div>
-          <p class="fine" style="font-size:11.5px;color:var(--muted-foreground);margin-top:16px">
-            Todo lo demás está en el menú de la izquierda.
-          </p>
+      <div class="prow">
+        <div class="gmico"><i data-lucide="compass"></i></div>
+        <div style="flex:1">
+          <p class="gmname">Guía del sistema</p>
+          <p class="gmdesc">Volvé a ver el recorrido por los módulos cuando quieras.</p>
         </div>
+        <button class="btn out sm" onclick="irA('guia')">Ver guía</button>
       </div>
     </div>
   </section>
@@ -488,18 +480,66 @@
 
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script>
-  // Si el CDN no carga (sin internet), los huecos de icono no rompen el layout:
-  // quedan vacíos y el mockup se lee igual.
-  try { window.lucide && window.lucide.createIcons(); } catch (e) {}
+  function pintarIconos(){ try { window.lucide && window.lucide.createIcons(); } catch(e){} }
+  pintarIconos();
 
   const body = document.body, bl = document.getElementById('bl'), bd = document.getElementById('bd');
-  function tema(t) {
-    body.dataset.theme = t;
-    bl.setAttribute('aria-pressed', String(t === 'light'));
-    bd.setAttribute('aria-pressed', String(t === 'dark'));
-  }
+  function tema(t){ body.dataset.theme = t; bl.setAttribute('aria-pressed', String(t==='light')); bd.setAttribute('aria-pressed', String(t==='dark')); }
   bl.onclick = () => tema('light');
   bd.onclick = () => tema('dark');
+
+  function irA(id){
+    const el = id === 'top' ? document.body : document.getElementById(id);
+    (el || document.body).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── La guía, funcionando de verdad ──
+  const TOTAL = 5;
+  let actual = 1;
+  const pasos  = [...document.querySelectorAll('.gpaso')];
+  const gbar   = document.getElementById('gbar');
+  const gtxt   = document.getElementById('gtxt');
+  const gatras = document.getElementById('gatras');
+  const gsig   = document.getElementById('gsig');
+  const gdots  = document.getElementById('gdots');
+
+  for (let i = 1; i <= TOTAL; i++) {
+    const d = document.createElement('button');
+    d.className = 'dot' + (i === 1 ? ' on' : '');
+    d.setAttribute('aria-label', 'Paso ' + i);
+    d.onclick = () => mostrar(i);
+    gdots.appendChild(d);
+  }
+
+  function mostrar(n){
+    if (n < 1 || n > TOTAL || n === actual) return;
+    const dir = n > actual ? 'der' : 'izq';
+    actual = n;
+    pasos.forEach(p => {
+      const suyo = Number(p.dataset.paso) === n;
+      p.classList.remove('activo','der','izq');
+      if (suyo) { p.classList.add('activo', dir); }
+    });
+    [...gdots.children].forEach((d, i) => d.classList.toggle('on', i + 1 === n));
+    gbar.style.width = (n / TOTAL * 100) + '%';
+    gtxt.textContent = n + ' de ' + TOTAL;
+    gatras.disabled = n === 1;
+    gsig.innerHTML = n === TOTAL
+      ? 'Empezar a usar Hospi'
+      : 'Siguiente <i data-lucide="arrow-right" style="width:14px;height:14px"></i>';
+    pintarIconos();
+  }
+
+  gsig.onclick   = () => { if (actual < TOTAL) mostrar(actual + 1); };
+  gatras.onclick = () => mostrar(actual - 1);
+  document.getElementById('gsaltar').onclick = () => irA('campanita');
+
+  // Flechas del teclado. En la app real esto vive dentro del dialog,
+  // que ya atrapa el foco.
+  document.getElementById('guiaDlg').addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); if (actual < TOTAL) mostrar(actual + 1); }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); mostrar(actual - 1); }
+  });
 </script>
 </body>
 </html>
