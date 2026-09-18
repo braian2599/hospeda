@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 
 // GET /api/clientes/[id] — Obtener un cliente por ID
 export async function GET(
@@ -8,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('clientes');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('clientes');
     const { id } = await params;
 
     const cliente = await db.cliente.findFirst({
@@ -48,7 +49,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('clientes');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('clientes');
     const { id } = await params;
     const body = await req.json();
     const {
@@ -113,13 +114,11 @@ export async function PUT(
     });
 
     // Auditoría
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: 'cliente_editado',
-        detalle: `Edición: cliente ${updated.nombre} (DNI: ${updated.dni})`,
-        empleado: 'Sistema',
-      },
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.CLIENTE,
+      detalle: `Edición: cliente ${updated.nombre} (DNI: ${updated.dni})`,
+      actor: { id: actorId, nombre: actorNombre },
     });
 
     return NextResponse.json(updated);
@@ -138,7 +137,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('clientes');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('clientes');
     const { id } = await params;
 
     // Buscar cliente
@@ -181,13 +180,11 @@ export async function DELETE(
     });
 
     // Auditoría
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: 'cliente_eliminado',
-        detalle: `Eliminación: cliente ${cliente.nombre} (DNI: ${cliente.dni})`,
-        empleado: 'Sistema',
-      },
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.CLIENTE,
+      detalle: `Eliminación: cliente ${cliente.nombre} (DNI: ${cliente.dni})`,
+      actor: { id: actorId, nombre: actorNombre },
     });
 
     return NextResponse.json({ success: true });

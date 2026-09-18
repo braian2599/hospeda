@@ -102,6 +102,7 @@ export const authOptions: NextAuthOptions = {
         delete token.tenantId;
         delete token.tenantRole;
         delete token.tenantUserId;
+        delete token.tenantUserNombre;
       }
 
       if (trigger === 'update' && session) {
@@ -110,6 +111,7 @@ export const authOptions: NextAuthOptions = {
           delete token.tenantId;
           delete token.tenantRole;
           delete token.tenantUserId;
+          delete token.tenantUserNombre;
           // No retornar acá — dejar que isSuperAdmin se calcule abajo
         }
         const proposedTenantId = (session as Record<string, unknown>).tenantId as string | undefined;
@@ -127,12 +129,17 @@ export const authOptions: NextAuthOptions = {
             }
             const tu = await db.tenantUser.findFirst({
               where: whereClause,
-              select: { tenantId: true, rol: true, id: true },
+              // nombreCompleto se suma a la MISMA consulta. Con el nombre del
+              // perfil adentro del JWT, cualquier ruta puede auditar "quién
+              // hizo esto" sin ir a la base. Antes las rutas usaban
+              // session.user.name, que es el nombre de la CUENTA.
+              select: { tenantId: true, rol: true, id: true, nombreCompleto: true },
             });
             if (tu) {
               token.tenantId = tu.tenantId;
               token.tenantRole = tu.rol;
               token.tenantUserId = tu.id;
+              token.tenantUserNombre = tu.nombreCompleto || null;
             }
           } catch (err) {
             console.error('[jwt:update] Error al validar tenant en BD:', err);
@@ -158,6 +165,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as Record<string, unknown>).tenantId = token.tenantId;
         (session.user as Record<string, unknown>).tenantRole = token.tenantRole;
         (session.user as Record<string, unknown>).tenantUserId = token.tenantUserId;
+        (session.user as Record<string, unknown>).tenantUserNombre = token.tenantUserNombre;
         (session.user as Record<string, unknown>).matchedProfileIds = token.matchedProfileIds;
         (session.user as Record<string, unknown>).isSuperAdmin = token.isSuperAdmin;
       }

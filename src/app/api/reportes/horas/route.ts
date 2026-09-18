@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
   try {
     // Mismo permiso que el módulo donde se muestra. Quien ve la auditoría ya
     // ve quién hizo qué y cuándo: las horas no agregan un dato más sensible.
-    const tenantId = await requirePermission('reportes');
+    const { tenantId } = await requirePermission('reportes');
 
     const { searchParams } = new URL(req.url);
     const desde = fechaValida(searchParams.get('desde'));

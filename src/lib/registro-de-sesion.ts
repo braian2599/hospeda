@@ -32,6 +32,7 @@
 
 import { db } from './db';
 import { TIPO_LOGIN, TIPO_LOGOUT } from './horas-trabajadas';
+import { auditar } from './auditoria';
 
 /**
  * Dos entradas al mismo perfil dentro de esta ventana son la misma entrada.
@@ -138,17 +139,11 @@ export async function registrarLogin(datos: DatosDeEntrada): Promise<ResultadoDe
     const decision = decidirRegistro(tenantUserId, perfilEnLaSesion, ultimo, ahora);
     if (decision !== 'escrito') return decision;
 
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: TIPO_LOGIN,
-        detalle: `Inicio de sesión: ${nombre}`,
-        empleado: nombre,
-        empleadoId: tenantUserId,
-      },
-      // Mismo motivo que arriba: sin select, Prisma devuelve todas las
-      // columnas de la fila creada y una migración pendiente rompe el login.
-      select: { id: true },
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO_LOGIN,
+      detalle: `Inicio de sesión: ${nombre}`,
+      actor: { id: tenantUserId, nombre },
     });
 
     return 'escrito';

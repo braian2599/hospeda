@@ -6,7 +6,7 @@ import { requirePermission, AuthError } from '@/lib/auth/utils';
 // Supports optional ?desde=YYYY-MM-DD&hasta=YYYY-MM-DD date filter for historial
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission(['caja', 'reservas', 'checkin']);
+    const { tenantId } = await requirePermission(['caja', 'reservas', 'checkin']);
 
     const searchParams = req.nextUrl.searchParams;
     const desde = searchParams.get('desde');

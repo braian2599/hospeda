@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('tarifas');
+    const { tenantId } = await requirePermission('tarifas');
     const { id } = await params;
 
     const tarifa = await db.tarifa.findFirst({
@@ -35,7 +35,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('tarifas');
+    const { tenantId } = await requirePermission('tarifas');
     const { id } = await params;
     const body = await req.json();
     const {
@@ -103,7 +103,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('tarifas');
+    const { tenantId } = await requirePermission('tarifas');
     const { id } = await params;
 
     // Buscar tarifa

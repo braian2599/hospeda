@@ -587,7 +587,6 @@ export const useHotelStore = create<HotelStore>()(
             [numero]: newHab,
           },
         });
-        get()._registrarAuditoria('Habitación', `Creación: habitación ${numero} (${tipo})`);
         try {
           await api.habitaciones.create({ numero, tipo, capacidad: parseInt(String(capacidad)), camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0, piso });
         } catch (err) {
@@ -631,7 +630,6 @@ export const useHotelStore = create<HotelStore>()(
         } else {
           set({ habitaciones: { ...habitaciones, [numeroOriginal]: datosNuevos } });
         }
-        get()._registrarAuditoria('Habitación', `Edición: ${numeroOriginal}${numeroOriginal !== numeroNuevo ? ` → ${numeroNuevo}` : ''}`);
         try {
           await api.habitaciones.update(numeroOriginal, { numero: numeroNuevo, tipo, capacidad: nuevaCapacidad, camasMatrimoniales: parseInt(String(camasMatrimoniales)) || 0, camasSimples: parseInt(String(camasSimples)) || 0, piso });
         } catch (err) {
@@ -655,7 +653,6 @@ export const useHotelStore = create<HotelStore>()(
         delete newHabs[numero];
         const updatedReservas = reservas.map(r => r.habitacion === numero && !['Cancelada', 'Check-Out realizado', 'Check-In realizado', 'Confirmada'].includes(r.estado) ? { ...r, estado: 'Cancelada' as const } : r);
         set({ habitaciones: newHabs, reservas: updatedReservas });
-        get()._registrarAuditoria('Habitación', `Eliminación: habitación ${numero}`);
         try {
           await api.habitaciones.delete(numero);
         } catch (err) {
@@ -679,7 +676,6 @@ export const useHotelStore = create<HotelStore>()(
             [numero]: { ...hab, estado: nuevoEstado },
           },
         });
-        get()._registrarAuditoria('Habitación', `Estado cambiado: ${numero} ${hab.estado} → ${nuevoEstado}`);
         try {
           await api.habitaciones.update(numero, { estado: nuevoEstado });
         } catch (err) {
@@ -699,7 +695,6 @@ export const useHotelStore = create<HotelStore>()(
           if (newHabs[numero]) newHabs[numero] = { ...newHabs[numero], orden: i };
         });
         set({ habitaciones: newHabs });
-        get()._registrarAuditoria('Habitación', 'Orden de habitaciones actualizado');
 
         try {
           await api.habitaciones.reorder(ordenNumeros);
@@ -717,7 +712,6 @@ export const useHotelStore = create<HotelStore>()(
         const prevClientes = clientes;
         const nuevo: Cliente = { id: generarId(), ...datos, telefono: datos.telefono || '', email: datos.email || '', preferencias: datos.preferencias || '', historialEstadias: [], fechaCreacion: todayLocal() };
         set({ clientes: [...clientes, nuevo] });
-        get()._registrarAuditoria('Cliente', `Creación: ${datos.nombre} (DNI: ${datos.dni})`);
         try {
           const dbCliente = await api.clientes.create({ nombre: datos.nombre, dni: datos.dni, telefono: datos.telefono || '', email: datos.email, fechaNacimiento: datos.fechaNacimiento, nacionalidad: datos.nacionalidad, domicilio: datos.domicilio, preferencias: datos.preferencias });
           // Replace temp ID with real DB ID and update with DB-returned fields
@@ -739,7 +733,6 @@ export const useHotelStore = create<HotelStore>()(
         if (!cliente) return false;
         set({ clientes: clientes.map(c => c.id === id ? { ...c, ...datos } : c) });
         if (cliente) {
-          get()._registrarAuditoria('Cliente', `Edición: ${cliente.nombre} (DNI: ${cliente.dni})`);
           try {
             await api.clientes.update(id, datos as any);
           } catch (err) {
@@ -759,7 +752,6 @@ export const useHotelStore = create<HotelStore>()(
         if (reservasActivas.length > 0) return false;
         const prevClientes = clientes;
         set({ clientes: clientes.filter(c => c.id !== id) });
-        get()._registrarAuditoria('Cliente', `Eliminación: ${cliente.nombre} (DNI: ${cliente.dni})`);
         try {
           await api.clientes.delete(id);
         } catch (err) {
@@ -894,7 +886,6 @@ export const useHotelStore = create<HotelStore>()(
         }
 
         set({ reservas: newReservas, habitaciones: newHabitaciones });
-        state._registrarAuditoria('Reserva', `Creación: ${datos.huesped} - Hab ${datos.habitacion} - Total: $${total}`);
 
         // Crear en BD — ahora con clienteId y datosAdicionales
         const apiPayload: any = {
@@ -1004,7 +995,6 @@ export const useHotelStore = create<HotelStore>()(
           return updated;
         });
         set({ reservas: updatedReservas });
-        state._registrarAuditoria('Reserva', `Modificación #${id}: ${reserva.huesped}`);
         const apiPayload: any = { ...datos };
         if (datos.habitacion) apiPayload.habitacion = datos.habitacion;
         if (datos.checkin) apiPayload.checkin = datos.checkin;
@@ -1038,7 +1028,6 @@ export const useHotelStore = create<HotelStore>()(
           newHabs[reserva.habitacion] = { ...hab, estado: 'Disponible' };
         }
         set({ reservas: newReservas, habitaciones: newHabs });
-        state._registrarAuditoria('Reserva', `Cancelación #${id}: ${reserva.huesped} - Hab ${reserva.habitacion}`);
 
         try {
           await api.reservas.cancel(id);
@@ -1098,7 +1087,6 @@ export const useHotelStore = create<HotelStore>()(
         }
 
         set({ reservas: updatedReservas, habitaciones: newHabs });
-        state._registrarAuditoria('Check-In', `Check-In: ${reserva.huesped} - Hab ${reserva.habitacion}`);
 
         // 2) Llamar a la API con todos los campos
         try {
@@ -1175,7 +1163,6 @@ export const useHotelStore = create<HotelStore>()(
         const prevHabitaciones = { ...state.habitaciones };
 
         set({ reservas: updatedReservas, habitaciones: newHabs, clientes: newClientes });
-        state._registrarAuditoria('Check-Out', `Check-Out: ${reserva.huesped} - Hab ${reserva.habitacion} (Total: ${total})`);
         pushNotif('info', quedanAdentro ? `Hab. ${reserva.habitacion}: cama para limpiar` : `Hab. ${reserva.habitacion} requiere limpieza`, `Check-out de ${reserva.huesped}`, 'limpieza', 'info', 'habitaciones', 'Ver habitación');
 
         // 2) Llamar a la API
@@ -1234,7 +1221,6 @@ export const useHotelStore = create<HotelStore>()(
 
         // 1) Actualizar estado local (optimista)
         set({ pagos: newPagos, reservas: newReservas });
-        state._registrarAuditoria('Pago', `Pago recibido: ${reserva.huesped} - ${monto} en ${metodoResuelto}${nota ? ` (${nota})` : ''}`);
 
         // 2) Llamar a la API
         try {
@@ -1317,7 +1303,6 @@ export const useHotelStore = create<HotelStore>()(
               : prevHabitaciones,
             limpiezaPendientes: restoPendientes,
           });
-          get()._registrarAuditoria('Limpieza', `Habitación ${numero} marcada como limpia`);
           pushNotif('success', 'Limpieza completada', `Habitación ${numero} disponible`, 'limpieza', 'info', 'habitaciones', 'Ver habitación');
         } catch (err) {
           console.error('[marcarComoLimpia] error:', err);
@@ -1405,7 +1390,6 @@ export const useHotelStore = create<HotelStore>()(
             reservas: newReservas,
             mantenimientoPendientes: { ...mantenimientoPendientes, [numero]: reporte.id },
           });
-          get()._registrarAuditoria('Mantenimiento', `Reporte: Hab ${numero} - ${descripcion}${bloquear ? (hasta ? ` (bloqueada hasta ${hasta})` : ' (bloqueada hasta nuevo aviso)') : ' (sin sacar de disponibilidad)'}`);
         } catch (err) {
           console.error('reportarMantenimiento error:', err);
           throw err;
@@ -1473,7 +1457,6 @@ export const useHotelStore = create<HotelStore>()(
           historialMantenimiento: newHistorial,
           mantenimientoPendientes: restPendientes,
         });
-        get()._registrarAuditoria('Mantenimiento', `Resuelto: Habitación ${numero} - ${reparacion} - ${monto} - ${esDeCaja ? 'de caja' : 'pago aparte'}`);
 
         try {
           // Un solo llamado API: resuelve mantenimiento + crea Gasto (+ MovimientoCaja si sacarDeCaja)
@@ -1520,7 +1503,6 @@ export const useHotelStore = create<HotelStore>()(
             movimientos: [],
           },
         });
-        get()._registrarAuditoria('Caja', `Apertura - ${empleado} - Inicial: ${montoInicial}`);
         try {
           await api.caja.abrir(Math.round(parseFloat(String(montoInicial)) * 100));
           pushNotif('success', 'Caja abierta', `Se abrió la caja con $${montoInicial}`, 'sistema', 'info');
@@ -1554,7 +1536,6 @@ export const useHotelStore = create<HotelStore>()(
         } else {
           set({ caja: { ...caja, movimientos: [...caja.movimientos, mov] } });
         }
-        get()._registrarAuditoria('Caja', `${tipo}: ${montoNum} en ${metodo} - ${descripcion}`);
         try {
           const result = await api.caja.movimiento({ tipo, monto: Math.round(montoNum * 100), descripcion, metodo, categoriaGastoNombre: esEgresoConCategoria ? categoriaGastoNombre : undefined });
           // Reemplazar IDs temporales con los reales de la BD
@@ -1635,7 +1616,6 @@ export const useHotelStore = create<HotelStore>()(
         };
 
         set({ caja: newCaja });
-        get()._registrarAuditoria('Caja', `Cierre - ${empleado} - Esperado: ${saldoEsperado} Contado: ${saldoContado} Dif: ${diferencia}`);
         try {
           await api.caja.cerrar({
             billetes,
@@ -1685,7 +1665,6 @@ export const useHotelStore = create<HotelStore>()(
             },
             gastos: nuevosGastos,
           });
-          get()._registrarAuditoria('Caja', `Edición movimiento ${movimientoId}: ${data.monto !== undefined ? `monto=${data.monto}` : ''} ${data.descripcion !== undefined ? `desc="${data.descripcion}"` : ''}`);
           return true;
         } catch (err) {
           console.error('editarMovimientoCaja error:', err);
@@ -1708,7 +1687,6 @@ export const useHotelStore = create<HotelStore>()(
             },
             ...(deletedGastoId ? { gastos: gastos.filter(g => g.id !== deletedGastoId) } : {}),
           });
-          get()._registrarAuditoria('Caja', `Eliminación movimiento ${movimientoId}: ${mov ? `${mov.tipo} ${mov.monto} en ${mov.metodo}` : ''}`);
           return true;
         } catch (err) {
           console.error('eliminarMovimientoCaja error:', err);
@@ -1721,7 +1699,6 @@ export const useHotelStore = create<HotelStore>()(
         const prevGastos = get().gastos;
         const nuevo: Gasto = { id: generarId(), tipo: datos.tipo, descripcion: datos.descripcion, monto: parseFloat(String(datos.monto)), fecha: datos.fecha || todayLocal(), empleado: get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema' };
         set({ gastos: [...prevGastos, nuevo] });
-        get()._registrarAuditoria('Gasto', `Registro: ${datos.tipo} - ${datos.descripcion} - ${datos.monto}`);
         try {
           await api.gastos.create({ tipo: datos.tipo, descripcion: datos.descripcion, monto: Math.round(parseFloat(String(datos.monto)) * 100), fecha: datos.fecha || todayLocal(), empleado: get().usuarioActual?.nombreCompleto || 'Sistema' });
         } catch (err) {
@@ -1745,7 +1722,6 @@ export const useHotelStore = create<HotelStore>()(
           newState.caja = { ...caja, movimientos: caja.movimientos.filter(m => m.id !== movVinculado.id) };
         }
         set(newState);
-        get()._registrarAuditoria('Gasto', `Eliminación: ${gasto.tipo} - ${gasto.descripcion} - ${gasto.monto}`);
         try {
           const result = await api.gastos.delete(id);
           // La API devuelve deletedMovimientoId si eliminó un movimiento vinculado

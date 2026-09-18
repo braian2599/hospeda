@@ -28,7 +28,7 @@ export async function GET() {
 // Body: { precio: number }
 export async function PUT(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('tarifas');
+    const { tenantId } = await requirePermission('tarifas');
     const body = await req.json();
     const { precio } = body;
 

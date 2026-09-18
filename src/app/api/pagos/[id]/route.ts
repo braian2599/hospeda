@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 
 // ─────────────────────────────────────────────────────────
 // DELETE /api/pagos/[id] — Eliminar pago
@@ -12,7 +13,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const tenantId = await requirePermission(['comprobantes', 'reservas', 'checkin']);
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission(['comprobantes', 'reservas', 'checkin']);
     const session = await getAuthSession();
     const { id } = await params;
 
@@ -37,7 +38,6 @@ export async function DELETE(
       );
     }
 
-    const empleadoNombre = session?.user?.name || 'Sistema';
 
     // ── Transacción atómica ──
     await db.$transaction(async (tx) => {
@@ -72,14 +72,12 @@ export async function DELETE(
     });
 
     // ── Auditoría ──
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: 'pago_eliminado',
-        detalle: `Pago $${(pago.monto / 100).toLocaleString('es-AR')} eliminado de reserva ${pago.reservaId}`,
-        empleado: empleadoNombre,
-      },
-    }).catch(() => {});
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.PAGO,
+      detalle: `Anulación de un cobro de $${(pago.monto / 100).toLocaleString('es-AR')}`,
+      actor: { id: actorId, nombre: actorNombre },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

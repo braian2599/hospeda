@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 
 // GET /api/gastos — Listar gastos con filtros opcionales
 // Query params: ?desde=YYYY-MM-DD&hasta=YYYY-MM-DD&tipo=string
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('comprobantes');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('comprobantes');
     const { searchParams } = req.nextUrl;
 
     const desde = searchParams.get('desde');
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
 // POST /api/gastos — Crear gasto
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('comprobantes');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('comprobantes');
     const body = await req.json();
     const { tipo, descripcion, monto, fecha, empleadoId, empleado } = body;
 
@@ -79,6 +80,13 @@ export async function POST(req: NextRequest) {
         empleadoId: empleadoId?.trim() || null,
         empleado: empleado?.trim() || 'Sistema',
       },
+    });
+
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.GASTO,
+      detalle: `Registro: ${tipo.trim()} — ${descripcion.trim()} — $${(Number(monto) / 100).toLocaleString('es-AR')}`,
+      actor: { id: actorId, nombre: actorNombre },
     });
 
     return NextResponse.json(gasto, { status: 201 });

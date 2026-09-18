@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 import { TIPOS_HABITACION_VALIDOS } from '@/lib/types';
 
 // GET /api/habitaciones — Listar todas las habitaciones del tenant
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('habitaciones');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('habitaciones');
 
     const habitaciones = await db.habitacion.findMany({
       where: { tenantId },
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
 // POST /api/habitaciones — Crear habitación
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('habitaciones');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('habitaciones');
     const body = await req.json();
     const { numero, tipo, capacidad, camasMatrimoniales, camasSimples, precioPorCama, piso, orden } = body;
 
@@ -71,13 +72,13 @@ export async function POST(req: NextRequest) {
     });
 
     // Auditoría
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: 'Habitación',
-        detalle: `Creación: habitación ${numero.trim()} (${tipo})`,
-        empleado: 'Sistema', // TODO: obtener del session
-      },
+    // Antes decía 'Sistema' con un TODO al lado: los cambios de habitación
+    // nunca quedaron a nombre de quien los hizo.
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.HABITACION,
+      detalle: `Creación: habitación ${numero.trim()} (${tipo})`,
+      actor: { id: actorId, nombre: actorNombre },
     });
 
     return NextResponse.json(habitacion, { status: 201 });

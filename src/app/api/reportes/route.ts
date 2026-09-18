@@ -182,7 +182,7 @@ async function getReporteMetodosPago(tenantId: string) {
 // ─────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('reportes');
+    const { tenantId } = await requirePermission('reportes');
     const { searchParams } = new URL(req.url);
     const tipo = searchParams.get('tipo');
 

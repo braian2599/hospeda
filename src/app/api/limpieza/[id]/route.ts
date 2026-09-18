@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError } from '@/lib/auth/utils';
+import { requireTenantId, requireActor, AuthError } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 
 type EstadoTareaLimpieza = 'pendiente' | 'en_progreso' | 'completada';
 
@@ -11,6 +12,10 @@ export async function PUT(
 ) {
   try {
     const tenantId = await requireTenantId();
+    // Quién lo hizo sale de la SESIÓN, no del body: el body trae un empleadoId
+    // para asignar la tarea, que es otra cosa y además es falseable.
+    // requireActor no toca la base — el perfil y su nombre viajan en el JWT.
+    const actor = await requireActor();
     const { id } = await params;
     const body = await req.json();
     const { estado, empleadoId, empleado, nota, prioridad, tipo } = body;
@@ -75,6 +80,19 @@ export async function PUT(
         data: { estado: 'Disponible' },
       }).catch(() => {
         // No bloquear la respuesta si la habitación ya fue actualizada o no existe
+      });
+    }
+
+    // La limpieza no se auditaba. Es de lo que más le importa al turno que
+    // entra: qué habitación quedó lista y cuál sigue pendiente.
+    if (estado) {
+      await auditar(db, {
+        tenantId,
+        tipo: TIPO.LIMPIEZA,
+        detalle: estado === 'completada'
+          ? `Habitación ${tarea.habitacion || '—'} lista`
+          : `Habitación ${tarea.habitacion || '—'}: tarea ${estado === 'en_progreso' ? 'en progreso' : 'pendiente'}`,
+        actor: { id: actor.actorId, nombre: actor.nombre },
       });
     }
 

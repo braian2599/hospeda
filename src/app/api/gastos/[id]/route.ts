@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 
 // PUT /api/gastos/[id] — Actualizar gasto
 // Si tiene un MovimientoCaja vinculado, actualiza también el movimiento.
@@ -9,7 +10,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('comprobantes');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('comprobantes');
     const { id } = await params;
     const body = await req.json();
     const { tipo, descripcion, monto, fecha, empleadoId, empleado } = body;
@@ -70,7 +71,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('comprobantes');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('comprobantes');
     const { id } = await params;
 
     // Buscar gasto con su movimiento vinculado
@@ -100,6 +101,13 @@ export async function DELETE(
         }
       }
       await tx.gasto.delete({ where: { id } });
+    });
+
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.GASTO,
+      detalle: `Eliminación: ${gasto.tipo} — ${gasto.descripcion} — $${(gasto.monto / 100).toLocaleString('es-AR')}`,
+      actor: { id: actorId, nombre: actorNombre },
     });
 
     return NextResponse.json({ success: true, deletedMovimientoId: gasto.movimientoCaja?.id || null });

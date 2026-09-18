@@ -24,13 +24,16 @@
 
 /** Más de esto no es un turno: es una sesión que quedó abierta. Se marca. */
 import { esActorDelSistema } from './auditoria-actores';
+import { TIPO } from './auditoria';
 
 export const HORAS_SOSPECHOSAS = 14;
 
 const MINUTOS_SOSPECHOSOS = HORAS_SOSPECHOSAS * 60;
 
-export const TIPO_LOGIN = 'Login';
-export const TIPO_LOGOUT = 'Logout';
+// Salen del catálogo único de tipos: tener el string escrito dos veces es
+// exactamente el problema que se está arreglando.
+export const TIPO_LOGIN = TIPO.LOGIN;
+export const TIPO_LOGOUT = TIPO.LOGOUT;
 
 /** Una entrada de auditoría, con lo mínimo que hace falta. */
 export interface EventoSesion {

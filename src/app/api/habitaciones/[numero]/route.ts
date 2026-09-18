@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 import { TIPOS_HABITACION_VALIDOS } from '@/lib/types';
 import { deleteObjectsBestEffort } from '@/lib/storage/r2';
 import { esCompartida, estadoValidoParaTipo, picoDeOcupacion } from '@/lib/ocupacion';
@@ -11,7 +12,7 @@ export async function PUT(
   { params }: { params: Promise<{ numero: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('habitaciones');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('habitaciones');
     const { numero: numeroOriginal } = await params;
     const body = await req.json();
     const { numero: numeroNuevo, tipo, capacidad, camasMatrimoniales, camasSimples, precioPorCama, piso, estado: nuevoEstado, fotos, descripcion } = body;
@@ -147,13 +148,11 @@ export async function PUT(
     }
 
     // Auditoría
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: 'Habitación',
-        detalle: `Edición: ${numeroOriginal}${numeroOriginal !== nuevoNumero ? ` → ${nuevoNumero}` : ''}`,
-        empleado: 'Sistema',
-      },
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.HABITACION,
+      detalle: `Edición: ${numeroOriginal}${numeroOriginal !== nuevoNumero ? ` → ${nuevoNumero}` : ''}`,
+      actor: { id: actorId, nombre: actorNombre },
     });
 
     return NextResponse.json(updated);
@@ -172,7 +171,7 @@ export async function DELETE(
   { params }: { params: Promise<{ numero: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('habitaciones');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('habitaciones');
     const { numero } = await params;
 
     // Buscar habitación
@@ -209,13 +208,11 @@ export async function DELETE(
     await deleteObjectsBestEffort(hab.fotos, tenantId, `habitación ${numero} eliminada`);
 
     // Auditoría
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: 'Habitación',
-        detalle: `Eliminación: habitación ${numero}`,
-        empleado: 'Sistema',
-      },
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.HABITACION,
+      detalle: `Eliminación: habitación ${numero}`,
+      actor: { id: actorId, nombre: actorNombre },
     });
 
     return NextResponse.json({ success: true });

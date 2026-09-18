@@ -1,51 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireActor, AuthError } from '@/lib/auth/utils';
-import { esSuperAdmin, ACTOR_SISTEMA } from '@/lib/auditoria-actores';
+import { auditar, TIPO } from '@/lib/auditoria';
 
-/**
- * El nombre que se graba. Nunca el del super admin: ese se filtra al leer, y
- * dejar que el body lo use sería una forma de esconder acciones propias.
- */
-function nombreDelActor(empleado: unknown): string {
-  const nombre = String(empleado || ACTOR_SISTEMA).slice(0, 100);
-  return esSuperAdmin(nombre) ? ACTOR_SISTEMA : nombre;
-}
-
-// POST /api/auditoria — Crear entrada de auditoría
+// POST /api/auditoria — SOLO el cierre de sesión.
+//
+// POR QUÉ SOLO ESO: este endpoint aceptaba cualquier `tipo` y cualquier
+// `detalle` que le mandaran. Era la puerta por la que el navegador escribía su
+// propia versión de cada acción —una fila "Reserva" que se sumaba a la
+// "reserva_creada" del servidor— y también el agujero por el que cualquiera
+// con sesión podía inventar historial.
+//
+// Ahora todo lo demás lo escribe el servidor, adentro de la operación que
+// audita (ver src/lib/auditoria.ts). Queda esta sola excepción: el Logout,
+// porque nadie más que el navegador sabe que la persona se está yendo.
 export async function POST(req: NextRequest) {
   try {
-    const { tenantId, actorId } = await requireActor();
+    const { tenantId, actorId, nombre } = await requireActor();
     const body = await req.json();
-    const { tipo, detalle, empleado } = body;
+    const { tipo, detalle } = body;
 
-    if (!tipo || !detalle) {
-      return NextResponse.json({ error: 'tipo y detalle son obligatorios' }, { status: 400 });
+    // Lista de UNO. Cualquier otro tipo se rechaza: si mañana hace falta
+    // auditar algo nuevo desde el navegador, que sea una decisión consciente y
+    // no un string que se cuela.
+    if (tipo !== TIPO.LOGOUT) {
+      return NextResponse.json(
+        { error: 'Este endpoint solo registra el cierre de sesión.' },
+        { status: 400 },
+      );
+    }
+    if (!detalle) {
+      return NextResponse.json({ error: 'detalle es obligatorio' }, { status: 400 });
     }
 
-    const entry = await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: String(tipo).slice(0, 50),
-        detalle: String(detalle).slice(0, 500),
-        // El nombre del super admin se filtra al leer, así que aceptarlo acá
-        // desde el body sería un agujero al revés: cualquiera con sesión
-        // podría firmar sus propias acciones como "Super Admin" y las dejaría
-        // invisibles en la auditoría del hotel. No se acepta.
-        empleado: nombreDelActor(empleado),
-        // El id del perfil sale de la SESIÓN, nunca del cuerpo del pedido.
-        //
-        // Hasta acá se guardaba solo el nombre como texto, y con eso el
-        // reporte de horas no servía: dos perfiles llamados "Ana" sumaban al
-        // mismo montón, y renombrar a alguien le partía el historial al medio.
-        //
-        // Del body sería falseable: cualquiera con sesión podría cargarle
-        // horas a otro. De la sesión no.
-        empleadoId: actorId,
-      },
+    // El nombre y el id salen de la SESIÓN, nunca del cuerpo del pedido: del
+    // body serían falseables y cualquiera podría cerrarle el turno a otro.
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.LOGOUT,
+      detalle: String(detalle),
+      actor: { id: actorId, nombre },
     });
 
-    return NextResponse.json(entry, { status: 201 });
+    return NextResponse.json({ ok: true }, { status: 201 });
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });

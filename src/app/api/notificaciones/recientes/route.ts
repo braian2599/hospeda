@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ── Camino completo: ahora sí, permisos y datos ──
-    const tenantId = await requirePermission(['comprobantes', 'reservas', 'checkin']);
+    const { tenantId } = await requirePermission(['comprobantes', 'reservas', 'checkin']);
 
     const [reservasCrudas, pagosCrudos] = await Promise.all([
       db.reserva.findMany({

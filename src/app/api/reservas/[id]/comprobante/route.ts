@@ -109,7 +109,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const tenantId = await requirePermission(['comprobantes', 'reservas', 'checkin']);
+    const { tenantId } = await requirePermission(['comprobantes', 'reservas', 'checkin']);
     const { id } = await params;
 
     const reserva = await db.reserva.findFirst({

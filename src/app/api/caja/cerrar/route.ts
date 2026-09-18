@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 
 // POST /api/caja/cerrar — Cerrar el turno de caja actual
 // Body: { billetes: Record<number, number>, totalOtrosMetodos: number, notas?: string, discrepancyExplain?: string }
@@ -9,7 +10,7 @@ import { requirePermission, AuthError } from '@/lib/auth/utils';
 // Todos los montos en la BD se guardan en CENTAVOS (enteros)
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('caja');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('caja');
     const body = await req.json();
     const { billetes, totalOtrosMetodos, notas, discrepancyExplain } = body;
 
@@ -108,6 +109,15 @@ export async function POST(req: NextRequest) {
         notas: notasStr || null,
         discrepancyExplain: discrepancyStr || null,
       },
+    });
+
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.CAJA,
+      detalle: diferencia === 0
+        ? `Cierre de caja sin diferencia. Contado: $${(saldoContado / 100).toLocaleString('es-AR')}`
+        : `Cierre de caja con diferencia de $${(diferencia / 100).toLocaleString('es-AR')}. Esperado: $${(saldoEsperado / 100).toLocaleString('es-AR')}, contado: $${(saldoContado / 100).toLocaleString('es-AR')}`,
+      actor: { id: actorId, nombre: actorNombre },
     });
 
     return NextResponse.json(turnoCerrado);

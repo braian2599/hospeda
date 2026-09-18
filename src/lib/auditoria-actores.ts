@@ -30,6 +30,16 @@ export const ACTOR_SISTEMA = 'Sistema';
 const PREFIJO_AUTOMATICO = 'Sincronización';
 
 /**
+ * La página pública del hotel. Tampoco es una persona.
+ *
+ * Estaba apareciendo en Reportes → Empleados como si fuera alguien del equipo,
+ * con sus reservas y todo. El filtro cubría 'Sistema' y las sincronizaciones y
+ * se olvidó de esta: la misma clase de olvido que este archivo existe para
+ * evitar.
+ */
+const ACTOR_LANDING = 'Landing pública';
+
+/**
  * No tiene que llegar al hotel de ninguna forma.
  *
  * Se usa para filtrar en el servidor, para que las entradas que ya existen no
@@ -50,6 +60,7 @@ export function esActorDelSistema(empleado: string | null | undefined): boolean 
   if (!empleado) return true;
   return empleado === ACTOR_SISTEMA
     || empleado === ACTOR_SUPER_ADMIN
+    || empleado === ACTOR_LANDING
     || empleado.startsWith(PREFIJO_AUTOMATICO);
 }
 

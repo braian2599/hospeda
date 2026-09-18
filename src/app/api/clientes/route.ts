@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 
 // GET /api/clientes?q=buscar — Listar clientes del tenant con búsqueda opcional
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('clientes');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('clientes');
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q')?.trim();
 
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
 // POST /api/clientes — Crear un nuevo cliente
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('clientes');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('clientes');
     const body = await req.json();
     const {
       nombre,
@@ -97,13 +98,11 @@ export async function POST(req: NextRequest) {
     });
 
     // Auditoría
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: 'cliente_creado',
-        detalle: `Creación: cliente ${nombre.trim()} (DNI: ${dni.trim()})`,
-        empleado: 'Sistema',
-      },
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.CLIENTE,
+      detalle: `Creación: cliente ${nombre.trim()} (DNI: ${dni.trim()})`,
+      actor: { id: actorId, nombre: actorNombre },
     });
 
     return NextResponse.json(cliente, { status: 201 });

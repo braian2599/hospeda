@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { auditar, TIPO, ACTOR_LANDING } from '@/lib/auditoria';
 import type { Prisma, Reserva } from '@prisma/client';
 import {
   getValidAccessToken, getMpPayment, verifyMpConnectWebhookSignature, PORCENTAJE_SENA,
@@ -57,13 +58,11 @@ async function creditarReserva(tx: Tx, reserva: Reserva, montoPesos: number, pay
   const alertaCancelada = reserva.estado === 'Cancelada'
     ? ' ⚠️ La reserva ya estaba cancelada (probablemente por expiración) — revisar disponibilidad de la habitación manualmente antes de confirmar al huésped.'
     : '';
-  await tx.auditoria.create({
-    data: {
-      tenantId: reserva.tenantId,
-      tipo: 'pago_registrado',
-      detalle: `Seña de $${montoPesos.toLocaleString('es-AR')} pagada online por ${reserva.huesped} vía Mercado Pago (reserva #${reserva.id}).${notaExtra}${alertaCancelada}`,
-      empleado: 'Landing pública',
-    },
+  await auditar(tx, {
+    tenantId: reserva.tenantId,
+    tipo: TIPO.PAGO,
+    detalle: `Seña de $${montoPesos.toLocaleString('es-AR')} pagada online por ${reserva.huesped} vía Mercado Pago.${notaExtra}${alertaCancelada}`,
+    actor: ACTOR_LANDING,
   });
 }
 

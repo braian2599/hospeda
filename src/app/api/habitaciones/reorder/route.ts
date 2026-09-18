@@ -7,7 +7,7 @@ import { requirePermission, AuthError } from '@/lib/auth/utils';
 // (el índice de cada uno pasa a ser su nuevo valor de "orden").
 export async function PUT(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('habitaciones');
+    const { tenantId } = await requirePermission('habitaciones');
     const body = await req.json();
     const { orden } = body as { orden?: unknown };
 

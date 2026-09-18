@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, requireActiveSubscription, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 
 // POST /api/caja/abrir — Abrir un nuevo turno de caja
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('caja');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('caja');
     await requireActiveSubscription(tenantId);
     const body = await req.json();
     const { montoInicial } = body;
@@ -34,7 +35,6 @@ export async function POST(req: NextRequest) {
     // Obtener datos del empleado desde la sesión
     const session = await getAuthSession();
     const empleadoId = session?.user?.id || '';
-    const empleadoNombre = session?.user?.name || 'Desconocido';
 
     const turno = await db.turnoCaja.create({
       data: {
@@ -42,8 +42,17 @@ export async function POST(req: NextRequest) {
         estado: 'abierta',
         montoInicial: montoInicialNum,
         empleadoId,
-        empleadoNombre,
+        empleadoNombre: actorNombre,
       },
+    });
+
+    // La caja no se auditaba: abrir y cerrar un turno son de las cosas que el
+    // que entra después más necesita saber.
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.CAJA,
+      detalle: `Apertura de caja con $${montoInicialNum.toLocaleString('es-AR')}`,
+      actor: { id: actorId, nombre: actorNombre },
     });
 
     return NextResponse.json(turno, { status: 201 });

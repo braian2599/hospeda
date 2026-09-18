@@ -61,7 +61,7 @@ function formatComprobante(c: {
 
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('comprobantes');
+    const { tenantId } = await requirePermission('comprobantes');
     const body = await req.json();
     const {
       tipo, comprobanteAsociadoId, razonSocialReceptor, docTipoReceptor, docReceptor,
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('comprobantes');
+    const { tenantId } = await requirePermission('comprobantes');
     const { searchParams } = req.nextUrl;
     const tipo = searchParams.get('tipo');
     const q = searchParams.get('q')?.trim();

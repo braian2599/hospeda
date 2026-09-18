@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, requireActiveSubscription, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 import { ocupaHabitacionEntera } from '@/lib/ocupacion';
 
 interface MenorPayload {
@@ -22,7 +23,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('checkin');
+    const { tenantId, actorId, nombre } = await requirePermission('checkin');
+    // Quién hizo esto, sacado de la sesión — no del nombre de la cuenta.
+    const actor = { id: actorId, nombre };
     await requireActiveSubscription(tenantId);
     const session = await getAuthSession();
     const { id } = await params;
@@ -135,7 +138,6 @@ export async function POST(
       };
     }
 
-    const empleadoNombre = session?.user?.name || 'Sistema';
 
     // ── ¿El check-in ocupa la habitación entera? ──
     // Solo si NO es compartida. En una compartida el huésped ocupa camas: la
@@ -165,14 +167,12 @@ export async function POST(
 
     // ── Auditoría ──
     const detalleMenores = cantNinos > 0 ? ` (${cantNinos} menor${cantNinos > 1 ? 'es' : ''})` : '';
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: 'checkin_realizado',
-        detalle: `Check-in: ${reserva.huesped} → Hab. ${reserva.habitacion}${bloqueaHabitacion ? '' : ' (compartida: ocupa camas, la habitación sigue disponible)'} a las ${horaCheckin}${detalleMenores}`,
-        empleado: empleadoNombre,
-      },
-    }).catch(() => {});
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.CHECK_IN,
+      detalle: `${reserva.huesped} → Hab. ${reserva.habitacion}${bloqueaHabitacion ? '' : ' (compartida: ocupa camas, la habitación sigue disponible)'} a las ${horaCheckin}${detalleMenores}`,
+      actor,
+    });
 
     return NextResponse.json(updated);
   } catch (error) {

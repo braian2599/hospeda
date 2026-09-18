@@ -11,7 +11,7 @@ const VALID_ROLES: RolTenant[] = ['owner', 'admin', 'recepcion', 'limpieza'];
 // GET /api/usuarios — Listar usuarios del tenant
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('usuarios');
+    const { tenantId } = await requirePermission('usuarios');
     const { searchParams } = req.nextUrl;
     const rolFilter = searchParams.get('rol');
 
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     // la API rechazaba a todos menos al owner. Ahora, igual que en
     // PUT/DELETE /api/usuarios/[id], se permite a quien tenga el permiso y
     // se restringe por fila qué puede otorgar.
-    const tenantId = await requirePermission('usuarios');
+    const { tenantId } = await requirePermission('usuarios');
     const body = await req.json();
     const { nombreCompleto, password, rol, permisos } = body;
 

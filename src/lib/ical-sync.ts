@@ -30,6 +30,7 @@
 //    con fechas y todo, que es lo que hace falta para resolverlo.
 
 import { db } from '@/lib/db';
+import { auditar, TIPO } from './auditoria';
 import { parseIcsEvents } from '@/lib/ical';
 import { chequearLugar } from '@/lib/disponibilidad';
 import { lockHabitacion } from '@/lib/db-lock';
@@ -360,15 +361,12 @@ async function anotarEnAuditoria(canal: CanalExterno, omitidos: EventoOmitido[],
   });
   if (ultima?.detalle === detalle) return;
 
-  await db.auditoria.create({
-    data: {
-      tenantId: canal.tenantId,
-      tipo: TIPO_AUDITORIA,
-      detalle,
-      empleado: `Sincronización ${nombreDeCanal(canal.canal)}`,
-      empleadoId: null,
-    },
+  await auditar(db, {
+    tenantId: canal.tenantId,
+    tipo: TIPO_AUDITORIA,
+    detalle,
+    actor: { id: null, nombre: `Sincronización ${nombreDeCanal(canal.canal)}` },
   });
 }
 
-const TIPO_AUDITORIA = 'Conflicto de sincronización';
+const TIPO_AUDITORIA = TIPO.SINCRONIZACION;

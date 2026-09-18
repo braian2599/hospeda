@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { auditar, TIPO, ACTOR_LANDING } from '@/lib/auditoria';
 import { rateLimit } from '@/lib/validation';
 import {
   getPublicTenant, parseFechasConsulta, parsePersonasConsulta, type PublicTenant,
@@ -328,15 +329,13 @@ export async function POST(
         modoCobroSena === 'manual'
       );
 
-      await tx.auditoria.create({
-        data: {
-          tenantId: tenant.id,
-          tipo: 'Reserva',
-          detalle: modoCobroSena === 'manual'
+      await auditar(tx, {
+        tenantId: tenant.id,
+        tipo: TIPO.RESERVA,
+        detalle: modoCobroSena === 'manual'
             ? `Nueva reserva (a confirmar) desde la landing pública: ${huesped} — Hab. ${libre1.numero}${detalleCamas1} (${body.checkin} a ${body.checkout}). No ocupa la habitación hasta que el personal confirme el pago de la seña.`
             : `Nueva reserva desde la landing pública: ${huesped} — Hab. ${libre1.numero}${detalleCamas1} (${body.checkin} a ${body.checkout}). Esperando pago de seña.`,
-          empleado: 'Landing pública',
-        },
+        actor: ACTOR_LANDING,
       });
 
       // Modo Mercado Pago: la reserva queda 'Confirmada' desde ya (igual que toda
@@ -423,15 +422,13 @@ export async function POST(
 
         await tx.reserva.update({ where: { id: nueva1.id }, data: { reservaVinculadaId: nueva2.id } });
 
-        await tx.auditoria.create({
-          data: {
-            tenantId: tenant.id,
-            tipo: 'Reserva',
-            detalle: modoCobroSena === 'manual'
+        await auditar(tx, {
+          tenantId: tenant.id,
+          tipo: TIPO.RESERVA,
+          detalle: modoCobroSena === 'manual'
               ? `Nueva reserva (combinación, a confirmar) desde la landing pública: ${huesped} — Hab. ${libre2.numero}${detalleCamas2} (${body.checkin} a ${body.checkout}), vinculada a la reserva de Hab. ${libre1.numero}. No ocupa la habitación hasta que el personal confirme el pago.`
               : `Nueva reserva (combinación) desde la landing pública: ${huesped} — Hab. ${libre2.numero}${detalleCamas2} (${body.checkin} a ${body.checkout}), vinculada a la reserva de Hab. ${libre1.numero}. Esperando pago de seña.`,
-            empleado: 'Landing pública',
-          },
+          actor: ACTOR_LANDING,
         });
 
         if (modoCobroSena !== 'manual' && ocupaHabitacionEntera(libre2.tipo)) {

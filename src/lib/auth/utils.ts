@@ -9,6 +9,8 @@ interface SessionUser {
   tenantId?: string;
   tenantRole?: string;
   tenantUserId?: string;
+  /** El nombre del PERFIL, puesto en el JWT al elegirlo. */
+  tenantUserNombre?: string | null;
 }
 
 interface SessionData {
@@ -55,7 +57,7 @@ export async function requireTenantId(): Promise<string> {
  * a la BD por cada pregunta al asistente mantendría la base despierta todo el
  * día, que es justo lo que venimos evitando.
  */
-export async function requireActor(): Promise<{ tenantId: string; actorId: string; rol: string | null }> {
+export async function requireActor(): Promise<{ tenantId: string; actorId: string; nombre: string; rol: string | null }> {
   const session = await getAuthSession();
   if (!session?.user?.id) {
     throw new AuthError('No autenticado', 401);
@@ -69,6 +71,10 @@ export async function requireActor(): Promise<{ tenantId: string; actorId: strin
     // la cuenta. Nunca al tenantId solo: eso devolvería todo el hotel a
     // compartir un único cupo, que es exactamente el problema a arreglar.
     actorId: session.user.tenantUserId || session.user.id,
+    // El nombre del perfil viaja en el JWT desde que se lo elige. Si la sesión
+    // es anterior a este cambio todavía no lo trae: ahí cae al nombre de la
+    // cuenta, y se corrige solo en el próximo ingreso.
+    nombre: session.user.tenantUserNombre || session.user.name || 'Sistema',
     // El rol también viene del JWT. Es el dato del que más depende el tono de
     // una respuesta —a recepción no se le explica cómo cambiar el plan— y es
     // el único de todos que el navegador no puede falsear.
@@ -114,11 +120,34 @@ export async function requireOwner(): Promise<string> {
 }
 
 /**
+ * El actor autenticado, tal como lo necesita la auditoría.
+ *
+ * `nombre` es el del PERFIL, no el de la cuenta. Es una diferencia que
+ * importaba: las rutas usaban `session.user.name` —el nombre de la cuenta con
+ * la que se entró al hotel— así que la auditoría del servidor podía atribuirle
+ * la acción a alguien que no era.
+ *
+ * No cuesta ninguna consulta extra: sale del mismo findFirst que ya se hacía
+ * para chequear el permiso.
+ */
+export interface ContextoDeAccion {
+  tenantId: string;
+  /** El TenantUser. La identidad estable para agrupar historial y horas. */
+  actorId: string | null;
+  /** Para mostrar. */
+  nombre: string;
+  rol: string;
+}
+
+/**
  * Requiere que el usuario tenga un permiso específico (o cualquiera de una lista).
  * Owner y admin tienen acceso a todo.
  * Lanza AuthError(403) si no tiene el permiso.
+ *
+ * Devuelve el contexto completo —no solo el tenantId— para que ninguna ruta
+ * tenga que inventar por su cuenta quién hizo la acción.
  */
-export async function requirePermission(permission: string | string[]): Promise<string> {
+export async function requirePermission(permission: string | string[]): Promise<ContextoDeAccion> {
   const session = await getAuthSession();
   if (!session?.user?.id) {
     throw new AuthError('No autenticado', 401);
@@ -144,12 +173,22 @@ export async function requirePermission(permission: string | string[]): Promise<
 
   const tenantUser = await db.tenantUser.findFirst({
     where: whereClause,
-    select: { rol: true, permisos: true },
+    // id y nombreCompleto se suman a la MISMA consulta que ya se hacía: la
+    // auditoría necesita saber qué perfil fue, y pedirlo aparte sería una
+    // lectura más por cada acción del hotel.
+    select: { id: true, rol: true, permisos: true, nombreCompleto: true },
   });
 
   if (!tenantUser) {
     throw new AuthError('Acceso denegado', 403);
   }
+
+  const contexto: ContextoDeAccion = {
+    tenantId,
+    actorId: tenantUser.id,
+    nombre: tenantUser.nombreCompleto || session.user.name || 'Sistema',
+    rol: tenantUser.rol,
+  };
 
   // Verificar que el tenant esté activo (previene acceso de usuarios de tenants desactivados)
   const tenant = await db.tenant.findUnique({
@@ -162,7 +201,7 @@ export async function requirePermission(permission: string | string[]): Promise<
 
   // Owner y admin tienen acceso a todo
   if (tenantUser.rol === 'owner' || tenantUser.rol === 'admin') {
-    return tenantId;
+    return contexto;
   }
 
   // Verificar que al menos uno de los permisos esté en el array
@@ -172,7 +211,7 @@ export async function requirePermission(permission: string | string[]): Promise<
     throw new AuthError('No tenés permiso para realizar esta acción', 403);
   }
 
-  return tenantId;
+  return contexto;
 }
 
 /**

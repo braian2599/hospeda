@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 import { Prisma } from '@prisma/client';
 import { ocupaHabitacionEntera } from '@/lib/ocupacion';
 
@@ -16,7 +17,7 @@ class CajaCerradaError extends Error {}
 // ─────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission(['comprobantes', 'reservas', 'checkin']);
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission(['comprobantes', 'reservas', 'checkin']);
     const { searchParams } = new URL(req.url);
 
     const reservaId = searchParams.get('reservaId');
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
 // ─────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission(['comprobantes', 'reservas', 'checkin']);
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission(['comprobantes', 'reservas', 'checkin']);
     const session = await getAuthSession();
     const body = await req.json();
 
@@ -102,7 +103,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const empleadoNombre = session?.user?.name || 'Sistema';
     const metodoTrimmed = metodo.trim();
 
     // ── Resolve metodo: if it's a MetodoPago ID, look up the name ──
@@ -147,7 +147,11 @@ export async function POST(req: NextRequest) {
           descripcion: `Pago de ${reserva.huesped} (Reserva #${reservaId})`,
           metodo: metodoResuelto,
           empleadoId: session?.user?.id || '',
-          empleadoNombre,
+          // OJO: este empleadoId guarda el id de la CUENTA, no el del perfil
+          // — al revés que la auditoría. Se deja como está para no mezclar dos
+          // tipos de id en la misma columna sin una migración que la unifique.
+          // El nombre sí se corrige: es el que se muestra en el cierre de caja.
+          empleadoNombre: actorNombre,
           reservaId,
         },
       });
@@ -198,16 +202,14 @@ export async function POST(req: NextRequest) {
     });
 
     // ── Auditoría (fuera de tx, no crítico) ──
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: 'pago_registrado',
-        detalle: result.confirmada
-          ? `Pago $${(montoInt / 100).toLocaleString('es-AR')} registrado para reserva ${reservaId} (${metodoResuelto}) — seña confirmada, la reserva pasa a Confirmada.`
-          : `Pago $${(montoInt / 100).toLocaleString('es-AR')} registrado para reserva ${reservaId} (${metodoResuelto})`,
-        empleado: empleadoNombre,
-      },
-    }).catch(() => {});
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.PAGO,
+      detalle: result.confirmada
+        ? `Cobro de $${(montoInt / 100).toLocaleString('es-AR')} (${metodoResuelto}) — seña confirmada, la reserva pasa a Confirmada.`
+        : `Cobro de $${(montoInt / 100).toLocaleString('es-AR')} (${metodoResuelto})`,
+      actor: { id: actorId, nombre: actorNombre },
+    });
 
     return NextResponse.json({ success: true, estadoPago: result.estadoPago, estado: result.estado }, { status: 201 });
   } catch (error) {

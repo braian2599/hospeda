@@ -14,7 +14,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('usuarios');
+    const { tenantId } = await requirePermission('usuarios');
     const { id } = await params;
     const body = await req.json();
     const { rol, permisos, activo, nombreCompleto, password } = body;
@@ -144,7 +144,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('usuarios');
+    const { tenantId } = await requirePermission('usuarios');
     const { id } = await params;
 
     const actor = await getActorTenantUser(tenantId);

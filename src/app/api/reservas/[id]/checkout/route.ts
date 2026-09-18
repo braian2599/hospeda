@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, requireActiveSubscription, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 import { ocupaHabitacionEntera } from '@/lib/ocupacion';
 
 // ─────────────────────────────────────────────────────────
@@ -11,7 +12,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('checkin');
+    const { tenantId, actorId, nombre } = await requirePermission('checkin');
+    // Quién hizo esto, sacado de la sesión — no del nombre de la cuenta.
+    const actor = { id: actorId, nombre };
     await requireActiveSubscription(tenantId);
     const session = await getAuthSession();
     const { id } = await params;
@@ -49,7 +52,6 @@ export async function POST(
       updateData.checkout = body.fechaCheckoutReal;
     }
 
-    const empleadoNombre = session?.user?.name || 'Sistema';
     const totalPagado = reserva.pagos.reduce((sum, p) => sum + p.monto, 0);
 
     const habitacion = await db.habitacion.findUnique({
@@ -141,19 +143,19 @@ export async function POST(
       return { quedanAdentro, tareaLimpiezaId };
     });
 
-    // ── Auditoría (fuera de tx, no crítico) ──
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: 'checkout_realizado',
-        detalle: `Check-out: ${reserva.huesped} ← Hab. ${reserva.habitacion} a las ${horaCheckout}. Total pagado: $${(totalPagado / 100).toLocaleString('es-AR')}.${
-          quedanAdentro > 0
-            ? ` La habitación sigue ocupada por ${quedanAdentro} reserva${quedanAdentro > 1 ? 's' : ''} más — queda una tarea de limpieza pendiente.`
-            : ' La habitación queda para limpiar.'
-        }`,
-        empleado: empleadoNombre,
-      },
-    }).catch(() => {});
+    // ── Auditoría ──
+    // Fuera de la transacción: el check-out ya está guardado. auditar() no
+    // lanza, así que no le devuelve un error al usuario por algo que ya pasó.
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.CHECK_OUT,
+      detalle: `${reserva.huesped} ← Hab. ${reserva.habitacion} a las ${horaCheckout}. Total pagado: $${(totalPagado / 100).toLocaleString('es-AR')}.${
+        quedanAdentro > 0
+          ? ` La habitación sigue ocupada por ${quedanAdentro} reserva${quedanAdentro > 1 ? 's' : ''} más — queda una tarea de limpieza pendiente.`
+          : ' La habitación queda para limpiar.'
+      }`,
+      actor,
+    });
 
     return NextResponse.json({
       success: true,

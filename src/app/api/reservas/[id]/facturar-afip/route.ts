@@ -53,7 +53,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const tenantId = await requirePermission('comprobantes');
+    const { tenantId } = await requirePermission('comprobantes');
     const { id } = await params;
 
     const disponible = await afipDisponible(tenantId);

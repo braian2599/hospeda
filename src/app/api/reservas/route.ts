@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, requireActiveSubscription, getAuthSession, AuthError } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 import { validateCsrfToken } from '@/lib/csrf';
 import { Prisma } from '@prisma/client';
 import { createReservaSchema, formatZodError } from '@/lib/validation-schemas';
@@ -14,7 +15,7 @@ import { camasDeReserva, camasLibresDe, esCompartida, ocupaHabitacionEntera } fr
 // ─────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('reservas');
+    const { tenantId } = await requirePermission('reservas');
     const { searchParams } = new URL(req.url);
 
     const estado = searchParams.get('estado');
@@ -77,9 +78,12 @@ export async function GET(req: NextRequest) {
 // ─────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('reservas');
+    const { tenantId, actorId, nombre } = await requirePermission('reservas');
     await requireActiveSubscription(tenantId);
     const session = await getAuthSession();
+    // Quién hizo esto, sacado de la sesión. Antes se usaba session.user.name,
+    // que es el nombre de la CUENTA y no el del perfil que está trabajando.
+    const actor = { id: actorId, nombre };
 
     // ── CSRF validation ──
     if (session?.user?.id) {
@@ -89,7 +93,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const empleadoNombre = session?.user?.name || 'Sistema';
     const body = await req.json();
 
     const {
@@ -266,14 +269,14 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // ── Auditoría con empleado real ──
-      await tx.auditoria.create({
-        data: {
-          tenantId,
-          tipo: 'reserva_creada',
-          detalle: `Reserva ${nueva.id}: ${huesped.trim()} → Hab. ${habitacion.trim()}, ${nights} noche${nights !== 1 ? 's' : ''} (${checkinDate.toLocaleDateString()} → ${checkoutDate.toLocaleDateString()})`,
-          empleado: empleadoNombre,
-        },
+      // ── Auditoría ──
+      // Adentro de la transacción: la reserva y su constancia son la misma
+      // cosa. Antes el navegador escribía OTRA fila por esta misma reserva.
+      await auditar(tx, {
+        tenantId,
+        tipo: TIPO.RESERVA,
+        detalle: `Creación: ${huesped.trim()} → Hab. ${habitacion.trim()}, ${nights} noche${nights !== 1 ? 's' : ''} (${checkinDate.toLocaleDateString('es-AR')} → ${checkoutDate.toLocaleDateString('es-AR')})`,
+        actor,
       });
 
       return nueva;

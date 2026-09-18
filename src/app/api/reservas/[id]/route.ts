@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, getAuthSession, AuthError } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 import { Prisma } from '@prisma/client';
 import { lockHabitacion, ReservaConflictError } from '@/lib/db-lock';
 import { chequearLugar } from '@/lib/disponibilidad';
@@ -14,7 +15,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('reservas');
+    const { tenantId } = await requirePermission('reservas');
     const { id } = await params;
 
     const reserva = await db.reserva.findFirst({
@@ -55,7 +56,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('reservas');
+    const { tenantId, actorId, nombre } = await requirePermission('reservas');
+    // Quién hizo esto, sacado de la sesión — no del nombre de la cuenta.
+    const actor = { id: actorId, nombre };
     const { id } = await params;
     const body = await req.json();
 
@@ -130,7 +133,6 @@ export async function PUT(
     // Empleado real para la auditoría — se resuelve antes de entrar a la
     // transacción para no mantener el lock (más abajo) tomado mientras se
     // espera una llamada que no toca la tabla de reservas.
-    const empleadoNombre = (await getAuthSession())?.user?.name || 'Sistema';
 
     // ── Todo lo que sigue (chequeo de disponibilidad + update) va dentro de
     //    una misma transacción con lock de la habitación destino (ver
@@ -291,13 +293,11 @@ export async function PUT(
       if (huesped && huesped.trim() !== existing.huesped) changes.push('huésped');
 
       if (changes.length > 0) {
-        await tx.auditoria.create({
-          data: {
-            tenantId,
-            tipo: 'reserva_editada',
-            detalle: `Reserva ${id}: modificación de ${changes.join(', ')}`,
-            empleado: empleadoNombre,
-          },
+        await auditar(tx, {
+          tenantId,
+          tipo: TIPO.RESERVA,
+          detalle: `Modificación: ${existing.huesped} — ${changes.join(', ')}`,
+          actor,
         });
       }
 
@@ -325,7 +325,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const tenantId = await requirePermission('reservas');
+    const { tenantId, actorId, nombre } = await requirePermission('reservas');
+    // Quién hizo esto, sacado de la sesión — no del nombre de la cuenta.
+    const actor = { id: actorId, nombre };
     const { id } = await params;
 
     const reserva = await db.reserva.findFirst({
@@ -380,13 +382,14 @@ export async function DELETE(
     }
 
     // ── Auditoría ──
-    await db.auditoria.create({
-      data: {
-        tenantId,
-        tipo: 'reserva_cancelada',
-        detalle: `Reserva ${id} cancelada: ${reserva.huesped} → Hab. ${reserva.habitacion}`,
-        empleado: 'Sistema',
-      },
+    // Fuera de transacción: la cancelación ya está guardada. auditar() no
+    // lanza, así que un problema acá no le devuelve un error al usuario por
+    // algo que ya pasó.
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.RESERVA,
+      detalle: `Cancelación: ${reserva.huesped} → Hab. ${reserva.habitacion}`,
+      actor,
     });
 
     return NextResponse.json(cancelled);

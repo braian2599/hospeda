@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireTenantId, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { requireTenantId, requireActor, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 
 // PUT /api/mantenimiento/[id] — Resolver reporte de mantenimiento
 // Si hay monto > 0, SIEMPRE crea un Gasto.
@@ -42,10 +43,12 @@ export async function PUT(
     const esDeCaja = sacarDeCaja === true;
     const fuente = montoNum > 0 ? (esDeCaja ? 'caja' : 'pago_aparte') : null;
 
-    // Obtener datos del empleado
+    // Quién lo hizo. El nombre sale del PERFIL (viaja en el JWT), no del
+    // nombre de la cuenta como antes.
     const session = await getAuthSession();
+    const actor = await requireActor();
     const empleadoId = session?.user?.id || '';
-    const empleadoNombre = session?.user?.name || 'Desconocido';
+    const empleadoNombre = actor.nombre;
 
     // Resolver mantenimiento + crear Gasto + crear MovimientoCaja (si aplica)
     // Todo en una transacción atómica
@@ -125,6 +128,14 @@ export async function PUT(
       });
 
       return { mantenimiento: updated, gasto, movimientoCaja };
+    });
+
+    // El mantenimiento tampoco se auditaba.
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.MANTENIMIENTO,
+      detalle: `Resuelto: ${reporte.problema}${reporte.habitacion ? ` (Hab. ${reporte.habitacion})` : ''}`,
+      actor: { id: actor.actorId, nombre: actor.nombre },
     });
 
     return NextResponse.json(result);

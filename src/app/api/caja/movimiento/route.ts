@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, requireActiveSubscription, AuthError, getAuthSession } from '@/lib/auth/utils';
+import { auditar, TIPO } from '@/lib/auditoria';
 import { validateCsrfToken } from '@/lib/csrf';
 import { cajaMovimientoSchema, formatZodError } from '@/lib/validation-schemas';
 
@@ -8,7 +9,7 @@ import { cajaMovimientoSchema, formatZodError } from '@/lib/validation-schemas';
 // Si es un egreso con categoriaGastoNombre, crea también un Gasto atómicamente.
 export async function POST(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('caja');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('caja');
     await requireActiveSubscription(tenantId);
 
     // ── CSRF validation ──
@@ -78,7 +79,6 @@ export async function POST(req: NextRequest) {
 
     // Obtener datos del empleado (reutilizar session del CSRF check)
     const empleadoId = session?.user?.id || '';
-    const empleadoNombre = session?.user?.name || 'Desconocido';
 
     // Si es un egreso con categoría, crear Gasto + MovimientoCaja atómicamente
     if (tipo === 'egreso' && catNombre) {
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
             monto: montoNum,
             fecha: new Date(),
             empleadoId: empleadoId || null,
-            empleado: empleadoNombre,
+            empleado: actorNombre,
             fuente: 'caja',
           },
         });
@@ -107,13 +107,22 @@ export async function POST(req: NextRequest) {
             descripcion: descripcion.trim(),
             metodo: metodo?.trim() || 'Efectivo',
             empleadoId,
-            empleadoNombre,
+            empleadoNombre: actorNombre,
             reservaId: reservaId || null,
             gastoId: gasto.id,
           },
         });
 
         return { movimiento, gasto };
+      });
+
+      // Esta rama retorna antes que la de abajo: sin esto, todo egreso con
+      // categoría de gasto quedaba sin auditar.
+      await auditar(db, {
+        tenantId,
+        tipo: TIPO.CAJA,
+        detalle: `${tipo === 'ingreso' ? 'Ingreso' : 'Egreso'} de $${(montoNum / 100).toLocaleString('es-AR')} (${metodo?.trim() || 'Efectivo'}): ${descripcion.trim()}`,
+        actor: { id: actorId, nombre: actorNombre },
       });
 
       return NextResponse.json(result.movimiento, { status: 201 });
@@ -129,9 +138,16 @@ export async function POST(req: NextRequest) {
         descripcion: descripcion.trim(),
         metodo: metodo?.trim() || 'Efectivo',
         empleadoId,
-        empleadoNombre,
+        empleadoNombre: actorNombre,
         reservaId: reservaId || null,
       },
+    });
+
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.CAJA,
+      detalle: `${tipo === 'ingreso' ? 'Ingreso' : 'Egreso'} de $${(montoNum / 100).toLocaleString('es-AR')} (${metodo?.trim() || 'Efectivo'}): ${descripcion.trim()}`,
+      actor: { id: actorId, nombre: actorNombre },
     });
 
     return NextResponse.json(movimiento, { status: 201 });
@@ -148,7 +164,7 @@ export async function POST(req: NextRequest) {
 // Si tiene un Gasto vinculado, actualiza también el gasto (monto, descripción).
 export async function PUT(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('caja');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('caja');
     const { searchParams } = new URL(req.url);
     const movimientoId = searchParams.get('id');
 
@@ -226,6 +242,16 @@ export async function PUT(req: NextRequest) {
       return { movimiento: updatedMov, gasto: updatedGasto };
     });
 
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.CAJA,
+      detalle: `Edición de un movimiento: ${[
+        monto !== undefined ? `monto $${(Number(monto) / 100).toLocaleString('es-AR')}` : null,
+        descripcion !== undefined ? `descripción "${String(descripcion)}"` : null,
+      ].filter(Boolean).join(', ')}`,
+      actor: { id: actorId, nombre: actorNombre },
+    });
+
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof AuthError) {
@@ -240,7 +266,7 @@ export async function PUT(req: NextRequest) {
 // Si tiene un Gasto vinculado, lo elimina también.
 export async function DELETE(req: NextRequest) {
   try {
-    const tenantId = await requirePermission('caja');
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission('caja');
     const { searchParams } = new URL(req.url);
     const movimientoId = searchParams.get('id');
 
@@ -264,10 +290,11 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // Buscar si hay un gasto vinculado
+    // Buscar si hay un gasto vinculado. Se traen también los datos del
+    // movimiento para poder describirlo en la auditoría DESPUÉS de borrarlo.
     const movimiento = await db.movimientoCaja.findUnique({
       where: { id: movimientoId },
-      select: { gastoId: true },
+      select: { gastoId: true, tipo: true, monto: true, metodo: true, descripcion: true },
     });
 
     const deletedGastoId = movimiento?.gastoId || null;
@@ -277,6 +304,15 @@ export async function DELETE(req: NextRequest) {
         await tx.gasto.delete({ where: { id: deletedGastoId } });
       }
       await tx.movimientoCaja.delete({ where: { id: movimientoId } });
+    });
+
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.CAJA,
+      detalle: movimiento
+        ? `Eliminación de un ${movimiento.tipo === 'ingreso' ? 'ingreso' : 'egreso'} de $${(movimiento.monto / 100).toLocaleString('es-AR')} (${movimiento.metodo}): ${movimiento.descripcion}`
+        : 'Eliminación de un movimiento de caja',
+      actor: { id: actorId, nombre: actorNombre },
     });
 
     return NextResponse.json({ success: true, deletedGastoId });
