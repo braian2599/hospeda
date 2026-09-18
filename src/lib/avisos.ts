@@ -52,6 +52,22 @@ export interface Novedad {
   tipo: TipoNovedad;
   titulo: string;
   texto: string;
+  /**
+   * Quién puede verla. Sin esto, una novedad se le anuncia a TODOS los
+   * hoteles, incluidos los que no tienen esa función.
+   *
+   * Pasó al escribir la de Hospi: el asistente está detrás de una integración
+   * y de los planes Premium y Elite, así que anunciarlo sin filtrar le
+   * prometía a un hotel Profesional algo que no iba a encontrar en ninguna
+   * parte. Es la misma regla que ya aplica la bienvenida y la guía: nunca
+   * mostrar una pantalla que esa persona no tiene.
+   */
+  requiere?: {
+    /** Un módulo del menú: se chequea contra los que ese usuario ve. */
+    modulo?: ModuloId;
+    /** Una integración (feature flag) del hotel. */
+    flag?: string;
+  };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -67,19 +83,31 @@ export interface Novedad {
 // vieron conservan el contador, no pasa nada.
 
 export const NOVEDADES: Novedad[] = [
+  // EL ORDEN DE ESTE ARRAY ES EL ORDEN EN QUE SE MUESTRAN, y no es por fecha.
+  // Hospi va primero a propósito: es lo que más cambia el día a día de quien
+  // atiende, y en una ventana con varias novedades la primera es la que se
+  // lee. Las otras dos son de hoy y quedan abajo igual.
   {
-    id: 'notificaciones-persisten-2026-09',
-    fecha: '2026-09-16',
-    tipo: 'arreglo',
-    titulo: 'Las notificaciones ya no desaparecen solas',
-    texto: 'Antes se borraban a los 10 segundos, incluso mientras las estabas leyendo. Ahora se quedan hasta que las borres vos, y sobreviven si recargás la página.',
+    id: 'asistente-hospi-2026-09',
+    fecha: '2026-09-17',
+    tipo: 'nuevo',
+    titulo: 'Hospi, tu asistente, está en todas las pantallas',
+    texto: 'El botón redondo de abajo a la derecha te acompaña en todo el sistema. Preguntale cómo hacer algo y te responde al momento: sabe en qué pantalla estás, qué plan tenés y qué puede hacer tu usuario. La respuesta se puede copiar con un botón.',
+    requiere: { flag: 'asistente' },
   },
   {
-    id: 'compartidas-por-cama-2026-09',
-    fecha: '2026-09-15',
+    id: 'traspaso-de-turno-2026-09',
+    fecha: '2026-09-18',
     tipo: 'nuevo',
-    titulo: 'Habitaciones compartidas por cama',
-    texto: 'Una compartida admite varias reservas a la vez y nunca se bloquea entera. Cuando un huésped hace el check-out queda la tarea de limpieza de esa cama, aunque la habitación siga ocupada.',
+    titulo: 'Ahora ves qué pasó mientras no estabas',
+    texto: 'Arriba del Dashboard aparece el resumen del turno anterior: los check-ins y check-outs, lo que se cobró, el cierre de caja y las reservas que entraron por la página del hotel. Con la hora y el nombre de quién hizo cada cosa.',
+  },
+  {
+    id: 'bienvenida-y-guia-2026-09',
+    fecha: '2026-09-18',
+    tipo: 'nuevo',
+    titulo: 'Una guía del sistema, siempre a mano',
+    texto: 'Un recorrido por los módulos que explica para qué sirve cada uno. Lo podés abrir cuando quieras desde tu perfil, abajo del menú, y es lo primero que ve alguien nuevo del equipo cuando entra por primera vez.',
   },
 ];
 
@@ -357,9 +385,37 @@ export function novedadesVigentes(ahora: Date): Novedad[] {
   return NOVEDADES.filter(n => diasRestantes(n, ahora) > 0);
 }
 
+/** Lo que el hotel de esta persona tiene realmente. */
+export interface LoQueTiene {
+  modulos: readonly ModuloId[];
+  flags: Record<string, boolean>;
+}
+
+/**
+ * Si esta persona puede ver esta novedad.
+ *
+ * Una novedad sin `requiere` la ve todo el mundo. Con `requiere`, se le anuncia
+ * solo a quien la pueda usar: anunciarle una función a un hotel que no la tiene
+ * es mandarlo a buscar algo que no existe en su pantalla.
+ */
+export function puedeVerNovedad(n: Novedad, tiene: LoQueTiene): boolean {
+  if (!n.requiere) return true;
+  if (n.requiere.modulo && !tiene.modulos.includes(n.requiere.modulo)) return false;
+  if (n.requiere.flag && tiene.flags[n.requiere.flag] !== true) return false;
+  return true;
+}
+
 /** Las vigentes que este usuario todavía no vio las VECES_A_MOSTRAR veces. */
-export function novedadesPendientes(vistos: AvisosVistos, ahora: Date): Novedad[] {
-  return novedadesVigentes(ahora).filter(n => (vistos[n.id] || 0) < VECES_A_MOSTRAR);
+export function novedadesPendientes(
+  vistos: AvisosVistos,
+  ahora: Date,
+  tiene?: LoQueTiene,
+): Novedad[] {
+  return novedadesVigentes(ahora)
+    .filter(n => (vistos[n.id] || 0) < VECES_A_MOSTRAR)
+    // Sin `tiene` no se filtra: el que llama todavía no sabe qué tiene el
+    // hotel. Es el caso de las pruebas, no el de la pantalla.
+    .filter(n => !tiene || puedeVerNovedad(n, tiene));
 }
 
 export function debeMostrarBienvenida(vistos: AvisosVistos): boolean {
@@ -378,7 +434,11 @@ export type AvisoAMostrar =
  * cada módulo antes que enterarse de las mejoras del mes. Las novedades
  * quedan para el ingreso siguiente.
  */
-export function avisoParaMostrar(vistos: AvisosVistos, ahora: Date): AvisoAMostrar {
+export function avisoParaMostrar(
+  vistos: AvisosVistos,
+  ahora: Date,
+  tiene?: LoQueTiene,
+): AvisoAMostrar {
   if (debeMostrarBienvenida(vistos)) {
     return {
       tipo: 'bienvenida',
@@ -386,7 +446,7 @@ export function avisoParaMostrar(vistos: AvisosVistos, ahora: Date): AvisoAMostr
     };
   }
 
-  const pendientes = novedadesPendientes(vistos, ahora);
+  const pendientes = novedadesPendientes(vistos, ahora, tiene);
   if (pendientes.length === 0) return null;
 
   // Cuántas veces más va a volver: la del aviso que menos veces se vio.

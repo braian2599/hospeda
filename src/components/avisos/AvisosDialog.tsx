@@ -115,7 +115,14 @@ export default function AvisosDialog() {
   // ya la cerró.
   const [aviso] = useState<AvisoAMostrar>(() => {
     if (!tenantUserId || yaSeMostro(tenantUserId)) return null;
-    return avisoParaMostrar(parseAvisosVistos(usuarioActual?.avisosVistos), new Date());
+    // Se le pasa lo que el hotel REALMENTE tiene para no anunciarle una
+    // función que no va a encontrar. Ej.: Hospi está detrás de una integración
+    // y de los planes Premium y Elite.
+    return avisoParaMostrar(
+      parseAvisosVistos(usuarioActual?.avisosVistos),
+      new Date(),
+      { modulos, flags: usuarioActual?.featureFlags || {} },
+    );
   });
 
   // El pedido explícito (campanita o perfil) abre la ventana aunque ya se haya
