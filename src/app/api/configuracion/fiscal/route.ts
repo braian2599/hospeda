@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireOwner, AuthError } from '@/lib/auth/utils';
+import { requireOwner, requirePermission, AuthError } from '@/lib/auth/utils';
 
 // GET /api/configuracion/fiscal
+//
+// LEER lo puede quien tiene 'comprobantes' (dueño y admin siempre); MODIFICAR,
+// solo el dueño (el PUT de abajo). Antes leer también era solo del dueño, y
+// Comprobantes lo pide para imprimir: a los empleados que manejan lo fiscal
+// —justamente los de 'comprobantes'— les devolvía 403 y sus recibos salían sin
+// razón social, CUIT, condición de IVA ni dirección. Nada de esto es secreto:
+// va impreso en cada comprobante que se le entrega al huésped.
 export async function GET() {
   try {
-    const tenantId = await requireOwner();
+    const { tenantId } = await requirePermission('comprobantes');
     const config = await db.tenantConfig.findUnique({
       where: { tenantId },
       select: {

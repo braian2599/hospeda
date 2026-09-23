@@ -31,7 +31,10 @@ export default function ReservasSenaKPI() {
   const [loadingModo, setLoadingModo] = useState(true);
 
   useEffect(() => {
-    fetch('/api/configuracion/hotel')
+    // /operativa y no /hotel: /hotel es solo del dueño, y al personal le
+    // devolvía 403, así que siempre veía la lista de Mercado Pago aunque el
+    // hotel cobrara la seña a mano.
+    fetch('/api/configuracion/operativa')
       .then(r => r.json())
       .then(data => setModoCobroSena(data.modoCobroSena === 'manual' ? 'manual' : 'mercadopago'))
       .catch(() => {})

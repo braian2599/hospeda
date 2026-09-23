@@ -1546,7 +1546,9 @@ function ReciboContent({
     let cancelled = false;
     Promise.all([
       fetch('/api/configuracion/fiscal').then(r => r.json()).catch(() => null),
-      fetch('/api/configuracion/hotel').then(r => r.json()).catch(() => null),
+      // /operativa y no /hotel: /hotel es solo del dueño, y el recibo que
+      // imprimía un empleado salía sin teléfono ni email.
+      fetch('/api/configuracion/operativa').then(r => r.json()).catch(() => null),
     ]).then(([f, h]) => {
       if (cancelled) return;
       setFiscal({

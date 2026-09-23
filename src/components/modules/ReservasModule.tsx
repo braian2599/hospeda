@@ -594,7 +594,9 @@ export default function ReservasModule() {
  // nunca se le bloquea, así que alcanza con un fetch liviano al montar.
  const [reservasHabilitadasHasta, setReservasHabilitadasHasta] = useState<string | null>(null);
  useEffect(() => {
-   fetch('/api/configuracion/hotel')
+   // /operativa y no /hotel: /hotel es solo del dueño, y al personal le
+   // devolvía 403, así que el aviso nunca le aparecía.
+   fetch('/api/configuracion/operativa')
      .then(r => r.json())
      .then(data => setReservasHabilitadasHasta(data.reservasHabilitadasHasta || null))
      .catch(() => {});

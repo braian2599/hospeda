@@ -258,13 +258,21 @@ saldo) sin tocar nada nuevo de ARCA.
   API rechaza pagos ahí; la tabla de compu ya lo ocultaba, el celular no.
 - La tarjeta de derivar la ve el recepcionista con nombre y CUIT, nunca montos.
 
-### Encontrado al probar (no se tocó)
+### Encontrado al probar CC-3, y arreglado después
 
-- `prisma/seed.ts` crea los planes con el módulo `'facturacion'`, que se
-  renombró a `'comprobantes'` (en producción ya está migrado). Una base nueva
-  sembrada con eso deja Comprobantes bloqueado en todos los planes.
-- El recepcionista recibe un 403 de `/api/configuracion/hotel` al entrar (lo
-  pide una pantalla aunque no tenga permiso de configuración). Ya pasaba antes.
+- `prisma/seed.ts` tenía su propia copia de los planes y se había quedado
+  atrás ('facturacion' en vez de 'comprobantes', otros límites, sin Elite).
+  Ahora los lee de `src/lib/plan-config.ts` y solo crea los que faltan: nunca
+  pisa lo que se editó desde Super Admin.
+- Tres pantallas del personal pedían `/api/configuracion/hotel`, que es solo
+  del dueño: a los demás les daba 403 y usaban el valor por defecto (el aviso
+  del límite de reservas web no aparecía, el indicador de señas asumía
+  Mercado Pago aunque se cobrara a mano, el recibo salía sin teléfono ni
+  email). Ahora piden `/api/configuracion/operativa`, con solo esos datos.
+- `/api/configuracion/fiscal` también era solo del dueño, y Comprobantes lo
+  pide para imprimir: los empleados de 'comprobantes' imprimían sin razón
+  social, CUIT, IVA ni dirección. Leerlo ahora pide 'comprobantes';
+  modificarlo sigue siendo del dueño.
 
 ## Pendiente de decidir (no bloquea)
 
