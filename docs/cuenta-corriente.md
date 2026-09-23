@@ -197,7 +197,9 @@ El buscador por CUIT contra ARCA (`buscar-cuit`) quedó para CC-5.
   en Reservas, pestaña "Datos fiscales" en Cliente.
 - **CC-4 — Factura A y facturar al titular:** tipo 1 en `afip/config.ts` y
   `wsfe.ts`, con la regla cruzada emisor/receptor; y facturarle lo derivado
-  al titular con su CUIT.
+  al titular con su CUIT. Verificar en la documentación de ARCA si hoy exige
+  la condición de IVA del receptor al pedir el CAE: el `wsfe.ts` actual no la
+  manda (visto al revisar CC-2, sin verificar contra ARCA).
 - **CC-5 — Padrón de ARCA:** buscar por CUIT. Va último; mientras tanto se
   carga a mano. Reusa el certificado y el login WSAA que ya existen. Hay que
   verificar en la documentación de ARCA qué versión del padrón corresponde.
