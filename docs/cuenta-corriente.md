@@ -182,6 +182,14 @@ saldo) sin tocar nada nuevo de ARCA.
   columnas nuevas, opcionales): tiene que poder correrse con `main` en
   producción sin romper nada.
 
+## Estado
+
+- **CC-1:** schema y migración `20260923_cuenta_corriente` escritos y
+  probados contra un Postgres con el schema de main y datos: corre dos veces
+  sin error, no toca los datos existentes, queda idéntico al schema (cero
+  diferencias), frena borrar reservas/titulares con deuda y deja borrar un
+  hotel entero en cascada. Falta que el dueño la corra en Neon.
+
 ## Pendiente de decidir (no bloquea)
 
 - Límite de crédito: ¿bloquea la derivación o solo avisa?

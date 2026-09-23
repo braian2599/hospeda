@@ -66,6 +66,9 @@ model Tenant {
   afip           TenantAfip?
   comprobantes   Comprobante[]
   comprobanteContadores ComprobanteContador[]
+  titularesCuenta       TitularCuenta[]
+  cargosCuentaCorriente CargoCuentaCorriente[]
+  pagosCuentaCorriente  PagoCuentaCorriente[]
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -248,6 +251,9 @@ model Cliente {
   tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   estadias        Estadia[]
   reservas        Reserva[]
+  // Sus datos fiscales, si alguna vez pidió factura con CUIT. Es la pestaña
+  // "Datos fiscales" de la ficha. Ver docs/cuenta-corriente.md.
+  titularCuenta   TitularCuenta?
 
   @@unique([tenantId, dni])
 }
@@ -339,6 +345,8 @@ model Reserva {
   menores                  Menor[]
   pagos                    Pago[]
   comprobantes             Comprobante[]
+  // Si el saldo se pasó a cuenta corriente. Como mucho uno: se deriva completo.
+  cargoCuentaCorriente     CargoCuentaCorriente?
   cliente                  Cliente?      @relation(fields: [clienteId], references: [id])
   tenant                   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   reservaVinculada         Reserva?      @relation("ReservaVinculada", fields: [reservaVinculadaId], references: [id], onDelete: SetNull, onUpdate: Cascade)
@@ -481,8 +489,13 @@ model MovimientoCaja {
   fecha          DateTime           @default(now())
   createdAt      DateTime           @default(now())
   gastoId        String?            @unique
+  // El cobro de una cuenta corriente que generó este ingreso. Mismo patrón
+  // que gastoId: la tabla de negocio es la fuente de verdad y la caja
+  // guarda su espejo, para que el cierre de turno lo cuente.
+  pagoCuentaCorrienteId String?     @unique
 
   gasto          Gasto?             @relation(fields: [gastoId], references: [id])
+  pagoCuentaCorriente PagoCuentaCorriente? @relation(fields: [pagoCuentaCorrienteId], references: [id])
   tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   turno          TurnoCaja          @relation(fields: [turnoId], references: [id], onDelete: Cascade)
 
@@ -760,6 +773,12 @@ model Comprobante {
   // Reserva para más contexto.
   numeroInterno         Int?
 
+  // A qué titular de cuenta corriente se le emitió. Los datos del receptor
+  // de arriba son una foto del momento (lo que salió impreso); esto es para
+  // poder listar "todos los comprobantes de esta empresa" sin buscar por texto.
+  titularCuentaId       String?
+  titularCuenta         TitularCuenta?    @relation(fields: [titularCuentaId], references: [id], onDelete: SetNull)
+
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
 
@@ -768,6 +787,7 @@ model Comprobante {
   @@unique([tenantId, tipo, puntoVenta, numero])
   @@index([tenantId, reservaId])
   @@index([tenantId, tipo])
+  @@index([titularCuentaId])
 }
 
 // Numeración atómica por tenant + tipo + punto de venta (mismo patrón de
@@ -784,6 +804,107 @@ model ComprobanteContador {
   tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, tipo, puntoVenta])
+}
+
+// ═══════════════════════════════════════════════════════════
+// CUENTA CORRIENTE — empresas y clientes habituales que pagan después.
+// Las decisiones detrás de esto están en docs/cuenta-corriente.md.
+//
+// No es un método de pago: /api/pagos mete todo pago en la caja y rechaza
+// reservas con check-out. Por eso son dos acciones propias:
+//   derivar la deuda → CargoCuentaCorriente (no toca la caja: no entró plata)
+//   cobrarla         → PagoCuentaCorriente  (sí toca la caja: entró plata)
+//
+// El saldo NO se guarda en ningún lado: es la suma de los cargos menos la
+// suma de los pagos, calculada cada vez. Un total guardado se desincroniza.
+// ═══════════════════════════════════════════════════════════
+
+model TitularCuenta {
+  id               String      @id @default(cuid())
+  tenantId         String
+  tipo             TipoTitular
+  // Razón social (empresa) o nombre y apellido (persona). Puede ser distinto
+  // del nombre del huésped: el monotributista que factura con nombre de fantasía.
+  nombre           String
+  // Solo dígitos, 11. Obligatorio: es lo único que se le pide a quien quiere
+  // factura, y con esto ARCA devuelve el resto. Sin CUIT no hay titular.
+  cuit             String
+  // Tal como lo devuelve ARCA (o como se cargó a mano). Decide la letra de la
+  // factura junto con la condición del hotel.
+  condicionIva     String?
+  domicilioFiscal  String?
+  contactoNombre   String?
+  contactoTelefono String?
+  contactoEmail    String?
+  // Centavos. null = sin límite. Por ahora es informativo: falta decidir si
+  // bloquea la derivación o solo avisa.
+  limiteCredito    Int?
+  // Solo tipo persona: su ficha de huésped, para no tenerlo dos veces.
+  // Si se borra el cliente, el titular queda (tiene CUIT e historial de deuda).
+  clienteId        String?     @unique
+  // Se desactiva, no se borra: tiene cargos y pagos que tienen que seguir ahí.
+  activo           Boolean     @default(true)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  tenant           Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  cliente          Cliente?               @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  cargos           CargoCuentaCorriente[]
+  pagos            PagoCuentaCorriente[]
+  comprobantes     Comprobante[]
+
+  @@unique([tenantId, cuit])
+}
+
+// La deuda de una reserva que se pasó a cuenta corriente. Se deriva el saldo
+// COMPLETO y una sola vez (reservaId único): "el que anota fiado anota todo".
+model CargoCuentaCorriente {
+  id             String        @id @default(cuid())
+  tenantId       String
+  titularId      String
+  reservaId      String        @unique
+  // Centavos. Foto del saldo al momento de derivar: si después alguien toca
+  // la reserva, lo que se le anotó al titular no cambia solo.
+  monto          Int
+  // La línea del estado de cuenta, tal como quedó al derivar
+  // ("Juan Pérez — Hab. 203 — 15/09 al 18/09").
+  concepto       String
+  // Quién lo derivó: el perfil (TenantUser), no la cuenta. Igual que la auditoría.
+  empleadoId     String?
+  empleadoNombre String
+  fecha          DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Restrict: no se puede borrar un titular ni una reserva que tienen una
+  // deuda anotada. El titular se desactiva; la reserva se cancela.
+  // Borrar un hotel entero (super-admin, en cascada) sí funciona: probado.
+  titular        TitularCuenta @relation(fields: [titularId], references: [id], onDelete: Restrict)
+  reserva        Reserva       @relation(fields: [reservaId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, titularId])
+}
+
+// El cobro de lo que debe un titular. Puede ser parcial (la derivación no,
+// el cobro sí) y no está atado a una reserva: puede saldar varias juntas.
+// Exige turno de caja abierto y deja su espejo en MovimientoCaja.
+model PagoCuentaCorriente {
+  id             String          @id @default(cuid())
+  tenantId       String
+  titularId      String
+  monto          Int             // centavos
+  metodo         String
+  nota           String          @default("")
+  empleadoId     String?
+  empleadoNombre String
+  fecha          DateTime        @default(now())
+  createdAt      DateTime        @default(now())
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  titular        TitularCuenta   @relation(fields: [titularId], references: [id], onDelete: Restrict)
+  movimientoCaja MovimientoCaja?
+
+  @@index([tenantId, titularId])
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -844,6 +965,11 @@ enum EstadoReserva {
   CheckIn_realizado
   Checkout_realizado
   AConfirmar
+}
+
+enum TipoTitular {
+  empresa
+  persona
 }
 
 enum EstadoTareaLimpieza {
