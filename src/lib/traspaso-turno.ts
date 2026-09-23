@@ -160,4 +160,5 @@ export const ICONO_POR_TIPO: Record<string, string> = {
   [TIPO.LIMPIEZA]: 'Sparkles',
   [TIPO.MANTENIMIENTO]: 'Wrench',
   [TIPO.SINCRONIZACION]: 'RefreshCw',
+  [TIPO.CUENTA_CORRIENTE]: 'BookOpen',
 };

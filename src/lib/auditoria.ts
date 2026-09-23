@@ -57,6 +57,7 @@ export const TIPO = {
   SINCRONIZACION: 'Conflicto de sincronización',
   LOGIN: 'Login',
   LOGOUT: 'Logout',
+  CUENTA_CORRIENTE: 'Cuenta corriente',
 } as const;
 
 export type TipoAuditoria = typeof TIPO[keyof typeof TIPO];

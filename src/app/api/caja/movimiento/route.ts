@@ -5,6 +5,13 @@ import { auditar, TIPO } from '@/lib/auditoria';
 import { validateCsrfToken } from '@/lib/csrf';
 import { cajaMovimientoSchema, formatZodError } from '@/lib/validation-schemas';
 
+// Un ingreso que es el cobro de una cuenta corriente es el espejo de un
+// PagoCuentaCorriente: la deuda del titular se descontó con ese cobro. Si se
+// edita o se borra desde acá, la caja cambia y la deuda queda como cobrada.
+// Se corrige anulando el cobro, que borra los dos juntos.
+const MENSAJE_COBRO_CUENTA_CORRIENTE =
+  'Este ingreso es el cobro de una cuenta corriente. Para corregirlo, anulá el cobro desde Comprobantes → Cuenta corriente: así se corrigen juntas la caja y la deuda.';
+
 // POST /api/caja/movimiento — Registrar un movimiento (ingreso/egreso)
 // Si es un egreso con categoriaGastoNombre, crea también un Gasto atómicamente.
 export async function POST(req: NextRequest) {
@@ -217,6 +224,13 @@ export async function PUT(req: NextRequest) {
       include: { gasto: true },
     });
 
+    // Un cobro de cuenta corriente no se corrige desde acá: se cambiaría la
+    // caja y la deuda del titular quedaría como estaba. Se anula el cobro
+    // desde Cuenta Corriente, que corrige las dos cosas juntas.
+    if (movimientoActual?.pagoCuentaCorrienteId) {
+      return NextResponse.json({ error: MENSAJE_COBRO_CUENTA_CORRIENTE }, { status: 409 });
+    }
+
     // Actualizar movimiento y gasto en transacción
     const result = await db.$transaction(async (tx) => {
       const updatedMov = await tx.movimientoCaja.update({
@@ -294,8 +308,14 @@ export async function DELETE(req: NextRequest) {
     // movimiento para poder describirlo en la auditoría DESPUÉS de borrarlo.
     const movimiento = await db.movimientoCaja.findUnique({
       where: { id: movimientoId },
-      select: { gastoId: true, tipo: true, monto: true, metodo: true, descripcion: true },
+      select: { gastoId: true, pagoCuentaCorrienteId: true, tipo: true, monto: true, metodo: true, descripcion: true },
     });
+
+    // Igual que en la edición: borrarlo acá dejaría la deuda como cobrada y
+    // la plata fuera de la caja.
+    if (movimiento?.pagoCuentaCorrienteId) {
+      return NextResponse.json({ error: MENSAJE_COBRO_CUENTA_CORRIENTE }, { status: 409 });
+    }
 
     const deletedGastoId = movimiento?.gastoId || null;
 

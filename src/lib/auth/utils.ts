@@ -137,6 +137,27 @@ export interface ContextoDeAccion {
   /** Para mostrar. */
   nombre: string;
   rol: string;
+  /**
+   * Los permisos del perfil. Para las rutas que dejan entrar con varios
+   * permisos pero muestran más a quien tiene uno en particular (ver
+   * tienePermiso). Sale de la misma consulta: no cuesta nada.
+   */
+  permisos: string[];
+}
+
+/**
+ * Si el actor tiene este permiso. Owner y admin tienen todos, igual que en
+ * requirePermission.
+ *
+ * Es para DESPUÉS de requirePermission, cuando una ruta deja entrar a varios
+ * pero una parte de lo que devuelve es solo para algunos: p. ej. la lista de
+ * titulares de cuenta corriente la puede buscar cualquier recepcionista para
+ * derivar una deuda, pero cuánto debe cada uno lo ve solo quien tiene
+ * 'comprobantes'.
+ */
+export function tienePermiso(ctx: Pick<ContextoDeAccion, 'rol' | 'permisos'>, permiso: string): boolean {
+  if (ctx.rol === 'owner' || ctx.rol === 'admin') return true;
+  return ctx.permisos.includes(permiso);
 }
 
 /**
@@ -188,6 +209,7 @@ export async function requirePermission(permission: string | string[]): Promise<
     actorId: tenantUser.id,
     nombre: tenantUser.nombreCompleto || session.user.name || 'Sistema',
     rol: tenantUser.rol,
+    permisos: Array.isArray(tenantUser.permisos) ? tenantUser.permisos : [],
   };
 
   // Verificar que el tenant esté activo (previene acceso de usuarios de tenants desactivados)

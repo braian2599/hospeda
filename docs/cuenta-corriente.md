@@ -141,17 +141,53 @@ ingreso se registra al cobrar, no al facturar.
 
 ## Endpoints
 
-| Endpoint                                   | Qué hace                                   | Permiso                  |
-|--------------------------------------------|--------------------------------------------|--------------------------|
-| `POST /api/titulares`                      | Crear titular                              | comprobantes             |
-| `GET /api/titulares`                       | Buscar/listar                              | comprobantes             |
-| `GET /api/titulares/[id]`                  | Detalle, saldo, cargos y pagos             | comprobantes             |
-| `POST /api/titulares/buscar-cuit`          | Consulta ARCA para autocompletar           | comprobantes             |
-| `POST /api/reservas/[id]/cuenta-corriente` | Derivar el saldo completo a un titular     | reservas / checkin       |
-| `POST /api/titulares/[id]/pagos`           | Cobrar (turno abierto + MovimientoCaja)    | comprobantes             |
+Construidos en CC-2. Montos siempre en centavos, igual que `Pago.monto`.
+La lógica sin base de datos está en `src/lib/cuenta-corriente.ts`.
 
-`/api/reservas/[id]/comprobante` y `facturar-afip` usan los datos del titular
-cuando la reserva tiene un cargo.
+| Endpoint                                        | Qué hace                                         | Permiso                                   |
+|-------------------------------------------------|--------------------------------------------------|-------------------------------------------|
+| `GET /api/titulares`                            | Buscar (`?q=` nombre o CUIT, `?clienteId=`)      | reservas, checkin, clientes o comprobantes |
+| `POST /api/titulares`                           | Alta                                             | reservas, checkin, clientes o comprobantes |
+| `GET /api/titulares/[id]`                       | Estado de cuenta: saldo, cargos, pagos           | comprobantes                              |
+| `PUT /api/titulares/[id]`                       | Editar (límite y baja: solo comprobantes)        | reservas, checkin, clientes o comprobantes |
+| `POST /api/reservas/[id]/cuenta-corriente`      | Derivar el saldo completo                        | reservas o checkin                        |
+| `POST /api/titulares/[id]/pagos`                | Cobrar (turno abierto + ingreso en caja)         | comprobantes                              |
+| `DELETE /api/titulares/[id]/pagos/[pagoId]`     | Anular un cobro mal cargado                      | comprobantes                              |
+
+Buscar y cargar titulares no es solo de `comprobantes`, como decía el plan:
+el recepcionista necesita elegir a quién derivar, y la ficha del cliente
+cargar su CUIT. Lo que sí es solo de `comprobantes`: cuánto debe cada uno,
+el límite, la baja, el estado de cuenta y cobrar. Esa regla está en un solo
+lugar, `vistaTitular`.
+
+El buscador por CUIT contra ARCA (`buscar-cuit`) quedó para CC-5.
+
+### Decisiones tomadas al construir CC-2
+
+- **Se deriva solo con el check-out hecho.** Una reserva con check-out ya no
+  se puede editar, cancelar, ni sumarle o borrarle pagos: su saldo es
+  definitivo. Antes todavía se mueve. La pantalla (CC-3) hace el check-out y
+  enseguida ofrece pasar el saldo a cuenta corriente.
+- **El cobro no se toca desde Caja.** Caja permitía editar el monto o borrar
+  cualquier movimiento del turno abierto; con un cobro de cuenta corriente,
+  la deuda quedaba como cobrada y la plata fuera de la caja. Ahora Caja lo
+  rechaza, y se corrige anulando el cobro, que borra los dos juntos. Solo
+  mientras el turno siga abierto (la misma regla que Caja).
+- **Dos cobros a la vez no pueden pasarse de la deuda.** Se bloquea la fila
+  del titular durante el cobro. Probado: sin el bloqueo, dos cobros de
+  $100.000 sobre una deuda de $150.000 pasaban los dos.
+- **El CUIT se valida con el dígito verificador**, el mismo cálculo de ARCA.
+  No confirma que exista (eso es CC-5), pero agarra el número mal tipeado.
+- **El CUIT y el tipo se corrigen solo mientras no haya movimientos.**
+  Después sería cambiarle el dueño a una deuda anotada: se desactiva y se
+  carga uno nuevo.
+- **El aviso de límite de crédito lo ve solo quien tiene `comprobantes`.**
+  No frena nada (sigue pendiente de decidir).
+- **La factura a nombre del titular pasa a CC-4.** Hoy `facturar-afip`
+  factura lo que PAGÓ el huésped, a su nombre (ver `emitirComprobanteAfip`).
+  Para una reserva derivada eso no factura nada mal: la seña del huésped va
+  al huésped, y lo derivado todavía no se factura. Facturarle al titular
+  depende de la Factura A y de una pregunta abierta (abajo).
 
 ## Fases
 
@@ -159,8 +195,9 @@ cuando la reserva tiene un cargo.
 - **CC-2 — Backend:** los endpoints.
 - **CC-3 — Frontend:** pestaña Cuenta Corriente dentro de Comprobantes, botón
   en Reservas, pestaña "Datos fiscales" en Cliente.
-- **CC-4 — Factura A:** tipo 1 en `afip/config.ts` y `wsfe.ts`, con la regla
-  cruzada emisor/receptor.
+- **CC-4 — Factura A y facturar al titular:** tipo 1 en `afip/config.ts` y
+  `wsfe.ts`, con la regla cruzada emisor/receptor; y facturarle lo derivado
+  al titular con su CUIT.
 - **CC-5 — Padrón de ARCA:** buscar por CUIT. Va último; mientras tanto se
   carga a mano. Reusa el certificado y el login WSAA que ya existen. Hay que
   verificar en la documentación de ARCA qué versión del padrón corresponde.
@@ -188,9 +225,18 @@ saldo) sin tocar nada nuevo de ARCA.
   probados contra un Postgres con el schema de main y datos: corre dos veces
   sin error, no toca los datos existentes, queda idéntico al schema (cero
   diferencias), frena borrar reservas/titulares con deuda y deja borrar un
-  hotel entero en cascada. Falta que el dueño la corra en Neon.
+  hotel entero en cascada. **Corrida en Neon por el dueño.**
+- **CC-2:** endpoints construidos. Probados contra un Postgres real con el
+  schema de main + la migración (90 pruebas): permisos de cada uno,
+  aislamiento entre hoteles, validaciones, las dos carreras (derivar y cobrar
+  a la vez), el ingreso en caja, el bloqueo en Caja, anular, y borrar el
+  hotel entero. Las pantallas todavía no los usan (CC-3).
 
 ## Pendiente de decidir (no bloquea)
 
 - Límite de crédito: ¿bloquea la derivación o solo avisa?
 - ¿Se puede anular un cargo derivado por error? (Por ahora no.)
+- **Para CC-4:** si el huésped pagó una seña y el resto se derivó a una
+  empresa, ¿cómo se factura? Hoy una reserva tiene UN solo comprobante.
+  Opciones: una factura al huésped por la seña y otra a la empresa por lo
+  derivado, o una sola a la empresa por el total.
