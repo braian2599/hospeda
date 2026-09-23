@@ -23,6 +23,8 @@ import { toast } from 'sonner';
 import PaginationBar from '@/components/ui/pagination-bar';
 import { exportToCSV } from '@/lib/csv-export';
 import { AnimatedNumber } from '@/components/ui/animated-number';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import DatosFiscalesCliente from '@/components/cuenta-corriente/DatosFiscalesCliente';
 
 // ═══════════════════════════════════════════════════════════
 // HELPERS
@@ -489,6 +491,12 @@ export default function ClientesModule() {
                 <DialogHeader>
                   <DialogTitle>Detalle del cliente</DialogTitle>
                 </DialogHeader>
+                <Tabs defaultValue="datos">
+                  <TabsList>
+                    <TabsTrigger value="datos">Datos</TabsTrigger>
+                    <TabsTrigger value="fiscales">Datos fiscales</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="datos">
                 <div className="space-y-5 py-2">
                   {/* Client header with avatar + loyalty */}
                   <div className="flex items-center gap-4">
@@ -637,6 +645,12 @@ export default function ClientesModule() {
                     </div>
                   )}
                 </div>
+                  </TabsContent>
+                  {/* Montado solo al abrirla: no se piden los datos fiscales de cada cliente que se mira. */}
+                  <TabsContent value="fiscales" className="py-2">
+                    <DatosFiscalesCliente clienteId={selected.id} nombreCliente={selected.nombre} />
+                  </TabsContent>
+                </Tabs>
                 <DialogFooter>
                   <Button onClick={() => {
                     window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { type: 'new-reserva', clienteId: selected.id } }));

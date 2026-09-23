@@ -93,6 +93,12 @@ export interface Reserva {
   origen?: string;
   /** Cuándo se creó, en ISO. Ver el Dashboard de reservas de la web. */
   creadaEn?: string;
+  /**
+   * Si el saldo se pasó a cuenta corriente: a quién y cuánto (en pesos).
+   * Es lo que se le anotó al titular por ESTA reserva, no lo que debe en
+   * total: eso es solo de quien maneja la cuenta corriente.
+   */
+  cuentaCorriente?: { titularId: string; titular: string; monto: number };
 }
 
 export type EstadoReserva = 'Confirmada' | 'Cancelada' | 'Check-In realizado' | 'Check-Out realizado' | 'A confirmar';
@@ -201,6 +207,12 @@ export interface MovimientoCaja {
   fecha: string;
   gastoId?: string | null;
   reservaId?: string | null;
+  /**
+   * Si es el cobro de una cuenta corriente. Ese ingreso no se edita ni se
+   * borra desde Caja (la API lo rechaza): se anula el cobro desde Cuenta
+   * corriente, que corrige la caja y la deuda juntas.
+   */
+  pagoCuentaCorrienteId?: string | null;
 }
 
 export interface CierreCaja {

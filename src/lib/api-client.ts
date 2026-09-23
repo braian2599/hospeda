@@ -305,7 +305,71 @@ export const api = {
     heartbeat: () => apiFetch<{ ok: boolean }>('/presence/heartbeat', { method: 'POST' }),
     online: () => apiFetch<{ onlineUserIds: string[]; onlineCount: number; disponible: boolean }>('/presence/online'),
   },
+
+  // ── Cuenta corriente (ver docs/cuenta-corriente.md) ──
+  // OJO: la API trabaja en CENTAVOS, como la base. El store trabaja en pesos.
+  // Las pantallas de cuenta corriente convierten con aPesos / aCentavos.
+  cuentaCorriente: {
+    buscar: (filtro: { q?: string; clienteId?: string; incluirInactivos?: boolean } = {}) => {
+      const p = new URLSearchParams();
+      if (filtro.q) p.set('q', filtro.q);
+      if (filtro.clienteId) p.set('clienteId', filtro.clienteId);
+      if (filtro.incluirInactivos) p.set('incluirInactivos', '1');
+      const qs = p.toString();
+      return apiFetch<{ completo: boolean; titulares: DbTitular[] }>(`/titulares${qs ? `?${qs}` : ''}`);
+    },
+    crear: (datos: DatosTitularApi & { tipo: TipoTitular; nombre: string; cuit: string; clienteId?: string }) =>
+      apiFetch<DbTitular>('/titulares', { method: 'POST', body: JSON.stringify(datos) }),
+    editar: (id: string, datos: DatosTitularApi & { tipo?: TipoTitular; nombre?: string; cuit?: string; activo?: boolean }) =>
+      apiFetch<DbTitular>(`/titulares/${id}`, { method: 'PUT', body: JSON.stringify(datos) }),
+    estadoDeCuenta: (id: string) => apiFetch<DbEstadoDeCuenta>(`/titulares/${id}`),
+    derivar: (idReserva: string, titularId: string) =>
+      apiFetch<{ cargo: { id: string; monto: number; concepto: string; titular: { id: string; nombre: string } }; superaLimite: boolean }>(
+        `/reservas/${idReserva}/cuenta-corriente`, { method: 'POST', body: JSON.stringify({ titularId }) },
+      ),
+    cobrar: (titularId: string, datos: { monto: number; metodo: string; nota?: string }) =>
+      apiFetch<{ pago: { id: string; monto: number; metodo: string }; saldo: number }>(
+        `/titulares/${titularId}/pagos`, { method: 'POST', body: JSON.stringify(datos) },
+      ),
+    anularCobro: (titularId: string, pagoId: string) =>
+      apiFetch<{ success: boolean }>(`/titulares/${titularId}/pagos/${pagoId}`, { method: 'DELETE' }),
+  },
 };
+
+// ── Cuenta corriente: tipos (montos en centavos) ──
+export type TipoTitular = 'empresa' | 'persona';
+export interface DatosTitularApi {
+  condicionIva?: string | null;
+  domicilioFiscal?: string | null;
+  contactoNombre?: string | null;
+  contactoTelefono?: string | null;
+  contactoEmail?: string | null;
+  limiteCredito?: number | null;
+}
+export interface DbTitular {
+  id: string;
+  tipo: TipoTitular;
+  nombre: string;
+  cuit: string;
+  cuitFormateado: string;
+  condicionIva: string | null;
+  domicilioFiscal: string | null;
+  contactoNombre: string | null;
+  contactoTelefono: string | null;
+  contactoEmail: string | null;
+  clienteId: string | null;
+  activo: boolean;
+  /** Solo si quien pregunta tiene 'comprobantes'. */
+  limiteCredito?: number | null;
+  saldo?: number;
+  superaLimite?: boolean;
+}
+export interface DbEstadoDeCuenta {
+  titular: DbTitular;
+  cargos: { id: string; monto: number; concepto: string; fecha: string; empleadoNombre: string; reserva: { id: string; huesped: string; habitacion: string } }[];
+  pagos: { id: string; monto: number; metodo: string; nota: string; fecha: string; empleadoNombre: string; anulable: boolean }[];
+  movimientos: { id: string; tipo: 'cargo' | 'pago'; fecha: string; detalle: string; importe: number; saldo: number }[];
+}
 
 // ═══════════════════════════════════════════════════════════
 // TYPES

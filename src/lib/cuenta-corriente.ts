@@ -348,6 +348,27 @@ export function vistaTitular(t: TitularDeLaBase, completo: boolean, saldoCentavo
   };
 }
 
+// ── Para las pantallas ──
+
+/**
+ * Si esta persona maneja la cuenta corriente (ve saldos, cobra, fija el
+ * límite). La misma regla que tienePermiso del servidor, para decidir qué
+ * MOSTRAR; el permiso de verdad lo sigue chequeando la API.
+ */
+export function manejaCuentaCorriente(usuario: { rol?: string | null; permisos?: string[] | null } | null | undefined): boolean {
+  if (!usuario) return false;
+  if (usuario.rol === 'owner' || usuario.rol === 'admin') return true;
+  return (usuario.permisos || []).includes(PERMISO_CUENTA_CORRIENTE);
+}
+
+/**
+ * La API trabaja en centavos (como la base); el store y las pantallas, en
+ * pesos. Se convierte SOLO con estas dos, en el borde, para que un monto no
+ * termine cien veces más grande por haberse convertido dos veces.
+ */
+export const aPesos = (centavos: number): number => centavos / 100;
+export const aCentavos = (pesos: number): number => Math.round(pesos * 100);
+
 /** "$180.000" para la auditoría y los mensajes. Recibe centavos. */
 export function pesos(centavos: number): string {
   return `$${(centavos / 100).toLocaleString('es-AR')}`;

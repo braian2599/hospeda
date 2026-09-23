@@ -111,6 +111,13 @@ function mapDbReservaToStore(r: any, totalOverride?: number): Reserva {
     origen: r.origen || undefined,
     // El dato ya venía en la respuesta del sync; solo faltaba mapearlo.
     creadaEn: r.createdAt ? new Date(r.createdAt).toISOString() : undefined,
+    cuentaCorriente: r.cargoCuentaCorriente?.titular
+      ? {
+          titularId: r.cargoCuentaCorriente.titular.id,
+          titular: r.cargoCuentaCorriente.titular.nombre,
+          monto: r.cargoCuentaCorriente.monto / 100,
+        }
+      : undefined,
   };
 }
 
@@ -126,6 +133,7 @@ function mapDbMovimiento(m: any): MovimientoCaja {
     fecha: m.fecha,
     gastoId: m.gastoId || null,
     reservaId: m.reservaId || null,
+    pagoCuentaCorrienteId: m.pagoCuentaCorrienteId || null,
   };
 }
 
@@ -264,6 +272,22 @@ interface HotelStore {
   pedirBienvenida: () => void;
   bienvenidaAtendida: () => void;
   setUsuarioActual: (u: UsuarioSesion) => void;
+
+  /**
+   * La reserva por la que hay que preguntar "¿pasás el saldo a cuenta
+   * corriente?". La pone el check-out cuando queda saldo, o el botón de la
+   * reserva; la atiende PreguntaCuentaCorriente, montado una sola vez.
+   *
+   * Vive acá por lo mismo que bienvenidaPedida: el check-out se hace desde
+   * tres pantallas (Reservas, Check-in y Dashboard), y la pregunta tiene que
+   * ser la misma en las tres. Con un solo diálogo no puede quedar distinta en
+   * ninguna.
+   */
+  preguntaCuentaCorriente: string | null;
+  preguntarCuentaCorriente: (idReserva: string) => void;
+  cerrarPreguntaCuentaCorriente: () => void;
+  /** Deja anotado en la reserva a qué cuenta se pasó, sin esperar al próximo sync. */
+  marcarEnCuentaCorriente: (idReserva: string, cuenta: { titularId: string; titular: string; monto: number }) => void;
 
   // Plan / Suscripción
   planActual: PlanTipo;
@@ -482,6 +506,13 @@ export const useHotelStore = create<HotelStore>()(
       bienvenidaAtendida: () => set({ bienvenidaPedida: false }),
       setUsuarioActual: (u) => set({ usuarioActual: u }),
 
+      preguntaCuentaCorriente: null,
+      preguntarCuentaCorriente: (idReserva) => set({ preguntaCuentaCorriente: idReserva }),
+      cerrarPreguntaCuentaCorriente: () => set({ preguntaCuentaCorriente: null }),
+      marcarEnCuentaCorriente: (idReserva, cuenta) => set(s => ({
+        reservas: s.reservas.map(r => (r.id === idReserva ? { ...r, cuentaCorriente: cuenta } : r)),
+      })),
+
       // Auth
       loginFromSession: async (sessionData: Record<string, any>) => {
         const sesion: UsuarioSesion = sesionDesdeRespuesta(sessionData);
@@ -538,7 +569,9 @@ export const useHotelStore = create<HotelStore>()(
         // el turno siguiente entra en la misma maquina y no tiene por que ver
         // los avisos del anterior.
         useNotificationStore.getState().olvidar();
-        set({ usuarioActual: null, moduloActivo: 'dashboard' });
+        // La pregunta de cuenta corriente era para quien hizo el check-out; el
+        // que entra después no tiene por qué encontrársela abierta.
+        set({ usuarioActual: null, moduloActivo: 'dashboard', preguntaCuentaCorriente: null });
       },
 
       // Auditoria
@@ -1188,6 +1221,17 @@ export const useHotelStore = create<HotelStore>()(
           return null;
         }
         pushNotif('info', 'Check-Out realizado', `${reserva.huesped} — Hab. ${reserva.habitacion}`, 'checkin', 'info', 'reservas', 'Ver reserva');
+
+        // ¿Quedó saldo? Entonces se pregunta si va a cuenta corriente. Recién
+        // acá, con el check-out ya guardado: antes el servidor no deja
+        // derivar, porque el saldo todavía se podía mover.
+        // Solo si la reserva tiene el total cargado: sin eso la pantalla lo
+        // estima por tarifa y el servidor no deriva, así que se mostraría un
+        // número que después no se anota. El diálogo decide además si el plan
+        // del hotel tiene cuenta corriente.
+        if (reserva.total != null && reserva.total - get().calcularTotalPagado(idReserva) > 0) {
+          set({ preguntaCuentaCorriente: idReserva });
+        }
         return { noches, total };
       },
 

@@ -30,12 +30,13 @@ import {
  CalendarDays, Plus, Pencil, XCircle, Search, BedDouble, Users, Eye,
  AlertTriangle, ChevronDown, ChevronUp, Lightbulb,
  Download, LogIn, LogOut, CreditCard, Bed, TrendingUp, TrendingDown,
- ArrowRight, User, Loader2, CheckCircle2, Check,
+ ArrowRight, User, Loader2, CheckCircle2, Check, BookOpen,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import TodaySummary from '@/components/modules/TodaySummary';
 import { toast } from 'sonner';
 import { notifySuccess, notifyWarning } from '@/lib/notify';
+import { moduloDisponible } from '@/lib/plan-config';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PaginationBar from '@/components/ui/pagination-bar';
@@ -241,7 +242,15 @@ const estadoPagoBadge: Record<string, string> = {
  Pendiente: 'bg-[#D9770626] text-warning border-[#D9770666]',
  Parcial: 'bg-[#D9770626] text-warning border-[#D9770666]',
  Pagado: 'bg-[#05966926] text-success border-[#0F766E66]',
+ 'Cta. corriente': 'bg-[#0284C71A] text-info border-[#0284C766]',
 };
+
+/**
+ * El estado de pago que se muestra. Una reserva cuyo saldo se pasó a cuenta
+ * corriente sigue "Pendiente" para la base (el huésped no pagó), pero para el
+ * mostrador ya no es un saldo a cobrar: lo debe el titular de la cuenta.
+ */
+const estadoPagoDe = (r: Reserva): string => (r.cuentaCorriente ? 'Cta. corriente' : r.estadoPago);
 
 const estadosReserva = ['Confirmada', 'A confirmar', 'Cancelada', 'Check-In realizado', 'Check-Out realizado'];
 
@@ -547,6 +556,15 @@ export default function ReservasModule() {
  const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
  const realizarCheckIn = useHotelStore(s => s.realizarCheckIn);
  const realizarCheckOut = useHotelStore(s => s.realizarCheckOut);
+ const preguntarCuentaCorriente = useHotelStore(s => s.preguntarCuentaCorriente);
+ const planActual = useHotelStore(s => s.planActual);
+ const planes = useHotelStore(s => s.planes);
+ // Cuenta corriente solo si el plan tiene Comprobantes: sin eso nadie en el
+ // hotel podría ver ni cobrar la deuda.
+ const hayCuentaCorriente = moduloDisponible('comprobantes', planActual, planes);
+ /** Una reserva ya cerrada que quedó debiendo y todavía no se pasó a ninguna cuenta. */
+ const puedePasarACuenta = (r: Reserva, saldo: number) =>
+   hayCuentaCorriente && r.estado === 'Check-Out realizado' && r.total != null && saldo > 0 && !r.cuentaCorriente;
 
  // ==================== FILTERS ====================
  const [filtroEstado, setFiltroEstado] = useFilterState<string>('reservas_filtroEstado', 'todos');
@@ -753,7 +771,7 @@ export default function ReservasModule() {
  const hab = habitaciones[r.habitacion];
  if (!hab || hab.tipo !== filtroTipo) return false;
  }
- if (filtroEstadoPago !== 'todos' && r.estadoPago !== filtroEstadoPago) return false;
+ if (filtroEstadoPago !== 'todos' && estadoPagoDe(r) !== filtroEstadoPago) return false;
  if (filtroDesde && r.checkout <= filtroDesde) return false;
  if (filtroHasta && r.checkin >= filtroHasta) return false;
  return true;
@@ -1445,6 +1463,7 @@ export default function ReservasModule() {
  <SelectItem value="Pendiente">Pendiente</SelectItem>
  <SelectItem value="Parcial">Parcial</SelectItem>
  <SelectItem value="Pagado">Pagado</SelectItem>
+ {hayCuentaCorriente && <SelectItem value="Cta. corriente">En cuenta corriente</SelectItem>}
  </SelectContent>
  </Select>
  </div>
@@ -1524,7 +1543,7 @@ export default function ReservasModule() {
  {/* Row 3: Guest count + Badges */}
  <div className="flex items-center gap-2 flex-wrap mt-2">
    <Badge className={estadoReservaBadge[r.estado] || ''}>{r.estado}</Badge>
-   <Badge className={estadoPagoBadge[r.estadoPago] || ''}>{r.estadoPago}</Badge>
+   <Badge className={estadoPagoBadge[estadoPagoDe(r)] || ''}>{estadoPagoDe(r)}</Badge>
    <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
      <User className="w-3 h-3" />
      <span>{r.personas}</span>
@@ -1549,7 +1568,12 @@ export default function ReservasModule() {
    </div>
  )}
  {/* Row 5: Saldo */}
- {saldo > 0 && (
+ {r.cuentaCorriente ? (
+   <div className="flex items-center gap-1 mt-1.5 text-xs text-info font-medium">
+     <BookOpen className="w-3 h-3" />
+     Cuenta corriente: {r.cuentaCorriente.titular}
+   </div>
+ ) : saldo > 0 && (
    <div className="flex items-center gap-1 mt-1.5 text-xs text-destructive font-medium">
      <AlertTriangle className="w-3 h-3" />
      Saldo: {formatMoney(saldo)}
@@ -1619,7 +1643,7 @@ export default function ReservasModule() {
        </Button>
      </>
    )}
-   {saldo > 0 && r.estado !== 'Cancelada' && (
+   {saldo > 0 && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && (
      <Button
        size="sm"
        variant="ghost"
@@ -1627,6 +1651,16 @@ export default function ReservasModule() {
        onClick={() => openEdit(r)}
      >
        <CreditCard className="w-3.5 h-3.5 mr-1.5" />Pago
+     </Button>
+   )}
+   {puedePasarACuenta(r, saldo) && (
+     <Button
+       size="sm"
+       variant="ghost"
+       className="h-9 flex-1 text-xs px-2 text-info hover:bg-[#0284C71A]"
+       onClick={() => preguntarCuentaCorriente(r.id)}
+     >
+       <BookOpen className="w-3.5 h-3.5 mr-1.5" />A cuenta corriente
      </Button>
    )}
  </div>
@@ -1703,7 +1737,7 @@ export default function ReservasModule() {
          <Badge className={`font-semibold shadow-sm ${estadoReservaBadge[r.estado] || ''}`}>{r.estado}</Badge>
        </TableCell>
        <TableCell>
-         <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[r.estadoPago] || ''}`}>{r.estadoPago}</Badge>
+         <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[estadoPagoDe(r)] || ''}`}>{estadoPagoDe(r)}</Badge>
        </TableCell>
        <TableCell className="hidden lg:table-cell">
          {payProgress < 100 ? (
@@ -1726,12 +1760,19 @@ export default function ReservasModule() {
          )}
        </TableCell>
        <TableCell className="hidden md:table-cell">
-         <div className="flex items-center gap-1">
-           {saldo > 0 && <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />}
-           <span className={saldo > 0 ? 'text-destructive font-medium' : 'text-muted-foreground'}>
-             {formatMoney(saldo)}
-           </span>
-         </div>
+         {r.cuentaCorriente ? (
+           <div className="flex items-center gap-1 text-info text-xs" title={`${formatMoney(r.cuentaCorriente.monto)} en la cuenta de ${r.cuentaCorriente.titular}`}>
+             <BookOpen className="w-3.5 h-3.5 shrink-0" />
+             <span className="truncate max-w-[140px]">{r.cuentaCorriente.titular}</span>
+           </div>
+         ) : (
+           <div className="flex items-center gap-1">
+             {saldo > 0 && <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />}
+             <span className={saldo > 0 ? 'text-destructive font-medium' : 'text-muted-foreground'}>
+               {formatMoney(saldo)}
+             </span>
+           </div>
+         )}
        </TableCell>
        <TableCell className="text-center">
          <div className="flex justify-center gap-1 flex-wrap">
@@ -1803,6 +1844,16 @@ export default function ReservasModule() {
                onClick={() => openEdit(r)}
              >
                <CreditCard className="w-3 h-3 mr-1" />Pago
+             </Button>
+           )}
+           {puedePasarACuenta(r, saldo) && (
+             <Button
+               size="sm"
+               variant="outline"
+               className="border-[#0284C766] text-info hover:bg-[#0284C71A] h-7 text-xs px-2"
+               onClick={() => preguntarCuentaCorriente(r.id)}
+             >
+               <BookOpen className="w-3 h-3 mr-1" />A cuenta corriente
              </Button>
            )}
          </div>
@@ -1924,15 +1975,28 @@ export default function ReservasModule() {
  <p className="text-xs font-medium text-info uppercase tracking-wide mb-1">Pagado</p>
  <p className="font-bold text-lg text-info">{formatMoney(calcularTotalPagado(detalleReserva.id))}</p>
  </div>
+ {detalleReserva.cuentaCorriente ? (
+ <div className="rounded-xl border-2 border-[#0284C766] bg-[#0284C71A] p-3 text-center">
+ <p className="text-xs font-medium text-info uppercase tracking-wide mb-1">En cuenta corriente</p>
+ <p className="font-bold text-lg text-info">{formatMoney(detalleReserva.cuentaCorriente.monto)}</p>
+ <p className="text-xs text-info truncate">{detalleReserva.cuentaCorriente.titular}</p>
+ </div>
+ ) : (
  <div className={`rounded-xl border-2 p-3 text-center ${getSaldo(detalleReserva) > 0 ? 'border-[#EF444466] bg-[#EF444426]' : 'border-border bg-[#F1F5F94D]'}`}> 
  <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${getSaldo(detalleReserva) > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>Saldo</p>
  <p className={`font-bold text-lg ${getSaldo(detalleReserva) > 0 ? 'text-destructive' : 'text-foreground'}`}>
  {formatMoney(getSaldo(detalleReserva))}
  </p>
  </div>
+ )}
  </div>
+ {puedePasarACuenta(detalleReserva, getSaldo(detalleReserva)) && (
+ <Button variant="outline" className="w-full border-[#0284C766] text-info hover:bg-[#0284C71A]" onClick={() => { setModalDetalleOpen(false); preguntarCuentaCorriente(detalleReserva.id); }}>
+ <BookOpen className="w-4 h-4 mr-1.5" />Pasar el saldo a cuenta corriente
+ </Button>
+ )}
  <div className="flex gap-2">
- <Badge className={estadoPagoBadge[detalleReserva.estadoPago] || ''}>{detalleReserva.estadoPago}</Badge>
+ <Badge className={estadoPagoBadge[estadoPagoDe(detalleReserva)] || ''}>{estadoPagoDe(detalleReserva)}</Badge>
  <Badge className={estadoReservaBadge[detalleReserva.estado] || ''}>{detalleReserva.estado}</Badge>
  </div>
 

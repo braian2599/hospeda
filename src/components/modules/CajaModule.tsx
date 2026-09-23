@@ -1135,7 +1135,7 @@ export default function CajaModule() {
                       key={m.id}
                       movimiento={m}
                       now={now}
-                      canEdit={isAdminOrOwner}
+                      canEdit={isAdminOrOwner && !m.pagoCuentaCorrienteId}
                       onEdit={() => handleEditOpen(m)}
                       onDelete={() => handleDelete(m.id)}
                       loadingDelete={loadingDelete}
@@ -1427,10 +1427,16 @@ export default function CajaModule() {
                                           />
                                         </PopoverContent>
                                       </Popover>
-                                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleEditOpen(m)} title="Editar"><Pencil className="w-3.5 h-3.5" /></Button>
-                                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDelete(m.id)} disabled={loadingDelete} title="Eliminar">
-                                        {loadingDelete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                                      </Button>
+                                      {/* Un cobro de cuenta corriente no se toca desde Caja:
+                                          se anula desde Cuenta corriente (la API también lo frena). */}
+                                      {!m.pagoCuentaCorrienteId && (
+                                        <>
+                                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleEditOpen(m)} title="Editar"><Pencil className="w-3.5 h-3.5" /></Button>
+                                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDelete(m.id)} disabled={loadingDelete} title="Eliminar">
+                                            {loadingDelete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                          </Button>
+                                        </>
+                                      )}
                                     </div>
                                   </TableCell>
                                 )}

@@ -232,7 +232,39 @@ saldo) sin tocar nada nuevo de ARCA.
   schema de main + la migración (90 pruebas): permisos de cada uno,
   aislamiento entre hoteles, validaciones, las dos carreras (derivar y cobrar
   a la vez), el ingreso en caja, el bloqueo en Caja, anular, y borrar el
-  hotel entero. Las pantallas todavía no los usan (CC-3).
+  hotel entero.
+- **CC-3:** pantallas hechas y probadas con la app andando (Postgres local +
+  navegador automático, como dueño y como recepcionista):
+  - `PreguntaCuentaCorriente` (montada una sola vez en `app/page.tsx`): después
+    de un check-out con saldo pregunta si va a cuenta corriente, se haga desde
+    Reservas, Check-in o Dashboard. La dispara `realizarCheckOut` en el store.
+  - Reservas: la derivada muestra "Cta. corriente: X" en vez del saldo en rojo;
+    las cerradas con saldo tienen el botón "A cuenta corriente"; filtro nuevo.
+  - Comprobantes → pestaña "Cuenta corriente": quién debe y cuánto, estado de
+    cuenta, cobrar, anular, editar, nueva empresa/persona.
+  - Clientes → ficha → pestaña "Datos fiscales": cargar el CUIT del cliente.
+  - Caja: el cobro de cuenta corriente no muestra editar/borrar.
+
+### Decisiones tomadas al construir CC-3
+
+- **Solo aparece si el plan del hotel tiene Comprobantes.** El Básico no lo
+  tiene: si se anotara una deuda ahí, nadie en el hotel podría verla ni
+  cobrarla. (La API no controla el plan en ningún lado, solo la pantalla: es
+  el criterio que ya usa todo el sistema.)
+- **Solo si la reserva tiene el total cargado.** Sin total, la pantalla lo
+  estima por tarifa y el servidor no deriva: se mostraría un número que
+  después no se anota.
+- **El botón "Pago" del celular ya no aparece en reservas con check-out.** La
+  API rechaza pagos ahí; la tabla de compu ya lo ocultaba, el celular no.
+- La tarjeta de derivar la ve el recepcionista con nombre y CUIT, nunca montos.
+
+### Encontrado al probar (no se tocó)
+
+- `prisma/seed.ts` crea los planes con el módulo `'facturacion'`, que se
+  renombró a `'comprobantes'` (en producción ya está migrado). Una base nueva
+  sembrada con eso deja Comprobantes bloqueado en todos los planes.
+- El recepcionista recibe un 403 de `/api/configuracion/hotel` al entrar (lo
+  pide una pantalla aunque no tenga permiso de configuración). Ya pasaba antes.
 
 ## Pendiente de decidir (no bloquea)
 

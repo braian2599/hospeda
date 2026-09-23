@@ -26,7 +26,15 @@ export async function GET() {
       }),
       db.reserva.findMany({
         where: { tenantId },
-        include: { acompanantes: true, menores: true },
+        include: {
+          acompanantes: true,
+          menores: true,
+          // Si el saldo se pasó a cuenta corriente: a quién y cuánto se le
+          // anotó por ESTA reserva. Lo ve todo el hotel (es el saldo de la
+          // reserva, que ya se ve); lo que debe cada titular en total, no:
+          // eso sale de /api/titulares, solo con 'comprobantes'.
+          cargoCuentaCorriente: { select: { monto: true, titular: { select: { id: true, nombre: true } } } },
+        },
         orderBy: [{ checkin: 'desc' }, { createdAt: 'desc' }],
       }),
       db.pago.findMany({

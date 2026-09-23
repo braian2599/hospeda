@@ -28,6 +28,7 @@ import TrialBanner from '@/components/subscription/TrialBanner';
 import PaymentResultBanner from '@/components/payments/PaymentResultBanner';
 import AvisosDialog from '@/components/avisos/AvisosDialog';
 import AsistenteBurbuja from '@/components/asistente/AsistenteBurbuja';
+import PreguntaCuentaCorriente from '@/components/cuenta-corriente/PreguntaCuentaCorriente';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 
 const modules: Partial<Record<ModuloId, React.ComponentType>> = {
@@ -176,6 +177,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <ModuleLockedDialog />
       <AvisosDialog />
       <AsistenteBurbuja />
+      {/* Después de un check-out con saldo, desde la pantalla que sea. */}
+      <PreguntaCuentaCorriente />
     </div>
   );
 }

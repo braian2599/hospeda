@@ -28,9 +28,10 @@ import {
 import {
   Receipt, CreditCard, FileText, Search, XCircle, DollarSign, CalendarDays, User,
   Building2, Phone, Mail, AlertTriangle, CheckCircle2, TrendingUp, Timer, Wallet,
-  Banknote, Printer, Hash, ArrowRight, CircleDollarSign, ChevronRight, Download, Loader2, Plus, Zap, Trash2,
+  Banknote, Printer, Hash, ArrowRight, CircleDollarSign, ChevronRight, Download, Loader2, Plus, Zap, Trash2, BookOpen,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
+import CuentaCorrienteTab from '@/components/cuenta-corriente/CuentaCorrienteTab';
 import { toast } from 'sonner';
 import PaginationBar from '@/components/ui/pagination-bar';
 import { AnimatedNumber } from '@/components/ui/animated-number';
@@ -382,6 +383,9 @@ export default function ComprobantesModule() {
           </TabsTrigger>
           <TabsTrigger value="otros" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
             <Receipt className="w-4 h-4 mr-1" />Comprobantes
+          </TabsTrigger>
+          <TabsTrigger value="cuenta-corriente" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
+            <BookOpen className="w-4 h-4 mr-1" />Cuenta corriente
           </TabsTrigger>
         </TabsList>
 
@@ -768,6 +772,12 @@ export default function ComprobantesModule() {
         {/* =================== TAB: PRESUPUESTOS, REMITOS Y NOTAS =================== */}
         <TabsContent value="otros" className="mt-4">
           <ComprobantesListaTab />
+        </TabsContent>
+
+        {/* =================== TAB: CUENTA CORRIENTE =================== */}
+        {/* Montada solo cuando se abre: así no trae las cuentas si nadie las mira. */}
+        <TabsContent value="cuenta-corriente" className="mt-4">
+          <CuentaCorrienteTab />
         </TabsContent>
       </Tabs>
 
