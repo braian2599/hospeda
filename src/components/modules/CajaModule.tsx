@@ -527,7 +527,9 @@ export default function CajaModule() {
   const [discrepancyExplain, setDiscrepancyExplain] = useState('');
 
   // Edit dialog
-  const [editingMov, setEditingMov] = useState<{ id: string; monto: number; descripcion: string } | null>(null);
+  // esPagoReserva: el monto de un pago de reserva no se cambia desde Caja (ver
+  // MENSAJE_PAGO_RESERVA en la API); solo la descripción.
+  const [editingMov, setEditingMov] = useState<{ id: string; monto: number; descripcion: string; esPagoReserva: boolean } | null>(null);
   const [editMonto, setEditMonto] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [loadingEdit, setLoadingEdit] = useState(false);
@@ -777,7 +779,7 @@ export default function CajaModule() {
   };
 
   const handleEditOpen = (mov: typeof movimientos[0]) => {
-    setEditingMov({ id: mov.id, monto: mov.monto, descripcion: mov.descripcion });
+    setEditingMov({ id: mov.id, monto: mov.monto, descripcion: mov.descripcion, esPagoReserva: !!mov.reservaId });
     setEditMonto(String(mov.monto));
     setEditDesc(mov.descripcion);
   };
@@ -789,7 +791,10 @@ export default function CajaModule() {
     if (!editDesc.trim()) return toast.error('Descripcion requerida');
     setLoadingEdit(true);
     try {
-      const ok = await editarMovimientoCaja(editingMov.id, { monto: m, descripcion: editDesc.trim() });
+      const ok = await editarMovimientoCaja(
+        editingMov.id,
+        editingMov.esPagoReserva ? { descripcion: editDesc.trim() } : { monto: m, descripcion: editDesc.trim() },
+      );
       if (ok) {
         toast.success('Movimiento actualizado');
         setEditingMov(null);
@@ -1136,6 +1141,7 @@ export default function CajaModule() {
                       movimiento={m}
                       now={now}
                       canEdit={isAdminOrOwner && !m.pagoCuentaCorrienteId}
+                      canDelete={!m.reservaId}
                       onEdit={() => handleEditOpen(m)}
                       onDelete={() => handleDelete(m.id)}
                       loadingDelete={loadingDelete}
@@ -1432,9 +1438,12 @@ export default function CajaModule() {
                                       {!m.pagoCuentaCorrienteId && (
                                         <>
                                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleEditOpen(m)} title="Editar"><Pencil className="w-3.5 h-3.5" /></Button>
-                                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDelete(m.id)} disabled={loadingDelete} title="Eliminar">
-                                            {loadingDelete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                                          </Button>
+                                          {/* El pago de una reserva se anula desde la reserva. */}
+                                          {!m.reservaId && (
+                                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDelete(m.id)} disabled={loadingDelete} title="Eliminar">
+                                              {loadingDelete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                            </Button>
+                                          )}
                                         </>
                                       )}
                                     </div>
@@ -1550,7 +1559,12 @@ export default function CajaModule() {
           <div className="space-y-3">
             <div>
               <Label>Monto</Label>
-              <Input type="number" step="0.01" min="0.01" value={editMonto} onChange={e => setEditMonto(e.target.value)} />
+              <Input type="number" step="0.01" min="0.01" value={editMonto} onChange={e => setEditMonto(e.target.value)} disabled={editingMov?.esPagoReserva} />
+              {editingMov?.esPagoReserva && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Es el pago de una reserva. Para corregir el monto, anulá el pago desde la reserva y cargalo de nuevo: así cuadran la caja y la reserva.
+                </p>
+              )}
             </div>
             <div>
               <Label>Descripcion</Label>
@@ -2567,7 +2581,7 @@ function QuickStatsRow({
    ═══════════════════════════════════════════════════════════ */
 
 function MovementCard({
-  movimiento, now, canEdit, onEdit, onDelete, loadingDelete,
+  movimiento, now, canEdit, canDelete, onEdit, onDelete, loadingDelete,
   gastoVinculado, categoria, isDetailOpen, onToggleDetail,
 }: {
   movimiento: {
@@ -2582,6 +2596,8 @@ function MovementCard({
   };
   now: number;
   canEdit: boolean;
+  /** El pago de una reserva se edita (descripción) pero no se borra desde Caja. */
+  canDelete: boolean;
   onEdit: () => void;
   onDelete: () => void;
   loadingDelete: boolean;
@@ -2665,9 +2681,11 @@ function MovementCard({
           {canEdit && (
             <div className="flex gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
               <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onEdit} title="Editar"><Pencil className="w-3 h-3" /></Button>
-              <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={onDelete} disabled={loadingDelete} title="Eliminar">
-                {loadingDelete ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-              </Button>
+              {canDelete && (
+                <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={onDelete} disabled={loadingDelete} title="Eliminar">
+                  {loadingDelete ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                </Button>
+              )}
             </div>
           )}
         </div>
