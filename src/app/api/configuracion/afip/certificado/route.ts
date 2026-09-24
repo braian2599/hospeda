@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { requireOwner, AuthError } from '@/lib/auth/utils';
 import { requireFeatureFlag } from '@/lib/feature-flags-server';
 import { encrypt } from '@/lib/crypto';
+import { SIN_TICKETS_WSAA } from '@/lib/afip/wsaa';
 
 // POST /api/configuracion/afip/certificado — Carga certificado (.crt/.pem) + clave privada (.key/.pem)
 export async function POST(req: NextRequest) {
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
         certificadoPem: certificadoPem.trim(),
         clavePrivadaPem: encrypt(clavePrivadaPem.trim()),
         activo: true,
-        wsaaToken: null, wsaaSign: null, wsaaExpiracion: null,
+        ...SIN_TICKETS_WSAA,
         ultimoError: null,
       },
       update: {
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
         clavePrivadaPem: encrypt(clavePrivadaPem.trim()),
         activo: true,
         // Un certificado nuevo invalida cualquier ticket firmado con el anterior.
-        wsaaToken: null, wsaaSign: null, wsaaExpiracion: null,
+        ...SIN_TICKETS_WSAA,
         ultimoError: null,
       },
     });
@@ -85,7 +86,7 @@ export async function DELETE() {
         certificadoPem: null,
         clavePrivadaPem: null,
         activo: false,
-        wsaaToken: null, wsaaSign: null, wsaaExpiracion: null,
+        ...SIN_TICKETS_WSAA,
       },
     });
 

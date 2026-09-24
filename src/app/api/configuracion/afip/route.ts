@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireOwner, AuthError } from '@/lib/auth/utils';
 import { requireFeatureFlag } from '@/lib/feature-flags-server';
+import { SIN_TICKETS_WSAA } from '@/lib/afip/wsaa';
 
 // GET /api/configuracion/afip — Estado de la integración (nunca expone la clave privada).
 export async function GET() {
@@ -60,7 +61,7 @@ export async function PUT(req: NextRequest) {
         // Un ticket WSAA de homologación no sirve en producción (y viceversa)
         // — si cambia el ambiente, se descarta el ticket cacheado para
         // forzar un login nuevo contra el servidor correcto.
-        ...(cambioDeAmbiente ? { wsaaToken: null, wsaaSign: null, wsaaExpiracion: null } : {}),
+        ...(cambioDeAmbiente ? SIN_TICKETS_WSAA : {}),
       },
     });
 

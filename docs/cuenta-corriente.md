@@ -160,7 +160,7 @@ cargar su CUIT. Lo que sí es solo de `comprobantes`: cuánto debe cada uno,
 el límite, la baja, el estado de cuenta y cobrar. Esa regla está en un solo
 lugar, `vistaTitular`.
 
-El buscador por CUIT contra ARCA (`buscar-cuit`) quedó para CC-5.
+El buscador por CUIT contra ARCA es `GET /api/titulares/arca?cuit=` (CC-5).
 
 ### Decisiones tomadas al construir CC-2
 
@@ -197,12 +197,14 @@ El buscador por CUIT contra ARCA (`buscar-cuit`) quedó para CC-5.
   en Reservas, pestaña "Datos fiscales" en Cliente.
 - **CC-4 — Factura A y facturar al titular:** tipo 1 en `afip/config.ts` y
   `wsfe.ts`, con la regla cruzada emisor/receptor; y facturarle lo derivado
-  al titular con su CUIT. Verificar en la documentación de ARCA si hoy exige
+  al titular con su CUIT. **Decidido por el dueño: una cuenta corriente no
+  tiene seña; va a la cuenta el total de la reserva, y se hace UNA factura al
+  titular por el total.** Verificar en la documentación de ARCA si hoy exige
   la condición de IVA del receptor al pedir el CAE: el `wsfe.ts` actual no la
   manda (visto al revisar CC-2, sin verificar contra ARCA).
-- **CC-5 — Padrón de ARCA:** buscar por CUIT. Va último; mientras tanto se
-  carga a mano. Reusa el certificado y el login WSAA que ya existen. Hay que
-  verificar en la documentación de ARCA qué versión del padrón corresponde.
+- **CC-5 — Padrón de ARCA:** botón "Traer de ARCA" al cargar un titular.
+  Servicio `ws_sr_constancia_inscripcion` (Constancia de Inscripción),
+  operación `getPersona_v2`. Reusa el certificado de facturar.
 
 CC-1 a CC-3 ya dejan el sistema andando (anotar la deuda, cobrarla, ver el
 saldo) sin tocar nada nuevo de ARCA.
@@ -212,12 +214,14 @@ saldo) sin tocar nada nuevo de ARCA.
 - Todo va a la rama `PREVIEW`. A `main` (que despliega a producción) recién
   cuando el dueño termine las pruebas y lo apruebe.
 - Vercel despliega `PREVIEW` solo, con su propia URL.
-- La base de datos es LA MISMA para Preview y Producción (`DATABASE_URL`
-  apunta a las dos). Las pruebas se hacen con un hotel ficticio que ya existe
-  en la base, sin tocar los demás. Decisión del dueño.
+- Preview tiene su propia base: una rama `preview` de Neon (`DATABASE_URL`
+  de Preview en Vercel, solo para la rama `PREVIEW`). Las migraciones se
+  corren primero ahí y, antes de pasar a `main`, en la base de producción.
+  Las demás claves (email, Mercado Pago...) siguen compartidas: probar solo
+  con el hotel ficticio.
 - Las migraciones se escriben a mano, idempotentes, y el SQL se pasa en el
   chat antes de correrlo. Las corre el dueño.
-- Como la base es compartida, toda migración tiene que ser aditiva (tablas y
+- Toda migración tiene que ser aditiva (tablas y
   columnas nuevas, opcionales): tiene que poder correrse con `main` en
   producción sin romper nada.
 
@@ -273,6 +277,39 @@ saldo) sin tocar nada nuevo de ARCA.
   pide para imprimir: los empleados de 'comprobantes' imprimían sin razón
   social, CUIT, IVA ni dirección. Leerlo ahora pide 'comprobantes';
   modificarlo sigue siendo del dueño.
+
+- **CC-5:** hecho. Migración `20260924_padron_arca` (tres columnas nuevas en
+  `TenantAfip`).
+  - **Por qué columnas nuevas:** ARCA da un ticket de acceso (WSAA) distinto
+    por servicio y no entrega otro mientras el anterior siga vigente
+    (`coe.alreadyAuthenticated`). Si la consulta de CUIT usara las columnas
+    del ticket de facturar, se pisarían y el siguiente login fallaría hasta
+    12 h. `getWsaaTicket(tenantId, servicio)` guarda cada uno en las suyas;
+    `SIN_TICKETS_WSAA` los borra todos al cambiar certificado o ambiente.
+  - **Datos que trae:** razón social (o apellido y nombre), tipo (JURIDICA →
+    empresa, FISICA → persona), domicilio fiscal y condición de IVA. La
+    regla del IVA es la de pyafipws: impuesto 32 → Exento; 30 (sin 33/34) →
+    Responsable Inscripto; monotributo → Monotributista; si no, Consumidor
+    Final. Si ARCA devuelve errores en la constancia, la condición de IVA NO
+    se completa (puede faltar un bloque y la regla diría Consumidor Final sin
+    serlo): se muestran los avisos y se elige a mano.
+  - **"No existe persona con ese Id"** llega como SOAP fault con HTTP 500:
+    se responde "ARCA no tiene a nadie con ese CUIT".
+  - **El botón** aparece si el plan incluye `facturacionArca`. Si falta el
+    certificado o el servicio no está habilitado, la API lo explica al tocarlo.
+  - **Cada hotel tiene que habilitar el servicio en ARCA**, con el mismo
+    certificado de facturar: Administrador de Relaciones de Clave Fiscal →
+    Adherir servicio → ARCA → Webservices → "Servicio Consulta Constancia de
+    Inscripción". Sin eso ARCA responde "Computador no autorizado a acceder
+    al servicio" y la pantalla dice cómo habilitarlo.
+  - **Preview y producción comparten el certificado del hotel.** Si uno de los
+    dos pidió el ticket, el otro recibe `coe.alreadyAuthenticated` hasta que
+    venza (máx. 12 h): la pantalla lo explica. Pasa igual con facturar.
+  - **Probado sin ARCA:** el sandbox no llega a los servidores de ARCA. Se
+    probó la lectura con respuestas armadas según el WSDL oficial (empresa
+    RI, monotributista, exento, constancia con errores, CUIT inactiva,
+    respuesta vacía, fault "No existe"). La primera consulta real se prueba
+    en Preview con un hotel que tenga el certificado y el servicio habilitado.
 
 ## Pendiente de decidir (no bloquea)
 

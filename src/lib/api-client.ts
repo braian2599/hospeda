@@ -333,11 +333,23 @@ export const api = {
       ),
     anularCobro: (titularId: string, pagoId: string) =>
       apiFetch<{ success: boolean }>(`/titulares/${titularId}/pagos/${pagoId}`, { method: 'DELETE' }),
+    /** Los datos de ese CUIT según ARCA. No guarda nada. */
+    consultarArca: (cuit: string) =>
+      apiFetch<DatosArca>(`/titulares/arca?cuit=${encodeURIComponent(cuit)}`),
   },
 };
 
 // ── Cuenta corriente: tipos (montos en centavos) ──
 export type TipoTitular = 'empresa' | 'persona';
+/** Lo que devuelve ARCA de un CUIT. condicionIva null: ARCA avisó algo y no se adivina. */
+export interface DatosArca {
+  cuit: string;
+  nombre: string;
+  tipo: TipoTitular | null;
+  condicionIva: string | null;
+  domicilioFiscal: string | null;
+  avisos: string[];
+}
 export interface DatosTitularApi {
   condicionIva?: string | null;
   domicilioFiscal?: string | null;

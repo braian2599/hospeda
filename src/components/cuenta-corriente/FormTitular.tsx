@@ -6,14 +6,15 @@
 // Las reglas están en src/lib/cuenta-corriente.ts y las vuelve a chequear la API.
 
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api, type DbTitular, type TipoTitular } from '@/lib/api-client';
-import { CONDICIONES_IVA, validarCuit, normalizarCuit, aPesos, aCentavos } from '@/lib/cuenta-corriente';
+import { CONDICIONES_IVA, validarCuit, normalizarCuit, aPesos, aCentavos, esCondicionIva } from '@/lib/cuenta-corriente';
+import { useHotelStore } from '@/lib/store';
 
 const SIN_DATO = '__sin_dato__';
 
@@ -45,12 +46,45 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
   const [activo, setActivo] = useState(titular?.activo ?? true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [consultandoArca, setConsultandoArca] = useState(false);
+  const [resultadoArca, setResultadoArca] = useState<{ ok: boolean; texto: string; avisos: string[] } | null>(null);
+
+  // El botón aparece si el plan del hotel incluye la facturación con ARCA:
+  // usa ese mismo certificado. Si el certificado no está cargado o no tiene
+  // habilitada la consulta, la API lo explica al tocarlo.
+  const conArca = useHotelStore(s => !!s.usuarioActual?.featureFlags?.facturacionArca);
 
   // El error del CUIT se muestra recién cuando tiene los 11 números: antes
   // es alguien escribiendo, no un error.
   const digitosCuit = normalizarCuit(cuit);
   const errorCuit = digitosCuit.length >= 11 ? validarCuit(cuit) : null;
   const puedeGuardar = nombre.trim().length > 0 && digitosCuit.length === 11 && !errorCuit && !guardando;
+  const puedeConsultarArca = digitosCuit.length === 11 && !errorCuit && !consultandoArca;
+
+  // Completa con lo que dice ARCA, pisando lo que haya: la persona tocó el
+  // botón justamente para eso. Nada se guarda hasta que toque "Cargar".
+  const traerDeArca = async () => {
+    setResultadoArca(null);
+    setConsultandoArca(true);
+    try {
+      const d = await api.cuentaCorriente.consultarArca(digitosCuit);
+      if (d.nombre) setNombre(d.nombre);
+      if (d.tipo && !tipoFijo) setTipo(d.tipo);
+      if (d.condicionIva && esCondicionIva(d.condicionIva)) setCondicionIva(d.condicionIva);
+      if (d.domicilioFiscal) setDomicilioFiscal(d.domicilioFiscal);
+      setResultadoArca({
+        ok: true,
+        texto: d.condicionIva
+          ? 'Datos traídos de ARCA. Revisalos antes de guardar.'
+          : 'ARCA respondió con avisos: la condición de IVA elegila a mano.',
+        avisos: d.avisos,
+      });
+    } catch (e) {
+      setResultadoArca({ ok: false, texto: e instanceof Error ? e.message : 'No se pudo consultar ARCA.', avisos: [] });
+    } finally {
+      setConsultandoArca(false);
+    }
+  };
 
   const guardar = async () => {
     setError(null);
@@ -116,19 +150,33 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
 
       <div className="grid gap-1.5">
         <Label htmlFor="ft-cuit">CUIT</Label>
-        <Input
-          id="ft-cuit"
-          value={cuit}
-          onChange={e => setCuit(e.target.value)}
-          placeholder="30-12345678-9"
-          inputMode="numeric"
-          aria-invalid={!!errorCuit}
-          className="font-mono"
-        />
+        <div className="flex gap-2">
+          <Input
+            id="ft-cuit"
+            value={cuit}
+            onChange={e => { setCuit(e.target.value); setResultadoArca(null); }}
+            placeholder="30-12345678-9"
+            inputMode="numeric"
+            aria-invalid={!!errorCuit}
+            className="font-mono"
+          />
+          {conArca && (
+            <Button type="button" variant="secondary" onClick={traerDeArca} disabled={!puedeConsultarArca} className="shrink-0">
+              {consultandoArca ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Download className="w-4 h-4 mr-1.5" />}
+              Traer de ARCA
+            </Button>
+          )}
+        </div>
         {errorCuit ? (
           <p className="text-xs text-destructive">{errorCuit}</p>
         ) : (
           <p className="text-xs text-muted-foreground">Es lo único obligatorio para facturarle. Con o sin guiones.</p>
+        )}
+        {resultadoArca && (
+          <div className={`text-xs ${resultadoArca.ok ? 'text-muted-foreground' : 'text-destructive'}`} role="status">
+            <p>{resultadoArca.texto}</p>
+            {resultadoArca.avisos.map((a, i) => <p key={i} className="text-amber-700 dark:text-amber-400">{a}</p>)}
+          </div>
         )}
       </div>
 

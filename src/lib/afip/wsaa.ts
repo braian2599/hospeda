@@ -5,18 +5,86 @@
 // hotel, y AFIP devuelve un Token+Sign válidos por ~12hs. Ese Token+Sign
 // es lo que se manda en cada llamada posterior a WSFEv1.
 //
-// El ticket se cachea en TenantAfip (wsaaToken/wsaaSign/wsaaExpiracion)
-// para no volver a autenticar en cada emisión de comprobante — además de
-// ser innecesario, AFIP rate-limitea los logins repetidos.
+// El ticket se cachea en TenantAfip para no volver a autenticar en cada
+// emisión de comprobante — además de ser innecesario, AFIP rate-limitea los
+// logins repetidos.
+//
+// UN TICKET POR SERVICIO. ARCA da un ticket distinto para cada servicio
+// (facturar, consultar un CUIT...) y no entrega otro mientras el anterior siga
+// vigente: responde coe.alreadyAuthenticated. Por eso cada servicio guarda el
+// suyo en sus propias columnas (ver COLUMNAS). Si compartieran columnas, el
+// ticket de uno pisaría al del otro y el siguiente login fallaría por hasta 12 h.
 
 import forge from 'node-forge';
 import { XMLParser } from 'fast-xml-parser';
+import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/crypto';
 import { afipUrls, AfipError, type AfipAmbiente } from './config';
 import { soapCall, xmlEscape } from './soap';
 
-const SERVICE = 'wsfe';
+/** Los servicios de ARCA que usa el sistema. */
+export type ServicioArca = 'wsfe' | 'ws_sr_constancia_inscripcion';
+
+/** Dónde guarda su ticket cada servicio en TenantAfip. */
+const COLUMNAS = {
+  wsfe: { token: 'wsaaToken', sign: 'wsaaSign', expiracion: 'wsaaExpiracion' },
+  ws_sr_constancia_inscripcion: { token: 'wsaaPadronToken', sign: 'wsaaPadronSign', expiracion: 'wsaaPadronExpiracion' },
+} as const;
+
+/**
+ * Borra TODOS los tickets guardados. Para cuando cambia el certificado o el
+ * ambiente: un ticket viejo ya no sirve. Está acá, en un solo lugar, para que
+ * agregar un servicio nuevo no obligue a acordarse de cada ruta que los borra.
+ */
+export const SIN_TICKETS_WSAA = {
+  wsaaToken: null, wsaaSign: null, wsaaExpiracion: null,
+  wsaaPadronToken: null, wsaaPadronSign: null, wsaaPadronExpiracion: null,
+} as const;
+
+function datosDelTicket(servicio: ServicioArca, t: { token: string; sign: string; expirationTime: Date }): Prisma.TenantAfipUpdateInput {
+  return servicio === 'wsfe'
+    ? { wsaaToken: t.token, wsaaSign: t.sign, wsaaExpiracion: t.expirationTime }
+    : { wsaaPadronToken: t.token, wsaaPadronSign: t.sign, wsaaPadronExpiracion: t.expirationTime };
+}
+
+/** El ticket guardado de ese servicio, si todavía sirve. */
+function ticketVigente(
+  config: Record<string, unknown>,
+  servicio: ServicioArca,
+): WsaaTicket | null {
+  const col = COLUMNAS[servicio];
+  const token = config[col.token] as string | null;
+  const sign = config[col.sign] as string | null;
+  const expiracion = config[col.expiracion] as Date | null;
+  if (token && sign && expiracion && expiracion.getTime() - Date.now() > RENOVAR_SI_VENCE_EN_MS) {
+    return { token, sign };
+  }
+  return null;
+}
+
+/**
+ * Los dos errores de WSAA que el hotel tiene que entender, dichos en criollo.
+ * Los códigos y textos son los de la especificación de WSAA de ARCA.
+ */
+function traducirErrorWsaa(err: unknown, servicio: ServicioArca): unknown {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/notAuthorized|no autorizado a acceder/i.test(msg)) {
+    return new AfipError(
+      servicio === 'ws_sr_constancia_inscripcion'
+        ? 'El certificado del hotel no tiene habilitada la consulta de CUIT en ARCA. Se habilita en ARCA → Administrador de Relaciones de Clave Fiscal → Adherir servicio → ARCA → Webservices → "Servicio Consulta Constancia de Inscripción", con el mismo certificado que se usa para facturar.'
+        : 'El certificado del hotel no tiene habilitado este servicio en ARCA (Administrador de Relaciones de Clave Fiscal).',
+      'WSAA_NO_AUTORIZADO',
+    );
+  }
+  if (/alreadyAuthenticated|ya posee un TA/i.test(msg)) {
+    return new AfipError(
+      'ARCA ya le dio un permiso vigente a este certificado desde otro sistema (dura hasta 12 horas) y no entrega otro hasta que venza. Probá más tarde.',
+      'WSAA_YA_AUTENTICADO',
+    );
+  }
+  return err;
+}
 // Margen de seguridad: si el ticket cacheado vence en menos de este tiempo,
 // se pide uno nuevo en vez de arriesgarse a que expire a mitad de una
 // emisión de comprobante.
@@ -27,7 +95,7 @@ interface WsaaTicket {
   sign: string;
 }
 
-function buildLoginTicketRequestXml(): string {
+function buildLoginTicketRequestXml(servicio: ServicioArca): string {
   const now = new Date();
   const generationTime = new Date(now.getTime() - 60_000); // -1min por tolerancia de reloj
   const expirationTime = new Date(now.getTime() + 10 * 60_000); // +10min
@@ -40,7 +108,7 @@ function buildLoginTicketRequestXml(): string {
     <generationTime>${generationTime.toISOString()}</generationTime>
     <expirationTime>${expirationTime.toISOString()}</expirationTime>
   </header>
-  <service>${SERVICE}</service>
+  <service>${servicio}</service>
 </loginTicketRequest>`;
 }
 
@@ -101,29 +169,33 @@ async function loginCms(cmsBase64: string, ambiente: AfipAmbiente): Promise<{ to
 }
 
 /**
- * Devuelve un Token+Sign válido para el tenant, reutilizando el cacheado en
- * DB si todavía no está por vencer. Si hace falta uno nuevo, toma un
- * advisory lock por tenant para que dos requests concurrentes no disparen
- * dos logins a la vez contra WSAA (AFIP los rate-limitea).
+ * Devuelve un Token+Sign válido para el tenant y ese servicio, reutilizando
+ * el guardado si todavía no está por vencer. Si hace falta uno nuevo, toma
+ * un advisory lock por tenant y servicio para que dos requests concurrentes
+ * no disparen dos logins a la vez contra WSAA (AFIP los rate-limitea).
+ *
+ * Sin servicio es 'wsfe' (facturar): así llaman todas las rutas que ya
+ * existían, que siguen funcionando exactamente igual.
  */
-export async function getWsaaTicket(tenantId: string): Promise<WsaaTicket> {
+export async function getWsaaTicket(tenantId: string, servicio: ServicioArca = 'wsfe'): Promise<WsaaTicket> {
   const config = await db.tenantAfip.findUnique({ where: { tenantId } });
   if (!config || !config.activo || !config.certificadoPem || !config.clavePrivadaPem) {
     throw new AfipError('No hay un certificado de AFIP cargado y activo para este hotel.', 'NO_CERT');
   }
 
-  if (config.wsaaToken && config.wsaaSign && config.wsaaExpiracion) {
-    const msRestantes = config.wsaaExpiracion.getTime() - Date.now();
-    if (msRestantes > RENOVAR_SI_VENCE_EN_MS) {
-      return { token: config.wsaaToken, sign: config.wsaaSign };
-    }
-  }
+  const guardado = ticketVigente(config, servicio);
+  if (guardado) return guardado;
+
+  // El candado de 'wsfe' es el mismo que antes (no cambia nada para
+  // facturar); cada servicio nuevo tiene el suyo, así una consulta de CUIT
+  // no espera a que termine una factura.
+  const candado = servicio === 'wsfe' ? `afip-wsaa:${tenantId}` : `afip-wsaa:${tenantId}:${servicio}`;
 
   return db.$transaction(async (tx) => {
     // Lock por tenant — evita que dos requests simultáneas (p.ej. dos
     // recepcionistas emitiendo comprobantes al mismo tiempo) disparen dos
     // logins a WSAA en paralelo.
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'afip-wsaa:' + tenantId}))`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${candado}))`;
 
     // Re-chequear: otra transacción puede haber renovado el ticket mientras
     // esperábamos el lock.
@@ -131,36 +203,34 @@ export async function getWsaaTicket(tenantId: string): Promise<WsaaTicket> {
     if (!fresh || !fresh.activo || !fresh.certificadoPem || !fresh.clavePrivadaPem) {
       throw new AfipError('No hay un certificado de AFIP cargado y activo para este hotel.', 'NO_CERT');
     }
-    if (fresh.wsaaToken && fresh.wsaaSign && fresh.wsaaExpiracion) {
-      const msRestantes = fresh.wsaaExpiracion.getTime() - Date.now();
-      if (msRestantes > RENOVAR_SI_VENCE_EN_MS) {
-        return { token: fresh.wsaaToken, sign: fresh.wsaaSign };
-      }
-    }
+    const renovadoPorOtro = ticketVigente(fresh, servicio);
+    if (renovadoPorOtro) return renovadoPorOtro;
 
     const claveDescifrada = decrypt(fresh.clavePrivadaPem);
-    const xml = buildLoginTicketRequestXml();
+    const xml = buildLoginTicketRequestXml(servicio);
     const cms = signLoginTicketRequest(xml, fresh.certificadoPem, claveDescifrada);
 
     let ticket: { token: string; sign: string; expirationTime: Date };
     try {
       ticket = await loginCms(cms, fresh.ambiente as AfipAmbiente);
     } catch (err) {
-      await tx.tenantAfip.update({
-        where: { tenantId },
-        data: { ultimoError: (err as Error).message.slice(0, 500) },
-      });
-      throw err;
+      // ultimoError es el estado de FACTURAR que muestra Configuración: un
+      // error de la consulta de CUIT no tiene que aparecer ahí como si la
+      // facturación estuviera rota.
+      if (servicio === 'wsfe') {
+        await tx.tenantAfip.update({
+          where: { tenantId },
+          data: { ultimoError: (err as Error).message.slice(0, 500) },
+        });
+      }
+      throw traducirErrorWsaa(err, servicio);
     }
 
     await tx.tenantAfip.update({
       where: { tenantId },
       data: {
-        wsaaToken: ticket.token,
-        wsaaSign: ticket.sign,
-        wsaaExpiracion: ticket.expirationTime,
-        ultimaConexionOk: new Date(),
-        ultimoError: null,
+        ...datosDelTicket(servicio, ticket),
+        ...(servicio === 'wsfe' ? { ultimaConexionOk: new Date(), ultimoError: null } : {}),
       },
     });
 

@@ -713,6 +713,13 @@ model TenantAfip {
   wsaaToken        String?
   wsaaSign         String?
   wsaaExpiracion   DateTime?
+  // Ticket WSAA del servicio de consulta de CUIT (ws_sr_constancia_inscripcion).
+  // ARCA da un ticket DISTINTO por servicio y no entrega otro mientras el
+  // anterior siga vigente (coe.alreadyAuthenticated), así que no puede
+  // compartir las columnas de arriba, que son las de facturar (wsfe).
+  wsaaPadronToken      String?
+  wsaaPadronSign       String?
+  wsaaPadronExpiracion DateTime?
   ultimaConexionOk DateTime? // último login WSAA exitoso (botón "Probar conexión")
   ultimoError      String?
   createdAt        DateTime  @default(now())
