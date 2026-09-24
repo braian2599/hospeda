@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useHotelStore } from '@/lib/store';
+import { api } from '@/lib/api-client';
 import { NOMBRES_MODULOS, type PlanTipo } from '@/lib/plan-config';
 import { resumenDeSuscripcion } from '@/lib/suscripcion';
 import { usePlans } from '@/hooks/usePlans';
@@ -50,7 +51,7 @@ const CheckoutDialog = dynamic(
 
 // ─── Sections, agrupadas por tema (se muestran como clusters separados en la
 // barra de navegación en vez de una fila plana de 8 tabs sueltas) ───
-type SectionId = 'hotel' | 'fiscal' | 'afip' | 'habitaciones' | 'landing' | 'cuenta' | 'exportar' | 'suscripcion' | 'soporte';
+type SectionId = 'hotel' | 'fiscal' | 'habitaciones' | 'landing' | 'cuenta' | 'exportar' | 'suscripcion' | 'soporte';
 
 interface SectionMeta { id: SectionId; label: string; icon: React.ComponentType<{ className?: string }>; }
 
@@ -59,8 +60,9 @@ const SECTION_GROUPS: { label: string; sections: SectionMeta[] }[] = [
     label: 'Hotel',
     sections: [
       { id: 'hotel', label: 'Hotel Info', icon: Building2 },
-      { id: 'fiscal', label: 'Fiscal', icon: FileText },
-      { id: 'afip', label: 'AFIP/ARCA', icon: Zap },
+      // Una sola pestaña para facturar: antes había "Fiscal" y "AFIP/ARCA",
+      // que pedían el mismo CUIT dos veces. La conexión con ARCA va adentro.
+      { id: 'fiscal', label: 'Facturación', icon: FileText },
       { id: 'habitaciones', label: 'Habitaciones', icon: BedDouble },
     ],
   },
@@ -197,7 +199,7 @@ export default function ConfiguracionModule() {
   const visibleGroups = SECTION_GROUPS
     .map(g => ({
       ...g,
-      sections: g.sections.filter(s => (s.id !== 'landing' || fotosHabilitadas) && (s.id !== 'afip' || arcaHabilitada)),
+      sections: g.sections.filter(s => s.id !== 'landing' || fotosHabilitadas),
     }))
     .filter(g => g.sections.length > 0);
 
@@ -250,8 +252,7 @@ export default function ConfiguracionModule() {
 
         <div className="mt-6 content-fade-switch" key={activeSection}>
           {activeSection === 'hotel' && <HotelSection />}
-          {activeSection === 'fiscal' && <FiscalSection />}
-          {activeSection === 'afip' && <AfipSection />}
+          {activeSection === 'fiscal' && <FiscalSection conArca={arcaHabilitada} />}
           {activeSection === 'habitaciones' && <HabitacionesSection />}
           {activeSection === 'landing' && <LandingSection />}
           {activeSection === 'cuenta' && <CuentaSection />}
@@ -508,7 +509,14 @@ function ContactInfoCard({ icon: Icon, label, value, color }: { icon: React.Comp
 // ═══════════════════════════════════════════
 // 2. DATOS FISCALES (enhanced)
 // ═══════════════════════════════════════════
-function FiscalSection() {
+/**
+ * Configuración → Facturación. Arriba los datos de quien factura (salen en
+ * cada comprobante); abajo, solo si el plan tiene facturación con ARCA, la
+ * conexión. El CUIT se carga una sola vez, acá.
+ */
+function FiscalSection({ conArca }: { conArca: boolean }) {
+  const [mostrarNumeracion, setMostrarNumeracion] = useState(false);
+  const [trayendoArca, setTrayendoArca] = useState(false);
   const [form, setForm] = useState({ cuit: '', iva: '', direccionFiscal: '', ciudad: '', puntoVenta: 1, numeroInicio: 1, razonSocial: '', facturaLogoUrl: '' });
   const [numeroFactura, setNumeroFactura] = useState(0); // comprobantes ya emitidos
   const [loading, setLoading] = useState(true);
@@ -599,6 +607,28 @@ function FiscalSection() {
 
   // Compute verification digit
   const cuitDigits = form.cuit.replace(/\D/g, '');
+
+  // Completa con lo que dice ARCA (la misma consulta que el alta de un
+  // titular de cuenta corriente). No guarda: la persona revisa y guarda.
+  const traerDeArca = async () => {
+    setTrayendoArca(true);
+    try {
+      const d = await api.cuentaCorriente.consultarArca(cuitDigits);
+      setForm(prev => ({
+        ...prev,
+        razonSocial: d.nombre || prev.razonSocial,
+        iva: d.condicionIva || prev.iva,
+        direccionFiscal: d.direccion || prev.direccionFiscal,
+        ciudad: d.localidad || prev.ciudad,
+      }));
+      if (d.avisos.length > 0) toast.warning('ARCA respondió con avisos', { description: d.avisos.join(' ') });
+      else toast.success('Datos traídos de ARCA. Revisalos y guardá.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo consultar ARCA');
+    } finally {
+      setTrayendoArca(false);
+    }
+  };
   const providedDigit = cuitDigits.length >= 11 ? Number(cuitDigits[10]) : null;
   const computedDigit = calcularDigitoVerificadorCuit(form.cuit);
   const cuitValido = computedDigit !== null && providedDigit !== null && computedDigit === providedDigit;
@@ -614,9 +644,9 @@ function FiscalSection() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <FileText className="w-4 h-4" style={{ color: forest }} />
-            Datos Fiscales
+            Datos de quien factura
           </CardTitle>
-          <CardDescription>Información para la emisión de comprobantes y facturas</CardDescription>
+          <CardDescription>Salen en cada comprobante. Si el hotel está a nombre de una persona, van los datos de esa persona.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -633,12 +663,20 @@ function FiscalSection() {
                 <FileText className="w-3.5 h-3.5 text-muted-foreground" />
                 CUIT / CUIL / RUT
               </Label>
-              <Input
-                value={form.cuit}
-                onChange={e => setForm({ ...form, cuit: e.target.value })}
-                placeholder="20-12345678-9"
-                className={cuitDigits.length >= 11 ? (cuitValido ? 'border-primary focus-visible:ring-[#0596694D]' : 'border-destructive focus-visible:ring-[#EF44444D]') : ''}
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={form.cuit}
+                  onChange={e => setForm({ ...form, cuit: e.target.value })}
+                  placeholder="20-12345678-9"
+                  className={cuitDigits.length >= 11 ? (cuitValido ? 'border-primary focus-visible:ring-[#0596694D]' : 'border-destructive focus-visible:ring-[#EF44444D]') : ''}
+                />
+                {conArca && (
+                  <Button type="button" variant="outline" onClick={traerDeArca} disabled={!cuitValido || trayendoArca} className="shrink-0">
+                    {trayendoArca ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Download className="w-4 h-4 mr-1.5" />}
+                    Traer de ARCA
+                  </Button>
+                )}
+              </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Dígito verificador esperado:</span>
                 <span className="flex items-center gap-1.5 font-medium">
@@ -687,31 +725,43 @@ function FiscalSection() {
               </Label>
               <Input value={form.ciudad} onChange={e => setForm({ ...form, ciudad: e.target.value })} placeholder="Ciudad Autónoma de Buenos Aires" />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium flex items-center gap-2">
-                <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-                Punto de venta
-              </Label>
-              <Input type="number" min={1} value={form.puntoVenta} onChange={e => setForm({ ...form, puntoVenta: parseInt(e.target.value) || 1 })} />
-              <p className="text-xs text-muted-foreground">Número de punto de venta para facturación</p>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium flex items-center gap-2">
-                <Receipt className="w-3.5 h-3.5 text-muted-foreground" />
-                Número de inicio de facturación
-              </Label>
-              <Input
-                type="number" min={1} value={form.numeroInicio}
-                disabled={numeracionYaUsada}
-                onChange={e => setForm({ ...form, numeroInicio: parseInt(e.target.value) || 1 })}
-              />
-              <p className="text-xs text-muted-foreground">
-                {numeracionYaUsada
-                  ? `Ya se emitieron ${numeroFactura} comprobante${numeroFactura === 1 ? '' : 's'} — no se puede modificar. Próximo número: ${numeroFactura + 1}.`
-                  : 'Primer número de comprobante a emitir. Se puede cambiar solo hasta que emitas el primero.'}
-              </p>
-            </div>
+            {/* El punto de venta solo importa para facturar con ARCA: es el
+                que el hotel dio de alta allá para factura electrónica. Sin
+                ARCA queda en 1 y no se pregunta. */}
+            {conArca && (
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+                  Punto de venta de ARCA
+                </Label>
+                <Input type="number" min={1} value={form.puntoVenta} onChange={e => setForm({ ...form, puntoVenta: parseInt(e.target.value) || 1 })} />
+                <p className="text-xs text-muted-foreground">El que diste de alta en ARCA para factura electrónica por web services.</p>
+              </div>
+            )}
           </div>
+
+          {/* La numeración inicial le sirve solo a quien viene de un talonario
+              y quiere seguir su numeración. Casi nadie: va escondida. Con el
+              primer comprobante emitido ya no se puede cambiar. */}
+          {!numeracionYaUsada && (
+            mostrarNumeracion ? (
+              <div className="space-y-1.5 max-w-xs">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Receipt className="w-3.5 h-3.5 text-muted-foreground" />
+                  Primer número de comprobante
+                </Label>
+                <Input
+                  type="number" min={1} value={form.numeroInicio}
+                  onChange={e => setForm({ ...form, numeroInicio: parseInt(e.target.value) || 1 })}
+                />
+                <p className="text-xs text-muted-foreground">El siguiente al último de tu talonario. Se puede cambiar solo hasta que emitas el primero.</p>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setMostrarNumeracion(true)} className="text-xs text-primary hover:underline">
+                ¿Venías usando otro talonario? Seguí su numeración
+              </button>
+            )
+          )}
 
           <div className="space-y-1.5">
             <Label className="text-sm font-medium flex items-center gap-2">
@@ -750,11 +800,13 @@ function FiscalSection() {
           <div className="flex justify-end">
             <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: forest }}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-              Guardar datos fiscales
+              Guardar
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {conArca && <AfipSection />}
 
       {/* Vista previa del comprobante — usa los mismos componentes que
           Comprobantes, con datos de ejemplo, así nunca puede desincronizarse
@@ -876,13 +928,14 @@ function leerArchivoComoTexto(file: File): Promise<string> {
   });
 }
 
+/**
+ * La conexión con ARCA, dentro de Configuración → Facturación. El CUIT es el
+ * de "Datos de quien factura" y el ambiente (pruebas o real) no lo elige el
+ * hotel: lo maneja Hospeda. Ver docs/cuenta-corriente.md, plan de facturación.
+ */
 function AfipSection() {
   const [estado, setEstado] = useState<AfipEstado | null>(null);
   const [loading, setLoading] = useState(true);
-  const [cuit, setCuit] = useState('');
-  const [ambienteForm, setAmbienteForm] = useState<'homologacion' | 'produccion'>('homologacion');
-  const [savingConfig, setSavingConfig] = useState(false);
-  const [confirmProduccionOpen, setConfirmProduccionOpen] = useState(false);
 
   const [certificadoPem, setCertificadoPem] = useState('');
   const [clavePrivadaPem, setClavePrivadaPem] = useState('');
@@ -897,38 +950,10 @@ function AfipSection() {
       .then((data: AfipEstado & { error?: string }) => {
         if (data.error) return;
         setEstado(data);
-        setCuit(data.cuit || '');
-        setAmbienteForm(data.ambiente || 'homologacion');
       });
   }, []);
 
   useEffect(() => { cargarEstado().catch(() => {}).finally(() => setLoading(false)); }, [cargarEstado]);
-
-  const guardarConfig = async (ambienteConfirmado?: 'produccion') => {
-    const cuitDigits = cuit.replace(/\D/g, '');
-    if (cuitDigits.length !== 11) { toast.error('El CUIT debe tener 11 dígitos'); return; }
-
-    // Pasar a producción emite comprobantes fiscales REALES ante AFIP —
-    // se pide una confirmación explícita antes de guardar ese cambio.
-    if (ambienteForm === 'produccion' && estado?.ambiente !== 'produccion' && !ambienteConfirmado) {
-      setConfirmProduccionOpen(true);
-      return;
-    }
-
-    setSavingConfig(true);
-    try {
-      const res = await fetch('/api/configuracion/afip', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cuit: cuitDigits, ambiente: ambienteForm, confirmarProduccion: ambienteForm === 'produccion' }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast.error(data.error || 'Error'); return; }
-      toast.success('Configuración de AFIP guardada');
-      setConfirmProduccionOpen(false);
-      await cargarEstado();
-    } catch { toast.error('Error de conexión'); }
-    setSavingConfig(false);
-  };
 
   const subirCertificado = async () => {
     if (!certificadoPem.trim() || !clavePrivadaPem.trim()) {
@@ -983,44 +1008,17 @@ function AfipSection() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Zap className="w-4 h-4" style={{ color: forest }} />
-            Facturación electrónica AFIP/ARCA
+            Conexión con ARCA
           </CardTitle>
-          <CardDescription>Emitir el CAE real de cada comprobante directamente ante AFIP</CardDescription>
+          <CardDescription>Para emitir cada factura con su CAE, con el CUIT de arriba.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-2 rounded-lg border p-3 bg-[#0284C70D] text-sm">
             <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
             <div className="space-y-1 text-muted-foreground">
               <p>Cada hotel necesita su propio certificado digital de AFIP, habilitado para el servicio <strong>&quot;Facturación Electrónica&quot;</strong> (wsfe). Se genera en el portal de AFIP con tu Clave Fiscal: Administrador de Relaciones → Administración de Certificados Digitales.</p>
-              <p>Empezá probando en <strong>homologación</strong> (entorno de pruebas de AFIP, sin validez fiscal real) antes de pasar a producción.</p>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium">CUIT habilitado ante AFIP</Label>
-              <Input value={cuit} onChange={e => setCuit(e.target.value)} placeholder="20123456789" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Ambiente</Label>
-              <Select value={ambienteForm} onValueChange={v => setAmbienteForm(v as 'homologacion' | 'produccion')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="homologacion">Homologación (pruebas)</SelectItem>
-                  <SelectItem value="produccion">Producción (comprobantes reales)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button onClick={() => guardarConfig()} disabled={savingConfig} style={{ backgroundColor: forest }}>
-              {savingConfig ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-              Guardar
-            </Button>
-          </div>
-
-          <Separator />
 
           <div className="flex flex-wrap items-center gap-2">
             {estado?.activo ? (
@@ -1028,7 +1026,7 @@ function AfipSection() {
             ) : (
               <Badge variant="secondary"><XCircle className="w-3 h-3 mr-1" />Sin certificado cargado</Badge>
             )}
-            <Badge variant="outline">{ambienteForm === 'produccion' ? 'Producción' : 'Homologación'}</Badge>
+            {estado?.ambiente === 'homologacion' && <Badge variant="outline">Ambiente de pruebas</Badge>}
             {estado?.ultimaConexionOk && (
               <span className="text-xs text-muted-foreground">Última conexión OK: {new Date(estado.ultimaConexionOk).toLocaleString('es-AR')}</span>
             )}
@@ -1091,20 +1089,6 @@ function AfipSection() {
         </CardContent>
       </Card>
 
-      <AlertDialog open={confirmProduccionOpen} onOpenChange={setConfirmProduccionOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Pasar a ambiente de producción?</AlertDialogTitle>
-            <AlertDialogDescription>
-              A partir de este cambio, cada comprobante que se emita va a pedir un CAE <strong>real</strong> ante AFIP, con validez fiscal. Asegurate de haber probado el flujo completo en homologación antes de confirmar.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => guardarConfig('produccion')}>Sí, pasar a producción</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

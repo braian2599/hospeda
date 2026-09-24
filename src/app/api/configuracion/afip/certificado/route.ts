@@ -40,6 +40,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'La clave privada no corresponde a este certificado' }, { status: 400 });
     }
 
+    // El CUIT es el de los datos de facturación (se carga una sola vez).
+    const fiscal = await db.tenantConfig.findUnique({ where: { tenantId }, select: { hotelCuit: true } });
+    const cuit = (fiscal?.hotelCuit || '').replace(/\D/g, '');
+    if (cuit.length !== 11) {
+      return NextResponse.json({ error: 'Primero cargá y guardá el CUIT en "Datos de quien factura".' }, { status: 400 });
+    }
+
     const vencimiento = cert.validity.notAfter;
     if (vencimiento && vencimiento.getTime() < Date.now()) {
       return NextResponse.json({ error: `El certificado ya venció (${vencimiento.toLocaleDateString('es-AR')})` }, { status: 400 });
@@ -49,7 +56,7 @@ export async function POST(req: NextRequest) {
       where: { tenantId },
       create: {
         tenantId,
-        cuit: '', // se completa en el PUT de /api/configuracion/afip si todavía no está
+        cuit,
         certificadoPem: certificadoPem.trim(),
         clavePrivadaPem: encrypt(clavePrivadaPem.trim()),
         activo: true,
@@ -57,6 +64,7 @@ export async function POST(req: NextRequest) {
         ultimoError: null,
       },
       update: {
+        cuit,
         certificadoPem: certificadoPem.trim(),
         clavePrivadaPem: encrypt(clavePrivadaPem.trim()),
         activo: true,

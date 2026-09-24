@@ -353,6 +353,8 @@ export interface DatosArca {
   tipo: TipoTitular | null;
   condicionIva: string | null;
   domicilioFiscal: string | null;
+  direccion: string | null;
+  localidad: string | null;
   avisos: string[];
 }
 export interface DatosTitularApi {

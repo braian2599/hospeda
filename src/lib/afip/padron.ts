@@ -38,6 +38,10 @@ export interface DatosPadron {
   /** null cuando ARCA avisó un problema: mejor que la elija una persona. */
   condicionIva: CondicionIva | null;
   domicilioFiscal: string | null;
+  /** El domicilio en partes, para los formularios que lo piden separado. */
+  direccion: string | null;
+  /** Localidad y provincia, p. ej. "Mendoza, Mendoza". */
+  localidad: string | null;
   /** Lo que ARCA avisó (CUIT inactiva, constancia con errores...). */
   avisos: string[];
 }
@@ -124,6 +128,8 @@ export function leerRespuestaPadron(body: any, cuit: string): DatosPadron | null
     // serlo. En ese caso no se adivina.
     condicionIva: conErrores ? null : condicionIvaDesdeImpuestos(impuestos, esMonotributo),
     domicilioFiscal,
+    direccion: texto(dom.direccion) || null,
+    localidad: [texto(dom.localidad), texto(dom.descripcionProvincia)].filter(Boolean).join(', ') || null,
     avisos,
   };
 }

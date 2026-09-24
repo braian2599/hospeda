@@ -108,6 +108,14 @@ export async function PUT(req: NextRequest) {
       });
     }
 
+    // El CUIT se carga una sola vez, acá. La conexión con ARCA (TenantAfip)
+    // usa el mismo: antes se cargaba dos veces, en dos pestañas, y podían
+    // quedar distintos. Solo se actualiza si el hotel ya tiene la conexión.
+    const cuitDigitos = String(cuit || '').replace(/\D/g, '');
+    if (cuitDigitos.length === 11) {
+      await db.tenantAfip.updateMany({ where: { tenantId }, data: { cuit: cuitDigitos } });
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof AuthError) return NextResponse.json({ error: error.message }, { status: error.statusCode });
