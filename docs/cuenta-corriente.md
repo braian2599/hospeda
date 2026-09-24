@@ -340,6 +340,20 @@ las manda siempre) daba 409 "ya tiene una reserva activa en ese rango".
 Probado contra Postgres: mismas fechas entra, extender sin pisar entra, pisar
 otra reserva sigue dando 409, compartida no se cuenta a sí misma.
 
+## Facturación con ARCA: plan decidido (25/09)
+
+1. ✅ Nombre del hotel arriba y razón social del titular abajo en los
+   comprobantes (PREVIEW, commit bd0148f).
+2. Probar con un certificado de homologación (WSASS, a nombre del dueño de
+   Hospeda): facturar y "Traer de ARCA" contra ARCA de verdad.
+3. **Opción B: delegación.** Un solo certificado, el de Hospeda (CUIT del
+   dueño), cargado en Vercel como secreto. Cada hotel delega el servicio a
+   ese CUIT desde su Administrador de Relaciones; el dueño acepta cada
+   delegación. Las facturas salen a nombre del CUIT del hotel. **No se
+   mantiene el modo "certificado propio del hotel": ningún hotel lo usa.**
+   Los pasos exactos de la delegación se confirman probándolos.
+4. CC-4: Factura A y una factura al titular por el total.
+
 ## Pendiente de decidir (no bloquea)
 
 - Límite de crédito: ¿bloquea la derivación o solo avisa?
