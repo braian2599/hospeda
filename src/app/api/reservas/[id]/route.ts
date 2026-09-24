@@ -168,6 +168,7 @@ export async function PUT(
           habitacion: habitacionFinal,
           checkin: checkinDate,
           checkout: checkoutDate,
+          excluirReservaId: id,
           camas: camasDeReserva({
             personas: personas !== undefined ? (parseInt(personas) || 1) : existing.personas,
             ninos: ninos !== undefined ? (ninos !== null ? parseInt(ninos) : null) : existing.ninos,

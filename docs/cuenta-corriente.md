@@ -320,6 +320,16 @@ saldo) sin tocar nada nuevo de ARCA.
    certificado de homologación (WSASS, en curso).
 3. **Pasar a producción:** correr el SQL de `20260924_padron_arca` en la base
    de producción y recién ahí mergear `PREVIEW` a `main`, con aprobación.
+   Ese merge lleva también el arreglo de editar reservas (abajo): en `main`
+   hoy NO se puede editar ninguna reserva.
+
+### Arreglado en PREVIEW, falta en `main`: editar reservas daba 409
+Desde el 17/09 (commit d5cc3d7, chequeo de disponibilidad unificado en
+`chequearLugar`) la edición no le pasaba `excluirReservaId`: la reserva
+chocaba consigo misma y cualquier edición que mandara fechas (el formulario
+las manda siempre) daba 409 "ya tiene una reserva activa en ese rango".
+Probado contra Postgres: mismas fechas entra, extender sin pisar entra, pisar
+otra reserva sigue dando 409, compartida no se cuenta a sí misma.
 
 ## Pendiente de decidir (no bloquea)
 
