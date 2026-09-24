@@ -153,6 +153,9 @@ export async function POST(req: NextRequest) {
           // El nombre sí se corrige: es el que se muestra en el cierre de caja.
           empleadoNombre: actorNombre,
           reservaId,
+          // El vínculo que permite corregir el pago desde la reserva y que la
+          // caja se ajuste sola (ver src/lib/pagos-reserva.ts).
+          pagoId: pago.id,
         },
       });
 
@@ -211,7 +214,9 @@ export async function POST(req: NextRequest) {
       actor: { id: actorId, nombre: actorNombre },
     });
 
-    return NextResponse.json({ success: true, estadoPago: result.estadoPago, estado: result.estado }, { status: 201 });
+    // El id hace falta: la pantalla reemplaza con él el id provisorio del pago.
+    // Sin él, el pago quedaba sin id hasta recargar y no se podía corregir.
+    return NextResponse.json({ success: true, id: result.pago.id, estadoPago: result.estadoPago, estado: result.estado }, { status: 201 });
   } catch (error) {
     if (error instanceof CajaCerradaError) {
       return NextResponse.json({ error: error.message }, { status: 409 });

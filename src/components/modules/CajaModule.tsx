@@ -1562,7 +1562,7 @@ export default function CajaModule() {
               <Input type="number" step="0.01" min="0.01" value={editMonto} onChange={e => setEditMonto(e.target.value)} disabled={editingMov?.esPagoReserva} />
               {editingMov?.esPagoReserva && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Es el pago de una reserva. Para corregir el monto, anulá el pago desde la reserva y cargalo de nuevo: así cuadran la caja y la reserva.
+                  Es de un pago de reserva. El monto se corrige editando la reserva, en la pestaña Pago: la caja se ajusta sola.
                 </p>
               )}
             </div>

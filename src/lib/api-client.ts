@@ -154,6 +154,11 @@ export const api = {
       apiFetch<DbReserva>(`/reservas/${id}/checkin`, { method: 'POST', body: JSON.stringify(body || {}) }),
     checkout: (id: string, body?: { fechaCheckoutReal?: string }) =>
       apiFetch<{ success: boolean; habitacionLiberada: boolean; esCompartida: boolean; tareaLimpiezaId: string }>(`/reservas/${id}/checkout`, { method: 'POST', body: JSON.stringify(body || {}) }),
+    /** Corrige montos de pagos mal cargados (centavos; 0 elimina). La caja se ajusta sola. */
+    corregirPagos: (id: string, pagos: { id: string; monto: number }[]) =>
+      apiFetch<{ estadoPago: 'Pendiente' | 'Parcial' | 'Pagado'; corregidos: { id: string; antes: number; despues: number; caja: string }[] }>(
+        `/reservas/${id}/pagos`, { method: 'PUT', body: JSON.stringify({ pagos }) },
+      ),
   },
 
   // ── Pagos ──

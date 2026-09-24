@@ -24,7 +24,7 @@ type Tx = Prisma.TransactionClient;
 
 /** Acredita la parte de la seña que le corresponde a UNA reserva: Pago + estadoPago + caja + auditoría. */
 async function creditarReserva(tx: Tx, reserva: Reserva, montoPesos: number, paymentId: string, notaExtra: string) {
-  await tx.pago.create({
+  const pago = await tx.pago.create({
     data: {
       tenantId: reserva.tenantId,
       reservaId: reserva.id,
@@ -51,6 +51,7 @@ async function creditarReserva(tx: Tx, reserva: Reserva, montoPesos: number, pay
         metodo: 'Mercado Pago',
         empleadoNombre: 'Landing pública',
         reservaId: reserva.id,
+        pagoId: pago.id,
       },
     });
   }

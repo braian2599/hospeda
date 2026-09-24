@@ -12,13 +12,14 @@ import { cajaMovimientoSchema, formatZodError } from '@/lib/validation-schemas';
 const MENSAJE_COBRO_CUENTA_CORRIENTE =
   'Este ingreso es el cobro de una cuenta corriente. Para corregirlo, anulá el cobro desde Comprobantes → Cuenta corriente: así se corrigen juntas la caja y la deuda.';
 
-// Lo mismo con el pago de una reserva: el pago vive en la reserva (de ahí sale
-// el saldo) y la caja guarda su espejo. Si el monto se cambia o se borra acá,
-// la reserva sigue mostrando lo que se pagó antes y ya no cuadran. Se corrige
-// desde la reserva: anular el pago borra también este ingreso. La descripción
-// sí se puede editar: no cambia ninguna cuenta.
+// Lo mismo con el pago de una reserva (y sus ajustes): el pago vive en la
+// reserva (de ahí sale el saldo) y la caja guarda su espejo. Si el monto se
+// cambia o se borra acá, la reserva sigue mostrando lo que se pagó antes y ya
+// no cuadran. Se corrige editando la reserva, que ajusta la caja sola (ver
+// src/lib/pagos-reserva.ts). La descripción sí se puede editar: no cambia
+// ninguna cuenta.
 const MENSAJE_PAGO_RESERVA =
-  'Este ingreso es el pago de una reserva. Para corregir el monto, anulá el pago desde la reserva y cargalo de nuevo: así se corrigen juntas la caja y la reserva.';
+  'Este ingreso es de un pago de reserva. El monto se corrige editando la reserva, en la pestaña Pago: la caja se ajusta sola.';
 
 // POST /api/caja/movimiento — Registrar un movimiento (ingreso/egreso)
 // Si es un egreso con categoriaGastoNombre, crea también un Gasto atómicamente.

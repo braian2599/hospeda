@@ -364,6 +364,12 @@ interface HotelStore {
 
   // Pagos
   registrarPago: (idReserva: string, monto: number, metodo: string, nota?: string) => Promise<Pago | null>;
+  /**
+   * Corrige montos de pagos mal cargados (en pesos; 0 elimina el pago). La
+   * caja se ajusta sola en el servidor. Devuelve null si salió bien, o el
+   * motivo para mostrarle al hotel.
+   */
+  corregirPagosReserva: (idReserva: string, cambios: { id: string; monto: number }[]) => Promise<string | null>;
 
   // Limpieza
   marcarComoLimpia: (numero: string) => Promise<void>;
@@ -1236,6 +1242,34 @@ export const useHotelStore = create<HotelStore>()(
       },
 
       // ===== PAGOS =====
+      corregirPagosReserva: async (idReserva, cambios) => {
+        try {
+          const res = await api.reservas.corregirPagos(
+            idReserva,
+            cambios.map(c => ({ id: c.id, monto: Math.round(c.monto * 100) })),
+          );
+          // Sin optimismo: lo que cambia en la caja (editar el ingreso, borrarlo
+          // o sumar un ajuste en otro turno) lo decide el servidor.
+          const nuevos = new Map(res.corregidos.map(c => [c.id, c.despues / 100]));
+          set({
+            pagos: get().pagos
+              .filter(p => nuevos.get(p.id) !== 0)
+              .map(p => (nuevos.has(p.id) ? { ...p, monto: nuevos.get(p.id)! } : p)),
+            reservas: get().reservas.map(r => (r.id === idReserva ? { ...r, estadoPago: res.estadoPago } : r)),
+          });
+          try {
+            const cajaData = await api.caja.get();
+            set({ caja: mapDbCajaToStore(cajaData) });
+          } catch {
+            // Si falla el refresh de caja, no es crítico: el próximo sync la trae.
+          }
+          return null;
+        } catch (err) {
+          console.error('[corregirPagosReserva]', err);
+          return err instanceof Error ? err.message : 'No se pudieron corregir los pagos.';
+        }
+      },
+
       registrarPago: async (idReserva, monto, metodo, nota = '') => {
         const state = get();
         const reserva = state.reservas.find(r => r.id === idReserva);

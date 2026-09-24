@@ -16,10 +16,12 @@ import {
 // cobro: no entró plata, así que no toca la caja (ver docs/cuenta-corriente.md).
 //
 // SOLO CON EL CHECK-OUT HECHO. Una reserva con check-out ya no se puede
-// editar, cancelar, ni sumarle o borrarle pagos (lo frenan PUT reservas/[id],
-// /api/pagos y /api/pagos/[id]), así que su saldo es definitivo. Antes del
-// check-out el saldo todavía se mueve, y lo que se anota en la cuenta de
-// alguien tiene que ser el número final.
+// editar, cancelar, ni sumarle pagos (lo frenan PUT reservas/[id] y
+// /api/pagos), así que su saldo es definitivo. Antes del check-out el saldo
+// todavía se mueve, y lo que se anota en la cuenta de alguien tiene que ser
+// el número final. Única excepción: corregir un pago mal cargado cuando la
+// reserva NO tiene saldo (src/lib/pagos-reserva.ts). Si esa corrección deja
+// saldo, ese es el que se deriva; y una reserva derivada ya no se corrige.
 //
 // SE DERIVA COMPLETO y una sola vez: "el que anota fiado anota todo". El
 // índice único de CargoCuentaCorriente.reservaId lo garantiza aunque lleguen

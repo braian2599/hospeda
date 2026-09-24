@@ -400,6 +400,7 @@ model Pago {
 
   reserva   Reserva  @relation(fields: [reservaId], references: [id], onDelete: Cascade)
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  movimientoCaja MovimientoCaja?
 
   @@index([tenantId, reservaId])
 }
@@ -493,8 +494,14 @@ model MovimientoCaja {
   // que gastoId: la tabla de negocio es la fuente de verdad y la caja
   // guarda su espejo, para que el cierre de turno lo cuente.
   pagoCuentaCorrienteId String?     @unique
+  // El pago de reserva que generó este ingreso. Mismo patrón que gastoId: el
+  // pago (en la reserva) es la fuente de verdad y la caja guarda su espejo.
+  // Con este vínculo, corregir el monto del pago desde la reserva corrige
+  // también este ingreso. Solo lo lleva el ingreso original, no los ajustes.
+  pagoId         String?            @unique
 
   gasto          Gasto?             @relation(fields: [gastoId], references: [id])
+  pago           Pago?              @relation(fields: [pagoId], references: [id])
   pagoCuentaCorriente PagoCuentaCorriente? @relation(fields: [pagoCuentaCorrienteId], references: [id])
   tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   turno          TurnoCaja          @relation(fields: [turnoId], references: [id], onDelete: Cascade)

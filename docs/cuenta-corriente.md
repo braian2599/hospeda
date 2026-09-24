@@ -318,10 +318,19 @@ saldo) sin tocar nada nuevo de ARCA.
    condición de IVA del receptor al pedir el CAE.
 2. **Probar en Preview** (el dueño), incluido "Traer de ARCA" con un
    certificado de homologación (WSASS, en curso).
-3. **Pasar a producción:** correr el SQL de `20260924_padron_arca` en la base
-   de producción y recién ahí mergear `PREVIEW` a `main`, con aprobación.
+3. **Pasar a producción:** correr en la base de producción el SQL de
+   `20260924_padron_arca` y el de `20260924_pago_en_caja`, y recién ahí
+   mergear `PREVIEW` a `main`, con aprobación.
    Ese merge lleva también el arreglo de editar reservas (abajo): en `main`
    hoy NO se puede editar ninguna reserva.
+
+### En PREVIEW, falta en `main`: corregir pagos desde la reserva
+Al editar una reserva, la pestaña Pago muestra los pagos cargados y el monto
+de cada uno se corrige ahí; la caja se ajusta sola (`src/lib/pagos-reserva.ts`).
+Si el turno donde se cobró ya cerró, la diferencia entra como ajuste en el
+turno abierto. $0 elimina el pago. Con check-out: solo pagos y solo sin saldo.
+Pasada a cuenta corriente: no se corrige. Desde Caja, el pago de una reserva
+no se edita ni se borra. Migración `20260924_pago_en_caja` (columna `pagoId`).
 
 ### Arreglado en PREVIEW, falta en `main`: editar reservas daba 409
 Desde el 17/09 (commit d5cc3d7, chequeo de disponibilidad unificado en

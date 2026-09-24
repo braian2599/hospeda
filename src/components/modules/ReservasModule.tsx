@@ -565,6 +565,12 @@ export default function ReservasModule() {
  /** Una reserva ya cerrada que quedó debiendo y todavía no se pasó a ninguna cuenta. */
  const puedePasarACuenta = (r: Reserva, saldo: number) =>
    hayCuentaCorriente && r.estado === 'Check-Out realizado' && r.total != null && saldo > 0 && !r.cuentaCorriente;
+ /**
+  * Reserva cerrada y sin saldo: se le pueden corregir los montos de los pagos
+  * (nada más). Si pasó a cuenta corriente, no: cambiaría la deuda anotada.
+  */
+ const puedeCorregirPagosCerrada = (r: Reserva, saldo: number) =>
+   r.estado === 'Check-Out realizado' && !r.cuentaCorriente && saldo <= 0 && pagos.some(p => p.idReserva === r.id);
 
  // ==================== FILTERS ====================
  const [filtroEstado, setFiltroEstado] = useFilterState<string>('reservas_filtroEstado', 'todos');
@@ -617,6 +623,13 @@ export default function ReservasModule() {
  // ==================== VALIDATION ERRORS ====================
  const [errors, setErrors] = useState<string[]>([]);
  const [saving, setSaving] = useState(false);
+ // Pagos ya cargados de la reserva que se edita: el monto de cada uno se puede
+ // corregir (en pesos, como lo escribe el campo). La caja se ajusta sola en el
+ // servidor (src/lib/pagos-reserva.ts). $0 elimina el pago.
+ const [pagosEdit, setPagosEdit] = useState<Record<string, string>>({});
+ // Con el check-out hecho solo se corrigen los montos de los pagos.
+ const [soloPagos, setSoloPagos] = useState(false);
+ const corregirPagosReserva = useHotelStore(s => s.corregirPagosReserva);
 
  // ==================== COMPUTED: CAMPOS PERSONALIZADOS ====================
  const tarifaActual = tarifas[form.tipoTarifa];
@@ -763,6 +776,37 @@ export default function ReservasModule() {
  // ==================== COMPUTED: PAGO MÍNIMO (30%) ====================
  const totalAPagar = form.reservaMultiple ? (computed.totalFinalCombinado || computed.totalFinal) : computed.totalFinal;
  const pagoMinimo = Math.ceil(totalAPagar * 0.3);
+
+ // ==================== COMPUTED: PAGOS YA CARGADOS (al editar) ====================
+ // Del más viejo al más nuevo (primero la seña). Dentro del mismo día, por id:
+ // los ids que genera la base (cuid) empiezan con la hora en que se crearon.
+ const pagosCargados = editingId
+   ? pagos.filter(p => p.idReserva === editingId).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id.localeCompare(b.id))
+   : [];
+ /** Lo que quedó escrito para ese pago. NaN si no es un monto válido. */
+ const montoEscrito = (id: string, original: number): number => {
+   const v = pagosEdit[id];
+   if (v === undefined) return original;
+   const n = Number(v.replace(',', '.'));
+   return v.trim() === '' || !Number.isFinite(n) || n < 0 ? NaN : n;
+ };
+ const pagadoOriginal = pagosCargados.reduce((sum, p) => sum + p.monto, 0);
+ const pagadoEditado = pagosCargados.reduce((sum, p) => sum + (montoEscrito(p.id, p.monto) || 0), 0);
+ const pagosInvalidos = pagosCargados.some(p => Number.isNaN(montoEscrito(p.id, p.monto)));
+ const cambiosDePago = pagosCargados
+   .filter(p => {
+     const m = montoEscrito(p.id, p.monto);
+     return !Number.isNaN(m) && Math.round(m * 100) !== Math.round(p.monto * 100);
+   })
+   .map(p => ({ id: p.id, monto: montoEscrito(p.id, p.monto) }));
+ // Con el check-out hecho el total no se recalcula con la tarifa: vale el
+ // que quedó guardado en la reserva.
+ const totalDeLaReserva = soloPagos && editingId ? calcularTotalReserva(editingId) : totalAPagar;
+ const saldoTrasCorregir = Math.max(0, Math.round((totalDeLaReserva - pagadoEditado) * 100) / 100);
+ // Lo que se puede cobrar ahora: al editar, solo lo que falta.
+ const maximoACobrar = editingId ? saldoTrasCorregir : totalAPagar;
+ const hayCobroNuevo = !soloPagos && maximoACobrar > 0 && (form.pagoTipo === 'parcial' || form.pagoTipo === 'total');
+ const montoCobroNuevo = !hayCobroNuevo ? 0 : form.pagoTipo === 'total' ? maximoACobrar : (parseFloat(form.pagoMonto) || 0);
 
  // ==================== FILTERED RESERVAS ====================
  const roomTypes = Array.from(new Set(Object.values(habitaciones).map(h => h.tipo)));
@@ -940,14 +984,19 @@ export default function ReservasModule() {
  setEditingId(null);
  const firstTarifa = tiposTarifa.length > 0 ? tiposTarifa[0] : 'normal';
  setForm({ ...emptyForm, tipoTarifa: firstTarifa });
+ setPagosEdit({});
+ setSoloPagos(false);
  setDisponibles([]);
  setTab('disponibilidad');
  setErrors([]);
  setModalOpen(true);
  };
 
- const openEdit = (r: Reserva) => {
+ const openEdit = (r: Reserva, tabInicial: 'disponibilidad' | 'pago' = 'disponibilidad') => {
  setEditingId(r.id);
+ const conCheckout = r.estado === 'Check-Out realizado';
+ setSoloPagos(conCheckout);
+ setPagosEdit(Object.fromEntries(pagos.filter(p => p.idReserva === r.id).map(p => [p.id, String(p.monto)])));
  const cuotaVal = r.cuotas && r.recargoPorcentaje !== undefined
  ? `${r.cuotas}|${r.recargoPorcentaje}`
  : '1|0';
@@ -980,7 +1029,7 @@ export default function ReservasModule() {
  pagoCuotas: cuotaVal,
  ninos: String(r.ninos || 0),
  });
- setTab('disponibilidad');
+ setTab(conCheckout ? 'pago' : tabInicial);
  setErrors([]);
  setModalOpen(true);
  };
@@ -1040,6 +1089,30 @@ export default function ReservasModule() {
  const handleSave = async () => {
  setSaving(true);
  try {
+ // Pagos ya cargados: se validan antes de guardar nada. El servidor vuelve
+ // a chequear todo (src/lib/pagos-reserva.ts).
+ if (editingId && pagosInvalidos) {
+ setErrors(['Revisá los montos de los pagos cargados: tienen que ser números de 0 para arriba.']);
+ return;
+ }
+ if (editingId && pagadoEditado > totalDeLaReserva + 0.001 && pagadoEditado > pagadoOriginal + 0.001) {
+ setErrors([`Lo cobrado quedaría en ${formatMoney(pagadoEditado)} y el total de la reserva es ${formatMoney(totalDeLaReserva)}.`]);
+ return;
+ }
+ // Check-out hecho: solo se corrigen los pagos. Nada más de la reserva se toca.
+ if (soloPagos && editingId) {
+ if (cambiosDePago.length > 0) {
+ const error = await corregirPagosReserva(editingId, cambiosDePago);
+ if (error) {
+ toast.error('No se pudieron corregir los pagos', { description: error });
+ return;
+ }
+ notifySuccess('Pagos corregidos', 'La caja se ajustó sola.');
+ }
+ closeModal();
+ return;
+ }
+
  const errs: string[] = [];
  if (!form.habitacion) errs.push('Debe seleccionar una habitación');
 
@@ -1162,6 +1235,15 @@ export default function ReservasModule() {
  toast.error('Error al modificar la reserva');
  return;
  }
+ // Después de guardar la reserva: si cambió el total, los pagos se
+ // validan contra el nuevo.
+ if (cambiosDePago.length > 0) {
+ const error = await corregirPagosReserva(editingId, cambiosDePago);
+ if (error) {
+ toast.error('Se guardó la reserva, pero no se corrigieron los pagos', { description: error });
+ return;
+ }
+ }
  } else if (form.reservaMultiple && form.habitacion2) {
  // ====== RESERVA MÚLTIPLE: crear 2 reservas ======
  try {
@@ -1275,10 +1357,13 @@ export default function ReservasModule() {
  }
 
  // Handle payment
- if (form.pagoTipo === 'parcial' || form.pagoTipo === 'total') {
+ // Al editar se cobra solo lo que falta ("Saldo"), y si no falta nada no
+ // se cobra, aunque haya quedado elegida una opción.
+ const saldoAlGuardar = editingId ? Math.max(0, Math.round((totalConRecargo - pagadoEditado) * 100) / 100) : totalConRecargo;
+ if ((form.pagoTipo === 'parcial' || form.pagoTipo === 'total') && saldoAlGuardar > 0) {
  let montoPago = 0;
  if (form.pagoTipo === 'total') {
- montoPago = totalConRecargo;
+ montoPago = saldoAlGuardar;
  } else {
  montoPago = parseFloat(form.pagoMonto) || 0;
  }
@@ -1650,9 +1735,19 @@ export default function ReservasModule() {
        size="sm"
        variant="ghost"
        className="h-9 flex-1 text-xs px-2 text-chart-5 hover:bg-[#8B5CF626]"
-       onClick={() => openEdit(r)}
+       onClick={() => openEdit(r, 'pago')}
      >
        <CreditCard className="w-3.5 h-3.5 mr-1.5" />Pago
+     </Button>
+   )}
+   {puedeCorregirPagosCerrada(r, saldo) && (
+     <Button
+       size="sm"
+       variant="ghost"
+       className="h-9 flex-1 text-xs px-2 text-warning hover:bg-[#D9770626]"
+       onClick={() => openEdit(r)}
+     >
+       <Pencil className="w-3.5 h-3.5 mr-1.5" />Editar pagos
      </Button>
    )}
    {puedePasarACuenta(r, saldo) && (
@@ -1843,9 +1938,19 @@ export default function ReservasModule() {
                size="sm"
                variant="ghost"
                className="h-7 text-xs px-2 text-chart-5 hover:bg-[#8B5CF626] opacity-0 group-hover:opacity-100 transition-opacity"
-               onClick={() => openEdit(r)}
+               onClick={() => openEdit(r, 'pago')}
              >
                <CreditCard className="w-3 h-3 mr-1" />Pago
+             </Button>
+           )}
+           {puedeCorregirPagosCerrada(r, saldo) && (
+             <Button
+               size="sm"
+               variant="outline"
+               className="border-[#D9770666] text-warning hover:bg-[#D9770626] h-7 text-xs px-2"
+               onClick={() => openEdit(r)}
+             >
+               <Pencil className="w-3 h-3 mr-1" />Editar pagos
              </Button>
            )}
            {puedePasarACuenta(r, saldo) && (
@@ -2070,9 +2175,9 @@ export default function ReservasModule() {
  </span>
  )}
  </div>
- {computed.precioCalculado > 0 && (
+ {(soloPagos || computed.precioCalculado > 0) && (
  <span className="font-bold text-primary">
- {formatMoney(form.reservaMultiple ? (computed.totalFinalCombinado || computed.totalFinal) : computed.totalFinal)}
+ {formatMoney(soloPagos ? totalDeLaReserva : form.reservaMultiple ? (computed.totalFinalCombinado || computed.totalFinal) : computed.totalFinal)}
  </span>
  )}
  </div>
@@ -2080,11 +2185,11 @@ export default function ReservasModule() {
 
  <Tabs value={tab} onValueChange={setTab}>
  <TabsList className="w-full grid grid-cols-3">
- <TabsTrigger value="disponibilidad" className="flex-1">
+ <TabsTrigger value="disponibilidad" className="flex-1" disabled={soloPagos}>
  <BedDouble className="w-4 h-4 mr-1" />Disponibilidad
  {!!form.habitacion && <CheckCircle2 className="w-3.5 h-3.5 ml-1.5 text-primary" />}
  </TabsTrigger>
- <TabsTrigger value="cliente" className="flex-1">
+ <TabsTrigger value="cliente" className="flex-1" disabled={soloPagos}>
  <Users className="w-4 h-4 mr-1" />Cliente
  {!!(form.huesped.trim() && form.dni.trim() && form.telefono.trim()) && <CheckCircle2 className="w-3.5 h-3.5 ml-1.5 text-primary" />}
  </TabsTrigger>
@@ -2388,17 +2493,22 @@ export default function ReservasModule() {
  {/* ==================== TAB: PAGO (Opción C — Ultra-plano) ==================== */}
  <TabsContent value="pago" className="mt-4">
    <div className="space-y-3">
-     {/* ─── Desglose de precio: itemizado claro ─── */}
-     <DesglosePrecio form={form} computed={computed} formatMoney={formatMoney} s={s} />
+     {/* Con el check-out hecho no se recalcula nada: vale el total guardado. */}
+     {!soloPagos && (
+       <>
+         {/* ─── Desglose de precio: itemizado claro ─── */}
+         <DesglosePrecio form={form} computed={computed} formatMoney={formatMoney} s={s} />
 
-     {/* (promotions are now shown inside DesglosePrecio) */}
+         {/* (promotions are now shown inside DesglosePrecio) */}
 
-     {/* Recargo por cuotas */}
-     {computed.recargo > 0 && (
-       <div className="flex justify-between items-center py-1 text-[13px]">
-         <span className="text-muted-foreground">Recargo por cuotas</span>
-         <span className="font-semibold text-primary">+ {formatMoney(computed.recargo)}</span>
-       </div>
+         {/* Recargo por cuotas */}
+         {computed.recargo > 0 && (
+           <div className="flex justify-between items-center py-1 text-[13px]">
+             <span className="text-muted-foreground">Recargo por cuotas</span>
+             <span className="font-semibold text-primary">+ {formatMoney(computed.recargo)}</span>
+           </div>
+         )}
+       </>
      )}
 
      {/* Total */}
@@ -2407,10 +2517,63 @@ export default function ReservasModule() {
          {form.reservaMultiple ? 'Total combinado' : 'Total'}
        </span>
        <span className="font-bold text-xl text-primary">
-         {formatMoney(form.reservaMultiple ? (computed.totalFinalCombinado || computed.totalFinal) : computed.totalFinal)}
+         {formatMoney(soloPagos ? totalDeLaReserva : form.reservaMultiple ? (computed.totalFinalCombinado || computed.totalFinal) : computed.totalFinal)}
        </span>
      </div>
 
+     {/* ─── Pagos ya cargados: el monto se corrige acá y la caja se ajusta sola ─── */}
+     {editingId && pagosCargados.length > 0 && (
+       <div className="rounded-lg border p-3 space-y-2">
+         <div className="flex flex-wrap justify-between gap-x-3 text-[13px]">
+           <span className="font-semibold">Pagos cargados</span>
+           <span className="text-muted-foreground">
+             Pagado <strong className="text-foreground">{formatMoney(pagadoEditado)}</strong>
+             {' · '}Saldo <strong className={saldoTrasCorregir > 0 ? 'text-destructive' : 'text-foreground'}>{formatMoney(saldoTrasCorregir)}</strong>
+           </span>
+         </div>
+         {pagosCargados.map(p => {
+           const escrito = montoEscrito(p.id, p.monto);
+           return (
+             <div key={p.id} className="space-y-0.5">
+               <div className="flex items-center gap-2">
+                 <span className="text-[12px] text-muted-foreground w-20 shrink-0">{formatFecha(p.fecha)}</span>
+                 {/* w-0 + flex-1: el método se achica (y se corta) en vez de ensanchar el modal en el celular. */}
+                 <span className="text-[12px] w-0 flex-1 min-w-0 truncate">{p.metodo}{p.nota ? ` · ${p.nota}` : ''}</span>
+                 <div className="relative w-32 sm:w-36 shrink-0">
+                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-muted-foreground">$</span>
+                   <Input
+                     type="number"
+                     min={0}
+                     step="0.01"
+                     aria-label={`Monto del pago del ${formatFecha(p.fecha)}`}
+                     value={pagosEdit[p.id] ?? String(p.monto)}
+                     onChange={e => setPagosEdit(prev => ({ ...prev, [p.id]: e.target.value }))}
+                     aria-invalid={Number.isNaN(escrito)}
+                     className="pl-7 text-[13px] font-semibold h-9 text-right"
+                   />
+                 </div>
+               </div>
+               {escrito === 0 && (
+                 <p className="text-[11px] text-destructive text-right">Se elimina este pago</p>
+               )}
+             </div>
+           );
+         })}
+         <p className="text-[11px] text-muted-foreground">
+           Si un monto quedó mal cargado, corregilo acá: la caja se ajusta sola. En $0 el pago se elimina.
+         </p>
+       </div>
+     )}
+     {soloPagos && (
+       <p className="text-[12px] text-muted-foreground">Check-out hecho: solo se corrigen los montos de los pagos.</p>
+     )}
+
+     {/* ─── Cobrar ahora: al editar, solo si todavía falta ─── */}
+     {!soloPagos && maximoACobrar > 0 && (
+     <>
+     {editingId && pagosCargados.length > 0 && (
+       <p className="text-[12px] font-semibold text-muted-foreground">Cobrar ahora</p>
+     )}
      {/* ─── Forma de pago: toggle plano ─── */}
      <div className="flex bg-[#F1F5F980] rounded-lg p-1">
        {(['ninguno', 'parcial', 'total'] as PagoRadio[]).map(tipo => (
@@ -2425,7 +2588,7 @@ export default function ReservasModule() {
                : 'text-muted-foreground hover:text-muted-foreground'
            )}
          >
-           {tipo === 'ninguno' ? 'Sin pago' : tipo === 'parcial' ? 'Parcial' : 'Total'}
+           {tipo === 'ninguno' ? 'Sin pago' : tipo === 'parcial' ? 'Parcial' : (editingId && pagosCargados.length > 0 ? 'Saldo' : 'Total')}
          </button>
        ))}
      </div>
@@ -2440,8 +2603,8 @@ export default function ReservasModule() {
                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-muted-foreground">$</span>
                <Input
                  type="number"
-                 min={pagoMinimo}
-                 max={totalAPagar}
+                 min={editingId && pagosCargados.length > 0 ? 0 : pagoMinimo}
+                 max={maximoACobrar}
                  value={form.pagoMonto}
                  onChange={e => updateForm({ pagoMonto: e.target.value })}
                  placeholder="0"
@@ -2449,14 +2612,17 @@ export default function ReservasModule() {
                />
              </div>
              <div className="flex justify-between text-[11px] text-muted-foreground">
-               <span>Mínimo 30%: <strong className="text-muted-foreground">{formatMoney(pagoMinimo)}</strong></span>
-               <span>Máximo: <strong className="text-muted-foreground">{formatMoney(totalAPagar)}</strong></span>
+               {/* El 30% es para la seña: si ya hay pagos, lo que se cobra es parte del saldo. */}
+               {editingId && pagosCargados.length > 0
+                 ? <span />
+                 : <span>Mínimo 30%: <strong className="text-muted-foreground">{formatMoney(pagoMinimo)}</strong></span>}
+               <span>Máximo: <strong className="text-muted-foreground">{formatMoney(maximoACobrar)}</strong></span>
              </div>
              {form.pagoMonto && (parseFloat(form.pagoMonto) || 0) > 0 && (
                <div className="flex justify-between items-center py-1 text-[13px]">
                  <span className="text-muted-foreground">Saldo restante</span>
                  <span className="font-semibold text-foreground">
-                   {formatMoney(Math.max(0, totalAPagar - (parseFloat(form.pagoMonto) || 0)))}
+                   {formatMoney(Math.max(0, maximoACobrar - (parseFloat(form.pagoMonto) || 0)))}
                  </span>
                </div>
              )}
@@ -2465,7 +2631,7 @@ export default function ReservasModule() {
          {form.pagoTipo === 'total' && (
            <div className="flex justify-between items-center py-1 text-[13px]">
              <span className="text-muted-foreground">Monto a cobrar</span>
-             <span className="font-semibold text-foreground">{formatMoney(totalAPagar)}</span>
+             <span className="font-semibold text-foreground">{formatMoney(maximoACobrar)}</span>
            </div>
          )}
          <div className="flex gap-2.5">
@@ -2509,6 +2675,8 @@ export default function ReservasModule() {
          </div>
        </div>
      )}
+     </>
+     )}
 
      {/* Save / Cancel */}
      <div className="flex justify-end gap-2 pt-3 border-t border-border">
@@ -2523,7 +2691,10 @@ export default function ReservasModule() {
          className="min-w-[200px] bg-primary hover:bg-[#0F766ECC] text-white text-[13px] font-semibold"
        >
          {editingId ? 'Guardar cambios' : form.reservaMultiple ? 'Crear reservas múltiples' : 'Crear reserva'}
-         <span className="ml-2 font-bold">({formatMoney(totalAPagar)})</span>
+         {/* Al editar, el monto del botón es lo que se cobra ahora, no el total. */}
+         {editingId
+           ? montoCobroNuevo > 0 && <span className="ml-2 font-bold">(cobra {formatMoney(montoCobroNuevo)})</span>
+           : <span className="ml-2 font-bold">({formatMoney(totalAPagar)})</span>}
        </Button>
      </div>
    </div>
