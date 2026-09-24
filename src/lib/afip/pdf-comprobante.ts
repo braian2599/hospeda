@@ -34,6 +34,8 @@ export interface DatosComprobantePdf {
   letra: string; // 'B' | 'C' (fiscal) | 'R' (Remito) | 'X' (sin validez fiscal)
   codigoTipo: number | null; // código de comprobante AFIP (CbteTipo) — solo si es fiscal
   razonSocialEmisor: string;
+  /** El nombre del hotel. Va arriba de la razón social (ver nombreComercialAparte). */
+  nombreHotelEmisor?: string | null;
   direccionEmisor: string;
   condicionIvaEmisor: string;
   cuitEmisor: string;
@@ -76,6 +78,23 @@ function moneyAr(n: number): string {
 /** Corta un texto a varias líneas si no entra en el ancho dado (mm), devuelve las líneas. */
 function envolver(doc: jsPDF, texto: string, anchoMm: number): string[] {
   return doc.splitTextToSize(texto, anchoMm) as string[];
+}
+
+const comparable = (s: string) =>
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+/**
+ * El nombre del hotel, si hay que mostrarlo aparte de la razón social.
+ *
+ * El huésped conoce el hotel ("Hotel Las Palmas") pero la factura la emite el
+ * titular del CUIT, que puede ser una persona ("Solohaga Eliana Analia"). Se
+ * muestran los dos: el hotel arriba y la razón social abajo. Si son el mismo
+ * nombre (una SRL que se llama como el hotel), una sola vez.
+ */
+export function nombreComercialAparte(nombreHotel: string | null | undefined, razonSocial: string | null | undefined): string | null {
+  const hotel = (nombreHotel || '').trim();
+  if (!hotel) return null;
+  return comparable(hotel) === comparable(razonSocial || '') ? null : hotel;
 }
 
 /**
@@ -133,14 +152,25 @@ export function generarComprobantePdf(d: DatosComprobantePdf): jsPDF {
   doc.setFontSize(10);
   doc.setTextColor(...NEGRO);
   let ey = y + 7;
-  for (const linea of envolver(doc, d.razonSocialEmisor || '—', emisorTextW)) {
+  // Arriba el hotel, abajo quién factura. Cada bloque va a lo sumo en dos
+  // líneas: el recuadro tiene alto fijo y abajo va la condición de IVA.
+  const nombreHotel = nombreComercialAparte(d.nombreHotelEmisor, d.razonSocialEmisor);
+  if (nombreHotel) {
+    doc.setFontSize(11);
+    for (const linea of envolver(doc, nombreHotel, emisorTextW).slice(0, 2)) {
+      doc.text(linea, emisorTextX, ey);
+      ey += 4.5;
+    }
+    doc.setFontSize(9);
+  }
+  for (const linea of envolver(doc, d.razonSocialEmisor || '—', emisorTextW).slice(0, 2)) {
     doc.text(linea, emisorTextX, ey);
     ey += 4;
   }
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(...GRIS);
-  for (const linea of envolver(doc, d.direccionEmisor || '', emisorTextW)) {
+  for (const linea of envolver(doc, d.direccionEmisor || '', emisorTextW).slice(0, 2)) {
     doc.text(linea, emisorTextX, ey);
     ey += 3.5;
   }

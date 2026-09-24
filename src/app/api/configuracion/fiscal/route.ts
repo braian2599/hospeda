@@ -13,14 +13,25 @@ import { requireOwner, requirePermission, AuthError } from '@/lib/auth/utils';
 export async function GET() {
   try {
     const { tenantId } = await requirePermission('comprobantes');
-    const config = await db.tenantConfig.findUnique({
-      where: { tenantId },
+    const tenant = await db.tenant.findUnique({
+      where: { id: tenantId },
       select: {
-        hotelCuit: true, hotelIva: true, hotelDireccion: true, hotelCiudad: true, puntoVenta: true,
-        hotelRazonSocial: true, facturaLogoUrl: true, numeroFactura: true,
+        nombre: true,
+        configuracion: {
+          select: {
+            hotelCuit: true, hotelIva: true, hotelDireccion: true, hotelCiudad: true, puntoVenta: true,
+            hotelRazonSocial: true, facturaLogoUrl: true, numeroFactura: true, hotelNombre: true,
+          },
+        },
       },
     });
+    const config = tenant?.configuracion;
     return NextResponse.json({
+      // El nombre del hotel, el mismo que muestra Configuración → Hotel. Va
+      // arriba de la razón social en los comprobantes: el huésped conoce el
+      // hotel, y la factura la emite el titular del CUIT (que puede ser una
+      // persona con otro nombre).
+      nombreHotel: config?.hotelNombre || tenant?.nombre || '',
       cuit: config?.hotelCuit || '',
       iva: config?.hotelIva || '',
       direccionFiscal: config?.hotelDireccion || '',

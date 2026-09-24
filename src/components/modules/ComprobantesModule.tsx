@@ -39,7 +39,7 @@ import QRCode from 'qrcode';
 import { docReceptor, DOC_TIPO, letraPorTipoComprobante, notaSinValidezFiscal, type TipoComprobanteGenerico } from '@/lib/afip/config';
 import { urlQrAfip } from '@/lib/afip/qr';
 import { montoALetras } from '@/lib/numero-a-letras';
-import { generarComprobantePdf, cargarImagenComoDataUrl, TITULO_POR_TIPO } from '@/lib/afip/pdf-comprobante';
+import { generarComprobantePdf, cargarImagenComoDataUrl, TITULO_POR_TIPO, nombreComercialAparte } from '@/lib/afip/pdf-comprobante';
 import { proxiedImageUrl } from '@/lib/image-proxy';
 
 // formatFecha, formatMoney, formatFechaHora, todayLocal imported from @/lib/format
@@ -108,6 +108,8 @@ function formatComprobante(numero: number, puntoVenta: number): string {
 }
 
 export interface DatosFiscales {
+  /** El nombre del hotel (Configuración → Hotel). Va arriba de la razón social. */
+  nombreHotel: string;
   razonSocial: string;
   cuit: string;
   iva: string;
@@ -1035,6 +1037,7 @@ function ComprobantesListaTab() {
   useEffect(() => {
     fetch('/api/configuracion/fiscal').then(r => r.json()).then(f => {
       setFiscal({
+        nombreHotel: f?.nombreHotel || '',
         razonSocial: f?.razonSocial || '', cuit: f?.cuit || '', iva: f?.iva || '',
         direccionFiscal: f?.direccionFiscal || '', ciudad: f?.ciudad || '',
         facturaLogoUrl: f?.facturaLogoUrl || '', telefono: '', email: '',
@@ -1232,6 +1235,7 @@ function VerComprobanteDialog({
       const doc = generarComprobantePdf({
         tipo, letra: item.letra, codigoTipo: item.cae ? item.tipoAfip : null,
         razonSocialEmisor: fiscal?.razonSocial || '—',
+        nombreHotelEmisor: fiscal?.nombreHotel || null,
         direccionEmisor: [fiscal?.direccionFiscal, fiscal?.ciudad].filter(Boolean).join(', '),
         condicionIvaEmisor: fiscal?.iva || '',
         cuitEmisor: fiscal?.cuit || '',
@@ -1552,6 +1556,7 @@ function ReciboContent({
     ]).then(([f, h]) => {
       if (cancelled) return;
       setFiscal({
+        nombreHotel: f?.nombreHotel || '',
         razonSocial: f?.razonSocial || '',
         cuit: f?.cuit || '',
         iva: f?.iva || '',
@@ -1712,20 +1717,24 @@ export function TicketComprobante({
   const saldo = total - pagado;
   const now = new Date();
   const formattedDateTime = `${now.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })} — ${now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`;
-  const razonSocial = fiscal?.razonSocial || hotelName;
+  // Arriba el hotel; abajo quién factura, si es otro nombre (ver nombreComercialAparte).
+  const nombreHotel = fiscal?.nombreHotel || hotelName;
+  const razonSocial = fiscal?.razonSocial || nombreHotel;
+  const razonSocialAparte = nombreComercialAparte(nombreHotel, razonSocial) ? razonSocial : null;
 
   return (
     <div id="comprobante-imprimible" data-formato="ticket" className="border-2 border-dashed border-muted rounded-lg p-6 space-y-4 bg-card print:border-solid print:border-black print:bg-white">
       {/* ── Hotel Branding Header ── */}
       <div className="text-center space-y-2">
         {fiscal?.facturaLogoUrl ? (
-          <img src={proxiedImageUrl(fiscal.facturaLogoUrl)} alt={razonSocial} className="mx-auto w-14 h-14 rounded-xl object-contain bg-white" />
+          <img src={proxiedImageUrl(fiscal.facturaLogoUrl)} alt={nombreHotel} className="mx-auto w-14 h-14 rounded-xl object-contain bg-white" />
         ) : (
           <div className="mx-auto w-14 h-14 rounded-xl bg-primary flex items-center justify-center">
             <Building2 className="w-7 h-7 text-white" />
           </div>
         )}
-        <h3 className="text-xl font-bold tracking-wide text-primary">{razonSocial.toUpperCase()}</h3>
+        <h3 className="text-xl font-bold tracking-wide text-primary">{nombreHotel.toUpperCase()}</h3>
+        {razonSocialAparte && <p className="text-sm font-semibold">{razonSocialAparte}</p>}
         <p className="text-xs text-muted-foreground">{fiscal?.direccionFiscal || fiscal?.ciudad ? `${fiscal?.direccionFiscal || ''}${fiscal?.direccionFiscal && fiscal?.ciudad ? ', ' : ''}${fiscal?.ciudad || ''}` : 'Dirección no configurada'}</p>
         <p className="text-xs text-muted-foreground">{[fiscal?.telefono && `Tel: ${fiscal.telefono}`, fiscal?.email].filter(Boolean).join(' · ') || '—'}</p>
         {fiscal?.cuit && <p className="text-xs text-muted-foreground">CUIT: {fiscal.cuit}{fiscal.iva ? ` · ${fiscal.iva}` : ''}</p>}
@@ -1984,6 +1993,7 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
         letra,
         codigoTipo: comprobante?.cae ? comprobante.tipoComprobanteCodigo : null,
         razonSocialEmisor: fiscal?.razonSocial || '—',
+        nombreHotelEmisor: fiscal?.nombreHotel || null,
         direccionEmisor: [fiscal?.direccionFiscal, fiscal?.ciudad].filter(Boolean).join(', '),
         condicionIvaEmisor: fiscal?.iva || '',
         cuitEmisor: fiscal?.cuit || '',
@@ -2134,6 +2144,8 @@ export function ComprobanteOficial({
 }) {
   const esFiscal = !!comprobante.cae;
   const letra = letraPorTipoComprobante(tipo, comprobante.tipoComprobanteCodigo);
+  // Arriba el hotel, abajo quién factura (el titular del CUIT).
+  const nombreHotel = nombreComercialAparte(fiscal?.nombreHotel, fiscal?.razonSocial);
 
   return (
     <div className="border-2 border-foreground print:border-black text-[13px] relative">
@@ -2141,14 +2153,15 @@ export function ComprobanteOficial({
       <div className="grid grid-cols-[1fr_auto_1fr] border-b-2 border-foreground print:border-black">
         <div className="p-4 flex items-start gap-3 min-w-0">
           {fiscal?.facturaLogoUrl ? (
-            <img src={proxiedImageUrl(fiscal.facturaLogoUrl)} alt={fiscal.razonSocial} className="w-14 h-14 object-contain shrink-0" />
+            <img src={proxiedImageUrl(fiscal.facturaLogoUrl)} alt={nombreHotel || fiscal.razonSocial} className="w-14 h-14 object-contain shrink-0" />
           ) : (
             <div className="w-14 h-14 rounded bg-primary flex items-center justify-center shrink-0">
               <Building2 className="w-7 h-7 text-white" />
             </div>
           )}
           <div className="min-w-0">
-            <p className="font-bold leading-tight">{fiscal?.razonSocial}</p>
+            {nombreHotel && <p className="font-bold text-base leading-tight">{nombreHotel}</p>}
+            <p className={nombreHotel ? 'font-semibold leading-tight' : 'font-bold leading-tight'}>{fiscal?.razonSocial}</p>
             <p className="text-xs leading-tight">{[fiscal?.direccionFiscal, fiscal?.ciudad].filter(Boolean).join(' - ')}</p>
             <p className="font-semibold mt-1">{fiscal?.iva}</p>
           </div>

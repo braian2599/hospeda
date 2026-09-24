@@ -626,7 +626,7 @@ function FiscalSection() {
                 Razón social
               </Label>
               <Input value={form.razonSocial} onChange={e => setForm({ ...form, razonSocial: e.target.value })} placeholder="Nombre legal / razón social registrada ante AFIP" />
-              <p className="text-xs text-muted-foreground">Puede ser distinto del nombre comercial del hotel — es el que figura en la factura.</p>
+              <p className="text-xs text-muted-foreground">Puede ser distinto del nombre del hotel (por ejemplo, el nombre del titular). En los comprobantes sale abajo del nombre del hotel.</p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm font-medium flex items-center gap-2">
@@ -771,8 +771,10 @@ function FiscalPreviewCard({
   invoicePreview: string;
 }) {
   const [formato, setFormato] = useState<'ticket' | 'a4'>('ticket');
+  const nombreHotel = useHotelStore(s => s.usuarioActual?.tenantNombre) || '';
 
   const demoFiscal: DatosFiscales = {
+    nombreHotel,
     razonSocial: form.razonSocial || 'Tu razón social',
     cuit: form.cuit || '20-00000000-0',
     iva: form.iva || 'Responsable Inscripto',
