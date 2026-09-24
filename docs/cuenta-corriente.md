@@ -311,11 +311,22 @@ saldo) sin tocar nada nuevo de ARCA.
     respuesta vacía, fault "No existe"). La primera consulta real se prueba
     en Preview con un hotel que tenga el certificado y el servicio habilitado.
 
+## Tareas que faltan
+
+1. **CC-4:** Factura A + UNA factura al titular por el total de la reserva,
+   con su CUIT. Antes: confirmar en la documentación de ARCA si hoy exige la
+   condición de IVA del receptor al pedir el CAE.
+2. **Probar en Preview** (el dueño), incluido "Traer de ARCA" con un
+   certificado de homologación (WSASS, en curso).
+3. **Pasar a producción:** correr el SQL de `20260924_padron_arca` en la base
+   de producción y recién ahí mergear `PREVIEW` a `main`, con aprobación.
+
 ## Pendiente de decidir (no bloquea)
 
 - Límite de crédito: ¿bloquea la derivación o solo avisa?
 - ¿Se puede anular un cargo derivado por error? (Por ahora no.)
-- **Para CC-4:** si el huésped pagó una seña y el resto se derivó a una
-  empresa, ¿cómo se factura? Hoy una reserva tiene UN solo comprobante.
-  Opciones: una factura al huésped por la seña y otra a la empresa por lo
-  derivado, o una sola a la empresa por el total.
+- ¿Se bloquea derivar una reserva que ya tiene pagos? (Ofrecido; coherente
+  con "sin seña".)
+- ~~Seña + derivación, ¿cómo se factura?~~ **Decidido:** una cuenta corriente
+  no tiene seña; va el total a la cuenta y se hace una sola factura al
+  titular por el total.
