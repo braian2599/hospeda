@@ -162,7 +162,7 @@ export default function GuiaRapida({ pasos, onTerminar, onSaltar }: Props) {
               aria-label={`Paso ${i + 1}: ${p.titulo}`}
               aria-current={i === indice ? 'step' : undefined}
               className={`h-[7px] rounded-full transition-all duration-200 ${
-                i === indice ? 'w-5 bg-primary' : 'w-[7px] bg-border hover:bg-muted-foreground/40'
+                i === indice ? 'w-5 bg-primary' : 'w-[7px] bg-border hover:bg-[rgb(var(--muted-foreground-rgb)/0.4)]'
               }`}
             />
           ))}

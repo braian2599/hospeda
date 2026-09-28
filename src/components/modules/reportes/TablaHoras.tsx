@@ -200,7 +200,7 @@ export default function TablaHoras({ filas, cargando, error, recortado }: TablaH
                     </TableRow>
                     {estaAbierta && (
                       <TableRow>
-                        <TableCell colSpan={5} className="bg-muted/30 p-0">
+                        <TableCell colSpan={5} className="bg-[rgb(var(--muted-rgb)/0.3)] p-0">
                           <Dias dias={f.dias} />
                         </TableCell>
                       </TableRow>

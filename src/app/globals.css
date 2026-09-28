@@ -68,28 +68,45 @@
   --color-status-finalized: var(--status-finalized);
 }
 
+/* Los colores del tema tienen también su versión en canales RGB (--X-rgb:
+   r g b) para usarlos con transparencia: rgb(var(--primary-rgb) / 0.1).
+   NO usar color-mix(in …, var(--X) N%, transparent) ni clases como
+   bg-primary/10: en navegadores sin color-mix() (Chrome 109, el último de
+   Windows 7) el CSS cae a un respaldo con el color SÓLIDO y, por ejemplo, la
+   fila bajo el mouse se pintaba entera de verde. En las clases se escribe
+   bg-[rgb(var(--primary-rgb)/0.1)]. Si se agrega o cambia un color del tema,
+   actualizar también su -rgb (en :root y en .dark). */
 :root {
   --radius: 0.625rem;
 
   /* ── Light theme (default) ── */
   --background: #F8FAFC;
+  --background-rgb: 248 250 252;
   --foreground: #0F172A;
+  --foreground-rgb: 15 23 42;
   --card: #FFFFFF;
+  --card-rgb: 255 255 255;
   --card-foreground: #0F172A;
   --popover: #FFFFFF;
   --popover-foreground: #0F172A;
   --primary: #0F766E;
+  --primary-rgb: 15 118 110;
   --primary-foreground: #FFFFFF;
+  --primary-foreground-rgb: 255 255 255;
   --secondary: #F1F5F9;
   --secondary-foreground: #0F172A;
   --muted: #F1F5F9;
+  --muted-rgb: 241 245 249;
   --muted-foreground: #64748B;
+  --muted-foreground-rgb: 100 116 139;
   --accent: #F1F5F9;
   --accent-foreground: #0F172A;
   --destructive: #EF4444;
+  --destructive-rgb: 239 68 68;
   --border: #E2E8F0;
   --input: #E2E8F0;
   --ring: #0F766E;
+  --ring-rgb: 15 118 110;
   --chart-1: #F59E0B;
   --chart-2: #10B981;
   --chart-3: #3B82F6;
@@ -106,8 +123,10 @@
 
   /* ── Semantic status colors (theme-aware) ── */
   --success: #059669;
+  --success-rgb: 5 150 105;
   --success-foreground: #FFFFFF;
   --warning: #D97706;
+  --warning-rgb: 217 119 6;
   --warning-foreground: #FFFFFF;
   --info: #0284C7;
   --info-foreground: #FFFFFF;
@@ -117,8 +136,11 @@
   /* ── Brand accent palette ── */
   --brand-deep: #0F2B28;
   --brand-emerald: #059669;
+  --brand-emerald-rgb: 5 150 105;
   --brand-mint: #4ADE80;
+  --brand-mint-rgb: 74 222 128;
   --brand-teal: #2D7A6E;
+  --brand-teal-rgb: 45 122 110;
   --brand-amber: #F59E0B;
 
   /* ── Status palette for rooms/reservations (light) ── */
@@ -133,23 +155,32 @@
 /* ── Dark theme ── */
 .dark {
   --background: #0C1B19;
+  --background-rgb: 12 27 25;
   --foreground: #E2E8F0;
+  --foreground-rgb: 226 232 240;
   --card: #132624;
+  --card-rgb: 19 38 36;
   --card-foreground: #E2E8F0;
   --popover: #162E2B;
   --popover-foreground: #E2E8F0;
   --primary: #2D7A6E;
+  --primary-rgb: 45 122 110;
   --primary-foreground: #FFFFFF;
+  --primary-foreground-rgb: 255 255 255;
   --secondary: #1A2F2C;
   --secondary-foreground: #CBD5E1;
   --muted: #1A2F2C;
+  --muted-rgb: 26 47 44;
   --muted-foreground: #94A3B8;
+  --muted-foreground-rgb: 148 163 184;
   --accent: #1A4D43;
   --accent-foreground: #E2E8F0;
   --destructive: #F87171;
+  --destructive-rgb: 248 113 113;
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.12);
   --ring: #2D7A6E;
+  --ring-rgb: 45 122 110;
   --chart-1: #FBBF24;
   --chart-2: #4ADE80;
   --chart-3: #38BDF8;
@@ -165,8 +196,10 @@
   --sidebar-ring: #4ADE80;
 
   --success: #34D399;
+  --success-rgb: 52 211 153;
   --success-foreground: #022C22;
   --warning: #FBBF24;
+  --warning-rgb: 251 191 36;
   --warning-foreground: #422006;
   --info: #38BDF8;
   --info-foreground: #082F49;
@@ -176,8 +209,11 @@
   /* ── Brand accent palette (dark) ── */
   --brand-deep: #0F2B28;
   --brand-emerald: #34D399;
+  --brand-emerald-rgb: 52 211 153;
   --brand-mint: #4ADE80;
+  --brand-mint-rgb: 74 222 128;
   --brand-teal: #2D7A6E;
+  --brand-teal-rgb: 45 122 110;
   --brand-amber: #FBBF24;
 
   /* ── Status palette for rooms/reservations (dark) ── */
@@ -214,7 +250,7 @@
    ───────────────────────────────────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent) transparent;
+  scrollbar-color: rgb(var(--muted-foreground-rgb) / 0.35) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -227,14 +263,14 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
+  background-color: rgb(var(--muted-foreground-rgb) / 0.35);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background-color: color-mix(in oklch, var(--muted-foreground) 60%, transparent);
+  background-color: rgb(var(--muted-foreground-rgb) / 0.6);
   background-clip: content-box;
 }
 
@@ -338,7 +374,7 @@
 .sidebar-gradient {
   background-image: linear-gradient(
     180deg,
-    color-mix(in oklch, var(--brand-mint) 6%, transparent) 0%,
+    rgb(var(--brand-mint-rgb) / 0.06) 0%,
     transparent 25%
   );
   background-repeat: no-repeat;
@@ -438,10 +474,10 @@
    ───────────────────────────────────────────────────────────── */
 @keyframes waveBorder {
   0%, 100% {
-    box-shadow: 0 0 0 0 color-mix(in oklch, var(--brand-emerald) 0%, transparent);
+    box-shadow: 0 0 0 0 rgb(var(--brand-emerald-rgb) / 0);
   }
   50% {
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--brand-emerald) 25%, transparent);
+    box-shadow: 0 0 0 3px rgb(var(--brand-emerald-rgb) / 0.25);
   }
 }
 
@@ -453,7 +489,7 @@
 
 .wave-border-hover:hover {
   animation: waveBorder 1.6s ease-in-out infinite;
-  border-color: color-mix(in oklch, var(--brand-emerald) 50%, transparent);
+  border-color: rgb(var(--brand-emerald-rgb) / 0.5);
 }
 
 .wave-border-hover-amber {
@@ -464,15 +500,15 @@
 
 .wave-border-hover-amber:hover {
   animation: waveBorderAmber 1.6s ease-in-out infinite;
-  border-color: color-mix(in oklch, var(--warning) 50%, transparent);
+  border-color: rgb(var(--warning-rgb) / 0.5);
 }
 
 @keyframes waveBorderAmber {
   0%, 100% {
-    box-shadow: 0 0 0 0 color-mix(in oklch, var(--warning) 0%, transparent);
+    box-shadow: 0 0 0 0 rgb(var(--warning-rgb) / 0);
   }
   50% {
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--warning) 25%, transparent);
+    box-shadow: 0 0 0 3px rgb(var(--warning-rgb) / 0.25);
   }
 }
 
@@ -514,7 +550,7 @@
   );
   z-index: 100;
   transition: width 100ms ease-out;
-  box-shadow: 0 0 12px color-mix(in oklch, var(--brand-mint) 40%, transparent);
+  box-shadow: 0 0 12px rgb(var(--brand-mint-rgb) / 0.4);
 }
 
 /* Floating gradient orbs for hero section */
@@ -559,10 +595,10 @@
   color: var(--brand-mint);
   background: linear-gradient(
     90deg,
-    color-mix(in oklch, var(--brand-teal) 15%, transparent) 0%,
-    color-mix(in oklch, var(--brand-mint) 8%, transparent) 100%
+    rgb(var(--brand-teal-rgb) / 0.15) 0%,
+    rgb(var(--brand-mint-rgb) / 0.08) 100%
   );
-  border: 1px solid color-mix(in oklch, var(--brand-teal) 30%, transparent);
+  border: 1px solid rgb(var(--brand-teal-rgb) / 0.3);
   border-left: 3px solid var(--brand-mint);
   border-radius: 0.5rem;
   box-shadow:
@@ -582,23 +618,23 @@
 .cta-premium:hover {
   transform: translateY(-2px);
   box-shadow:
-    0 12px 24px -6px color-mix(in oklch, var(--brand-teal) 40%, transparent),
-    0 4px 8px -2px color-mix(in oklch, var(--brand-teal) 20%, transparent),
-    0 0 20px color-mix(in oklch, var(--brand-mint) 15%, transparent);
+    0 12px 24px -6px rgb(var(--brand-teal-rgb) / 0.4),
+    0 4px 8px -2px rgb(var(--brand-teal-rgb) / 0.2),
+    0 0 20px rgb(var(--brand-mint-rgb) / 0.15);
 }
 
 .cta-premium:active {
   transform: translateY(0) scale(0.99);
-  box-shadow: 0 4px 12px -2px color-mix(in oklch, var(--brand-teal) 30%, transparent);
+  box-shadow: 0 4px 12px -2px rgb(var(--brand-teal-rgb) / 0.3);
 }
 
 /* Skeleton shimmer for stats initial state */
 .stats-skeleton {
   background: linear-gradient(
     90deg,
-    color-mix(in oklch, var(--brand-mint) 3%, transparent) 25%,
-    color-mix(in oklch, var(--brand-mint) 8%, transparent) 50%,
-    color-mix(in oklch, var(--brand-mint) 3%, transparent) 75%
+    rgb(var(--brand-mint-rgb) / 0.03) 25%,
+    rgb(var(--brand-mint-rgb) / 0.08) 50%,
+    rgb(var(--brand-mint-rgb) / 0.03) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.8s infinite linear;
@@ -685,7 +721,7 @@
   transform: translateY(-4px);
   box-shadow:
     0 20px 40px -12px rgba(0, 0, 0, 0.1),
-    0 4px 12px -2px color-mix(in oklch, var(--brand-teal) 15%, transparent);
+    0 4px 12px -2px rgb(var(--brand-teal-rgb) / 0.15);
 }
 
 /* Quick stats mobile bar — sticky top */
@@ -695,8 +731,8 @@
   z-index: 20;
   background: linear-gradient(
     180deg,
-    color-mix(in oklch, var(--background) 95%, transparent) 0%,
-    color-mix(in oklch, var(--background) 85%, transparent) 100%
+    rgb(var(--background-rgb) / 0.95) 0%,
+    rgb(var(--background-rgb) / 0.85) 100%
   );
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -724,8 +760,8 @@
 
 /* Pulse glow for active elements */
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--brand-emerald) 0%, transparent); }
-  50% { box-shadow: 0 0 0 6px color-mix(in oklch, var(--brand-emerald) 18%, transparent); }
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--brand-emerald-rgb) / 0); }
+  50% { box-shadow: 0 0 0 6px rgb(var(--brand-emerald-rgb) / 0.18); }
 }
 
 .pulse-glow {
@@ -735,8 +771,8 @@
 /* Subtle grid pattern background */
 .bg-grid-pattern {
   background-image:
-    linear-gradient(to right, color-mix(in oklch, var(--brand-mint) 4%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklch, var(--brand-mint) 4%, transparent) 1px, transparent 1px);
+    linear-gradient(to right, rgb(var(--brand-mint-rgb) / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(var(--brand-mint-rgb) / 0.04) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 
@@ -934,7 +970,7 @@
   background: linear-gradient(
     120deg,
     transparent 30%,
-    color-mix(in oklch, var(--brand-emerald) 15%, transparent) 50%,
+    rgb(var(--brand-emerald-rgb) / 0.15) 50%,
     transparent 70%
   );
   background-size: 200% 100%;
@@ -952,8 +988,8 @@
 
 /* "Most Popular" glow badge */
 @keyframes badgeGlow {
-  0%, 100% { box-shadow: 0 0 8px 2px color-mix(in oklch, var(--brand-emerald) 25%, transparent); }
-  50% { box-shadow: 0 0 16px 4px color-mix(in oklch, var(--brand-emerald) 45%, transparent); }
+  0%, 100% { box-shadow: 0 0 8px 2px rgb(var(--brand-emerald-rgb) / 0.25); }
+  50% { box-shadow: 0 0 16px 4px rgb(var(--brand-emerald-rgb) / 0.45); }
 }
 
 .badge-glow {
@@ -1060,7 +1096,7 @@
   border-radius: 9999px;
   background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-mint) 100%);
   color: white;
-  box-shadow: 0 4px 12px color-mix(in oklch, var(--brand-teal) 40%, transparent);
+  box-shadow: 0 4px 12px rgb(var(--brand-teal-rgb) / 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1073,7 +1109,7 @@
 
 .back-to-top-btn:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 20px color-mix(in oklch, var(--brand-teal) 50%, transparent);
+  box-shadow: 0 6px 20px rgb(var(--brand-teal-rgb) / 0.5);
 }
 
 .back-to-top-btn:active {
@@ -1127,7 +1163,7 @@
   width: 6px;
   height: 6px;
   border-radius: 9999px;
-  background: color-mix(in oklch, var(--brand-mint) 30%, transparent);
+  background: rgb(var(--brand-mint-rgb) / 0.3);
   top: 50%;
   left: -18px;
   transform: translateY(-50%);
@@ -1138,7 +1174,7 @@
   position: absolute;
   width: 12px;
   height: 1px;
-  background: color-mix(in oklch, var(--brand-mint) 15%, transparent);
+  background: rgb(var(--brand-mint-rgb) / 0.15);
   top: 50%;
   left: -12px;
   transform: translateY(-50%);
@@ -1186,8 +1222,8 @@
   transition: box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .hover-glow:hover {
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--brand-mint) 15%, transparent),
-              0 4px 16px -4px color-mix(in oklch, var(--brand-mint) 20%, transparent);
+  box-shadow: 0 0 0 3px rgb(var(--brand-mint-rgb) / 0.15),
+              0 4px 16px -4px rgb(var(--brand-mint-rgb) / 0.2);
 }
 
 /* Press shrink: scale(0.97) on active/press */
@@ -1367,7 +1403,7 @@
 
 /* Active sidebar item glow */
 .sidebar-active-glow {
-  box-shadow: inset 3px 0 12px -3px color-mix(in oklch, var(--brand-mint) 25%, transparent);
+  box-shadow: inset 3px 0 12px -3px rgb(var(--brand-mint-rgb) / 0.25);
 }
 
 /* Sidebar collapse/expand animation */
@@ -1504,7 +1540,7 @@
 .table-striped > tbody > tr:nth-child(even) {
   background: linear-gradient(
     90deg,
-    color-mix(in oklch, var(--muted) 40%, transparent) 0%,
+    rgb(var(--muted-rgb) / 0.4) 0%,
     transparent 100%
   );
 }
@@ -1515,7 +1551,7 @@
               box-shadow 150ms ease;
 }
 .table-row-hover > tbody > tr:hover {
-  background-color: color-mix(in oklch, var(--primary) 10%, transparent);
+  background-color: rgb(var(--primary-rgb) / 0.1);
 }
 
 /* Sortable column header indicator */
@@ -1530,7 +1566,7 @@
 
 /* Row click animation — brief highlight flash */
 @keyframes rowClickFlash {
-  0%   { background-color: color-mix(in oklch, var(--primary) 15%, transparent); }
+  0%   { background-color: rgb(var(--primary-rgb) / 0.15); }
   100% { background-color: transparent; }
 }
 .table-row-click > tbody > tr {
@@ -1609,7 +1645,7 @@
   display: inline-block;
   width: 1.25rem;
   height: 1.25rem;
-  border: 2px solid color-mix(in oklch, var(--primary) 30%, transparent);
+  border: 2px solid rgb(var(--primary-rgb) / 0.3);
   border-top-color: var(--primary);
   border-radius: 9999px;
   animation: brandedSpin 700ms linear infinite;
@@ -1699,12 +1735,12 @@
 }
 .drag-hint:hover {
   border-color: var(--primary);
-  background-color: color-mix(in oklch, var(--primary) 5%, transparent);
+  background-color: rgb(var(--primary-rgb) / 0.05);
 }
 
 /* Selected/higlighted state for list items */
 .item-selected {
-  background-color: color-mix(in oklch, var(--primary) 8%, transparent);
+  background-color: rgb(var(--primary-rgb) / 0.08);
   border-left: 3px solid var(--primary);
 }
 
@@ -1712,7 +1748,7 @@
 
 /* Value change flash — briefly highlights a value that changed */
 @keyframes valueFlash {
-  0%   { color: var(--brand-mint); text-shadow: 0 0 8px color-mix(in oklch, var(--brand-mint) 40%, transparent); }
+  0%   { color: var(--brand-mint); text-shadow: 0 0 8px rgb(var(--brand-mint-rgb) / 0.4); }
   100% { color: inherit; text-shadow: none; }
 }
 .value-flash {

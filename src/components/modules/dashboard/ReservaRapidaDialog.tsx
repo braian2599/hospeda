@@ -322,7 +322,7 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
     }
   };
 
-  const err = (k: string) => marcados.has(k) ? 'border-destructive focus-visible:ring-destructive/40' : '';
+  const err = (k: string) => marcados.has(k) ? 'border-destructive focus-visible:ring-[rgb(var(--destructive-rgb)/0.4)]' : '';
 
   return (
     <div className="grid md:grid-cols-[1fr_300px]">
@@ -505,7 +505,7 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
       </div>
 
       {/* ── Ticket ── */}
-      <aside className="bg-muted/40 border-t md:border-t-0 md:border-l p-4 flex flex-col gap-2.5 md:rounded-r-lg">
+      <aside className="bg-[rgb(var(--muted-rgb)/0.4)] border-t md:border-t-0 md:border-l p-4 flex flex-col gap-2.5 md:rounded-r-lg">
         <div className="flex items-center gap-2">
           <span className="text-[15px] font-bold">Hab. {datos.habitacion}</span>
           {hab && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#0F766E1F] text-primary">{hab.tipo}</span>}

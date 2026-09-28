@@ -304,7 +304,7 @@ export default function PreciosPage() {
           {/* Futuras integraciones — deliberadamente fuera de la tabla de ✓/✗:
               todavía no están funcionando, no corresponde mostrarlas como incluidas
               en ningún plan. */}
-          <FadeIn className="mt-6 rounded-2xl border border-dashed border-border bg-card/60 p-5 text-center sm:text-left">
+          <FadeIn className="mt-6 rounded-2xl border border-dashed border-border bg-[rgb(var(--card-rgb)/0.6)] p-5 text-center sm:text-left">
             <div className="flex flex-col items-center gap-1 sm:flex-row sm:items-baseline sm:gap-2">
               <Badge variant="secondary" className="gap-1">
                 <Clock className="h-3 w-3" />

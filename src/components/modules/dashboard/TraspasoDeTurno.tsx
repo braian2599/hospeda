@@ -133,7 +133,7 @@ export default function TraspasoDeTurno() {
 
           <div className={verTodos ? 'space-y-1.5 max-h-[420px] overflow-y-auto' : 'space-y-1.5'}>
             {visibles.map(ev => (
-              <div key={ev.id} className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+              <div key={ev.id} className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-[rgb(var(--muted-rgb)/0.5)] transition-colors">
                 <div className="w-7 h-7 rounded-lg bg-[#0F766E12] flex items-center justify-center shrink-0 mt-px">
                   <Icono nombre={ICONO_POR_TIPO[ev.tipo] || 'Circle'} className="w-[15px] h-[15px] text-primary" />
                 </div>

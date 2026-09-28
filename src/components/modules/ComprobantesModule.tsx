@@ -1704,7 +1704,7 @@ export function TicketComprobante({
           Documento generado por {razonSocial} — {formattedDateTime}
         </p>
         {isReceipt && !comprobante?.cae && (
-          <p className="text-center text-[9px] text-muted-foreground/70 print:text-black">
+          <p className="text-center text-[9px] text-[rgb(var(--muted-foreground-rgb)/0.7)] print:text-black">
             Comprobante interno — no reemplaza la factura electrónica oficial de AFIP.
           </p>
         )}
@@ -1844,7 +1844,7 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
       <style>{'@media print { @page { size: A4; margin: 12mm; } }'}</style>
 
       {loadingComprobante || !comprobante ? (
-        <div className="border-2 border-foreground/20 rounded-lg p-16 flex items-center justify-center gap-2 text-muted-foreground">
+        <div className="border-2 border-[rgb(var(--foreground-rgb)/0.2)] rounded-lg p-16 flex items-center justify-center gap-2 text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin" /> Generando comprobante…
         </div>
       ) : (

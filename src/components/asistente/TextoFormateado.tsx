@@ -18,7 +18,7 @@ function Partes({ partes }: { partes: Trozo[] }) {
         if (p.tipo === 'suave') return <em key={i}>{p.texto}</em>;
         if (p.tipo === 'codigo') {
           return (
-            <code key={i} className="rounded bg-background/80 px-1 py-0.5 font-mono text-[12px]">
+            <code key={i} className="rounded bg-[rgb(var(--background-rgb)/0.8)] px-1 py-0.5 font-mono text-[12px]">
               {p.texto}
             </code>
           );

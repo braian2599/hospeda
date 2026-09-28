@@ -150,7 +150,7 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
               {t.contactoEmail && <p className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-muted-foreground" />{t.contactoEmail}</p>}
               <p><span className="text-muted-foreground">Límite: </span>{t.limiteCredito != null ? formatMoney(aPesos(t.limiteCredito)) : 'Sin límite'}</p>
             </div>
-            <div className={`rounded-xl border-2 px-5 py-3 text-center ${saldo > 0 ? 'border-[#EF444466] bg-[#EF444414]' : 'border-border bg-muted/40'}`}>
+            <div className={`rounded-xl border-2 px-5 py-3 text-center ${saldo > 0 ? 'border-[#EF444466] bg-[#EF444414]' : 'border-border bg-[rgb(var(--muted-rgb)/0.4)]'}`}>
               <p className={`text-xs font-medium uppercase tracking-wide ${saldo > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>Debe</p>
               <p className={`text-2xl font-bold ${saldo > 0 ? 'text-destructive' : ''}`}>{formatMoney(saldo)}</p>
               {t.superaLimite && (
@@ -254,7 +254,7 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={trabajando}>No</AlertDialogCancel>
-            <AlertDialogAction onClick={e => { e.preventDefault(); void anularCargo(); }} disabled={trabajando} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction onClick={e => { e.preventDefault(); void anularCargo(); }} disabled={trabajando} className="bg-destructive hover:bg-[rgb(var(--destructive-rgb)/0.9)]">
               {trabajando && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
               Sí, anular el pase
             </AlertDialogAction>
@@ -272,7 +272,7 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={trabajando}>No</AlertDialogCancel>
-            <AlertDialogAction onClick={e => { e.preventDefault(); void anular(); }} disabled={trabajando} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction onClick={e => { e.preventDefault(); void anular(); }} disabled={trabajando} className="bg-destructive hover:bg-[rgb(var(--destructive-rgb)/0.9)]">
               {trabajando && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
               Sí, anular
             </AlertDialogAction>
@@ -318,7 +318,7 @@ function FormCobro({ titularId, saldo, onCancelar, onCobrado }: {
   };
 
   return (
-    <div className="rounded-lg border p-3 space-y-3 bg-muted/20">
+    <div className="rounded-lg border p-3 space-y-3 bg-[rgb(var(--muted-rgb)/0.2)]">
       {!cajaAbierta && (
         <p className="text-sm text-warning flex items-center gap-1.5">
           <AlertTriangle className="w-4 h-4" /> La caja está cerrada. Abrila para registrar un cobro: la plata entra en el turno.

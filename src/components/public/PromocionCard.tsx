@@ -73,7 +73,7 @@ function formatMoney(n: number, moneda: string): string {
 
 function IconCircle({ icon: Icon }: { icon: typeof Zap }) {
   return (
-    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+    <div className="w-9 h-9 rounded-full bg-[rgb(var(--primary-rgb)/0.1)] flex items-center justify-center shrink-0">
       <Icon className="w-4 h-4 text-primary" />
     </div>
   );
@@ -156,8 +156,8 @@ export default function PromocionCard({
 
   return (
     <>
-      <div className="group rounded-2xl border bg-card overflow-hidden transition-all hover:shadow-lg hover:border-primary/30">
-        <div className="h-1.5 bg-gradient-to-r from-primary to-primary/30" />
+      <div className="group rounded-2xl border bg-card overflow-hidden transition-all hover:shadow-lg hover:border-[rgb(var(--primary-rgb)/0.3)]">
+        <div className="h-1.5 bg-gradient-to-r from-primary to-[rgb(var(--primary-rgb)/0.3)]" />
         <div className="p-6 sm:p-8 space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
             <div className="space-y-2.5 min-w-0">
@@ -182,7 +182,7 @@ export default function PromocionCard({
               huésped entienda exactamente cómo funciona, sin tener que adivinar. */}
           <div className="grid sm:grid-cols-2 gap-3">
             {promocion.nochesCortesia && (
-              <div className="rounded-xl border bg-primary/5 border-primary/10 p-4 flex items-start gap-3">
+              <div className="rounded-xl border bg-[rgb(var(--primary-rgb)/0.05)] border-[rgb(var(--primary-rgb)/0.1)] p-4 flex items-start gap-3">
                 <IconCircle icon={Zap} />
                 <div className="space-y-0.5 min-w-0">
                   <p className="text-sm font-medium">Noches de cortesía</p>
@@ -191,7 +191,7 @@ export default function PromocionCard({
               </div>
             )}
             {promocion.ninosDiferenciado && (
-              <div className="rounded-xl border bg-primary/5 border-primary/10 p-4 flex items-start gap-3">
+              <div className="rounded-xl border bg-[rgb(var(--primary-rgb)/0.05)] border-[rgb(var(--primary-rgb)/0.1)] p-4 flex items-start gap-3">
                 <IconCircle icon={Baby} />
                 <div className="space-y-0.5 min-w-0">
                   <p className="text-sm font-medium">Niños con tarifa especial</p>
@@ -203,7 +203,7 @@ export default function PromocionCard({
               </div>
             )}
             {promocion.acompanante && (
-              <div className="rounded-xl border bg-primary/5 border-primary/10 p-4 flex items-start gap-3 sm:col-span-2">
+              <div className="rounded-xl border bg-[rgb(var(--primary-rgb)/0.05)] border-[rgb(var(--primary-rgb)/0.1)] p-4 flex items-start gap-3 sm:col-span-2">
                 <IconCircle icon={Gift} />
                 <div className="space-y-0.5 min-w-0">
                   <p className="text-sm font-medium">{promocion.acompanante.etiqueta}</p>

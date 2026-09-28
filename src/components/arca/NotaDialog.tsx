@@ -163,7 +163,7 @@ export default function NotaDialog({ clase, abierto, factura: facturaFija, onCer
                               key={f.id} tabIndex={0} aria-selected={activa}
                               onClick={() => setElegida(f)}
                               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setElegida(f); } }}
-                              className={`cursor-pointer ${activa ? 'bg-[#0F766E1A]' : 'hover:bg-muted/60'}`}
+                              className={`cursor-pointer ${activa ? 'bg-[#0F766E1A]' : 'hover:bg-[rgb(var(--muted-rgb)/0.6)]'}`}
                             >
                               <td className="px-2 py-2"><span className="inline-grid place-items-center w-7 h-7 rounded border-[1.5px] border-foreground font-bold text-xs">{f.letra}</span></td>
                               <td className="px-2 py-2 font-mono text-xs whitespace-nowrap">{f.numeroDisplay}</td>
@@ -192,7 +192,7 @@ export default function NotaDialog({ clase, abierto, factura: facturaFija, onCer
                     <button
                       key={String(opcion)} type="button" role="radio" aria-checked={total === opcion}
                       onClick={() => setTotal(opcion)}
-                      className={`rounded-lg border p-3 text-left transition-colors ${total === opcion ? 'border-primary bg-[#0F766E1A]' : 'hover:bg-muted/50'}`}
+                      className={`rounded-lg border p-3 text-left transition-colors ${total === opcion ? 'border-primary bg-[#0F766E1A]' : 'hover:bg-[rgb(var(--muted-rgb)/0.5)]'}`}
                     >
                       <span className="block text-sm font-medium">{opcion ? 'Todo lo que queda' : 'Una parte'}</span>
                       <span className="block text-xs text-muted-foreground">{opcion ? (elegida ? `${formatMoney(disponible)} · la factura queda anulada` : 'La factura queda anulada') : 'Por ejemplo, una noche que no se usó'}</span>

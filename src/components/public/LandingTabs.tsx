@@ -28,7 +28,7 @@ function SectionTitle({ children }: { children: ReactNode }) {
   return (
     <div className="text-center space-y-2">
       <h2 className="text-xl font-semibold">{children}</h2>
-      <div className="mx-auto h-1 w-10 rounded-full bg-primary/40" />
+      <div className="mx-auto h-1 w-10 rounded-full bg-[rgb(var(--primary-rgb)/0.4)]" />
     </div>
   );
 }
@@ -121,7 +121,7 @@ export default function LandingTabs({
                     return (
                       <span
                         key={s}
-                        className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm transition-all hover:border-primary/40 hover:shadow-sm hover:-translate-y-0.5"
+                        className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm transition-all hover:border-[rgb(var(--primary-rgb)/0.4)] hover:shadow-sm hover:-translate-y-0.5"
                       >
                         <Icono className="w-4 h-4 text-primary shrink-0" /> {s}
                       </span>

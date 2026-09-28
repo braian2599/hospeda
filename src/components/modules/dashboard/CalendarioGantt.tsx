@@ -961,7 +961,7 @@ export default function CalendarioGantt({ fechaInicioBase }: { fechaInicioBase: 
                 ))}
               </div>
             )}
-            <label className="ml-auto flex items-center gap-1.5 h-7 px-2 rounded-md border border-border bg-card focus-within:ring-2 focus-within:ring-primary/40">
+            <label className="ml-auto flex items-center gap-1.5 h-7 px-2 rounded-md border border-border bg-card focus-within:ring-2 focus-within:ring-[rgb(var(--primary-rgb)/0.4)]">
               <Search className="w-3.5 h-3.5 text-muted-foreground" />
               <input
                 type="search"

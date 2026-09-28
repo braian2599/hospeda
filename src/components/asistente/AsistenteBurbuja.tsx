@@ -374,7 +374,7 @@ export default function AsistenteBurbuja() {
           max-sm:top-[12vh] max-sm:h-auto max-sm:bottom-[var(--teclado,0px)]
           ${abierto ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       >
-        <div className="relative flex items-center justify-center gap-3 px-11 py-4 border-b bg-gradient-to-b from-muted/40 to-background">
+        <div className="relative flex items-center justify-center gap-3 px-11 py-4 border-b bg-gradient-to-b from-[rgb(var(--muted-rgb)/0.4)] to-background">
           <div ref={retratoRef} className={`${estilos.retrato} ${retratoListo ? estilos.retratoListo : ''}`}>
             <HospiCara />
           </div>
@@ -433,7 +433,7 @@ export default function AsistenteBurbuja() {
 
         {sugerencias.length > 0 && historial.length === 0 && (
           <div className="px-3.5 pb-2.5">
-            <p className="text-[10.5px] uppercase tracking-wide text-muted-foreground/70 mb-1.5">
+            <p className="text-[10.5px] uppercase tracking-wide text-[rgb(var(--muted-foreground-rgb)/0.7)] mb-1.5">
               Sugerencias para {nombreModulo}
             </p>
             <div className="flex flex-wrap gap-1.5">

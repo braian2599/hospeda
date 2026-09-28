@@ -19,7 +19,7 @@ function Fila({ r, urgente }: { r: ReservaDeLaWeb; urgente: boolean }) {
   return (
     <div
       className={`flex items-start gap-3 p-2.5 rounded-lg ${
-        urgente ? 'bg-[#D9770618] border border-[#D9770640]' : 'hover:bg-muted/50 transition-colors'
+        urgente ? 'bg-[#D9770618] border border-[#D9770640]' : 'hover:bg-[rgb(var(--muted-rgb)/0.5)] transition-colors'
       }`}
     >
       <div className="min-w-0 flex-1">
