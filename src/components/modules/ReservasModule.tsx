@@ -1014,11 +1014,34 @@ export default function ReservasModule() {
  const setNuevaReservaPrellenada = useHotelStore(s => s.setNuevaReservaPrellenada);
  useEffect(() => {
  if (!nuevaReservaPrellenada) return;
- const { habitacion, checkin, checkout } = nuevaReservaPrellenada;
+ const d = nuevaReservaPrellenada;
  setNuevaReservaPrellenada(null);
  openNew();
- setForm(prev => ({ ...prev, checkin, checkout, habitacion }));
- setDisponibles(buscarDisponibilidad(checkin, checkout));
+ // Lo que venga escrito desde la reserva rápida se respeta; lo que no, queda
+ // como en un formulario nuevo.
+ setForm(prev => ({
+ ...prev,
+ checkin: d.checkin,
+ checkout: d.checkout,
+ habitacion: d.habitacion,
+ ...(d.huesped !== undefined && { huesped: d.huesped }),
+ ...(d.dni !== undefined && { dni: d.dni }),
+ ...(d.telefono !== undefined && { telefono: d.telefono }),
+ ...(d.email !== undefined && { email: d.email }),
+ ...(d.domicilio !== undefined && { domicilio: d.domicilio }),
+ ...(d.nacionalidad !== undefined && { nacionalidad: d.nacionalidad }),
+ ...(d.fechaNacimiento !== undefined && { fechaNacimiento: d.fechaNacimiento }),
+ ...(d.clienteId !== undefined && { clienteId: d.clienteId }),
+ ...(d.tipoTarifa !== undefined && { tipoTarifa: d.tipoTarifa }),
+ ...(d.personas !== undefined && { personas: String(d.personas), personasBusqueda: String(d.personas) }),
+ ...(d.ninos !== undefined && { ninos: String(d.ninos) }),
+ ...(d.datosAdicionales !== undefined && { datosAdicionales: d.datosAdicionales }),
+ ...(d.pagoTipo !== undefined && { pagoTipo: d.pagoTipo }),
+ ...(d.pagoMonto !== undefined && { pagoMonto: String(d.pagoMonto) }),
+ ...(d.pagoMetodo !== undefined && { pagoMetodo: d.pagoMetodo }),
+ ...(d.pagoCuotas !== undefined && { pagoCuotas: d.pagoCuotas }),
+ }));
+ setDisponibles(buscarDisponibilidad(d.checkin, d.checkout));
  }, [nuevaReservaPrellenada]);
 
  const openEdit = (r: Reserva, tabInicial: 'disponibilidad' | 'pago' = 'disponibilidad') => {

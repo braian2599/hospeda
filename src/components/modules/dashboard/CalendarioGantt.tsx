@@ -2,8 +2,8 @@
 
 // El calendario de ocupación del Dashboard (tipo Gantt). Se sacó de
 // DashboardModule.tsx cuando se le sumó:
-//  - crear una reserva tocando un día libre (abre Reservas con la habitación
-//    y la fecha cargadas),
+//  - crear una reserva tocando un día libre (reserva rápida, ver
+//    ReservaRapidaDialog.tsx),
 //  - arrastrar una reserva a otra habitación u otros días, y tirar del borde
 //    derecho para alargarla o acortarla (reglas y precio en
 //    src/lib/gantt-mover.ts; siempre pide confirmar),
@@ -33,6 +33,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import ReservaRapidaDialog, { type ReservaRapidaDatos } from './ReservaRapidaDialog';
 
 // ==================== HELPERS ====================
 
@@ -45,6 +46,8 @@ const NOMBRES_DIAS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
 // 14-30 columnas del calendario de escritorio, que ahí sí tiene el ancho
 // para mostrarse cómodo).
 const MOBILE_DAYS = 5;
+/** Tope de noches que ofrece la reserva rápida (más largas, desde Reservas). */
+const MAX_NOCHES_RAPIDA = 30;
 /** Cuánto hay que mover el mouse para que un clic pase a ser un arrastre. */
 const UMBRAL_ARRASTRE = 5;
 
@@ -304,8 +307,6 @@ export default function CalendarioGantt({ fechaInicioBase }: { fechaInicioBase: 
   const usuarioActual = useHotelStore(s => s.usuarioActual);
   const planActual = useHotelStore(s => s.planActual);
   const planes = useHotelStore(s => s.planes);
-  const setModulo = useHotelStore(s => s.setModulo);
-  const setNuevaReservaPrellenada = useHotelStore(s => s.setNuevaReservaPrellenada);
   const buscarDisponibilidad = useHotelStore(s => s.buscarDisponibilidad);
   const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
   const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
@@ -333,6 +334,7 @@ export default function CalendarioGantt({ fechaInicioBase }: { fechaInicioBase: 
   const quitarEscuchas = useRef<(() => void) | null>(null);
   const [confirmacion, setConfirmacion] = useState<Confirmacion | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [reservaRapida, setReservaRapida] = useState<ReservaRapidaDatos | null>(null);
 
   // Vista mobile: mini-calendario propio, independiente del de escritorio
   // (offset en "páginas" de MOBILE_DAYS, no en semanas).
@@ -505,15 +507,16 @@ export default function CalendarioGantt({ fechaInicioBase }: { fechaInicioBase: 
   }, []);
 
   const crearDesde = useCallback((num: string, col: string) => {
-    const checkout = sumarDiasFecha(col, 1);
-    const disponible = buscarDisponibilidad(col, checkout).some(h => h.numero === num);
-    if (!disponible) {
+    const libre = (noches: number) => buscarDisponibilidad(col, sumarDiasFecha(col, noches)).some(h => h.numero === num);
+    if (!libre(1)) {
       toast.error(`La habitación ${num} no está disponible el ${formatearFecha(col)}`);
       return;
     }
-    setNuevaReservaPrellenada({ habitacion: num, checkin: col, checkout });
-    setModulo('reservas');
-  }, [buscarDisponibilidad, setNuevaReservaPrellenada, setModulo]);
+    // Hasta cuántas noches seguidas se puede estirar (tope del selector).
+    let maxNoches = 1;
+    while (maxNoches < MAX_NOCHES_RAPIDA && libre(maxNoches + 1)) maxNoches++;
+    setReservaRapida({ habitacion: num, checkin: col, maxNoches });
+  }, [buscarDisponibilidad]);
 
   const celdas = (num: string, cols: string[], lista: GanttReserva[], alto: number | undefined, borde: string) => cols.map((col, ci) => {
     const d = new Date(col + 'T12:00:00');
@@ -1031,6 +1034,7 @@ export default function CalendarioGantt({ fechaInicioBase }: { fechaInicioBase: 
       </Card>
 
       <GanttPopover data={popoverData} ancla={popoverAncla} onClose={cerrarPopover} />
+      <ReservaRapidaDialog datos={reservaRapida} onClose={() => setReservaRapida(null)} />
 
       {/* Sombra de la reserva mientras se arrastra: verde si se puede soltar ahí, roja si no. */}
       {arrastre?.movido && arrastre.ghost && createPortal(

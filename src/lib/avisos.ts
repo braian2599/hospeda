@@ -95,7 +95,7 @@ export const NOVEDADES: Novedad[] = [
     fecha: '2026-09-29',
     tipo: 'nuevo',
     titulo: 'Mové reservas desde el calendario',
-    texto: 'En el calendario del Dashboard, arrastrá una reserva a otra habitación u otros días, o tirá de su borde para cambiar la salida: te muestra el total nuevo según la tarifa y pide confirmar. Tocando un día libre empezás una reserva nueva con esa habitación y fecha. Además: número de reserva en cada barra, punto rojo si tiene saldo y buscador por huésped o número.',
+    texto: 'En el calendario del Dashboard, arrastrá una reserva a otra habitación u otros días, o tirá de su borde para cambiar la salida: te muestra el total nuevo según la tarifa y pide confirmar. Tocando un día libre se abre una reserva rápida: solo nombre, DNI y teléfono, tarifa y cobro, con un resumen al costado de lo que se cobra. Además: número de reserva en cada barra, punto rojo si tiene saldo y buscador por huésped o número.',
     requiere: { modulo: 'reservas' },
   },
   {

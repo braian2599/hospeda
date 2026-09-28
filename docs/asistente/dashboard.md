@@ -30,8 +30,19 @@ scroll vertical, de arriba a abajo:
    - Filtro por tipo de habitación (si hay más de un tipo) y buscador por
      huésped o número; abajo lista las reservas que coinciden y tocándolas
      lleva a esa semana.
-   - Solo con el módulo Reservas: tocar un día libre abre "Nueva reserva"
-     con esa habitación y esa fecha cargadas. Arrastrar una barra la mueve a
+   - Solo con el módulo Reservas: tocar un día libre abre la **reserva
+     rápida** (`dashboard/ReservaRapidaDialog.tsx`). A la izquierda: huésped
+     (nombre, DNI y teléfono, obligatorios; si el cliente ya vino aparece al
+     escribir el nombre o el DNI; "+ Más datos" para email, nacionalidad,
+     nacimiento y domicilio), tarifa, adultos (y niños si la tarifa los
+     cobra aparte), campos propios de la tarifa, y cobro: Sin cobro ahora /
+     Seña (mínimo 30%) / Total, con forma de pago y cuotas. A la derecha un
+     resumen: habitación, entrada, noches (hasta donde esté libre), salida,
+     huésped, personas, tarifa, forma de pago, detalle del precio, total,
+     cobrado ahora y saldo, y el botón Crear reserva. Mismas reglas que
+     Reservas (capacidad, caja abierta, recargo por cuotas). "Formulario
+     completo" abre Reservas con todo lo escrito: para dos habitaciones o
+     tarifas con acompañante sin cargo. Arrastrar una barra la mueve a
      otra habitación u otros días; tirar de su borde derecho cambia la
      salida. Siempre pide confirmar y muestra el total antes y después: el
      precio se recalcula SIEMPRE con la tarifa de la reserva (misma cuenta

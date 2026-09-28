@@ -22,6 +22,34 @@ import { estaFacturada } from './facturacion-reserva';
 import { fechaArgentina } from './format';
 import { origenValido, type Suscripcion } from './suscripcion';
 
+/**
+ * Una reserva nueva empezada fuera de Reservas (el calendario del Dashboard o
+ * su reserva rápida) que se sigue en el formulario completo. Todo lo que no
+ * sea habitación y fechas es opcional: se carga lo que ya se había escrito.
+ */
+export interface NuevaReservaPrellenada {
+  habitacion: string;
+  checkin: string;
+  checkout: string;
+  huesped?: string;
+  dni?: string;
+  telefono?: string;
+  email?: string;
+  domicilio?: string;
+  nacionalidad?: string;
+  fechaNacimiento?: string;
+  clienteId?: string;
+  tipoTarifa?: string;
+  personas?: number;
+  ninos?: number;
+  datosAdicionales?: Record<string, string>;
+  pagoTipo?: 'ninguno' | 'parcial' | 'total';
+  pagoMonto?: number;
+  pagoMetodo?: string;
+  /** "cantidad|porcentaje", como el selector de cuotas de Reservas. */
+  pagoCuotas?: string;
+}
+
 /** Lo que se asume mientras no llegó la sesión: nada vencido, nada prometido. */
 const SUSCRIPCION_VACIA: Suscripcion = {
   origen: 'trial', estado: 'trial', vencimiento: null, seRenuevaSola: false, proximoCobro: null,
@@ -322,8 +350,8 @@ interface HotelStore {
    * día libre). Reservas la lee al abrirse, abre el formulario con esto
    * cargado y la vuelve a null. No se guarda en ningún lado.
    */
-  nuevaReservaPrellenada: { habitacion: string; checkin: string; checkout: string } | null;
-  setNuevaReservaPrellenada: (datos: { habitacion: string; checkin: string; checkout: string } | null) => void;
+  nuevaReservaPrellenada: NuevaReservaPrellenada | null;
+  setNuevaReservaPrellenada: (datos: NuevaReservaPrellenada | null) => void;
   planes: Record<string, PlanInfo>;
   /**
    * true una vez que llegó el catálogo de planes real desde /api/plans.
