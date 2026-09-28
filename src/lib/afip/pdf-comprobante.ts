@@ -17,6 +17,7 @@
 
 import jsPDF from 'jspdf';
 import { proxiedImageUrl } from '@/lib/image-proxy';
+import { desgloseIva } from './config';
 
 export type TipoComprobantePdf = 'Factura' | 'Presupuesto' | 'Recibo' | 'Remito' | 'NotaCredito' | 'NotaDebito';
 
@@ -123,6 +124,8 @@ export async function cargarImagenComoDataUrl(url: string): Promise<string | nul
 export function generarComprobantePdf(d: DatosComprobantePdf): jsPDF {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const esFiscal = d.cae !== null;
+  // Cómo se muestra el IVA: A discriminado, B con el IVA contenido (Ley 27.743).
+  const desglose = esFiscal && d.tipo === 'Factura' ? desgloseIva(d.codigoTipo, d.importe) : null;
   const MY = 15; // margen superior/inferior (mm)
   const ALTO_PAGINA = 297;
   let y = MY;
@@ -253,9 +256,11 @@ export function generarComprobantePdf(d: DatosComprobantePdf): jsPDF {
     doc.text(linea, colDesc, iy);
     iy += 4.5;
   }
-  doc.text(moneyAr(d.importe), colImporte, y + 15, { align: 'right' });
+  // En la Factura A el ítem va sin IVA: el IVA se suma abajo.
+  const importeItem = desglose?.tipo === 'A' ? desglose.neto : d.importe;
+  doc.text(moneyAr(importeItem), colImporte, y + 15, { align: 'right' });
   doc.text('1', colCant, y + 15, { align: 'right' });
-  doc.text(moneyAr(d.importe), colTotal, y + 15, { align: 'right' });
+  doc.text(moneyAr(importeItem), colTotal, y + 15, { align: 'right' });
 
   y = footerY;
   doc.setLineWidth(0.5);
@@ -274,6 +279,19 @@ export function generarComprobantePdf(d: DatosComprobantePdf): jsPDF {
     if (d.qrDataUrl) {
       try { doc.addImage(d.qrDataUrl, AX + 3, sonPesosY + 2, 24, 24, undefined, 'FAST'); } catch { /* sin QR si falla */ }
     }
+    // Factura B: Régimen de Transparencia Fiscal al Consumidor, al lado del QR.
+    if (desglose?.tipo === 'B') {
+      const lx = AX + 31;
+      let ly = sonPesosY + 5;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text('Régimen de Transparencia Fiscal al Consumidor (Ley 27.743)', lx, ly);
+      doc.setFont('helvetica', 'normal');
+      ly += 4.5;
+      doc.text(`IVA Contenido: ${moneyAr(desglose.ivaContenido)}`, lx, ly);
+      ly += 4.5;
+      doc.text(`Otros Impuestos Nacionales Indirectos: ${moneyAr(0)}`, lx, ly);
+    }
   } else if (d.notaSinFiscal) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
@@ -290,11 +308,19 @@ export function generarComprobantePdf(d: DatosComprobantePdf): jsPDF {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...NEGRO);
-  doc.text('Subtotal', totX, ty);
-  doc.text(moneyAr(d.importe), totXVal, ty, { align: 'right' });
-  ty += 5;
-  doc.text('Bonificación', totX, ty);
-  doc.text('%0,00', totXVal, ty, { align: 'right' });
+  if (desglose?.tipo === 'A') {
+    doc.text('Importe neto gravado', totX, ty);
+    doc.text(moneyAr(desglose.neto), totXVal, ty, { align: 'right' });
+    ty += 5;
+    doc.text(`IVA ${desglose.porcentaje}%`, totX, ty);
+    doc.text(moneyAr(desglose.iva), totXVal, ty, { align: 'right' });
+  } else {
+    doc.text('Subtotal', totX, ty);
+    doc.text(moneyAr(d.importe), totXVal, ty, { align: 'right' });
+    ty += 5;
+    doc.text('Bonificación', totX, ty);
+    doc.text('%0,00', totXVal, ty, { align: 'right' });
+  }
   ty += 5;
   doc.setLineWidth(0.2);
   doc.line(totX, ty, totXVal, ty);

@@ -37,7 +37,7 @@ import { toast } from 'sonner';
 import PaginationBar from '@/components/ui/pagination-bar';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import QRCode from 'qrcode';
-import { docReceptor, DOC_TIPO, letraPorTipoComprobante, notaSinValidezFiscal, type TipoComprobanteGenerico } from '@/lib/afip/config';
+import { docReceptor, DOC_TIPO, letraPorTipoComprobante, notaSinValidezFiscal, desgloseIva, type TipoComprobanteGenerico } from '@/lib/afip/config';
 import { urlQrAfip } from '@/lib/afip/qr';
 import { montoALetras } from '@/lib/numero-a-letras';
 import { generarComprobantePdf, cargarImagenComoDataUrl, TITULO_POR_TIPO, nombreComercialAparte } from '@/lib/afip/pdf-comprobante';
@@ -2120,6 +2120,8 @@ export function ComprobanteOficial({
 }) {
   const esFiscal = !!comprobante.cae;
   const letra = letraPorTipoComprobante(tipo, comprobante.tipoComprobanteCodigo);
+  // Cómo se muestra el IVA: A discriminado, B con el IVA contenido (Ley 27.743).
+  const desglose = esFiscal && tipo === 'Factura' ? desgloseIva(comprobante.tipoComprobanteCodigo, pagado) : null;
   // Arriba el hotel, abajo quién factura (el titular del CUIT).
   const nombreHotel = nombreComercialAparte(fiscal?.nombreHotel, fiscal?.razonSocial);
 
@@ -2178,9 +2180,10 @@ export function ComprobanteOficial({
           <tbody>
             <tr>
               <td className="p-2 align-top break-words">{concepto}</td>
-              <td className="p-2 text-right align-top">{formatMoney(pagado)}</td>
+              {/* En la Factura A el ítem va sin IVA: el IVA se suma abajo. */}
+              <td className="p-2 text-right align-top">{formatMoney(desglose?.tipo === 'A' ? desglose.neto : pagado)}</td>
               <td className="p-2 text-right align-top">1</td>
-              <td className="p-2 text-right align-top">{formatMoney(pagado)}</td>
+              <td className="p-2 text-right align-top">{formatMoney(desglose?.tipo === 'A' ? desglose.neto : pagado)}</td>
             </tr>
           </tbody>
         </table>
@@ -2191,7 +2194,16 @@ export function ComprobanteOficial({
         <div className="p-3 border-r-2 border-foreground print:border-black">
           <p className="text-xs font-semibold">Son pesos: {montoALetras(pagado)}</p>
           {esFiscal ? (
-            qrDataUrl && <img src={qrDataUrl} alt="QR AFIP" className="w-24 h-24 mt-2" />
+            <div className="flex items-start gap-3 mt-2">
+              {qrDataUrl && <img src={qrDataUrl} alt="QR AFIP" className="w-24 h-24" />}
+              {desglose?.tipo === 'B' && (
+                <div className="text-[11px] leading-snug">
+                  <p className="font-semibold">Régimen de Transparencia Fiscal al Consumidor (Ley 27.743)</p>
+                  <p>IVA Contenido: {formatMoney(desglose.ivaContenido)}</p>
+                  <p>Otros Impuestos Nacionales Indirectos: {formatMoney(0)}</p>
+                </div>
+              )}
+            </div>
           ) : (
             <p className="text-[10px] text-muted-foreground print:text-black/60 mt-2">
               {notaSinValidezFiscal(tipo)}
@@ -2199,8 +2211,17 @@ export function ComprobanteOficial({
           )}
         </div>
         <div className="p-3 w-56 text-sm">
-          <div className="flex justify-between"><span>Subtotal</span><span>{formatMoney(pagado)}</span></div>
-          <div className="flex justify-between"><span>Bonificación</span><span>%0,00</span></div>
+          {desglose?.tipo === 'A' ? (
+            <>
+              <div className="flex justify-between"><span>Importe neto gravado</span><span>{formatMoney(desglose.neto)}</span></div>
+              <div className="flex justify-between"><span>IVA {desglose.porcentaje}%</span><span>{formatMoney(desglose.iva)}</span></div>
+            </>
+          ) : (
+            <>
+              <div className="flex justify-between"><span>Subtotal</span><span>{formatMoney(pagado)}</span></div>
+              <div className="flex justify-between"><span>Bonificación</span><span>%0,00</span></div>
+            </>
+          )}
           <div className="flex justify-between font-bold text-base border-t border-foreground print:border-black mt-1 pt-1">
             <span>TOTAL</span><span>{formatMoney(pagado)}</span>
           </div>

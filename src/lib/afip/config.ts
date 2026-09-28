@@ -95,6 +95,30 @@ export function separarIva(total: number, porcentaje: number): { neto: number; i
   return { neto, iva };
 }
 
+/**
+ * Lo que la factura tiene que MOSTRAR del IVA, con la misma cuenta que se le
+ * manda a ARCA (separarIva):
+ * - Factura A: neto gravado + IVA + total.
+ * - Factura B a consumidor final: el "IVA Contenido" (Régimen de
+ *   Transparencia Fiscal al Consumidor, Ley 27.743, RG 5614).
+ * - Factura C y comprobantes sin CAE: nada.
+ */
+export type DesgloseIva =
+  | { tipo: 'A'; neto: number; iva: number; porcentaje: number }
+  | { tipo: 'B'; ivaContenido: number; porcentaje: number };
+
+export function desgloseIva(cbteTipo: number | null | undefined, total: number): DesgloseIva | null {
+  const porcentaje = ALICUOTA_IVA_ALOJAMIENTO.porcentaje;
+  if (cbteTipo === CBTE_TIPO.FACTURA_A) {
+    const { neto, iva } = separarIva(total, porcentaje);
+    return { tipo: 'A', neto, iva, porcentaje };
+  }
+  if (cbteTipo === CBTE_TIPO.FACTURA_B) {
+    return { tipo: 'B', ivaContenido: separarIva(total, porcentaje).iva, porcentaje };
+  }
+  return null;
+}
+
 export const DOC_TIPO = {
   CUIT: 80,
   DNI: 96,
