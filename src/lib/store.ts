@@ -406,7 +406,7 @@ interface HotelStore {
   calcularTotalSegunTarifa: (tipoTarifa: string, personas: number, noches: number, options?: CalcTarifaOptions) => number;
 
   // Check-in/Check-out
-  realizarCheckIn: (idReserva: string, datos: { contactoEmergencia?: { nombre: string; telefono: string }; observacionesHuesped?: string; llaveEntregada?: string; documentoVerificado?: boolean; firmaConformidad?: boolean; acompanantes?: { nombre: string; dni: string; celular: string }[]; menores?: { nombre: string; documento: string; edad: number; parentesco: string }[] }) => Promise<boolean>;
+  realizarCheckIn: (idReserva: string, datos: { contactoEmergencia?: { nombre: string; telefono: string }; observacionesHuesped?: string; llaveEntregada?: string; documentoVerificado?: boolean; firmaConformidad?: boolean; acompanantes?: { nombre: string; dni: string; celular: string }[]; menores?: { nombre: string; documento: string; edad: number; parentesco: string }[] }) => Promise<string | null>;
   realizarCheckOut: (idReserva: string) => Promise<{ noches: number; total: number } | null>;
 
   // Pagos
@@ -1155,10 +1155,14 @@ export const useHotelStore = create<HotelStore>()(
       },
 
       // ===== CHECK-IN / CHECK-OUT =====
+      // Devuelve null si salió bien, o el motivo para mostrarle al hotel (el
+      // que manda el servidor: antes se tapaba con un mensaje genérico y no
+      // había forma de saber por qué no entraba el check-in).
       realizarCheckIn: async (idReserva, datos) => {
         const state = get();
         const reserva = state.reservas.find(r => r.id === idReserva);
-        if (!reserva || reserva.estado !== 'Confirmada') return false;
+        if (!reserva) return 'No se encontró la reserva. Recargá la página.';
+        if (reserva.estado !== 'Confirmada') return `La reserva está en estado "${reserva.estado}": solo se hace el check-in de reservas confirmadas.`;
 
         // 1) Actualizar estado local (optimista)
         const updatedReservas = state.reservas.map(r => {
@@ -1200,6 +1204,7 @@ export const useHotelStore = create<HotelStore>()(
           await api.reservas.checkin(idReserva, checkinPayload);
         } catch (err) {
           console.error('[realizarCheckIn] Error al guardar en BD:', err);
+          const motivo = err instanceof Error && err.message ? err.message : 'Hubo un error de conexión. Probá de nuevo.';
           // Rollback: revertir estado local
           const current = get();
           set({
@@ -1209,10 +1214,10 @@ export const useHotelStore = create<HotelStore>()(
               [reserva.habitacion]: current.habitaciones[reserva.habitacion] ? { ...current.habitaciones[reserva.habitacion], estado: 'Reservada' as const } : current.habitaciones[reserva.habitacion],
             },
           });
-          return false;
+          return motivo;
         }
         pushNotif('success', 'Check-In realizado', `${reserva.huesped} — Hab. ${reserva.habitacion}`, 'checkin', 'info', 'checkin', 'Ver reserva');
-        return true;
+        return null;
       },
 
       realizarCheckOut: async (idReserva) => {

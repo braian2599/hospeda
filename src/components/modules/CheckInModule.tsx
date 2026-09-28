@@ -27,6 +27,7 @@ import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
 import { notifySuccess } from '@/lib/notify';
 import { formatMoney, formatFecha, todayLocal, daysAgo } from '@/lib/format';
+import { sumarDiasFecha } from '@/lib/gantt-mover';
 import { cn } from '@/lib/utils';
 
 const estadoPagoBadge: Record<string, string> = {
@@ -197,13 +198,13 @@ export default function CheckInModule() {
 
     try {
       setCheckLoading(true);
-      const resultado = await realizarCheckIn(selReserva.id, datos);
-      if (resultado) {
+      const error = await realizarCheckIn(selReserva.id, datos);
+      if (!error) {
         closeModal();
         const desc = `${selReserva.huesped} - Hab. ${selReserva.habitacion}${cantNinos > 0 ? ` (${cantNinos} menor${cantNinos > 1 ? 'es' : ''} registrados)` : ''}`;
         notifySuccess('Check-in realizado', desc);
       } else {
-        toast.error('No se pudo realizar el check-in', { description: 'La reserva ya no está en estado Confirmada, faltan datos de menores, o hubo un error de conexión.' });
+        toast.error('No se pudo realizar el check-in', { description: error });
       }
     } catch (err) {
       console.error('Error en check-in:', err);
@@ -335,9 +336,18 @@ export default function CheckInModule() {
                           <span>{r.personas} adulto{s(r.personas)}{(r.ninos || 0) > 0 ? ` + ${r.ninos} niño${(r.ninos || 0) > 1 ? 's' : ''}` : ''}</span>
                         </div>
                       </div>
-                      <Button size="sm" className="bg-primary hover:bg-[#0F766ECC] text-white shadow-sm" onClick={() => openCheckIn(r)}>
-                        <KeyRound className="w-3.5 h-3.5 mr-1" />Check-In
-                      </Button>
+                      {/* El servidor deja hacer el check-in desde un día antes de la
+                          entrada. Antes el botón estaba igual y el error llegaba recién
+                          al confirmar, después de cargar todo. */}
+                      {todayLocal() >= sumarDiasFecha(r.checkin, -1) ? (
+                        <Button size="sm" className="bg-primary hover:bg-[#0F766ECC] text-white shadow-sm" onClick={() => openCheckIn(r)}>
+                          <KeyRound className="w-3.5 h-3.5 mr-1" />Check-In
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" disabled className="shrink-0" title="El check-in se puede hacer desde un día antes de la entrada">
+                          Desde el {formatFecha(sumarDiasFecha(r.checkin, -1))}
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>

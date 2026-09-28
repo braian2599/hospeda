@@ -868,11 +868,11 @@ export default function ReservasModule() {
  const handleQuickCheckIn = useCallback(async (r: Reserva) => {
  setQuickActionLoading(r.id);
  try {
-   const ok = await realizarCheckIn(r.id, {});
-   if (ok) {
+   const error = await realizarCheckIn(r.id, {});
+   if (!error) {
      notifySuccess('Check-in realizado', `${r.huesped} - Hab. ${r.habitacion}`);
    } else {
-     toast.error('No se pudo realizar el check-in');
+     toast.error('No se pudo realizar el check-in', { description: error });
    }
  } catch {
    toast.error('Error al realizar check-in');

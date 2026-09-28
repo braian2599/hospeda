@@ -9,6 +9,11 @@ con check-in hecho), más un resumen "Actividad de hoy" arriba (check-ins
 completados hoy, check-outs completados hoy, estadías activas).
 
 ## Hacer un check-in
+Se puede hacer desde un día antes de la fecha de entrada. Para las reservas
+que todavía no llegan, en lugar del botón aparece "Desde el dd/mm/aaaa"
+(deshabilitado). Si el check-in falla, el aviso dice el motivo exacto (por
+ejemplo, que ya estaba hecho o que faltan datos de los menores).
+
 Botón "Check-In" en la reserva → abre un modal:
 - Muestra el estado de cuenta (total, pagado, saldo).
 - Si la reserva tiene menores a cargo, pide obligatoriamente sus datos:
