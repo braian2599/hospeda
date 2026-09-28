@@ -170,11 +170,11 @@ function formatBytes(bytes: number): string {
 const forest = 'var(--primary)';
 const forestAccent = 'var(--primary)';
 /**
- * Primary color with opacity. Con los canales RGB (--primary-rgb) y no con
- * color-mix(): Chrome 109 (el último de Windows 7) no entiende color-mix y el
- * estilo se perdía.
+ * Primary color with opacity: usa las variables --primary-aN de globals.css
+ * (hex de 8 dígitos). Solo existen las opacidades que se usan; si se agrega
+ * otra, sumarla allá (en :root y en .dark).
  */
-const forestAlpha = (alpha: number) => `rgb(var(--primary-rgb) / ${alpha / 100})`;
+const forestAlpha = (alpha: 15) => `var(--primary-a${alpha})`;
 
 // ─── Main module ───
 export default function ConfiguracionModule() {
@@ -231,7 +231,7 @@ export default function ConfiguracionModule() {
                 className="flex flex-col gap-1.5 animate-slide-up"
                 style={{ animationDelay: `${gi * 50}ms` }}
               >
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted-foreground-rgb)/0.7)] px-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--muted-foreground-a70)] px-0.5">
                   {group.label}
                 </span>
                 <TabsList className="flex flex-nowrap h-auto gap-0.5 bg-[#F1F5F980]">
@@ -1036,7 +1036,7 @@ function AfipSection() {
             )}
           </div>
           {estado?.ultimoError && (
-            <div className="flex items-start gap-2 rounded-lg border border-[rgb(var(--destructive-rgb)/0.3)] bg-[rgb(var(--destructive-rgb)/0.05)] p-3 text-sm text-destructive">
+            <div className="flex items-start gap-2 rounded-lg border border-[color:var(--destructive-a30)] bg-[color:var(--destructive-a5)] p-3 text-sm text-destructive">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{estado.ultimoError}</span>
             </div>
@@ -1657,7 +1657,7 @@ function LandingSection() {
                 className="flex flex-col gap-1.5 animate-slide-up"
                 style={{ animationDelay: `${gi * 50}ms` }}
               >
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted-foreground-rgb)/0.7)] px-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--muted-foreground-a70)] px-0.5">
                   {group.label}
                 </span>
                 <TabsList className="flex flex-nowrap h-auto gap-0.5">

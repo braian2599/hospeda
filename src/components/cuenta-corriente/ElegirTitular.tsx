@@ -115,7 +115,7 @@ export default function ElegirTitular({ elegido, onElegir, clienteId, nombreSuge
               role="option"
               aria-selected={esElegido}
               onClick={() => onElegir(esElegido ? null : t)}
-              className={`w-full flex items-center gap-3 p-2.5 text-left transition-colors ${esElegido ? 'bg-[#0F766E1A]' : 'hover:bg-[rgb(var(--muted-rgb)/0.5)]'}`}
+              className={`w-full flex items-center gap-3 p-2.5 text-left transition-colors ${esElegido ? 'bg-[#0F766E1A]' : 'hover:bg-[color:var(--muted-a50)]'}`}
             >
               <div className="w-8 h-8 rounded-lg bg-[#0F766E12] flex items-center justify-center shrink-0">
                 {t.tipo === 'empresa' ? <Building2 className="w-4 h-4 text-primary" /> : <User className="w-4 h-4 text-primary" />}

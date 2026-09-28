@@ -680,7 +680,7 @@ export default function DashboardModule() {
             <AlertDialogCancel disabled={haciendoCheckOut}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               disabled={haciendoCheckOut}
-              className="bg-destructive text-white hover:bg-[rgb(var(--destructive-rgb)/0.9)]"
+              className="bg-destructive text-white hover:bg-[color:var(--destructive-a90)]"
               onClick={e => { e.preventDefault(); void confirmarCheckOut(); }}
             >
               {haciendoCheckOut ? 'Haciendo check-out…' : 'Confirmar check-out'}

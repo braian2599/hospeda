@@ -28,7 +28,7 @@ const TONOS: Record<Tono, string> = {
 
 const ACCIONES: Record<Accion, { texto: string; icono: React.ComponentType<{ className?: string }>; clase: string }> = {
   confirmarPago: { texto: 'Confirmar pago', icono: CreditCard, clase: 'bg-[#B45309] hover:bg-[#B45309]/90 text-white' },
-  checkin: { texto: 'Check-in', icono: LogIn, clase: 'bg-primary hover:bg-[rgb(var(--primary-rgb)/0.9)] text-primary-foreground' },
+  checkin: { texto: 'Check-in', icono: LogIn, clase: 'bg-primary hover:bg-[color:var(--primary-a90)] text-primary-foreground' },
   checkout: { texto: 'Check-out', icono: LogOut, clase: 'bg-[#0F766E14] hover:bg-[#0F766E24] text-primary' },
   cobrar: { texto: 'Cobrar', icono: CreditCard, clase: 'bg-[#0F766E14] hover:bg-[#0F766E24] text-primary' },
   cuentaCorriente: { texto: 'A cuenta corriente', icono: BookOpen, clase: 'bg-[#0284C714] hover:bg-[#0284C724] text-info' },
@@ -93,7 +93,7 @@ export default function TarjetaReserva(p: TarjetaReservaProps) {
       tabIndex={0}
       onClick={p.onDetalle}
       onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); p.onDetalle(); } }}
-      className="group flex flex-col gap-2 rounded-xl border bg-card p-3.5 text-left cursor-pointer transition-colors hover:border-[rgb(var(--primary-rgb)/0.6)] focus-visible:outline-2 focus-visible:outline-primary"
+      className="group flex flex-col gap-2 rounded-xl border bg-card p-3.5 text-left cursor-pointer transition-colors hover:border-[color:var(--primary-a60)] focus-visible:outline-2 focus-visible:outline-primary"
     >
       <div className="flex items-center gap-2">
         <span className="font-mono text-xs text-muted-foreground">{numeroDeReserva(r) || '—'}</span>

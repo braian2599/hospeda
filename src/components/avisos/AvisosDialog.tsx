@@ -495,7 +495,7 @@ function Novedades({ aviso, onCerrar }: { aviso: AvisoAMostrar; onCerrar: () => 
               <div className="min-w-0">
                 <p className="text-sm font-medium mb-0.5">{n.titulo}</p>
                 <p className="text-[13px] text-muted-foreground leading-relaxed">{n.texto}</p>
-                <p className="text-[11px] text-[rgb(var(--muted-foreground-rgb)/0.7)] mt-1">
+                <p className="text-[11px] text-[color:var(--muted-foreground-a70)] mt-1">
                   {dias === 1 ? 'Queda visible hasta mañana' : `Queda visible ${dias} días más`}
                 </p>
               </div>

@@ -76,7 +76,7 @@ export default function FacturarAfipDialog({ open, onOpenChange, reservaId, nume
       aria-checked={aNombreDe === valor}
       onClick={() => setANombreDe(valor)}
       className={`flex items-start gap-2 rounded-lg border p-3 text-left transition-colors ${
-        aNombreDe === valor ? 'border-primary bg-[#0F766E1A]' : 'border-border hover:bg-[rgb(var(--muted-rgb)/0.5)]'
+        aNombreDe === valor ? 'border-primary bg-[#0F766E1A]' : 'border-border hover:bg-[color:var(--muted-a50)]'
       }`}
     >
       <span className="mt-0.5 text-primary">{icono}</span>

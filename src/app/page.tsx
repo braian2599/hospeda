@@ -210,7 +210,7 @@ export default function HomePage() {
           <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-3">
             {FUTURAS_INTEGRACIONES.map(({ icon: Icon, nombre, desc }, i) => (
               <FadeIn key={nombre} delay={i * 80}>
-                <div className="h-full rounded-2xl border border-dashed border-border bg-[rgb(var(--card-rgb)/0.6)] p-6 text-center">
+                <div className="h-full rounded-2xl border border-dashed border-border bg-[color:var(--card-a60)] p-6 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
                     <Icon className="h-6 w-6 text-muted-foreground" />
                   </div>

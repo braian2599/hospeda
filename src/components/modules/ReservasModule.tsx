@@ -411,7 +411,7 @@ function RoomSelectCard({
           ? 'border-2 border-primary shadow-sm'
           : dashed
             ? 'border-dashed border-[#0F766E66]'
-            : onSelect ? 'hover:border-[rgb(var(--primary-rgb)/0.4)] hover:bg-[#F1F5F980]' : ''
+            : onSelect ? 'hover:border-[color:var(--primary-a40)] hover:bg-[#F1F5F980]' : ''
       )}
       onClick={onSelect}
     >
@@ -1640,7 +1640,7 @@ export default function ReservasModule() {
  <Card>
  <CardContent className="p-0">
  <div className="flex flex-wrap items-center gap-2 p-3 border-b">
- <label className="flex items-center gap-2 h-9 px-2.5 rounded-md border bg-background flex-1 min-w-[200px] max-w-[340px] focus-within:ring-2 focus-within:ring-[rgb(var(--primary-rgb)/0.4)]">
+ <label className="flex items-center gap-2 h-9 px-2.5 rounded-md border bg-background flex-1 min-w-[200px] max-w-[340px] focus-within:ring-2 focus-within:ring-[color:var(--primary-a40)]">
  <Search className="w-4 h-4 text-muted-foreground shrink-0" />
  <input
  value={busqueda}
@@ -1663,7 +1663,7 @@ export default function ReservasModule() {
  )}
  >
  {f.etiqueta}
- <span className={cn('text-[11px] font-semibold', filtroRapido === f.id ? 'text-[rgb(var(--primary-foreground-rgb)/0.8)]' : 'text-muted-foreground')}>{conteoRapido[f.id]}</span>
+ <span className={cn('text-[11px] font-semibold', filtroRapido === f.id ? 'text-[color:var(--primary-foreground-a80)]' : 'text-muted-foreground')}>{conteoRapido[f.id]}</span>
  </button>
  ))}
  </div>
@@ -1679,7 +1679,7 @@ export default function ReservasModule() {
  </div>
 
  {masFiltros && (
- <div className="flex flex-wrap gap-3 items-end p-3 border-b bg-[rgb(var(--muted-rgb)/0.3)]">
+ <div className="flex flex-wrap gap-3 items-end p-3 border-b bg-[color:var(--muted-a30)]">
  <div className="grid gap-1.5">
  <Label className="text-xs text-muted-foreground">Estado</Label>
  <Select value={filtroEstado} onValueChange={v => { setFiltroEstado(v); setPage(1); }}>
@@ -2215,7 +2215,7 @@ export default function ReservasModule() {
  className={`rounded-lg border p-3 transition-all ${
  isComboSelected
  ? 'border-primary cursor-default'
- : 'border-border hover:border-[rgb(var(--primary-rgb)/0.4)] hover:bg-[#F1F5F94D] cursor-pointer'
+ : 'border-border hover:border-[color:var(--primary-a40)] hover:bg-[#F1F5F94D] cursor-pointer'
  }`}
  onClick={() => { if (!isComboSelected) selectCombinacion(sug); }}
  >

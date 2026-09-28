@@ -54,7 +54,7 @@ function formatMoney(n: number, moneda: string): string {
 
 function IconCircle({ icon: Icon }: { icon: ComponentType<{ className?: string }> }) {
   return (
-    <div className="w-9 h-9 rounded-full bg-[rgb(var(--primary-rgb)/0.1)] flex items-center justify-center shrink-0">
+    <div className="w-9 h-9 rounded-full bg-[color:var(--primary-a10)] flex items-center justify-center shrink-0">
       <Icon className="w-4 h-4 text-primary" />
     </div>
   );
@@ -65,7 +65,7 @@ function Field({
 }: { label: string; required?: boolean; children: ReactNode }) {
   return (
     <div className="grid gap-1.5">
-      <label className="text-sm font-medium text-[rgb(var(--foreground-rgb)/0.9)]">
+      <label className="text-sm font-medium text-[color:var(--foreground-a90)]">
         {label} {required && <span className="text-destructive">*</span>}
       </label>
       {children}
@@ -81,7 +81,7 @@ function IconInput({
       {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />}
       <input
         {...props}
-        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm bg-background transition-all duration-200 outline-none focus:ring-2 focus:ring-[rgb(var(--primary-rgb)/0.25)] focus:border-primary hover:border-[rgb(var(--primary-rgb)/0.4)] ${Icon ? 'pl-9' : ''} ${className}`}
+        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm bg-background transition-all duration-200 outline-none focus:ring-2 focus:ring-[color:var(--primary-a25)] focus:border-primary hover:border-[color:var(--primary-a40)] ${Icon ? 'pl-9' : ''} ${className}`}
       />
     </div>
   );
@@ -163,9 +163,9 @@ export default function ReservaCheckoutForm({
       <div className="min-h-screen flex items-center justify-center px-4 py-10">
         <div className="max-w-md w-full">
           <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
-            <div className="h-1.5 bg-gradient-to-r from-primary to-[rgb(var(--primary-rgb)/0.3)]" />
+            <div className="h-1.5 bg-gradient-to-r from-primary to-[color:var(--primary-a30)]" />
             <div className="p-8 text-center space-y-4">
-              <div className="animate-fade-in-scale w-16 h-16 rounded-full bg-[rgb(var(--primary-rgb)/0.1)] flex items-center justify-center mx-auto">
+              <div className="animate-fade-in-scale w-16 h-16 rounded-full bg-[color:var(--primary-a10)] flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-9 h-9 text-primary" />
               </div>
               {reservaCreada.modoPago === 'manual' ? (
@@ -175,7 +175,7 @@ export default function ReservaCheckoutForm({
                     Habitación {reservaCreada.habitacion} · {reservaCreada.noches} noche{reservaCreada.noches !== 1 ? 's' : ''} · Total {formatMoney(reservaCreada.total, moneda)}
                   </p>
                   <p className="animate-slide-up text-sm font-medium" style={{ animationDelay: '160ms' }}>Seña de referencia: {formatMoney(reservaCreada.senaMonto, moneda)} (30%)</p>
-                  <div className="animate-slide-up rounded-xl border bg-[rgb(var(--primary-rgb)/0.05)] border-[rgb(var(--primary-rgb)/0.1)] p-4 text-left space-y-2" style={{ animationDelay: '200ms' }}>
+                  <div className="animate-slide-up rounded-xl border bg-[color:var(--primary-a5)] border-[color:var(--primary-a10)] p-4 text-left space-y-2" style={{ animationDelay: '200ms' }}>
                     <p className="text-sm font-medium">Contactá al hotel para coordinar el pago:</p>
                     {reservaCreada.contacto?.whatsapp && (
                       <a
@@ -268,7 +268,7 @@ export default function ReservaCheckoutForm({
                   </div>
                 </div>
 
-                <div className="rounded-xl bg-[rgb(var(--primary-rgb)/0.05)] border border-[rgb(var(--primary-rgb)/0.1)] p-4 space-y-1.5">
+                <div className="rounded-xl bg-[color:var(--primary-a5)] border border-[color:var(--primary-a10)] p-4 space-y-1.5">
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Noches</span>
                     <span className="text-foreground font-medium">
@@ -279,7 +279,7 @@ export default function ReservaCheckoutForm({
                     <span>{resultado.desglose.etiquetaUnitario}</span>
                     <span className="text-foreground font-medium">{formatMoney(resultado.desglose.montoUnitario, moneda)}</span>
                   </div>
-                  <div className="flex justify-between pt-2 mt-1 border-t border-[rgb(var(--primary-rgb)/0.1)] font-semibold">
+                  <div className="flex justify-between pt-2 mt-1 border-t border-[color:var(--primary-a10)] font-semibold">
                     <span>Total</span><span className="text-primary">{formatMoney(resultado.total, moneda)}</span>
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground pt-0.5">
@@ -297,7 +297,7 @@ export default function ReservaCheckoutForm({
           {/* Datos de registro */}
           <div className="md:col-span-3 animate-slide-up space-y-5" style={{ animationDelay: '120ms' }}>
             <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
-              <div className="h-1.5 bg-gradient-to-r from-primary to-[rgb(var(--primary-rgb)/0.3)]" />
+              <div className="h-1.5 bg-gradient-to-r from-primary to-[color:var(--primary-a30)]" />
               <div className="p-6 sm:p-8 space-y-6">
                 <div className="flex items-center gap-3">
                   <IconCircle icon={User} />
@@ -335,7 +335,7 @@ export default function ReservaCheckoutForm({
                 </div>
 
                 {campos.length > 0 && (
-                  <div className="rounded-xl border bg-[rgb(var(--primary-rgb)/0.05)] border-[rgb(var(--primary-rgb)/0.1)] p-4 space-y-3">
+                  <div className="rounded-xl border bg-[color:var(--primary-a5)] border-[color:var(--primary-a10)] p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-primary shrink-0" />
                       <p className="text-sm font-medium">Datos adicionales de esta promoción</p>

@@ -248,7 +248,7 @@ export default function EmitirDocumentoDialog({ abierto, onCerrar }: {
                         <button
                           key={o.clave} type="button" role="option" aria-selected={activo}
                           onClick={() => setElegido(o)}
-                          className={`w-full grid grid-cols-[32px_minmax(0,1fr)_auto] gap-3 items-center px-3 py-2.5 text-left transition-colors ${activo ? 'bg-[#0F766E1A]' : 'hover:bg-[rgb(var(--muted-rgb)/0.6)]'}`}
+                          className={`w-full grid grid-cols-[32px_minmax(0,1fr)_auto] gap-3 items-center px-3 py-2.5 text-left transition-colors ${activo ? 'bg-[#0F766E1A]' : 'hover:bg-[color:var(--muted-a60)]'}`}
                         >
                           <span className={`w-8 h-8 grid place-items-center text-[11px] font-bold ${o.clase === 'empresa' ? 'rounded-md bg-[#0284C71A] text-info' : 'rounded-full bg-muted text-muted-foreground'}`}>{iniciales(o.razonSocial)}</span>
                           <span className="min-w-0">
@@ -261,10 +261,10 @@ export default function EmitirDocumentoDialog({ abierto, onCerrar }: {
                     })}
                   </div>
                   <div className="flex flex-wrap border-t">
-                    <button type="button" onClick={() => setModo('empresa-nueva')} className="flex-1 inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium text-primary hover:bg-[rgb(var(--muted-rgb)/0.6)]">
+                    <button type="button" onClick={() => setModo('empresa-nueva')} className="flex-1 inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium text-primary hover:bg-[color:var(--muted-a60)]">
                       <Building2 className="w-4 h-4" />Cargar empresa nueva
                     </button>
-                    <button type="button" onClick={() => setModo('a-mano')} className="flex-1 inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium text-primary hover:bg-[rgb(var(--muted-rgb)/0.6)] border-l">
+                    <button type="button" onClick={() => setModo('a-mano')} className="flex-1 inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium text-primary hover:bg-[color:var(--muted-a60)] border-l">
                       <PenLine className="w-4 h-4" />Escribirlo a mano
                     </button>
                   </div>
@@ -307,7 +307,7 @@ export default function EmitirDocumentoDialog({ abierto, onCerrar }: {
               <button
                 type="button"
                 onClick={() => setLineas(ls => [...ls, { id: Math.max(...ls.map(x => x.id)) + 1, descripcion: '', cantidad: '1', precio: '' }])}
-                className="w-full inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium text-primary border-t hover:bg-[rgb(var(--muted-rgb)/0.6)]"
+                className="w-full inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium text-primary border-t hover:bg-[color:var(--muted-a60)]"
               >
                 <Plus className="w-4 h-4" />Agregar línea
               </button>

@@ -143,7 +143,7 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
               aria-checked={tipo === t}
               onClick={() => setTipo(t)}
               className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                tipo === t ? 'border-primary bg-[#0F766E1A] text-primary' : 'border-border text-muted-foreground hover:bg-[rgb(var(--muted-rgb)/0.5)]'
+                tipo === t ? 'border-primary bg-[#0F766E1A] text-primary' : 'border-border text-muted-foreground hover:bg-[color:var(--muted-a50)]'
               }`}
             >
               {t === 'empresa' ? 'Empresa' : 'Persona'}
