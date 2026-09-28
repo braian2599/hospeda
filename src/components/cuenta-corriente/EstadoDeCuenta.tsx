@@ -1,8 +1,9 @@
 'use client';
 
 // El estado de cuenta de un titular: qué se le anotó, qué pagó, y cuánto
-// debe. Desde acá se cobra, se anula un cobro mal cargado y se editan sus
-// datos. Solo para quien maneja la cuenta corriente (la API lo exige).
+// debe. Desde acá se cobra, se anula un cobro mal cargado, se anula un pase
+// a cuenta corriente hecho por error y se editan sus datos. Solo para quien
+// maneja la cuenta corriente (la API lo exige).
 
 import { useCallback, useEffect, useState } from 'react';
 import { Building2, User, Loader2, Wallet, Pencil, Undo2, AlertTriangle, Phone, Mail, MapPin } from 'lucide-react';
@@ -51,6 +52,7 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
   const [error, setError] = useState<string | null>(null);
   const [vista, setVista] = useState<Vista>('cuenta');
   const [anulando, setAnulando] = useState<{ id: string; monto: number; metodo: string } | null>(null);
+  const [anulandoCargo, setAnulandoCargo] = useState<{ reservaId: string; monto: number; concepto: string } | null>(null);
   const [trabajando, setTrabajando] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -88,6 +90,22 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
     }
   };
 
+  const anularCargo = async () => {
+    if (!anulandoCargo) return;
+    setTrabajando(true);
+    try {
+      await api.cuentaCorriente.anularCargo(anulandoCargo.reservaId);
+      notifySuccess('Pase anulado', `${formatMoney(aPesos(anulandoCargo.monto))} salieron de la cuenta. La reserva volvió a tener su saldo pendiente.`);
+      setAnulandoCargo(null);
+      await refrescarTodo();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo anular el pase.');
+      setAnulandoCargo(null);
+    } finally {
+      setTrabajando(false);
+    }
+  };
+
   if (!datos) {
     return (
       <div className="py-10 flex flex-col items-center gap-2 text-sm text-muted-foreground">
@@ -99,6 +117,7 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
   const t = datos.titular;
   const saldo = aPesos(t.saldo ?? 0);
   const pagosPorId = new Map(datos.pagos.map(p => [p.id, p]));
+  const cargosPorId = new Map(datos.cargos.map(c => [c.id, c]));
 
   return (
     <>
@@ -179,6 +198,7 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
                 <TableBody>
                   {datos.movimientos.map(m => {
                     const pago = m.tipo === 'pago' ? pagosPorId.get(m.id) : undefined;
+                    const cargo = m.tipo === 'cargo' ? cargosPorId.get(m.id) : undefined;
                     return (
                       <TableRow key={`${m.tipo}-${m.id}`}>
                         <TableCell className="text-xs whitespace-nowrap">{formatFechaHora(m.fecha)}</TableCell>
@@ -187,6 +207,18 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
                         <TableCell className="text-right font-mono text-sm text-primary">{m.importe < 0 ? formatMoney(aPesos(-m.importe)) : ''}</TableCell>
                         <TableCell className="text-right font-mono text-sm font-semibold">{formatMoney(aPesos(m.saldo))}</TableCell>
                         <TableCell className="text-right">
+                          {cargo && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs text-destructive disabled:text-muted-foreground"
+                              disabled={!cargo.anulable}
+                              title={cargo.motivoNoAnulable ?? 'Sacar este pase de la cuenta: la reserva vuelve a tener su saldo.'}
+                              onClick={() => setAnulandoCargo({ reservaId: cargo.reserva.id, monto: cargo.monto, concepto: cargo.concepto })}
+                            >
+                              <Undo2 className="w-3.5 h-3.5 mr-1" /> Anular
+                            </Button>
+                          )}
                           {pago?.anulable && (
                             <Button
                               size="sm"
@@ -207,9 +239,28 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
           )}
           <p className="text-xs text-muted-foreground">
             Un cobro se puede anular mientras la caja en que entró siga abierta. Anularlo lo saca también de la caja.
+            Un pase a cuenta corriente se puede anular si la reserva no está facturada y la cuenta todavía debe ese cargo entero.
           </p>
         </div>
       )}
+
+      <AlertDialog open={!!anulandoCargo} onOpenChange={abierto => { if (!abierto && !trabajando) setAnulandoCargo(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Anular este pase a cuenta corriente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {anulandoCargo && `${anulandoCargo.concepto}: ${formatMoney(aPesos(anulandoCargo.monto))} salen de la cuenta de ${t.nombre.replace(/\.$/, '')}. La reserva vuelve a tener ese saldo pendiente: después se cobra o se pasa a la cuenta correcta. La caja no cambia.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={trabajando}>No</AlertDialogCancel>
+            <AlertDialogAction onClick={e => { e.preventDefault(); void anularCargo(); }} disabled={trabajando} className="bg-destructive hover:bg-destructive/90">
+              {trabajando && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
+              Sí, anular el pase
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!anulando} onOpenChange={abierto => { if (!abierto && !trabajando) setAnulando(null); }}>
         <AlertDialogContent>

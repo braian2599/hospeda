@@ -5,8 +5,9 @@ import { requirePermission, requireActiveSubscription, tienePermiso, AuthError }
 import { auditar, TIPO } from '@/lib/auditoria';
 import {
   PERMISOS_DERIVAR, PERMISO_CUENTA_CORRIENTE,
-  conceptoDeCargo, saldoDeReserva, superaLimite, pesos,
+  conceptoDeCargo, saldoDeReserva, superaLimite, pesos, motivoParaNoAnularCargo,
 } from '@/lib/cuenta-corriente';
+import { estaFacturada } from '@/lib/facturacion-reserva';
 
 // ─────────────────────────────────────────────────────────
 // POST /api/reservas/[id]/cuenta-corriente — Pasar el saldo a cuenta corriente
@@ -135,5 +136,86 @@ export async function POST(
     }
     console.error('POST reservas/[id]/cuenta-corriente:', error);
     return NextResponse.json({ error: 'Error al pasar el saldo a cuenta corriente' }, { status: 500 });
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// DELETE /api/reservas/[id]/cuenta-corriente — Anular un pase a cuenta
+// corriente hecho por error (decisión del dueño, 29/09).
+//
+// Borra el cargo: la deuda sale de la cuenta del titular y la reserva vuelve
+// a quedar con su saldo pendiente, como antes del pase. Desde ahí se cobra o
+// se pasa a la cuenta correcta. No toca la caja: el pase tampoco la tocó.
+//
+// Solo quien maneja la cuenta corriente. No se puede si la reserva ya está
+// facturada, ni si el titular ya pagó parte del cargo (la regla completa está
+// en motivoParaNoAnularCargo).
+// ─────────────────────────────────────────────────────────
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { tenantId, actorId, nombre: actorNombre } = await requirePermission(PERMISO_CUENTA_CORRIENTE);
+    const { id } = await params;
+
+    const resultado = await db.$transaction(async (tx) => {
+      const cargo = await tx.cargoCuentaCorriente.findFirst({
+        where: { reservaId: id, tenantId },
+        select: {
+          id: true, monto: true, concepto: true, titularId: true,
+          titular: { select: { nombre: true } },
+          reserva: { select: { comprobanteCae: true } },
+        },
+      });
+      if (!cargo) throw new AnularCargoError('Esta reserva no está en ninguna cuenta corriente.', 404);
+
+      // La fila del titular tomada: un cobro o una anulación a la vez sobre
+      // la misma cuenta no leen las dos la misma deuda.
+      await tx.$queryRaw`SELECT "id" FROM "TitularCuenta" WHERE "id" = ${cargo.titularId} FOR UPDATE`;
+      // Y la de la reserva: si justo la estaban facturando, gana uno.
+      await tx.$queryRaw`SELECT "id" FROM "Reserva" WHERE "id" = ${id} FOR UPDATE`;
+      const reserva = await tx.reserva.findUnique({ where: { id }, select: { comprobanteCae: true } });
+
+      const [c, p] = await Promise.all([
+        tx.cargoCuentaCorriente.aggregate({ where: { titularId: cargo.titularId }, _sum: { monto: true } }),
+        tx.pagoCuentaCorriente.aggregate({ where: { titularId: cargo.titularId }, _sum: { monto: true } }),
+      ]);
+      const deuda = (c._sum.monto ?? 0) - (p._sum.monto ?? 0);
+      const motivo = motivoParaNoAnularCargo(
+        { monto: cargo.monto, reservaFacturada: estaFacturada(reserva?.comprobanteCae) },
+        deuda,
+      );
+      if (motivo) throw new AnularCargoError(motivo, 409);
+
+      await tx.cargoCuentaCorriente.delete({ where: { id: cargo.id } });
+      return cargo;
+    });
+
+    await auditar(db, {
+      tenantId,
+      tipo: TIPO.CUENTA_CORRIENTE,
+      detalle: `Anulación del pase a cuenta corriente: ${resultado.concepto}, ${pesos(resultado.monto)} salen de la cuenta de ${resultado.titular.nombre}`,
+      actor: { id: actorId, nombre: actorNombre },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
+    if (error instanceof AnularCargoError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    console.error('DELETE reservas/[id]/cuenta-corriente:', error);
+    return NextResponse.json({ error: 'Error al anular el pase a cuenta corriente' }, { status: 500 });
+  }
+}
+
+class AnularCargoError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
   }
 }

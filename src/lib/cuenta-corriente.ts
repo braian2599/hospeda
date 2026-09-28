@@ -233,6 +233,31 @@ export function saldo(cargos: readonly { monto: number }[], pagos: readonly { mo
   return debe - pago;
 }
 
+/**
+ * Por qué NO se puede anular un pase a cuenta corriente (un cargo), o null
+ * si se puede. Anularlo saca la deuda de la cuenta y la reserva vuelve a
+ * tener su saldo pendiente, como antes del pase (decisión del dueño, 29/09).
+ *
+ * - Si la reserva ya se facturó, no: la factura salió a nombre del titular
+ *   por el total. Eso se corrige con una nota de crédito.
+ * - Si el titular ya pagó algo de ese cargo, no. Los pagos no van atados a
+ *   un cargo sino a la deuda total, así que se mide así: lo que debe HOY
+ *   tiene que alcanzar para cubrir el cargo entero. Si no alcanza, sacarlo
+ *   lo dejaría con saldo a favor, con plata cobrada por algo que ya no debe.
+ */
+export function motivoParaNoAnularCargo(
+  cargo: { monto: number; reservaFacturada: boolean },
+  deudaActual: number,
+): string | null {
+  if (cargo.reservaFacturada) {
+    return 'La reserva ya está facturada a nombre de esta cuenta: se corrige con una nota de crédito.';
+  }
+  if (deudaActual < cargo.monto) {
+    return `Ya se cobró parte de este cargo: la cuenta debe ${pesos(Math.max(0, deudaActual))} y el cargo es de ${pesos(cargo.monto)}. Anulá antes el cobro, si estaba mal.`;
+  }
+  return null;
+}
+
 export interface LineaEstadoDeCuenta {
   id: string;
   tipo: 'cargo' | 'pago';

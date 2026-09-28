@@ -91,6 +91,14 @@ export const NOVEDADES: Novedad[] = [
   // Las cuatro del 28/09 salen con el deploy de esa noche. El arreglo va
   // primero: es lo que los hoteles venían sufriendo.
   {
+    id: 'anular-pase-cuenta-corriente-2026-09',
+    fecha: '2026-09-29',
+    tipo: 'mejora',
+    titulo: 'Anulá un pase a cuenta corriente hecho por error',
+    texto: 'En el estado de cuenta de la empresa, tocá "Anular" en el cargo: sale de su cuenta y la reserva vuelve a tener su saldo pendiente, para cobrarlo o pasarlo a la cuenta correcta. No se puede si la reserva ya está facturada o si la empresa ya pagó parte de ese cargo.',
+    requiere: { modulo: 'comprobantes' },
+  },
+  {
     id: 'notas-credito-debito-arca-2026-09',
     fecha: '2026-09-29',
     tipo: 'nuevo',

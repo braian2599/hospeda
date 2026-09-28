@@ -5,8 +5,9 @@ import { requirePermission, tienePermiso, AuthError } from '@/lib/auth/utils';
 import { auditar, TIPO } from '@/lib/auditoria';
 import {
   PERMISO_CUENTA_CORRIENTE, PERMISOS_TITULAR, SELECT_TITULAR,
-  leerDatosTitular, formatearCuit, vistaTitular, saldo, estadoDeCuenta, pesos,
+  leerDatosTitular, formatearCuit, vistaTitular, saldo, estadoDeCuenta, pesos, motivoParaNoAnularCargo,
 } from '@/lib/cuenta-corriente';
+import { estaFacturada } from '@/lib/facturacion-reserva';
 
 // ─────────────────────────────────────────────────────────
 // GET /api/titulares/[id] — El estado de cuenta de un titular
@@ -29,7 +30,7 @@ export async function GET(
         cargos: {
           select: {
             id: true, monto: true, concepto: true, fecha: true, empleadoNombre: true,
-            reserva: { select: { id: true, huesped: true, habitacion: true, checkin: true, checkout: true } },
+            reserva: { select: { id: true, huesped: true, habitacion: true, checkin: true, checkout: true, comprobanteCae: true } },
           },
           orderBy: { fecha: 'asc' },
         },
@@ -48,7 +49,11 @@ export async function GET(
 
     return NextResponse.json({
       titular: vistaTitular(titular, true, deuda),
-      cargos: titular.cargos,
+      cargos: titular.cargos.map(({ reserva: { comprobanteCae, ...reserva }, ...c }) => {
+        // Si se puede anular el pase a cuenta corriente (ver la regla ahí).
+        const motivo = motivoParaNoAnularCargo({ monto: c.monto, reservaFacturada: estaFacturada(comprobanteCae) }, deuda);
+        return { ...c, reserva, anulable: motivo == null, motivoNoAnulable: motivo };
+      }),
       pagos: titular.pagos.map(p => ({
         id: p.id, monto: p.monto, metodo: p.metodo, nota: p.nota, fecha: p.fecha, empleadoNombre: p.empleadoNombre,
         // Un cobro se puede anular mientras el turno de caja en que entró

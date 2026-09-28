@@ -338,6 +338,9 @@ export const api = {
       ),
     anularCobro: (titularId: string, pagoId: string) =>
       apiFetch<{ success: boolean }>(`/titulares/${titularId}/pagos/${pagoId}`, { method: 'DELETE' }),
+    /** Anula un pase a cuenta corriente: la reserva vuelve a tener su saldo. */
+    anularCargo: (reservaId: string) =>
+      apiFetch<{ success: boolean }>(`/reservas/${reservaId}/cuenta-corriente`, { method: 'DELETE' }),
     /** Los datos de ese CUIT según ARCA. No guarda nada. */
     consultarArca: (cuit: string) =>
       apiFetch<DatosArca>(`/titulares/arca?cuit=${encodeURIComponent(cuit)}`),
@@ -385,7 +388,12 @@ export interface DbTitular {
 }
 export interface DbEstadoDeCuenta {
   titular: DbTitular;
-  cargos: { id: string; monto: number; concepto: string; fecha: string; empleadoNombre: string; reserva: { id: string; huesped: string; habitacion: string } }[];
+  cargos: {
+    id: string; monto: number; concepto: string; fecha: string; empleadoNombre: string;
+    reserva: { id: string; huesped: string; habitacion: string };
+    /** Si se puede anular el pase, y si no, por qué (ver motivoParaNoAnularCargo). */
+    anulable: boolean; motivoNoAnulable: string | null;
+  }[];
   pagos: { id: string; monto: number; metodo: string; nota: string; fecha: string; empleadoNombre: string; anulable: boolean }[];
   movimientos: { id: string; tipo: 'cargo' | 'pago'; fecha: string; detalle: string; importe: number; saldo: number }[];
 }

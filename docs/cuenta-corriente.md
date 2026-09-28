@@ -445,8 +445,13 @@ en ningún lado. En la base no se tocó nada (el tipo sigue en el enum).
 
 ## Pendiente de decidir (no bloquea)
 
-- Límite de crédito: ¿bloquea la derivación o solo avisa?
-- ¿Se puede anular un cargo derivado por error? (Por ahora no.)
+- ~~Límite de crédito: ¿bloquea la derivación o solo avisa?~~ **Decidido
+  (29/09): solo avisa.** Es como ya funcionaba.
+- ~~¿Se puede anular un cargo derivado por error?~~ **Decidido (29/09): sí.**
+  `DELETE /api/reservas/[id]/cuenta-corriente`, botón "Anular" en el estado
+  de cuenta. La reserva vuelve a tener su saldo. No se puede si la reserva
+  está facturada o si la cuenta ya no debe el cargo entero (los pagos van a
+  la deuda total, no a un cargo): ver `motivoParaNoAnularCargo`.
 - ¿Se bloquea derivar una reserva que ya tiene pagos? (Ofrecido; coherente
   con "sin seña".)
 - ~~Seña + derivación, ¿cómo se factura?~~ **Decidido:** una cuenta corriente
