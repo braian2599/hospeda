@@ -17,6 +17,8 @@ export interface DetalleComprobante {
   importeTotal: number; // en pesos, con decimales (no centavos)
   fechaServicioDesde: Date;
   fechaServicioHasta: Date;
+  /** Obligatoria desde la RG 5616. Ver CONDICION_IVA_RECEPTOR en config.ts. */
+  condicionIvaReceptorId: number;
 }
 
 export interface ResultadoCae {
@@ -121,13 +123,14 @@ export async function solicitarCae(tenantId: string, ptoVta: number, detalle: De
             <ImpTotConc>0.00</ImpTotConc>
             <ImpNeto>${importe}</ImpNeto>
             <ImpOpEx>0.00</ImpOpEx>
-            <ImpIVA>0.00</ImpIVA>
             <ImpTrib>0.00</ImpTrib>
+            <ImpIVA>0.00</ImpIVA>
             <FchServDesde>${fechaAfip(detalle.fechaServicioDesde)}</FchServDesde>
             <FchServHasta>${fechaAfip(detalle.fechaServicioHasta)}</FchServHasta>
             <FchVtoPago>${hoy}</FchVtoPago>
             <MonId>PES</MonId>
             <MonCotiz>1</MonCotiz>
+            <CondicionIVAReceptorId>${detalle.condicionIvaReceptorId}</CondicionIVAReceptorId>
           </FECAEDetRequest>
         </FeDetReq>
       </FeCAEReq>

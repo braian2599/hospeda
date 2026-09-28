@@ -37,6 +37,18 @@ export const CBTE_TIPO = {
   FACTURA_C: 11,
 } as const;
 
+/**
+ * Condición frente al IVA de quien RECIBE la factura. Obligatoria en cada
+ * pedido de CAE desde la RG 5616: sin ella ARCA rechaza con el error 10246.
+ * Son los Id de la tabla oficial (FEParamGetCondicionIvaReceptor).
+ */
+export const CONDICION_IVA_RECEPTOR = {
+  RESPONSABLE_INSCRIPTO: 1,
+  EXENTO: 4,
+  CONSUMIDOR_FINAL: 5,
+  MONOTRIBUTO: 6,
+} as const;
+
 export const DOC_TIPO = {
   CUIT: 80,
   DNI: 96,

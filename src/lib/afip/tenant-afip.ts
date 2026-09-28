@@ -7,7 +7,7 @@
 
 import { db } from '@/lib/db';
 import { hasFeatureFlag } from '@/lib/feature-flags-server';
-import { tipoComprobantePorCondicionIva, docReceptor, AfipError, nombreTipoComprobante, type AfipAmbiente } from './config';
+import { tipoComprobantePorCondicionIva, docReceptor, AfipError, nombreTipoComprobante, CONDICION_IVA_RECEPTOR, type AfipAmbiente } from './config';
 import { solicitarCae, type ResultadoCae } from './wsfe';
 
 export interface ComprobanteAfipInfo {
@@ -69,6 +69,9 @@ export async function emitirComprobanteAfip(tenantId: string, reservaId: string)
       importeTotal,
       fechaServicioDesde: reserva.checkin,
       fechaServicioHasta: reserva.checkout,
+      // El huésped, identificado con su DNI: Consumidor Final. Facturarle a
+      // una empresa con su propia condición es CC-4 (docs/cuenta-corriente.md).
+      condicionIvaReceptorId: CONDICION_IVA_RECEPTOR.CONSUMIDOR_FINAL,
     });
   } catch (err) {
     await db.tenantAfip.update({
