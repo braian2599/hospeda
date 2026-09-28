@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useHotelStore } from '@/lib/store';
 import { useFilterState } from '@/hooks/use-filter-state';
 import { cn } from '@/lib/utils';
-import { formatMoney, formatFecha, todayLocal } from '@/lib/format';
+import { formatMoney, formatFecha, todayLocal, numeroDeReserva } from '@/lib/format';
 import type { Reserva, HabitacionDisponible, Cliente, CampoPersonalizado, TarifaPrecios, PromocionesTarifa } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -793,7 +793,7 @@ export default function ReservasModule() {
  // Del más viejo al más nuevo (primero la seña). Dentro del mismo día, por id:
  // los ids que genera la base (cuid) empiezan con la hora en que se crearon.
  const pagosCargados = editingId
-   ? pagos.filter(p => p.idReserva === editingId).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id.localeCompare(b.id))
+   ? pagos.filter(p => p.idReserva === editingId).sort((a, b) => (a.creadoEn || a.fecha).localeCompare(b.creadoEn || b.fecha) || a.id.localeCompare(b.id))
    : [];
  /** Lo que quedó escrito para ese pago. NaN si no es un monto válido. */
  const montoEscrito = (id: string, original: number): number => {
@@ -1572,8 +1572,9 @@ export default function ReservasModule() {
  <XCircle className="w-3.5 h-3.5 mr-1" />Limpiar
  </Button>
  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors" onClick={() => {
-   const headers = ['Huésped', 'DNI', 'Habitación', 'Check-in', 'Check-out', 'Estado', 'Total'];
+   const headers = ['N°', 'Huésped', 'DNI', 'Habitación', 'Check-in', 'Check-out', 'Estado', 'Total'];
    const rows = filteredReservas.map(r => [
+     numeroDeReserva(r),
      r.huesped || '',
      r.dni || '',
      r.habitacion || '',
@@ -1620,7 +1621,7 @@ export default function ReservasModule() {
  <div className="flex items-start justify-between gap-2">
    <div className="min-w-0">
      <p className="font-semibold text-sm truncate">{r.huesped}</p>
-     <p className="text-xs text-muted-foreground">{r.dni}</p>
+     <p className="text-xs text-muted-foreground">{r.dni}{r.numero != null && ` · ${numeroDeReserva(r)}`}</p>
    </div>
    <div className="flex items-center gap-1 shrink-0 bg-[#0F766E14] rounded-md px-2 py-1">
      <BedDouble className="w-3.5 h-3.5 text-primary" />
@@ -1825,6 +1826,12 @@ export default function ReservasModule() {
            <div>{r.huesped}</div>
            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
              <span>{r.dni}</span>
+             {r.numero != null && (
+               <>
+                 <span className="text-muted-foreground">·</span>
+                 <span>{numeroDeReserva(r)}</span>
+               </>
+             )}
              <span className="text-muted-foreground">·</span>
              <User className="w-3 h-3" />
              <span>{r.personas}</span>
@@ -2006,7 +2013,7 @@ export default function ReservasModule() {
  <Dialog open={modalDetalleOpen} onOpenChange={setModalDetalleOpen}>
  <DialogContent size="grande">
  <DialogHeader>
- <DialogTitle>Detalle de Reserva #{detalleReserva?.id}</DialogTitle>
+ <DialogTitle>Detalle de la reserva {detalleReserva ? numeroDeReserva(detalleReserva) : ''}</DialogTitle>
  </DialogHeader>
  {detalleReserva && (
  <div className="space-y-4">
@@ -2156,7 +2163,7 @@ export default function ReservasModule() {
  <CalendarDays className="w-5 h-5 text-primary" />
  </div>
  <div>
- <DialogTitle className="text-xl">{editingId ? `Editar Reserva #${editingId}` : 'Nueva Reserva'}</DialogTitle>
+ <DialogTitle className="text-xl">{editingId ? `Editar reserva ${numeroDeReserva(reservas.find(r => r.id === editingId) ?? {})}` : 'Nueva Reserva'}</DialogTitle>
  <p className="text-xs text-muted-foreground mt-0.5">
  {form.checkin && form.checkout
  ? `${formatFecha(form.checkin)} → ${formatFecha(form.checkout)}`

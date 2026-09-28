@@ -91,6 +91,14 @@ export const NOVEDADES: Novedad[] = [
   // Las cuatro del 28/09 salen con el deploy de esa noche. El arreglo va
   // primero: es lo que los hoteles venían sufriendo.
   {
+    id: 'numero-de-reserva-2026-09',
+    fecha: '2026-09-28',
+    tipo: 'mejora',
+    titulo: 'Cada reserva tiene su número',
+    texto: 'Las reservas llevan un número corto (#0012) que se ve en Reservas, en el historial de pagos y en el recibo: así distinguís dos reservas iguales. El historial de pagos ahora muestra la hora de cada cobro.',
+    requiere: { modulo: 'reservas' },
+  },
+  {
     id: 'facturar-cobrada-completa-2026-09',
     fecha: '2026-09-28',
     tipo: 'mejora',

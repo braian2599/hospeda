@@ -278,6 +278,10 @@ model Estadia {
 model Reserva {
   id                       String        @id @default(cuid())
   tenantId                 String
+  // Número corto por hotel (#1, #2…), para distinguir reservas a simple
+  // vista. Lo pone la base al crearla (trigger "reserva_numero", ver la
+  // migración 20260928_numero_reserva): el código no lo manda nunca.
+  numero                   Int?
   clienteId                String?
   huesped                  String
   dni                      String
@@ -355,6 +359,7 @@ model Reserva {
   @@index([tenantId, estado])
   @@index([tenantId, habitacion, checkin, checkout])
   @@unique([tenantId, externalUid])
+  @@unique([tenantId, numero])
   // Evita números de comprobante duplicados dentro del mismo punto de
   // venta. Postgres no considera duplicados los NULL, así que las reservas
   // sin comprobante emitido todavía no chocan entre sí.

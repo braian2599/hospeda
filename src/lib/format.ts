@@ -143,3 +143,11 @@ export const timeAgo = (dateOrStr: string | Date): string => {
   // Fall back to formatted date
   return formatFecha(typeof dateOrStr === 'string' ? dateOrStr : date.toISOString());
 };
+
+/**
+ * El número corto de una reserva, como se muestra: "#0012". Vacío si todavía
+ * no lo tiene (una reserva recién creada en pantalla, antes de que la base le
+ * asigne uno).
+ */
+export const numeroDeReserva = (r: { numero?: number }): string =>
+  r.numero != null ? `#${String(r.numero).padStart(4, '0')}` : '';

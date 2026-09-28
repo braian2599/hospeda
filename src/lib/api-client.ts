@@ -437,6 +437,8 @@ export interface DbPago {
 }
 export interface DbReserva {
   id: string; tenantId: string; clienteId?: string | null;
+  /** Número corto por hotel; lo pone la base al crearla. */
+  numero?: number | null;
   huesped: string; dni: string; telefono: string;
   email?: string | null; habitacion: string;
   checkin: string; checkout: string; personas: number;

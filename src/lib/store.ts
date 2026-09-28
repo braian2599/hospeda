@@ -127,6 +127,7 @@ function mapDbReservaToStore(r: any, totalOverride?: number): Reserva {
         }
       : undefined,
     facturada: estaFacturada(r.comprobanteCae) || undefined,
+    numero: r.numero ?? undefined,
   };
 }
 
@@ -965,11 +966,14 @@ export const useHotelStore = create<HotelStore>()(
           // Reemplazar el ID temporal con el ID real de la BD
           const currentReservas = get().reservas;
           const updatedId = dbReserva.id;
+          // El número corto lo pone la base al crearla: llega en la respuesta.
+          const numero: number | undefined = dbReserva.numero ?? undefined;
           set({
-            reservas: currentReservas.map(r => r.id === tempId ? { ...r, id: updatedId } : r),
+            reservas: currentReservas.map(r => r.id === tempId ? { ...r, id: updatedId, numero } : r),
           });
           // Actualizar el ID local antes de retornar para que registrarPago pueda encontrar la reserva
           reserva.id = updatedId;
+          reserva.numero = numero;
           pushNotif('success', 'Reserva creada', `${datos.huesped} — Hab. ${datos.habitacion}`, 'reserva', 'info', 'reservas', 'Ver reserva');
         } catch (err) {
           const isAuth = err && typeof err === 'object' && 'status' in err && (err as any).status === 401;
@@ -1310,7 +1314,7 @@ export const useHotelStore = create<HotelStore>()(
 
         const montoNum = parseFloat(String(monto));
         const tempId = generarId();
-        const nuevoPago: Pago = { id: tempId, idReserva, monto: montoNum, metodo: metodoResuelto, fecha: todayLocal(), nota };
+        const nuevoPago: Pago = { id: tempId, idReserva, monto: montoNum, metodo: metodoResuelto, fecha: todayLocal(), nota, creadoEn: new Date().toISOString() };
         const newPagos = [...state.pagos, nuevoPago];
 
         const total = state.calcularTotalReserva(idReserva);
@@ -2150,6 +2154,7 @@ export const useHotelStore = create<HotelStore>()(
             id: p.id, idReserva: p.reservaId, monto: p.monto / 100,
             metodo: metodoIdToName.get(p.metodo) || p.metodo,
             fecha: p.fecha?.split('T')[0] || p.fecha, nota: p.nota || '',
+            creadoEn: p.createdAt || undefined,
           }));
 
           // Map gastos (monto from centavos to pesos)

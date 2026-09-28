@@ -104,6 +104,8 @@ export interface Reserva {
    * src/lib/facturacion-reserva.ts.
    */
   facturada?: boolean;
+  /** Número corto por hotel (#0012). Lo pone la base al crear la reserva. */
+  numero?: number;
 }
 
 export type EstadoReserva = 'Confirmada' | 'Cancelada' | 'Check-In realizado' | 'Check-Out realizado' | 'A confirmar';
@@ -139,8 +141,11 @@ export interface Pago {
   idReserva: string;
   monto: number;
   metodo: string;
+  /** Solo el día, AAAA-MM-DD: es lo que usan los filtros y los reportes. */
   fecha: string;
   nota: string;
+  /** Cuándo se registró, en ISO con hora: para "hace 20 min" y el orden. */
+  creadoEn?: string;
 }
 
 export interface Usuario {

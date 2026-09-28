@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { formatMoney, formatFecha, formatFechaHora, todayLocal } from '@/lib/format';
+import { formatMoney, formatFecha, formatFechaHora, todayLocal, numeroDeReserva } from '@/lib/format';
 import type { Reserva, Pago } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,6 +66,17 @@ function daysSince(dateStr: string): number {
   const then = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00');
   const now = new Date();
   return Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Cuándo se registró un pago: la hora y "hace 20m". Antes se calculaba con
+ * la fecha sola (el día, sin hora), así que todos los pagos del día decían
+ * "ahora" hasta el mediodía.
+ */
+function cuandoSeCobro(p: Pago): string {
+  if (!p.creadoEn) return relativeTime(p.fecha);
+  const hora = new Date(p.creadoEn).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  return `${hora} · ${relativeTime(p.creadoEn)}`;
 }
 
 /** Format a relative time string from a date string */
@@ -259,14 +270,17 @@ export default function ComprobantesModule() {
       const reserva = reservas.find(r => r.id === p.idReserva);
       if (histFiltroHuesped && reserva) {
         const term = histFiltroHuesped.toLowerCase();
-        if (!reserva.huesped.toLowerCase().includes(term) && !reserva.dni.includes(term)) return false;
+        if (!reserva.huesped.toLowerCase().includes(term) && !reserva.dni.includes(term)
+          && !numeroDeReserva(reserva).includes(term)) return false;
       }
       if (filtroMetodoNombre && filtroMetodoNombre !== 'todos' && p.metodo !== filtroMetodoNombre) return false;
       if (histFiltroDesde && p.fecha < histFiltroDesde) return false;
       if (histFiltroHasta && p.fecha > histFiltroHasta) return false;
       return true;
     })
-    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+    // Por la hora exacta en que se registró: dos pagos del mismo día quedan
+    // en orden. Los que no la traen caen a la fecha.
+    .sort((a, b) => (b.creadoEn || b.fecha).localeCompare(a.creadoEn || a.fecha));
 
   // Pagination for pendientes — `safePendPage` clamps a página que quedó
   // fuera de rango (p.ej. un pago registrado sacó ítems de "pendientes" y
@@ -452,7 +466,7 @@ export default function ComprobantesModule() {
                               </div>
                               <div className="min-w-0">
                                 <p className="font-semibold text-sm truncate">{r.huesped}</p>
-                                <p className="text-xs text-muted-foreground">{r.dni}</p>
+                                <p className="text-xs text-muted-foreground">{r.dni}{r.numero != null && ` · ${numeroDeReserva(r)}`}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
@@ -562,7 +576,7 @@ export default function ComprobantesModule() {
                                 </div>
                                 <div>
                                   <div>{r.huesped}</div>
-                                  <div className="text-xs text-muted-foreground">{r.dni}</div>
+                                  <div className="text-xs text-muted-foreground">{r.dni}{r.numero != null && ` · ${numeroDeReserva(r)}`}</div>
                                 </div>
                               </div>
                             </TableCell>
@@ -681,13 +695,16 @@ export default function ComprobantesModule() {
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                               <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                               <span>{formatFecha(p.fecha)}</span>
-                              <span className="text-[10px] opacity-60">({relativeTime(p.fecha)})</span>
+                              <span className="text-[10px] opacity-60">({cuandoSeCobro(p)})</span>
                             </div>
                             <p className="text-base font-bold text-primary shrink-0">{formatMoney(p.monto)}</p>
                           </div>
                           {/* Guest + Room */}
                           <div className="flex items-center gap-2">
-                            <p className="font-semibold text-sm truncate flex-1">{reserva?.huesped || `Reserva #${p.idReserva}`}</p>
+                            <p className="font-semibold text-sm truncate flex-1">
+                              {reserva?.huesped || 'Reserva'}
+                              {reserva?.numero != null && <span className="ml-1.5 text-xs font-normal text-muted-foreground">{numeroDeReserva(reserva)}</span>}
+                            </p>
                             <Badge variant="outline" className="shrink-0">{reserva?.habitacion || '—'}</Badge>
                           </div>
                           {/* Method with icon */}
@@ -756,11 +773,14 @@ export default function ComprobantesModule() {
                             <TableCell>
                               <div className="space-y-0.5">
                                 <span className="text-sm">{formatFecha(p.fecha)}</span>
-                                <span className="block text-[10px] text-muted-foreground">{relativeTime(p.fecha)}</span>
+                                <span className="block text-[10px] text-muted-foreground">{cuandoSeCobro(p)}</span>
                               </div>
                             </TableCell>
                             <TableCell className="font-medium">
-                              {reserva?.huesped || `Reserva #${p.idReserva}`}
+                              {reserva?.huesped || 'Reserva'}
+                              {reserva?.numero != null && (
+                                <span className="block text-[10px] font-normal text-muted-foreground">Reserva {numeroDeReserva(reserva)}</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline">{reserva?.habitacion || '—'}</Badge>
@@ -906,6 +926,9 @@ export default function ComprobantesModule() {
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
               {reciboEsRecibo ? 'Recibo' : 'Cotización'}
+              {reciboReserva?.numero != null && (
+                <span className="text-sm font-normal text-muted-foreground">· Reserva {numeroDeReserva(reciboReserva)}</span>
+              )}
             </DialogTitle>
           </DialogHeader>
 
