@@ -37,6 +37,7 @@ import TodaySummary from '@/components/modules/TodaySummary';
 import { toast } from 'sonner';
 import { notifySuccess, notifyWarning } from '@/lib/notify';
 import { moduloDisponible } from '@/lib/plan-config';
+import { esCompartida, lugaresPara } from '@/lib/ocupacion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PaginationBar from '@/components/ui/pagination-bar';
@@ -393,6 +394,9 @@ function RoomSelectCard({
   onNinosChange?: (v: number) => void;
   showNinos: boolean;
 }) {
+  // En una compartida el tope son las camas libres de esas fechas, no la
+  // capacidad total (que puede estar en parte ocupada por otras reservas).
+  const lugares = lugaresPara(hab);
   return (
     <Card
       className={cn(
@@ -429,11 +433,11 @@ function RoomSelectCard({
               <Input
                 type="number"
                 min="1"
-                max={hab.capacidad}
+                max={lugares}
                 value={personas}
                 onChange={e => {
                   const val = parseInt(e.target.value) || 1;
-                  if (val > hab.capacidad || val < 1) return;
+                  if (val > lugares || val < 1) return;
                   onPersonasChange(val);
                 }}
                 className="h-7 text-xs w-14 text-center"
@@ -445,11 +449,11 @@ function RoomSelectCard({
                 <Input
                   type="number"
                   min="0"
-                  max={Math.max(0, hab.capacidad - personas)}
+                  max={Math.max(0, lugares - personas)}
                   value={ninos ?? 0}
                   onChange={e => {
                     let val = parseInt(e.target.value) || 0;
-                    const maxNinos = Math.max(0, hab.capacidad - personas);
+                    const maxNinos = Math.max(0, lugares - personas);
                     if (val < 0) val = 0;
                     if (val > maxNinos) val = maxNinos;
                     onNinosChange(val);
@@ -908,7 +912,9 @@ export default function ReservasModule() {
  const disponiblesFiltradas = useMemo(() => {
  // El listado no depende de la tarifa seleccionada: la tarifa no limita
  // qué habitaciones se pueden reservar.
- const compartidas = disponibles.filter(h => h.tipo === 'Compartida');
+ // Una compartida aparece solo si le quedan camas para todas las personas
+ // buscadas en esas fechas (antes aparecía con que quedara una sola).
+ const compartidas = disponibles.filter(h => esCompartida(h.tipo) && lugaresPara(h) >= personasBusqueda);
  const individualesCompartidas = form.filtroMatrimonial
  ? compartidas.filter(h => h.camasMatrimoniales > 0)
  : compartidas;
@@ -981,8 +987,19 @@ export default function ReservasModule() {
  // Elegir habitación NO toca la tarifa: cualquier tipo de habitación se puede
  // cobrar con cualquier tarifa. Lo único que se limpia es la segunda
  // habitación, porque elegir una sola cancela una combinación previa.
+ //
+ // Las personas de la reserva pasan a ser las de la búsqueda (con el tope de
+ // la habitación). Antes quedaba el 1 del casillero "Pers." de la tarjeta:
+ // se buscaba para 6, se guardaba 1 persona, y en una compartida se
+ // descontaba 1 sola cama.
  const selectRoom = (hab: HabitacionDisponible) => {
- setForm(prev => ({ ...prev, habitacion: hab.numero, habitacion2: '', reservaMultiple: false }));
+ setForm(prev => ({
+ ...prev,
+ habitacion: hab.numero,
+ habitacion2: '',
+ reservaMultiple: false,
+ personas: String(Math.max(1, Math.min(parseInt(prev.personasBusqueda) || 1, lugaresPara(hab)))),
+ }));
  };
 
  const selectCombinacion = (sug: CombinacionSugerencia) => {
@@ -1173,7 +1190,17 @@ export default function ReservasModule() {
  // habitación lo decide su tipo, no la tarifa — una compartida reserva
  // camas y sigue admitiendo huéspedes; el resto se bloquea entero.
  const n1 = tieneNinosDiferenciado ? (parseInt(form.ninos) || 0) : 0;
- if (form.habitacion && habitaciones[form.habitacion]) {
+ if (form.habitacion && habitaciones[form.habitacion] && esCompartida(habitaciones[form.habitacion].tipo)) {
+ // Compartida: contra las camas libres de esas fechas (sin contar esta
+ // misma reserva si se está editando).
+ const p1 = parseInt(form.personas) || 1;
+ const totalOcupantes = p1 + n1;
+ const libres = buscarDisponibilidad(form.checkin, form.checkout, editingId || undefined).find(h => h.numero === form.habitacion);
+ const camas = libres ? lugaresPara(libres) : 0;
+ if (totalOcupantes > camas) {
+ errs.push(`La habitación ${form.habitacion} tiene ${camas} cama${camas === 1 ? '' : 's'} libre${camas === 1 ? '' : 's'} en esas fechas y la reserva es de ${totalOcupantes} persona${totalOcupantes === 1 ? '' : 's'}.`);
+ }
+ } else if (form.habitacion && habitaciones[form.habitacion]) {
  const p1 = parseInt(form.personas) || 1;
  const totalOcupantes = p1 + n1;
  if (totalOcupantes > habitaciones[form.habitacion].capacidad) {
@@ -2297,7 +2324,15 @@ export default function ReservasModule() {
  min="1"
  max="20"
  value={form.personasBusqueda}
- onChange={e => updateForm({ personasBusqueda: e.target.value })}
+ onChange={e => {
+ // Si ya hay una habitación elegida, las personas de la reserva siguen
+ // a la búsqueda (con el tope de esa habitación).
+ const elegida = disponibles.find(h => h.numero === form.habitacion);
+ const buscadas = parseInt(e.target.value) || 1;
+ updateForm(elegida
+ ? { personasBusqueda: e.target.value, personas: String(Math.max(1, Math.min(buscadas, lugaresPara(elegida)))) }
+ : { personasBusqueda: e.target.value });
+ }}
  />
  </div>
  <div className="grid gap-1.5">
@@ -2388,7 +2423,7 @@ export default function ReservasModule() {
  hab={hab}
  selected={isSelected}
  onSelect={() => selectRoom(hab)}
- personas={Math.min(parseInt(form.personas) || 1, hab.capacidad)}
+ personas={Math.min(parseInt(form.personas) || 1, lugaresPara(hab))}
  onPersonasChange={val => updateForm({ personas: String(val) })}
  showNinos={tieneNinosDiferenciado}
  ninos={parseInt(form.ninos) || 0}

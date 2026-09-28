@@ -58,6 +58,7 @@ Administración:
 ## Habitaciones compartidas
 Se cobran por cama, no por habitación:
 - Una compartida admite varias reservas a la vez mientras le queden camas libres, y NUNCA se bloquea entera. Si tiene 6 camas y hay 2 ocupadas, siguen disponibles 4.
+- Cada persona de la reserva (adultos y niños) ocupa una cama. Al buscar en Reservas, una compartida aparece solo si le quedan camas para todas las personas buscadas, y al elegirla la reserva queda con esa cantidad de personas. En la reserva rápida del calendario, el tope de personas son las camas libres de esas noches.
 - El resto de los tipos (Simple, Doble, Triple, Cuádruple) se reservan enteros: una reserva bloquea la habitación.
 - Cualquier tipo de habitación se puede cobrar con cualquier tarifa, sin importar el modo de cobro.
 - Cuando un huésped de una compartida hace el check-out, queda una tarea de limpieza para esa cama aunque la habitación siga ocupada por otros.

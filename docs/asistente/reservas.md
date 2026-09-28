@@ -17,6 +17,11 @@ El formulario tiene 3 pestañas, en este orden: **Disponibilidad → Cliente →
 - Checkbox opcional "Solo habitaciones con cama matrimonial".
 - Botón "Buscar habitaciones" (deshabilitado hasta que haya fechas).
 - Resultado: tarjetas con las habitaciones disponibles (número, tipo, capacidad, camas).
+  - Al elegir una habitación, la reserva queda con las personas buscadas
+    (con el tope de la habitación); se pueden ajustar en "Pers.:".
+  - Compartidas: cada persona ocupa una cama. Aparecen solo si les quedan
+    camas libres para todas las personas buscadas en esas fechas, y "Pers.:"
+    no deja pasar de las camas libres.
   - Si ninguna habitación individual alcanza para la cantidad de personas
     buscada, el sistema **sugiere combinaciones de 2 habitaciones** (reserva
     múltiple) que sumen la capacidad necesaria.

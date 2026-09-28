@@ -19,6 +19,7 @@ import { notifySuccess } from '@/lib/notify';
 import { modulosVisiblesPara } from '@/lib/plan-config';
 import { calcularDesgloseTarifa, getPromocionesEfectivas } from '@/lib/tarifa-calc';
 import { sumarDiasFecha } from '@/lib/gantt-mover';
+import { esCompartida, lugaresPara } from '@/lib/ocupacion';
 import type { Cliente } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -102,7 +103,8 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
   const planes = useHotelStore(s => s.planes);
 
   const hab = habitaciones[datos.habitacion];
-  const capacidad = hab?.capacidad || 1;
+  const compartida = esCompartida(hab?.tipo);
+  const buscarDisponibilidad = useHotelStore(s => s.buscarDisponibilidad);
 
   const [noches, setNoches] = useState(1);
   const [huesped, setHuesped] = useState('');
@@ -126,6 +128,14 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
   const huespedRef = useRef<HTMLDivElement>(null);
 
   const checkout = sumarDiasFecha(datos.checkin, noches);
+  // Tope de personas: en una compartida, las camas libres de TODAS las noches
+  // elegidas (cambia si se agregan noches); en el resto, la capacidad.
+  const capacidad = useMemo(() => {
+    if (!hab) return 1;
+    if (!compartida) return hab.capacidad || 1;
+    const libre = buscarDisponibilidad(datos.checkin, checkout).find(h => h.numero === datos.habitacion);
+    return libre ? lugaresPara(libre) : 0;
+  }, [hab, compartida, buscarDisponibilidad, datos.checkin, datos.habitacion, checkout]);
   const tarifa = tarifas[tipoTarifa];
   const promos = tarifa ? getPromocionesEfectivas(tarifa) : {};
   const ninosAparte = !!promos.ninosDiferenciado?.activo;
@@ -147,6 +157,13 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
   const total = subtotal + recargo;
   const senaMinima = Math.ceil(total * SENA_MINIMA);
   const cobradoAhora = cobro === 'total' ? total : cobro === 'parcial' ? Math.min(total, parseFloat(monto) || 0) : 0;
+
+  // Si al sumar noches quedan menos camas libres, las personas bajan solas.
+  useEffect(() => {
+    if (capacidad < 1) return;
+    if (adultos > capacidad) setAdultos(capacidad);
+    if (adultos + ninos > capacidad) setNinos(Math.max(0, capacidad - Math.min(adultos, capacidad)));
+  }, [capacidad, adultos, ninos]);
 
   // Los avisos de lo que faltaba se van apenas se toca algo; si sigue
   // faltando, vuelven al tocar Crear.
@@ -240,7 +257,11 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
     if (!huesped.trim()) { errs.push('Falta el nombre.'); faltan.add('huesped'); }
     if (!dni.trim()) { errs.push('Falta el DNI.'); faltan.add('dni'); }
     if (!telefono.trim()) { errs.push('Falta el teléfono.'); faltan.add('telefono'); }
-    if (adultos + ninosCuenta > capacidad) errs.push(`La habitación ${datos.habitacion} es para ${capacidad} ${capacidad === 1 ? 'persona' : 'personas'}.`);
+    if (adultos + ninosCuenta > capacidad) {
+      errs.push(compartida
+        ? `La habitación ${datos.habitacion} tiene ${capacidad} ${capacidad === 1 ? 'cama libre' : 'camas libres'} esas noches.`
+        : `La habitación ${datos.habitacion} es para ${capacidad} ${capacidad === 1 ? 'persona' : 'personas'}.`);
+    }
     for (const c of camposPersonalizados) {
       if (c.requerido && !(camposTarifa[c.nombre] || '').trim()) { errs.push(`Falta "${c.nombre}".`); faltan.add(`campo:${c.nombre}`); }
     }
@@ -401,7 +422,9 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
             )}
           </div>
           <p className="text-[11.5px] text-muted-foreground">
-            Habitación {datos.habitacion}: hasta {capacidad} {capacidad === 1 ? 'persona' : 'personas'}.
+            {compartida
+              ? `Compartida: ${capacidad} ${capacidad === 1 ? 'cama libre' : 'camas libres'} esas noches (cada persona ocupa una cama).`
+              : `Habitación ${datos.habitacion}: hasta ${capacidad} ${capacidad === 1 ? 'persona' : 'personas'}.`}
           </p>
           {camposPersonalizados.length > 0 && (
             <div className="grid grid-cols-2 gap-2">

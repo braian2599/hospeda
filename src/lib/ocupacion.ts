@@ -83,6 +83,18 @@ export function camasLibresDe(
   return Math.max(0, capacidad - camasOcupadasPor(reservasSolapadas));
 }
 
+/**
+ * Cuántas personas se pueden cargar en una habitación que salió libre en una
+ * búsqueda: en una compartida, las camas libres de ESAS fechas (no la
+ * capacidad total, que ya puede estar en parte ocupada); en el resto, la
+ * capacidad de la habitación.
+ */
+export function lugaresPara(hab: { tipo?: string | null; capacidad: number; camasLibres?: number }): number {
+  const capacidad = entero(hab.capacidad, 0);
+  if (!esCompartida(hab.tipo)) return capacidad;
+  return hab.camasLibres !== undefined ? Math.max(0, Math.min(capacidad, Math.floor(hab.camasLibres))) : capacidad;
+}
+
 /** ¿Entran `ocupantes` personas en esta habitación, con lo que ya tiene reservado? */
 export function hayLugarEn(
   hab: CapacidadHabitacion,
