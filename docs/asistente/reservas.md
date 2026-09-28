@@ -46,6 +46,30 @@ combinaciones de 2 habitaciones cuya capacidad sumada alcance. Se elige la
 combinación como si fuera una única reserva: personas y tarifa se cargan
 para cada habitación, y en Pago se ve el total combinado de ambas.
 
+## Editar una reserva
+- Cada reserva tiene un número corto por hotel (#0012), que se ve en la
+  lista, en el detalle, en "Editar reserva #0012" y en los comprobantes.
+- En la pestaña Pago se ven los pagos cargados y se puede **corregir el
+  monto** de cada uno; la caja se ajusta sola. Solo mientras siga abierto el
+  turno de caja donde se cobró: cerrado ese turno, el monto queda fijo.
+  $0 elimina el pago.
+- Con el check-out hecho solo se corrigen los montos, y solo si la reserva
+  no tiene saldo. Si pasó a cuenta corriente, no se corrigen.
+- **Una reserva facturada no se modifica**: no aparecen Editar, Cancelar ni
+  Pago, y lleva la etiqueta "Facturada". Se corrige con una nota de crédito
+  (módulo ARCA).
+
+## Check-out antes de tiempo
+Si el huésped se va antes de la fecha reservada, la reserva guarda el día
+en que se fue (nunca antes de una noche después de la entrada). Si se va el
+día previsto o después, queda la fecha reservada. Una reserva facturada no
+cambia de fechas.
+
+## Cuenta corriente
+Con el check-out hecho y saldo pendiente, el botón "A cuenta corriente"
+pasa el total a la cuenta de una empresa. Solo si la reserva NO tiene
+ningún pago: si pagaron una seña, el resto se cobra.
+
 ## Reglas importantes
 - No se puede cargar más personas que la capacidad máxima de la habitación
   elegida (el sistema lo valida y muestra un error si se excede).

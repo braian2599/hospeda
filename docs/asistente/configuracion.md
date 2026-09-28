@@ -8,9 +8,14 @@ Navegación por secciones (sidebar/menú), no todas visibles siempre:
 
 1. **Hotel Info**: nombre, email, teléfono, dirección, país, moneda, zona
    horaria, logo e imagen de portada.
-2. **Fiscal**: CUIT/CUIL/RUT (con validación del dígito verificador),
-   condición frente al IVA, punto de venta. La numeración de facturas que
-   se ve acá es solo de referencia visual, no se aplica realmente todavía.
+2. **Facturación** (antes eran dos pestañas, "Fiscal" y "AFIP/ARCA"):
+   arriba, los datos de quien factura, que salen en cada comprobante: CUIT
+   (con validación del dígito verificador), razón social, condición frente
+   al IVA, dirección fiscal y logo; el botón **"Traer de ARCA"** los completa
+   con el CUIT. El punto de venta aparece solo si el hotel factura con ARCA.
+   La numeración inicial queda escondida detrás de "¿Venías usando otro
+   talonario?": solo la necesita quien viene de otro talonario. Abajo, si el
+   plan incluye facturación con ARCA, la conexión con ARCA.
 3. **Habitaciones**: solo un resumen de lectura (la carga real de
    habitaciones se hace en el módulo Habitaciones, no acá).
 4. **Landing (Fotos)** — *solo visible si el plan incluye landing page

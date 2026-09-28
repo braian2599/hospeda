@@ -30,6 +30,11 @@ ADR, RevPAR, Ticket Promedio) y 7 pestañas:
 - Las "noches vendidas" cuentan reservas que se superponen con el rango
   elegido (no solo las que arrancan adentro), recortadas a los límites del período.
 
+## Fechas
+Todo se cuenta en hora de Argentina: un pago del último día del mes a las
+22 hs es de ese mes, no del siguiente (el servidor corre en UTC y antes se
+corría). Los gastos y las estadías son días de calendario.
+
 ## Reglas importantes
 - Este módulo es de solo consulta/exportación — no se cargan datos
   operativos acá, salvo el alta rápida de un Gasto.

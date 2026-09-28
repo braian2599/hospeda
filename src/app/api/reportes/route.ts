@@ -1,40 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
-
-// ─────────────────────────────────────────────────────────
-// Helper: last 12 months date ranges
-// ─────────────────────────────────────────────────────────
-function getLast12Months() {
-  return Array.from({ length: 12 }, (_, i) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 11 + i);
-    const year = d.getFullYear();
-    const month = d.getMonth() + 1; // 1-indexed
-    const start = new Date(year, d.getMonth(), 1);
-    const end = new Date(year, d.getMonth() + 1, 0, 23, 59, 59, 999);
-    const daysInMonth = new Date(year, d.getMonth() + 1, 0).getDate();
-    const label = new Intl.DateTimeFormat('es-AR', { month: 'short', year: '2-digit' }).format(start);
-    return { year, month, start, end, daysInMonth, label };
-  });
-}
-
-// ─────────────────────────────────────────────────────────
-// Helper: key for month grouping (YYYY-MM)
-// ─────────────────────────────────────────────────────────
-function monthKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`;
-}
+import { getLast12Months, mesDeDia, mesDeMomento } from '@/lib/reportes-meses';
 
 // ─────────────────────────────────────────────────────────
 // Report: Ocupación mensual
 // ─────────────────────────────────────────────────────────
 async function getReporteOcupacion(tenantId: string) {
   const months = getLast12Months();
-  const rangeStart = months[0].start;
-  const rangeEnd = months[11].end;
+  const rangeStart = months[0].inicioDia;
+  const rangeEnd = months[11].finDia;
 
   const [totalHabitaciones, reservas] = await Promise.all([
     db.habitacion.count({ where: { tenantId } }),
@@ -42,7 +17,7 @@ async function getReporteOcupacion(tenantId: string) {
       where: {
         tenantId,
         estado: { in: ['CheckIn_realizado', 'Checkout_realizado', 'Confirmada'] },
-        checkin: { lte: rangeEnd },
+        checkin: { lt: rangeEnd },
         checkout: { gt: rangeStart },
       },
       select: { checkin: true, checkout: true },
@@ -51,9 +26,8 @@ async function getReporteOcupacion(tenantId: string) {
 
   const MS_PER_DAY = 86400000;
 
-  const data = months.map(({ year, month, start, end, daysInMonth, label }) => {
-    // Month end boundary: start of next month (checkout is exclusive)
-    const monthEndBound = new Date(year, month, 1); // first day of next month
+  const data = months.map(({ year, month, inicioDia: start, finDia: monthEndBound, daysInMonth, label }) => {
+    // El check-out no cuenta como noche: el mes termina al empezar el siguiente.
 
     let occupiedNights = 0;
     for (const r of reservas) {
@@ -84,14 +58,14 @@ async function getReporteOcupacion(tenantId: string) {
 // ─────────────────────────────────────────────────────────
 async function getReporteIngresos(tenantId: string) {
   const months = getLast12Months();
-  const rangeStart = months[0].start;
-  const rangeEnd = months[11].end;
+  const rangeStart = months[0].inicioMomento;
+  const rangeEnd = months[11].finMomento;
 
   // Single query for all 12 months of pagos
   const pagos = await db.pago.findMany({
     where: {
       tenantId,
-      fecha: { gte: rangeStart, lte: rangeEnd },
+      fecha: { gte: rangeStart, lt: rangeEnd },
     },
     select: { fecha: true, monto: true },
   });
@@ -99,7 +73,7 @@ async function getReporteIngresos(tenantId: string) {
   // Group by month in JS
   const monthTotals: Record<string, number> = {};
   for (const p of pagos) {
-    const key = monthKey(p.fecha);
+    const key = mesDeMomento(p.fecha);
     monthTotals[key] = (monthTotals[key] ?? 0) + p.monto;
   }
 
@@ -120,14 +94,14 @@ async function getReporteIngresos(tenantId: string) {
 // ─────────────────────────────────────────────────────────
 async function getReporteGastos(tenantId: string) {
   const months = getLast12Months();
-  const rangeStart = months[0].start;
-  const rangeEnd = months[11].end;
+  const rangeStart = months[0].inicioDia;
+  const rangeEnd = months[11].finDia;
 
   // Single query for all 12 months of gastos
   const gastos = await db.gasto.findMany({
     where: {
       tenantId,
-      fecha: { gte: rangeStart, lte: rangeEnd },
+      fecha: { gte: rangeStart, lt: rangeEnd },
     },
     select: { fecha: true, monto: true },
   });
@@ -135,7 +109,7 @@ async function getReporteGastos(tenantId: string) {
   // Group by month in JS
   const monthTotals: Record<string, number> = {};
   for (const g of gastos) {
-    const key = monthKey(g.fecha);
+    const key = mesDeDia(g.fecha);
     monthTotals[key] = (monthTotals[key] ?? 0) + g.monto;
   }
 
@@ -155,15 +129,14 @@ async function getReporteGastos(tenantId: string) {
 // Report: Métodos de pago (mes actual)
 // ─────────────────────────────────────────────────────────
 async function getReporteMetodosPago(tenantId: string) {
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  // El mes en curso en Argentina (el último de los 12).
+  const { inicioMomento, finMomento } = getLast12Months()[11];
 
   const result = await db.pago.groupBy({
     by: ['metodo'],
     where: {
       tenantId,
-      fecha: { gte: monthStart, lte: monthEnd },
+      fecha: { gte: inicioMomento, lt: finMomento },
     },
     _sum: { monto: true },
     _count: { id: true },

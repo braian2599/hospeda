@@ -20,6 +20,11 @@ una categoría automáticamente según palabras del texto escrito.
 Los movimientos se pueden filtrar (tipo, método, categoría, fechas,
 texto), y solo owner/admin pueden editar o eliminar uno ya cargado.
 
+**Excepciones:** el ingreso de un pago de reserva no se edita ni se borra
+desde Caja: el monto se corrige editando la reserva (pestaña Pago) y la
+caja se ajusta sola. El de un cobro de cuenta corriente se anula desde
+Comprobantes → Cuenta corriente.
+
 ## Cerrar la caja (wizard de 4 pasos)
 1. **Denominaciones**: conteo físico de billetes y monedas.
 2. **Otros métodos**: confirmar/ajustar el total contado de cada método
@@ -37,5 +42,6 @@ texto), y solo owner/admin pueden editar o eliminar uno ya cargado.
   movimientos si está cerrada.
 - Un egreso categorizado genera automáticamente un "Gasto" vinculado
   (visible en el módulo Reportes, pestaña Gastos).
-- **Dependencia clave con Facturación**: si la caja está cerrada, no se
-  pueden registrar cobros de reservas — hay que abrirla primero acá.
+- **Dependencia clave con Comprobantes y Reservas**: si la caja está
+  cerrada, no se pueden registrar cobros de reservas — hay que abrirla
+  primero acá.

@@ -29,7 +29,12 @@ conexión) — no siempre indica la causa exacta.
 Botón "Check-Out" en la reserva → abre un modal con habitación, tarifa,
 fechas, noches, ocupación, y el resumen financiero (Total, Pagado, Saldo).
 Si hay saldo pendiente se avisa en rojo, **pero no bloquea** el check-out —
-se puede completar igual con deuda pendiente.
+se puede completar igual con deuda pendiente. Si la reserva no tiene ningún
+pago, al terminar el sistema pregunta si el total pasa a la cuenta
+corriente de una empresa.
+
+Si el huésped se va antes de lo reservado, la reserva guarda el día en que
+se fue (ver `reservas.md`).
 
 ## Reglas importantes
 - El check-in siempre requiere pasar por este modal completo — no hay

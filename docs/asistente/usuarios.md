@@ -10,13 +10,18 @@ grilla de tarjetas de usuario, y log de actividad reciente.
 ## Roles disponibles
 - **Owner** (Administrador Principal) — no se puede eliminar ni asignar a
   otro usuario nuevo, es fijo por hotel.
-- **Admin** — mismo acceso a módulos que el owner.
+- **Admin** — mismo acceso a módulos que el owner (incluido ARCA).
 - **Recepción** — acceso a Dashboard, Habitaciones, Reservas, Check-in,
   Clientes, Tarifas.
 - **Limpieza** — acceso a Dashboard, Habitaciones, Limpieza.
 
 Los permisos por módulo se pueden ajustar a mano por usuario (no quedan
 fijos solo por el rol).
+
+**Permiso ARCA:** es aparte de Comprobantes. Quien tiene Comprobantes cobra
+y ve los recibos; para facturar, emitir presupuestos o notas de crédito y
+débito necesita además el permiso ARCA. Un empleado no lo tiene hasta que
+se lo tilden acá.
 
 ## Crear un usuario
 Botón "Crear usuario": nombre del perfil y contraseña (mínimo 8
