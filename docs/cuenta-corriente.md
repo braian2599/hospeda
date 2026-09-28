@@ -387,7 +387,26 @@ Decisiones del 28/09:
 - Diálogos más anchos: 560 / 720 / 960 / 1200 px (✅ en PREVIEW).
 
 Orden: 1) diálogos ✅, 2) Clientes con Empresas ✅ (PREVIEW), 3) módulo ARCA
-con su permiso, 4) notas de crédito y débito autorizadas por ARCA.
+con su permiso ✅ (PREVIEW), 4) notas de crédito y débito autorizadas por ARCA.
+
+### Cómo quedó el módulo ARCA (parte 3)
+- Módulo `arca` (`src/components/modules/ArcaModule.tsx`). Lo trae todo plan
+  que trae Comprobantes: se deriva en `modulosDelPlan` (plan-config.ts), sin
+  tocar los planes guardados. El permiso es aparte: dueño y admin lo ven
+  siempre; un empleado, solo con el permiso ARCA.
+- Para facturar: `GET /api/arca/por-facturar` (una consulta con las sumas en
+  la base). Filtro por cuándo se terminó de cobrar: 30 días, 90 días o
+  cualquier fecha, para que no aparezca toda la historia vieja del hotel.
+  Facturar de a una (elige a nombre de quién) o varias juntas (a cada
+  huésped; las de cuenta corriente, a su empresa).
+- Permisos: facturar-afip, emitir y anular presupuestos/remitos piden
+  `arca`. Ver la lista de comprobantes: `comprobantes` o `arca`.
+- `POST /api/comprobantes` ya no emite notas internas: una factura con CAE
+  solo se corrige con una nota autorizada por ARCA (parte 4).
+- Al facturar, la fecha de la factura pasa a ser la del CAE (antes quedaba
+  la del recibo).
+- Comprobantes: sin botones de facturar ni emitir; "Comprobantes emitidos"
+  es solo para ver.
 
 1. **Clientes y empresas en un solo lugar.** En el módulo Clientes tienen que
    aparecer también las empresas (hoy solo están las personas de las

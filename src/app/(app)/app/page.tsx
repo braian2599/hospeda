@@ -11,6 +11,7 @@ import ClientesModule from '@/components/modules/ClientesModule';
 import CheckInModule from '@/components/modules/CheckInModule';
 import ReservasModule from '@/components/modules/ReservasModule';
 import ComprobantesModule from '@/components/modules/ComprobantesModule';
+import ArcaModule from '@/components/modules/ArcaModule';
 import LimpiezaModule from '@/components/modules/LimpiezaModule';
 import CajaModule from '@/components/modules/CajaModule';
 import TarifasModule from '@/components/modules/TarifasModule';
@@ -37,6 +38,7 @@ const modules: Partial<Record<ModuloId, React.ComponentType>> = {
   reservas: ReservasModule,
   checkin: CheckInModule,
   comprobantes: ComprobantesModule,
+  arca: ArcaModule,
   limpieza: LimpiezaModule,
   caja: CajaModule,
   clientes: ClientesModule,

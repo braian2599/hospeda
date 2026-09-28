@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { formatMoney, formatFecha, formatFechaHora, todayLocal, numeroDeReserva } from '@/lib/format';
 import type { Reserva, Pago } from '@/lib/types';
@@ -13,12 +13,8 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
-  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
-} from '@/components/ui/alert-dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -26,13 +22,12 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  Receipt, CreditCard, FileText, Search, XCircle, DollarSign, CalendarDays, User,
+  Receipt, CreditCard, FileText, XCircle, DollarSign, CalendarDays, User,
   Building2, Phone, Mail, AlertTriangle, CheckCircle2, TrendingUp, Timer, Wallet,
-  Banknote, Printer, Hash, ArrowRight, CircleDollarSign, ChevronRight, Download, Loader2, Plus, Zap, Trash2, BookOpen,
+  Banknote, Printer, Hash, ArrowRight, CircleDollarSign, Download, Loader2, BookOpen, Landmark,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import CuentaCorrienteTab from '@/components/cuenta-corriente/CuentaCorrienteTab';
-import FacturarAfipDialog from '@/components/comprobantes/FacturarAfipDialog';
 import { toast } from 'sonner';
 import PaginationBar from '@/components/ui/pagination-bar';
 import { AnimatedNumber } from '@/components/ui/animated-number';
@@ -356,7 +351,17 @@ export default function ComprobantesModule() {
 
   return (
     <div className="space-y-6">
-      <ModuleHeader icon={Receipt} title="Comprobantes" subtitle="Facturas, presupuestos, remitos y notas de tus reservas" />
+      <ModuleHeader icon={Receipt} title="Comprobantes" subtitle="Cobros de las reservas, recibos y cuenta corriente" />
+
+      {/* Desde el 28/09 acá no se factura ni se emite: eso es del módulo
+          ARCA, con su propio permiso. Se avisa para que nadie lo busque acá. */}
+      <div className="flex items-start gap-2.5 rounded-lg border border-[#0284C733] bg-[#0284C70D] px-3.5 py-2.5 text-sm">
+        <Landmark className="w-4 h-4 text-info mt-0.5 shrink-0" />
+        <p>
+          <span className="font-medium">Para facturar, andá al módulo ARCA.</span>{' '}
+          <span className="text-muted-foreground">Ahí están también los presupuestos, los remitos y las notas de crédito y débito. Acá se cobra y se ven los recibos y comprobantes.</span>
+        </p>
+      </div>
 
       {/* ══════════════════ PAYMENT ANALYTICS SUMMARY ══════════════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
@@ -426,7 +431,7 @@ export default function ComprobantesModule() {
             <FileText className="w-4 h-4 mr-1" />Historial de pagos
           </TabsTrigger>
           <TabsTrigger value="otros" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
-            <Receipt className="w-4 h-4 mr-1" />Comprobantes
+            <Receipt className="w-4 h-4 mr-1" />Comprobantes emitidos
           </TabsTrigger>
           <TabsTrigger value="cuenta-corriente" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
             <BookOpen className="w-4 h-4 mr-1" />Cuenta corriente
@@ -973,19 +978,13 @@ function MetodoIconBadge({ type, name }: { type: 'credit' | 'bank' | 'wallet' | 
   );
 }
 
-/* =================== COMPROBANTES: FACTURAS, PRESUPUESTOS, REMITOS Y NOTAS =================== */
-/* Un solo lugar para ver y gestionar todo lo emitido, separado por tipo
-   (antes era una única lista mezclando los 4 tipos internos, y las
-   Facturas ni siquiera aparecían acá — se veían una por una, adentro de
-   cada reserva). Presupuesto/Remito/Nota de Crédito/Nota de Débito se
-   emiten manualmente y todavía no están conectados a AFIP (numeración
-   propia del tenant). Factura NO se emite acá — sigue su camino atómico
-   en POST /api/reservas/[id]/comprobante al hacer check-out — pero sí se
-   lista acá (es una copia del ledger), y desde acá se puede facturar con
-   AFIP un recibo que todavía no tiene CAE. */
+/* =================== COMPROBANTES EMITIDOS: FACTURAS, PRESUPUESTOS, REMITOS Y NOTAS =================== */
+/* Todo lo emitido, separado por tipo. En Comprobantes es solo para ver y
+   descargar; emitir, anular y facturar es del módulo ARCA
+   (src/components/modules/ArcaModule.tsx), que usa estas mismas piezas. */
 
 type TipoEmitible = Extract<TipoComprobanteGenerico, 'Presupuesto' | 'Remito' | 'NotaCredito' | 'NotaDebito'>;
-type TipoListado = 'Factura' | TipoEmitible;
+export type TipoListado = 'Factura' | TipoEmitible;
 
 const NOMBRE_TIPO_EMITIBLE: Record<TipoEmitible, string> = {
   Presupuesto: 'Presupuesto',
@@ -994,7 +993,7 @@ const NOMBRE_TIPO_EMITIBLE: Record<TipoEmitible, string> = {
   NotaDebito: 'Nota de Débito',
 };
 
-const NOMBRE_TIPO_LISTA: Record<TipoListado, string> = {
+export const NOMBRE_TIPO_LISTA: Record<TipoListado, string> = {
   Factura: 'Factura',
   ...NOMBRE_TIPO_EMITIBLE,
 };
@@ -1007,11 +1006,8 @@ const PILLS_TIPO: { tipo: TipoListado; label: string }[] = [
   { tipo: 'NotaDebito', label: 'Notas de Débito' },
 ];
 
-// Solo Presupuesto y Remito se pueden anular — Factura (ya autorizada o no
-// por AFIP) y las Notas de Crédito/Débito son permanentes.
-const TIPOS_ANULABLES = new Set<TipoListado>(['Presupuesto', 'Remito']);
 
-interface ComprobanteListado {
+export interface ComprobanteListado {
   id: string;
   tipo: string;
   puntoVenta: number;
@@ -1058,33 +1054,12 @@ function conceptoDesdeItem(item: ComprobanteListado): string {
   return partes.join(' — ');
 }
 
-function ComprobantesListaTab() {
-  const [tipoActivo, setTipoActivo] = useState<TipoListado>('Factura');
+/**
+ * Los datos fiscales del hotel para dibujar un comprobante (encabezado del
+ * PDF y de la vista previa). Los usan Comprobantes y ARCA.
+ */
+export function useDatosFiscales(): DatosFiscales | null {
   const [fiscal, setFiscal] = useState<DatosFiscales | null>(null);
-  const [items, setItems] = useState<ComprobanteListado[]>([]);
-  const [loadingList, setLoadingList] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [verItem, setVerItem] = useState<ComprobanteListado | null>(null);
-  const [anulando, setAnulando] = useState<ComprobanteListado | null>(null);
-
-  // fetchComprobantes no dispara setState de forma sincrónica (su primera
-  // instrucción es el fetch, no un setState) — así se puede llamar
-  // directamente desde el efecto sin el warning de
-  // react-hooks/set-state-in-effect. `recargar` sí marca "cargando" de
-  // entrada, pero se invoca desde un click, nunca desde un efecto.
-  const fetchComprobantes = useCallback(() => {
-    return fetch(`/api/comprobantes?tipo=${tipoActivo}`)
-      .then(r => r.json())
-      .then(data => { if (Array.isArray(data)) setItems(data); })
-      .catch(() => {})
-      .finally(() => setLoadingList(false));
-  }, [tipoActivo]);
-
-  const recargar = useCallback(() => {
-    setLoadingList(true);
-    fetchComprobantes();
-  }, [fetchComprobantes]);
-
   useEffect(() => {
     fetch('/api/configuracion/fiscal').then(r => r.json()).then(f => {
       setFiscal({
@@ -1095,46 +1070,44 @@ function ComprobantesListaTab() {
       });
     }).catch(() => {});
   }, []);
+  return fiscal;
+}
 
-  // Se recarga cada vez que cambia el tipo activo (el pill de arriba).
+/**
+ * "Comprobantes emitidos" de Comprobantes: SOLO LECTURA. Se ven y se
+ * descargan; emitir, anular y facturar es del módulo ARCA, que tiene su
+ * propio permiso (decisión del dueño, 28/09).
+ */
+function ComprobantesListaTab() {
+  const [tipoActivo, setTipoActivo] = useState<TipoListado>('Factura');
+  const fiscal = useDatosFiscales();
+  const [items, setItems] = useState<ComprobanteListado[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
+  const [verItem, setVerItem] = useState<ComprobanteListado | null>(null);
+
+  // Facturas: solo las autorizadas por ARCA. Una "Factura" sin CAE es el
+  // recibo interno de una reserva, que se ve en el historial de pagos.
   useEffect(() => {
-    setLoadingList(true);
-    fetchComprobantes();
-  }, [fetchComprobantes]);
-
-  const handleAnular = async () => {
-    if (!anulando) return;
-    try {
-      const res = await fetch(`/api/comprobantes/${anulando.id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) { toast.error(data.error || 'No se pudo anular'); return; }
-      toast.success(`${NOMBRE_TIPO_LISTA[anulando.tipo as TipoListado]} anulado`);
-      recargar();
-    } catch {
-      toast.error('Error de conexión');
-    } finally {
-      setAnulando(null);
-    }
-  };
+    let cancelado = false;
+    fetch(`/api/comprobantes?tipo=${tipoActivo}&take=100${tipoActivo === 'Factura' ? '&conCae=1' : ''}`)
+      .then(r => r.json())
+      .then(data => { if (!cancelado && Array.isArray(data)) setItems(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelado) setLoadingList(false); });
+    return () => { cancelado = true; };
+  }, [tipoActivo]);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {PILLS_TIPO.map(p => (
-            <Button
-              key={p.tipo} size="sm" variant={tipoActivo === p.tipo ? 'default' : 'outline'}
-              className="h-7 text-xs" onClick={() => setTipoActivo(p.tipo)}
-            >
-              {p.label}
-            </Button>
-          ))}
-        </div>
-        {tipoActivo !== 'Factura' && (
-          <Button size="sm" onClick={() => setDialogOpen(true)} className="gap-1.5">
-            <Plus className="w-4 h-4" /> Emitir {NOMBRE_TIPO_LISTA[tipoActivo].toLowerCase()}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {PILLS_TIPO.map(p => (
+          <Button
+            key={p.tipo} size="sm" variant={tipoActivo === p.tipo ? 'default' : 'outline'}
+            className="h-7 text-xs" onClick={() => { setLoadingList(true); setTipoActivo(p.tipo); }}
+          >
+            {p.label}
           </Button>
-        )}
+        ))}
       </div>
 
       <Card>
@@ -1148,7 +1121,7 @@ function ComprobantesListaTab() {
                   <TableHead className="text-right">Importe</TableHead>
                   <TableHead>Fecha</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead className="text-right">Ver</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1159,7 +1132,6 @@ function ComprobantesListaTab() {
                 ) : (
                   items.map(item => {
                     const anulado = item.estado === 'anulado';
-                    const puedeAnular = TIPOS_ANULABLES.has(item.tipo as TipoListado) && !anulado;
                     return (
                       <TableRow key={item.id} className={`cursor-pointer hover:bg-[#F1F5F933] ${anulado ? 'opacity-50' : ''}`} onClick={() => setVerItem(item)}>
                         <TableCell className={`font-mono text-xs ${anulado ? 'line-through' : ''}`}>{item.numeroDisplay}</TableCell>
@@ -1167,25 +1139,14 @@ function ComprobantesListaTab() {
                         <TableCell className="text-right">{formatMoney(item.importe)}</TableCell>
                         <TableCell className="text-xs">{formatFecha(item.fecha)}</TableCell>
                         <TableCell>
-                          {anulado ? (
-                            <Badge variant="outline" className="text-muted-foreground">Anulado</Badge>
-                          ) : item.tipo === 'Factura' ? (
-                            item.cae
-                              ? <Badge className="bg-[#05966926] text-success border-[#0F766E66]">Facturado</Badge>
-                              : <Badge variant="outline">Recibo interno</Badge>
-                          ) : null}
+                          {anulado
+                            ? <Badge variant="outline" className="text-muted-foreground">Anulado</Badge>
+                            : <Badge className="bg-[#05966926] text-success border-[#0F766E66]">Emitido</Badge>}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            {puedeAnular && (
-                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={e => { e.stopPropagation(); setAnulando(item); }}>
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={e => { e.stopPropagation(); setVerItem(item); }}>
-                              <FileText className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Ver comprobante" onClick={e => { e.stopPropagation(); setVerItem(item); }}>
+                            <FileText className="w-3.5 h-3.5" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -1197,24 +1158,7 @@ function ComprobantesListaTab() {
         </CardContent>
       </Card>
 
-      <EmitirComprobanteDialog open={dialogOpen} onOpenChange={setDialogOpen} onEmitido={recargar} tipoInicial={tipoActivo !== 'Factura' ? tipoActivo : 'Presupuesto'} />
-      <VerComprobanteDialog item={verItem} onOpenChange={open => { if (!open) setVerItem(null); }} fiscal={fiscal} onFacturado={() => { setVerItem(null); recargar(); }} />
-
-      <AlertDialog open={!!anulando} onOpenChange={open => { if (!open) setAnulando(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Anular {anulando ? NOMBRE_TIPO_LISTA[anulando.tipo as TipoListado].toLowerCase() : ''} {anulando?.numeroDisplay}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Queda marcado como anulado y ya no cuenta como válido, pero el registro se conserva (no se borra ni
-              se reutiliza el número) — es lo que corresponde para cualquier auditoría posterior.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleAnular}>Sí, anular</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <VerComprobanteDialog item={verItem} onOpenChange={open => { if (!open) setVerItem(null); }} fiscal={fiscal} />
     </div>
   );
 }
@@ -1222,20 +1166,17 @@ function ComprobantesListaTab() {
 /* =================== VER COMPROBANTE (Factura/Presupuesto/Remito/NC/ND) =================== */
 /* Mismo patrón que "Ver recibo": primero se ve el comprobante con la
    plantilla oficial, y desde ahí se descarga el PDF — no se descarga a
-   ciegas con un solo click. Para una Factura sin CAE todavía, acá también
-   vive "Facturar con AFIP" (misma acción y mismo diálogo de confirmación
-   que en el recibo de la reserva). */
+   ciegas con un solo click. Solo muestra: facturar es de "Para facturar",
+   en el módulo ARCA. */
 
-function VerComprobanteDialog({
-  item, onOpenChange, fiscal, onFacturado,
+export function VerComprobanteDialog({
+  item, onOpenChange, fiscal,
 }: {
   item: ComprobanteListado | null;
   onOpenChange: (open: boolean) => void;
   fiscal: DatosFiscales | null;
-  onFacturado: () => void;
 }) {
   const [generandoPdf, setGenerandoPdf] = useState(false);
-  const [confirmarFacturarOpen, setConfirmarFacturarOpen] = useState(false);
 
   // QR obligatorio de AFIP (RG 4892) — solo cuando el comprobante que se
   // está viendo es una Factura con CAE real.
@@ -1276,8 +1217,6 @@ function VerComprobanteDialog({
     tipoComprobanteCodigo: item.tipoAfip,
     ambiente: item.ambiente as 'homologacion' | 'produccion' | null,
   };
-  const puedeFacturar = item.tipo === 'Factura' && !item.cae && item.reservaId;
-
   const handleDescargarPdf = async () => {
     setGenerandoPdf(true);
     try {
@@ -1315,7 +1254,6 @@ function VerComprobanteDialog({
   };
 
   return (
-    <>
     <Dialog open={!!item} onOpenChange={onOpenChange}>
       <DialogContent size="grande">
         <DialogHeader>
@@ -1341,185 +1279,7 @@ function VerComprobanteDialog({
             {generandoPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             Descargar PDF
           </Button>
-          {puedeFacturar && (
-            <Button onClick={() => setConfirmarFacturarOpen(true)} variant="outline" size="sm" className="gap-1.5 border-primary text-primary hover:bg-[#0F766E1A]">
-              <Zap className="w-4 h-4" />
-              Facturar con AFIP
-            </Button>
-          )}
         </div>
-      </DialogContent>
-    </Dialog>
-
-    {puedeFacturar && item.reservaId && (
-      <FacturarAfipDialog
-        open={confirmarFacturarOpen}
-        onOpenChange={setConfirmarFacturarOpen}
-        reservaId={item.reservaId}
-        numeroDisplay={item.numeroDisplay}
-        onFacturado={() => onFacturado()}
-      />
-    )}
-    </>
-  );
-}
-
-function EmitirComprobanteDialog({
-  open, onOpenChange, onEmitido, tipoInicial,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onEmitido: () => void;
-  tipoInicial: TipoEmitible;
-}) {
-  const [tipo, setTipo] = useState<TipoEmitible>(tipoInicial);
-  const [razonSocialReceptor, setRazonSocialReceptor] = useState('');
-  const [docReceptorValor, setDocReceptorValor] = useState('');
-  const [domicilioReceptor, setDomicilioReceptor] = useState('');
-  const [condicionIvaReceptor, setCondicionIvaReceptor] = useState('Consumidor Final');
-  const [concepto, setConcepto] = useState('');
-  const [importe, setImporte] = useState('');
-  const [motivo, setMotivo] = useState('');
-  const [comprobanteAsociadoId, setComprobanteAsociadoId] = useState('');
-  const [facturas, setFacturas] = useState<ComprobanteListado[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  const esNota = tipo === 'NotaCredito' || tipo === 'NotaDebito';
-
-  useEffect(() => {
-    if (!open) return;
-    // Reset del formulario cada vez que se abre — evita arrastrar datos de
-    // una emisión anterior. El tipo arranca en el que estaba activo en la
-    // pestaña (p.ej. si estabas viendo Remitos, abre directo en Remito),
-    // pero se puede cambiar acá mismo si hace falta.
-    setTipo(tipoInicial); setRazonSocialReceptor(''); setDocReceptorValor('');
-    setDomicilioReceptor(''); setCondicionIvaReceptor('Consumidor Final');
-    setConcepto(''); setImporte(''); setMotivo(''); setComprobanteAsociadoId('');
-    fetch('/api/comprobantes?tipo=Factura&take=30').then(r => r.json()).then(data => {
-      if (Array.isArray(data)) setFacturas(data);
-    }).catch(() => {});
-  }, [open, tipoInicial]);
-
-  const handleSubmit = async () => {
-    const importeNum = parseFloat(importe);
-    if (!razonSocialReceptor.trim()) { toast.error('Ingresá la razón social del receptor'); return; }
-    if (!concepto.trim()) { toast.error('Ingresá el concepto o detalle'); return; }
-    if (isNaN(importeNum) || importeNum <= 0) { toast.error('Ingresá un importe válido'); return; }
-    if (esNota && !comprobanteAsociadoId) { toast.error('Elegí el comprobante que ajusta esta nota'); return; }
-    if (esNota && !motivo.trim()) { toast.error('Ingresá el motivo de la nota'); return; }
-
-    setSaving(true);
-    try {
-      const res = await fetch('/api/comprobantes', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo, razonSocialReceptor: razonSocialReceptor.trim(),
-          docReceptor: docReceptorValor.trim() || undefined,
-          domicilioReceptor: domicilioReceptor.trim() || undefined,
-          condicionIvaReceptor,
-          concepto: concepto.trim(), importe: importeNum,
-          motivo: esNota ? motivo.trim() : undefined,
-          comprobanteAsociadoId: esNota ? comprobanteAsociadoId : undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast.error(data.error || 'Error al emitir el comprobante'); return; }
-      toast.success(`${NOMBRE_TIPO_EMITIBLE[tipo]} emitido`, { description: `N° ${data.numeroDisplay}` });
-      onOpenChange(false);
-      onEmitido();
-    } catch {
-      toast.error('Error de conexión');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="medio">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Receipt className="w-5 h-5" /> Emitir comprobante</DialogTitle>
-          <DialogDescription>Presupuesto, Remito, Nota de Crédito o Nota de Débito — con numeración propia, interno por ahora (sin AFIP).</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-2">
-            <Label>Tipo *</Label>
-            <Select value={tipo} onValueChange={v => setTipo(v as TipoEmitible)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {(Object.keys(NOMBRE_TIPO_EMITIBLE) as TipoEmitible[]).map(t => (
-                  <SelectItem key={t} value={t}>{NOMBRE_TIPO_EMITIBLE[t]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {esNota && (
-            <div className="grid gap-2">
-              <Label>Factura que ajusta *</Label>
-              <Select value={comprobanteAsociadoId} onValueChange={setComprobanteAsociadoId}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar factura..." /></SelectTrigger>
-                <SelectContent>
-                  {facturas.map(f => (
-                    <SelectItem key={f.id} value={f.id}>{f.numeroDisplay} — {f.razonSocialReceptor} — {formatMoney(f.importe)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {facturas.length === 0 && <p className="text-xs text-muted-foreground">Todavía no hay facturas emitidas para asociar.</p>}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-2 col-span-2">
-              <Label>Razón social del receptor *</Label>
-              <Input value={razonSocialReceptor} onChange={e => setRazonSocialReceptor(e.target.value)} placeholder="Nombre / razón social" />
-            </div>
-            <div className="grid gap-2">
-              <Label>DNI / CUIT</Label>
-              <Input value={docReceptorValor} onChange={e => setDocReceptorValor(e.target.value)} placeholder="Opcional" />
-            </div>
-            <div className="grid gap-2">
-              <Label>Sit. tributaria</Label>
-              <Select value={condicionIvaReceptor} onValueChange={setCondicionIvaReceptor}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Consumidor Final">Consumidor Final</SelectItem>
-                  <SelectItem value="Responsable Inscripto">Responsable Inscripto</SelectItem>
-                  <SelectItem value="Monotributista">Monotributista</SelectItem>
-                  <SelectItem value="Exento">Exento</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2 col-span-2">
-              <Label>Domicilio</Label>
-              <Input value={domicilioReceptor} onChange={e => setDomicilioReceptor(e.target.value)} placeholder="Opcional" />
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Concepto / detalle *</Label>
-            <Textarea value={concepto} onChange={e => setConcepto(e.target.value)} rows={2} placeholder="Descripción de lo que se está documentando" />
-          </div>
-
-          {esNota && (
-            <div className="grid gap-2">
-              <Label>Motivo *</Label>
-              <Textarea value={motivo} onChange={e => setMotivo(e.target.value)} rows={2} placeholder="Por qué se emite esta nota (error de facturación, descuento posterior, devolución...)" />
-            </div>
-          )}
-
-          <div className="grid gap-2">
-            <Label>Importe *</Label>
-            <Input type="number" min="0" step="100" value={importe} onChange={e => setImporte(e.target.value)} placeholder="0" />
-          </div>
-        </div>
-        <DialogFooter>
-          <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
-          <Button onClick={handleSubmit} disabled={saving}>
-            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
-            Emitir
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -2070,11 +1830,6 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
     }
   };
 
-  // ── Facturar con AFIP: acción aparte del check-out, sobre un recibo que
-  // todavía no tiene CAE. Es irreversible (una vez que AFIP autoriza el
-  // CAE no hay forma de deshacerlo acá), por eso pide confirmación. ──
-  const [confirmarFacturarOpen, setConfirmarFacturarOpen] = useState(false);
-  const puedeFacturar = isReceipt && !!comprobante && !comprobante.cae;
 
   return (
     <div id="comprobante-imprimible" data-formato="a4" className="bg-card print:bg-white text-foreground print:text-black">
@@ -2108,23 +1863,7 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
           <Printer className="w-4 h-4" />
           Imprimir A4
         </Button>
-        {puedeFacturar && (
-          <Button onClick={() => setConfirmarFacturarOpen(true)} variant="outline" size="sm" className="gap-1.5 border-primary text-primary hover:bg-[#0F766E1A]">
-            <Zap className="w-4 h-4" />
-            Facturar con AFIP
-          </Button>
-        )}
       </div>
-
-      {puedeFacturar && (
-        <FacturarAfipDialog
-          open={confirmarFacturarOpen}
-          onOpenChange={setConfirmarFacturarOpen}
-          reservaId={reserva.id}
-          numeroDisplay={comprobante?.numeroDisplay || ''}
-          onFacturado={data => onComprobanteActualizado?.(data as unknown as ComprobanteFetchData)}
-        />
-      )}
     </div>
   );
 }
@@ -2219,7 +1958,7 @@ export function ComprobanteOficial({
           </thead>
           <tbody>
             <tr>
-              <td className="p-2 align-top break-words">{concepto}</td>
+              <td className="p-2 align-top break-words whitespace-pre-line">{concepto}</td>
               {/* En la Factura A el ítem va sin IVA: el IVA se suma abajo. */}
               <td className="p-2 text-right align-top">{formatMoney(desglose?.tipo === 'A' ? desglose.neto : pagado)}</td>
               <td className="p-2 text-right align-top">1</td>

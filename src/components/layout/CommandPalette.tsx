@@ -8,11 +8,11 @@ import { useHotelStore } from '@/lib/store';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 import { modulosVisiblesPara } from '@/lib/plan-config';
 import { useGlobalSearch } from '@/hooks/use-global-search';
-import { Search, CornerDownLeft, Lock, LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, Users, BarChart3, UserCog, Tags, Settings } from 'lucide-react';
+import { Search, CornerDownLeft, Lock, LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Landmark, Sparkles, Wallet, Users, BarChart3, UserCog, Tags, Settings } from 'lucide-react';
 
 // Static icon map (matches Sidebar icon names)
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, Users, BarChart3, UserCog, Tags, Settings,
+  LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Landmark, Sparkles, Wallet, Users, BarChart3, UserCog, Tags, Settings,
 };
 function getIcon(name: string): React.ComponentType<{ className?: string }> | undefined {
   return iconMap[name] || LayoutDashboard;

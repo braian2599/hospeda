@@ -335,7 +335,7 @@ export interface HabitacionDisponible extends Omit<Habitacion, 'estado' | 'probl
   camasLibres?: number;
 }
 
-export type ModuloId = 'dashboard' | 'habitaciones' | 'reservas' | 'checkin' | 'comprobantes' | 'limpieza' | 'caja' | 'clientes' | 'reportes' | 'usuarios' | 'tarifas' | 'configuracion';
+export type ModuloId = 'dashboard' | 'habitaciones' | 'reservas' | 'checkin' | 'comprobantes' | 'arca' | 'limpieza' | 'caja' | 'clientes' | 'reportes' | 'usuarios' | 'tarifas' | 'configuracion';
 
 export const MODULOS_SISTEMA: { id: ModuloId; label: string; icon: string; grupo?: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
@@ -346,6 +346,9 @@ export const MODULOS_SISTEMA: { id: ModuloId; label: string; icon: string; grupo
   { id: 'clientes', label: 'Clientes', icon: 'Users', grupo: 'comercial' },
   { id: 'tarifas', label: 'Tarifas', icon: 'Tags', grupo: 'comercial' },
   { id: 'comprobantes', label: 'Comprobantes', icon: 'Receipt', grupo: 'financiero' },
+  // Facturas, notas de crédito y débito, presupuestos y remitos. Permiso
+  // aparte de Comprobantes: se puede cobrar sin poder facturar.
+  { id: 'arca', label: 'ARCA', icon: 'Landmark', grupo: 'financiero' },
   { id: 'caja', label: 'Caja', icon: 'Wallet', grupo: 'financiero' },
   { id: 'reportes', label: 'Reportes', icon: 'BarChart3', grupo: 'financiero' },
   { id: 'usuarios', label: 'Usuarios', icon: 'UserCog', grupo: 'admin' },

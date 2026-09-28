@@ -186,9 +186,20 @@ function esListaDeModulos(x: unknown): x is ModuloId[] {
  */
 export function modulosDelPlan(planTipo: PlanTipo, plans?: Record<string, PlanInfo>): ModuloId[] {
   const deLaBd = plans?.[planTipo]?.modulos;
-  if (esListaDeModulos(deLaBd)) return deLaBd;
+  if (esListaDeModulos(deLaBd)) return conModulosDerivados(deLaBd);
   const estatico = PLANES[planTipo]?.modulos;
-  return esListaDeModulos(estatico) ? estatico : [];
+  return esListaDeModulos(estatico) ? conModulosDerivados(estatico) : [];
+}
+
+/**
+ * ARCA salió de Comprobantes (28/09): lo trae todo plan que trae
+ * Comprobantes. Se deriva acá en vez de sumarlo a cada plan en la BD, así no
+ * hace falta tocar los planes guardados ni el panel de Super Admin. Lo que
+ * sí es aparte es el PERMISO: un empleado con Comprobantes no ve ARCA hasta
+ * que se lo den en Usuarios.
+ */
+function conModulosDerivados(modulos: ModuloId[]): ModuloId[] {
+  return modulos.includes('comprobantes') && !modulos.includes('arca') ? [...modulos, 'arca'] : modulos;
 }
 
 /** Intersección entre permisos del usuario y módulos del plan */
@@ -272,6 +283,7 @@ export const NOMBRES_MODULOS: Record<ModuloId, string> = {
   reservas: 'Reservas',
   checkin: 'Check-In/Out',
   comprobantes: 'Comprobantes',
+  arca: 'ARCA',
   limpieza: 'Limpieza y Mantenimiento',
   caja: 'Caja',
   clientes: 'Clientes',

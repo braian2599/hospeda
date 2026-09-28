@@ -91,6 +91,14 @@ export const NOVEDADES: Novedad[] = [
   // Las cuatro del 28/09 salen con el deploy de esa noche. El arreglo va
   // primero: es lo que los hoteles venían sufriendo.
   {
+    id: 'modulo-arca-2026-09',
+    fecha: '2026-09-29',
+    tipo: 'nuevo',
+    titulo: 'Nuevo módulo ARCA',
+    texto: 'Todo lo que se factura y se emite está ahora en ARCA: en "Para facturar" aparecen solas las reservas cobradas completas, y ahí también están las facturas, presupuestos y remitos. Comprobantes queda para cobrar y ver los recibos. A los empleados que tengan que facturar, dales el permiso ARCA en Usuarios.',
+    requiere: { modulo: 'arca' },
+  },
+  {
     id: 'empresas-en-clientes-2026-09',
     fecha: '2026-09-29',
     tipo: 'mejora',
@@ -208,7 +216,8 @@ const DESCRIPCIONES: Partial<Record<ModuloId, string>> = {
   reservas: 'Alta y búsqueda por fecha. El sistema no te deja superponer dos en la misma habitación.',
   clientes: 'La ficha de cada huésped con su historial de estadías.',
   tarifas: 'Precios por grupo, por habitación o por cama, con promociones y precio de niños.',
-  comprobantes: 'Facturas con CAE de ARCA, notas de crédito y débito, remitos y presupuestos.',
+  comprobantes: 'Cobros pendientes, historial de pagos con sus recibos y cuenta corriente.',
+  arca: 'Facturas con CAE de ARCA, notas de crédito y débito, presupuestos y remitos.',
   caja: 'Apertura y cierre de turno, movimientos y cierre con conteo de billetes.',
   reportes: 'Ocupación, ingresos, ADR, RevPAR y las horas trabajadas de cada persona.',
   usuarios: 'Cada persona entra con su propio perfil y ve solo los módulos de su rol.',
@@ -271,7 +280,7 @@ const AREAS: { id: string; icono: string; titulo: string; entrada: string; modul
     icono: 'Wallet',
     titulo: 'La plata',
     entrada: 'Lo que respalda cada peso: el comprobante, el turno de caja y los números del mes.',
-    modulos: ['comprobantes', 'caja', 'reportes'],
+    modulos: ['comprobantes', 'arca', 'caja', 'reportes'],
   },
   {
     id: 'equipo',

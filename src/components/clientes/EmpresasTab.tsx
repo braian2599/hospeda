@@ -71,7 +71,7 @@ export default function EmpresasTab({ nuevaAbierta, onNuevaAbiertaChange }: Prop
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="py-0 gap-0 overflow-hidden">
         <CardContent className="p-0">
           <div className="flex flex-wrap items-center gap-3 p-4 border-b">
             <div className="relative flex-1 min-w-[220px] max-w-md">

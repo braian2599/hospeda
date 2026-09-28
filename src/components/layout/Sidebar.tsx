@@ -8,10 +8,10 @@ import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 import { modulosVisiblesPara } from '@/lib/plan-config';
 import { Button } from '@/components/ui/button';
 import { NotificationCenter } from '@/components/ui/notification-center';
-import { LogOut, X, Lock, Settings, Users, LayoutDashboard, Search, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, BarChart3, UserCog, Tags } from 'lucide-react';
+import { LogOut, X, Lock, Settings, Users, LayoutDashboard, Search, DoorOpen, CalendarDays, LogIn, Receipt, Landmark, Sparkles, Wallet, BarChart3, UserCog, Tags } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Sparkles, Wallet, Users, BarChart3, UserCog, Tags,
+  LayoutDashboard, DoorOpen, CalendarDays, LogIn, Receipt, Landmark, Sparkles, Wallet, Users, BarChart3, UserCog, Tags,
 };
 
 const GROUP_LABELS: Record<string, string> = {

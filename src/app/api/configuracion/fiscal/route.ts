@@ -12,7 +12,7 @@ import { requireOwner, requirePermission, AuthError } from '@/lib/auth/utils';
 // va impreso en cada comprobante que se le entrega al huésped.
 export async function GET() {
   try {
-    const { tenantId } = await requirePermission('comprobantes');
+    const { tenantId } = await requirePermission(['comprobantes', 'arca']);
     const tenant = await db.tenant.findUnique({
       where: { id: tenantId },
       select: {

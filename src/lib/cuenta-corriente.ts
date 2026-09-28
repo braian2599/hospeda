@@ -30,7 +30,7 @@ export const PERMISO_CUENTA_CORRIENTE = 'comprobantes';
  * Lo que ve sin PERMISO_CUENTA_CORRIENTE es solo el nombre y el CUIT, nunca
  * cuánto debe.
  */
-export const PERMISOS_TITULAR = [PERMISO_CUENTA_CORRIENTE, 'reservas', 'checkin', 'clientes'];
+export const PERMISOS_TITULAR = [PERMISO_CUENTA_CORRIENTE, 'arca', 'reservas', 'checkin', 'clientes'];
 
 /** Quién puede pasar el saldo de una reserva a cuenta corriente. */
 export const PERMISOS_DERIVAR = ['reservas', 'checkin'];

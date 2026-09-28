@@ -58,7 +58,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { tenantId } = await requirePermission('comprobantes');
+    // Facturar es del módulo ARCA, con su permiso aparte (28/09): quien solo
+    // tiene Comprobantes cobra, pero no factura.
+    const { tenantId } = await requirePermission('arca');
     const { id } = await params;
     // A nombre de quién: sin titularId, el huésped (Consumidor Final). Con
     // titularId, esa empresa o persona con CUIT (ver emitirComprobanteAfip).
@@ -115,12 +117,18 @@ export async function POST(
 
       const afip = await emitirComprobanteAfip(tenantId, id, { titularId });
       const numeroInterno = reserva.comprobanteNumero;
+      // La fecha de la factura es la que se le mandó a ARCA (CbteFch = hoy,
+      // ver wsfe.ts), no la del recibo: desde el módulo ARCA se puede
+      // facturar días después de cobrar, y el PDF tiene que decir lo mismo
+      // que ARCA.
+      const fechaFactura = new Date();
 
       const actualizado = await db.reserva.update({
         where: { id },
         data: {
           comprobanteNumeroInterno: numeroInterno,
           comprobanteNumero: afip.cbteNro,
+          comprobanteFecha: fechaFactura,
           comprobantePuntoVenta: afip.puntoVenta,
           comprobanteCae: afip.cae,
           comprobanteCaeVencimiento: afip.caeFchVto,
@@ -136,7 +144,7 @@ export async function POST(
         where: { tenantId, reservaId: id, tipo: 'Factura' },
         data: {
           numeroInterno,
-          numero: afip.cbteNro, puntoVenta: afip.puntoVenta,
+          numero: afip.cbteNro, puntoVenta: afip.puntoVenta, fecha: fechaFactura,
           letra: letraPorTipoComprobante('Factura', afip.cbteTipo),
           cae: afip.cae, caeVencimiento: afip.caeFchVto, tipoAfip: afip.cbteTipo, ambiente: afip.ambiente,
           // A quién quedó hecha y por cuánto: puede no ser el huésped.

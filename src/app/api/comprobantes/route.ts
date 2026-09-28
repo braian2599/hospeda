@@ -5,20 +5,18 @@ import { letraPorTipoComprobante } from '@/lib/afip/config';
 import type { TipoComprobante } from '@prisma/client';
 
 // ─────────────────────────────────────────────────────────
-// POST /api/comprobantes — Emite un comprobante interno (Presupuesto formal,
-// Remito, Nota de Crédito o Nota de Débito). La Factura NO se emite acá:
-// sigue su propio camino atómico en POST /api/reservas/[id]/comprobante
-// (que además refleja una copia en esta misma tabla — ver mirrorComprobante
-// en esa ruta). Estos 4 tipos todavía no están conectados a AFIP (ver tarea
-// pendiente "conectar Remito/NC/ND a AFIP"): la numeración es propia del
-// tenant, atómica por tipo + punto de venta.
+// POST /api/comprobantes — Emite un Presupuesto o un Remito (módulo ARCA,
+// con su permiso). No tienen validez fiscal: numeración propia del hotel,
+// atómica por tipo + punto de venta. La Factura NO se emite acá: sigue su
+// propio camino en POST /api/reservas/[id]/facturar-afip. Las Notas de
+// Crédito y Débito tampoco: una factura con CAE solo se corrige con una
+// nota autorizada por ARCA (se construye aparte), no con una interna.
 //
 // GET /api/comprobantes — Lista/busca comprobantes emitidos (cualquier
-// tipo), para el historial y para el selector de "comprobante asociado" al
-// emitir una Nota de Crédito/Débito.
+// tipo): la ven Comprobantes (solo lectura) y ARCA.
 // ─────────────────────────────────────────────────────────
 
-const TIPOS_EMITIBLES = new Set<TipoComprobante>(['Presupuesto', 'Remito', 'NotaCredito', 'NotaDebito']);
+const TIPOS_EMITIBLES = new Set<TipoComprobante>(['Presupuesto', 'Remito']);
 
 function formatComprobante(c: {
   id: string; tipo: string; puntoVenta: number; numero: number; numeroInterno: number | null; letra: string; fecha: Date;
@@ -61,12 +59,13 @@ function formatComprobante(c: {
 
 export async function POST(req: NextRequest) {
   try {
-    const { tenantId } = await requirePermission('comprobantes');
+    const { tenantId } = await requirePermission('arca');
     const body = await req.json();
     const {
       tipo, comprobanteAsociadoId, razonSocialReceptor, docTipoReceptor, docReceptor,
-      domicilioReceptor, condicionIvaReceptor, concepto, importe, motivo,
+      domicilioReceptor, condicionIvaReceptor, concepto, importe, motivo, titularCuentaId,
     } = body as {
+      titularCuentaId?: string;
       tipo?: string;
       comprobanteAsociadoId?: string;
       razonSocialReceptor?: string;
@@ -79,8 +78,19 @@ export async function POST(req: NextRequest) {
       motivo?: string;
     };
 
+    if (tipo === 'NotaCredito' || tipo === 'NotaDebito') {
+      return NextResponse.json({ error: 'Las notas de crédito y débito se emiten con ARCA, desde la factura que corrigen.' }, { status: 400 });
+    }
     if (!tipo || !TIPOS_EMITIBLES.has(tipo as TipoComprobante)) {
       return NextResponse.json({ error: 'Tipo de comprobante inválido' }, { status: 400 });
+    }
+    // La empresa elegida de la lista (Clientes → Empresas): así después se
+    // listan "todos los comprobantes de esta empresa" sin buscar por texto.
+    if (titularCuentaId) {
+      const titular = await db.titularCuenta.findFirst({ where: { id: titularCuentaId, tenantId }, select: { id: true } });
+      if (!titular) {
+        return NextResponse.json({ error: 'No se encontró la empresa elegida.' }, { status: 400 });
+      }
     }
     if (!razonSocialReceptor?.trim()) {
       return NextResponse.json({ error: 'Falta la razón social del receptor' }, { status: 400 });
@@ -134,6 +144,7 @@ export async function POST(req: NextRequest) {
           concepto: concepto.trim(),
           importe: Math.round(importe * 100),
           motivo: motivo?.trim() || null,
+          titularCuentaId: titularCuentaId || null,
         },
         include: { comprobanteAsociado: { select: { tipo: true, puntoVenta: true, numero: true } } },
       });
@@ -151,17 +162,26 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const { tenantId } = await requirePermission('comprobantes');
+    const { tenantId } = await requirePermission(['comprobantes', 'arca']);
     const { searchParams } = req.nextUrl;
     const tipo = searchParams.get('tipo');
     const q = searchParams.get('q')?.trim();
-    const take = Math.min(50, Math.max(1, Number(searchParams.get('take')) || 20));
+    // conCae=1: solo lo autorizado por ARCA. Una "Factura" sin CAE es el
+    // recibo interno de una reserva, que todavía no se facturó.
+    const conCae = searchParams.get('conCae') === '1';
+    const take = Math.min(100, Math.max(1, Number(searchParams.get('take')) || 20));
 
     const comprobantes = await db.comprobante.findMany({
       where: {
         tenantId,
         ...(tipo ? { tipo: tipo as TipoComprobante } : {}),
-        ...(q ? { razonSocialReceptor: { contains: q, mode: 'insensitive' } } : {}),
+        ...(conCae ? { cae: { not: null } } : {}),
+        ...(q ? {
+          OR: [
+            { razonSocialReceptor: { contains: q, mode: 'insensitive' as const } },
+            { docReceptor: { contains: q.replace(/\D/g, '') || q } },
+          ],
+        } : {}),
       },
       orderBy: { createdAt: 'desc' },
       take,

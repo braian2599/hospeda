@@ -42,11 +42,12 @@ Operativo:
 
 Comercial:
 - Reservas: alta y edición de reservas, búsqueda de disponibilidad por fechas, y control automático para que no se superpongan.
-- Clientes: ficha de cada huésped con sus datos e historial de estadías.
+- Clientes: dos pestañas. Personas: ficha de cada huésped con sus datos e historial de estadías. Empresas: las empresas a las que se les factura o se les lleva cuenta corriente; se cargan acá (con "Traer de ARCA", que completa los datos con el CUIT) y en ningún otro lado.
 - Tarifas: precios con tres modos de cobro (por grupo, por habitación o por cama), rangos por cantidad de personas, promociones (noches de cortesía, precio de niños, acompañante sin cargo) y campos personalizados.
 
 Financiero:
-- Comprobantes: emisión de facturas, notas de crédito y débito, remitos y presupuestos. Con la facturación electrónica configurada, las facturas salen con CAE de ARCA (ex AFIP).
+- Comprobantes: cobrar lo que falta de las reservas (Cobros pendientes), el historial de pagos con el recibo de cada uno, los comprobantes emitidos (solo para ver y descargar) y la cuenta corriente de las empresas. Desde acá NO se factura.
+- ARCA: donde se factura y se emite todo. Pestañas: Para facturar (todas las reservas cobradas completas que no tienen factura; se facturan de a una eligiendo a nombre de quién, o varias juntas a nombre de cada huésped), Facturas, Notas de crédito, Notas de débito, Presupuestos y Remitos (con la lista de clientes y empresas para elegir). Tiene permiso propio: un empleado lo ve solo si el dueño le da el permiso ARCA en Usuarios. Una reserva se factura recién cuando está cobrada completa, y una vez facturada ya no se puede modificar. Las notas de crédito y débito autorizadas por ARCA todavía no se pueden emitir: llegan en una próxima actualización.
 - Caja: apertura y cierre de turno, movimientos de ingreso y egreso, y cierre con conteo de billetes.
 - Reportes: ocupación, ingresos, tarifa promedio (ADR), RevPAR y auditoría. La pestaña Empleados suma las horas trabajadas de cada persona, contadas del inicio de sesión al cierre de sesión: se toca una persona para ver sus días y un día para ver los turnos con hora de entrada y salida. Un turno sin cierre registrado se muestra en rojo y NO se suma — no se inventa una hora de salida. El botón Exportar CSV baja el detalle turno por turno con las horas también en decimal, que es lo que se multiplica por un valor hora.
 
