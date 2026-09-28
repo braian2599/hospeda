@@ -88,11 +88,11 @@ export const NOVEDADES: Novedad[] = [
   // atiende, y en una ventana con varias novedades la primera es la que se
   // lee. Las otras dos son de hoy y quedan abajo igual.
   //
-  // Las cuatro del 29/09 salen con el deploy de esa noche. El arreglo va
+  // Las cuatro del 28/09 salen con el deploy de esa noche. El arreglo va
   // primero: es lo que los hoteles venían sufriendo.
   {
     id: 'editar-reservas-arreglado-2026-09',
-    fecha: '2026-09-29',
+    fecha: '2026-09-28',
     tipo: 'arreglo',
     titulo: 'Ya podés editar reservas de nuevo',
     texto: 'Se corrigió el error que no dejaba guardar los cambios de una reserva.',
@@ -100,7 +100,7 @@ export const NOVEDADES: Novedad[] = [
   },
   {
     id: 'corregir-pagos-desde-reserva-2026-09',
-    fecha: '2026-09-29',
+    fecha: '2026-09-28',
     tipo: 'mejora',
     titulo: 'Corregí un pago desde la reserva',
     texto: 'Si cargaste mal el monto de una seña o de un pago, editá la reserva y corregilo en la pestaña Pago: la caja se ajusta sola. Y al cobrar el resto, la opción Saldo cobra solo lo que falta.',
@@ -108,7 +108,7 @@ export const NOVEDADES: Novedad[] = [
   },
   {
     id: 'cuenta-corriente-2026-09',
-    fecha: '2026-09-29',
+    fecha: '2026-09-28',
     tipo: 'nuevo',
     titulo: 'Cuenta corriente para empresas y clientes habituales',
     texto: 'Al hacer el check-out, el saldo se puede pasar a la cuenta de una empresa y cobrarlo después. Lo que debe cada una se ve en Comprobantes → Cuenta corriente.',
@@ -116,7 +116,7 @@ export const NOVEDADES: Novedad[] = [
   },
   {
     id: 'datos-desde-arca-2026-09',
-    fecha: '2026-09-29',
+    fecha: '2026-09-28',
     tipo: 'nuevo',
     titulo: 'Traé los datos de una empresa desde ARCA',
     texto: 'Al cargar un titular, escribí el CUIT y tocá Traer de ARCA: completa razón social, domicilio y condición de IVA. El certificado del hotel tiene que tener habilitado el servicio Consulta Constancia de Inscripción en ARCA.',
