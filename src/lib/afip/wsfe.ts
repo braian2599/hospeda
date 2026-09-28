@@ -21,6 +21,12 @@ export interface DetalleComprobante {
   condicionIvaReceptorId: number;
   /** Solo Factura A y B: el IVA discriminado. En la C va null. */
   iva: { alicuotaId: number; neto: number; importe: number } | null;
+  /**
+   * Solo notas de crédito y débito: la factura que corrigen (CbtesAsoc).
+   * Tipo, punto de venta y número de esa factura, y el CUIT de quien la
+   * emitió (el hotel). Mismos campos que arma pyafipws (AgregarCmpAsoc).
+   */
+  comprobanteAsociado?: { tipo: number; ptoVta: number; nro: number; cuit: string };
 }
 
 export interface ResultadoCae {
@@ -132,7 +138,15 @@ export async function solicitarCae(tenantId: string, ptoVta: number, detalle: De
             <FchVtoPago>${hoy}</FchVtoPago>
             <MonId>PES</MonId>
             <MonCotiz>1</MonCotiz>
-            <CondicionIVAReceptorId>${detalle.condicionIvaReceptorId}</CondicionIVAReceptorId>${detalle.iva ? `
+            <CondicionIVAReceptorId>${detalle.condicionIvaReceptorId}</CondicionIVAReceptorId>${detalle.comprobanteAsociado ? `
+            <CbtesAsoc>
+              <CbteAsoc>
+                <Tipo>${detalle.comprobanteAsociado.tipo}</Tipo>
+                <PtoVta>${detalle.comprobanteAsociado.ptoVta}</PtoVta>
+                <Nro>${detalle.comprobanteAsociado.nro}</Nro>
+                <Cuit>${xmlEscape(detalle.comprobanteAsociado.cuit)}</Cuit>
+              </CbteAsoc>
+            </CbtesAsoc>` : ''}${detalle.iva ? `
             <Iva>
               <AlicIva>
                 <Id>${detalle.iva.alicuotaId}</Id>

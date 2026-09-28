@@ -1,12 +1,12 @@
 'use client';
 
 // Módulo ARCA: todo lo que se emite. Facturas (desde "Para facturar"), notas
-// de crédito y débito, presupuestos y remitos. Tiene su propio permiso,
+// de crédito y débito y presupuestos. Tiene su propio permiso,
 // aparte de Comprobantes: se puede cobrar sin poder facturar (decisión del
 // dueño, 28/09). Comprobantes quedó para cobrar y ver.
 
 import { useCallback, useState } from 'react';
-import { Landmark, Zap, FileText, FileMinus, FilePlus, ClipboardList, Truck } from 'lucide-react';
+import { Landmark, Zap, FileText, FileMinus, FilePlus, ClipboardList } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFilterState } from '@/hooks/use-filter-state';
@@ -16,7 +16,7 @@ import { useDatosFiscales } from '@/components/modules/ComprobantesModule';
 import ParaFacturarTab from '@/components/arca/ParaFacturarTab';
 import DocumentosTab from '@/components/arca/DocumentosTab';
 
-type Pestana = 'para-facturar' | 'facturas' | 'nc' | 'nd' | 'presupuestos' | 'remitos';
+type Pestana = 'para-facturar' | 'facturas' | 'nc' | 'nd' | 'presupuestos';
 
 const CLASE_TAB = 'data-[state=active]:bg-primary data-[state=active]:text-white transition-all';
 
@@ -31,7 +31,7 @@ export default function ArcaModule() {
 
   return (
     <div className="space-y-6">
-      <ModuleHeader icon={Landmark} title="ARCA" subtitle="Facturas, notas de crédito y débito, presupuestos y remitos">
+      <ModuleHeader icon={Landmark} title="ARCA" subtitle="Facturas, notas de crédito y débito y presupuestos">
         {fiscal?.iva && (
           <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs">
             <span className={`w-2 h-2 rounded-full ${conArca ? 'bg-success' : 'bg-muted-foreground'}`} />
@@ -56,7 +56,7 @@ export default function ArcaModule() {
       {!conArca && (
         <div className="rounded-lg border border-[#0284C733] bg-[#0284C70D] px-3.5 py-2.5 text-sm">
           <span className="font-medium">Tu hotel todavía no factura con ARCA.</span>{' '}
-          <span className="text-muted-foreground">Los presupuestos y remitos se usan igual. Para facturar, el dueño lo activa en Configuración → Facturación.</span>
+          <span className="text-muted-foreground">Los presupuestos se usan igual. Para facturar, el dueño lo activa en Configuración → Facturación.</span>
         </div>
       )}
 
@@ -67,7 +67,6 @@ export default function ArcaModule() {
           <TabsTrigger value="nc" className={CLASE_TAB}><FileMinus className="w-4 h-4 mr-1" />Notas de crédito</TabsTrigger>
           <TabsTrigger value="nd" className={CLASE_TAB}><FilePlus className="w-4 h-4 mr-1" />Notas de débito</TabsTrigger>
           <TabsTrigger value="presupuestos" className={CLASE_TAB}><ClipboardList className="w-4 h-4 mr-1" />Presupuestos</TabsTrigger>
-          <TabsTrigger value="remitos" className={CLASE_TAB}><Truck className="w-4 h-4 mr-1" />Remitos</TabsTrigger>
         </TabsList>
 
         {conArca && (
@@ -79,7 +78,6 @@ export default function ArcaModule() {
         <TabsContent value="nc" className="mt-4"><DocumentosTab tipo="NotaCredito" fiscal={fiscal} version={version} /></TabsContent>
         <TabsContent value="nd" className="mt-4"><DocumentosTab tipo="NotaDebito" fiscal={fiscal} version={version} /></TabsContent>
         <TabsContent value="presupuestos" className="mt-4"><DocumentosTab tipo="Presupuesto" fiscal={fiscal} version={version} /></TabsContent>
-        <TabsContent value="remitos" className="mt-4"><DocumentosTab tipo="Remito" fiscal={fiscal} version={version} /></TabsContent>
       </Tabs>
     </div>
   );

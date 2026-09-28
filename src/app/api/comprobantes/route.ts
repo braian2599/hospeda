@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { letraPorTipoComprobante } from '@/lib/afip/config';
+import { saldoDesdeNotas } from '@/lib/afip/notas';
 import type { TipoComprobante } from '@prisma/client';
 
 // ─────────────────────────────────────────────────────────
-// POST /api/comprobantes — Emite un Presupuesto o un Remito (módulo ARCA,
-// con su permiso). No tienen validez fiscal: numeración propia del hotel,
+// POST /api/comprobantes — Emite un Presupuesto (módulo ARCA, con su
+// permiso). No tiene validez fiscal: numeración propia del hotel,
 // atómica por tipo + punto de venta. La Factura NO se emite acá: sigue su
 // propio camino en POST /api/reservas/[id]/facturar-afip. Las Notas de
 // Crédito y Débito tampoco: una factura con CAE solo se corrige con una
@@ -16,7 +17,8 @@ import type { TipoComprobante } from '@prisma/client';
 // tipo): la ven Comprobantes (solo lectura) y ARCA.
 // ─────────────────────────────────────────────────────────
 
-const TIPOS_EMITIBLES = new Set<TipoComprobante>(['Presupuesto', 'Remito']);
+// Los remitos se sacaron del sistema (decisión del dueño, 29/09).
+const TIPOS_EMITIBLES = new Set<TipoComprobante>(['Presupuesto']);
 
 function formatComprobante(c: {
   id: string; tipo: string; puntoVenta: number; numero: number; numeroInterno: number | null; letra: string; fecha: Date;
@@ -25,8 +27,12 @@ function formatComprobante(c: {
   domicilioReceptor: string | null; condicionIvaReceptor: string | null; concepto: string;
   importe: number; cae: string | null; caeVencimiento: Date | null; tipoAfip: number | null;
   ambiente: string | null; estado: string; anuladoAt: Date | null; motivo: string | null;
-  comprobanteAsociado: { tipo: string; puntoVenta: number; numero: number } | null;
+  comprobanteAsociado: { tipo: string; letra: string; puntoVenta: number; numero: number } | null;
+  notasAsociadas?: { tipo: string; importe: number; cae: string | null }[];
 }) {
+  // Solo facturas: cuánto se anuló (crédito) o se sumó (débito) con notas de
+  // ARCA, y cuánto queda para anular. En pesos.
+  const saldo = c.tipo === 'Factura' && c.notasAsociadas ? saldoDesdeNotas(c.importe, c.notasAsociadas) : null;
   return {
     id: c.id,
     tipo: c.tipo,
@@ -51,8 +57,11 @@ function formatComprobante(c: {
     estado: c.estado,
     anuladoAt: c.anuladoAt,
     motivo: c.motivo,
+    notas: saldo
+      ? { creditado: saldo.creditado / 100, debitado: saldo.debitado / 100, disponible: saldo.disponible / 100 }
+      : null,
     comprobanteAsociadoDisplay: c.comprobanteAsociado
-      ? `${c.comprobanteAsociado.tipo} ${String(c.comprobanteAsociado.puntoVenta).padStart(4, '0')}-${String(c.comprobanteAsociado.numero).padStart(8, '0')}`
+      ? `${c.comprobanteAsociado.tipo === 'Factura' ? `Factura ${c.comprobanteAsociado.letra}` : c.comprobanteAsociado.tipo} ${String(c.comprobanteAsociado.puntoVenta).padStart(4, '0')}-${String(c.comprobanteAsociado.numero).padStart(8, '0')}`
       : null,
   };
 }
@@ -119,7 +128,8 @@ export async function POST(req: NextRequest) {
     const tenantConfig = await db.tenantConfig.findUnique({ where: { tenantId }, select: { puntoVenta: true } });
     const puntoVenta = tenantConfig?.puntoVenta || 1;
     const tipoTyped = tipo as TipoComprobante;
-    const letra = letraPorTipoComprobante(tipoTyped, null);
+    // Solo se emiten presupuestos acá: sin validez fiscal, letra X.
+    const letra = letraPorTipoComprobante('Presupuesto', null);
 
     // Numeración atómica por tipo + punto de venta: el upsert toma un row
     // lock en Postgres sobre esa fila del contador, así que dos emisiones
@@ -146,7 +156,7 @@ export async function POST(req: NextRequest) {
           motivo: motivo?.trim() || null,
           titularCuentaId: titularCuentaId || null,
         },
-        include: { comprobanteAsociado: { select: { tipo: true, puntoVenta: true, numero: true } } },
+        include: { comprobanteAsociado: { select: { tipo: true, letra: true, puntoVenta: true, numero: true } } },
       });
     });
 
@@ -185,7 +195,10 @@ export async function GET(req: NextRequest) {
       },
       orderBy: { createdAt: 'desc' },
       take,
-      include: { comprobanteAsociado: { select: { tipo: true, puntoVenta: true, numero: true } } },
+      include: {
+        comprobanteAsociado: { select: { tipo: true, letra: true, puntoVenta: true, numero: true } },
+        notasAsociadas: { select: { tipo: true, importe: true, cae: true } },
+      },
     });
 
     return NextResponse.json(comprobantes.map(formatComprobante));

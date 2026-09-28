@@ -379,7 +379,7 @@ Vista previa aprobada (artifact "Hospeda: ARCA, Comprobantes y Clientes").
 Decisiones del 28/09:
 - Módulo nuevo **ARCA**, con **permiso aparte** para empleados. Pestañas: Para
   facturar (todas las reservas cobradas completas sin factura), Facturas,
-  Notas de crédito, Notas de débito, Presupuestos, Remitos.
+  Notas de crédito, Notas de débito, Presupuestos (los remitos se sacaron).
 - **Sin opción "No facturar":** las que no se facturan quedan en la lista.
 - Comprobantes ya no factura: cobros pendientes, historial de pagos,
   comprobantes emitidos (solo ver) y cuenta corriente.
@@ -387,7 +387,30 @@ Decisiones del 28/09:
 - Diálogos más anchos: 560 / 720 / 960 / 1200 px (✅ en PREVIEW).
 
 Orden: 1) diálogos ✅, 2) Clientes con Empresas ✅ (PREVIEW), 3) módulo ARCA
-con su permiso ✅ (PREVIEW), 4) notas de crédito y débito autorizadas por ARCA.
+con su permiso ✅ (PREVIEW), 4) notas de crédito y débito autorizadas por ARCA ✅
+(PREVIEW, falta probar en homologación).
+
+**Remitos: eliminados (decisión del dueño, 29/09).** No se emiten ni se ven
+en ningún lado. En la base no se tocó nada (el tipo sigue en el enum).
+
+### Notas de crédito y débito (parte 4)
+- `src/lib/afip/notas.ts` + `POST /api/arca/notas` (permiso `arca`).
+- Códigos (tabla FEParamGetTiposCbte, verificados en pyafipws): ND A 2,
+  NC A 3, ND B 7, NC B 8, ND C 12, NC C 13. La nota lleva la letra de la
+  factura.
+- Va asociada con `CbtesAsoc` (Tipo, PtoVta, Nro y Cuit del hotel), entre
+  CondicionIVAReceptorId e Iva. No se manda `CbteFch` del asociado: es
+  obligatoria solo en FCE MiPyME y una fecha distinta a la que tiene ARCA
+  podría rechazarse.
+- Mismo receptor y mismas fechas de servicio que la factura; IVA 21%
+  discriminado en A y B.
+- NC: no puede pasar de lo que queda (importe + débitos − créditos). Si
+  anula todo, la factura queda `anulado`. La reserva sigue bloqueada.
+- Candado: la factura pasa a estado `nota-en-curso` mientras se emite
+  (como el `PENDIENTE` de facturar-afip), así dos notas a la vez no anulan
+  de más.
+- Si una nota INTERNA vieja tenía el número que da ARCA, pasa al punto de
+  venta 0000 y se guarda la de ARCA (su CAE no se puede perder).
 
 ### Cómo quedó el módulo ARCA (parte 3)
 - Módulo `arca` (`src/components/modules/ArcaModule.tsx`). Lo trae todo plan
@@ -399,7 +422,7 @@ con su permiso ✅ (PREVIEW), 4) notas de crédito y débito autorizadas por ARC
   cualquier fecha, para que no aparezca toda la historia vieja del hotel.
   Facturar de a una (elige a nombre de quién) o varias juntas (a cada
   huésped; las de cuenta corriente, a su empresa).
-- Permisos: facturar-afip, emitir y anular presupuestos/remitos piden
+- Permisos: facturar-afip, emitir y anular presupuestos piden
   `arca`. Ver la lista de comprobantes: `comprobantes` o `arca`.
 - `POST /api/comprobantes` ya no emite notas internas: una factura con CAE
   solo se corrige con una nota autorizada por ARCA (parte 4).

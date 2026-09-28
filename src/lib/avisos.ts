@@ -91,11 +91,19 @@ export const NOVEDADES: Novedad[] = [
   // Las cuatro del 28/09 salen con el deploy de esa noche. El arreglo va
   // primero: es lo que los hoteles venían sufriendo.
   {
+    id: 'notas-credito-debito-arca-2026-09',
+    fecha: '2026-09-29',
+    tipo: 'nuevo',
+    titulo: 'Notas de crédito y débito con ARCA',
+    texto: 'Si una factura salió mal, en ARCA → Facturas tocá "Nota de crédito": anula toda la factura o una parte, con CAE de ARCA y la misma letra. Con "Nota de débito" le sumás un importe, por ejemplo consumos que no se incluyeron.',
+    requiere: { modulo: 'arca', flag: 'facturacionArca' },
+  },
+  {
     id: 'modulo-arca-2026-09',
     fecha: '2026-09-29',
     tipo: 'nuevo',
     titulo: 'Nuevo módulo ARCA',
-    texto: 'Todo lo que se factura y se emite está ahora en ARCA: en "Para facturar" aparecen solas las reservas cobradas completas, y ahí también están las facturas, presupuestos y remitos. Comprobantes queda para cobrar y ver los recibos. A los empleados que tengan que facturar, dales el permiso ARCA en Usuarios.',
+    texto: 'Todo lo que se factura y se emite está ahora en ARCA: en "Para facturar" aparecen solas las reservas cobradas completas, y ahí también están las facturas, las notas de crédito y débito y los presupuestos. Comprobantes queda para cobrar y ver los recibos. A los empleados que tengan que facturar, dales el permiso ARCA en Usuarios.',
     requiere: { modulo: 'arca' },
   },
   {
@@ -217,7 +225,7 @@ const DESCRIPCIONES: Partial<Record<ModuloId, string>> = {
   clientes: 'La ficha de cada huésped con su historial de estadías.',
   tarifas: 'Precios por grupo, por habitación o por cama, con promociones y precio de niños.',
   comprobantes: 'Cobros pendientes, historial de pagos con sus recibos y cuenta corriente.',
-  arca: 'Facturas con CAE de ARCA, notas de crédito y débito, presupuestos y remitos.',
+  arca: 'Facturas con CAE de ARCA, notas de crédito y débito y presupuestos.',
   caja: 'Apertura y cierre de turno, movimientos y cierre con conteo de billetes.',
   reportes: 'Ocupación, ingresos, ADR, RevPAR y las horas trabajadas de cada persona.',
   usuarios: 'Cada persona entra con su propio perfil y ve solo los módulos de su rol.',

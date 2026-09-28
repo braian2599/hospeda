@@ -1,13 +1,13 @@
 'use client';
 
 // Una pestaña de documentos del módulo ARCA: Facturas, Notas de crédito,
-// Notas de débito, Presupuestos o Remitos. Misma tabla para todas; cambia
+// Notas de débito o Presupuestos. Misma tabla para todas; cambia
 // qué columnas se ven y qué se puede hacer.
 //
 // - Facturas: solo las autorizadas por ARCA (con CAE).
-// - Presupuestos y Remitos: se emiten y se anulan desde acá.
-// - Notas de crédito y débito: por ahora se listan. Emitirlas autorizadas por
-//   ARCA es la parte siguiente del plan (docs/cuenta-corriente.md).
+// - Presupuestos: se emiten y se anulan desde acá.
+// - Notas de crédito y débito: autorizadas por ARCA (src/lib/afip/notas.ts).
+//   Se emiten desde su pestaña, eligiendo la factura, o desde la factura.
 
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Loader2, FileText, Trash2, Plus } from 'lucide-react';
@@ -28,6 +28,7 @@ import {
   VerComprobanteDialog, NOMBRE_TIPO_LISTA, type ComprobanteListado, type DatosFiscales, type TipoListado,
 } from '@/components/modules/ComprobantesModule';
 import EmitirDocumentoDialog from './EmitirDocumentoDialog';
+import NotaDialog, { type ClaseNota } from './NotaDialog';
 
 interface Props {
   tipo: TipoListado;
@@ -37,7 +38,7 @@ interface Props {
 }
 
 const ES_FISCAL = new Set<TipoListado>(['Factura', 'NotaCredito', 'NotaDebito']);
-const SE_EMITE_ACA = new Set<TipoListado>(['Presupuesto', 'Remito']);
+const SE_EMITE_ACA = new Set<TipoListado>(['Presupuesto']);
 
 function docDelReceptor(c: ComprobanteListado): string {
   if (!c.docReceptor) return c.condicionIvaReceptor || '';
@@ -53,6 +54,7 @@ export default function DocumentosTab({ tipo, fiscal, version }: Props) {
   const [verItem, setVerItem] = useState<ComprobanteListado | null>(null);
   const [anulando, setAnulando] = useState<ComprobanteListado | null>(null);
   const [emitiendo, setEmitiendo] = useState(false);
+  const [nota, setNota] = useState<{ clase: ClaseNota; factura: ComprobanteListado | null } | null>(null);
   const [recarga, setRecarga] = useState(0);
 
   useEffect(() => {
@@ -98,13 +100,6 @@ export default function DocumentosTab({ tipo, fiscal, version }: Props) {
 
   return (
     <div className="space-y-4">
-      {(tipo === 'NotaCredito' || tipo === 'NotaDebito') && (
-        <div className="rounded-lg border border-[#0284C733] bg-[#0284C70D] px-3.5 py-2.5 text-sm">
-          <span className="font-medium">Las {tipo === 'NotaCredito' ? 'notas de crédito' : 'notas de débito'} autorizadas por ARCA llegan en la próxima actualización.</span>{' '}
-          <span className="text-muted-foreground">Se van a emitir desde la factura que corrigen, con su CAE.</span>
-        </div>
-      )}
-
       <Card className="py-0 gap-0 overflow-hidden">
         <CardContent className="p-0">
           <div className="flex flex-wrap items-center gap-3 p-4 border-b">
@@ -119,6 +114,11 @@ export default function DocumentosTab({ tipo, fiscal, version }: Props) {
             {SE_EMITE_ACA.has(tipo) && (
               <Button className="ml-auto" onClick={() => setEmitiendo(true)}>
                 <Plus className="w-4 h-4 mr-1" />Nuevo {nombre.toLowerCase()}
+              </Button>
+            )}
+            {(tipo === 'NotaCredito' || tipo === 'NotaDebito') && (
+              <Button className="ml-auto" onClick={() => setNota({ clase: tipo === 'NotaCredito' ? 'credito' : 'debito', factura: null })}>
+                <Plus className="w-4 h-4 mr-1" />Nueva {tipo === 'NotaCredito' ? 'nota de crédito' : 'nota de débito'}
               </Button>
             )}
           </div>
@@ -168,7 +168,12 @@ export default function DocumentosTab({ tipo, fiscal, version }: Props) {
                       <TableCell className="text-right font-semibold whitespace-nowrap">{formatMoney(c.importe)}</TableCell>
                       <TableCell>
                         {fiscalTipo
-                          ? (c.cae ? <span className="font-mono text-xs">{c.cae}</span> : <Badge variant="outline" className="text-muted-foreground">Interna, sin CAE</Badge>)
+                          ? (
+                            <div className="space-y-1">
+                              {c.cae ? <span className="block font-mono text-xs">{c.cae}</span> : <Badge variant="outline" className="text-muted-foreground">Interna, sin CAE</Badge>}
+                              {tipo === 'Factura' && <EstadoFactura c={c} />}
+                            </div>
+                          )
                           : anulado
                             ? <Badge variant="outline" className="text-muted-foreground">Anulado</Badge>
                             : <Badge className="border-0 bg-[#05966926] text-success">Emitido</Badge>}
@@ -178,6 +183,16 @@ export default function DocumentosTab({ tipo, fiscal, version }: Props) {
                           <Button size="sm" variant="ghost" className="h-8" onClick={e => { e.stopPropagation(); setVerItem(c); }}>
                             <FileText className="w-3.5 h-3.5 mr-1" />Ver
                           </Button>
+                          {tipo === 'Factura' && c.estado === 'emitido' && (
+                            <>
+                              <Button size="sm" variant="outline" className="h-8 border-[#0F766E66] text-primary" onClick={e => { e.stopPropagation(); setNota({ clase: 'credito', factura: c }); }}>
+                                Nota de crédito
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-8" onClick={e => { e.stopPropagation(); setNota({ clase: 'debito', factura: c }); }}>
+                                Nota de débito
+                              </Button>
+                            </>
+                          )}
                           {SE_EMITE_ACA.has(tipo) && !anulado && (
                             <Button size="sm" variant="ghost" className="h-8 text-destructive hover:text-destructive" onClick={e => { e.stopPropagation(); setAnulando(c); }}>
                               <Trash2 className="w-3.5 h-3.5 mr-1" />Anular
@@ -198,9 +213,17 @@ export default function DocumentosTab({ tipo, fiscal, version }: Props) {
 
       {SE_EMITE_ACA.has(tipo) && (
         <EmitirDocumentoDialog
-          tipo={tipo as 'Presupuesto' | 'Remito'}
           abierto={emitiendo}
           onCerrar={emitido => { setEmitiendo(false); if (emitido) recargar(); }}
+        />
+      )}
+
+      {nota && (
+        <NotaDialog
+          abierto
+          clase={nota.clase}
+          factura={nota.factura}
+          onCerrar={emitida => { setNota(null); if (emitida) recargar(); }}
         />
       )}
 
@@ -220,4 +243,17 @@ export default function DocumentosTab({ tipo, fiscal, version }: Props) {
       </AlertDialog>
     </div>
   );
+}
+
+/** Cómo está una factura después de sus notas de crédito y débito. */
+function EstadoFactura({ c }: { c: ComprobanteListado }) {
+  if (c.estado === 'nota-en-curso') return <Badge variant="outline" className="text-muted-foreground">Emitiendo una nota…</Badge>;
+  if (c.estado === 'anulado') return <Badge className="border-0 bg-[#EF44441F] text-destructive">Anulada</Badge>;
+  if (c.notas && c.notas.creditado > 0) {
+    return <Badge className="border-0 bg-[#D9770626] text-warning">Queda {formatMoney(c.notas.disponible)}</Badge>;
+  }
+  if (c.notas && c.notas.debitado > 0) {
+    return <Badge className="border-0 bg-[#0284C71A] text-info">+{formatMoney(c.notas.debitado)} en notas de débito</Badge>;
+  }
+  return <Badge className="border-0 bg-[#05966926] text-success">Vigente</Badge>;
 }

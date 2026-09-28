@@ -8,7 +8,7 @@
 // importar el navegador ni el tema.
 //
 // Es una única plantilla para TODOS los documentos (Factura, Presupuesto,
-// Recibo, Remito, Nota de Crédito, Nota de Débito): lo único que cambia
+// Recibo, Nota de Crédito, Nota de Débito): lo único que cambia
 // entre uno y otro es el título, la letra del recuadro y si tiene o no
 // CAE/QR de AFIP — la distribución (encabezado, receptor, detalle, pie)
 // es siempre la misma, tal como pidió el dueño del negocio: "el diseño
@@ -19,20 +19,19 @@ import jsPDF from 'jspdf';
 import { proxiedImageUrl } from '@/lib/image-proxy';
 import { desgloseIva } from './config';
 
-export type TipoComprobantePdf = 'Factura' | 'Presupuesto' | 'Recibo' | 'Remito' | 'NotaCredito' | 'NotaDebito';
+export type TipoComprobantePdf = 'Factura' | 'Presupuesto' | 'Recibo' | 'NotaCredito' | 'NotaDebito';
 
 export const TITULO_POR_TIPO: Record<TipoComprobantePdf, string> = {
   Factura: 'FACTURA',
   Presupuesto: 'PRESUPUESTO',
   Recibo: 'RECIBO',
-  Remito: 'REMITO',
   NotaCredito: 'NOTA DE CRÉDITO',
   NotaDebito: 'NOTA DE DÉBITO',
 };
 
 export interface DatosComprobantePdf {
   tipo: TipoComprobantePdf;
-  letra: string; // 'B' | 'C' (fiscal) | 'R' (Remito) | 'X' (sin validez fiscal)
+  letra: string; // 'A' | 'B' | 'C' (fiscal) | 'X' (sin validez fiscal)
   codigoTipo: number | null; // código de comprobante AFIP (CbteTipo) — solo si es fiscal
   razonSocialEmisor: string;
   /** El nombre del hotel. Va arriba de la razón social (ver nombreComercialAparte). */

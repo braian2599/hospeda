@@ -58,6 +58,7 @@ export const TIPO = {
   LOGIN: 'Login',
   LOGOUT: 'Logout',
   CUENTA_CORRIENTE: 'Cuenta corriente',
+  ARCA: 'ARCA',
 } as const;
 
 export type TipoAuditoria = typeof TIPO[keyof typeof TIPO];

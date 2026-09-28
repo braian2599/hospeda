@@ -359,7 +359,7 @@ export default function ComprobantesModule() {
         <Landmark className="w-4 h-4 text-info mt-0.5 shrink-0" />
         <p>
           <span className="font-medium">Para facturar, andá al módulo ARCA.</span>{' '}
-          <span className="text-muted-foreground">Ahí están también los presupuestos, los remitos y las notas de crédito y débito. Acá se cobra y se ven los recibos y comprobantes.</span>
+          <span className="text-muted-foreground">Ahí están también los presupuestos y las notas de crédito y débito. Acá se cobra y se ven los recibos y comprobantes.</span>
         </p>
       </div>
 
@@ -983,12 +983,11 @@ function MetodoIconBadge({ type, name }: { type: 'credit' | 'bank' | 'wallet' | 
    descargar; emitir, anular y facturar es del módulo ARCA
    (src/components/modules/ArcaModule.tsx), que usa estas mismas piezas. */
 
-type TipoEmitible = Extract<TipoComprobanteGenerico, 'Presupuesto' | 'Remito' | 'NotaCredito' | 'NotaDebito'>;
+type TipoEmitible = Extract<TipoComprobanteGenerico, 'Presupuesto' | 'NotaCredito' | 'NotaDebito'>;
 export type TipoListado = 'Factura' | TipoEmitible;
 
 const NOMBRE_TIPO_EMITIBLE: Record<TipoEmitible, string> = {
   Presupuesto: 'Presupuesto',
-  Remito: 'Remito',
   NotaCredito: 'Nota de Crédito',
   NotaDebito: 'Nota de Débito',
 };
@@ -1001,7 +1000,6 @@ export const NOMBRE_TIPO_LISTA: Record<TipoListado, string> = {
 const PILLS_TIPO: { tipo: TipoListado; label: string }[] = [
   { tipo: 'Factura', label: 'Facturas' },
   { tipo: 'Presupuesto', label: 'Presupuestos' },
-  { tipo: 'Remito', label: 'Remitos' },
   { tipo: 'NotaCredito', label: 'Notas de Crédito' },
   { tipo: 'NotaDebito', label: 'Notas de Débito' },
 ];
@@ -1032,6 +1030,8 @@ export interface ComprobanteListado {
   anuladoAt: string | null;
   motivo: string | null;
   comprobanteAsociadoDisplay: string | null;
+  /** Solo facturas: lo corregido con notas de ARCA y lo que queda, en pesos. */
+  notas?: { creditado: number; debitado: number; disponible: number } | null;
 }
 
 /** Arma el receptor/concepto de un comprobante ya emitido a partir de lo
@@ -1163,7 +1163,7 @@ function ComprobantesListaTab() {
   );
 }
 
-/* =================== VER COMPROBANTE (Factura/Presupuesto/Remito/NC/ND) =================== */
+/* =================== VER COMPROBANTE (Factura/Presupuesto/NC/ND) =================== */
 /* Mismo patrón que "Ver recibo": primero se ve el comprobante con la
    plantilla oficial, y desde ahí se descarga el PDF — no se descarga a
    ciegas con un solo click. Solo muestra: facturar es de "Para facturar",
@@ -1869,7 +1869,7 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
 }
 
 /* =================== COMPROBANTE OFICIAL (plantilla única) =================== */
-/* Un solo diseño para Factura, Recibo, Presupuesto, Remito y Notas de
+/* Un solo diseño para Factura, Recibo, Presupuesto y Notas de
    Crédito/Débito: recuadro con la letra, datos del emisor y el receptor,
    detalle, monto en letras, y QR + CAE cuando el comprobante es fiscal (o
    un aviso de "sin validez fiscal" cuando todavía no lo es). Lo único que

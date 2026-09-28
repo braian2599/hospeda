@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 
 // ─────────────────────────────────────────────────────────
-// DELETE /api/comprobantes/[id] — Anula un Presupuesto o Remito.
+// DELETE /api/comprobantes/[id] — Anula un Presupuesto.
 //
 // No es un borrado real: la fila queda (estado: 'anulado', anuladoAt), el
 // número no se reutiliza. Es la misma lógica que usa cualquier sistema de
@@ -15,7 +15,7 @@ import { requirePermission, AuthError } from '@/lib/auth/utils';
 // corrige emitiendo otra nota, no borrando la que ya existe).
 // ─────────────────────────────────────────────────────────
 
-const TIPOS_ANULABLES = new Set(['Presupuesto', 'Remito']);
+const TIPOS_ANULABLES = new Set(['Presupuesto']);
 
 export async function DELETE(
   _req: NextRequest,
@@ -33,7 +33,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Comprobante no encontrado' }, { status: 404 });
     }
     if (!TIPOS_ANULABLES.has(comprobante.tipo)) {
-      return NextResponse.json({ error: 'Solo se pueden anular Presupuestos y Remitos.' }, { status: 400 });
+      return NextResponse.json({ error: 'Solo se pueden anular presupuestos.' }, { status: 400 });
     }
     if (comprobante.estado === 'anulado') {
       return NextResponse.json({ error: 'Este comprobante ya estaba anulado.' }, { status: 400 });

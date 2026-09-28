@@ -1,6 +1,6 @@
 'use client';
 
-// Nuevo presupuesto o remito (módulo ARCA). A la izquierda, para quién: la
+// Nuevo presupuesto (módulo ARCA). A la izquierda, para quién: la
 // lista de clientes (personas) y empresas ya cargados, o una empresa nueva, o
 // a mano. A la derecha, qué se presupuesta: líneas con cantidad y precio.
 // No tienen validez fiscal: no pasan por ARCA.
@@ -17,12 +17,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useHotelStore } from '@/lib/store';
 import { api, type DbTitular } from '@/lib/api-client';
-import { formatMoney } from '@/lib/format';
+import { formatMoney, leerNumero } from '@/lib/format';
 import { DOC_TIPO, docReceptor } from '@/lib/afip/config';
 import { manejaCuentaCorriente, normalizarCuit } from '@/lib/cuenta-corriente';
 import FormTitular from '@/components/cuenta-corriente/FormTitular';
 
-type Tipo = 'Presupuesto' | 'Remito';
+const tipo = 'Presupuesto';
 
 /** A quién va el documento, tal cual se imprime. */
 interface Receptor {
@@ -61,21 +61,8 @@ function desdeTitular(t: DbTitular): Receptor {
   };
 }
 
-/**
- * Un número como lo escribe alguien en Argentina: "210.000", "210000",
- * "1,5" o "210.000,50". Un punto seguido de exactamente 3 cifras es de
- * miles; si no, es decimal ("12.5").
- */
-const numero = (s: string) => {
-  let t = s.trim().replace(/\$|\s/g, '');
-  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
-  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
-  const n = Number(t);
-  return t !== '' && Number.isFinite(n) ? n : NaN;
-};
 
-export default function EmitirDocumentoDialog({ tipo, abierto, onCerrar }: {
-  tipo: Tipo;
+export default function EmitirDocumentoDialog({ abierto, onCerrar }: {
   abierto: boolean;
   onCerrar: (emitido: boolean) => void;
 }) {
@@ -127,7 +114,7 @@ export default function EmitirDocumentoDialog({ tipo, abierto, onCerrar }: {
   }, [clientes, titulares, filtro, q]);
 
   const importeLinea = (l: Linea) => {
-    const c = numero(l.cantidad); const p = numero(l.precio);
+    const c = leerNumero(l.cantidad); const p = leerNumero(l.precio);
     return Number.isFinite(c) && Number.isFinite(p) ? c * p : 0;
   };
   const lineasValidas = lineas.filter(l => l.descripcion.trim() && importeLinea(l) > 0);
@@ -171,8 +158,8 @@ export default function EmitirDocumentoDialog({ tipo, abierto, onCerrar }: {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error || `No se pudo emitir el ${tipo.toLowerCase()}`); return; }
-      toast.success(`${tipo} emitido`, { description: `N° ${data.numeroDisplay}` });
+      if (!res.ok) { toast.error(data.error || 'No se pudo emitir el presupuesto'); return; }
+      toast.success('Presupuesto emitido', { description: `N° ${data.numeroDisplay}` });
       setGuardando(false);
       reiniciar();
       onCerrar(true);
@@ -183,7 +170,7 @@ export default function EmitirDocumentoDialog({ tipo, abierto, onCerrar }: {
     }
   };
 
-  const nombre = tipo === 'Presupuesto' ? 'presupuesto' : 'remito';
+  const nombre = 'presupuesto';
 
   return (
     <Dialog open={abierto} onOpenChange={o => { if (!o) cerrar(false); }}>
@@ -300,7 +287,7 @@ export default function EmitirDocumentoDialog({ tipo, abierto, onCerrar }: {
 
           {/* ── 2. Qué se presupuesta ── */}
           <div className="space-y-3 min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">2. {tipo === 'Presupuesto' ? 'Qué se presupuesta' : 'Qué se entrega'}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">2. Qué se presupuesta</p>
             <div className="rounded-lg border overflow-hidden">
               <div className="grid grid-cols-[minmax(0,1fr)_72px_120px_36px] gap-2 px-3 py-2 bg-[#F1F5F94D] text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 <span>Detalle</span><span className="text-right">Cant.</span><span className="text-right">Precio</span><span />
@@ -327,7 +314,7 @@ export default function EmitirDocumentoDialog({ tipo, abierto, onCerrar }: {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="doc-nota">Nota (opcional)</Label>
-              <Textarea id="doc-nota" value={nota} onChange={e => setNota(e.target.value)} rows={2} placeholder={tipo === 'Presupuesto' ? 'Incluye desayuno. Válido hasta el 10/10.' : 'Observaciones de la entrega'} />
+              <Textarea id="doc-nota" value={nota} onChange={e => setNota(e.target.value)} rows={2} placeholder="Incluye desayuno. Válido hasta el 10/10." />
             </div>
             <div className="flex items-baseline justify-between border-t pt-3">
               <span className="text-sm text-muted-foreground">Total</span>

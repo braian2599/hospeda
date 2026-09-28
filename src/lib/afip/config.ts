@@ -24,19 +24,42 @@ export function afipUrls(ambiente: AfipAmbiente) {
   return AFIP_URLS[ambiente];
 }
 
-// ── Tipos de comprobante (tabla oficial de AFIP) ──
-// Solo se soportan Factura B y C en esta primera versión: cubren el caso
-// de uso real de un hotel (venta a consumidor final / monotributista,
-// identificado con DNI). Factura A (operación entre dos Responsables
-// Inscriptos, con discriminación de IVA) queda fuera de alcance por ahora
-// — requeriría relevar la condición de IVA del huésped, que hoy la reserva
-// no captura. Si se necesita más adelante, se agrega sin romper lo que ya
-// funciona.
+// ── Tipos de comprobante (tabla oficial de ARCA, FEParamGetTiposCbte) ──
+// Factura, Nota de Débito y Nota de Crédito, en sus letras A, B y C. Los
+// mismos códigos que usa pyafipws (tipos_fact / letras_fact en pyfepdf.py).
 export const CBTE_TIPO = {
   FACTURA_A: 1,
+  NOTA_DEBITO_A: 2,
+  NOTA_CREDITO_A: 3,
   FACTURA_B: 6,
+  NOTA_DEBITO_B: 7,
+  NOTA_CREDITO_B: 8,
   FACTURA_C: 11,
+  NOTA_DEBITO_C: 12,
+  NOTA_CREDITO_C: 13,
 } as const;
+
+/**
+ * La nota que corrige una factura lleva SU misma letra: una Factura B se
+ * corrige con Nota de Crédito B o Nota de Débito B. null si el código no es
+ * una factura.
+ */
+export function tipoNotaDe(cbteTipoFactura: number, clase: 'credito' | 'debito'): number | null {
+  const porFactura: Record<number, { credito: number; debito: number }> = {
+    [CBTE_TIPO.FACTURA_A]: { credito: CBTE_TIPO.NOTA_CREDITO_A, debito: CBTE_TIPO.NOTA_DEBITO_A },
+    [CBTE_TIPO.FACTURA_B]: { credito: CBTE_TIPO.NOTA_CREDITO_B, debito: CBTE_TIPO.NOTA_DEBITO_B },
+    [CBTE_TIPO.FACTURA_C]: { credito: CBTE_TIPO.NOTA_CREDITO_C, debito: CBTE_TIPO.NOTA_DEBITO_C },
+  };
+  return porFactura[cbteTipoFactura]?.[clase] ?? null;
+}
+
+/** La letra (A, B o C) de cualquier código de factura o nota. */
+function letraDeCodigo(cbteTipo: number): 'A' | 'B' | 'C' | null {
+  if ([1, 2, 3].includes(cbteTipo)) return 'A';
+  if ([6, 7, 8].includes(cbteTipo)) return 'B';
+  if ([11, 12, 13].includes(cbteTipo)) return 'C';
+  return null;
+}
 
 /**
  * Condición frente al IVA de quien RECIBE la factura. Obligatoria en cada
@@ -80,9 +103,13 @@ export function condicionIvaReceptorId(condicion: string | null | undefined): nu
   return CONDICION_IVA_RECEPTOR.CONSUMIDOR_FINAL;
 }
 
-/** A y B discriminan el IVA ante ARCA (neto + IVA). La C va con IVA en cero. */
+/**
+ * A y B discriminan el IVA ante ARCA (neto + IVA), sean facturas o notas.
+ * La C va con IVA en cero.
+ */
 export function discriminaIva(cbteTipo: number): boolean {
-  return cbteTipo === CBTE_TIPO.FACTURA_A || cbteTipo === CBTE_TIPO.FACTURA_B;
+  const letra = letraDeCodigo(cbteTipo);
+  return letra === 'A' || letra === 'B';
 }
 
 /**
@@ -109,11 +136,12 @@ export type DesgloseIva =
 
 export function desgloseIva(cbteTipo: number | null | undefined, total: number): DesgloseIva | null {
   const porcentaje = ALICUOTA_IVA_ALOJAMIENTO.porcentaje;
-  if (cbteTipo === CBTE_TIPO.FACTURA_A) {
+  const letra = cbteTipo != null ? letraDeCodigo(cbteTipo) : null;
+  if (letra === 'A') {
     const { neto, iva } = separarIva(total, porcentaje);
     return { tipo: 'A', neto, iva, porcentaje };
   }
-  if (cbteTipo === CBTE_TIPO.FACTURA_B) {
+  if (letra === 'B') {
     return { tipo: 'B', ivaContenido: separarIva(total, porcentaje).iva, porcentaje };
   }
   return null;
@@ -138,28 +166,26 @@ export function tipoComprobantePorCondicionIva(condicionIva: string): number {
 }
 
 export function nombreTipoComprobante(cbteTipo: number): string {
-  if (cbteTipo === CBTE_TIPO.FACTURA_A) return 'Factura A';
-  if (cbteTipo === CBTE_TIPO.FACTURA_B) return 'Factura B';
-  if (cbteTipo === CBTE_TIPO.FACTURA_C) return 'Factura C';
-  return `Comprobante ${cbteTipo}`;
+  const letra = letraDeCodigo(cbteTipo);
+  if (!letra) return `Comprobante ${cbteTipo}`;
+  if ([1, 6, 11].includes(cbteTipo)) return `Factura ${letra}`;
+  if ([2, 7, 12].includes(cbteTipo)) return `Nota de Débito ${letra}`;
+  return `Nota de Crédito ${letra}`;
 }
 
 /** La letra grande que llevan las facturas argentinas en el recuadro superior. */
 export function letraComprobante(cbteTipo: number): string {
-  if (cbteTipo === CBTE_TIPO.FACTURA_A) return 'A';
-  if (cbteTipo === CBTE_TIPO.FACTURA_B) return 'B';
-  if (cbteTipo === CBTE_TIPO.FACTURA_C) return 'C';
-  return '?';
+  return letraDeCodigo(cbteTipo) ?? '?';
 }
 
-export type TipoComprobanteGenerico = 'Factura' | 'Presupuesto' | 'Recibo' | 'Remito' | 'NotaCredito' | 'NotaDebito';
+export type TipoComprobanteGenerico = 'Factura' | 'Presupuesto' | 'Recibo' | 'NotaCredito' | 'NotaDebito';
 
 /**
  * Letra a mostrar en el recuadro grande del comprobante, según su tipo —
  * usada por la plantilla única de PDF/pantalla que comparten todos los
- * documentos (Factura, Presupuesto, Recibo, Remito, Notas de Crédito/Débito).
- * Factura y Notas de Crédito/Débito reflejan la condición de IVA del emisor
- * (B/C); Remito usa la letra oficial 'R'; Presupuesto y Recibo no tienen
+ * documentos (Factura, Presupuesto, Recibo, Notas de Crédito/Débito).
+ * Factura y Notas de Crédito/Débito llevan la letra de su código de ARCA
+ * (A/B/C); Presupuesto y Recibo no tienen
  * validez fiscal y usan 'X', la convención habitual para documentos no
  * fiscales.
  */
@@ -167,7 +193,6 @@ export function letraPorTipoComprobante(tipo: TipoComprobanteGenerico, cbteTipoF
   if (tipo === 'Factura' || tipo === 'NotaCredito' || tipo === 'NotaDebito') {
     return cbteTipoFactura ? letraComprobante(cbteTipoFactura) : 'X';
   }
-  if (tipo === 'Remito') return 'R';
   return 'X';
 }
 
@@ -176,7 +201,6 @@ export function notaSinValidezFiscal(tipo: TipoComprobanteGenerico): string {
   switch (tipo) {
     case 'Presupuesto': return 'Presupuesto sin validez fiscal. El comprobante definitivo se emite al confirmar el pago.';
     case 'Recibo': return 'Comprobante interno — no reemplaza la factura electrónica oficial de AFIP.';
-    case 'Remito': return 'Remito interno — no reemplaza la factura electrónica oficial de AFIP.';
     case 'NotaCredito': return 'Nota de crédito interna — no reemplaza un comprobante fiscal autorizado por AFIP.';
     case 'NotaDebito': return 'Nota de débito interna — no reemplaza un comprobante fiscal autorizado por AFIP.';
     default: return '';

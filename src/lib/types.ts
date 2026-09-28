@@ -346,7 +346,7 @@ export const MODULOS_SISTEMA: { id: ModuloId; label: string; icon: string; grupo
   { id: 'clientes', label: 'Clientes', icon: 'Users', grupo: 'comercial' },
   { id: 'tarifas', label: 'Tarifas', icon: 'Tags', grupo: 'comercial' },
   { id: 'comprobantes', label: 'Comprobantes', icon: 'Receipt', grupo: 'financiero' },
-  // Facturas, notas de crédito y débito, presupuestos y remitos. Permiso
+  // Facturas, notas de crédito y débito y presupuestos. Permiso
   // aparte de Comprobantes: se puede cobrar sin poder facturar.
   { id: 'arca', label: 'ARCA', icon: 'Landmark', grupo: 'financiero' },
   { id: 'caja', label: 'Caja', icon: 'Wallet', grupo: 'financiero' },

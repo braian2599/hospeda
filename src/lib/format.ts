@@ -151,3 +151,16 @@ export const timeAgo = (dateOrStr: string | Date): string => {
  */
 export const numeroDeReserva = (r: { numero?: number }): string =>
   r.numero != null ? `#${String(r.numero).padStart(4, '0')}` : '';
+
+/**
+ * Un número como lo escribe alguien en Argentina: "210.000", "210000",
+ * "1,5" o "210.000,50". Un punto seguido de exactamente 3 cifras es de
+ * miles; si no, es decimal ("12.5").
+ */
+export const leerNumero = (s: string): number => {
+  let t = s.trim().replace(/\$|\s/g, '');
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+  const n = Number(t);
+  return t !== '' && Number.isFinite(n) ? n : NaN;
+};
