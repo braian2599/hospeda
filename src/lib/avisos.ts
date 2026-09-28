@@ -91,6 +91,21 @@ export const NOVEDADES: Novedad[] = [
   // Las cuatro del 28/09 salen con el deploy de esa noche. El arreglo va
   // primero: es lo que los hoteles venían sufriendo.
   {
+    id: 'empresas-en-clientes-2026-09',
+    fecha: '2026-09-29',
+    tipo: 'mejora',
+    titulo: 'Las empresas ahora están en Clientes',
+    texto: 'Clientes tiene dos pestañas: Personas y Empresas. Las empresas se cargan ahí, con Traer de ARCA si tu hotel factura con ARCA. En Comprobantes → Cuenta corriente se sigue viendo quién debe y se cobra.',
+    requiere: { modulo: 'clientes' },
+  },
+  {
+    id: 'ventanas-mas-amplias-2026-09',
+    fecha: '2026-09-29',
+    tipo: 'mejora',
+    titulo: 'Ventanas más amplias',
+    texto: 'Las ventanas que se abren en el sistema son más anchas: se lee todo sin cortes y los formularios quedan menos apretados.',
+  },
+  {
     id: 'numero-de-reserva-2026-09',
     fecha: '2026-09-28',
     tipo: 'mejora',

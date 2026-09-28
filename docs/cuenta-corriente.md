@@ -375,6 +375,20 @@ otra reserva sigue dando 409, compartida no se cuenta a sí misma.
 
 ## Pedidos del dueño para después de la facturación (28/09)
 
+Vista previa aprobada (artifact "Hospeda: ARCA, Comprobantes y Clientes").
+Decisiones del 28/09:
+- Módulo nuevo **ARCA**, con **permiso aparte** para empleados. Pestañas: Para
+  facturar (todas las reservas cobradas completas sin factura), Facturas,
+  Notas de crédito, Notas de débito, Presupuestos, Remitos.
+- **Sin opción "No facturar":** las que no se facturan quedan en la lista.
+- Comprobantes ya no factura: cobros pendientes, historial de pagos,
+  comprobantes emitidos (solo ver) y cuenta corriente.
+- Una nota de crédito **no** desbloquea la reserva: facturada, no se edita más.
+- Diálogos más anchos: 560 / 720 / 960 / 1200 px (✅ en PREVIEW).
+
+Orden: 1) diálogos ✅, 2) Clientes con Empresas ✅ (PREVIEW), 3) módulo ARCA
+con su permiso, 4) notas de crédito y débito autorizadas por ARCA.
+
 1. **Clientes y empresas en un solo lugar.** En el módulo Clientes tienen que
    aparecer también las empresas (hoy solo están las personas de las
    reservas). El alta de personas y empresas se hace en Clientes, con "Traer

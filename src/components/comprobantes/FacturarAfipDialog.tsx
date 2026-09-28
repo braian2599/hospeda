@@ -126,7 +126,7 @@ export default function FacturarAfipDialog({ open, onOpenChange, reservaId, nume
                   {elegido && !elegido.condicionIva && (
                     <p className="text-xs text-destructive">
                       Falta la condición frente al IVA de {elegido.nombre}: sin eso ARCA no autoriza la factura.
-                      Cargala en su ficha (Comprobantes → Cuenta corriente), o traela de ARCA.
+                      Cargala en su ficha (Clientes → Empresas), o traela de ARCA.
                     </p>
                   )}
                 </>

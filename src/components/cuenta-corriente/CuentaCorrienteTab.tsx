@@ -1,24 +1,23 @@
 'use client';
 
-// La pestaña "Cuenta corriente" de Comprobantes: quién debe y cuánto.
+// La pestaña "Cuenta corriente" de Comprobantes: quién debe y cuánto. Las
+// empresas no se cargan acá sino en Clientes → Empresas.
 // Vive dentro de Comprobantes a propósito: es la zona de lo fiscal, que solo
 // ven algunos empleados (el permiso 'comprobantes'), igual que las facturas y
 // las notas de crédito y débito. Ver docs/cuenta-corriente.md.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Building2, User, Search, Plus, Loader2, AlertTriangle, BookOpen } from 'lucide-react';
+import { Building2, User, Search, Loader2, AlertTriangle, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { api, type DbTitular, type TipoTitular } from '@/lib/api-client';
+import { api, type DbTitular } from '@/lib/api-client';
+import { useHotelStore } from '@/lib/store';
 import { formatMoney } from '@/lib/format';
-import { notifySuccess } from '@/lib/notify';
 import { aPesos, normalizarCuit } from '@/lib/cuenta-corriente';
-import FormTitular from './FormTitular';
 import EstadoDeCuenta from './EstadoDeCuenta';
 
 export default function CuentaCorrienteTab() {
@@ -27,7 +26,6 @@ export default function CuentaCorrienteTab() {
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [verDesactivados, setVerDesactivados] = useState(false);
-  const [nuevo, setNuevo] = useState<TipoTitular | null>(null);
   const [abierto, setAbierto] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
@@ -43,6 +41,16 @@ export default function CuentaCorrienteTab() {
   }, [verDesactivados]);
 
   useEffect(() => { void cargar(); }, [cargar]);
+
+  // Las empresas se cargan en Clientes → Empresas (decisión del dueño, 28/09):
+  // acá solo se ve quién debe y se cobra. El botón abre Clientes en esa pestaña.
+  const setModulo = useHotelStore(s => s.setModulo);
+  const irAEmpresas = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('clientes_pestana', JSON.stringify('empresas'));
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+    setModulo('clientes');
+  };
 
   const visibles = useMemo(() => {
     const texto = q.trim().toLowerCase();
@@ -86,12 +94,9 @@ export default function CuentaCorrienteTab() {
             <CardTitle className="text-base flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-muted-foreground" /> Cuentas corrientes
             </CardTitle>
-            <div className="ml-auto flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => setNuevo('persona')}>
-                <Plus className="w-4 h-4 mr-1" /> Nueva persona
-              </Button>
-              <Button size="sm" onClick={() => setNuevo('empresa')}>
-                <Plus className="w-4 h-4 mr-1" /> Nueva empresa
+            <div className="ml-auto">
+              <Button size="sm" variant="outline" onClick={irAEmpresas}>
+                <Building2 className="w-4 h-4 mr-1" /> Cargar empresas en Clientes
               </Button>
             </div>
           </div>
@@ -118,7 +123,7 @@ export default function CuentaCorrienteTab() {
               {titulares.length === 0 ? (
                 <>
                   <p>Todavía no hay cuentas corrientes.</p>
-                  <p>Se crean al pasar el saldo de una reserva a cuenta corriente, o con “Nueva empresa”.</p>
+                  <p>Se crean al pasar el saldo de una reserva a cuenta corriente. Las empresas se cargan en Clientes → Empresas.</p>
                 </>
               ) : (
                 <p>Ninguna coincide con la búsqueda.</p>
@@ -170,27 +175,6 @@ export default function CuentaCorrienteTab() {
           )}
         </CardContent>
       </Card>
-
-      <Dialog open={!!nuevo} onOpenChange={o => { if (!o) setNuevo(null); }}>
-        <DialogContent size="medio">
-          <DialogHeader>
-            <DialogTitle>{nuevo === 'persona' ? 'Nueva persona con cuenta corriente' : 'Nueva empresa'}</DialogTitle>
-          </DialogHeader>
-          {nuevo && (
-            <FormTitular
-              key={nuevo}
-              tipoFijo={nuevo}
-              manejaCuenta
-              onGuardado={t => {
-                notifySuccess('Cuenta cargada', t.nombre);
-                setNuevo(null);
-                void cargar();
-              }}
-              onCancelar={() => setNuevo(null)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
 
       <EstadoDeCuenta titularId={abierto} onCerrar={() => setAbierto(null)} onCambio={() => void cargar()} />
     </div>

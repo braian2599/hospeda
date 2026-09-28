@@ -51,15 +51,19 @@ function DialogOverlay({
 // si algo no entra en ninguno, se discute y se cambia la escala acá, no en
 // la pantalla que lo necesita.
 //
-//   chico   448px — confirmaciones, avisos, borrar algo
-//   medio   512px — formularios simples de una columna
-//   grande  768px — formularios con secciones o pestañas
-//   trabajo 1024px — pantallas de trabajo (Nueva Reserva, editor de Tarifas)
+//   chico    560px — confirmaciones, avisos, borrar algo
+//   medio    720px — formularios simples
+//   grande   960px — formularios con secciones, pestañas o dos columnas
+//   trabajo 1200px — pantallas de trabajo (Nueva Reserva, editor de Tarifas)
+//
+// Eran 448/512/768/1024: el dueño los encontró muy angostos (todo apretado,
+// información cortada) y aprobó esta escala en la vista previa del 28/09.
+// En celular siguen ocupando todo el ancho (max-w-[calc(100%-2rem)]).
 export const ANCHOS_DIALOG = {
-  chico: 'sm:max-w-md',
-  medio: 'sm:max-w-lg',
-  grande: 'sm:max-w-3xl',
-  trabajo: 'sm:max-w-5xl',
+  chico: 'sm:max-w-[560px]',
+  medio: 'sm:max-w-[720px]',
+  grande: 'sm:max-w-[960px]',
+  trabajo: 'sm:max-w-[1200px]',
 } as const;
 
 export type TamanoDialog = keyof typeof ANCHOS_DIALOG;

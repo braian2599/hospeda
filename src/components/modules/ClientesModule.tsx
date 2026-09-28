@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import {
   Plus, Trash2, Users, Search, Eye, Calendar, DollarSign, TrendingUp, Clock,
   CalendarOff, Download, UserPlus, Star, BarChart3, Mail, Phone, CreditCard,
-  X, ChevronRight, FileText, ArrowRight, MapPin, Globe2, Cake,
+  X, ChevronRight, FileText, ArrowRight, MapPin, Globe2, Cake, Building2, User,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import { toast } from 'sonner';
@@ -25,6 +25,7 @@ import { exportToCSV } from '@/lib/csv-export';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DatosFiscalesCliente from '@/components/cuenta-corriente/DatosFiscalesCliente';
+import EmpresasTab from '@/components/clientes/EmpresasTab';
 
 // ═══════════════════════════════════════════════════════════
 // HELPERS
@@ -122,6 +123,9 @@ export default function ClientesModule() {
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
+  // Personas (los huéspedes) o Empresas (a quienes se les factura con CUIT).
+  const [pestana, setPestana] = useFilterState<'personas' | 'empresas'>('clientes_pestana', 'personas');
+  const [nuevaEmpresa, setNuevaEmpresa] = useState(false);
 
   const lista = busqueda.length >= 2 ? buscarCliente(busqueda) : clientes;
 
@@ -215,242 +219,266 @@ export default function ClientesModule() {
 
   return (
     <div className="space-y-6">
-      <ModuleHeader icon={Users} title="Clientes" subtitle="Base de huéspedes y datos de contacto">
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors" onClick={() => {
-            const headers = ['Nombre', 'DNI', 'Email', 'Teléfono', 'Dirección'];
-            const rows = lista.map(c => [
-              c.nombre || '',
-              c.dni || '',
-              c.email || '',
-              c.telefono || '',
-              '',
-            ]);
-            exportToCSV('clientes.csv', headers, rows);
-            toast.success('CSV exportado');
-          }}>
-            <Download className="w-3.5 h-3.5" />Exportar CSV
+      <ModuleHeader icon={Users} title="Clientes" subtitle="Huéspedes y empresas">
+        <div className="flex flex-wrap justify-end gap-2">
+          {pestana === 'personas' && (
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors" onClick={() => {
+              const headers = ['Nombre', 'DNI', 'Email', 'Teléfono', 'Dirección'];
+              const rows = lista.map(c => [
+                c.nombre || '',
+                c.dni || '',
+                c.email || '',
+                c.telefono || '',
+                '',
+              ]);
+              exportToCSV('clientes.csv', headers, rows);
+              toast.success('CSV exportado');
+            }}>
+              <Download className="w-3.5 h-3.5" />Exportar CSV
+            </Button>
+          )}
+          <Button variant={pestana === 'personas' ? 'default' : 'outline'} onClick={() => { setPestana('personas'); openNew(); }}>
+            <Plus className="w-4 h-4 mr-1" />Nueva persona
           </Button>
-          <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" />Agregar Cliente</Button>
+          <Button variant={pestana === 'empresas' ? 'default' : 'outline'} onClick={() => { setPestana('empresas'); setNuevaEmpresa(true); }}>
+            <Building2 className="w-4 h-4 mr-1" />Nueva empresa
+          </Button>
         </div>
       </ModuleHeader>
 
-      {/* ═══════════ CLIENT STATS SUMMARY ═══════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
-        {/* Total Clientes */}
-        <Card className="rounded-xl border-l-[3px] border-l-teal-500 bg-[#0F766E0D] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
-          <CardContent className="p-0">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-teal-600">Total Clientes</p>
-                <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-xl font-bold text-teal-800" />
-              </div>
-              <div className="w-10 h-10 rounded-full bg-[#00B9A633] flex items-center justify-center">
-                <Users className="w-5 h-5 text-teal-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs value={pestana} onValueChange={v => setPestana(v as 'personas' | 'empresas')}>
+        <TabsList className="bg-[#F1F5F980]">
+          <TabsTrigger value="personas" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
+            <User className="w-4 h-4 mr-1" />Personas
+          </TabsTrigger>
+          <TabsTrigger value="empresas" className="data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
+            <Building2 className="w-4 h-4 mr-1" />Empresas
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Clientes Recurrentes */}
-        <Card className="rounded-xl border-l-[3px] border-l-warning bg-[#D977061A] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
-          <CardContent className="p-0">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-warning">Recurrentes</p>
-                <AnimatedNumber value={stats.recurrentes} format={n => String(Math.round(n))} className="text-xl font-bold text-warning" />
-              </div>
-              <div className="w-10 h-10 rounded-full bg-[#D9770633] flex items-center justify-center">
-                <Star className="w-5 h-5 text-warning" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <TabsContent value="personas" className="mt-4 space-y-6">
+          {/* ═══════════ CLIENT STATS SUMMARY ═══════════ */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 card-grid-stagger">
+            {/* Total Clientes */}
+            <Card className="rounded-xl border-l-[3px] border-l-teal-500 bg-[#0F766E0D] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+              <CardContent className="p-0">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-teal-600">Total Clientes</p>
+                    <AnimatedNumber value={stats.total} format={n => String(Math.round(n))} className="text-xl font-bold text-teal-800" />
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-[#00B9A633] flex items-center justify-center">
+                    <Users className="w-5 h-5 text-teal-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Nuevos este Mes */}
-        <Card className="rounded-xl border-l-[3px] border-l-primary bg-[#0F766E0D] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
-          <CardContent className="p-0">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-primary">Nuevos este Mes</p>
-                <AnimatedNumber value={stats.thisMonth} format={n => String(Math.round(n))} className="text-xl font-bold text-primary" />
-              </div>
-              <div className="w-10 h-10 rounded-full bg-[#0F766E33] flex items-center justify-center">
-                <UserPlus className="w-5 h-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Clientes Recurrentes */}
+            <Card className="rounded-xl border-l-[3px] border-l-warning bg-[#D977061A] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+              <CardContent className="p-0">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-warning">Recurrentes</p>
+                    <AnimatedNumber value={stats.recurrentes} format={n => String(Math.round(n))} className="text-xl font-bold text-warning" />
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-[#D9770633] flex items-center justify-center">
+                    <Star className="w-5 h-5 text-warning" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Ocupación Promedio */}
-        <Card className="rounded-xl border-l-[3px] border-l-info bg-[#0284C71A] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
-          <CardContent className="p-0">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-info">Estadías/Cliente</p>
-                <AnimatedNumber value={stats.avgStays} format={n => n.toFixed(1)} className="text-xl font-bold text-info" />
-              </div>
-              <div className="w-10 h-10 rounded-full bg-[#0284C733] flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-info" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            {/* Nuevos este Mes */}
+            <Card className="rounded-xl border-l-[3px] border-l-primary bg-[#0F766E0D] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+              <CardContent className="p-0">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-primary">Nuevos este Mes</p>
+                    <AnimatedNumber value={stats.thisMonth} format={n => String(Math.round(n))} className="text-xl font-bold text-primary" />
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-[#0F766E33] flex items-center justify-center">
+                    <UserPlus className="w-5 h-5 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-      {/* ═══════════ SEARCH BAR (enhanced) ═══════════ */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre, DNI o email..."
-            value={busqueda}
-            onChange={e => { setBusqueda(e.target.value); setPage(1); }}
-            className="pl-9 pr-9 transition-all duration-200 focus-visible:ring-brand-deep focus-visible:ring-offset-1"
-          />
-          {busqueda.length >= 2 && (
-            <button
-              onClick={() => { setBusqueda(''); setPage(1); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Limpiar búsqueda"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-        {/* Result count badge */}
-        <Badge variant="secondary" className="font-mono tabular-nums text-xs">
-          {lista.length} {lista.length === 1 ? 'resultado' : 'resultados'}
-        </Badge>
-        {/* Limpiar button when search is active */}
-        {busqueda.length >= 2 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
-            onClick={() => { setBusqueda(''); setPage(1); }}
-          >
-            <X className="w-3 h-3" />Limpiar
-          </Button>
-        )}
-      </div>
-
-      {/* ═══════════ CLIENT CARDS (enhanced) ═══════════ */}
-      {lista.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">No se encontraron clientes.</CardContent></Card>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {pagedLista.map(c => {
-              const stayCount = c.historialEstadias.length;
-              const loyalty = getLoyaltyInfo(stayCount);
-              const initials = getInitials(c.nombre);
-              const lastCheckout = getLastCheckout(c);
-
-              return (
-                <Card
-                  key={c.id}
-                  className={`border-l-[3px] ${loyalty.borderColor} hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 cursor-pointer group`}
-                  onClick={() => openDetail(c.id)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      {/* Avatar */}
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-deep to-[#0F2B28B3] flex items-center justify-center shrink-0 shadow-sm">
-                        <span className="text-sm font-bold text-white">{initials}</span>
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <h4 className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{c.nombre}</h4>
-                          {/* Loyalty badge */}
-                          <Badge className={`${loyalty.color} ${loyalty.textColor} border-0 text-[10px] px-1.5 py-0 h-auto gap-0.5 font-semibold`}>
-                            {loyalty.icon}{loyalty.level}
-                          </Badge>
-                        </div>
-
-                        {/* DNI */}
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
-                          <CreditCard className="w-3 h-3 shrink-0" />
-                          <span className="font-mono truncate">{c.dni}</span>
-                        </div>
-
-                        {/* Email & Phone row */}
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                          {c.email && (
-                            <div className="flex items-center gap-1 min-w-0">
-                              <Mail className="w-3 h-3 shrink-0" />
-                              <span className="truncate">{c.email}</span>
-                            </div>
-                          )}
-                          {c.telefono && (
-                            <div className="flex items-center gap-1 shrink-0">
-                              <Phone className="w-3 h-3" />
-                              <span>{c.telefono}</span>
-                            </div>
-                          )}
-                          {!c.email && !c.telefono && <span className="italic">Sin contacto</span>}
-                        </div>
-
-                        {/* Bottom row: stays count + last stay + actions */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-mono font-semibold text-primary">
-                              {stayCount} {stayCount === 1 ? 'estadía' : 'estadías'}
-                            </span>
-                            {lastCheckout && (
-                              <span className="text-xs text-muted-foreground">
-                                <Clock className="w-3 h-3 inline mr-0.5 -mt-0.5" />
-                                {formatRelativeTime(lastCheckout)}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Quick action buttons */}
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={(e) => { e.stopPropagation(); openDetail(c.id); }}
-                              aria-label="Ver detalle"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { type: 'new-reserva', clienteId: c.id } }));
-                              }}
-                              aria-label="Nueva reserva"
-                            >
-                              <Calendar className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 text-destructive hover:text-destructive"
-                              onClick={(e) => { e.stopPropagation(); openDelete(c.id); }}
-                              aria-label="Eliminar"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {/* Ocupación Promedio */}
+            <Card className="rounded-xl border-l-[3px] border-l-info bg-[#0284C71A] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 card-interactive">
+              <CardContent className="p-0">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-info">Estadías/Cliente</p>
+                    <AnimatedNumber value={stats.avgStays} format={n => n.toFixed(1)} className="text-xl font-bold text-info" />
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-[#0284C733] flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-info" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <PaginationBar page={page} totalPages={totalPages} onPageChange={setPage} totalItems={lista.length} pageSize={PAGE_SIZE} />
-        </>
-      )}
+
+          {/* ═══════════ SEARCH BAR (enhanced) ═══════════ */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre, DNI o email..."
+                value={busqueda}
+                onChange={e => { setBusqueda(e.target.value); setPage(1); }}
+                className="pl-9 pr-9 transition-all duration-200 focus-visible:ring-brand-deep focus-visible:ring-offset-1"
+              />
+              {busqueda.length >= 2 && (
+                <button
+                  onClick={() => { setBusqueda(''); setPage(1); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Limpiar búsqueda"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {/* Result count badge */}
+            <Badge variant="secondary" className="font-mono tabular-nums text-xs">
+              {lista.length} {lista.length === 1 ? 'resultado' : 'resultados'}
+            </Badge>
+            {/* Limpiar button when search is active */}
+            {busqueda.length >= 2 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                onClick={() => { setBusqueda(''); setPage(1); }}
+              >
+                <X className="w-3 h-3" />Limpiar
+              </Button>
+            )}
+          </div>
+
+          {/* ═══════════ CLIENT CARDS (enhanced) ═══════════ */}
+          {lista.length === 0 ? (
+            <Card><CardContent className="py-8 text-center text-muted-foreground">No se encontraron clientes.</CardContent></Card>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {pagedLista.map(c => {
+                  const stayCount = c.historialEstadias.length;
+                  const loyalty = getLoyaltyInfo(stayCount);
+                  const initials = getInitials(c.nombre);
+                  const lastCheckout = getLastCheckout(c);
+
+                  return (
+                    <Card
+                      key={c.id}
+                      className={`border-l-[3px] ${loyalty.borderColor} hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 cursor-pointer group`}
+                      onClick={() => openDetail(c.id)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          {/* Avatar */}
+                          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-deep to-[#0F2B28B3] flex items-center justify-center shrink-0 shadow-sm">
+                            <span className="text-sm font-bold text-white">{initials}</span>
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <h4 className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{c.nombre}</h4>
+                              {/* Loyalty badge */}
+                              <Badge className={`${loyalty.color} ${loyalty.textColor} border-0 text-[10px] px-1.5 py-0 h-auto gap-0.5 font-semibold`}>
+                                {loyalty.icon}{loyalty.level}
+                              </Badge>
+                            </div>
+
+                            {/* DNI */}
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+                              <CreditCard className="w-3 h-3 shrink-0" />
+                              <span className="font-mono truncate">{c.dni}</span>
+                            </div>
+
+                            {/* Email & Phone row */}
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                              {c.email && (
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <Mail className="w-3 h-3 shrink-0" />
+                                  <span className="truncate">{c.email}</span>
+                                </div>
+                              )}
+                              {c.telefono && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <Phone className="w-3 h-3" />
+                                  <span>{c.telefono}</span>
+                                </div>
+                              )}
+                              {!c.email && !c.telefono && <span className="italic">Sin contacto</span>}
+                            </div>
+
+                            {/* Bottom row: stays count + last stay + actions */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-mono font-semibold text-primary">
+                                  {stayCount} {stayCount === 1 ? 'estadía' : 'estadías'}
+                                </span>
+                                {lastCheckout && (
+                                  <span className="text-xs text-muted-foreground">
+                                    <Clock className="w-3 h-3 inline mr-0.5 -mt-0.5" />
+                                    {formatRelativeTime(lastCheckout)}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Quick action buttons */}
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  onClick={(e) => { e.stopPropagation(); openDetail(c.id); }}
+                                  aria-label="Ver detalle"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.dispatchEvent(new CustomEvent('hospeda:action', { detail: { type: 'new-reserva', clienteId: c.id } }));
+                                  }}
+                                  aria-label="Nueva reserva"
+                                >
+                                  <Calendar className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                  onClick={(e) => { e.stopPropagation(); openDelete(c.id); }}
+                                  aria-label="Eliminar"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+              <PaginationBar page={page} totalPages={totalPages} onPageChange={setPage} totalItems={lista.length} pageSize={PAGE_SIZE} />
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="empresas" className="mt-4">
+          <EmpresasTab nuevaAbierta={nuevaEmpresa} onNuevaAbiertaChange={setNuevaEmpresa} />
+        </TabsContent>
+      </Tabs>
 
       {/* ═══════════ MODAL CREAR/EDITAR ═══════════ */}
       <Dialog open={modal === 'crear' || modal === 'editar'} onOpenChange={() => setModal(null)}>

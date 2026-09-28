@@ -1,8 +1,8 @@
 'use client';
 
 // Cargar o editar un titular de cuenta corriente (empresa o persona).
-// Se usa en tres lugares: al pasar un saldo a cuenta corriente, en la pestaña
-// Cuenta corriente de Comprobantes, y en los datos fiscales de un cliente.
+// Se usa en Clientes → Empresas, al pasar un saldo a cuenta corriente o
+// facturar a una empresa, y en los datos fiscales de un cliente.
 // Las reglas están en src/lib/cuenta-corriente.ts y las vuelve a chequear la API.
 
 import { useState } from 'react';
@@ -28,11 +28,17 @@ interface Props {
   clienteId?: string;
   /** Si quien carga maneja la cuenta corriente: ve el límite y puede desactivar. */
   manejaCuenta: boolean;
+  /**
+   * En un diálogo ancho: datos fiscales a la izquierda, contacto y cuenta
+   * corriente a la derecha. Sin esto, todo en una columna (para cuando el
+   * formulario va adentro de otro diálogo).
+   */
+  enDosColumnas?: boolean;
   onGuardado: (t: DbTitular) => void;
   onCancelar: () => void;
 }
 
-export default function FormTitular({ titular, tipoFijo, nombreSugerido, clienteId, manejaCuenta, onGuardado, onCancelar }: Props) {
+export default function FormTitular({ titular, tipoFijo, nombreSugerido, clienteId, manejaCuenta, enDosColumnas = false, onGuardado, onCancelar }: Props) {
   const editando = !!titular;
   const [tipo, setTipo] = useState<TipoTitular>(titular?.tipo ?? tipoFijo ?? 'empresa');
   const [nombre, setNombre] = useState(titular?.nombre ?? nombreSugerido ?? '');
@@ -124,6 +130,9 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
 
   return (
     <div className="space-y-3">
+      <div className={enDosColumnas ? 'grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3' : 'space-y-3'}>
+      <div className="space-y-3">
+      {enDosColumnas && <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Datos fiscales</p>}
       {!tipoFijo && (
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tipo de titular">
           {(['empresa', 'persona'] as const).map(t => (
@@ -144,11 +153,6 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
       )}
 
       <div className="grid gap-1.5">
-        <Label htmlFor="ft-nombre">{tipo === 'empresa' ? 'Razón social' : 'Nombre y apellido (como va en la factura)'}</Label>
-        <Input id="ft-nombre" value={nombre} onChange={e => setNombre(e.target.value)} maxLength={200} autoFocus={!editando} />
-      </div>
-
-      <div className="grid gap-1.5">
         <Label htmlFor="ft-cuit">CUIT</Label>
         <div className="flex gap-2">
           <Input
@@ -158,6 +162,7 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
             placeholder="30-12345678-9"
             inputMode="numeric"
             aria-invalid={!!errorCuit}
+            autoFocus={!editando}
             className="font-mono"
           />
           {conArca && (
@@ -180,11 +185,16 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid gap-1.5">
+        <Label htmlFor="ft-nombre">{tipo === 'empresa' ? 'Razón social' : 'Nombre y apellido (como va en la factura)'}</Label>
+        <Input id="ft-nombre" value={nombre} onChange={e => setNombre(e.target.value)} maxLength={200} />
+      </div>
+
+      <div className={enDosColumnas ? 'grid gap-3' : 'grid grid-cols-1 sm:grid-cols-2 gap-3'}>
         <div className="grid gap-1.5">
           <Label>Condición frente al IVA</Label>
           <Select value={condicionIva} onValueChange={setCondicionIva}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value={SIN_DATO}>Sin dato por ahora</SelectItem>
               {CONDICIONES_IVA.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -197,9 +207,13 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="grid gap-1.5">
-          <Label htmlFor="ft-cnombre">Contacto</Label>
+      </div>
+
+      <div className="space-y-3">
+      {enDosColumnas && <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contacto</p>}
+      <div className={enDosColumnas ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : 'grid grid-cols-1 sm:grid-cols-3 gap-3'}>
+        <div className={enDosColumnas ? 'grid gap-1.5 sm:col-span-2' : 'grid gap-1.5'}>
+          <Label htmlFor="ft-cnombre">{enDosColumnas ? 'Nombre' : 'Contacto'}</Label>
           <Input id="ft-cnombre" value={contactoNombre} onChange={e => setContactoNombre(e.target.value)} maxLength={200} placeholder="Quién paga" />
         </div>
         <div className="grid gap-1.5">
@@ -212,21 +226,25 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
         </div>
       </div>
 
+      {manejaCuenta && enDosColumnas && <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pt-1">Cuenta corriente</p>}
       {manejaCuenta && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+        <div className={enDosColumnas ? 'grid gap-3' : 'grid grid-cols-1 sm:grid-cols-2 gap-3 items-end'}>
           <div className="grid gap-1.5">
             <Label htmlFor="ft-limite">Límite de crédito</Label>
             <Input id="ft-limite" value={limite} onChange={e => setLimite(e.target.value)} inputMode="decimal" placeholder="Sin límite" />
             <p className="text-xs text-muted-foreground">Por ahora solo avisa: no frena nada.</p>
           </div>
           {editando && (
-            <label className="flex items-center gap-2 text-sm pb-6">
+            <label className={`flex items-center gap-2 text-sm ${enDosColumnas ? '' : 'pb-6'}`}>
               <Switch checked={activo} onCheckedChange={setActivo} />
               {activo ? 'Activo' : 'Desactivado: no se le anotan deudas nuevas'}
             </label>
           )}
         </div>
       )}
+
+      </div>
+      </div>
 
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
 
