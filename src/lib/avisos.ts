@@ -91,6 +91,13 @@ export const NOVEDADES: Novedad[] = [
   // Las cuatro del 28/09 salen con el deploy de esa noche. El arreglo va
   // primero: es lo que los hoteles venían sufriendo.
   {
+    id: 'dashboard-mas-ordenado-2026-09',
+    fecha: '2026-09-29',
+    tipo: 'mejora',
+    titulo: 'Dashboard más ordenado',
+    texto: '"Mientras no estabas" muestra los últimos 4 movimientos; tocá "Ver más" para el resto. Los botones de acceso rápido aparecen solo si tenés ese módulo, y el check-out desde el Dashboard ahora pide confirmación y avisa si el huésped tiene saldo pendiente.',
+  },
+  {
     id: 'anular-pase-cuenta-corriente-2026-09',
     fecha: '2026-09-29',
     tipo: 'mejora',

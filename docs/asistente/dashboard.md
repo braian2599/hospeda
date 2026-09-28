@@ -10,18 +10,28 @@ scroll vertical, de arriba a abajo:
 2. **4 tarjetas KPI**: Ocupación (%), Check-ins pendientes hoy, Check-outs
    pendientes hoy, Reservadas — con mini-gráficos de los últimos 7 días.
 3. **Accesos rápidos**: "Nueva Reserva" (va a Reservas), "Check-in" (va a
-   Check-in), "Abrir Caja" (va a Caja), "Ver Reportes" (va a Reportes).
+   Check-in), "Abrir Caja" (va a Caja; dice "Ir a Caja" si la caja ya está
+   abierta), "Ver Reportes" (va a Reportes). Cada botón aparece solo si la
+   persona tiene ese módulo; si no tiene ninguno, la fila no se muestra.
+   **Mientras no estabas**: lo que pasó en el hotel antes de que la persona
+   entrara (o en las últimas 12 horas). Muestra los últimos 4 movimientos y
+   un botón "Ver N más" para desplegar el resto. "Ocultar" pliega la tarjeta
+   entera y se recuerda. Debajo, **Reservas de la web** si entraron reservas
+   por la página del hotel.
 4. **Calendario Gantt de Ocupación**: vista tipo diagrama de Gantt por
    habitación y día. Navegación con flechas semana anterior/siguiente,
    botón "Hoy", selector de rango "2 sem"/"1 mes", y toggle "Historial"
    (muestra/oculta reservas ya finalizadas). Click en una barra abre el
    detalle de esa reserva (huésped, fechas, tarifa, monto, saldo, menores).
-5. **Actividad de hoy** (timeline de llegadas/salidas) y **Distribución por
+5. **Actividad de hoy** (salidas y llegadas del día; la hora se muestra solo
+   si está registrada, si no dice "Sale" o "Llega") y **Distribución por
    tipo de habitación** (barras por tipo), lado a lado.
 6. **Estado de habitaciones**: grilla tipo heatmap con tooltip por habitación.
 7. **Estado General** (contadores de limpieza/mantenimiento) y **Alertas
-   Pendientes**, con botones que llevan directo a Habitaciones o Check-in
-   según la alerta.
+   Pendientes**: habitaciones para limpiar, en mantenimiento y caja abierta
+   hace 8 horas o más. Los check-ins y check-outs del día NO van como
+   alerta: están en las tarjetas del final. El botón "Ir" (a Habitaciones)
+   aparece solo si la persona tiene ese módulo.
 8. **Reservas online (landing)**: solo relevante si el hotel tiene la
    landing page activa (plan Elite). Cambia según cómo cobre la seña:
    - Cobro por Mercado Pago: muestra los próximos check-ins ya confirmados.
@@ -29,8 +39,10 @@ scroll vertical, de arriba a abajo:
      personal confirme el pago de la seña a mano.
 9. **Check-ins de hoy** y **Check-outs de hoy**: el botón de check-in
    redirige al módulo Check-in (no lo hace desde acá); el botón de
-   check-out sí ejecuta el check-out directamente desde el Dashboard y
-   avisa si hay saldo pendiente.
+   check-out sí hace el check-out desde el Dashboard, pero antes pide
+   confirmación y avisa si el huésped tiene saldo pendiente. Ambos botones
+   aparecen solo si la persona tiene el permiso de Check-In/Out. Cada
+   check-out muestra la habitación y la cantidad de noches.
 
 ## Reglas importantes
 - Aparece una alerta si una caja lleva 8 horas o más abierta, con el nombre

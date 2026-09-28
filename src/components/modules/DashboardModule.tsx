@@ -18,6 +18,13 @@ import ModuleHeader from '@/components/layout/ModuleHeader';
 import { useMemo, useState, useCallback, useRef, useEffect, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatedNumber } from '@/components/ui/animated-number';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import { modulosVisiblesPara } from '@/lib/plan-config';
+import type { ModuloId } from '@/lib/types';
 
 import TraspasoDeTurno from './dashboard/TraspasoDeTurno';
 import ReservasDeLaWeb from './dashboard/ReservasDeLaWeb';
@@ -1011,6 +1018,13 @@ function RoomHeatmap({ habitaciones, reservas }: {
 
 // ==================== DASHBOARD PRINCIPAL ====================
 
+/** "3 noches" a partir de las fechas de la reserva (fechas de calendario, en UTC). */
+function textoNoches(checkin: string, checkout: string): string {
+  const n = Math.round((Date.parse(checkout) - Date.parse(checkin)) / 86_400_000);
+  if (!Number.isFinite(n) || n <= 0) return 'sale hoy';
+  return n === 1 ? '1 noche' : `${n} noches`;
+}
+
 export default function DashboardModule() {
   const habitaciones = useHotelStore(s => s.habitaciones);
   const reservas = useHotelStore(s => s.reservas);
@@ -1019,7 +1033,19 @@ export default function DashboardModule() {
   const realizarCheckOut = useHotelStore(s => s.realizarCheckOut);
   const calcularTotalReserva = useHotelStore(s => s.calcularTotalReserva);
   const calcularTotalPagado = useHotelStore(s => s.calcularTotalPagado);
+  const usuarioActual = useHotelStore(s => s.usuarioActual);
+  const planActual = useHotelStore(s => s.planActual);
+  const planes = useHotelStore(s => s.planes);
   const hoy = new Date();
+
+  // Los botones que llevan a otro módulo se muestran solo si esta persona lo
+  // puede abrir: mandarla a una pantalla que no tiene no sirve de nada. El
+  // check-out también, porque el servidor le exige el permiso de Check-In.
+  const visibles = useMemo(
+    () => new Set(modulosVisiblesPara(usuarioActual, planActual, planes)),
+    [usuarioActual, planActual, planes],
+  );
+  const puede = useCallback((m: ModuloId) => visibles.has(m), [visibles]);
   const hoyStr = todayLocal();
 
   const totalHabitaciones = Object.keys(habitaciones).length;
@@ -1086,7 +1112,9 @@ export default function DashboardModule() {
     return 0;
   }, [caja, tick]);
 
-  const tieneAlertas = enLimpieza > 0 || checkinsHoy.length > 0 || checkoutsHoy.length > 0 || enMantenimiento > 0 || cajaAbiertaHoras >= 8;
+  // Los check-ins y check-outs del día no van como alerta: ya tienen sus
+  // tarjetas abajo, con botón, y además están en los indicadores.
+  const tieneAlertas = enLimpieza > 0 || enMantenimiento > 0 || cajaAbiertaHoras >= 8;
 
   // Inline actions
   const [actionLog, setActionLog] = useState<string[]>([]);
@@ -1102,10 +1130,34 @@ export default function DashboardModule() {
     setModulo('checkin');
   }, [setModulo]);
 
-  const handleCheckOut = useCallback(async (id: string, huesped: string) => {
-    const result = await realizarCheckOut(id);
-    if (result) setActionLog(prev => [`Check-out realizado: ${huesped}`, ...prev].slice(0, 3));
-  }, [realizarCheckOut]);
+  // El check-out se confirma antes, como en Check-In/Out: con un clic suelto
+  // sale el huésped aunque deba plata, y no se vuelve atrás desde acá.
+  const [aConfirmar, setAConfirmar] = useState<{ id: string; huesped: string; habitacion: string; saldo: number } | null>(null);
+  const [haciendoCheckOut, setHaciendoCheckOut] = useState(false);
+
+  const confirmarCheckOut = useCallback(async () => {
+    if (!aConfirmar) return;
+    setHaciendoCheckOut(true);
+    try {
+      const result = await realizarCheckOut(aConfirmar.id);
+      if (result) {
+        setActionLog(prev => [`Check-out realizado: ${aConfirmar.huesped}`, ...prev].slice(0, 3));
+      } else {
+        toast.error('No se pudo realizar el check-out', { description: 'La reserva ya no está en estado Check-In realizado o hubo un error de conexión.' });
+      }
+    } finally {
+      setHaciendoCheckOut(false);
+      setAConfirmar(null);
+    }
+  }, [aConfirmar, realizarCheckOut]);
+
+  const cajaAbierta = caja.estado === 'abierta';
+  const accesosRapidos = [
+    { icon: CalendarPlus, label: 'Nueva Reserva', modulo: 'reservas' as const, color: '#059669' },
+    { icon: LogIn, label: 'Check-in', modulo: 'checkin' as const, color: '#059669' },
+    { icon: Wallet, label: cajaAbierta ? 'Ir a Caja' : 'Abrir Caja', modulo: 'caja' as const, color: '#F59E0B' },
+    { icon: BarChart3, label: 'Ver Reportes', modulo: 'reportes' as const, color: '#0F2B28' },
+  ].filter(a => puede(a.modulo));
 
   return (
     <div className="space-y-6">
@@ -1142,13 +1194,9 @@ export default function DashboardModule() {
       </div>
 
       {/* Quick Actions */}
+      {accesosRapidos.length > 0 && (
       <div className="flex flex-wrap gap-2">
-        {[
-          { icon: CalendarPlus, label: 'Nueva Reserva', modulo: 'reservas' as const, color: '#059669' },
-          { icon: LogIn, label: 'Check-in', modulo: 'checkin' as const, color: '#059669' },
-          { icon: Wallet, label: 'Abrir Caja', modulo: 'caja' as const, color: '#F59E0B' },
-          { icon: BarChart3, label: 'Ver Reportes', modulo: 'reportes' as const, color: '#0F2B28' },
-        ].map(action => (
+        {accesosRapidos.map(action => (
           <Button
             key={action.label}
             variant="outline"
@@ -1162,6 +1210,7 @@ export default function DashboardModule() {
           </Button>
         ))}
       </div>
+      )}
 
       {/* Qué pasó mientras no estabas — va arriba de todo lo demás porque es
           lo primero que necesita el que entra, y pierde valor con cada minuto
@@ -1243,33 +1292,8 @@ export default function DashboardModule() {
                   <span className="bg-status-cleaning text-white text-xs font-bold px-2 py-0.5 rounded">
                     {Object.entries(habitaciones).filter(([, h]) => h.estado === 'Limpieza').map(([n]) => n).join(', ')}
                   </span>
-                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('habitaciones')}>Ir</Button>
+                  {puede('habitaciones') && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('habitaciones')}>Ir</Button>}
                 </div>
-              </div>
-            )}
-
-            {checkinsHoy.length > 0 && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#0284C726] border-[#0284C766] hover:bg-[#0284C733] transition-colors">
-                <span className="flex items-center gap-2 text-sm text-info">
-                  <LogIn className="w-4 h-4 text-info" />
-                  {checkinsHoy.length} check-in(s) pendiente(s) hoy
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="bg-status-reserved text-white text-xs font-bold px-2 py-0.5 rounded max-w-[200px] truncate">
-                    {checkinsHoy.map(r => r.huesped).join(', ')}
-                  </span>
-                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('checkin')}>Ver todos</Button>
-                </div>
-              </div>
-            )}
-
-            {checkoutsHoy.length > 0 && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#D9770626] border-[#D9770666] hover:bg-[#D9770633] transition-colors">
-                <span className="flex items-center gap-2 text-sm text-warning">
-                  <LogOut className="w-4 h-4 text-warning" />
-                  {checkoutsHoy.length} check-out(s) pendiente(s) hoy
-                </span>
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('checkin')}>Ver todos</Button>
               </div>
             )}
 
@@ -1293,7 +1317,7 @@ export default function DashboardModule() {
                   <span className="bg-status-maintenance text-white text-xs font-bold px-2 py-0.5 rounded">
                     {Object.entries(habitaciones).filter(([, h]) => h.estado === 'Mantenimiento').map(([n]) => n).join(', ')}
                   </span>
-                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('habitaciones')}>Ir</Button>
+                  {puede('habitaciones') && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setModulo('habitaciones')}>Ir</Button>}
                 </div>
               </div>
             )}
@@ -1328,13 +1352,15 @@ export default function DashboardModule() {
                       </div>
                       <p className="text-xs text-muted-foreground">Hab. {r.habitacion} · DNI: {r.dni}</p>
                     </div>
-                    <Button
-                      size="sm"
-                      className="bg-primary hover:bg-[#0F766ECC] h-8 text-xs shrink-0 ml-2"
-                      onClick={() => handleCheckIn()}
-                    >
-                      <LogIn className="w-3 h-3 mr-1" />Check-In
-                    </Button>
+                    {puede('checkin') && (
+                      <Button
+                        size="sm"
+                        className="bg-primary hover:bg-[#0F766ECC] h-8 text-xs shrink-0 ml-2"
+                        onClick={() => handleCheckIn()}
+                      >
+                        <LogIn className="w-3 h-3 mr-1" />Check-In
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1361,17 +1387,19 @@ export default function DashboardModule() {
                     <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border-[#D9770666] bg-[#D977061A] hover:bg-[#D9770626] transition-colors">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate">{r.huesped}</p>
-                        <p className="text-xs text-muted-foreground">Hab. {r.habitacion} · 09:00</p>
+                        <p className="text-xs text-muted-foreground">Hab. {r.habitacion} · {textoNoches(r.checkin, r.checkout)}</p>
                         {saldo > 0 && <p className="text-xs text-status-occupied font-medium">Saldo: {formatMoney(saldo)}</p>}
                       </div>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="h-8 text-xs shrink-0 ml-2"
-                        onClick={() => handleCheckOut(r.id, r.huesped)}
-                      >
-                        <LogOut className="w-3 h-3 mr-1" />Check-Out
-                      </Button>
+                      {puede('checkin') && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-8 text-xs shrink-0 ml-2"
+                          onClick={() => setAConfirmar({ id: r.id, huesped: r.huesped, habitacion: r.habitacion, saldo })}
+                        >
+                          <LogOut className="w-3 h-3 mr-1" />Check-Out
+                        </Button>
+                      )}
                     </div>
                   );
                 })}
@@ -1380,6 +1408,32 @@ export default function DashboardModule() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={aConfirmar !== null} onOpenChange={open => { if (!open && !haciendoCheckOut) setAConfirmar(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Hacer el check-out de {aConfirmar?.huesped}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Habitación {aConfirmar?.habitacion}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {aConfirmar && aConfirmar.saldo > 0 && (
+            <div className="text-sm rounded-lg p-3 bg-[#EF444426] text-destructive font-medium">
+              Tiene un saldo pendiente de {formatMoney(aConfirmar.saldo)}.
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={haciendoCheckOut}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={haciendoCheckOut}
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={e => { e.preventDefault(); void confirmarCheckOut(); }}
+            >
+              {haciendoCheckOut ? 'Haciendo check-out…' : 'Confirmar check-out'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );

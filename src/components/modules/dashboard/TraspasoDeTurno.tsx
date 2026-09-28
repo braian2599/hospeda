@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useHotelStore } from '@/lib/store';
 import { modulosVisiblesPara } from '@/lib/plan-config';
-import { traspasoDeTurno, ICONO_POR_TIPO, HORAS_DE_TRASPASO } from '@/lib/traspaso-turno';
+import { traspasoDeTurno, ICONO_POR_TIPO, HORAS_DE_TRASPASO, MOSTRAR_DE_ENTRADA } from '@/lib/traspaso-turno';
 
 /** Si está plegado o no. Es una comodidad de cada uno, no un dato del hotel. */
 function claveDePliegue(perfil: string): string {
@@ -54,6 +54,9 @@ export default function TraspasoDeTurno() {
 
   const perfil = usuarioActual?.tenantUserId;
   const [plegado, setPlegado] = useState(() => leerPlegado(perfil));
+  // Ver todos los movimientos o solo los primeros. No se recuerda: cada vez
+  // que se entra al Dashboard arranca corto.
+  const [verTodos, setVerTodos] = useState(false);
 
   // Se recalcula con cada sincronización, que es justo lo que se quiere: es
   // una vista de los datos, no una foto guardada en ningún lado.
@@ -77,6 +80,10 @@ export default function TraspasoDeTurno() {
   };
 
   const hayAlgo = traspaso.eventos.length > 0;
+  const visibles = verTodos ? traspaso.eventos : traspaso.eventos.slice(0, MOSTRAR_DE_ENTRADA);
+  // Los que aparecen al desplegar. Los que pasan del máximo (restantes) no se
+  // listan nunca: se cuentan abajo y se mandan a la auditoría.
+  const ocultos = traspaso.eventos.length - visibles.length;
 
   return (
     <Card>
@@ -124,37 +131,55 @@ export default function TraspasoDeTurno() {
             </div>
           )}
 
-          {traspaso.eventos.map(ev => (
-            <div key={ev.id} className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
-              <div className="w-7 h-7 rounded-lg bg-[#0F766E12] flex items-center justify-center shrink-0 mt-px">
-                <Icono nombre={ICONO_POR_TIPO[ev.tipo] || 'Circle'} className="w-[15px] h-[15px] text-primary" />
+          <div className={verTodos ? 'space-y-1.5 max-h-[420px] overflow-y-auto' : 'space-y-1.5'}>
+            {visibles.map(ev => (
+              <div key={ev.id} className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="w-7 h-7 rounded-lg bg-[#0F766E12] flex items-center justify-center shrink-0 mt-px">
+                  <Icono nombre={ICONO_POR_TIPO[ev.tipo] || 'Circle'} className="w-[15px] h-[15px] text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] leading-snug">{ev.detalle}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    <span className="font-mono">{soloHora(ev.fecha)}</span>
+                    {' · '}
+                    {ev.empleado}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] leading-snug">{ev.detalle}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  <span className="font-mono">{soloHora(ev.fecha)}</span>
-                  {' · '}
-                  {ev.empleado}
-                </p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
 
-          {traspaso.restantes > 0 && (
-            <div className="flex items-center gap-2 pt-1">
-              <p className="text-xs text-muted-foreground">
-                y {traspaso.restantes} {traspaso.restantes === 1 ? 'movimiento más' : 'movimientos más'}
-              </p>
-              {puedeVerAuditoria && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs ml-auto"
-                  onClick={() => setModulo('reportes')}
-                >
-                  Ver todo
-                  <Icons.ChevronRight className="w-3.5 h-3.5" />
-                </Button>
+          {(ocultos > 0 || verTodos) && (
+            <div className="flex items-center gap-2 pt-1 border-t border-dashed">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground gap-1"
+                onClick={() => setVerTodos(v => !v)}
+                aria-expanded={verTodos}
+              >
+                {verTodos ? 'Ver menos' : `Ver ${ocultos} más`}
+                <Icons.ChevronDown className={`w-3.5 h-3.5 transition-transform ${verTodos ? 'rotate-180' : ''}`} />
+              </Button>
+              {/* Pasado el máximo que se lista, lo que sobra se cuenta y se
+                  manda a la auditoría completa (si la puede abrir). */}
+              {verTodos && traspaso.restantes > 0 && (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    y {traspaso.restantes} {traspaso.restantes === 1 ? 'movimiento más' : 'movimientos más'}
+                  </p>
+                  {puedeVerAuditoria && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs ml-auto"
+                      onClick={() => setModulo('reportes')}
+                    >
+                      Ver todo en Reportes
+                      <Icons.ChevronRight className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           )}

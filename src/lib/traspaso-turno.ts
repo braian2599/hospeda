@@ -40,8 +40,15 @@ import { esActorDelSistema } from './auditoria-actores';
  */
 export const HORAS_DE_TRASPASO = 12;
 
-/** Cuántas se muestran antes de cortar. El resto se cuenta, no se lista. */
-export const MAXIMO_A_MOSTRAR = 8;
+/**
+ * Cuántas se listan como máximo, con la tarjeta desplegada. El resto se
+ * cuenta, no se lista. De entrada se ven solo MOSTRAR_DE_ENTRADA: el resto
+ * se despliega si el usuario lo pide.
+ */
+export const MAXIMO_A_MOSTRAR = 30;
+
+/** Las que se ven sin tocar nada. Más que esto empuja todo el Dashboard para abajo. */
+export const MOSTRAR_DE_ENTRADA = 4;
 
 export interface EventoDeTraspaso {
   id: string;

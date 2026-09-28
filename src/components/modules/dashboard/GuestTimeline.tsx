@@ -17,7 +17,8 @@
  * Data:
  *  - Arrivals: reservas with estado 'Confirmada' and checkin === today
  *  - Departures: reservas with estado 'Check-In realizado' and checkout === today
- *  - Sorted by time (check-ins at 14:00 default, check-outs at 09:00 default)
+ *  - Salidas primero y después llegadas. La hora se muestra solo si está
+ *    registrada: antes se inventaba 14:00 / 09:00 y parecía un dato real.
  */
 
 import { useMemo } from 'react';
@@ -33,7 +34,8 @@ import { cn } from '@/lib/utils';
 interface TimelineEvent {
   id: string;
   type: 'arrival' | 'departure';
-  time: string;
+  /** HH:MM real, o null si no se registró. */
+  time: string | null;
   guestName: string;
   roomNumber: string;
   dni: string;
@@ -41,9 +43,9 @@ interface TimelineEvent {
 
 // ==================== HELPERS ====================
 
-/** Format a time string (ISO or HH:MM) to HH:MM display */
-function formatTime(timeStr?: string, fallback: string = '14:00'): string {
-  if (!timeStr) return fallback;
+/** Format a time string (ISO or HH:MM) to HH:MM display. null si no hay hora. */
+function formatTime(timeStr?: string): string | null {
+  if (!timeStr) return null;
   try {
     // If it's an ISO datetime string
     if (timeStr.includes('T') || timeStr.includes('-')) {
@@ -58,7 +60,7 @@ function formatTime(timeStr?: string, fallback: string = '14:00'): string {
       return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
     }
   } catch { /* ignore */ }
-  return fallback;
+  return null;
 }
 
 // ==================== COMPONENT ====================
@@ -78,7 +80,7 @@ export default function GuestTimeline() {
       timelineEvents.push({
         id: `arr-${r.id}`,
         type: 'arrival',
-        time: formatTime(r.horaCheckin, '14:00'),
+        time: formatTime(r.horaCheckin),
         guestName: r.huesped,
         roomNumber: r.habitacion,
         dni: r.dni,
@@ -90,15 +92,19 @@ export default function GuestTimeline() {
       timelineEvents.push({
         id: `dep-${r.id}`,
         type: 'departure',
-        time: formatTime(r.horaCheckout, '09:00'),
+        time: formatTime(r.horaCheckout),
         guestName: r.huesped,
         roomNumber: r.habitacion,
         dni: r.dni,
       });
     });
 
-    // Sort by time
-    timelineEvents.sort((a, b) => a.time.localeCompare(b.time));
+    // Salidas antes que llegadas (es el orden del día en un hotel); dentro de
+    // cada grupo, por hora si la hay y si no por nombre.
+    timelineEvents.sort((a, b) =>
+      (a.type === b.type ? 0 : a.type === 'departure' ? -1 : 1)
+      || (a.time ?? '99:99').localeCompare(b.time ?? '99:99')
+      || a.guestName.localeCompare(b.guestName, 'es'));
 
     return { arrivals: arr, departures: dep, events: timelineEvents };
   }, [reservas, hoyStr]);
@@ -148,7 +154,7 @@ export default function GuestTimeline() {
 
                 {/* Time badge */}
                 <span className="text-[10px] font-mono font-semibold tabular-nums text-muted-foreground w-10 shrink-0">
-                  {evt.time}
+                  {evt.time ?? (evt.type === 'arrival' ? 'Llega' : 'Sale')}
                 </span>
 
                 {/* Event details */}
