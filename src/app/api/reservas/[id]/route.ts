@@ -5,6 +5,7 @@ import { auditar, TIPO } from '@/lib/auditoria';
 import { Prisma } from '@prisma/client';
 import { lockHabitacion, ReservaConflictError } from '@/lib/db-lock';
 import { chequearLugar } from '@/lib/disponibilidad';
+import { estaFacturada, MENSAJE_RESERVA_FACTURADA } from '@/lib/facturacion-reserva';
 import { camasDeReserva, camasLibresDe, esCompartida, ocupaHabitacionEntera } from '@/lib/ocupacion';
 
 // ─────────────────────────────────────────────────────────
@@ -78,6 +79,9 @@ export async function PUT(
     if (existing.estado === 'Checkout_realizado') {
       return NextResponse.json({ error: 'No se puede modificar una reserva con check-out realizado' }, { status: 400 });
     }
+    if (estaFacturada(existing.comprobanteCae)) {
+      return NextResponse.json({ error: MENSAJE_RESERVA_FACTURADA }, { status: 409 });
+    }
 
     const {
       huesped,
@@ -143,6 +147,14 @@ export async function PUT(
     //    chequear solapamiento — si no cambian ni fecha ni habitación, no
     //    hay nada que revisar. ──
     const updated = await db.$transaction(async (tx) => {
+      // Otra vez, con la fila tomada: si alguien la estaba facturando en este
+      // mismo momento, gana uno de los dos y el otro se entera.
+      const [fila] = await tx.$queryRaw<{ comprobanteCae: string | null }[]>`
+        SELECT "comprobanteCae" FROM "Reserva" WHERE "id" = ${id} AND "tenantId" = ${tenantId} FOR UPDATE`;
+      if (estaFacturada(fila?.comprobanteCae)) {
+        throw new ReservaConflictError(MENSAJE_RESERVA_FACTURADA, 409);
+      }
+
       let room: Awaited<ReturnType<typeof tx.habitacion.findUnique>> = null;
       if (habitacionChanged || datesChanged) {
         await lockHabitacion(tx, tenantId, habitacionFinal);
@@ -348,12 +360,20 @@ export async function DELETE(
         { status: 400 }
       );
     }
+    if (estaFacturada(reserva.comprobanteCae)) {
+      return NextResponse.json({ error: MENSAJE_RESERVA_FACTURADA }, { status: 409 });
+    }
 
-    // Cancel the reserva
-    const cancelled = await db.reserva.update({
-      where: { id },
+    // Cancel the reserva. Con la condición en el mismo UPDATE: si justo la
+    // estaban facturando, no se cancela.
+    const cancelada = await db.reserva.updateMany({
+      where: { id, tenantId, comprobanteCae: null },
       data: { estado: 'Cancelada' },
     });
+    if (cancelada.count === 0) {
+      return NextResponse.json({ error: MENSAJE_RESERVA_FACTURADA }, { status: 409 });
+    }
+    const cancelled = await db.reserva.findUniqueOrThrow({ where: { id } });
 
     // Free up the room ONLY if it was 'Reservada' (not 'Ocupada' from check-in).
     // Una compartida nunca se marcó 'Reservada' al reservarla, así que tampoco

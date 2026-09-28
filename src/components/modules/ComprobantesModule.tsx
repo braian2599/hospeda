@@ -39,6 +39,7 @@ import { AnimatedNumber } from '@/components/ui/animated-number';
 import QRCode from 'qrcode';
 import { docReceptor, DOC_TIPO, letraPorTipoComprobante, notaSinValidezFiscal, desgloseIva, type TipoComprobanteGenerico } from '@/lib/afip/config';
 import { urlQrAfip } from '@/lib/afip/qr';
+import { estaCubierta } from '@/lib/facturacion-reserva';
 import { montoALetras } from '@/lib/numero-a-letras';
 import { generarComprobantePdf, cargarImagenComoDataUrl, TITULO_POR_TIPO, nombreComercialAparte } from '@/lib/afip/pdf-comprobante';
 import { proxiedImageUrl } from '@/lib/image-proxy';
@@ -334,6 +335,7 @@ export default function ComprobantesModule() {
 
   const pagoReserva = reservas.find(r => r.id === pagoReservaId);
   const reciboReserva = reservas.find(r => r.id === reciboReservaId);
+  const reciboEsRecibo = useEsRecibo(reciboReserva);
 
   // Hotel name for receipt
   const hotelName = usuarioActual?.tenantNombre || 'Hospi';
@@ -903,7 +905,7 @@ export default function ComprobantesModule() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
-              {reciboReserva?.estado === 'Check-Out realizado' ? 'Recibo' : 'Cotización'}
+              {reciboEsRecibo ? 'Recibo' : 'Cotización'}
             </DialogTitle>
           </DialogHeader>
 
@@ -1500,6 +1502,21 @@ function EmitirComprobanteDialog({
   );
 }
 
+/**
+ * El documento de la reserva ya es un Recibo (se numera y se puede facturar)
+ * con el check-out hecho, o antes si está cobrada completa: misma regla que
+ * POST /api/reservas/[id]/comprobante. Si no, es una Cotización. El servidor
+ * pide el total guardado para medirlo, por eso `reserva.total`.
+ */
+function useEsRecibo(reserva: Reserva | undefined): boolean {
+  const total = useHotelStore(s => (reserva ? s.calcularTotalReserva(reserva.id) : 0));
+  const pagado = useHotelStore(s => (reserva ? s.calcularTotalPagado(reserva.id) : 0));
+  if (!reserva) return false;
+  if (reserva.estado === 'Check-Out realizado' || reserva.facturada) return true;
+  return reserva.estado !== 'Cancelada' && reserva.total != null
+    && estaCubierta(total, pagado, reserva.cuentaCorriente?.monto ?? 0);
+}
+
 /* =================== RECIBO COMPONENT (ENHANCED) =================== */
 
 function ReciboContent({
@@ -1507,7 +1524,7 @@ function ReciboContent({
 }: {
   reserva: Reserva; hotelName: string; formato: 'ticket' | 'a4'; onFormatoChange: (f: 'ticket' | 'a4') => void;
 }) {
-  const isReceipt = reserva.estado === 'Check-Out realizado';
+  const isReceipt = useEsRecibo(reserva);
 
   // ── Datos fiscales reales (Configuración → Fiscal) — reemplazan los
   // valores hardcodeados que tenía el ticket originalmente. ──

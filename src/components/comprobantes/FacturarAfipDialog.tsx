@@ -36,6 +36,7 @@ interface Props {
 export default function FacturarAfipDialog({ open, onOpenChange, reservaId, numeroDisplay, onFacturado }: Props) {
   const reserva = useHotelStore(s => s.reservas.find(r => r.id === reservaId));
   const usuarioActual = useHotelStore(s => s.usuarioActual);
+  const marcarReservaFacturada = useHotelStore(s => s.marcarReservaFacturada);
   const [aNombreDe, setANombreDe] = useState<'huesped' | 'empresa'>('huesped');
   const [elegido, setElegido] = useState<DbTitular | null>(null);
   const [facturando, setFacturando] = useState(false);
@@ -58,6 +59,7 @@ export default function FacturarAfipDialog({ open, onOpenChange, reservaId, nume
         return;
       }
       toast.success('Facturado con AFIP', { description: `CAE ${data.cae}` });
+      marcarReservaFacturada(reservaId);
       onFacturado(data);
       onOpenChange(false);
     } catch {
@@ -92,7 +94,8 @@ export default function FacturarAfipDialog({ open, onOpenChange, reservaId, nume
           <DialogTitle>Facturar con AFIP</DialogTitle>
           <DialogDescription>
             Se le pide a AFIP un CAE real. Una vez autorizada, la factura no se puede deshacer desde acá: solo se
-            corrige con una Nota de Crédito. El número de AFIP reemplaza al interno {numeroDisplay}.
+            corrige con una Nota de Crédito. Y la reserva ya no se puede modificar (fechas, datos ni pagos). El
+            número de AFIP reemplaza al interno {numeroDisplay}.
           </DialogDescription>
         </DialogHeader>
 

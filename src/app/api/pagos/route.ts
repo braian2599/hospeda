@@ -4,6 +4,7 @@ import { requirePermission, AuthError, getAuthSession } from '@/lib/auth/utils';
 import { auditar, TIPO } from '@/lib/auditoria';
 import { Prisma } from '@prisma/client';
 import { ocupaHabitacionEntera } from '@/lib/ocupacion';
+import { estaFacturada, MENSAJE_RESERVA_FACTURADA } from '@/lib/facturacion-reserva';
 
 // El cliente ya bloquea el cobro si su copia local de `caja.estado` no está
 // 'abierta', pero esa copia puede estar desactualizada (otra pestaña/usuario
@@ -86,6 +87,9 @@ export async function POST(req: NextRequest) {
     }
     if (reserva.estado === 'Checkout_realizado') {
       return NextResponse.json({ error: 'No se puede registrar un pago para una reserva con check-out realizado' }, { status: 400 });
+    }
+    if (estaFacturada(reserva.comprobanteCae)) {
+      return NextResponse.json({ error: MENSAJE_RESERVA_FACTURADA }, { status: 409 });
     }
 
     // ── Overpayment guard ──

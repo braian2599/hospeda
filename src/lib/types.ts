@@ -99,6 +99,11 @@ export interface Reserva {
    * total: eso es solo de quien maneja la cuenta corriente.
    */
   cuentaCorriente?: { titularId: string; titular: string; monto: number };
+  /**
+   * Ya se facturó con ARCA (tiene CAE): no se modifica más. Ver
+   * src/lib/facturacion-reserva.ts.
+   */
+  facturada?: boolean;
 }
 
 export type EstadoReserva = 'Confirmada' | 'Cancelada' | 'Check-In realizado' | 'Check-Out realizado' | 'A confirmar';

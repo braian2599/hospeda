@@ -18,6 +18,7 @@ import {
 } from './tarifa-calc';
 import { camasDeReserva, camasLibresDe, esCompartida, esEstadoDeOcupacion, ocupaHabitacionEntera, tieneCheckIn } from './ocupacion';
 import { sesionDesdeRespuesta } from './sesion';
+import { estaFacturada } from './facturacion-reserva';
 import { origenValido, type Suscripcion } from './suscripcion';
 
 /** Lo que se asume mientras no llegó la sesión: nada vencido, nada prometido. */
@@ -72,6 +73,13 @@ function todayLocal(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/** 'AAAA-MM-DD' + n días, en el mismo formato (cuenta en UTC: sin saltos por horario). */
+function sumarDias(fecha: string, dias: number): string {
+  const d = new Date(`${fecha}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
 // ==================== API ↔ STORE MAPPERS ====================
 
 function mapDbReservaToStore(r: any, totalOverride?: number): Reserva {
@@ -118,6 +126,7 @@ function mapDbReservaToStore(r: any, totalOverride?: number): Reserva {
           monto: r.cargoCuentaCorriente.monto / 100,
         }
       : undefined,
+    facturada: estaFacturada(r.comprobanteCae) || undefined,
   };
 }
 
@@ -371,6 +380,8 @@ interface HotelStore {
    * motivo para mostrarle al hotel.
    */
   corregirPagosReserva: (idReserva: string, cambios: { id: string; monto: number }[]) => Promise<string | null>;
+  /** La reserva se acaba de facturar con ARCA: desde ahora no se modifica. */
+  marcarReservaFacturada: (idReserva: string) => void;
 
   // Limpieza
   marcarComoLimpia: (numero: string) => Promise<void>;
@@ -1168,7 +1179,15 @@ export const useHotelStore = create<HotelStore>()(
         if (!reserva || reserva.estado !== 'Check-In realizado') return null;
 
         const total = state.calcularTotalReserva(idReserva);
-        const fechaSalidaReal = todayLocal();
+        // Misma regla que la API: si se va antes, la salida es hoy, pero
+        // nunca antes de una noche después de la entrada (el check-in se
+        // puede hacer un día antes). Si se va el día previsto o después, o si
+        // la reserva ya está facturada, queda la fecha reservada.
+        const hoy = todayLocal();
+        const minima = sumarDias(reserva.checkin, 1);
+        const fechaSalidaReal = reserva.facturada || hoy >= reserva.checkout
+          ? reserva.checkout
+          : (hoy < minima ? minima : hoy);
         const noches = nochesEntre(reserva.checkin, fechaSalidaReal);
         const horaCheckout = new Date().toISOString();
 
@@ -1269,6 +1288,10 @@ export const useHotelStore = create<HotelStore>()(
           console.error('[corregirPagosReserva]', err);
           return err instanceof Error ? err.message : 'No se pudieron corregir los pagos.';
         }
+      },
+
+      marcarReservaFacturada: (idReserva) => {
+        set({ reservas: get().reservas.map(r => (r.id === idReserva ? { ...r, facturada: true } : r)) });
       },
 
       registrarPago: async (idReserva, monto, metodo, nota = '') => {

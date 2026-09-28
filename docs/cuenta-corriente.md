@@ -120,6 +120,20 @@ No se junta el mes en una sola factura. Se factura por estadía como siempre;
 lo que cambia es a nombre de quién (el titular, no el huésped). La empresa
 junta sus facturas para pagar; eso lo hace su contadora, no el hotel.
 
+### Cuándo se factura, y qué pasa después (decisión del dueño, 28/09)
+- La única regla: la reserva **cobrada completa**, haya hecho o no el
+  check-out (se puede facturar el mismo día que entra). Una reserva en cuenta
+  corriente cuenta como cubierta: cobrado + anotado = total. Una seña sola no
+  se factura. Sin total guardado, como antes: con el check-out hecho.
+- Una reserva **facturada no se modifica**: ni fechas, ni habitación, ni
+  datos, ni pagos, ni se cancela. Se corrige con Nota de Crédito.
+- Si se va antes y ya está facturada, las fechas no cambian. Si extiende, las
+  noches nuevas van en otra reserva.
+- Código: `src/lib/facturacion-reserva.ts` (la regla),
+  `motivoParaNoFacturar` en `src/lib/afip/factura-reserva.ts`.
+- Aviso dado: la norma (RG 1415, art. 13) pide facturar también al cobrar una
+  seña. Que lo confirme el contador.
+
 ### Facturar no registra el ingreso otra vez
 Verificado en `facturar-afip/route.ts`: pide el CAE, lo guarda en la reserva y
 lo refleja en `Comprobante`. No toca `MovimientoCaja` ni crea un `Pago`. El
@@ -358,6 +372,20 @@ otra reserva sigue dando 409, compartida no se cuenta a sí misma.
    y receptor (A, B o C) e IVA 21% discriminado en A y B. Reserva en cuenta
    corriente: a nombre del titular y por el total. Probado con ARCA simulado;
    falta probar A y B en homologación.
+
+## Pedidos del dueño para después de la facturación (28/09)
+
+1. **Clientes y empresas en un solo lugar.** En el módulo Clientes tienen que
+   aparecer también las empresas (hoy solo están las personas de las
+   reservas). El alta de personas y empresas se hace en Clientes, con "Traer
+   de ARCA". En Comprobantes → Cuenta corriente ya no se crean.
+2. **Presupuestos y remitos:** elegir de la lista de clientes y empresas ya
+   cargados, o agregar uno nuevo. Lo principal es la lista.
+3. **Notas de Crédito y Débito:** elegir de la lista de facturas hechas cuál
+   se hizo mal, y anularla (Nota de Crédito) o complementarla (Nota de
+   Débito).
+4. **Separar los comprobantes fiscales** en un módulo propio: hoy es mucho
+   para un solo módulo.
 
 ## Pendiente de decidir (no bloquea)
 

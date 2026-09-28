@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { nombreTipoComprobante, docReceptor, letraPorTipoComprobante, DOC_TIPO } from '@/lib/afip/config';
-import { facturaDeReserva } from '@/lib/afip/factura-reserva';
+import { facturaDeReserva, motivoParaNoFacturar } from '@/lib/afip/factura-reserva';
 
 // ─────────────────────────────────────────────────────────
 // POST /api/reservas/[id]/comprobante
 // Asigna (la primera vez que se pide) o devuelve (si ya fue asignado) el
 // número de RECIBO interno de esta reserva, de forma atómica y sin
-// duplicados. Solo aplica a reservas con check-out realizado: antes de eso
-// el documento es una "Cotización" (sin validez fiscal) y no consume
-// numeración.
+// duplicados. Aplica a reservas con check-out realizado, o cobradas
+// completas aunque el huésped siga adentro: si no, el documento es una
+// "Cotización" (sin validez fiscal) y no consume numeración.
 //
 // Esta ruta NUNCA factura con AFIP automáticamente — el check-out siempre
 // genera un Recibo con numeración interna propia del tenant
@@ -130,8 +130,12 @@ export async function POST(
       return NextResponse.json({ ...formatResponse(reserva), ...(await facturaDeReserva(tenantId, id)) });
     }
 
-    if (reserva.estado !== 'Checkout_realizado') {
-      // Todavía es una cotización — no tiene validez fiscal, no se numera.
+    // Con el check-out hecho, o antes si ya está cobrada completa: así se
+    // puede facturar el mismo día que entra (ver facturacion-reserva.ts).
+    // Si no, todavía es una cotización: no tiene validez fiscal, no se numera.
+    const puedeTenerRecibo = reserva.estado === 'Checkout_realizado'
+      || (reserva.estado !== 'Cancelada' && await motivoParaNoFacturar(tenantId, id) === null);
+    if (!puedeTenerRecibo) {
       return NextResponse.json(formatResponse({
         comprobanteNumero: null, comprobanteNumeroInterno: null, comprobantePuntoVenta: null, comprobanteFecha: null,
         comprobanteCae: null, comprobanteCaeVencimiento: null, comprobanteTipoAfip: null, comprobanteAmbiente: null,

@@ -16,6 +16,7 @@
 // $0 ELIMINA EL PAGO y su ingreso.
 //
 // Reglas que decidió el dueño:
+// - Una reserva facturada no se toca (ver facturacion-reserva.ts).
 // - Con el check-out hecho solo se corrigen los pagos, y solo si la reserva
 //   no tiene saldo.
 // - Si la reserva pasó a cuenta corriente, no se corrige: cambiaría la deuda
@@ -24,6 +25,7 @@
 
 import type { Prisma } from '@prisma/client';
 import { pesos } from './cuenta-corriente';
+import { estaFacturada, MENSAJE_RESERVA_FACTURADA } from './facturacion-reserva';
 
 type Tx = Prisma.TransactionClient;
 
@@ -116,7 +118,7 @@ export async function corregirPagos(
   const reserva = await tx.reserva.findFirst({
     where: { id: reservaId, tenantId },
     select: {
-      id: true, estado: true, total: true, huesped: true,
+      id: true, estado: true, total: true, huesped: true, comprobanteCae: true,
       pagos: { select: { id: true, monto: true, metodo: true } },
       cargoCuentaCorriente: { select: { id: true } },
     },
@@ -124,6 +126,9 @@ export async function corregirPagos(
   if (!reserva) throw new CorreccionDePagoError('Reserva no encontrada', 404);
   if (reserva.estado === 'Cancelada') {
     throw new CorreccionDePagoError('Los pagos de una reserva cancelada no se corrigen.', 400);
+  }
+  if (estaFacturada(reserva.comprobanteCae)) {
+    throw new CorreccionDePagoError(MENSAJE_RESERVA_FACTURADA, 409);
   }
   if (reserva.cargoCuentaCorriente) {
     throw new CorreccionDePagoError(

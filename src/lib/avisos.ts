@@ -91,6 +91,30 @@ export const NOVEDADES: Novedad[] = [
   // Las cuatro del 28/09 salen con el deploy de esa noche. El arreglo va
   // primero: es lo que los hoteles venían sufriendo.
   {
+    id: 'facturar-cobrada-completa-2026-09',
+    fecha: '2026-09-28',
+    tipo: 'mejora',
+    titulo: 'Facturá sin esperar el check-out',
+    texto: 'Con la reserva cobrada completa ya la podés facturar con ARCA, aunque el huésped siga alojado: desde Comprobantes, en su recibo. Una reserva facturada ya no se modifica; si hay que corregir algo, se hace con una Nota de Crédito.',
+    requiere: { flag: 'facturacionArca' },
+  },
+  {
+    id: 'facturar-a-empresa-2026-09',
+    fecha: '2026-09-28',
+    tipo: 'nuevo',
+    titulo: 'Facturá a nombre de una empresa',
+    texto: 'Al facturar con ARCA elegís a nombre de quién: el huésped o una empresa con su CUIT. El sistema pone la letra que corresponde (A, B o C) y discrimina el IVA cuando hace falta.',
+    requiere: { flag: 'facturacionArca' },
+  },
+  {
+    id: 'checkout-fecha-salida-2026-09',
+    fecha: '2026-09-28',
+    tipo: 'arreglo',
+    titulo: 'La fecha de salida queda bien al hacer el check-out',
+    texto: 'Si el huésped se va antes de lo reservado, la reserva guarda el día en que se fue. Si se va el día previsto, queda la fecha reservada.',
+    requiere: { modulo: 'reservas' },
+  },
+  {
     id: 'editar-reservas-arreglado-2026-09',
     fecha: '2026-09-28',
     tipo: 'arreglo',

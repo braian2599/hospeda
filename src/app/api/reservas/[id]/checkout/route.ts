@@ -3,10 +3,20 @@ import { db } from '@/lib/db';
 import { requirePermission, requireActiveSubscription, AuthError, getAuthSession } from '@/lib/auth/utils';
 import { auditar, TIPO } from '@/lib/auditoria';
 import { ocupaHabitacionEntera } from '@/lib/ocupacion';
+import { estaFacturada } from '@/lib/facturacion-reserva';
 
 // ─────────────────────────────────────────────────────────
 // POST /api/reservas/[id]/checkout — Realizar check-out
 // ─────────────────────────────────────────────────────────
+const UN_DIA = 24 * 60 * 60 * 1000;
+
+/** 'AAAA-MM-DD' → la misma medianoche UTC con la que se guardan las fechas. */
+function fechaDeTexto(valor: unknown): Date | null {
+  if (typeof valor !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) return null;
+  const fecha = new Date(`${valor}T00:00:00.000Z`);
+  return Number.isNaN(fecha.getTime()) ? null : fecha;
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -48,8 +58,18 @@ export async function POST(
       estado: 'Checkout_realizado',
       horaCheckout,
     };
-    if (body.fechaCheckoutReal && body.fechaCheckoutReal < reserva.checkout) {
-      updateData.checkout = body.fechaCheckoutReal;
+    // Si se va ANTES de la fecha reservada, la salida pasa a ser hoy, pero
+    // nunca antes de una noche después de la entrada (el check-in se puede
+    // hacer un día antes: sin este piso, la salida quedaba antes que la
+    // entrada). Si se va el día previsto o después, queda la fecha reservada.
+    // Antes esta comparación era texto contra fecha y nunca daba verdadero:
+    // la base no se acortaba nunca, solo la pantalla.
+    const salidaReal = fechaDeTexto(body.fechaCheckoutReal);
+    let salidaAdelantada: Date | null = null;
+    if (salidaReal && salidaReal < reserva.checkout) {
+      const minima = new Date(reserva.checkin.getTime() + UN_DIA);
+      const salida = salidaReal < minima ? minima : salidaReal;
+      if (salida < reserva.checkout) salidaAdelantada = salida;
     }
 
     const totalPagado = reserva.pagos.reduce((sum, p) => sum + p.monto, 0);
@@ -61,7 +81,15 @@ export async function POST(
 
     // ── Transacción: reserva + tarea de limpieza + habitación + estadía ──
     const { quedanAdentro, tareaLimpiezaId } = await db.$transaction(async (tx) => {
-      // 1) Update reserva estado
+      // 1) Update reserva estado. Una reserva facturada no cambia de fechas
+      //    aunque se vaya antes: la factura ya salió por la estadía completa
+      //    (una devolución se hace con Nota de Crédito). Se mira con la fila
+      //    tomada, por si justo la estaban facturando.
+      const [fila] = await tx.$queryRaw<{ comprobanteCae: string | null }[]>`
+        SELECT "comprobanteCae" FROM "Reserva" WHERE "id" = ${id} AND "tenantId" = ${tenantId} FOR UPDATE`;
+      if (salidaAdelantada && !estaFacturada(fila?.comprobanteCae)) {
+        updateData.checkout = salidaAdelantada;
+      }
       await tx.reserva.update({
         where: { id },
         data: updateData,
@@ -132,7 +160,7 @@ export async function POST(
             tenantId,
             clienteId: reserva.clienteId,
             fechaCheckin: reserva.checkin,
-            fechaCheckout: reserva.checkout,
+            fechaCheckout: updateData.checkout ?? reserva.checkout,
             habitacion: reserva.habitacion,
             // gastoTotal en PESOS (totalPagado está en centavos)
             gastoTotal: Math.round(totalPagado / 100),

@@ -243,6 +243,9 @@ const estadoPagoBadge: Record<string, string> = {
  Parcial: 'bg-[#D9770626] text-warning border-[#D9770666]',
  Pagado: 'bg-[#05966926] text-success border-[#0F766E66]',
  'Cta. corriente': 'bg-[#0284C71A] text-info border-[#0284C766]',
+ // No es un estado de pago: marca que ya salió la factura de ARCA y la
+ // reserva no se modifica más. Va al lado del estado de pago.
+ Facturada: 'bg-[#8B5CF626] text-chart-5 border-[#8B5CF666]',
 };
 
 /**
@@ -575,7 +578,7 @@ export default function ReservasModule() {
   * (nada más). Si pasó a cuenta corriente, no: cambiaría la deuda anotada.
   */
  const puedeCorregirPagosCerrada = (r: Reserva, saldo: number) =>
-   r.estado === 'Check-Out realizado' && !r.cuentaCorriente && saldo <= 0
+   r.estado === 'Check-Out realizado' && !r.cuentaCorriente && !r.facturada && saldo <= 0
    && pagos.some(p => p.idReserva === r.id && pagosEnCajaAbierta.has(p.id));
 
  // ==================== FILTERS ====================
@@ -1640,6 +1643,7 @@ export default function ReservasModule() {
  <div className="flex items-center gap-2 flex-wrap mt-2">
    <Badge className={estadoReservaBadge[r.estado] || ''}>{r.estado}</Badge>
    <Badge className={estadoPagoBadge[estadoPagoDe(r)] || ''}>{estadoPagoDe(r)}</Badge>
+   {r.facturada && <Badge className={estadoPagoBadge.Facturada}>Facturada</Badge>}
    <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
      <User className="w-3 h-3" />
      <span>{r.personas}</span>
@@ -1688,22 +1692,26 @@ export default function ReservasModule() {
        >
          <LogIn className="w-3.5 h-3.5 mr-1.5" />Check-in
        </Button>
-       <Button
-         size="sm"
-         variant="ghost"
-         className="h-9 flex-1 text-xs px-2 text-warning hover:bg-[#D9770626]"
-         onClick={() => openEdit(r)}
-       >
-         <Pencil className="w-3.5 h-3.5 mr-1.5" />Editar
-       </Button>
-       <Button
-         size="sm"
-         variant="ghost"
-         className="h-9 flex-1 text-xs px-2 text-destructive hover:bg-[#EF444426]"
-         onClick={() => openCancel(r.id)}
-       >
-         <XCircle className="w-3.5 h-3.5 mr-1.5" />Cancelar
-       </Button>
+       {!r.facturada && (
+         <Button
+           size="sm"
+           variant="ghost"
+           className="h-9 flex-1 text-xs px-2 text-warning hover:bg-[#D9770626]"
+           onClick={() => openEdit(r)}
+         >
+           <Pencil className="w-3.5 h-3.5 mr-1.5" />Editar
+         </Button>
+       )}
+       {!r.facturada && (
+         <Button
+           size="sm"
+           variant="ghost"
+           className="h-9 flex-1 text-xs px-2 text-destructive hover:bg-[#EF444426]"
+           onClick={() => openCancel(r.id)}
+         >
+           <XCircle className="w-3.5 h-3.5 mr-1.5" />Cancelar
+         </Button>
+       )}
      </>
    )}
    {r.estado === 'Check-In realizado' && (
@@ -1729,17 +1737,19 @@ export default function ReservasModule() {
        >
          <CreditCard className="w-3.5 h-3.5 mr-1.5" />Confirmar pago
        </Button>
-       <Button
-         size="sm"
-         variant="ghost"
-         className="h-9 flex-1 text-xs px-2 text-destructive hover:bg-[#EF444426]"
-         onClick={() => openCancel(r.id)}
-       >
-         <XCircle className="w-3.5 h-3.5 mr-1.5" />Cancelar
-       </Button>
+       {!r.facturada && (
+         <Button
+           size="sm"
+           variant="ghost"
+           className="h-9 flex-1 text-xs px-2 text-destructive hover:bg-[#EF444426]"
+           onClick={() => openCancel(r.id)}
+         >
+           <XCircle className="w-3.5 h-3.5 mr-1.5" />Cancelar
+         </Button>
+       )}
      </>
    )}
-   {saldo > 0 && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && (
+   {saldo > 0 && !r.facturada && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && (
      <Button
        size="sm"
        variant="ghost"
@@ -1844,6 +1854,7 @@ export default function ReservasModule() {
        </TableCell>
        <TableCell>
          <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[estadoPagoDe(r)] || ''}`}>{estadoPagoDe(r)}</Badge>
+         {r.facturada && <Badge className={`font-semibold shadow-sm ml-1 ${estadoPagoBadge.Facturada}`}>Facturada</Badge>}
        </TableCell>
        <TableCell className="hidden lg:table-cell">
          {payProgress < 100 ? (
@@ -1893,22 +1904,26 @@ export default function ReservasModule() {
                >
                  <LogIn className="w-3 h-3 mr-1" />Check-in
                </Button>
-               <Button
-                 size="sm"
-                 variant="outline"
-                 className="border-[#D9770666] text-warning hover:bg-[#D9770626] h-7 text-xs px-2"
-                 onClick={() => openEdit(r)}
-               >
-                 <Pencil className="w-3 h-3 mr-1" />Editar
-               </Button>
-               <Button
-                 size="sm"
-                 variant="outline"
-                 className="border-[#EF444466] text-destructive hover:bg-[#EF444426] h-7 text-xs px-2"
-                 onClick={() => openCancel(r.id)}
-               >
-                 <XCircle className="w-3 h-3 mr-1" />Cancelar
-               </Button>
+               {!r.facturada && (
+                 <Button
+                   size="sm"
+                   variant="outline"
+                   className="border-[#D9770666] text-warning hover:bg-[#D9770626] h-7 text-xs px-2"
+                   onClick={() => openEdit(r)}
+                 >
+                   <Pencil className="w-3 h-3 mr-1" />Editar
+                 </Button>
+               )}
+               {!r.facturada && (
+                 <Button
+                   size="sm"
+                   variant="outline"
+                   className="border-[#EF444466] text-destructive hover:bg-[#EF444426] h-7 text-xs px-2"
+                   onClick={() => openCancel(r.id)}
+                 >
+                   <XCircle className="w-3 h-3 mr-1" />Cancelar
+                 </Button>
+               )}
              </>
            )}
            {r.estado === 'Check-In realizado' && (
@@ -1932,17 +1947,19 @@ export default function ReservasModule() {
                >
                  <CreditCard className="w-3 h-3 mr-1" />Confirmar pago
                </Button>
-               <Button
-                 size="sm"
-                 variant="outline"
-                 className="border-[#EF444466] text-destructive hover:bg-[#EF444426] h-7 text-xs px-2"
-                 onClick={() => openCancel(r.id)}
-               >
-                 <XCircle className="w-3 h-3 mr-1" />Cancelar
-               </Button>
+               {!r.facturada && (
+                 <Button
+                   size="sm"
+                   variant="outline"
+                   className="border-[#EF444466] text-destructive hover:bg-[#EF444426] h-7 text-xs px-2"
+                   onClick={() => openCancel(r.id)}
+                 >
+                   <XCircle className="w-3 h-3 mr-1" />Cancelar
+                 </Button>
+               )}
              </>
            )}
-           {saldo > 0 && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && (
+           {saldo > 0 && !r.facturada && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && (
              <Button
                size="sm"
                variant="ghost"
@@ -2113,6 +2130,7 @@ export default function ReservasModule() {
  )}
  <div className="flex gap-2">
  <Badge className={estadoPagoBadge[estadoPagoDe(detalleReserva)] || ''}>{estadoPagoDe(detalleReserva)}</Badge>
+ {detalleReserva.facturada && <Badge className={estadoPagoBadge.Facturada}>Facturada</Badge>}
  <Badge className={estadoReservaBadge[detalleReserva.estado] || ''}>{detalleReserva.estado}</Badge>
  </div>
 

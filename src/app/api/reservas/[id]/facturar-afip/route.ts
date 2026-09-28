@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { afipDisponible, emitirComprobanteAfip } from '@/lib/afip/tenant-afip';
-import { facturaDeReserva } from '@/lib/afip/factura-reserva';
+import { facturaDeReserva, motivoParaNoFacturar } from '@/lib/afip/factura-reserva';
 import { AfipError, nombreTipoComprobante, letraPorTipoComprobante } from '@/lib/afip/config';
 
 // ─────────────────────────────────────────────────────────
 // POST /api/reservas/[id]/facturar-afip
 // Toma un Recibo YA emitido (numeración interna, sin CAE) y lo factura de
-// verdad ante AFIP — acción explícita y separada del check-out (ver
+// verdad ante AFIP, con la reserva cobrada completa, haya hecho o no el
+// check-out. Es una acción explícita, separada del check-out (ver
 // POST /api/reservas/[id]/comprobante, que ya no factura solo). Es
 // irreversible: una vez que AFIP autoriza el CAE no hay forma de deshacerlo
 // desde acá (solo emitiendo una Nota de Crédito más adelante).
@@ -20,6 +21,9 @@ import { AfipError, nombreTipoComprobante, letraPorTipoComprobante } from '@/lib
 // interno en comprobanteNumeroInterno — así no se pierde el rastro de qué
 // recibo se convirtió en qué factura.
 // ─────────────────────────────────────────────────────────
+
+/** Todavía no se puede facturar: el motivo es para mostrárselo al hotel. */
+class NoSeFacturaError extends Error {}
 
 const SELECT_COMPROBANTE = {
   comprobanteNumero: true, comprobanteNumeroInterno: true, comprobantePuntoVenta: true, comprobanteFecha: true,
@@ -73,9 +77,6 @@ export async function POST(
     if (!reserva) {
       return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 });
     }
-    if (reserva.estado !== 'Checkout_realizado') {
-      return NextResponse.json({ error: 'La reserva todavía no tiene check-out realizado.' }, { status: 400 });
-    }
     if (reserva.comprobanteNumero == null) {
       return NextResponse.json({ error: 'Esta reserva todavía no tiene un recibo emitido — abrí el recibo primero.' }, { status: 400 });
     }
@@ -105,6 +106,13 @@ export async function POST(
     }
 
     try {
+      // Se factura cobrada completa, con o sin check-out (ver
+      // src/lib/facturacion-reserva.ts). Se mira DESPUÉS de reclamarla: con
+      // el centinela puesto ya nadie le corrige los pagos, así que lo que se
+      // mide acá es lo que va a la factura.
+      const motivo = await motivoParaNoFacturar(tenantId, id);
+      if (motivo) throw new NoSeFacturaError(motivo);
+
       const afip = await emitirComprobanteAfip(tenantId, id, { titularId });
       const numeroInterno = reserva.comprobanteNumero;
 
@@ -154,6 +162,9 @@ export async function POST(
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
+    if (error instanceof NoSeFacturaError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     if (error instanceof AfipError) {
       return NextResponse.json({ error: `AFIP: ${error.message}` }, { status: 502 });
