@@ -327,8 +327,9 @@ saldo) sin tocar nada nuevo de ARCA.
 ### En PREVIEW, falta en `main`: corregir pagos desde la reserva
 Al editar una reserva, la pestaña Pago muestra los pagos cargados y el monto
 de cada uno se corrige ahí; la caja se ajusta sola (`src/lib/pagos-reserva.ts`).
-Si el turno donde se cobró ya cerró, la diferencia entra como ajuste en el
-turno abierto. $0 elimina el pago. Con check-out: solo pagos y solo sin saldo.
+**Solo mientras siga abierto el turno de caja donde se cobró** (decisión del
+dueño, 28/09): cerrado ese turno, el monto queda fijo para siempre, aunque se
+abra otra caja. No hay ajustes en turnos nuevos. $0 elimina el pago. Con check-out: solo pagos y solo sin saldo.
 Pasada a cuenta corriente: no se corrige. Desde Caja, el pago de una reserva
 no se edita ni se borra. Migración `20260924_pago_en_caja` (columna `pagoId`).
 

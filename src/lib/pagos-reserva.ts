@@ -4,17 +4,16 @@
 // caja: un ingreso con pagoId. Corregir el monto de un pago desde la reserva
 // corrige también ese ingreso, sin que nadie tenga que tocar Caja.
 //
-// SI EL TURNO DONDE SE COBRÓ YA CERRÓ, ese ingreso no se toca: el cierre ya se
-// contó. La diferencia entra como un ajuste en el turno abierto (ingreso si se
-// había cargado de menos, egreso si de más), con el mismo método del pago. Así
-// lo que la caja tiene por ese pago siempre suma lo mismo que el pago.
+// SOLO MIENTRAS SIGUE ABIERTO EL TURNO DE CAJA DONDE SE COBRÓ. Cerrado ese
+// turno, el monto queda fijo para siempre, aunque después se abra otra caja:
+// los movimientos de ese turno ya se contaron y se cerraron. Decisión del
+// dueño: si no, cualquiera podría cambiar montos de días anteriores.
 //
-// $0 ELIMINA EL PAGO: con el turno abierto se borra su ingreso; con el turno
-// cerrado entra un egreso de ajuste por todo el pago.
+// Por lo mismo, un pago que nunca entró por la caja (una seña de Mercado
+// Pago que llegó con la caja cerrada, o uno viejo que la migración no pudo
+// emparejar) tampoco se corrige: no hay un turno abierto que lo contenga.
 //
-// Un pago sin ingreso vinculado (una seña de Mercado Pago que entró con la
-// caja cerrada, o uno viejo que la migración no pudo emparejar) se corrige
-// solo en la reserva: esa plata nunca estuvo en la caja.
+// $0 ELIMINA EL PAGO y su ingreso.
 //
 // Reglas que decidió el dueño:
 // - Con el check-out hecho solo se corrigen los pagos, y solo si la reserva
@@ -36,13 +35,6 @@ export function estadoPagoDe(total: number | null, pagado: number): EstadoPago {
   return pagado > 0 ? 'Parcial' : 'Pendiente';
 }
 
-/**
- * Así empieza la descripción de un ajuste en la caja. La migración
- * 20260924_pago_en_caja lo usa para no confundir un ajuste con el ingreso
- * original de un pago: no cambiarlo sin mirar esa migración.
- */
-export const DESCRIPCION_AJUSTE = 'Ajuste de pago';
-
 /** El pago y su monto nuevo, en centavos. 0 = eliminarlo. */
 export interface CambioDePago {
   id: string;
@@ -58,7 +50,7 @@ export class CorreccionDePagoError extends Error {
   }
 }
 
-export type EfectoEnCaja = 'ingreso-editado' | 'ingreso-borrado' | 'ajuste' | 'sin-caja';
+export type EfectoEnCaja = 'ingreso-editado' | 'ingreso-borrado';
 
 export interface PagoCorregido {
   id: string;
@@ -176,67 +168,37 @@ export async function corregirPagos(
   });
   const ingresoDe = new Map(ingresos.map(m => [m.pagoId as string, m]));
 
-  // El turno abierto se busca una sola vez, y solo si hace falta un ajuste.
-  let turnoAbierto: { id: string } | null | undefined;
-  const turnoParaAjuste = async (): Promise<{ id: string }> => {
-    if (turnoAbierto === undefined) {
-      turnoAbierto = await tx.turnoCaja.findFirst({ where: { tenantId, estado: 'abierta' }, select: { id: true } });
-    }
-    if (!turnoAbierto) {
+  // Primero se chequean todos: o se corrigen todos, o ninguno.
+  for (const c of cambios) {
+    const ingreso = ingresoDe.get(c.id);
+    if (!ingreso) {
       throw new CorreccionDePagoError(
-        'Abrí la caja para corregir este pago: se cobró en un turno que ya cerró, y la diferencia se anota como ajuste en la caja abierta.',
+        'Ese pago no entró por la caja (por ejemplo, una seña de Mercado Pago que llegó con la caja cerrada): su monto no se puede cambiar.',
         409,
       );
     }
-    return turnoAbierto;
-  };
+    if (ingreso.turno.estado !== 'abierta') {
+      throw new CorreccionDePagoError(
+        'Ese pago se cobró en un turno de caja que ya se cerró: su monto ya no se puede cambiar.',
+        409,
+      );
+    }
+  }
 
   const corregidos: PagoCorregido[] = [];
   for (const c of cambios) {
     const pago = pagoPorId.get(c.id)!;
-    const ingreso = ingresoDe.get(c.id);
-    const diferencia = c.monto - pago.monto;
+    const ingreso = ingresoDe.get(c.id)!;
     let caja: EfectoEnCaja;
-
-    if (ingreso && ingreso.turno.estado === 'abierta') {
-      // El turno donde se cobró sigue abierto: se corrige el mismo ingreso.
-      if (c.monto === 0) {
-        await tx.movimientoCaja.delete({ where: { id: ingreso.id } });
-        caja = 'ingreso-borrado';
-      } else {
-        await tx.movimientoCaja.update({ where: { id: ingreso.id }, data: { monto: c.monto } });
-        caja = 'ingreso-editado';
-      }
-    } else if (ingreso) {
-      const turno = await turnoParaAjuste();
-      await tx.movimientoCaja.create({
-        data: {
-          tenantId,
-          turnoId: turno.id,
-          tipo: diferencia > 0 ? 'ingreso' : 'egreso',
-          monto: Math.abs(diferencia),
-          descripcion: `${DESCRIPCION_AJUSTE} — ${reserva.huesped} (Reserva #${reserva.id})`,
-          metodo: pago.metodo,
-          empleadoId: args.empleadoId,
-          empleadoNombre: args.empleadoNombre,
-          // Con reservaId, Caja no deja editarlo ni borrarlo: se corrige
-          // desde la reserva, como el pago.
-          reservaId: reserva.id,
-        },
-      });
-      caja = 'ajuste';
-    } else {
-      caja = 'sin-caja';
-    }
-
     if (c.monto === 0) {
-      // Si el ingreso quedó en un turno cerrado, sigue ahí (es historia de ese
-      // turno) y la base le borra el vínculo sola (ON DELETE SET NULL).
+      await tx.movimientoCaja.delete({ where: { id: ingreso.id } });
       await tx.pago.delete({ where: { id: c.id } });
+      caja = 'ingreso-borrado';
     } else {
+      await tx.movimientoCaja.update({ where: { id: ingreso.id }, data: { monto: c.monto } });
       await tx.pago.update({ where: { id: c.id }, data: { monto: c.monto } });
+      caja = 'ingreso-editado';
     }
-
     corregidos.push({ id: c.id, antes: pago.monto, despues: c.monto, metodo: pago.metodo, caja });
   }
 
@@ -248,13 +210,8 @@ export async function corregirPagos(
 
 /** Lo que queda en la auditoría por cada pago corregido. */
 export function detalleDeCorreccion(huesped: string, p: PagoCorregido): string {
-  const caja = p.caja === 'ajuste'
-    ? ' El turno donde se cobró ya había cerrado: la diferencia entró como ajuste en la caja abierta.'
-    : p.caja === 'sin-caja'
-      ? ' Ese pago no tenía ingreso en caja: se corrigió solo en la reserva.'
-      : '';
   if (p.despues === 0) {
-    return `Se eliminó un pago de ${pesos(p.antes)} (${p.metodo}) de ${huesped}.${caja}`;
+    return `Se eliminó un pago de ${pesos(p.antes)} (${p.metodo}) de ${huesped}.`;
   }
-  return `Corrección de un pago de ${huesped}: ${pesos(p.antes)} → ${pesos(p.despues)} (${p.metodo}).${caja}`;
+  return `Corrección de un pago de ${huesped}: ${pesos(p.antes)} → ${pesos(p.despues)} (${p.metodo}).`;
 }

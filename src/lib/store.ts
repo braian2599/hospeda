@@ -134,6 +134,7 @@ function mapDbMovimiento(m: any): MovimientoCaja {
     gastoId: m.gastoId || null,
     reservaId: m.reservaId || null,
     pagoCuentaCorrienteId: m.pagoCuentaCorrienteId || null,
+    pagoId: m.pagoId || null,
   };
 }
 

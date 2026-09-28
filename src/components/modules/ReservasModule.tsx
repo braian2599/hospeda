@@ -562,6 +562,11 @@ export default function ReservasModule() {
  // Cuenta corriente solo si el plan tiene Comprobantes: sin eso nadie en el
  // hotel podría ver ni cobrar la deuda.
  const hayCuentaCorriente = moduloDisponible('comprobantes', planActual, planes);
+ // Los pagos cuyo ingreso está en el turno de caja abierto: los únicos que se
+ // pueden corregir (ver src/lib/pagos-reserva.ts).
+ const pagosEnCajaAbierta = new Set(
+   caja.estado === 'abierta' ? caja.movimientos.map(m => m.pagoId).filter((id): id is string => !!id) : [],
+ );
  /** Una reserva ya cerrada que quedó debiendo y todavía no se pasó a ninguna cuenta. */
  const puedePasarACuenta = (r: Reserva, saldo: number) =>
    hayCuentaCorriente && r.estado === 'Check-Out realizado' && r.total != null && saldo > 0 && !r.cuentaCorriente;
@@ -570,7 +575,8 @@ export default function ReservasModule() {
   * (nada más). Si pasó a cuenta corriente, no: cambiaría la deuda anotada.
   */
  const puedeCorregirPagosCerrada = (r: Reserva, saldo: number) =>
-   r.estado === 'Check-Out realizado' && !r.cuentaCorriente && saldo <= 0 && pagos.some(p => p.idReserva === r.id);
+   r.estado === 'Check-Out realizado' && !r.cuentaCorriente && saldo <= 0
+   && pagos.some(p => p.idReserva === r.id && pagosEnCajaAbierta.has(p.id));
 
  // ==================== FILTERS ====================
  const [filtroEstado, setFiltroEstado] = useFilterState<string>('reservas_filtroEstado', 'todos');
@@ -778,6 +784,9 @@ export default function ReservasModule() {
  const pagoMinimo = Math.ceil(totalAPagar * 0.3);
 
  // ==================== COMPUTED: PAGOS YA CARGADOS (al editar) ====================
+ // Un pago se corrige solo mientras siga abierto el turno de caja donde se
+ // cobró: cerrado ese turno, queda fijo (el servidor lo vuelve a chequear).
+ // El turno abierto es uno solo, así que alcanza con mirar sus movimientos.
  // Del más viejo al más nuevo (primero la seña). Dentro del mismo día, por id:
  // los ids que genera la base (cuid) empiezan con la hora en que se crearon.
  const pagosCargados = editingId
@@ -2539,6 +2548,9 @@ export default function ReservasModule() {
                  <span className="text-[12px] text-muted-foreground w-20 shrink-0">{formatFecha(p.fecha)}</span>
                  {/* w-0 + flex-1: el método se achica (y se corta) en vez de ensanchar el modal en el celular. */}
                  <span className="text-[12px] w-0 flex-1 min-w-0 truncate">{p.metodo}{p.nota ? ` · ${p.nota}` : ''}</span>
+                 {!pagosEnCajaAbierta.has(p.id) ? (
+                   <span className="w-32 sm:w-36 shrink-0 text-right text-[13px] font-semibold pr-3">{formatMoney(p.monto)}</span>
+                 ) : (
                  <div className="relative w-32 sm:w-36 shrink-0">
                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-muted-foreground">$</span>
                    <Input
@@ -2552,7 +2564,11 @@ export default function ReservasModule() {
                      className="pl-7 text-[13px] font-semibold h-9 text-right"
                    />
                  </div>
+                 )}
                </div>
+               {!pagosEnCajaAbierta.has(p.id) && (
+                 <p className="text-[11px] text-muted-foreground text-right">Su turno de caja ya cerró: no se puede cambiar</p>
+               )}
                {escrito === 0 && (
                  <p className="text-[11px] text-destructive text-right">Se elimina este pago</p>
                )}
@@ -2560,7 +2576,7 @@ export default function ReservasModule() {
            );
          })}
          <p className="text-[11px] text-muted-foreground">
-           Si un monto quedó mal cargado, corregilo acá: la caja se ajusta sola. En $0 el pago se elimina.
+           Si un monto quedó mal cargado, corregilo acá mientras siga abierto el turno de caja donde se cobró: la caja se ajusta sola. En $0 el pago se elimina.
          </p>
        </div>
      )}

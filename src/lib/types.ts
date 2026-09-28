@@ -213,6 +213,8 @@ export interface MovimientoCaja {
    * corriente, que corrige la caja y la deuda juntas.
    */
   pagoCuentaCorrienteId?: string | null;
+  /** El pago de reserva que generó este ingreso (ver src/lib/pagos-reserva.ts). */
+  pagoId?: string | null;
 }
 
 export interface CierreCaja {
