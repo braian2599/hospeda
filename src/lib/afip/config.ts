@@ -147,6 +147,20 @@ export function desgloseIva(cbteTipo: number | null | undefined, total: number):
   return null;
 }
 
+/**
+ * El IVA que muestra un comprobante con CAE (pantalla y PDF):
+ * - Letra A, factura o nota: neto gravado + IVA. Es obligatorio discriminarlo.
+ * - Factura B: la leyenda de IVA contenido (Ley 27.743).
+ * - Notas B y todo lo de letra C: nada. La leyenda de la Ley 27.743 se deja
+ *   solo en la factura: que una nota B también la lleve no está confirmado.
+ */
+export function desgloseParaMostrar(tipo: string, cbteTipo: number | null | undefined, total: number): DesgloseIva | null {
+  const d = desgloseIva(cbteTipo, total);
+  if (!d) return null;
+  if (d.tipo === 'A') return d;
+  return tipo === 'Factura' ? d : null;
+}
+
 export const DOC_TIPO = {
   CUIT: 80,
   DNI: 96,

@@ -17,7 +17,7 @@
 
 import jsPDF from 'jspdf';
 import { proxiedImageUrl } from '@/lib/image-proxy';
-import { desgloseIva } from './config';
+import { desgloseParaMostrar } from './config';
 
 export type TipoComprobantePdf = 'Factura' | 'Presupuesto' | 'Recibo' | 'NotaCredito' | 'NotaDebito';
 
@@ -123,8 +123,8 @@ export async function cargarImagenComoDataUrl(url: string): Promise<string | nul
 export function generarComprobantePdf(d: DatosComprobantePdf): jsPDF {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const esFiscal = d.cae !== null;
-  // Cómo se muestra el IVA: A discriminado, B con el IVA contenido (Ley 27.743).
-  const desglose = esFiscal && d.tipo === 'Factura' ? desgloseIva(d.codigoTipo, d.importe) : null;
+  // Cómo se muestra el IVA: ver desgloseParaMostrar en config.ts.
+  const desglose = esFiscal ? desgloseParaMostrar(d.tipo, d.codigoTipo, d.importe) : null;
   const MY = 15; // margen superior/inferior (mm)
   const ALTO_PAGINA = 297;
   let y = MY;
@@ -251,7 +251,7 @@ export function generarComprobantePdf(d: DatosComprobantePdf): jsPDF {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   let iy = y + 15;
-  for (const linea of envolver(doc, d.concepto, colImporte - colDesc - 15)) {
+  for (const linea of envolver(doc, d.concepto, colImporte - colDesc - 32)) {
     doc.text(linea, colDesc, iy);
     iy += 4.5;
   }

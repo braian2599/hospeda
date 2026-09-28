@@ -32,7 +32,8 @@ import { toast } from 'sonner';
 import PaginationBar from '@/components/ui/pagination-bar';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import QRCode from 'qrcode';
-import { docReceptor, DOC_TIPO, letraPorTipoComprobante, notaSinValidezFiscal, desgloseIva, type TipoComprobanteGenerico } from '@/lib/afip/config';
+import { docReceptor, DOC_TIPO, letraPorTipoComprobante, notaSinValidezFiscal, desgloseParaMostrar, type TipoComprobanteGenerico } from '@/lib/afip/config';
+import { formatearCuit } from '@/lib/cuenta-corriente';
 import { urlQrAfip } from '@/lib/afip/qr';
 import { estaCubierta } from '@/lib/facturacion-reserva';
 import { montoALetras } from '@/lib/numero-a-letras';
@@ -161,7 +162,7 @@ function receptorParaMostrar(r: ReceptorFacturaApi): ReceptorComprobante {
     domicilio: r.domicilio || '',
     sitTributaria: r.condicionIva || 'Consumidor Final',
     etiquetaDoc: r.docTipo === DOC_TIPO.CUIT ? 'C.U.I.T.' : r.docTipo === DOC_TIPO.DNI ? 'DNI' : 'Doc.',
-    docNro: r.docNro || '0',
+    docNro: r.docTipo === DOC_TIPO.CUIT && r.docNro ? formatearCuit(r.docNro) : r.docNro || '0',
   };
 }
 
@@ -1043,15 +1044,22 @@ function receptorDesdeItem(item: ComprobanteListado): ReceptorComprobante {
     domicilio: item.domicilioReceptor || '',
     sitTributaria: item.condicionIvaReceptor || 'Consumidor Final',
     etiquetaDoc: item.docTipoReceptor === DOC_TIPO.CUIT ? 'C.U.I.T.' : item.docTipoReceptor === DOC_TIPO.DNI ? 'DNI' : 'Documento',
-    docNro: item.docReceptor || '—',
+    // El CUIT con guiones, como el del hotel arriba.
+    docNro: item.docTipoReceptor === DOC_TIPO.CUIT && item.docReceptor ? formatearCuit(item.docReceptor) : item.docReceptor || '—',
   };
 }
 
+/**
+ * El detalle del comprobante, una cosa por renglón. La factura que corrige
+ * una nota va una sola vez: si el concepto ya la nombra ("Anulación de la
+ * Factura A 0001-00000002"), no se repite como "Ref:".
+ */
 function conceptoDesdeItem(item: ComprobanteListado): string {
   const partes = [item.concepto];
-  if (item.comprobanteAsociadoDisplay) partes.push(`Ref: ${item.comprobanteAsociadoDisplay}`);
+  const asociado = item.comprobanteAsociadoDisplay;
+  if (asociado && !item.concepto.includes(asociado)) partes.push(`Comprobante asociado: ${asociado}`);
   if (item.motivo) partes.push(`Motivo: ${item.motivo}`);
-  return partes.join(' — ');
+  return partes.join('\n');
 }
 
 /**
@@ -1899,8 +1907,8 @@ export function ComprobanteOficial({
 }) {
   const esFiscal = !!comprobante.cae;
   const letra = letraPorTipoComprobante(tipo, comprobante.tipoComprobanteCodigo);
-  // Cómo se muestra el IVA: A discriminado, B con el IVA contenido (Ley 27.743).
-  const desglose = esFiscal && tipo === 'Factura' ? desgloseIva(comprobante.tipoComprobanteCodigo, pagado) : null;
+  // Cómo se muestra el IVA: ver desgloseParaMostrar en config.ts.
+  const desglose = esFiscal ? desgloseParaMostrar(tipo, comprobante.tipoComprobanteCodigo, pagado) : null;
   // Arriba el hotel, abajo quién factura (el titular del CUIT).
   const nombreHotel = nombreComercialAparte(fiscal?.nombreHotel, fiscal?.razonSocial);
 
