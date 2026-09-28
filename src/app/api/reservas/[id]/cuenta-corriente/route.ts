@@ -64,6 +64,15 @@ export async function POST(
       }, { status: 400 });
     }
 
+    // Solo reservas SIN NINGÚN PAGO (decisión del dueño, 29/09): quien pagó
+    // una parte va a pagar el resto; si no, no es cuenta corriente. Va el
+    // total entero a la cuenta.
+    if (reserva.pagos.some(p => p.monto > 0)) {
+      return NextResponse.json({
+        error: 'Esta reserva ya tiene pagos: solo se pasan a cuenta corriente las reservas sin ningún pago. El saldo se cobra.',
+      }, { status: 400 });
+    }
+
     const monto = saldoDeReserva(reserva.total, reserva.pagos);
     if (monto == null) {
       return NextResponse.json({ error: 'La reserva no tiene el total cargado: no se sabe cuánto anotar.' }, { status: 400 });

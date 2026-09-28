@@ -19,6 +19,7 @@ import {
 import { camasDeReserva, camasLibresDe, esCompartida, esEstadoDeOcupacion, ocupaHabitacionEntera, tieneCheckIn } from './ocupacion';
 import { sesionDesdeRespuesta } from './sesion';
 import { estaFacturada } from './facturacion-reserva';
+import { fechaArgentina } from './format';
 import { origenValido, type Suscripcion } from './suscripcion';
 
 /** Lo que se asume mientras no llegó la sesión: nada vencido, nada prometido. */
@@ -2153,7 +2154,9 @@ export const useHotelStore = create<HotelStore>()(
           const pagos: Pago[] = data.pagos.map((p: any) => ({
             id: p.id, idReserva: p.reservaId, monto: p.monto / 100,
             metodo: metodoIdToName.get(p.metodo) || p.metodo,
-            fecha: p.fecha?.split('T')[0] || p.fecha, nota: p.nota || '',
+            // El día en Argentina: con split('T') era el día en UTC, y un
+            // pago de las 22 hs aparecía con la fecha de mañana.
+            fecha: p.fecha ? fechaArgentina(p.fecha) : p.fecha, nota: p.nota || '',
             creadoEn: p.createdAt || undefined,
           }));
 

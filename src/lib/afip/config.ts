@@ -1,3 +1,5 @@
+import { fechaArgentina } from '@/lib/format';
+
 // ==================== AFIP/ARCA — Configuración y constantes ====================
 // Endpoints, códigos de tipo de comprobante/documento, y el mapeo condición
 // de IVA del emisor → tipo de comprobante. Ver también wsaa.ts
@@ -150,15 +152,15 @@ export function desgloseIva(cbteTipo: number | null | undefined, total: number):
 /**
  * El IVA que muestra un comprobante con CAE (pantalla y PDF):
  * - Letra A, factura o nota: neto gravado + IVA. Es obligatorio discriminarlo.
- * - Factura B: la leyenda de IVA contenido (Ley 27.743).
- * - Notas B y todo lo de letra C: nada. La leyenda de la Ley 27.743 se deja
- *   solo en la factura: que una nota B también la lleve no está confirmado.
+ * - Factura B y Nota de Crédito B: la leyenda de IVA contenido (Ley 27.743).
+ *   La nota de crédito la lleva por decisión del dueño (29/09).
+ * - Nota de Débito B y todo lo de letra C: nada.
  */
 export function desgloseParaMostrar(tipo: string, cbteTipo: number | null | undefined, total: number): DesgloseIva | null {
   const d = desgloseIva(cbteTipo, total);
   if (!d) return null;
   if (d.tipo === 'A') return d;
-  return tipo === 'Factura' ? d : null;
+  return tipo === 'Factura' || tipo === 'NotaCredito' ? d : null;
 }
 
 export const DOC_TIPO = {
@@ -230,11 +232,25 @@ export function docReceptor(dni: string): { docTipo: number; docNro: string } {
 }
 
 /** Formatea una fecha como YYYYMMDD, el formato que usa AFIP en todos sus campos de fecha. */
+/**
+ * Una fecha de calendario de la base (check-in, check-out: se guardan a la
+ * medianoche UTC) en el formato de ARCA. Se leen las partes en UTC: con la
+ * hora local, en una máquina en Argentina daba el día anterior.
+ */
 export function fechaAfip(d: Date): string {
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
   return `${yyyy}${mm}${dd}`;
+}
+
+/**
+ * El día de HOY en Argentina, en el formato de ARCA: la fecha de una factura
+ * o nota (CbteFch). El servidor corre en UTC: con su hora, lo facturado
+ * después de las 21 hs salía con fecha de mañana.
+ */
+export function fechaAfipHoy(ahora: Date = new Date()): string {
+  return fechaArgentina(ahora).replace(/-/g, '');
 }
 
 /** Error tipado para distinguir fallos de AFIP (rechazo/validación) de errores de red/infra. */

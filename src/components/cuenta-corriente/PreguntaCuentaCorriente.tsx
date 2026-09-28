@@ -48,6 +48,9 @@ export default function PreguntaCuentaCorriente() {
     && reserva.estado === 'Check-Out realizado'
     && reserva.total != null
     && saldo > 0
+    // Solo reservas sin ningún pago: quien pagó una parte paga el resto
+    // (decisión del dueño, 29/09). Misma regla que la API.
+    && pagado === 0
     && !reserva.cuentaCorriente;
 
   // Si ya no corresponde (el plan no lo tiene, alguien ya la derivó desde

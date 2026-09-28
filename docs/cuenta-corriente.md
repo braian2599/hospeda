@@ -325,35 +325,29 @@ saldo) sin tocar nada nuevo de ARCA.
     respuesta vacía, fault "No existe"). La primera consulta real se prueba
     en Preview con un hotel que tenga el certificado y el servicio habilitado.
 
-## Tareas que faltan
+## Tareas que faltan (al 29/09)
 
-1. **CC-4:** Factura A + UNA factura al titular por el total de la reserva,
-   con su CUIT. Antes: confirmar en la documentación de ARCA si hoy exige la
-   condición de IVA del receptor al pedir el CAE.
-2. **Probar en Preview** (el dueño), incluido "Traer de ARCA" con un
-   certificado de homologación (WSASS, en curso).
-3. **Pasar a producción:** correr en la base de producción el SQL de
-   `20260924_padron_arca` y el de `20260924_pago_en_caja`, y recién ahí
-   mergear `PREVIEW` a `main`, con aprobación.
-   Ese merge lleva también el arreglo de editar reservas (abajo): en `main`
-   hoy NO se puede editar ninguna reserva.
+1. **Delegación de ARCA** (en curso): el dueño baja el certificado de
+   producción de Hospeda (Administración de Certificados Digitales, alias
+   `hospeda`; ARCA estaba caído el 29/09). Después: el certificado como
+   secreto en Vercel, la guía de delegación en Configuración en lugar de la
+   carga de certificado, detectar el punto de venta y el paso a producción.
 
-### En PREVIEW, falta en `main`: corregir pagos desde la reserva
-Al editar una reserva, la pestaña Pago muestra los pagos cargados y el monto
-de cada uno se corrige ahí; la caja se ajusta sola (`src/lib/pagos-reserva.ts`).
-**Solo mientras siga abierto el turno de caja donde se cobró** (decisión del
-dueño, 28/09): cerrado ese turno, el monto queda fijo para siempre, aunque se
-abra otra caja. No hay ajustes en turnos nuevos. $0 elimina el pago. Con check-out: solo pagos y solo sin saldo.
-Pasada a cuenta corriente: no se corrige. Desde Caja, el pago de una reserva
-no se edita ni se borra. Migración `20260924_pago_en_caja` (columna `pagoId`).
+Todo lo que antes estaba en esta lista (CC-4, corregir pagos desde la
+reserva, editar reservas con 409, pasar a producción) ya está en `main`.
 
-### Arreglado en PREVIEW, falta en `main`: editar reservas daba 409
-Desde el 17/09 (commit d5cc3d7, chequeo de disponibilidad unificado en
-`chequearLugar`) la edición no le pasaba `excluirReservaId`: la reserva
-chocaba consigo misma y cualquier edición que mandara fechas (el formulario
-las manda siempre) daba 409 "ya tiene una reserva activa en ese rango".
-Probado contra Postgres: mismas fechas entra, extender sin pisar entra, pisar
-otra reserva sigue dando 409, compartida no se cuenta a sí misma.
+### Decisiones del 29/09
+- **Una seña no se factura sola:** se factura con la reserva cobrada
+  completa (ver "Cuándo se factura").
+- **Nota de Crédito B:** lleva la leyenda de IVA contenido (Ley 27.743),
+  igual que la Factura B (`desgloseParaMostrar`). La de débito B no.
+- **Cuenta corriente solo sin pagos:** una reserva con algún pago (una seña)
+  no se pasa a cuenta corriente: quien pagó una parte paga el resto. Lo
+  frenan la API y la pantalla; va el total entero a la cuenta.
+- **Fechas en hora de Argentina:** el servidor corre en UTC. La fecha de la
+  factura o nota ante ARCA (`fechaAfipHoy`), la del QR y la de los pagos se
+  calculan en hora de Argentina (`fechaArgentina`); antes, lo hecho después
+  de las 21 hs quedaba con la fecha de mañana.
 
 ## Facturación con ARCA: plan decidido (25/09)
 
@@ -452,8 +446,8 @@ en ningún lado. En la base no se tocó nada (el tipo sigue en el enum).
   de cuenta. La reserva vuelve a tener su saldo. No se puede si la reserva
   está facturada o si la cuenta ya no debe el cargo entero (los pagos van a
   la deuda total, no a un cargo): ver `motivoParaNoAnularCargo`.
-- ¿Se bloquea derivar una reserva que ya tiene pagos? (Ofrecido; coherente
-  con "sin seña".)
+- ~~¿Se bloquea derivar una reserva que ya tiene pagos?~~ **Decidido
+  (29/09): sí.** Solo pasan reservas sin ningún pago.
 - ~~Seña + derivación, ¿cómo se factura?~~ **Decidido:** una cuenta corriente
   no tiene seña; va el total a la cuenta y se hace una sola factura al
   titular por el total.

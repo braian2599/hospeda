@@ -164,3 +164,19 @@ export const leerNumero = (s: string): number => {
   const n = Number(t);
   return t !== '' && Number.isFinite(n) ? n : NaN;
 };
+
+/**
+ * El día (AAAA-MM-DD) que corre en Argentina en ese instante, sin importar
+ * en qué huso esté la máquina. El servidor (Vercel) corre en UTC, 3 horas
+ * adelantado: sin esto, lo hecho después de las 21 hs quedaba con la fecha
+ * de mañana. Argentina no tiene horario de verano, pero se usa la zona
+ * horaria por nombre para no depender de eso.
+ */
+export const fechaArgentina = (instante: Date | string): string => {
+  const d = typeof instante === 'string' ? new Date(instante) : instante;
+  if (Number.isNaN(d.getTime())) return typeof instante === 'string' ? instante.slice(0, 10) : '';
+  // en-CA da el formato AAAA-MM-DD.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(d);
+};

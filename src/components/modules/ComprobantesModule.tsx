@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useHotelStore } from '@/lib/store';
-import { formatMoney, formatFecha, formatFechaHora, todayLocal, numeroDeReserva } from '@/lib/format';
+import { formatMoney, formatFecha, formatFechaHora, todayLocal, numeroDeReserva, fechaArgentina } from '@/lib/format';
 import type { Reserva, Pago } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1193,7 +1193,7 @@ export function VerComprobanteDialog({
     if (!item?.cae || !item.tipoAfip || !fiscal?.cuit) { setQrDataUrl(null); return; }
     let cancelled = false;
     const url = urlQrAfip({
-      fecha: item.fecha ? new Date(item.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+      fecha: fechaArgentina(item.fecha ? new Date(item.fecha) : new Date()),
       cuit: fiscal.cuit,
       ptoVta: item.puntoVenta,
       cbteTipo: item.tipoAfip,
@@ -1754,7 +1754,7 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
       ? { docTipo: receptorFactura.docTipo || DOC_TIPO.CONSUMIDOR_FINAL, docNro: receptorFactura.docNro || '0' }
       : docReceptor(reserva.dni);
     const url = urlQrAfip({
-      fecha: comprobante.fecha ? new Date(comprobante.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+      fecha: fechaArgentina(comprobante.fecha ? new Date(comprobante.fecha) : new Date()),
       cuit: fiscal.cuit,
       ptoVta: comprobante.puntoVenta,
       cbteTipo: comprobante.tipoComprobanteCodigo,

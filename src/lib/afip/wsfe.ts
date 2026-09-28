@@ -7,7 +7,7 @@
 
 import { db } from '@/lib/db';
 import { getWsaaTicket } from './wsaa';
-import { afipUrls, fechaAfip, AfipError, type AfipAmbiente } from './config';
+import { afipUrls, fechaAfip, fechaAfipHoy, AfipError, type AfipAmbiente } from './config';
 import { soapCall, xmlEscape } from './soap';
 
 export interface DetalleComprobante {
@@ -104,7 +104,7 @@ export async function solicitarCae(tenantId: string, ptoVta: number, detalle: De
 
     const proximoNumero = (await consultarUltimoAutorizadoConAuth(auth, ptoVta, detalle.cbteTipo)) + 1;
 
-    const hoy = fechaAfip(new Date());
+    const hoy = fechaAfipHoy();
     const importe = detalle.importeTotal.toFixed(2);
 
     const bodyXml = `<FECAESolicitar xmlns="http://ar.gov.afip.dif.FEV1/">

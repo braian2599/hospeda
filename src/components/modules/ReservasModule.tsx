@@ -572,7 +572,10 @@ export default function ReservasModule() {
  );
  /** Una reserva ya cerrada que quedó debiendo y todavía no se pasó a ninguna cuenta. */
  const puedePasarACuenta = (r: Reserva, saldo: number) =>
-   hayCuentaCorriente && r.estado === 'Check-Out realizado' && r.total != null && saldo > 0 && !r.cuentaCorriente;
+   hayCuentaCorriente && r.estado === 'Check-Out realizado' && r.total != null && saldo > 0 && !r.cuentaCorriente
+   // Solo sin ningún pago (decisión del dueño, 29/09): quien pagó una parte
+   // paga el resto. Misma regla que POST /api/reservas/[id]/cuenta-corriente.
+   && !pagos.some(p => p.idReserva === r.id && p.monto > 0);
  /**
   * Reserva cerrada y sin saldo: se le pueden corregir los montos de los pagos
   * (nada más). Si pasó a cuenta corriente, no: cambiaría la deuda anotada.
