@@ -91,6 +91,14 @@ export const NOVEDADES: Novedad[] = [
   // Las cuatro del 28/09 salen con el deploy de esa noche. El arreglo va
   // primero: es lo que los hoteles venían sufriendo.
   {
+    id: 'calendario-mover-reservas-2026-09',
+    fecha: '2026-09-29',
+    tipo: 'nuevo',
+    titulo: 'Mové reservas desde el calendario',
+    texto: 'En el calendario del Dashboard, arrastrá una reserva a otra habitación u otros días, o tirá de su borde para cambiar la salida: te muestra el total nuevo según la tarifa y pide confirmar. Tocando un día libre empezás una reserva nueva con esa habitación y fecha. Además: número de reserva en cada barra, punto rojo si tiene saldo y buscador por huésped o número.',
+    requiere: { modulo: 'reservas' },
+  },
+  {
     id: 'dashboard-mas-ordenado-2026-09',
     fecha: '2026-09-29',
     tipo: 'mejora',

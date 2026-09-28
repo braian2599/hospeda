@@ -1007,6 +1007,20 @@ export default function ReservasModule() {
  setModalOpen(true);
  };
 
+ // Reserva empezada desde el calendario del Dashboard: se abre el formulario
+ // con la habitación y las fechas que se tocaron, y la lista de habitaciones
+ // ya buscada para esas fechas (con la tocada elegida).
+ const nuevaReservaPrellenada = useHotelStore(s => s.nuevaReservaPrellenada);
+ const setNuevaReservaPrellenada = useHotelStore(s => s.setNuevaReservaPrellenada);
+ useEffect(() => {
+ if (!nuevaReservaPrellenada) return;
+ const { habitacion, checkin, checkout } = nuevaReservaPrellenada;
+ setNuevaReservaPrellenada(null);
+ openNew();
+ setForm(prev => ({ ...prev, checkin, checkout, habitacion }));
+ setDisponibles(buscarDisponibilidad(checkin, checkout));
+ }, [nuevaReservaPrellenada]);
+
  const openEdit = (r: Reserva, tabInicial: 'disponibilidad' | 'pago' = 'disponibilidad') => {
  setEditingId(r.id);
  const conCheckout = r.estado === 'Check-Out realizado';

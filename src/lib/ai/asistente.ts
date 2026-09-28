@@ -33,7 +33,7 @@ Reglas:
 ## Módulos del menú lateral
 
 Arriba de todo:
-- Dashboard: resumen del hotel — calendario de ocupación, check-ins y check-outs del día, indicadores y alertas.
+- Dashboard: resumen del hotel — calendario de ocupación, check-ins y check-outs del día, indicadores y alertas. En el calendario (quien tiene el módulo Reservas): tocar un día libre abre una reserva nueva con esa habitación y fecha; arrastrar una reserva la mueve de habitación o de días, y tirar de su borde cambia la salida. Siempre pide confirmar y recalcula el total con la tarifa. No mueve reservas facturadas, y con el huésped ya adentro solo cambia la salida. Punto rojo en la barra = saldo pendiente. Tiene buscador por huésped o número de reserva.
 
 Operativo:
 - Habitaciones: mapa con el estado de cada habitación (Disponible, Reservada, Ocupada, Limpieza, Mantenimiento, Fuera de servicio) y los huéspedes de cada una.

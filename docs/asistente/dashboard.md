@@ -18,11 +18,31 @@ scroll vertical, de arriba a abajo:
    un botón "Ver N más" para desplegar el resto. "Ocultar" pliega la tarjeta
    entera y se recuerda. Debajo, **Reservas de la web** si entraron reservas
    por la página del hotel.
-4. **Calendario Gantt de Ocupación**: vista tipo diagrama de Gantt por
-   habitación y día. Navegación con flechas semana anterior/siguiente,
-   botón "Hoy", selector de rango "2 sem"/"1 mes", y toggle "Historial"
-   (muestra/oculta reservas ya finalizadas). Click en una barra abre el
-   detalle de esa reserva (huésped, fechas, tarifa, monto, saldo, menores).
+4. **Calendario Gantt de Ocupación** (código en
+   `src/components/modules/dashboard/CalendarioGantt.tsx`): vista tipo
+   diagrama de Gantt por habitación y día. Navegación con flechas semana
+   anterior/siguiente, botón "Hoy", selector de rango "2 sem"/"1 mes", y
+   toggle "Historial" (muestra/oculta reservas ya finalizadas).
+   - Cada barra muestra el número de reserva (#0012) y el huésped. Un punto
+     rojo = tiene saldo pendiente. Un candado = facturada.
+   - Tocar una barra abre el detalle (número, huésped, fechas, noches,
+     tarifa, total, saldo). Se cierra tocando afuera, con Escape o con la X.
+   - Filtro por tipo de habitación (si hay más de un tipo) y buscador por
+     huésped o número; abajo lista las reservas que coinciden y tocándolas
+     lleva a esa semana.
+   - Solo con el módulo Reservas: tocar un día libre abre "Nueva reserva"
+     con esa habitación y esa fecha cargadas. Arrastrar una barra la mueve a
+     otra habitación u otros días; tirar de su borde derecho cambia la
+     salida. Siempre pide confirmar y muestra el total antes y después: el
+     precio se recalcula SIEMPRE con la tarifa de la reserva (misma cuenta
+     que al editarla en Reservas).
+   - No deja mover: reservas facturadas o terminadas; a una habitación
+     ocupada esas noches o con menos capacidad; a días que ya pasaron; si
+     el huésped ya hizo el check-in, solo se puede cambiar la salida (no la
+     habitación ni la entrada); si la tarifa no tiene precios; si el total
+     está pasado a cuenta corriente y el precio cambia (primero se anula el
+     pase); si lo cobrado supera el total nuevo (eso se hace desde Reservas,
+     donde se corrigen los pagos). En celular no se arrastra.
 5. **Actividad de hoy** (salidas y llegadas del día; la hora se muestra solo
    si está registrada, si no dice "Sale" o "Llega") y **Distribución por
    tipo de habitación** (barras por tipo), lado a lado.

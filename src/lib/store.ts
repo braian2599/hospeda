@@ -317,6 +317,13 @@ interface HotelStore {
   /** De dónde salió el plan y si se renueva sola. Ver src/lib/suscripcion.ts. */
   suscripcion: Suscripcion;
   moduloBloqueado: ModuloId | null;
+  /**
+   * Una reserva nueva empezada desde el calendario del Dashboard (tocando un
+   * día libre). Reservas la lee al abrirse, abre el formulario con esto
+   * cargado y la vuelve a null. No se guarda en ningún lado.
+   */
+  nuevaReservaPrellenada: { habitacion: string; checkin: string; checkout: string } | null;
+  setNuevaReservaPrellenada: (datos: { habitacion: string; checkin: string; checkout: string } | null) => void;
   planes: Record<string, PlanInfo>;
   /**
    * true una vez que llegó el catálogo de planes real desde /api/plans.
@@ -465,6 +472,8 @@ export const useHotelStore = create<HotelStore>()(
       fechaVencimiento: null,
       suscripcion: SUSCRIPCION_VACIA,
       moduloBloqueado: null,
+      nuevaReservaPrellenada: null,
+      setNuevaReservaPrellenada: (datos) => set({ nuevaReservaPrellenada: datos }),
       planes: PLANES as Record<string, PlanInfo>,
       _planesCargados: false,
       setModuloBloqueado: (m) => set({ moduloBloqueado: m }),
