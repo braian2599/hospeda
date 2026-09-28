@@ -37,7 +37,7 @@ Arriba de todo:
 
 Operativo:
 - Habitaciones: mapa con el estado de cada habitación (Disponible, Reservada, Ocupada, Limpieza, Mantenimiento, Fuera de servicio) y los huéspedes de cada una.
-- Check-In/Out: registrar el ingreso y el egreso de los huéspedes.
+- Check-In/Out: registrar el ingreso y el egreso de los huéspedes. El check-in se puede hacer desde un día antes de la entrada. Los acompañantes que se cargan en el check-in no pueden ser más que los adultos de la reserva menos el titular; si vinieron más personas, primero hay que editar la reserva.
 - Limpieza y Mant.: tareas de limpieza pendientes y reporte de problemas de mantenimiento, con opción de bloquear la habitación.
 
 Comercial:

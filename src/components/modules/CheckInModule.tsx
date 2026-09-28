@@ -51,6 +51,16 @@ function emptyMenorForm(): MenorForm {
   return { nombre: '', documento: '', edad: '', parentesco: 'Hijo/a' };
 }
 
+/**
+ * Cuántos acompañantes se pueden cargar: los adultos de la reserva menos el
+ * titular. Los niños van aparte, como menores. Sin este tope se podían
+ * sumar personas en el check-in que la reserva no tenía (y en una
+ * compartida no descontaban camas).
+ */
+function maximoAcompanantes(r: { personas?: number } | null | undefined): number {
+  return Math.max(0, (r?.personas || 1) - 1);
+}
+
 export default function CheckInModule() {
   // ── Granular Zustand selectors (no destructuring) ──
   const reservas = useHotelStore(s => s.reservas);
@@ -107,7 +117,8 @@ export default function CheckInModule() {
     setEmergenciaNombre(r.contactoEmergencia?.nombre || '');
     setEmergenciaTelefono(r.contactoEmergencia?.telefono || '');
     setObservaciones(r.observacionesHuesped || '');
-    setAcompanantes(r.acompanantes?.length ? [...r.acompanantes] : [{ nombre: '', dni: '', celular: '' }]);
+    // Sin lugar para acompañantes (reserva de 1 adulto) no se ofrece la fila vacía.
+    setAcompanantes(r.acompanantes?.length ? [...r.acompanantes] : maximoAcompanantes(r) > 0 ? [{ nombre: '', dni: '', celular: '' }] : []);
 
     // Si ya tiene menores registrados (check-in previo), precargar
     if (r.menores && r.menores.length > 0) {
@@ -184,6 +195,13 @@ export default function CheckInModule() {
     }
     if (observaciones.trim()) datos.observacionesHuesped = observaciones.trim();
     const validAcomp = acompanantes.filter(a => a.nombre.trim());
+    const maxAcomp = maximoAcompanantes(selReserva);
+    if (validAcomp.length > maxAcomp) {
+      toast.error('Hay más acompañantes que personas en la reserva', {
+        description: `La reserva es de ${selReserva.personas || 1} adulto${(selReserva.personas || 1) === 1 ? '' : 's'}: se pueden cargar hasta ${maxAcomp} acompañante${maxAcomp === 1 ? '' : 's'}. Si vinieron más, primero editá la reserva en Reservas.`,
+      });
+      return;
+    }
     if (validAcomp.length > 0) datos.acompanantes = validAcomp;
 
     // Pasar menores al store
@@ -234,7 +252,7 @@ export default function CheckInModule() {
   };
 
   const addAcompanante = () => {
-    setAcompanantes(prev => [...prev, { nombre: '', dni: '', celular: '' }]);
+    setAcompanantes(prev => prev.length >= maximoAcompanantes(selReserva) ? prev : [...prev, { nombre: '', dni: '', celular: '' }]);
   };
 
   const removeAcompanante = (idx: number) => {
@@ -595,10 +613,15 @@ export default function CheckInModule() {
                       <Users className="w-4 h-4" />
                       Acompañantes
                     </h4>
-                    <Button type="button" size="sm" variant="outline" onClick={addAcompanante}>
+                    <Button type="button" size="sm" variant="outline" onClick={addAcompanante} disabled={acompanantes.length >= maximoAcompanantes(selReserva)}>
                       <UserPlus className="w-3.5 h-3.5 mr-1" />Agregar
                     </Button>
                   </div>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {maximoAcompanantes(selReserva) === 0
+                      ? 'La reserva es de 1 adulto: no lleva acompañantes. Si vinieron más personas, primero editá la reserva en Reservas.'
+                      : `La reserva es de ${selReserva.personas} adultos: hasta ${maximoAcompanantes(selReserva)} acompañante${maximoAcompanantes(selReserva) === 1 ? '' : 's'} además del titular. Los niños se cargan como menores.`}
+                  </p>
                   <div className="space-y-3 max-h-48 overflow-y-auto">
                     {acompanantes.map((ac, idx) => (
                       <div key={idx} className="flex gap-2 items-start">
@@ -619,7 +642,7 @@ export default function CheckInModule() {
                             onChange={e => updateAcompanante(idx, 'celular', e.target.value)}
                           />
                         </div>
-                        {acompanantes.length > 1 && (
+                        {(acompanantes.length > 1 || acompanantes.length > maximoAcompanantes(selReserva)) && (
                           <Button
                             type="button"
                             size="icon"

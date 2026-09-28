@@ -23,7 +23,7 @@ Botón "Check-In" en la reserva → abre un modal:
 - **Número de llave** — es el único campo realmente obligatorio para poder
   confirmar (junto con los datos de menores, si aplica).
 - Contacto de emergencia y observaciones — opcionales.
-- Acompañantes: se pueden agregar/quitar (nombre, DNI, celular).
+- Acompañantes: se pueden agregar/quitar (nombre, DNI, celular), como mucho los adultos de la reserva menos el titular (reserva de 3 adultos → hasta 2 acompañantes; de 1 adulto → ninguno). Los niños van como menores. Si vinieron más personas, primero se edita la reserva en Reservas para sumarlas (en una compartida eso además ocupa las camas).
 - Botón "Confirmar Check-In".
 
 Si falla, el mensaje de error es genérico (puede ser que la reserva ya no

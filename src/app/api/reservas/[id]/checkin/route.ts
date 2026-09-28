@@ -62,6 +62,20 @@ export async function POST(
       );
     }
 
+    // ── Acompañantes: como mucho los adultos de la reserva menos el titular.
+    //    Los niños van como menores. Sin este tope entraban más personas de
+    //    las reservadas (y en una compartida no descontaban camas). ──
+    if (Array.isArray(body.acompanantes)) {
+      const cargados = body.acompanantes.filter((a: { nombre?: string }) => a?.nombre?.trim()).length;
+      const maximo = Math.max(0, (reserva.personas || 1) - 1);
+      if (cargados > maximo) {
+        return NextResponse.json(
+          { error: `La reserva es de ${reserva.personas || 1} adulto${(reserva.personas || 1) === 1 ? '' : 's'}: se pueden cargar hasta ${maximo} acompañante${maximo === 1 ? '' : 's'}. Si vinieron más, primero editá la reserva.` },
+          { status: 400 },
+        );
+      }
+    }
+
     // ── Validar datos de menores si la reserva tiene ninos > 0 ──
     const cantNinos = reserva.ninos || 0;
     if (cantNinos > 0) {
