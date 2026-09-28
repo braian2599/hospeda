@@ -19,6 +19,8 @@ export interface DetalleComprobante {
   fechaServicioHasta: Date;
   /** Obligatoria desde la RG 5616. Ver CONDICION_IVA_RECEPTOR en config.ts. */
   condicionIvaReceptorId: number;
+  /** Solo Factura A y B: el IVA discriminado. En la C va null. */
+  iva: { alicuotaId: number; neto: number; importe: number } | null;
 }
 
 export interface ResultadoCae {
@@ -121,16 +123,23 @@ export async function solicitarCae(tenantId: string, ptoVta: number, detalle: De
             <CbteFch>${hoy}</CbteFch>
             <ImpTotal>${importe}</ImpTotal>
             <ImpTotConc>0.00</ImpTotConc>
-            <ImpNeto>${importe}</ImpNeto>
+            <ImpNeto>${detalle.iva ? detalle.iva.neto.toFixed(2) : importe}</ImpNeto>
             <ImpOpEx>0.00</ImpOpEx>
             <ImpTrib>0.00</ImpTrib>
-            <ImpIVA>0.00</ImpIVA>
+            <ImpIVA>${detalle.iva ? detalle.iva.importe.toFixed(2) : '0.00'}</ImpIVA>
             <FchServDesde>${fechaAfip(detalle.fechaServicioDesde)}</FchServDesde>
             <FchServHasta>${fechaAfip(detalle.fechaServicioHasta)}</FchServHasta>
             <FchVtoPago>${hoy}</FchVtoPago>
             <MonId>PES</MonId>
             <MonCotiz>1</MonCotiz>
-            <CondicionIVAReceptorId>${detalle.condicionIvaReceptorId}</CondicionIVAReceptorId>
+            <CondicionIVAReceptorId>${detalle.condicionIvaReceptorId}</CondicionIVAReceptorId>${detalle.iva ? `
+            <Iva>
+              <AlicIva>
+                <Id>${detalle.iva.alicuotaId}</Id>
+                <BaseImp>${detalle.iva.neto.toFixed(2)}</BaseImp>
+                <Importe>${detalle.iva.importe.toFixed(2)}</Importe>
+              </AlicIva>
+            </Iva>` : ''}
           </FECAEDetRequest>
         </FeDetReq>
       </FeCAEReq>

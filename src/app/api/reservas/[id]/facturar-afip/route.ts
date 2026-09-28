@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { afipDisponible, emitirComprobanteAfip } from '@/lib/afip/tenant-afip';
+import { facturaDeReserva } from '@/lib/afip/factura-reserva';
 import { AfipError, nombreTipoComprobante, letraPorTipoComprobante } from '@/lib/afip/config';
 
 // ─────────────────────────────────────────────────────────
@@ -49,16 +50,20 @@ function formatResponse(r: {
 }
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { tenantId } = await requirePermission('comprobantes');
     const { id } = await params;
+    // A nombre de quién: sin titularId, el huésped (Consumidor Final). Con
+    // titularId, esa empresa o persona con CUIT (ver emitirComprobanteAfip).
+    const body = await req.json().catch(() => ({}));
+    const titularId = typeof body?.titularId === 'string' && body.titularId ? body.titularId : null;
 
     const disponible = await afipDisponible(tenantId);
     if (!disponible) {
-      return NextResponse.json({ error: 'AFIP/ARCA no está configurado o activo para este hotel. Revisá Configuración → AFIP/ARCA.' }, { status: 400 });
+      return NextResponse.json({ error: 'AFIP/ARCA no está configurado o activo para este hotel. Revisá Configuración → Facturación.' }, { status: 400 });
     }
 
     const reserva = await db.reserva.findFirst({
@@ -79,7 +84,7 @@ export async function POST(
     }
     if (reserva.comprobanteCae != null) {
       // Ya facturado — idempotente.
-      return NextResponse.json(formatResponse(reserva));
+      return NextResponse.json({ ...formatResponse(reserva), ...(await facturaDeReserva(tenantId, id)) });
     }
 
     // "Reclamar" con un centinela — mismo patrón que la numeración del
@@ -96,11 +101,11 @@ export async function POST(
       if (actual.comprobanteCae === 'PENDIENTE') {
         return NextResponse.json({ error: 'Ya se está facturando esta reserva con AFIP — esperá un momento y volvé a intentar.' }, { status: 409 });
       }
-      return NextResponse.json(formatResponse(actual));
+      return NextResponse.json({ ...formatResponse(actual), ...(await facturaDeReserva(tenantId, id)) });
     }
 
     try {
-      const afip = await emitirComprobanteAfip(tenantId, id);
+      const afip = await emitirComprobanteAfip(tenantId, id, { titularId });
       const numeroInterno = reserva.comprobanteNumero;
 
       const actualizado = await db.reserva.update({
@@ -126,10 +131,17 @@ export async function POST(
           numero: afip.cbteNro, puntoVenta: afip.puntoVenta,
           letra: letraPorTipoComprobante('Factura', afip.cbteTipo),
           cae: afip.cae, caeVencimiento: afip.caeFchVto, tipoAfip: afip.cbteTipo, ambiente: afip.ambiente,
+          // A quién quedó hecha y por cuánto: puede no ser el huésped.
+          razonSocialReceptor: afip.receptor.razonSocial,
+          docTipoReceptor: afip.receptor.docTipo,
+          docReceptor: afip.receptor.docNro,
+          condicionIvaReceptor: afip.receptor.condicionIva,
+          domicilioReceptor: afip.receptor.domicilio,
+          importe: afip.importe,
         },
       }).catch(err => console.error('facturar-afip mirrorComprobante:', err));
 
-      return NextResponse.json(formatResponse(actualizado));
+      return NextResponse.json({ ...formatResponse(actualizado), ...(await facturaDeReserva(tenantId, id)) });
     } catch (err) {
       // Liberar el centinela: si no, la reserva queda "PENDIENTE" para
       // siempre y nadie puede reintentar facturarla.

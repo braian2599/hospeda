@@ -353,7 +353,11 @@ otra reserva sigue dando 409, compartida no se cuenta a sí misma.
    delegación. Las facturas salen a nombre del CUIT del hotel. **No se
    mantiene el modo "certificado propio del hotel": ningún hotel lo usa.**
    Los pasos exactos de la delegación se confirman probándolos.
-4. CC-4: Factura A y una factura al titular por el total.
+4. ✅ CC-4 (en PREVIEW): al facturar se elige a nombre de quién (el huésped
+   como Consumidor Final, o una empresa/persona con CUIT). Letra según emisor
+   y receptor (A, B o C) e IVA 21% discriminado en A y B. Reserva en cuenta
+   corriente: a nombre del titular y por el total. Probado con ARCA simulado;
+   falta probar A y B en homologación.
 
 ## Pendiente de decidir (no bloquea)
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { nombreTipoComprobante, docReceptor, letraPorTipoComprobante, DOC_TIPO } from '@/lib/afip/config';
+import { facturaDeReserva } from '@/lib/afip/factura-reserva';
 
 // ─────────────────────────────────────────────────────────
 // POST /api/reservas/[id]/comprobante
@@ -126,7 +127,7 @@ export async function POST(
 
     // Ya emitido — devolver siempre el mismo resultado (idempotente).
     if (reserva.comprobanteNumero != null) {
-      return NextResponse.json(formatResponse(reserva));
+      return NextResponse.json({ ...formatResponse(reserva), ...(await facturaDeReserva(tenantId, id)) });
     }
 
     if (reserva.estado !== 'Checkout_realizado') {
@@ -149,7 +150,7 @@ export async function POST(
 
     if (claim.count === 0) {
       const actual = await db.reserva.findUniqueOrThrow({ where: { id }, select: SELECT_COMPROBANTE });
-      return NextResponse.json(formatResponse(actual));
+      return NextResponse.json({ ...formatResponse(actual), ...(await facturaDeReserva(tenantId, id)) });
     }
 
     try {
@@ -172,7 +173,7 @@ export async function POST(
       await mirrorComprobante(tenantId, id, reserva, {
         numero: config.numeroFactura, puntoVenta: config.puntoVenta ?? 1,
       });
-      return NextResponse.json(formatResponse(actualizado));
+      return NextResponse.json({ ...formatResponse(actualizado), ...(await facturaDeReserva(tenantId, id)) });
     } catch (err) {
       // Liberar el claim: si no, la reserva queda trabada mostrando el
       // centinela -1 para siempre y el usuario nunca puede reintentar.

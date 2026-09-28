@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import CuentaCorrienteTab from '@/components/cuenta-corriente/CuentaCorrienteTab';
+import FacturarAfipDialog from '@/components/comprobantes/FacturarAfipDialog';
 import { toast } from 'sonner';
 import PaginationBar from '@/components/ui/pagination-bar';
 import { AnimatedNumber } from '@/components/ui/animated-number';
@@ -132,6 +133,29 @@ export interface ComprobanteDisplay {
   tipoComprobanteNombre: string | null;
   tipoComprobanteCodigo: number | null;
   ambiente: 'homologacion' | 'produccion' | null;
+  /** A quién quedó hecha la factura (puede no ser el huésped) y por cuánto, en pesos. */
+  receptor?: ReceptorFacturaApi | null;
+  importe?: number | null;
+}
+
+/** Como lo devuelve la API (ver src/lib/afip/factura-reserva.ts). */
+export interface ReceptorFacturaApi {
+  razonSocial: string;
+  docTipo: number | null;
+  docNro: string | null;
+  condicionIva: string | null;
+  domicilio: string | null;
+}
+
+/** Lo que se imprime en "Datos del receptor" a partir de lo que guardó la factura. */
+function receptorParaMostrar(r: ReceptorFacturaApi): ReceptorComprobante {
+  return {
+    razonSocial: r.razonSocial,
+    domicilio: r.domicilio || '',
+    sitTributaria: r.condicionIva || 'Consumidor Final',
+    etiquetaDoc: r.docTipo === DOC_TIPO.CUIT ? 'C.U.I.T.' : r.docTipo === DOC_TIPO.DNI ? 'DNI' : 'Doc.',
+    docNro: r.docNro || '0',
+  };
 }
 
 /** Forma cruda que devuelven POST /api/reservas/[id]/comprobante y
@@ -147,6 +171,8 @@ export interface ComprobanteFetchData {
   tipoComprobante: string | null;
   tipoComprobanteCodigo: number | null;
   ambiente: 'homologacion' | 'produccion' | null;
+  receptor?: ReceptorFacturaApi | null;
+  importe?: number | null;
 }
 
 export default function ComprobantesModule() {
@@ -1184,7 +1210,6 @@ function VerComprobanteDialog({
   onFacturado: () => void;
 }) {
   const [generandoPdf, setGenerandoPdf] = useState(false);
-  const [facturando, setFacturando] = useState(false);
   const [confirmarFacturarOpen, setConfirmarFacturarOpen] = useState(false);
 
   // QR obligatorio de AFIP (RG 4892) — solo cuando el comprobante que se
@@ -1264,26 +1289,6 @@ function VerComprobanteDialog({
     }
   };
 
-  const handleFacturarAfip = async () => {
-    if (!item.reservaId) return;
-    setFacturando(true);
-    try {
-      const res = await fetch(`/api/reservas/${item.reservaId}/facturar-afip`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error('No se pudo facturar con AFIP', { description: data.error || 'Probá de nuevo en un momento.' });
-        return;
-      }
-      toast.success('Facturado con AFIP', { description: `CAE ${data.cae}` });
-      onFacturado();
-    } catch {
-      toast.error('Error de conexión con el servidor');
-    } finally {
-      setFacturando(false);
-      setConfirmarFacturarOpen(false);
-    }
-  };
-
   return (
     <>
     <Dialog open={!!item} onOpenChange={onOpenChange}>
@@ -1312,8 +1317,8 @@ function VerComprobanteDialog({
             Descargar PDF
           </Button>
           {puedeFacturar && (
-            <Button onClick={() => setConfirmarFacturarOpen(true)} disabled={facturando} variant="outline" size="sm" className="gap-1.5 border-primary text-primary hover:bg-[#0F766E1A]">
-              {facturando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+            <Button onClick={() => setConfirmarFacturarOpen(true)} variant="outline" size="sm" className="gap-1.5 border-primary text-primary hover:bg-[#0F766E1A]">
+              <Zap className="w-4 h-4" />
               Facturar con AFIP
             </Button>
           )}
@@ -1321,26 +1326,15 @@ function VerComprobanteDialog({
       </DialogContent>
     </Dialog>
 
-    <AlertDialog open={confirmarFacturarOpen} onOpenChange={open => { if (!facturando) setConfirmarFacturarOpen(open); }}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>¿Facturar este recibo con AFIP?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Se le va a pedir a AFIP un CAE real para este comprobante. Una vez autorizado, la factura queda
-            registrada ante AFIP y no se puede deshacer desde acá — solo se corrige más adelante con una
-            Nota de Crédito. El número de AFIP va a reemplazar al número interno {item.numeroDisplay}
-            (que queda anotado como referencia).
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={facturando}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={handleFacturarAfip} disabled={facturando}>
-            {facturando ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
-            Sí, facturar con AFIP
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    {puedeFacturar && item.reservaId && (
+      <FacturarAfipDialog
+        open={confirmarFacturarOpen}
+        onOpenChange={setConfirmarFacturarOpen}
+        reservaId={item.reservaId}
+        numeroDisplay={item.numeroDisplay}
+        onFacturado={() => onFacturado()}
+      />
+    )}
     </>
   );
 }
@@ -1522,6 +1516,7 @@ function ReciboContent({
     numero: number; numeroInternoDisplay: string | null; puntoVenta: number; fecha: string | null;
     cae: string | null; caeVencimiento: string | null; tipoComprobante: string | null; tipoComprobanteCodigo: number | null;
     ambiente: 'homologacion' | 'produccion' | null;
+    receptor: ReceptorFacturaApi | null; importe: number | null;
   } | null>(null);
   // fetchingComprobante solo importa cuando isReceipt es true — se deriva
   // más abajo, así el efecto nunca necesita "resetear" este estado a mano
@@ -1543,6 +1538,8 @@ function ReciboContent({
       tipoComprobante: data.tipoComprobante || null,
       tipoComprobanteCodigo: data.tipoComprobanteCodigo || null,
       ambiente: data.ambiente || null,
+      receptor: data.receptor || null,
+      importe: data.importe ?? null,
     });
   };
 
@@ -1616,6 +1613,8 @@ function ReciboContent({
         tipoComprobanteNombre: comprobante.tipoComprobante,
         tipoComprobanteCodigo: comprobante.tipoComprobanteCodigo,
         ambiente: comprobante.ambiente,
+        receptor: comprobante.receptor,
+        importe: comprobante.importe,
       })
     : {
         numeroDisplay: cotizacionRef(reserva.id), numeroInternoDisplay: null, numero: 0, puntoVenta: 0, fecha: null,
@@ -1933,20 +1932,26 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
   // antes, que mostraba "FACTURA" en cotizaciones/recibos sin CAE. ──
   const esFacturaOficial = isReceipt && !!comprobante?.cae && !!comprobante.tipoComprobanteCodigo;
   const tipoDocumento: TipoComprobanteGenerico = !isReceipt ? 'Presupuesto' : esFacturaOficial ? 'Factura' : 'Recibo';
+  // Ya facturada, vale lo que quedó en la factura: puede estar a nombre de una
+  // empresa, y por el total si la reserva pasó a cuenta corriente.
+  const receptorFactura = esFacturaOficial ? comprobante?.receptor ?? null : null;
+  const importeDocumento = esFacturaOficial && comprobante?.importe != null ? comprobante.importe : pagado;
 
   // ── QR obligatorio de AFIP (RG 4892) — solo existe cuando hay CAE real. ──
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   useEffect(() => {
     if (!comprobante?.cae || !comprobante.tipoComprobanteCodigo || !fiscal?.cuit) { setQrDataUrl(null); return; }
     let cancelled = false;
-    const { docTipo, docNro } = docReceptor(reserva.dni);
+    const { docTipo, docNro } = receptorFactura
+      ? { docTipo: receptorFactura.docTipo || DOC_TIPO.CONSUMIDOR_FINAL, docNro: receptorFactura.docNro || '0' }
+      : docReceptor(reserva.dni);
     const url = urlQrAfip({
       fecha: comprobante.fecha ? new Date(comprobante.fecha).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
       cuit: fiscal.cuit,
       ptoVta: comprobante.puntoVenta,
       cbteTipo: comprobante.tipoComprobanteCodigo,
       nroCmp: comprobante.numero,
-      importe: pagado,
+      importe: importeDocumento,
       docTipo, docNro,
       cae: comprobante.cae,
     });
@@ -1954,7 +1959,7 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
       .then(dataUrl => { if (!cancelled) setQrDataUrl(dataUrl); })
       .catch(() => { if (!cancelled) setQrDataUrl(null); });
     return () => { cancelled = true; };
-  }, [comprobante?.cae, comprobante?.tipoComprobanteCodigo, comprobante?.puntoVenta, comprobante?.numero, comprobante?.fecha, fiscal?.cuit, pagado, reserva.dni]);
+  }, [comprobante?.cae, comprobante?.tipoComprobanteCodigo, comprobante?.puntoVenta, comprobante?.numero, comprobante?.fecha, fiscal?.cuit, importeDocumento, reserva.dni, receptorFactura]);
 
   // ── Aviso de homologación: CAE real pero de ambiente de prueba, nunca se
   // confunde con una factura de producción. ──
@@ -1966,6 +1971,7 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
   // vista en pantalla (ComprobanteOficial) como al descargar el PDF, así
   // nunca pueden desincronizarse entre sí. ──
   const receptor: ReceptorComprobante = useMemo(() => {
+    if (receptorFactura) return receptorParaMostrar(receptorFactura);
     const { docTipo, docNro } = docReceptor(reserva.dni);
     return {
       razonSocial: reserva.huesped,
@@ -1974,7 +1980,7 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
       etiquetaDoc: docTipo === DOC_TIPO.CUIT ? 'C.U.I.T.' : 'DNI',
       docNro,
     };
-  }, [reserva.dni, reserva.huesped, reserva.domicilio]);
+  }, [reserva.dni, reserva.huesped, reserva.domicilio, receptorFactura]);
   const concepto = `Alojamiento — Hab. ${reserva.habitacion}${hab?.tipo ? ` (${hab.tipo})` : ''} — ${formatFecha(reserva.checkin)} a ${formatFecha(reserva.checkout)} (${noches} noche${noches !== 1 ? 's' : ''})`;
 
   // ── Descargar PDF: se dibuja el comprobante con las primitivas de jsPDF
@@ -2007,8 +2013,8 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
         docReceptor: receptor.docNro,
         notaReceptor: null,
         concepto,
-        importe: pagado,
-        montoEnLetras: montoALetras(pagado),
+        importe: importeDocumento,
+        montoEnLetras: montoALetras(importeDocumento),
         cae: comprobante?.cae || null,
         caeVencimiento: comprobante?.caeVencimiento ? new Date(comprobante.caeVencimiento).toLocaleDateString('es-AR') : null,
         qrDataUrl,
@@ -2027,27 +2033,8 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
   // ── Facturar con AFIP: acción aparte del check-out, sobre un recibo que
   // todavía no tiene CAE. Es irreversible (una vez que AFIP autoriza el
   // CAE no hay forma de deshacerlo acá), por eso pide confirmación. ──
-  const [facturando, setFacturando] = useState(false);
   const [confirmarFacturarOpen, setConfirmarFacturarOpen] = useState(false);
   const puedeFacturar = isReceipt && !!comprobante && !comprobante.cae;
-  const handleFacturarAfip = async () => {
-    setFacturando(true);
-    try {
-      const res = await fetch(`/api/reservas/${reserva.id}/facturar-afip`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error('No se pudo facturar con AFIP', { description: data.error || 'Probá de nuevo en un momento.' });
-        return;
-      }
-      onComprobanteActualizado?.(data);
-      toast.success('Facturado con AFIP', { description: `CAE ${data.cae}` });
-    } catch {
-      toast.error('Error de conexión con el servidor');
-    } finally {
-      setFacturando(false);
-      setConfirmarFacturarOpen(false);
-    }
-  };
 
   return (
     <div id="comprobante-imprimible" data-formato="a4" className="bg-card print:bg-white text-foreground print:text-black">
@@ -2060,7 +2047,7 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
       ) : (
         <ComprobanteOficial
           tipo={tipoDocumento}
-          receptor={receptor} concepto={concepto} fiscal={fiscal} comprobante={comprobante} pagado={pagado}
+          receptor={receptor} concepto={concepto} fiscal={fiscal} comprobante={comprobante} pagado={importeDocumento}
           fechaEmision={fechaEmision} qrDataUrl={qrDataUrl}
           avisoBanner={avisoBanner}
         />
@@ -2082,33 +2069,22 @@ function A4Receipt({ reserva, fiscal, isReceipt, comprobante, loadingComprobante
           Imprimir A4
         </Button>
         {puedeFacturar && (
-          <Button onClick={() => setConfirmarFacturarOpen(true)} disabled={facturando} variant="outline" size="sm" className="gap-1.5 border-primary text-primary hover:bg-[#0F766E1A]">
-            {facturando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+          <Button onClick={() => setConfirmarFacturarOpen(true)} variant="outline" size="sm" className="gap-1.5 border-primary text-primary hover:bg-[#0F766E1A]">
+            <Zap className="w-4 h-4" />
             Facturar con AFIP
           </Button>
         )}
       </div>
 
-      <AlertDialog open={confirmarFacturarOpen} onOpenChange={open => { if (!facturando) setConfirmarFacturarOpen(open); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Facturar este recibo con AFIP?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Se le va a pedir a AFIP un CAE real para este comprobante. Una vez autorizado, la factura queda
-              registrada ante AFIP y no se puede deshacer desde acá — solo se corrige más adelante con una
-              Nota de Crédito. El número de AFIP va a reemplazar al número interno {comprobante?.numeroDisplay}
-              (que queda anotado como referencia).
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={facturando}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleFacturarAfip} disabled={facturando}>
-              {facturando ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
-              Sí, facturar con AFIP
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {puedeFacturar && (
+        <FacturarAfipDialog
+          open={confirmarFacturarOpen}
+          onOpenChange={setConfirmarFacturarOpen}
+          reservaId={reserva.id}
+          numeroDisplay={comprobante?.numeroDisplay || ''}
+          onFacturado={data => onComprobanteActualizado?.(data as unknown as ComprobanteFetchData)}
+        />
+      )}
     </div>
   );
 }

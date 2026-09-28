@@ -33,6 +33,7 @@ export function afipUrls(ambiente: AfipAmbiente) {
 // no captura. Si se necesita más adelante, se agrega sin romper lo que ya
 // funciona.
 export const CBTE_TIPO = {
+  FACTURA_A: 1,
   FACTURA_B: 6,
   FACTURA_C: 11,
 } as const;
@@ -48,6 +49,51 @@ export const CONDICION_IVA_RECEPTOR = {
   CONSUMIDOR_FINAL: 5,
   MONOTRIBUTO: 6,
 } as const;
+
+/**
+ * Alícuota de IVA del alojamiento: la general, 21% (Ley 23.349). En ARCA es
+ * el Id 5 de la tabla FEParamGetTiposIva (3 = 0%, 4 = 10,5%, 5 = 21%, 6 = 27%).
+ */
+export const ALICUOTA_IVA_ALOJAMIENTO = { id: 5, porcentaje: 21 } as const;
+
+const esResponsableInscripto = (condicion: string | null | undefined) =>
+  (condicion || '').trim().toLowerCase() === 'responsable inscripto';
+
+/**
+ * La letra de la factura según quién factura y a quién:
+ * - El hotel Monotributista o Exento emite siempre Factura C.
+ * - El hotel Responsable Inscripto emite Factura A a otro Responsable
+ *   Inscripto, y Factura B a todos los demás (consumidor final,
+ *   monotributista, exento).
+ */
+export function tipoFactura(condicionIvaEmisor: string, condicionIvaReceptor: string | null | undefined): number {
+  if (!esResponsableInscripto(condicionIvaEmisor)) return CBTE_TIPO.FACTURA_C;
+  return esResponsableInscripto(condicionIvaReceptor) ? CBTE_TIPO.FACTURA_A : CBTE_TIPO.FACTURA_B;
+}
+
+/** El Id de CONDICION_IVA_RECEPTOR para la condición cargada de quien recibe. */
+export function condicionIvaReceptorId(condicion: string | null | undefined): number {
+  const c = (condicion || '').trim().toLowerCase();
+  if (c === 'responsable inscripto') return CONDICION_IVA_RECEPTOR.RESPONSABLE_INSCRIPTO;
+  if (c === 'monotributista' || c === 'responsable monotributo') return CONDICION_IVA_RECEPTOR.MONOTRIBUTO;
+  if (c === 'exento') return CONDICION_IVA_RECEPTOR.EXENTO;
+  return CONDICION_IVA_RECEPTOR.CONSUMIDOR_FINAL;
+}
+
+/** A y B discriminan el IVA ante ARCA (neto + IVA). La C va con IVA en cero. */
+export function discriminaIva(cbteTipo: number): boolean {
+  return cbteTipo === CBTE_TIPO.FACTURA_A || cbteTipo === CBTE_TIPO.FACTURA_B;
+}
+
+/**
+ * Separa un total con IVA incluido en neto + IVA, en pesos con dos
+ * decimales. El IVA es la diferencia: así neto + IVA da siempre el total.
+ */
+export function separarIva(total: number, porcentaje: number): { neto: number; iva: number } {
+  const neto = Math.round((total * 100) / (1 + porcentaje / 100)) / 100;
+  const iva = Math.round((total - neto) * 100) / 100;
+  return { neto, iva };
+}
 
 export const DOC_TIPO = {
   CUIT: 80,
@@ -68,6 +114,7 @@ export function tipoComprobantePorCondicionIva(condicionIva: string): number {
 }
 
 export function nombreTipoComprobante(cbteTipo: number): string {
+  if (cbteTipo === CBTE_TIPO.FACTURA_A) return 'Factura A';
   if (cbteTipo === CBTE_TIPO.FACTURA_B) return 'Factura B';
   if (cbteTipo === CBTE_TIPO.FACTURA_C) return 'Factura C';
   return `Comprobante ${cbteTipo}`;
@@ -75,6 +122,7 @@ export function nombreTipoComprobante(cbteTipo: number): string {
 
 /** La letra grande que llevan las facturas argentinas en el recuadro superior. */
 export function letraComprobante(cbteTipo: number): string {
+  if (cbteTipo === CBTE_TIPO.FACTURA_A) return 'A';
   if (cbteTipo === CBTE_TIPO.FACTURA_B) return 'B';
   if (cbteTipo === CBTE_TIPO.FACTURA_C) return 'C';
   return '?';
