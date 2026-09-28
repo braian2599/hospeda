@@ -91,6 +91,14 @@ export const NOVEDADES: Novedad[] = [
   // Las cuatro del 28/09 salen con el deploy de esa noche. El arreglo va
   // primero: es lo que los hoteles venían sufriendo.
   {
+    id: 'reservas-en-tarjetas-2026-09',
+    fecha: '2026-09-29',
+    tipo: 'mejora',
+    titulo: 'Reservas más claras',
+    texto: 'Cada reserva es ahora una tarjeta con lo importante: estado, habitación, fechas y cuánto debe. La acción que toca (check-in, check-out, cobrar, confirmar pago) está siempre a la vista, y el resto en el menú "⋯". Arriba hay un buscador por nombre, DNI o número y filtros rápidos: Hoy, Alojados, Próximas, Con saldo y Terminadas.',
+    requiere: { modulo: 'reservas' },
+  },
+  {
     id: 'calendario-mover-reservas-2026-09',
     fecha: '2026-09-29',
     tipo: 'nuevo',

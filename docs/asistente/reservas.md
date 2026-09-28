@@ -51,6 +51,30 @@ combinaciones de 2 habitaciones cuya capacidad sumada alcance. Se elige la
 combinación como si fuera una única reserva: personas y tarifa se cargan
 para cada habitación, y en Pago se ve el total combinado de ambas.
 
+## La lista de reservas
+Una tarjeta por reserva (código: `src/components/reservas/TarjetaReserva.tsx`,
+reglas en `src/lib/reservas-lista.ts`):
+- Arriba: número (#0012) y estado: Llega hoy, Confirmada, Por confirmar,
+  Alojado, Sale hoy, Terminada o Cancelada.
+- Huésped; habitación, personas, fechas y noches; y el pago: "Debe $X" con
+  una barrita de lo cobrado, "Pagada" (y "Facturada" si corresponde) o la
+  cuenta corriente.
+- Abajo, siempre a la vista, la acción que toca: Confirmar pago (por
+  confirmar), Check-in (desde un día antes de la entrada), Check-out
+  (alojado), Cobrar (si debe) o A cuenta corriente. El check-in y el
+  check-out desde acá piden confirmar; para cargar llave, acompañantes o
+  menores hay que ir a Check-In/Out.
+- El resto está en el menú "⋯": Ver detalle, Editar reserva, Registrar pago,
+  Corregir pagos, Pasar a cuenta corriente y Cancelar reserva (solo lo que
+  se puede hacer con esa reserva). Tocar la tarjeta abre el detalle.
+- Arriba de la lista: buscador (nombre, DNI o número; con "#" busca solo el
+  número) y filtros rápidos con la cantidad: Todas, Hoy, Alojados, Próximas,
+  Con saldo y Terminadas. Estado, tipo de habitación, estado de pago y fechas
+  están en "Más filtros".
+- Orden: primero alojados, por confirmar y confirmadas (de la entrada más
+  cercana a la más lejana), después terminadas y canceladas (la más nueva
+  primero).
+
 ## Editar una reserva
 - Cada reserva tiene un número corto por hotel (#0012), que se ve en la
   lista, en el detalle, en "Editar reserva #0012" y en los comprobantes.

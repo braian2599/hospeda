@@ -41,7 +41,7 @@ Operativo:
 - Limpieza y Mant.: tareas de limpieza pendientes y reporte de problemas de mantenimiento, con opción de bloquear la habitación.
 
 Comercial:
-- Reservas: alta y edición de reservas, búsqueda de disponibilidad por fechas, y control automático para que no se superpongan.
+- Reservas: alta y edición de reservas, búsqueda de disponibilidad por fechas, y control automático para que no se superpongan. La lista es de tarjetas: cada una muestra estado, habitación, fechas y lo que debe, con la acción que toca siempre a la vista (Confirmar pago, Check-in, Check-out, Cobrar) y el resto en el menú "⋯" (Ver detalle, Editar, Registrar pago, Corregir pagos, Pasar a cuenta corriente, Cancelar). Arriba hay un buscador (nombre, DNI o número) y filtros rápidos: Todas, Hoy, Alojados, Próximas, Con saldo y Terminadas; el resto de los filtros está en "Más filtros".
 - Clientes: dos pestañas. Personas: ficha de cada huésped con sus datos e historial de estadías. Empresas: las empresas a las que se les factura o se les lleva cuenta corriente; se cargan acá (con "Traer de ARCA", que completa los datos con el CUIT) y en ningún otro lado.
 - Tarifas: precios con tres modos de cobro (por grupo, por habitación o por cama), rangos por cantidad de personas, promociones (noches de cortesía, precio de niños, acompañante sin cargo) y campos personalizados.
 

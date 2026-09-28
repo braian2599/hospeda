@@ -21,15 +21,12 @@ import {
 import {
  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import {
- Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import {
- CalendarDays, Plus, Pencil, XCircle, Search, BedDouble, Users, Eye,
+ CalendarDays, Plus, Pencil, XCircle, Search, BedDouble, Users, Eye, SlidersHorizontal,
  AlertTriangle, ChevronDown, ChevronUp, Lightbulb,
- Download, LogIn, LogOut, CreditCard, Bed, TrendingUp, TrendingDown,
+ Download, Bed, TrendingUp, TrendingDown,
  ArrowRight, User, Loader2, CheckCircle2, Check, BookOpen,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
@@ -38,6 +35,14 @@ import { toast } from 'sonner';
 import { notifySuccess, notifyWarning } from '@/lib/notify';
 import { moduloDisponible } from '@/lib/plan-config';
 import { esCompartida, lugaresPara } from '@/lib/ocupacion';
+import {
+ FILTROS_RAPIDOS, compararReservas, coincideBusqueda, pasaFiltroRapido, type FiltroRapido,
+} from '@/lib/reservas-lista';
+import TarjetaReserva from '@/components/reservas/TarjetaReserva';
+import {
+ AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+ AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PaginationBar from '@/components/ui/pagination-bar';
@@ -564,6 +569,7 @@ export default function ReservasModule() {
  const realizarCheckIn = useHotelStore(s => s.realizarCheckIn);
  const realizarCheckOut = useHotelStore(s => s.realizarCheckOut);
  const preguntarCuentaCorriente = useHotelStore(s => s.preguntarCuentaCorriente);
+ const setModulo = useHotelStore(s => s.setModulo);
  const planActual = useHotelStore(s => s.planActual);
  const planes = useHotelStore(s => s.planes);
  // Cuenta corriente solo si el plan tiene Comprobantes: sin eso nadie en el
@@ -595,8 +601,18 @@ export default function ReservasModule() {
  const todayStr = todayLocal();
  const [filtroDesde, setFiltroDesde] = useState('');
  const [filtroHasta, setFiltroHasta] = useState('');
+ // Filtros rápidos (chips) y buscador, arriba de la lista. Los filtros de
+ // antes (estado, tipo, pago y fechas) quedan en "Más filtros".
+ const [filtroRapidoGuardado, setFiltroRapido] = useFilterState<string>('reservas_rapido', 'todas');
+ const filtroRapido: FiltroRapido = FILTROS_RAPIDOS.some(f => f.id === filtroRapidoGuardado) ? filtroRapidoGuardado as FiltroRapido : 'todas';
+ const [busqueda, setBusqueda] = useState('');
+ const filtrosAvanzados = [filtroEstado !== 'todos', filtroTipo !== 'todos', filtroEstadoPago !== 'todos', !!filtroDesde, !!filtroHasta].filter(Boolean).length;
+ // Si quedó un filtro de antes puesto, "Más filtros" arranca abierto: si no,
+ // la lista aparecería recortada sin que se vea por qué.
+ const [masFiltros, setMasFiltros] = useState(() => filtrosAvanzados > 0);
  const [page, setPage] = useState(1);
- const PAGE_SIZE = 15;
+ // 12: entra justo en filas de 2, 3 o 4 tarjetas.
+ const PAGE_SIZE = 12;
 
  // ==================== MODAL STATES ====================
  const [modalOpen, setModalOpen] = useState(false);
@@ -830,7 +846,10 @@ export default function ReservasModule() {
  // ==================== FILTERED RESERVAS ====================
  const roomTypes = Array.from(new Set(Object.values(habitaciones).map(h => h.tipo)));
 
- const filteredReservas = reservas.filter(r => {
+ const hoyLista = todayLocal();
+ const saldoDe = (r: Reserva) => calcularTotalReserva(r.id) - calcularTotalPagado(r.id);
+ const reservasBase = reservas.filter(r => {
+ if (!coincideBusqueda(r, busqueda)) return false;
  if (filtroEstado !== 'todos' && r.estado !== filtroEstado) return false;
  if (filtroTipo !== 'todos') {
  const hab = habitaciones[r.habitacion];
@@ -840,7 +859,38 @@ export default function ReservasModule() {
  if (filtroDesde && r.checkout <= filtroDesde) return false;
  if (filtroHasta && r.checkin >= filtroHasta) return false;
  return true;
- }).sort((a, b) => b.checkin.localeCompare(a.checkin));
+ });
+ const conteoRapido = Object.fromEntries(
+ FILTROS_RAPIDOS.map(f => [f.id, reservasBase.filter(r => pasaFiltroRapido(r, f.id, hoyLista, saldoDe(r))).length]),
+ ) as Record<FiltroRapido, number>;
+ const filteredReservas = reservasBase
+ .filter(r => pasaFiltroRapido(r, filtroRapido, hoyLista, saldoDe(r)))
+ .sort(compararReservas);
+
+ const limpiarFiltros = () => {
+ setFiltroEstado('todos'); setFiltroTipo('todos'); setFiltroEstadoPago('todos');
+ setFiltroDesde(''); setFiltroHasta(''); setPage(1);
+ };
+
+ const exportarCSV = () => {
+ const headers = ['N°', 'Huésped', 'DNI', 'Habitación', 'Check-in', 'Check-out', 'Estado', 'Total'];
+ const rows = filteredReservas.map(r => [
+ numeroDeReserva(r),
+ r.huesped || '',
+ r.dni || '',
+ r.habitacion || '',
+ r.checkin || '',
+ r.checkout || '',
+ r.estado || '',
+ calcularTotalReserva(r.id),
+ ]);
+ exportToCSV('reservas.csv', headers, rows);
+ toast.success('CSV exportado');
+ };
+
+ // Check-in y check-out desde la tarjeta: ahora están siempre a la vista
+ // (antes solo al pasar el mouse), así que se confirman antes.
+ const [confirmarRapido, setConfirmarRapido] = useState<{ tipo: 'checkin' | 'checkout'; r: Reserva } | null>(null);
 
  // ==================== PAGINATION ====================
  const totalPages = Math.ceil(filteredReservas.length / PAGE_SIZE) || 1;
@@ -900,12 +950,6 @@ export default function ReservasModule() {
  // ==================== STATUS COLOR HELPERS ====================
  // Status color indicator functions removed — not functional nor necessary per UX decision
 
- const getPaymentProgress = useCallback((r: Reserva) => {
- const total = calcularTotalReserva(r.id);
- const pagado = calcularTotalPagado(r.id);
- if (total <= 0) return 100;
- return Math.min(100, Math.round((pagado / total) * 100));
- }, [calcularTotalReserva, calcularTotalPagado]);
 
  // ==================== COMPUTED: HABITACIONES FILTRADAS POR CAPACIDAD ====================
  const personasBusqueda = parseInt(form.personasBusqueda) || 1;
@@ -1592,10 +1636,50 @@ export default function ReservasModule() {
    </div>
  </div>
 
- {/* ==================== FILTER BAR ==================== */}
- <Card className="bg-[#F1F5F933] border-[#E2E8F0CC]">
- <CardContent className="p-4">
- <div className="flex flex-wrap gap-3 items-end justify-center">
+ {/* ==================== BUSCADOR + FILTROS RÁPIDOS + TARJETAS ==================== */}
+ <Card>
+ <CardContent className="p-0">
+ <div className="flex flex-wrap items-center gap-2 p-3 border-b">
+ <label className="flex items-center gap-2 h-9 px-2.5 rounded-md border bg-background flex-1 min-w-[200px] max-w-[340px] focus-within:ring-2 focus-within:ring-primary/40">
+ <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+ <input
+ value={busqueda}
+ onChange={e => { setBusqueda(e.target.value); setPage(1); }}
+ placeholder="Buscar huésped, DNI o #número"
+ className="bg-transparent outline-none text-sm w-full"
+ aria-label="Buscar reservas por huésped, DNI o número"
+ />
+ </label>
+ <div className="flex flex-wrap gap-1" role="group" aria-label="Filtro rápido">
+ {FILTROS_RAPIDOS.map(f => (
+ <button
+ key={f.id}
+ type="button"
+ aria-pressed={filtroRapido === f.id}
+ onClick={() => { setFiltroRapido(f.id); setPage(1); }}
+ className={cn(
+ 'h-8 px-3 rounded-full border text-[12.5px] font-medium inline-flex items-center gap-1.5 transition-colors',
+ filtroRapido === f.id ? 'bg-primary border-primary text-primary-foreground' : 'bg-card hover:bg-muted',
+ )}
+ >
+ {f.etiqueta}
+ <span className={cn('text-[11px] font-semibold', filtroRapido === f.id ? 'text-primary-foreground/80' : 'text-muted-foreground')}>{conteoRapido[f.id]}</span>
+ </button>
+ ))}
+ </div>
+ <div className="ml-auto flex items-center gap-1">
+ <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setMasFiltros(v => !v)} aria-expanded={masFiltros}>
+ <SlidersHorizontal className="w-3.5 h-3.5" />Más filtros
+ {filtrosAvanzados > 0 && <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-semibold px-1.5">{filtrosAvanzados}</span>}
+ </Button>
+ <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={exportarCSV}>
+ <Download className="w-3.5 h-3.5" />Exportar CSV
+ </Button>
+ </div>
+ </div>
+
+ {masFiltros && (
+ <div className="flex flex-wrap gap-3 items-end p-3 border-b bg-muted/30">
  <div className="grid gap-1.5">
  <Label className="text-xs text-muted-foreground">Estado</Label>
  <Select value={filtroEstado} onValueChange={v => { setFiltroEstado(v); setPage(1); }}>
@@ -1635,446 +1719,91 @@ export default function ReservasModule() {
  </div>
  <DatePickerInline value={filtroDesde} onChange={v => { setFiltroDesde(v); setPage(1); }} placeholder="Desde" label="Fecha desde" />
  <DatePickerInline value={filtroHasta} onChange={v => { setFiltroHasta(v); setPage(1); }} placeholder="Hasta" label="Fecha hasta" />
- <Button variant="outline" size="sm" onClick={() => { const today = new Date().toLocaleDateString('en-CA'); setFiltroEstado('todos'); setFiltroTipo('todos'); setFiltroEstadoPago('todos'); setFiltroDesde(today); setFiltroHasta(today); setPage(1); }}>
+ <Button variant="outline" size="sm" onClick={limpiarFiltros} disabled={filtrosAvanzados === 0}>
  <XCircle className="w-3.5 h-3.5 mr-1" />Limpiar
  </Button>
- <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-colors" onClick={() => {
-   const headers = ['N°', 'Huésped', 'DNI', 'Habitación', 'Check-in', 'Check-out', 'Estado', 'Total'];
-   const rows = filteredReservas.map(r => [
-     numeroDeReserva(r),
-     r.huesped || '',
-     r.dni || '',
-     r.habitacion || '',
-     r.checkin || '',
-     r.checkout || '',
-     r.estado || '',
-     calcularTotalReserva(r.id),
-   ]);
-   exportToCSV('reservas.csv', headers, rows);
-   toast.success('CSV exportado');
- }}>
- <Download className="w-3.5 h-3.5" />Exportar CSV
- </Button>
  </div>
- </CardContent>
- </Card>
+ )}
 
- {/* ==================== CARDS (mobile) / TABLE (desktop) ==================== */}
- <Card>
- <CardContent className="p-0">
- {/* ── Mobile: Enhanced Card list ── */}
- <div className="sm:hidden">
- {filteredReservas.length === 0 ? (
+ <div className="p-3">
+ {pagedReservas.length === 0 ? (
  <div className="text-center py-10 text-muted-foreground">No se encontraron reservas.</div>
  ) : (
- <div className="divide-y divide-border">
+ <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
  {pagedReservas.map(r => {
  const saldo = getSaldo(r);
- const payProgress = getPaymentProgress(r);
- const isActionLoading = quickActionLoading === r.id;
  return (
- <div
+ <TarjetaReserva
  key={r.id}
- role="button"
- tabIndex={0}
- onClick={() => openDetalle(r)}
- onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetalle(r); } }}
- className={cn(
-   'w-full text-left p-4 transition-all duration-200 cursor-pointer',
-   'hover:-translate-y-0.5 hover:shadow-md active:bg-[#F1F5F980]'
- )}
- >
- {/* Row 1: Guest + Room Badge */}
- <div className="flex items-start justify-between gap-2">
-   <div className="min-w-0">
-     <p className="font-semibold text-sm truncate">{r.huesped}</p>
-     <p className="text-xs text-muted-foreground">{r.dni}{r.numero != null && ` · ${numeroDeReserva(r)}`}</p>
-   </div>
-   <div className="flex items-center gap-1 shrink-0 bg-[#0F766E14] rounded-md px-2 py-1">
-     <BedDouble className="w-3.5 h-3.5 text-primary" />
-     <span className="text-xs font-bold text-primary font-mono">{r.habitacion}</span>
-   </div>
- </div>
- {/* Row 2: Dates with icons */}
- <div className="flex items-center gap-2 text-xs mt-2">
-   <div className="flex items-center gap-1 text-primary">
-     <CalendarDays className="w-3 h-3 shrink-0" />
-     <span className="font-medium">{formatFecha(r.checkin)}</span>
-   </div>
-   <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-   <div className="flex items-center gap-1 text-brand-amber">
-     <CalendarDays className="w-3 h-3 shrink-0" />
-     <span className="font-medium">{formatFecha(r.checkout)}</span>
-   </div>
- </div>
- {/* Row 3: Guest count + Badges */}
- <div className="flex items-center gap-2 flex-wrap mt-2">
-   <Badge className={estadoReservaBadge[r.estado] || ''}>{r.estado}</Badge>
-   <Badge className={estadoPagoBadge[estadoPagoDe(r)] || ''}>{estadoPagoDe(r)}</Badge>
-   {r.facturada && <Badge className={estadoPagoBadge.Facturada}>Facturada</Badge>}
-   <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
-     <User className="w-3 h-3" />
-     <span>{r.personas}</span>
-   </div>
- </div>
- {/* Row 4: Payment progress bar */}
- {payProgress < 100 && (
-   <div className="mt-2">
-     <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-0.5">
-       <span>Pago</span>
-       <span className="font-medium">{payProgress}%</span>
-     </div>
-     <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-       <div
-         className={cn(
-           'h-full rounded-full transition-all duration-500',
-           payProgress >= 80 ? 'bg-primary' : payProgress >= 40 ? 'bg-brand-amber' : 'bg-destructive'
-         )}
-         style={{ width: `${payProgress}%` }}
-       />
-     </div>
-   </div>
- )}
- {/* Row 5: Saldo */}
- {r.cuentaCorriente ? (
-   <div className="flex items-center gap-1 mt-1.5 text-xs text-info font-medium">
-     <BookOpen className="w-3 h-3" />
-     Cuenta corriente: {r.cuentaCorriente.titular}
-   </div>
- ) : saldo > 0 && (
-   <div className="flex items-center gap-1 mt-1.5 text-xs text-destructive font-medium">
-     <AlertTriangle className="w-3 h-3" />
-     Saldo: {formatMoney(saldo)}
-   </div>
- )}
- {/* Row 6: Quick Actions */}
- <div className="flex gap-1.5 mt-2" onClick={e => e.stopPropagation()}>
-   {r.estado === 'Confirmada' && (
-     <>
-       <Button
-         size="sm"
-         variant="ghost"
-         className="h-9 flex-1 text-xs px-2 text-primary hover:bg-[#0F766E1A] hover:text-primary"
-         disabled={isActionLoading}
-         onClick={() => handleQuickCheckIn(r)}
-       >
-         <LogIn className="w-3.5 h-3.5 mr-1.5" />Check-in
-       </Button>
-       {!r.facturada && (
-         <Button
-           size="sm"
-           variant="ghost"
-           className="h-9 flex-1 text-xs px-2 text-warning hover:bg-[#D9770626]"
-           onClick={() => openEdit(r)}
-         >
-           <Pencil className="w-3.5 h-3.5 mr-1.5" />Editar
-         </Button>
-       )}
-       {!r.facturada && (
-         <Button
-           size="sm"
-           variant="ghost"
-           className="h-9 flex-1 text-xs px-2 text-destructive hover:bg-[#EF444426]"
-           onClick={() => openCancel(r.id)}
-         >
-           <XCircle className="w-3.5 h-3.5 mr-1.5" />Cancelar
-         </Button>
-       )}
-     </>
-   )}
-   {r.estado === 'Check-In realizado' && (
-     <>
-       <Button
-         size="sm"
-         variant="ghost"
-         className="h-9 flex-1 text-xs px-2 text-warning hover:bg-[#D9770626]"
-         disabled={isActionLoading}
-         onClick={() => handleQuickCheckOut(r)}
-       >
-         <LogOut className="w-3.5 h-3.5 mr-1.5" />Check-out
-       </Button>
-     </>
-   )}
-   {r.estado === 'A confirmar' && (
-     <>
-       <Button
-         size="sm"
-         variant="ghost"
-         className="h-9 flex-1 text-xs px-2 text-primary hover:bg-[#0F766E1A] hover:text-primary"
-         onClick={() => abrirConfirmarPago(r)}
-       >
-         <CreditCard className="w-3.5 h-3.5 mr-1.5" />Confirmar pago
-       </Button>
-       {!r.facturada && (
-         <Button
-           size="sm"
-           variant="ghost"
-           className="h-9 flex-1 text-xs px-2 text-destructive hover:bg-[#EF444426]"
-           onClick={() => openCancel(r.id)}
-         >
-           <XCircle className="w-3.5 h-3.5 mr-1.5" />Cancelar
-         </Button>
-       )}
-     </>
-   )}
-   {saldo > 0 && !r.facturada && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && (
-     <Button
-       size="sm"
-       variant="ghost"
-       className="h-9 flex-1 text-xs px-2 text-chart-5 hover:bg-[#8B5CF626]"
-       onClick={() => openEdit(r, 'pago')}
-     >
-       <CreditCard className="w-3.5 h-3.5 mr-1.5" />Pago
-     </Button>
-   )}
-   {puedeCorregirPagosCerrada(r, saldo) && (
-     <Button
-       size="sm"
-       variant="ghost"
-       className="h-9 flex-1 text-xs px-2 text-warning hover:bg-[#D9770626]"
-       onClick={() => openEdit(r)}
-     >
-       <Pencil className="w-3.5 h-3.5 mr-1.5" />Editar pagos
-     </Button>
-   )}
-   {puedePasarACuenta(r, saldo) && (
-     <Button
-       size="sm"
-       variant="ghost"
-       className="h-9 flex-1 text-xs px-2 text-info hover:bg-[#0284C71A]"
-       onClick={() => preguntarCuentaCorriente(r.id)}
-     >
-       <BookOpen className="w-3.5 h-3.5 mr-1.5" />A cuenta corriente
-     </Button>
-   )}
- </div>
- </div>
+ r={r}
+ hoy={hoyLista}
+ total={calcularTotalReserva(r.id)}
+ saldo={saldo}
+ cargando={quickActionLoading === r.id}
+ puedePasarACuenta={puedePasarACuenta(r, saldo)}
+ puedeCorregirPagos={puedeCorregirPagosCerrada(r, saldo)}
+ onDetalle={() => openDetalle(r)}
+ onEditar={() => openEdit(r)}
+ onCobrar={() => openEdit(r, 'pago')}
+ onCorregirPagos={() => openEdit(r)}
+ onCancelar={() => openCancel(r.id)}
+ onConfirmarPago={() => abrirConfirmarPago(r)}
+ onCheckin={() => setConfirmarRapido({ tipo: 'checkin', r })}
+ onCheckout={() => setConfirmarRapido({ tipo: 'checkout', r })}
+ onCuentaCorriente={() => preguntarCuentaCorriente(r.id)}
+ />
  );
  })}
  </div>
  )}
  </div>
-
- {/* ── Desktop: Enhanced Table ── */}
- <div className="hidden sm:block overflow-x-auto">
- <Table>
- <TableHeader>
- <TableRow className="bg-[#F1F5F94D]">
-   <TableHead className="text-center">Huésped</TableHead>
-   <TableHead>Habitación</TableHead>
-   <TableHead>Check-in</TableHead>
-   <TableHead>Check-out</TableHead>
-   <TableHead>Estado</TableHead>
-   <TableHead>Pago</TableHead>
-   <TableHead className="hidden lg:table-cell">Progreso</TableHead>
-   <TableHead className="hidden md:table-cell">Saldo</TableHead>
-   <TableHead className="text-center">Acciones</TableHead>
- </TableRow>
- </TableHeader>
- <TableBody>
- {filteredReservas.length === 0 ? (
- <TableRow>
-   <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-     No se encontraron reservas.
-   </TableCell>
- </TableRow>
- ) : (
- pagedReservas.map(r => {
-   const saldo = getSaldo(r);
-   const payProgress = getPaymentProgress(r);
-   const isActionLoading = quickActionLoading === r.id;
-   return (
-     <TableRow key={r.id} className="group transition-all duration-150 hover:bg-[#0F766E1A] hover:-translate-y-px hover:shadow-sm">
-       <TableCell className="font-medium text-center">
-         <button
-           className="group-hover:text-primary transition-colors cursor-pointer"
-           onClick={() => openDetalle(r)}
-         >
-           <div>{r.huesped}</div>
-           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-             <span>{r.dni}</span>
-             {r.numero != null && (
-               <>
-                 <span className="text-muted-foreground">·</span>
-                 <span>{numeroDeReserva(r)}</span>
-               </>
-             )}
-             <span className="text-muted-foreground">·</span>
-             <User className="w-3 h-3" />
-             <span>{r.personas}</span>
-           </div>
-         </button>
-       </TableCell>
-       <TableCell>
-         <div className="flex items-center gap-1.5">
-           <BedDouble className="w-3.5 h-3.5 text-primary" />
-           <Badge variant="outline" className="font-mono font-semibold">{r.habitacion}</Badge>
-         </div>
-       </TableCell>
-       <TableCell>
-         <div className="flex items-center gap-1 text-xs">
-           <CalendarDays className="w-3 h-3 text-primary shrink-0" />
-           <span>{formatFecha(r.checkin)}</span>
-         </div>
-       </TableCell>
-       <TableCell>
-         <div className="flex items-center gap-1 text-xs">
-           <CalendarDays className="w-3 h-3 text-brand-amber shrink-0" />
-           <span>{formatFecha(r.checkout)}</span>
-         </div>
-       </TableCell>
-       <TableCell>
-         <Badge className={`font-semibold shadow-sm ${estadoReservaBadge[r.estado] || ''}`}>{r.estado}</Badge>
-       </TableCell>
-       <TableCell>
-         <Badge className={`font-semibold shadow-sm ${estadoPagoBadge[estadoPagoDe(r)] || ''}`}>{estadoPagoDe(r)}</Badge>
-         {r.facturada && <Badge className={`font-semibold shadow-sm ml-1 ${estadoPagoBadge.Facturada}`}>Facturada</Badge>}
-       </TableCell>
-       <TableCell className="hidden lg:table-cell">
-         {payProgress < 100 ? (
-           <div className="w-20">
-             <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-0.5">
-               <span>{payProgress}%</span>
-             </div>
-             <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-               <div
-                 className={cn(
-                   'h-full rounded-full transition-all duration-500',
-                   payProgress >= 80 ? 'bg-primary' : payProgress >= 40 ? 'bg-brand-amber' : 'bg-destructive'
-                 )}
-                 style={{ width: `${payProgress}%` }}
-               />
-             </div>
-           </div>
-         ) : (
-           <span className="text-[10px] text-primary font-semibold">✓ Completo</span>
-         )}
-       </TableCell>
-       <TableCell className="hidden md:table-cell">
-         {r.cuentaCorriente ? (
-           <div className="flex items-center gap-1 text-info text-xs" title={`${formatMoney(r.cuentaCorriente.monto)} en la cuenta de ${r.cuentaCorriente.titular}`}>
-             <BookOpen className="w-3.5 h-3.5 shrink-0" />
-             <span className="truncate max-w-[140px]">{r.cuentaCorriente.titular}</span>
-           </div>
-         ) : (
-           <div className="flex items-center gap-1">
-             {saldo > 0 && <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />}
-             <span className={saldo > 0 ? 'text-destructive font-medium' : 'text-muted-foreground'}>
-               {formatMoney(saldo)}
-             </span>
-           </div>
-         )}
-       </TableCell>
-       <TableCell className="text-center">
-         <div className="flex justify-center gap-1 flex-wrap">
-           {r.estado === 'Confirmada' && (
-             <>
-               <Button
-                 size="sm"
-                 variant="ghost"
-                 className="h-7 text-xs px-2 text-primary hover:bg-[#0F766E1A] hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
-                 disabled={isActionLoading}
-                 onClick={() => handleQuickCheckIn(r)}
-               >
-                 <LogIn className="w-3 h-3 mr-1" />Check-in
-               </Button>
-               {!r.facturada && (
-                 <Button
-                   size="sm"
-                   variant="outline"
-                   className="border-[#D9770666] text-warning hover:bg-[#D9770626] h-7 text-xs px-2"
-                   onClick={() => openEdit(r)}
-                 >
-                   <Pencil className="w-3 h-3 mr-1" />Editar
-                 </Button>
-               )}
-               {!r.facturada && (
-                 <Button
-                   size="sm"
-                   variant="outline"
-                   className="border-[#EF444466] text-destructive hover:bg-[#EF444426] h-7 text-xs px-2"
-                   onClick={() => openCancel(r.id)}
-                 >
-                   <XCircle className="w-3 h-3 mr-1" />Cancelar
-                 </Button>
-               )}
-             </>
-           )}
-           {r.estado === 'Check-In realizado' && (
-             <Button
-               size="sm"
-               variant="ghost"
-               className="h-7 text-xs px-2 text-warning hover:bg-[#D9770626] opacity-0 group-hover:opacity-100 transition-opacity"
-               disabled={isActionLoading}
-               onClick={() => handleQuickCheckOut(r)}
-             >
-               <LogOut className="w-3 h-3 mr-1" />Check-out
-             </Button>
-           )}
-           {r.estado === 'A confirmar' && (
-             <>
-               <Button
-                 size="sm"
-                 variant="outline"
-                 className="border-[#0F766E66] text-primary hover:bg-[#0F766E1A] h-7 text-xs px-2"
-                 onClick={() => abrirConfirmarPago(r)}
-               >
-                 <CreditCard className="w-3 h-3 mr-1" />Confirmar pago
-               </Button>
-               {!r.facturada && (
-                 <Button
-                   size="sm"
-                   variant="outline"
-                   className="border-[#EF444466] text-destructive hover:bg-[#EF444426] h-7 text-xs px-2"
-                   onClick={() => openCancel(r.id)}
-                 >
-                   <XCircle className="w-3 h-3 mr-1" />Cancelar
-                 </Button>
-               )}
-             </>
-           )}
-           {saldo > 0 && !r.facturada && r.estado !== 'Cancelada' && r.estado !== 'Check-Out realizado' && (
-             <Button
-               size="sm"
-               variant="ghost"
-               className="h-7 text-xs px-2 text-chart-5 hover:bg-[#8B5CF626] opacity-0 group-hover:opacity-100 transition-opacity"
-               onClick={() => openEdit(r, 'pago')}
-             >
-               <CreditCard className="w-3 h-3 mr-1" />Pago
-             </Button>
-           )}
-           {puedeCorregirPagosCerrada(r, saldo) && (
-             <Button
-               size="sm"
-               variant="outline"
-               className="border-[#D9770666] text-warning hover:bg-[#D9770626] h-7 text-xs px-2"
-               onClick={() => openEdit(r)}
-             >
-               <Pencil className="w-3 h-3 mr-1" />Editar pagos
-             </Button>
-           )}
-           {puedePasarACuenta(r, saldo) && (
-             <Button
-               size="sm"
-               variant="outline"
-               className="border-[#0284C766] text-info hover:bg-[#0284C71A] h-7 text-xs px-2"
-               onClick={() => preguntarCuentaCorriente(r.id)}
-             >
-               <BookOpen className="w-3 h-3 mr-1" />A cuenta corriente
-             </Button>
-           )}
-         </div>
-       </TableCell>
-     </TableRow>
-   );
- })
- )}
- </TableBody>
- </Table>
- </div>
  <PaginationBar page={page} totalPages={totalPages} onPageChange={setPage} totalItems={filteredReservas.length} pageSize={PAGE_SIZE} />
  </CardContent>
  </Card>
+
+ {/* ==================== CONFIRMAR CHECK-IN / CHECK-OUT RÁPIDO ==================== */}
+ <AlertDialog open={confirmarRapido !== null} onOpenChange={open => { if (!open) setConfirmarRapido(null); }}>
+ <AlertDialogContent>
+ {confirmarRapido && (() => {
+ const { tipo, r } = confirmarRapido;
+ const saldo = Math.max(0, getSaldo(r));
+ const conMenores = tipo === 'checkin' && (r.ninos || 0) > 0;
+ return (
+ <>
+ <AlertDialogHeader>
+ <AlertDialogTitle>¿Hacer el {tipo === 'checkin' ? 'check-in' : 'check-out'} de {r.huesped}?</AlertDialogTitle>
+ <AlertDialogDescription>
+ Habitación {r.habitacion}.{' '}
+ {tipo === 'checkin'
+ ? (conMenores
+ ? 'La reserva tiene menores: sus datos se cargan en Check-In/Out.'
+ : 'Se registra ahora, sin llave ni acompañantes. Para cargarlos, hacelo desde Check-In/Out.')
+ : ''}
+ </AlertDialogDescription>
+ </AlertDialogHeader>
+ {tipo === 'checkout' && saldo > 0 && !r.cuentaCorriente && (
+ <div className="text-sm rounded-lg p-3 bg-[#EF444426] text-destructive font-medium">
+ Tiene un saldo pendiente de {formatMoney(saldo)}.
+ </div>
+ )}
+ <AlertDialogFooter>
+ <AlertDialogCancel>Cancelar</AlertDialogCancel>
+ {tipo === 'checkin' && (
+ <Button variant="outline" onClick={() => { setConfirmarRapido(null); setModulo('checkin'); }}>
+ Ir a Check-In/Out
+ </Button>
+ )}
+ {!conMenores && (
+ <AlertDialogAction onClick={() => { setConfirmarRapido(null); if (tipo === 'checkin') handleQuickCheckIn(r); else handleQuickCheckOut(r); }}>
+ {tipo === 'checkin' ? 'Hacer check-in ahora' : 'Confirmar check-out'}
+ </AlertDialogAction>
+ )}
+ </AlertDialogFooter>
+ </>
+ );
+ })()}
+ </AlertDialogContent>
+ </AlertDialog>
 
  {/* ==================== MODAL DETALLE ==================== */}
  <Dialog open={modalDetalleOpen} onOpenChange={setModalDetalleOpen}>
