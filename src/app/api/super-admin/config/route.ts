@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireSuperAdmin } from '@/lib/super-admin/auth';
 import { encrypt, decrypt, isEncrypted } from '@/lib/crypto';
+import { PREFIJO_TICKET_HOSPEDA } from '@/lib/afip/wsaa';
 
 // ─── Helpers ───
 
@@ -32,6 +33,9 @@ export async function GET() {
     const configs = await db.platformConfig.findMany();
     const configMap: Record<string, string> = {};
     for (const c of configs) {
+      // Los permisos de ARCA del certificado de Hospeda no son configuración:
+      // no se muestran ni se editan desde el panel.
+      if (c.key.startsWith(PREFIJO_TICKET_HOSPEDA)) continue;
       configMap[c.key] = c.value;
     }
 
@@ -111,6 +115,7 @@ export async function PUT(req: NextRequest) {
 
     // Upsert cada key
     for (const [key, rawValue] of Object.entries(config)) {
+      if (key.startsWith(PREFIJO_TICKET_HOSPEDA)) continue;
       let value = String(rawValue);
 
       // Si es un campo sensible:

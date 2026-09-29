@@ -113,6 +113,13 @@ export async function PUT(req: NextRequest) {
     // quedar distintos. Solo se actualiza si el hotel ya tiene la conexión.
     const cuitDigitos = String(cuit || '').replace(/\D/g, '');
     if (cuitDigitos.length === 11) {
+      // Con el certificado de Hospeda, lo que se verificó fue la delegación
+      // del CUIT anterior: con otro CUIT hay que volver a verificar. (Antes
+      // de cambiar el CUIT, que si no ya no se distingue.)
+      await db.tenantAfip.updateMany({
+        where: { tenantId, certificadoPem: null, activo: true, NOT: { cuit: cuitDigitos } },
+        data: { activo: false, ultimoError: 'Cambió el CUIT: volvé a verificar la delegación a Hospeda.' },
+      });
       await db.tenantAfip.updateMany({ where: { tenantId }, data: { cuit: cuitDigitos } });
     }
 

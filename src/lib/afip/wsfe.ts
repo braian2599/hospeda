@@ -6,7 +6,8 @@
 // (TenantConfig.numeroFactura) que ya existía antes de esta integración.
 
 import { db } from '@/lib/db';
-import { getWsaaTicket } from './wsaa';
+import { getWsaaTicket, getTicketHospeda } from './wsaa';
+import { usaCertificadoHospeda } from './certificado-hospeda';
 import { afipUrls, fechaAfip, fechaAfipHoy, AfipError, type AfipAmbiente } from './config';
 import { soapCall, xmlEscape } from './soap';
 
@@ -35,14 +36,36 @@ export interface ResultadoCae {
   cbteNro: number;
 }
 
-async function authBlock(tenantId: string): Promise<{ token: string; sign: string; cuit: string; ambiente: AfipAmbiente }> {
+async function authBlock(tenantId: string): Promise<Auth> {
   const config = await db.tenantAfip.findUnique({ where: { tenantId } });
   if (!config) throw new AfipError('No hay configuración de AFIP para este hotel.', 'NO_CERT');
   const { token, sign } = await getWsaaTicket(tenantId);
-  return { token, sign, cuit: config.cuit, ambiente: config.ambiente as AfipAmbiente };
+  return { token, sign, cuit: config.cuit, ambiente: config.ambiente as AfipAmbiente, deHospeda: usaCertificadoHospeda(config) };
 }
 
-interface Auth { token: string; sign: string; cuit: string; ambiente: AfipAmbiente }
+/**
+ * Cuit es SIEMPRE el del hotel: con su certificado propio, o con el de
+ * Hospeda cuando el hotel le delegó el servicio (ARCA acepta el ticket de
+ * Hospeda para ese CUIT porque figura en su lista de relaciones).
+ */
+interface Auth { token: string; sign: string; cuit: string; ambiente: AfipAmbiente; deHospeda: boolean }
+
+/**
+ * Error 600 "ValidacionDeToken: No aparecio CUIT en lista de relaciones":
+ * el CUIT no está vinculado al certificado. Con el de Hospeda quiere decir
+ * que la delegación no está hecha (o ARCA todavía no la registró).
+ */
+function errorWsfe(prefijo: string, errores: string, auth: Auth): AfipError {
+  if (/lista de relaciones/i.test(errores)) {
+    return new AfipError(
+      auth.deHospeda
+        ? `ARCA todavía no registra que el CUIT ${auth.cuit} le haya delegado la Facturación Electrónica a Hospeda. Si ya lo hiciste, puede tardar hasta 24 horas. (${errores})`
+        : `El CUIT ${auth.cuit} no corresponde al certificado cargado. (${errores})`,
+      'SIN_DELEGACION',
+    );
+  }
+  return new AfipError(`${prefijo}: ${errores}`, 'WSFE_ERROR');
+}
 
 async function consultarUltimoAutorizadoConAuth(auth: Auth, ptoVta: number, cbteTipo: number): Promise<number> {
   const bodyXml = `<FECompUltimoAutorizado xmlns="http://ar.gov.afip.dif.FEV1/">
@@ -58,7 +81,7 @@ async function consultarUltimoAutorizadoConAuth(auth: Auth, ptoVta: number, cbte
   const body = await soapCall(afipUrls(auth.ambiente).wsfe, 'http://ar.gov.afip.dif.FEV1/FECompUltimoAutorizado', bodyXml);
   const result = body?.FECompUltimoAutorizadoResponse?.FECompUltimoAutorizadoResult;
   const errores = extraerErrores(result?.Errors);
-  if (errores) throw new AfipError(`AFIP rechazó la consulta de último comprobante: ${errores}`, 'WSFE_ERROR');
+  if (errores) throw errorWsfe('AFIP rechazó la consulta de último comprobante', errores, auth);
 
   const cbteNro = Number(result?.CbteNro ?? 0);
   return Number.isFinite(cbteNro) ? cbteNro : 0;
@@ -163,7 +186,7 @@ export async function solicitarCae(tenantId: string, ptoVta: number, detalle: De
     const result = body?.FECAESolicitarResponse?.FECAESolicitarResult;
 
     const erroresGenerales = extraerErrores(result?.Errors);
-    if (erroresGenerales) throw new AfipError(`AFIP rechazó la solicitud: ${erroresGenerales}`, 'WSFE_ERROR');
+    if (erroresGenerales) throw errorWsfe('AFIP rechazó la solicitud', erroresGenerales, auth);
 
     const detResp = result?.FeDetResp?.FECAEDetResponse;
     if (!detResp) throw new AfipError('AFIP no devolvió el detalle del comprobante.', 'WSFE_NO_DETAIL');
@@ -181,4 +204,56 @@ export async function solicitarCae(tenantId: string, ptoVta: number, detalle: De
 
     return { cae: String(detResp.CAE), caeFchVto: vencimiento, cbteNro: proximoNumero };
   }, { timeout: 30_000 }); // las llamadas SOAP a AFIP pueden tardar más que el timeout default de Prisma
+}
+
+export interface PuntoDeVentaArca {
+  numero: number;
+  /** Tal cual lo informa ARCA (p. ej. el tipo de emisión). */
+  emisionTipo: string;
+}
+
+/**
+ * Los puntos de venta del CUIT habilitados para facturar por web service
+ * (FEParamGetPtosVenta), sin los bloqueados ni los dados de baja. Sin
+ * ninguno, ARCA contesta el error 602 "Sin Resultados": lista vacía.
+ */
+async function consultarPuntosDeVenta(auth: Auth): Promise<PuntoDeVentaArca[]> {
+  const bodyXml = `<FEParamGetPtosVenta xmlns="http://ar.gov.afip.dif.FEV1/">
+      <Auth>
+        <Token>${xmlEscape(auth.token)}</Token>
+        <Sign>${xmlEscape(auth.sign)}</Sign>
+        <Cuit>${xmlEscape(auth.cuit)}</Cuit>
+      </Auth>
+    </FEParamGetPtosVenta>`;
+
+  const body = await soapCall(afipUrls(auth.ambiente).wsfe, 'http://ar.gov.afip.dif.FEV1/FEParamGetPtosVenta', bodyXml);
+  const result = body?.FEParamGetPtosVentaResponse?.FEParamGetPtosVentaResult;
+  const errores = extraerErrores(result?.Errors);
+  if (errores) {
+    if (/\[602\]/.test(errores)) return [];
+    throw errorWsfe('ARCA rechazó la consulta de puntos de venta', errores, auth);
+  }
+  return leerPuntosDeVenta(result?.ResultGet?.PtoVenta);
+}
+
+/** Separado para poder probarlo sin ARCA. */
+export function leerPuntosDeVenta(nodo: any): PuntoDeVentaArca[] {
+  const lista = Array.isArray(nodo) ? nodo : nodo ? [nodo] : [];
+  return lista
+    .filter((p: any) => String(p?.Bloqueado ?? '').toUpperCase() !== 'S')
+    .filter((p: any) => { const baja = String(p?.FchBaja ?? '').trim(); return !baja || baja.toUpperCase() === 'NULL'; })
+    .map((p: any) => ({ numero: Number(p?.Nro), emisionTipo: String(p?.EmisionTipo ?? '').trim() }))
+    .filter(p => Number.isInteger(p.numero) && p.numero > 0)
+    .sort((a, b) => a.numero - b.numero);
+}
+
+/**
+ * Comprueba con una consulta real (no emite nada) que ARCA acepta el
+ * certificado de Hospeda para ese CUIT, o sea, que la delegación está hecha.
+ * Devuelve los puntos de venta del hotel.
+ */
+export async function verificarDelegacion(cuit: string): Promise<{ ambiente: AfipAmbiente; puntosDeVenta: PuntoDeVentaArca[] }> {
+  const { token, sign, cert } = await getTicketHospeda('wsfe');
+  const puntosDeVenta = await consultarPuntosDeVenta({ token, sign, cuit, ambiente: cert.ambiente, deHospeda: true });
+  return { ambiente: cert.ambiente, puntosDeVenta };
 }

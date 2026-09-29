@@ -919,9 +919,21 @@ interface AfipEstado {
   ambiente: 'homologacion' | 'produccion';
   activo: boolean;
   tieneCertificado: boolean;
+  /** Factura con el certificado de Hospeda (delegación verificada). */
+  conHospeda: boolean;
+  /** CUIT al que hay que delegar; null si Hospeda no tiene su certificado cargado. */
+  hospedaCuit: string | null;
   ultimaConexionOk: string | null;
   ultimoError: string | null;
 }
+
+interface ResultadoDelegacion {
+  puntosDeVenta: { numero: number; emisionTipo: string }[];
+  puntoVentaConfigurado: number;
+  puntoVentaHabilitado: boolean;
+}
+
+const formatoCuit = (c: string) => (c.length === 11 ? `${c.slice(0, 2)}-${c.slice(2, 10)}-${c.slice(10)}` : c);
 
 function leerArchivoComoTexto(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -947,6 +959,36 @@ function AfipSection() {
   const [eliminandoCert, setEliminandoCert] = useState(false);
 
   const [probandoConexion, setProbandoConexion] = useState(false);
+
+  // Facturar con el certificado de Hospeda (delegación). Los puntos de venta
+  // son los que devolvió ARCA en la última verificación de esta pantalla.
+  const [delegacion, setDelegacion] = useState<ResultadoDelegacion | null>(null);
+  const [verificando, setVerificando] = useState(false);
+  const [desactivando, setDesactivando] = useState(false);
+
+  const verificarDelegacion = async () => {
+    setVerificando(true);
+    try {
+      const res = await fetch('/api/configuracion/afip/delegacion', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'No se pudo verificar la delegación'); await cargarEstado(); return; }
+      setDelegacion(data);
+      toast.success('Listo: ARCA aceptó la delegación. Ya podés facturar.');
+      await cargarEstado();
+    } catch { toast.error('Error de conexión'); } finally { setVerificando(false); }
+  };
+
+  const dejarDeUsarHospeda = async () => {
+    setDesactivando(true);
+    try {
+      const res = await fetch('/api/configuracion/afip/delegacion', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Error'); return; }
+      setDelegacion(null);
+      toast.success('Se dejó de facturar con el certificado de Hospeda');
+      await cargarEstado();
+    } catch { toast.error('Error de conexión'); } finally { setDesactivando(false); }
+  };
 
   const cargarEstado = useCallback(() => {
     return fetch('/api/configuracion/afip')
@@ -976,8 +1018,7 @@ function AfipSection() {
       setCertificadoPem('');
       setClavePrivadaPem('');
       await cargarEstado();
-    } catch { toast.error('Error de conexión'); }
-    setSubiendoCert(false);
+    } catch { toast.error('Error de conexión'); } finally { setSubiendoCert(false); }
   };
 
   const eliminarCertificado = async () => {
@@ -988,8 +1029,7 @@ function AfipSection() {
       if (!res.ok) { toast.error(data.error || 'Error'); return; }
       toast.success('Certificado eliminado');
       await cargarEstado();
-    } catch { toast.error('Error de conexión'); }
-    setEliminandoCert(false);
+    } catch { toast.error('Error de conexión'); } finally { setEliminandoCert(false); }
   };
 
   const probarConexion = async () => {
@@ -998,11 +1038,14 @@ function AfipSection() {
       const res = await fetch('/api/configuracion/afip/probar', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'No se pudo conectar con AFIP'); await cargarEstado(); return; }
+      if (data.puntosDeVenta) setDelegacion(data);
       toast.success('Conexión con AFIP exitosa');
       await cargarEstado();
-    } catch { toast.error('Error de conexión'); }
-    setProbandoConexion(false);
+    } catch { toast.error('Error de conexión'); } finally { setProbandoConexion(false); }
   };
+
+  const conHospeda = !!estado?.conHospeda;
+  const puedeUsarHospeda = !!estado?.hospedaCuit;
 
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
 
@@ -1017,18 +1060,22 @@ function AfipSection() {
           <CardDescription>Para emitir cada factura con su CAE, con el CUIT de arriba.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-start gap-2 rounded-lg border p-3 bg-[#0284C70D] text-sm">
-            <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
-            <div className="space-y-1 text-muted-foreground">
-              <p>Cada hotel necesita su propio certificado digital de AFIP, habilitado para el servicio <strong>&quot;Facturación Electrónica&quot;</strong> (wsfe). Se genera en el portal de AFIP con tu Clave Fiscal: Administrador de Relaciones → Administración de Certificados Digitales.</p>
+          {!puedeUsarHospeda && (
+            <div className="flex items-start gap-2 rounded-lg border p-3 bg-[#0284C70D] text-sm">
+              <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
+              <div className="space-y-1 text-muted-foreground">
+                <p>Cada hotel necesita su propio certificado digital de AFIP, habilitado para el servicio <strong>&quot;Facturación Electrónica&quot;</strong> (wsfe). Se genera en el portal de AFIP con tu Clave Fiscal: Administrador de Relaciones → Administración de Certificados Digitales.</p>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-2">
-            {estado?.activo ? (
-              <Badge className="bg-[#05966926] text-success border-[#0F766E66]"><CheckCircle2 className="w-3 h-3 mr-1" />Certificado activo</Badge>
+            {conHospeda ? (
+              <Badge className="bg-[#05966926] text-success border-[#0F766E66]"><CheckCircle2 className="w-3 h-3 mr-1" />Factura con el certificado de Hospeda</Badge>
+            ) : estado?.activo ? (
+              <Badge className="bg-[#05966926] text-success border-[#0F766E66]"><CheckCircle2 className="w-3 h-3 mr-1" />Certificado propio activo</Badge>
             ) : (
-              <Badge variant="secondary"><XCircle className="w-3 h-3 mr-1" />Sin certificado cargado</Badge>
+              <Badge variant="secondary"><XCircle className="w-3 h-3 mr-1" />Sin conexión con ARCA</Badge>
             )}
             {estado?.ambiente === 'homologacion' && <Badge variant="outline">Ambiente de pruebas</Badge>}
             {estado?.ultimaConexionOk && (
@@ -1042,26 +1089,78 @@ function AfipSection() {
             </div>
           )}
 
+          {conHospeda && delegacion && (
+            <div className="rounded-lg border p-3 text-sm space-y-1">
+              <p className="font-medium">Puntos de venta habilitados en ARCA</p>
+              {delegacion.puntosDeVenta.length === 0 ? (
+                <p className="text-muted-foreground">ARCA no informa ningún punto de venta para facturar por web service. Hay que crear uno en ARCA (&quot;Administración de puntos de venta y domicilios&quot;) antes de facturar.</p>
+              ) : (
+                <p className="text-muted-foreground">{delegacion.puntosDeVenta.map(p => `${String(p.numero).padStart(4, '0')}${p.emisionTipo ? ` (${p.emisionTipo})` : ''}`).join(' · ')}</p>
+              )}
+              {delegacion.puntosDeVenta.length > 0 && !delegacion.puntoVentaHabilitado && (
+                <p className="text-destructive flex items-start gap-1.5">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  El punto de venta cargado en &quot;Datos de quien factura&quot; ({String(delegacion.puntoVentaConfigurado).padStart(4, '0')}) no está entre estos. Cambialo por uno de la lista.
+                </p>
+              )}
+            </div>
+          )}
+
           {estado?.activo && (
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={probarConexion} disabled={probandoConexion}>
                 {probandoConexion ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Zap className="w-4 h-4 mr-1.5" />}
                 Probar conexión
               </Button>
-              <Button variant="ghost" size="sm" onClick={eliminarCertificado} disabled={eliminandoCert} className="text-destructive hover:text-destructive">
-                {eliminandoCert ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Trash2 className="w-4 h-4 mr-1.5" />}
-                Quitar certificado
-              </Button>
+              {conHospeda ? (
+                <Button variant="ghost" size="sm" onClick={dejarDeUsarHospeda} disabled={desactivando} className="text-destructive hover:text-destructive">
+                  {desactivando ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <XCircle className="w-4 h-4 mr-1.5" />}
+                  Dejar de usar el certificado de Hospeda
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={eliminarCertificado} disabled={eliminandoCert} className="text-destructive hover:text-destructive">
+                  {eliminandoCert ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Trash2 className="w-4 h-4 mr-1.5" />}
+                  Quitar certificado
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Card>
+      {puedeUsarHospeda && !conHospeda && !estado?.tieneCertificado && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4" style={{ color: forest }} />
+              Facturar con el certificado de Hospeda
+            </CardTitle>
+            <CardDescription>No hace falta generar un certificado: le delegás a Hospeda la facturación en ARCA y listo.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ol className="list-decimal pl-5 space-y-1.5 text-sm text-muted-foreground">
+              <li>Entrá a ARCA con tu Clave Fiscal y abrí <strong>&quot;Administrador de Relaciones de Clave Fiscal&quot;</strong>.</li>
+              <li>Tocá <strong>&quot;Nueva Relación&quot;</strong> → <strong>&quot;Buscar&quot;</strong> → ARCA → WebServices → <strong>&quot;Facturación Electrónica&quot;</strong>.</li>
+              <li>En <strong>&quot;Representante&quot;</strong>, buscá el CUIT de Hospeda: <strong className="font-mono text-foreground">{formatoCuit(estado?.hospedaCuit || '')}</strong>, y confirmá.</li>
+              <li>Avisale a Hospeda que ya delegaste: Hospeda la acepta de su lado.</li>
+              <li>Cuando Hospeda te confirme, tocá <strong>&quot;Verificar delegación&quot;</strong>. No se emite ninguna factura.</li>
+            </ol>
+            <p className="text-xs text-muted-foreground">ARCA puede tardar hasta 24 horas en registrar la delegación. Si la verificación falla, esperá y probá de nuevo.</p>
+            <div className="flex justify-end">
+              <Button onClick={verificarDelegacion} disabled={verificando} style={{ backgroundColor: forest }}>
+                {verificando ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                Verificar delegación
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!conHospeda && <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Lock className="w-4 h-4" style={{ color: forest }} />
-            {estado?.tieneCertificado ? 'Reemplazar certificado' : 'Cargar certificado'}
+            {estado?.tieneCertificado ? 'Reemplazar certificado' : puedeUsarHospeda ? 'O cargar un certificado propio' : 'Cargar certificado'}
           </CardTitle>
           <CardDescription>El certificado (.crt/.pem) no es secreto; la clave privada (.key/.pem) se guarda cifrada.</CardDescription>
         </CardHeader>
@@ -1091,7 +1190,7 @@ function AfipSection() {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card>}
 
     </div>
   );

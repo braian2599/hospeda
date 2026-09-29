@@ -14,6 +14,7 @@ import type { CondicionIva } from '@/lib/cuenta-corriente';
 import { AfipError, type AfipAmbiente } from './config';
 import { soapCall, xmlEscape } from './soap';
 import { getWsaaTicket } from './wsaa';
+import { certificadoHospeda, usaCertificadoHospeda } from './certificado-hospeda';
 
 export const PADRON_URLS: Record<AfipAmbiente, string> = {
   homologacion: 'https://awshomo.afip.gov.ar/sr-padron/webservices/personaServiceA5',
@@ -139,18 +140,26 @@ export function leerRespuestaPadron(body: any, cuit: string): DatosPadron | null
  * que no existe. Los demás problemas se lanzan como AfipError.
  */
 export async function consultarPadron(tenantId: string, cuit: string): Promise<DatosPadron | null> {
-  const config = await db.tenantAfip.findUnique({ where: { tenantId }, select: { cuit: true, ambiente: true } });
+  const config = await db.tenantAfip.findUnique({
+    where: { tenantId },
+    select: { cuit: true, ambiente: true, activo: true, certificadoPem: true, clavePrivadaPem: true },
+  });
   const cuitHotel = (config?.cuit || '').replace(/\D/g, '');
   if (cuitHotel.length !== 11) {
     throw new AfipError('Falta el CUIT del hotel en Configuración → ARCA.', 'MISSING_CONFIG');
   }
 
   const { token, sign } = await getWsaaTicket(tenantId, 'ws_sr_constancia_inscripcion');
+  // Con el certificado de Hospeda la consulta la hace Hospeda con su propio
+  // CUIT: así el hotel solo tiene que delegar la facturación y no también
+  // este servicio. Los datos de un CUIT son los mismos los consulte quien los
+  // consulte.
+  const cuitRepresentada = usaCertificadoHospeda(config) ? (certificadoHospeda()?.cuit || cuitHotel) : cuitHotel;
 
   const bodyXml = `<a5:getPersona_v2 xmlns:a5="http://a5.soap.ws.server.puc.sr/">
       <token>${xmlEscape(token)}</token>
       <sign>${xmlEscape(sign)}</sign>
-      <cuitRepresentada>${xmlEscape(cuitHotel)}</cuitRepresentada>
+      <cuitRepresentada>${xmlEscape(cuitRepresentada)}</cuitRepresentada>
       <idPersona>${xmlEscape(cuit)}</idPersona>
     </a5:getPersona_v2>`;
 

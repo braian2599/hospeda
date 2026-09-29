@@ -19,9 +19,10 @@ import forge from 'node-forge';
 import { XMLParser } from 'fast-xml-parser';
 import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import { decrypt } from '@/lib/crypto';
+import { decrypt, encrypt } from '@/lib/crypto';
 import { afipUrls, AfipError, type AfipAmbiente } from './config';
 import { soapCall, xmlEscape } from './soap';
+import { certificadoHospeda, usaCertificadoHospeda, type CertificadoHospeda } from './certificado-hospeda';
 
 /** Los servicios de ARCA que usa el sistema. */
 export type ServicioArca = 'wsfe' | 'ws_sr_constancia_inscripcion';
@@ -67,8 +68,22 @@ function ticketVigente(
  * Los dos errores de WSAA que el hotel tiene que entender, dichos en criollo.
  * Los códigos y textos son los de la especificación de WSAA de ARCA.
  */
-function traducirErrorWsaa(err: unknown, servicio: ServicioArca): unknown {
+function traducirErrorWsaa(err: unknown, servicio: ServicioArca, deHospeda = false): unknown {
   const msg = err instanceof Error ? err.message : String(err);
+  if (deHospeda && /notAuthorized|no autorizado a acceder/i.test(msg)) {
+    return new AfipError(
+      servicio === 'ws_sr_constancia_inscripcion'
+        ? 'El certificado de Hospeda no tiene habilitada la consulta de CUIT en ARCA. Avisale a Hospeda.'
+        : 'El certificado de Hospeda no tiene habilitado el servicio de facturación en ARCA. Avisale a Hospeda.',
+      'WSAA_NO_AUTORIZADO',
+    );
+  }
+  if (deHospeda && /alreadyAuthenticated|ya posee un TA/i.test(msg)) {
+    return new AfipError(
+      'ARCA ya le dio un permiso vigente al certificado de Hospeda desde otro lugar y no entrega otro hasta que venza (hasta 12 horas). Avisale a Hospeda.',
+      'WSAA_YA_AUTENTICADO',
+    );
+  }
   if (/notAuthorized|no autorizado a acceder/i.test(msg)) {
     return new AfipError(
       servicio === 'ws_sr_constancia_inscripcion'
@@ -168,6 +183,66 @@ async function loginCms(cmsBase64: string, ambiente: AfipAmbiente): Promise<{ to
   return { token: credentials.token, sign: credentials.sign, expirationTime };
 }
 
+// ── Certificado de Hospeda ──
+// ARCA da UN ticket por certificado y servicio, no uno por hotel: todos los
+// hoteles que delegaron comparten el mismo. Por eso se guarda una sola vez,
+// en PlatformConfig (cifrado), y no en TenantAfip. Si cada hotel pidiera el
+// suyo, el segundo recibiría coe.alreadyAuthenticated durante hasta 12 h.
+
+/** Prefijo de las claves de PlatformConfig con los tickets de Hospeda. No se muestran en el panel. */
+export const PREFIJO_TICKET_HOSPEDA = 'arca_ta:';
+
+function claveTicketHospeda(cert: CertificadoHospeda, servicio: ServicioArca): string {
+  return `${PREFIJO_TICKET_HOSPEDA}${cert.ambiente}:${servicio}:${cert.cuit}`;
+}
+
+async function leerTicketHospeda(
+  cliente: { platformConfig: Prisma.TransactionClient['platformConfig'] },
+  clave: string,
+): Promise<WsaaTicket | null> {
+  const fila = await cliente.platformConfig.findUnique({ where: { key: clave } });
+  if (!fila) return null;
+  try {
+    const t = JSON.parse(decrypt(fila.value)) as { token: string; sign: string; expiracion: string };
+    if (t.token && t.sign && new Date(t.expiracion).getTime() - Date.now() > RENOVAR_SI_VENCE_EN_MS) {
+      return { token: t.token, sign: t.sign };
+    }
+  } catch {
+    // Ilegible (p. ej. cambió ENCRYPTION_KEY): se pide uno nuevo.
+  }
+  return null;
+}
+
+/** Token+Sign del certificado de Hospeda para ese servicio. */
+export async function getTicketHospeda(servicio: ServicioArca = 'wsfe'): Promise<WsaaTicket & { cert: CertificadoHospeda }> {
+  const cert = certificadoHospeda();
+  if (!cert) {
+    throw new AfipError('El certificado de Hospeda para ARCA no está configurado. Avisale a Hospeda.', 'NO_CERT');
+  }
+  const clave = claveTicketHospeda(cert, servicio);
+
+  const guardado = await leerTicketHospeda(db, clave);
+  if (guardado) return { ...guardado, cert };
+
+  const ticket = await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`afip-wsaa:hospeda:${clave}`}))`;
+    const renovadoPorOtro = await leerTicketHospeda(tx, clave);
+    if (renovadoPorOtro) return renovadoPorOtro;
+
+    const cms = signLoginTicketRequest(buildLoginTicketRequestXml(servicio), cert.certificadoPem, cert.clavePrivadaPem);
+    let nuevo: { token: string; sign: string; expirationTime: Date };
+    try {
+      nuevo = await loginCms(cms, cert.ambiente);
+    } catch (err) {
+      throw traducirErrorWsaa(err, servicio, true);
+    }
+    const valor = encrypt(JSON.stringify({ token: nuevo.token, sign: nuevo.sign, expiracion: nuevo.expirationTime.toISOString() }));
+    await tx.platformConfig.upsert({ where: { key: clave }, update: { value: valor }, create: { key: clave, value: valor } });
+    return { token: nuevo.token, sign: nuevo.sign };
+  });
+  return { ...ticket, cert };
+}
+
 /**
  * Devuelve un Token+Sign válido para el tenant y ese servicio, reutilizando
  * el guardado si todavía no está por vencer. Si hace falta uno nuevo, toma
@@ -179,6 +254,16 @@ async function loginCms(cmsBase64: string, ambiente: AfipAmbiente): Promise<{ to
  */
 export async function getWsaaTicket(tenantId: string, servicio: ServicioArca = 'wsfe'): Promise<WsaaTicket> {
   const config = await db.tenantAfip.findUnique({ where: { tenantId } });
+  // Sin certificado propio pero con la delegación verificada: el de Hospeda.
+  if (usaCertificadoHospeda(config)) {
+    const { token, sign, cert } = await getTicketHospeda(servicio);
+    // El ticket es del ambiente del certificado de Hospeda; las llamadas
+    // van al del hotel. Si no coinciden, ARCA rechazaría el ticket.
+    if (config!.ambiente !== cert.ambiente) {
+      throw new AfipError('Cambió el ambiente de ARCA de Hospeda: volvé a verificar la delegación en Configuración → Facturación.', 'NO_CERT');
+    }
+    return { token, sign };
+  }
   if (!config || !config.activo || !config.certificadoPem || !config.clavePrivadaPem) {
     throw new AfipError('No hay un certificado de AFIP cargado y activo para este hotel.', 'NO_CERT');
   }

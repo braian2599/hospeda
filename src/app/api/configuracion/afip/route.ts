@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requireOwner, AuthError } from '@/lib/auth/utils';
 import { requireFeatureFlag } from '@/lib/feature-flags-server';
 import { SIN_TICKETS_WSAA } from '@/lib/afip/wsaa';
+import { certificadoHospeda, usaCertificadoHospeda } from '@/lib/afip/certificado-hospeda';
 
 // GET /api/configuracion/afip — Estado de la integración (nunca expone la clave privada).
 export async function GET() {
@@ -11,11 +12,17 @@ export async function GET() {
     await requireFeatureFlag(tenantId, 'facturacionArca');
 
     const config = await db.tenantAfip.findUnique({ where: { tenantId } });
+    const hospeda = certificadoHospeda();
     return NextResponse.json({
       cuit: config?.cuit || '',
       ambiente: config?.ambiente || 'homologacion',
       activo: config?.activo || false,
       tieneCertificado: !!config?.certificadoPem,
+      // Factura con el certificado de Hospeda (delegación verificada).
+      conHospeda: usaCertificadoHospeda(config),
+      // Si Hospeda tiene su certificado cargado, el CUIT al que hay que
+      // delegar. El certificado y la clave nunca salen del servidor.
+      hospedaCuit: hospeda?.cuit || null,
       ultimaConexionOk: config?.ultimaConexionOk?.toISOString() || null,
       ultimoError: config?.ultimoError || null,
     });
