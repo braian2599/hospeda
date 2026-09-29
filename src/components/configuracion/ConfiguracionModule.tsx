@@ -1077,7 +1077,8 @@ function AfipSection() {
             ) : (
               <Badge variant="secondary"><XCircle className="w-3 h-3 mr-1" />Sin conexión con ARCA</Badge>
             )}
-            {estado?.ambiente === 'homologacion' && <Badge variant="outline">Ambiente de pruebas</Badge>}
+            {/* Solo si hay conexión: sin conexión no se usa ningún ambiente y el cartel confundía. */}
+            {estado?.activo && estado.ambiente === 'homologacion' && <Badge variant="outline">Ambiente de pruebas</Badge>}
             {estado?.ultimaConexionOk && (
               <span className="text-xs text-muted-foreground">Última conexión OK: {new Date(estado.ultimaConexionOk).toLocaleString('es-AR')}</span>
             )}
