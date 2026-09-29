@@ -5,7 +5,7 @@ import { requirePermission, tienePermiso, AuthError } from '@/lib/auth/utils';
 import { auditar, TIPO } from '@/lib/auditoria';
 import {
   PERMISO_CUENTA_CORRIENTE, PERMISOS_TITULAR, SELECT_TITULAR,
-  leerDatosTitular, formatearCuit, vistaTitular, saldo, estadoDeCuenta, pesos, motivoParaNoAnularCargo,
+  leerDatosTitular, formatearCuit, vistaTitular, saldo, estadoDeCuenta, pesos, motivoParaNoAnularCargo, nochesDeEstadia,
 } from '@/lib/cuenta-corriente';
 import { estaFacturada } from '@/lib/facturacion-reserva';
 
@@ -30,7 +30,14 @@ export async function GET(
         cargos: {
           select: {
             id: true, monto: true, concepto: true, fecha: true, empleadoNombre: true,
-            reserva: { select: { id: true, huesped: true, habitacion: true, checkin: true, checkout: true, comprobanteCae: true } },
+            // Todos los datos de la reserva: el estado de cuenta muestra de
+            // qué estadía es cada cargo, sin tener que ir a buscarla.
+            reserva: {
+              select: {
+                id: true, numero: true, huesped: true, dni: true, habitacion: true, personas: true, ninos: true,
+                checkin: true, checkout: true, total: true, comprobanteCae: true,
+              },
+            },
           },
           orderBy: { fecha: 'asc' },
         },
@@ -52,7 +59,12 @@ export async function GET(
       cargos: titular.cargos.map(({ reserva: { comprobanteCae, ...reserva }, ...c }) => {
         // Si se puede anular el pase a cuenta corriente (ver la regla ahí).
         const motivo = motivoParaNoAnularCargo({ monto: c.monto, reservaFacturada: estaFacturada(comprobanteCae) }, deuda);
-        return { ...c, reserva, anulable: motivo == null, motivoNoAnulable: motivo };
+        return {
+          ...c,
+          reserva: { ...reserva, facturada: estaFacturada(comprobanteCae), noches: nochesDeEstadia(reserva.checkin, reserva.checkout) },
+          anulable: motivo == null,
+          motivoNoAnulable: motivo,
+        };
       }),
       pagos: titular.pagos.map(p => ({
         id: p.id, monto: p.monto, metodo: p.metodo, nota: p.nota, fecha: p.fecha, empleadoNombre: p.empleadoNombre,
@@ -81,6 +93,8 @@ export async function GET(
 // El CUIT y el tipo se pueden corregir SOLO mientras no tenga movimientos:
 // después, cambiarlos sería cambiarle el dueño a una deuda ya anotada. Si
 // estaba mal, se desactiva y se carga uno nuevo.
+// AGREGAR el CUIT a una persona que no lo tenía sí se puede siempre: es la
+// misma persona (la de su DNI), que ahora pide factura con CUIT.
 // ─────────────────────────────────────────────────────────
 export async function PUT(
   req: NextRequest,
@@ -111,14 +125,18 @@ export async function PUT(
     if (!actual) return NextResponse.json({ error: 'Titular no encontrado' }, { status: 404 });
 
     const cambiaCuit = datos.cuit !== undefined && datos.cuit !== actual.cuit;
+    const agregaCuit = cambiaCuit && !actual.cuit;
     const cambiaTipo = datos.tipo !== undefined && datos.tipo !== actual.tipo;
-    if ((cambiaCuit || cambiaTipo) && (actual._count.cargos > 0 || actual._count.pagos > 0)) {
+    if (((cambiaCuit && !agregaCuit) || cambiaTipo) && (actual._count.cargos > 0 || actual._count.pagos > 0)) {
       return NextResponse.json({
         error: 'Ya tiene movimientos en su cuenta: el CUIT y el tipo no se pueden cambiar. Si estaban mal, desactivalo y cargá uno nuevo.',
       }, { status: 409 });
     }
     if (cambiaTipo && datos.tipo === 'empresa' && actual.clienteId) {
       return NextResponse.json({ error: 'Está enganchado a la ficha de un cliente: no puede pasar a ser empresa.' }, { status: 400 });
+    }
+    if (cambiaTipo && datos.tipo === 'empresa' && !(datos.cuit ?? actual.cuit)) {
+      return NextResponse.json({ error: 'Una empresa necesita CUIT.' }, { status: 400 });
     }
 
     const data: Prisma.TitularCuentaUpdateInput = {};
@@ -142,14 +160,15 @@ export async function PUT(
       editado = await db.titularCuenta.update({ where: { id }, data, select: SELECT_TITULAR });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        return NextResponse.json({ error: 'Ese CUIT ya está cargado en otro titular.' }, { status: 409 });
+        return NextResponse.json({ error: 'Ese CUIT ya está cargado en otra cuenta.' }, { status: 409 });
       }
       throw error;
     }
 
     // Lo que cambió, dicho para el que lee la auditoría.
     const cambios: string[] = [];
-    if (cambiaCuit) cambios.push(`CUIT ${formatearCuit(actual.cuit)} → ${formatearCuit(editado.cuit)}`);
+    if (agregaCuit) cambios.push(`se agrega el CUIT ${formatearCuit(editado.cuit ?? '')}`);
+    else if (cambiaCuit) cambios.push(`CUIT ${formatearCuit(actual.cuit ?? '')} → ${formatearCuit(editado.cuit ?? '')}`);
     if (cambiaTipo) cambios.push(`pasa a ser ${editado.tipo}`);
     if (datos.nombre !== undefined && datos.nombre !== actual.nombre) cambios.push(`nombre "${actual.nombre}" → "${editado.nombre}"`);
     if (datos.condicionIva !== undefined && datos.condicionIva !== actual.condicionIva) cambios.push(`IVA: ${editado.condicionIva ?? 'sin dato'}`);

@@ -164,6 +164,23 @@ export async function DELETE(
       );
     }
 
+    // Si debe algo en su cuenta corriente, no: la ficha es de donde salen sus
+    // datos para cobrarle. Cuando salda la deuda, se puede borrar (la cuenta
+    // queda, con su DNI y su historial).
+    const cuenta = await db.titularCuenta.findUnique({ where: { clienteId: id }, select: { id: true } });
+    if (cuenta) {
+      const [c, p] = await Promise.all([
+        db.cargoCuentaCorriente.aggregate({ where: { titularId: cuenta.id }, _sum: { monto: true } }),
+        db.pagoCuentaCorriente.aggregate({ where: { titularId: cuenta.id }, _sum: { monto: true } }),
+      ]);
+      if ((c._sum.monto ?? 0) - (p._sum.monto ?? 0) > 0) {
+        return NextResponse.json(
+          { error: 'No se puede eliminar: el cliente debe plata en su cuenta corriente.' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Cancelar reservas futuras (estado Reservada) vinculadas al cliente
     await db.reserva.updateMany({
       where: {

@@ -522,7 +522,7 @@ export default function ClientesModule() {
                 <Tabs defaultValue="datos">
                   <TabsList>
                     <TabsTrigger value="datos">Datos</TabsTrigger>
-                    <TabsTrigger value="fiscales">Datos fiscales</TabsTrigger>
+                    <TabsTrigger value="fiscales">Cuenta y facturación</TabsTrigger>
                   </TabsList>
                   <TabsContent value="datos">
                 <div className="space-y-5 py-2">

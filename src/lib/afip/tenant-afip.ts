@@ -88,13 +88,20 @@ export async function emitirComprobanteAfip(
   if (titularId) {
     const t = await db.titularCuenta.findFirst({
       where: { id: titularId, tenantId },
-      select: { nombre: true, cuit: true, condicionIva: true, domicilioFiscal: true },
+      select: { nombre: true, cuit: true, documento: true, condicionIva: true, domicilioFiscal: true },
     });
     if (!t) throw new AfipError('No se encontró la empresa o persona elegida.', 'NOT_FOUND');
-    if (!t.condicionIva) {
-      throw new AfipError(`Falta la condición frente al IVA de ${t.nombre}: cargala en su ficha (o traela de ARCA) y volvé a facturar.`, 'MISSING_CONFIG');
+    if (!t.cuit) {
+      // Una persona sin CUIT (el huésped que se fue debiendo): Consumidor
+      // Final con su DNI, como cualquier factura común.
+      const { docTipo, docNro } = docReceptor(t.documento || '');
+      receptor = { razonSocial: t.nombre, docTipo, docNro, condicionIva: 'Consumidor Final', domicilio: t.domicilioFiscal };
+    } else {
+      if (!t.condicionIva) {
+        throw new AfipError(`Falta la condición frente al IVA de ${t.nombre}: cargala en su ficha (o traela de ARCA) y volvé a facturar.`, 'MISSING_CONFIG');
+      }
+      receptor = { razonSocial: t.nombre, docTipo: DOC_TIPO.CUIT, docNro: t.cuit, condicionIva: t.condicionIva, domicilio: t.domicilioFiscal };
     }
-    receptor = { razonSocial: t.nombre, docTipo: DOC_TIPO.CUIT, docNro: t.cuit, condicionIva: t.condicionIva, domicilio: t.domicilioFiscal };
   } else {
     // El huésped, identificado con su DNI: Consumidor Final.
     const { docTipo, docNro } = docReceptor(reserva.dni);

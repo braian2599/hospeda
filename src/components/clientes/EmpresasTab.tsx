@@ -62,7 +62,7 @@ export default function EmpresasTab({ nuevaAbierta, onNuevaAbiertaChange }: Prop
     const digitos = normalizarCuit(q);
     return titulares
       .filter(t => t.tipo === 'empresa' || !t.clienteId)
-      .filter(t => !texto || t.nombre.toLowerCase().includes(texto) || (!!digitos && t.cuit.includes(digitos)))
+      .filter(t => !texto || t.nombre.toLowerCase().includes(texto) || (!!digitos && (t.cuit ?? '').includes(digitos)))
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [titulares, q]);
 

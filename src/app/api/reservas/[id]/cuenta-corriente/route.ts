@@ -5,16 +5,24 @@ import { requirePermission, requireActiveSubscription, tienePermiso, AuthError }
 import { auditar, TIPO } from '@/lib/auditoria';
 import {
   PERMISOS_DERIVAR, PERMISO_CUENTA_CORRIENTE,
-  conceptoDeCargo, saldoDeReserva, superaLimite, pesos, motivoParaNoAnularCargo,
+  conceptoDeCargo, saldoDeReserva, superaLimite, pesos, motivoParaNoAnularCargo, normalizarDocumento,
 } from '@/lib/cuenta-corriente';
 import { estaFacturada } from '@/lib/facturacion-reserva';
 
 // ─────────────────────────────────────────────────────────
 // POST /api/reservas/[id]/cuenta-corriente — Pasar el saldo a cuenta corriente
-// Body: { titularId }
+// Body: { titularId }            → a la cuenta de esa empresa
+//       { aNombreDelHuesped: true } → a la cuenta del propio huésped
 //
-// Anota en la cuenta del titular lo que el huésped dejó sin pagar. NO es un
-// cobro: no entró plata, así que no toca la caja (ver docs/cuenta-corriente.md).
+// Anota en la cuenta lo que el huésped dejó sin pagar. NO es un cobro: no
+// entró plata, así que no toca la caja (ver docs/cuenta-corriente.md).
+//
+// A NOMBRE DEL HUÉSPED (decisión del dueño, 29/09): la deuda queda en su
+// propia cuenta, identificado con su DNI, sin CUIT. Si todavía no tiene
+// cuenta se le abre sola, enganchada a su ficha de cliente; si la reserva no
+// estaba enganchada a una ficha, se busca por DNI y, si no existe, se crea con
+// los datos de la reserva. Todo en la misma transacción que el cargo: o queda
+// todo anotado o no queda nada.
 //
 // SOLO CON EL CHECK-OUT HECHO. Una reserva con check-out ya no se puede
 // editar, cancelar, ni sumarle pagos (lo frenan PUT reservas/[id] y
@@ -38,15 +46,17 @@ export async function POST(
     await requireActiveSubscription(tenantId);
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
+    const aNombreDelHuesped = body?.aNombreDelHuesped === true;
     const titularId = typeof body?.titularId === 'string' ? body.titularId : '';
-    if (!titularId) {
+    if (!aNombreDelHuesped && !titularId) {
       return NextResponse.json({ error: 'Falta elegir a qué cuenta va el saldo.' }, { status: 400 });
     }
 
     const reserva = await db.reserva.findFirst({
       where: { id, tenantId },
       select: {
-        id: true, estado: true, total: true, huesped: true, habitacion: true, checkin: true, checkout: true,
+        id: true, numero: true, estado: true, total: true, huesped: true, dni: true, telefono: true, email: true,
+        domicilio: true, habitacion: true, checkin: true, checkout: true, clienteId: true,
         pagos: { select: { monto: true } },
         cargoCuentaCorriente: { select: { titular: { select: { nombre: true } } } },
       },
@@ -81,30 +91,35 @@ export async function POST(
       return NextResponse.json({ error: 'Esta reserva no tiene saldo pendiente.' }, { status: 400 });
     }
 
-    const titular = await db.titularCuenta.findFirst({
-      where: { id: titularId, tenantId },
-      select: { id: true, nombre: true, activo: true, limiteCredito: true },
-    });
-    if (!titular) return NextResponse.json({ error: 'Titular no encontrado' }, { status: 404 });
-    if (!titular.activo) {
-      return NextResponse.json({ error: `${titular.nombre} está desactivado: no se le pueden anotar deudas nuevas.` }, { status: 400 });
-    }
-
     const concepto = conceptoDeCargo(reserva);
 
-    let cargo;
+    let resultado: { cargo: { id: string; monto: number; concepto: string; fecha: Date }; titular: { id: string; nombre: string; limiteCredito: number | null } };
     try {
-      cargo = await db.cargoCuentaCorriente.create({
-        data: {
-          tenantId,
-          titularId: titular.id,
-          reservaId: reserva.id,
-          monto,
-          concepto,
-          empleadoId: actorId,
-          empleadoNombre: actorNombre,
-        },
-        select: { id: true, monto: true, concepto: true, fecha: true },
+      resultado = await db.$transaction(async (tx) => {
+        const titular = aNombreDelHuesped
+          ? await cuentaDelHuesped(tx, tenantId, reserva)
+          : await tx.titularCuenta.findFirst({
+            where: { id: titularId, tenantId },
+            select: { id: true, nombre: true, activo: true, limiteCredito: true },
+          });
+        if (!titular) throw new DerivarError('No se encontró la cuenta elegida.', 404);
+        if (!titular.activo) {
+          throw new DerivarError(`La cuenta de ${titular.nombre} está desactivada: no se le pueden anotar deudas nuevas.`, 400);
+        }
+
+        const cargo = await tx.cargoCuentaCorriente.create({
+          data: {
+            tenantId,
+            titularId: titular.id,
+            reservaId: reserva.id,
+            monto,
+            concepto,
+            empleadoId: actorId,
+            empleadoNombre: actorNombre,
+          },
+          select: { id: true, monto: true, concepto: true, fecha: true },
+        });
+        return { cargo, titular: { id: titular.id, nombre: titular.nombre, limiteCredito: titular.limiteCredito } };
       });
     } catch (error) {
       // Dos pedidos a la vez para la misma reserva: el segundo choca con el
@@ -112,13 +127,15 @@ export async function POST(
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         return NextResponse.json({ error: 'Esta reserva ya se pasó a cuenta corriente.' }, { status: 409 });
       }
+      if (error instanceof DerivarError) return NextResponse.json({ error: error.message }, { status: error.status });
       throw error;
     }
+    const { cargo, titular } = resultado;
 
     await auditar(db, {
       tenantId,
       tipo: TIPO.CUENTA_CORRIENTE,
-      detalle: `${concepto}: ${pesos(monto)} a la cuenta de ${titular.nombre}`,
+      detalle: `${concepto}: ${pesos(monto)} a la cuenta de ${titular.nombre}${aNombreDelHuesped ? ' (el propio huésped)' : ''}`,
       actor: { id: actorId, nombre: actorNombre },
     });
 
@@ -146,6 +163,92 @@ export async function POST(
     console.error('POST reservas/[id]/cuenta-corriente:', error);
     return NextResponse.json({ error: 'Error al pasar el saldo a cuenta corriente' }, { status: 500 });
   }
+}
+
+class DerivarError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+/**
+ * La cuenta del propio huésped, dentro de la transacción del cargo. Si no la
+ * tiene, se la abre. Pasos, en orden:
+ *   1. Su ficha de cliente: la de la reserva; si la reserva no tenía, la de su
+ *      DNI; si no hay ninguna, se crea con los datos de la reserva (y la
+ *      reserva queda enganchada a esa ficha).
+ *   2. Su cuenta: la de la ficha; si no, una sin ficha con su mismo DNI (la
+ *      de una ficha que se borró: se vuelve a enganchar); si no, una nueva,
+ *      persona, sin CUIT, con su DNI.
+ * Un candado por hotel y DNI: dos reservas del mismo huésped derivadas a la
+ * vez no le abren dos cuentas.
+ */
+async function cuentaDelHuesped(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+  reserva: { id: string; huesped: string; dni: string; telefono: string; email: string | null; domicilio: string | null; clienteId: string | null },
+): Promise<{ id: string; nombre: string; activo: boolean; limiteCredito: number | null }> {
+  const SELECT = { id: true, nombre: true, activo: true, limiteCredito: true, clienteId: true } as const;
+  const dniReserva = reserva.dni.trim();
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`cc-huesped:${tenantId}:${normalizarDocumento(dniReserva)}`}))`;
+
+  // 1. La ficha.
+  let cliente = reserva.clienteId
+    ? await tx.cliente.findFirst({ where: { id: reserva.clienteId, tenantId }, select: { id: true, nombre: true, dni: true } })
+    : null;
+  if (!cliente) {
+    if (!normalizarDocumento(dniReserva)) {
+      throw new DerivarError('La reserva no tiene DNI: cargalo en la reserva para abrirle la cuenta al huésped.', 400);
+    }
+    // Por DNI, comparado sin puntos, guiones ni espacios: "30.111.333" y
+    // "30111333" son la misma persona y no tiene que quedar con dos fichas.
+    const [mismaPersona] = await tx.$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "Cliente"
+      WHERE "tenantId" = ${tenantId}
+        AND upper(regexp_replace("dni", '[^0-9A-Za-z]', '', 'g')) = ${normalizarDocumento(dniReserva)}
+      ORDER BY "createdAt" ASC
+      LIMIT 1`;
+    cliente = (mismaPersona
+      ? await tx.cliente.findUnique({ where: { id: mismaPersona.id }, select: { id: true, nombre: true, dni: true } })
+      : null) ?? await tx.cliente.create({
+      data: {
+        tenantId,
+        nombre: reserva.huesped,
+        dni: dniReserva,
+        telefono: reserva.telefono || '',
+        email: reserva.email,
+        domicilio: reserva.domicilio,
+      },
+      select: { id: true, nombre: true, dni: true },
+    });
+    await tx.reserva.update({ where: { id: reserva.id }, data: { clienteId: cliente.id } });
+  }
+
+  // 2. La cuenta.
+  const deLaFicha = await tx.titularCuenta.findUnique({ where: { clienteId: cliente.id }, select: SELECT });
+  if (deLaFicha) return deLaFicha;
+
+  const documento = normalizarDocumento(cliente.dni);
+  if (!documento) {
+    throw new DerivarError(`La ficha de ${cliente.nombre} no tiene DNI: cargalo para abrirle la cuenta.`, 400);
+  }
+  const mismoDni = await tx.titularCuenta.findUnique({
+    where: { tenantId_documento: { tenantId, documento } },
+    select: SELECT,
+  });
+  if (mismoDni) {
+    if (!mismoDni.clienteId) {
+      await tx.titularCuenta.update({ where: { id: mismoDni.id }, data: { clienteId: cliente.id } });
+    }
+    return mismoDni;
+  }
+
+  return tx.titularCuenta.create({
+    data: { tenantId, tipo: 'persona', nombre: cliente.nombre, clienteId: cliente.id, documento, cuit: null },
+    select: SELECT,
+  });
 }
 
 // ─────────────────────────────────────────────────────────

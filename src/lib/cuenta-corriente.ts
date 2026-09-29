@@ -149,6 +149,31 @@ export function formatearCuit(cuit: string): string {
   return `${d.slice(0, 2)}-${d.slice(2, 10)}-${d.slice(10)}`;
 }
 
+// ── DNI ──
+// El documento del huésped, tal como está en su ficha. Puede ser un
+// pasaporte con letras: se guardan letras y números, sin puntos ni espacios.
+
+/** "27.111.222" → "27111222"; "ab 123456" → "AB123456". */
+export function normalizarDocumento(documento: string | null | undefined): string {
+  return (documento || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+}
+
+/** "27111222" → "27.111.222". Un pasaporte (con letras) queda igual. */
+export function formatearDocumento(documento: string): string {
+  const d = normalizarDocumento(documento);
+  return /^\d+$/.test(d) ? Number(d).toLocaleString('es-AR') : d;
+}
+
+/**
+ * Cómo se identifica una cuenta en pantalla: "CUIT 30-71234567-8" o, una
+ * persona sin CUIT, "DNI 27.111.222".
+ */
+export function identificacionTitular(t: { cuit: string | null; documento: string | null }): string {
+  if (t.cuit) return `CUIT ${formatearCuit(t.cuit)}`;
+  if (t.documento) return `DNI ${formatearDocumento(t.documento)}`;
+  return '';
+}
+
 const PESOS_CUIT = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
 
 /**
@@ -188,22 +213,31 @@ function diaMes(fecha: Date): string {
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 }
 
+/** Noches entre dos fechas de la base (medianoche UTC). Nunca menos de 1. */
+export function nochesDeEstadia(checkin: Date, checkout: Date): number {
+  return Math.max(1, Math.round((checkout.getTime() - checkin.getTime()) / 86_400_000));
+}
+
 /**
  * La línea del estado de cuenta, tal como queda anotada al derivar:
- * "Juan Pérez — Hab. 203 — 15/09 al 18/09/2026".
+ * "#0015 · Juan Pérez — Hab. 203 — 15/09 al 18/09/2026 (3 noches)".
  *
  * Se guarda como texto y no se recalcula: es lo que se le anotó al titular.
- * Tiene el huésped porque el titular tiene que poder reconocer cada línea
- * ("¿quién es este y por qué me lo cobran?").
+ * Tiene el número de reserva y el huésped porque el titular tiene que poder
+ * reconocer cada línea ("¿quién es este y por qué me lo cobran?"). El resto
+ * de los datos de la reserva se ven en el detalle del estado de cuenta.
  */
 export function conceptoDeCargo(reserva: {
+  numero?: number | null;
   huesped: string;
   habitacion: string;
   checkin: Date;
   checkout: Date;
 }): string {
   const anio = reserva.checkout.toISOString().slice(0, 4);
-  return `${reserva.huesped} — Hab. ${reserva.habitacion} — ${diaMes(reserva.checkin)} al ${diaMes(reserva.checkout)}/${anio}`;
+  const noches = nochesDeEstadia(reserva.checkin, reserva.checkout);
+  const numero = reserva.numero != null ? `#${String(reserva.numero).padStart(4, '0')} · ` : '';
+  return `${numero}${reserva.huesped} — Hab. ${reserva.habitacion} — ${diaMes(reserva.checkin)} al ${diaMes(reserva.checkout)}/${anio} (${noches} ${noches === 1 ? 'noche' : 'noches'})`;
 }
 
 /**
@@ -322,7 +356,8 @@ export interface TitularDeLaBase {
   id: string;
   tipo: string;
   nombre: string;
-  cuit: string;
+  cuit: string | null;
+  documento: string | null;
   condicionIva: string | null;
   domicilioFiscal: string | null;
   contactoNombre: string | null;
@@ -335,7 +370,7 @@ export interface TitularDeLaBase {
 
 /** Los campos que se piden a la base para armar la vista. */
 export const SELECT_TITULAR = {
-  id: true, tipo: true, nombre: true, cuit: true, condicionIva: true, domicilioFiscal: true,
+  id: true, tipo: true, nombre: true, cuit: true, documento: true, condicionIva: true, domicilioFiscal: true,
   contactoNombre: true, contactoTelefono: true, contactoEmail: true,
   limiteCredito: true, clienteId: true, activo: true,
 } as const;
@@ -355,7 +390,10 @@ export function vistaTitular(t: TitularDeLaBase, completo: boolean, saldoCentavo
     tipo: t.tipo,
     nombre: t.nombre,
     cuit: t.cuit,
-    cuitFormateado: formatearCuit(t.cuit),
+    cuitFormateado: t.cuit ? formatearCuit(t.cuit) : null,
+    documento: t.documento,
+    /** "CUIT 30-…" o "DNI 27.…": lo que se muestra para reconocerlo. */
+    identificacion: identificacionTitular(t),
     condicionIva: t.condicionIva,
     domicilioFiscal: t.domicilioFiscal,
     contactoNombre: t.contactoNombre,

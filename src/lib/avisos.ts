@@ -91,6 +91,14 @@ export const NOVEDADES: Novedad[] = [
   // Las cuatro del 28/09 salen con el deploy de esa noche. El arreglo va
   // primero: es lo que los hoteles venían sufriendo.
   {
+    id: 'cuenta-corriente-cliente-o-empresa-2026-09',
+    fecha: '2026-09-29',
+    tipo: 'mejora',
+    titulo: 'Cuenta corriente a nombre del huésped o de una empresa',
+    texto: 'Cuando un huésped se va sin pagar nada, el sistema pregunta a nombre de quién queda la deuda: del propio huésped (con su DNI, sin CUIT) o de una empresa. En el estado de cuenta, "Ver reserva" muestra todos los datos de cada estadía. La ficha del cliente tiene la pestaña "Cuenta y facturación" con lo que debe.',
+    requiere: { modulo: 'comprobantes' },
+  },
+  {
     id: 'reservas-en-tarjetas-2026-09',
     fecha: '2026-09-29',
     tipo: 'mejora',

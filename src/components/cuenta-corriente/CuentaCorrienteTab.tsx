@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { api, type DbTitular } from '@/lib/api-client';
 import { useHotelStore } from '@/lib/store';
 import { formatMoney } from '@/lib/format';
-import { aPesos, normalizarCuit } from '@/lib/cuenta-corriente';
+import { aPesos, normalizarCuit, normalizarDocumento } from '@/lib/cuenta-corriente';
 import EstadoDeCuenta from './EstadoDeCuenta';
 
 export default function CuentaCorrienteTab() {
@@ -55,8 +55,11 @@ export default function CuentaCorrienteTab() {
   const visibles = useMemo(() => {
     const texto = q.trim().toLowerCase();
     const digitos = normalizarCuit(q);
+    const documento = normalizarDocumento(q);
     const lista = texto
-      ? titulares.filter(t => t.nombre.toLowerCase().includes(texto) || (digitos && t.cuit.includes(digitos)))
+      ? titulares.filter(t => t.nombre.toLowerCase().includes(texto)
+        || (!!digitos && (t.cuit ?? '').includes(digitos))
+        || (!!documento && (t.documento ?? '').includes(documento)))
       : titulares;
     // Primero los que deben, de mayor a menor: es lo que se viene a mirar.
     return [...lista].sort((a, b) => (b.saldo ?? 0) - (a.saldo ?? 0) || a.nombre.localeCompare(b.nombre));
@@ -103,7 +106,7 @@ export default function CuentaCorrienteTab() {
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por nombre o CUIT" className="pl-8" aria-label="Buscar cuenta" />
+              <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por nombre, CUIT o DNI" className="pl-8" aria-label="Buscar cuenta" />
             </div>
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <Switch checked={verDesactivados} onCheckedChange={setVerDesactivados} />
@@ -135,7 +138,7 @@ export default function CuentaCorrienteTab() {
                 <TableHeader>
                   <TableRow className="bg-[#F1F5F94D]">
                     <TableHead>Nombre</TableHead>
-                    <TableHead>CUIT</TableHead>
+                    <TableHead>CUIT / DNI</TableHead>
                     <TableHead className="hidden md:table-cell">IVA</TableHead>
                     <TableHead className="text-right">Debe</TableHead>
                     <TableHead />
@@ -153,8 +156,8 @@ export default function CuentaCorrienteTab() {
                             {!t.activo && <Badge variant="secondary" className="text-[10px]">Desactivada</Badge>}
                           </div>
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{t.cuitFormateado}</TableCell>
-                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{t.condicionIva ?? '—'}</TableCell>
+                        <TableCell className="font-mono text-xs whitespace-nowrap">{t.identificacion}</TableCell>
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{t.cuit ? (t.condicionIva ?? '—') : 'Consumidor Final'}</TableCell>
                         <TableCell className="text-right">
                           <span className={`font-mono font-semibold ${debe > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>{formatMoney(debe)}</span>
                           {t.superaLimite && (

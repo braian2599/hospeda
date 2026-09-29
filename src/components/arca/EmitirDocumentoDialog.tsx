@@ -103,7 +103,9 @@ export default function EmitirDocumentoDialog({ abierto, onCerrar }: {
         detalle: c.dni ? `DNI ${c.dni}` : 'Sin documento',
       };
     });
-    const conCuit = titulares.map(desdeTitular);
+    // Solo las cuentas con CUIT: una persona sin CUIT (cuenta con su DNI) ya
+    // está en la lista de clientes, a Consumidor Final.
+    const conCuit = titulares.filter(t => !!t.cuit).map(desdeTitular);
     const todas = [...conCuit.filter(o => o.clase === 'empresa'), ...conCuit.filter(o => o.clase === 'persona'), ...personas];
     const t = q.trim().toLowerCase();
     const digitos = normalizarCuit(q);

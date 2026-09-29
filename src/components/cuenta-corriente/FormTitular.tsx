@@ -64,7 +64,12 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
   // es alguien escribiendo, no un error.
   const digitosCuit = normalizarCuit(cuit);
   const errorCuit = digitosCuit.length >= 11 ? validarCuit(cuit) : null;
-  const puedeGuardar = nombre.trim().length > 0 && digitosCuit.length === 11 && !errorCuit && !guardando;
+  // Una persona enganchada a su ficha puede quedar sin CUIT: se identifica
+  // con el DNI de la ficha y se le factura a Consumidor Final. Una empresa, o
+  // una cuenta que ya tiene CUIT, no.
+  const sinCuitPermitido = tipo === 'persona' && (editando ? !titular.cuit : !!clienteId);
+  const cuitOk = digitosCuit.length === 11 ? !errorCuit : (digitosCuit.length === 0 && sinCuitPermitido);
+  const puedeGuardar = nombre.trim().length > 0 && cuitOk && !guardando;
   const puedeConsultarArca = digitosCuit.length === 11 && !errorCuit && !consultandoArca;
 
   // Completa con lo que dice ARCA, pisando lo que haya: la persona tocó el
@@ -102,7 +107,8 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
 
     const datos = {
       nombre: nombre.trim(),
-      cuit: digitosCuit,
+      // Sin CUIT (una persona con su DNI) no se manda: la cuenta sigue con el DNI.
+      ...(digitosCuit ? { cuit: digitosCuit } : {}),
       tipo,
       condicionIva: condicionIva === SIN_DATO ? null : condicionIva,
       domicilioFiscal: domicilioFiscal.trim() || null,
@@ -153,7 +159,7 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
       )}
 
       <div className="grid gap-1.5">
-        <Label htmlFor="ft-cuit">CUIT</Label>
+        <Label htmlFor="ft-cuit">CUIT{sinCuitPermitido ? ' (opcional)' : ''}</Label>
         <div className="flex gap-2">
           <Input
             id="ft-cuit"
@@ -174,6 +180,10 @@ export default function FormTitular({ titular, tipoFijo, nombreSugerido, cliente
         </div>
         {errorCuit ? (
           <p className="text-xs text-destructive">{errorCuit}</p>
+        ) : sinCuitPermitido ? (
+          <p className="text-xs text-muted-foreground">
+            Solo si pide factura con CUIT. Sin CUIT se identifica con su DNI{titular?.documento ? ` (${titular.identificacion.replace(/^DNI /, '')})` : ''} y se le factura a Consumidor Final.
+          </p>
         ) : (
           <p className="text-xs text-muted-foreground">Es lo único obligatorio para facturarle. Con o sin guiones.</p>
         )}

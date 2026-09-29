@@ -323,14 +323,16 @@ export const api = {
       const qs = p.toString();
       return apiFetch<{ completo: boolean; titulares: DbTitular[] }>(`/titulares${qs ? `?${qs}` : ''}`);
     },
-    crear: (datos: DatosTitularApi & { tipo: TipoTitular; nombre: string; cuit: string; clienteId?: string }) =>
+    /** cuit puede faltar solo en una persona enganchada a su ficha (clienteId): queda con su DNI. */
+    crear: (datos: DatosTitularApi & { tipo: TipoTitular; nombre: string; cuit?: string; clienteId?: string }) =>
       apiFetch<DbTitular>('/titulares', { method: 'POST', body: JSON.stringify(datos) }),
     editar: (id: string, datos: DatosTitularApi & { tipo?: TipoTitular; nombre?: string; cuit?: string; activo?: boolean }) =>
       apiFetch<DbTitular>(`/titulares/${id}`, { method: 'PUT', body: JSON.stringify(datos) }),
     estadoDeCuenta: (id: string) => apiFetch<DbEstadoDeCuenta>(`/titulares/${id}`),
-    derivar: (idReserva: string, titularId: string) =>
+    /** A la cuenta de una empresa ({ titularId }) o a la del propio huésped ({ aNombreDelHuesped: true }). */
+    derivar: (idReserva: string, destino: { titularId: string } | { aNombreDelHuesped: true }) =>
       apiFetch<{ cargo: { id: string; monto: number; concepto: string; titular: { id: string; nombre: string } }; superaLimite: boolean }>(
-        `/reservas/${idReserva}/cuenta-corriente`, { method: 'POST', body: JSON.stringify({ titularId }) },
+        `/reservas/${idReserva}/cuenta-corriente`, { method: 'POST', body: JSON.stringify(destino) },
       ),
     cobrar: (titularId: string, datos: { monto: number; metodo: string; nota?: string }) =>
       apiFetch<{ pago: { id: string; monto: number; metodo: string }; saldo: number }>(
@@ -372,8 +374,12 @@ export interface DbTitular {
   id: string;
   tipo: TipoTitular;
   nombre: string;
-  cuit: string;
-  cuitFormateado: string;
+  /** null: una persona sin CUIT, identificada con su DNI (documento). */
+  cuit: string | null;
+  cuitFormateado: string | null;
+  documento: string | null;
+  /** "CUIT 30-…" o "DNI 27.…": lo que se muestra para reconocerla. */
+  identificacion: string;
   condicionIva: string | null;
   domicilioFiscal: string | null;
   contactoNombre: string | null;
@@ -390,7 +396,13 @@ export interface DbEstadoDeCuenta {
   titular: DbTitular;
   cargos: {
     id: string; monto: number; concepto: string; fecha: string; empleadoNombre: string;
-    reserva: { id: string; huesped: string; habitacion: string };
+    reserva: {
+      id: string; numero: number | null; huesped: string; dni: string; habitacion: string;
+      personas: number; ninos: number | null; checkin: string; checkout: string; noches: number;
+      /** Centavos. */
+      total: number | null;
+      facturada: boolean;
+    };
     /** Si se puede anular el pase, y si no, por qué (ver motivoParaNoAnularCargo). */
     anulable: boolean; motivoNoAnulable: string | null;
   }[];

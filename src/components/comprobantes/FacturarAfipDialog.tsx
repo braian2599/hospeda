@@ -122,6 +122,7 @@ export default function FacturarAfipDialog({ open, onOpenChange, reservaId, nume
                     onElegir={setElegido}
                     clienteId={reserva?.idCliente}
                     manejaCuenta={manejaCuentaCorriente(usuarioActual)}
+                    soloConCuit
                   />
                   {elegido && !elegido.condicionIva && (
                     <p className="text-xs text-destructive">

@@ -5,8 +5,8 @@
 // a cuenta corriente hecho por error y se editan sus datos. Solo para quien
 // maneja la cuenta corriente (la API lo exige).
 
-import { useCallback, useEffect, useState } from 'react';
-import { Building2, User, Loader2, Wallet, Pencil, Undo2, AlertTriangle, Phone, Mail, MapPin } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
+import { Building2, User, Loader2, Wallet, Pencil, Undo2, AlertTriangle, Phone, Mail, MapPin, ChevronDown, ChevronRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -21,9 +21,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useHotelStore } from '@/lib/store';
 import { api, type DbEstadoDeCuenta } from '@/lib/api-client';
-import { formatMoney, formatFechaHora } from '@/lib/format';
+import { formatMoney, formatFechaHora, numeroDeReserva } from '@/lib/format';
 import { notifySuccess } from '@/lib/notify';
-import { aPesos, aCentavos } from '@/lib/cuenta-corriente';
+import { aPesos, aCentavos, formatearDocumento } from '@/lib/cuenta-corriente';
 import FormTitular from './FormTitular';
 
 interface Props {
@@ -54,6 +54,13 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
   const [anulando, setAnulando] = useState<{ id: string; monto: number; metodo: string } | null>(null);
   const [anulandoCargo, setAnulandoCargo] = useState<{ reservaId: string; monto: number; concepto: string } | null>(null);
   const [trabajando, setTrabajando] = useState(false);
+  // Los cargos con el detalle de su reserva abierto.
+  const [abiertos, setAbiertos] = useState<Set<string>>(() => new Set());
+  const alternar = (id: string) => setAbiertos(prev => {
+    const nuevo = new Set(prev);
+    if (nuevo.has(id)) nuevo.delete(id); else nuevo.add(id);
+    return nuevo;
+  });
 
   const cargar = useCallback(async () => {
     try {
@@ -141,8 +148,8 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
           {/* Datos y saldo */}
           <div className="grid gap-3 md:grid-cols-[1fr_auto]">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-              <p><span className="text-muted-foreground">CUIT: </span><span className="font-mono">{t.cuitFormateado}</span></p>
-              <p><span className="text-muted-foreground">IVA: </span>{t.condicionIva ?? 'Sin dato'}</p>
+              <p><span className="text-muted-foreground">{t.cuit ? 'CUIT' : 'DNI'}: </span><span className="font-mono">{t.identificacion.replace(/^(CUIT|DNI) /, '')}</span></p>
+              <p><span className="text-muted-foreground">IVA: </span>{t.cuit ? (t.condicionIva ?? 'Sin dato') : 'Consumidor Final (sin CUIT)'}</p>
               {t.domicilioFiscal && <p className="flex items-center gap-1.5 sm:col-span-2"><MapPin className="w-3.5 h-3.5 text-muted-foreground" />{t.domicilioFiscal}</p>}
               {(t.contactoNombre || t.contactoTelefono) && (
                 <p className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-muted-foreground" />{[t.contactoNombre, t.contactoTelefono].filter(Boolean).join(' · ')}</p>
@@ -199,10 +206,25 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
                   {datos.movimientos.map(m => {
                     const pago = m.tipo === 'pago' ? pagosPorId.get(m.id) : undefined;
                     const cargo = m.tipo === 'cargo' ? cargosPorId.get(m.id) : undefined;
+                    const abierto = !!cargo && abiertos.has(cargo.id);
                     return (
-                      <TableRow key={`${m.tipo}-${m.id}`}>
+                      <Fragment key={`${m.tipo}-${m.id}`}>
+                      <TableRow className={abierto ? 'bg-[#0F766E0F]' : undefined}>
                         <TableCell className="text-xs whitespace-nowrap">{formatFechaHora(m.fecha)}</TableCell>
-                        <TableCell className="text-sm">{m.detalle}</TableCell>
+                        <TableCell className="text-sm">
+                          {m.detalle}
+                          {cargo && (
+                            <button
+                              type="button"
+                              onClick={() => alternar(cargo.id)}
+                              aria-expanded={abierto}
+                              className="ml-2 inline-flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline"
+                            >
+                              {abierto ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                              {abierto ? 'Ocultar' : 'Ver reserva'}
+                            </button>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right font-mono text-sm">{m.importe > 0 ? formatMoney(aPesos(m.importe)) : ''}</TableCell>
                         <TableCell className="text-right font-mono text-sm text-primary">{m.importe < 0 ? formatMoney(aPesos(-m.importe)) : ''}</TableCell>
                         <TableCell className="text-right font-mono text-sm font-semibold">{formatMoney(aPesos(m.saldo))}</TableCell>
@@ -231,6 +253,14 @@ function Contenido({ titularId, onCambio }: { titularId: string; onCambio: () =>
                           )}
                         </TableCell>
                       </TableRow>
+                      {cargo && abierto && (
+                        <TableRow className="bg-[#0F766E0F] hover:bg-[#0F766E0F]">
+                          <TableCell colSpan={6} className="pt-1 pb-3">
+                            <DetalleReserva cargo={cargo} />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      </Fragment>
                     );
                   })}
                 </TableBody>
@@ -352,6 +382,37 @@ function FormCobro({ titularId, saldo, onCancelar, onCobrado }: {
           Cobrar {montoValido ? formatMoney(montoNum) : ''}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/** Todos los datos de la reserva de un cargo: de qué estadía es la deuda. */
+function DetalleReserva({ cargo }: { cargo: DbEstadoDeCuenta['cargos'][number] }) {
+  const r = cargo.reserva;
+  const dato = (etiqueta: string, valor: React.ReactNode) => (
+    <div>
+      <span className="block text-[11.5px] text-muted-foreground">{etiqueta}</span>
+      <span className="font-semibold text-sm">{valor}</span>
+    </div>
+  );
+  const fecha = (f: string) => `${f.slice(8, 10)}/${f.slice(5, 7)}/${f.slice(0, 4)}`;
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-x-5 gap-y-2.5">
+        {dato('Reserva', numeroDeReserva({ numero: r.numero ?? undefined }) || '—')}
+        {dato('Huésped', r.huesped)}
+        {dato('DNI', r.dni ? <span className="font-mono">{formatearDocumento(r.dni)}</span> : '—')}
+        {dato('Habitación', r.habitacion)}
+        {dato('Personas', `${r.personas}${(r.ninos ?? 0) > 0 ? ` + ${r.ninos} ${r.ninos === 1 ? 'niño' : 'niños'}` : ''}`)}
+        {dato('Entrada', fecha(r.checkin))}
+        {dato('Salida', fecha(r.checkout))}
+        {dato('Noches', r.noches)}
+        {dato('Total de la reserva', r.total != null ? formatMoney(aPesos(r.total)) : '—')}
+        {dato('Factura', r.facturada
+          ? <Badge className="bg-[#8B5CF626] text-chart-5 border-0">Facturada</Badge>
+          : <Badge className="bg-[#D9770618] text-[#B45309] border-0">Sin facturar</Badge>)}
+      </div>
+      <p className="text-xs text-muted-foreground">Pasada a la cuenta por {cargo.empleadoNombre} el {formatFechaHora(cargo.fecha)}.</p>
     </div>
   );
 }

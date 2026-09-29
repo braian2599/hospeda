@@ -5,7 +5,7 @@ import { requirePermission, tienePermiso, AuthError } from '@/lib/auth/utils';
 import { auditar, TIPO } from '@/lib/auditoria';
 import {
   PERMISO_CUENTA_CORRIENTE, PERMISOS_TITULAR, SELECT_TITULAR,
-  leerDatosTitular, normalizarCuit, formatearCuit, vistaTitular,
+  leerDatosTitular, normalizarCuit, normalizarDocumento, identificacionTitular, vistaTitular,
 } from '@/lib/cuenta-corriente';
 
 // ─────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ async function saldosDe(tenantId: string, ids: string[]): Promise<Map<string, nu
 
 // ─────────────────────────────────────────────────────────
 // GET /api/titulares
-//   ?q=          busca por nombre o por CUIT (con o sin guiones)
+//   ?q=          busca por nombre, CUIT (con o sin guiones) o DNI
 //   ?clienteId=  el titular de la ficha de ese cliente (sus datos fiscales)
 //   ?incluirInactivos=1   solo con PERMISO_CUENTA_CORRIENTE
 // ─────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
       const digitos = normalizarCuit(q);
       where.OR = [
         { nombre: { contains: q, mode: 'insensitive' } },
-        ...(digitos ? [{ cuit: { contains: digitos } }] : []),
+        ...(digitos ? [{ cuit: { contains: digitos } }, { documento: { contains: normalizarDocumento(q) } }] : []),
       ];
     }
 
@@ -97,8 +97,12 @@ export async function GET(req: NextRequest) {
 
 // ─────────────────────────────────────────────────────────
 // POST /api/titulares — Alta de un titular
-// Body: { tipo, nombre, cuit, condicionIva?, domicilioFiscal?, contacto*?,
+// Body: { tipo, nombre, cuit?, condicionIva?, domicilioFiscal?, contacto*?,
 //         limiteCredito? (solo PERMISO_CUENTA_CORRIENTE), clienteId? (solo persona) }
+//
+// Una empresa necesita CUIT. Una persona, CUIT o su ficha de cliente: sin
+// CUIT queda identificada con el DNI de la ficha (se le factura a
+// Consumidor Final).
 // ─────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
@@ -116,7 +120,9 @@ export async function POST(req: NextRequest) {
 
     if (!datos.tipo) return NextResponse.json({ error: 'Falta el tipo: empresa o persona.' }, { status: 400 });
     if (!datos.nombre) return NextResponse.json({ error: 'Falta el nombre o la razón social.' }, { status: 400 });
-    if (!datos.cuit) return NextResponse.json({ error: 'Falta el CUIT.' }, { status: 400 });
+    if (!datos.cuit && (datos.tipo === 'empresa' || !body.clienteId)) {
+      return NextResponse.json({ error: 'Falta el CUIT.' }, { status: 400 });
+    }
 
     // Hasta cuánto puede deber alguien es una decisión de quien maneja la
     // cuenta corriente, no del mostrador. Se rechaza en vez de ignorarlo en
@@ -127,31 +133,51 @@ export async function POST(req: NextRequest) {
 
     // La ficha del cliente: solo para personas, y tiene que ser de este hotel.
     let clienteId: string | null = null;
+    let documento: string | null = null;
     if (body.clienteId) {
       if (datos.tipo !== 'persona') {
         return NextResponse.json({ error: 'Solo una persona se engancha a la ficha de un cliente.' }, { status: 400 });
       }
       const cliente = await db.cliente.findFirst({
         where: { id: String(body.clienteId), tenantId },
-        select: { id: true, titularCuenta: { select: { nombre: true } } },
+        select: { id: true, dni: true, titularCuenta: { select: { nombre: true } } },
       });
       if (!cliente) return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
       if (cliente.titularCuenta) {
-        return NextResponse.json({ error: 'Ese cliente ya tiene sus datos fiscales cargados.' }, { status: 409 });
+        return NextResponse.json({ error: 'Ese cliente ya tiene su cuenta cargada.' }, { status: 409 });
       }
       clienteId = cliente.id;
+      // El DNI de la ficha queda copiado en la cuenta: la identifica aunque
+      // no tenga CUIT, y aunque algún día se borre la ficha.
+      documento = normalizarDocumento(cliente.dni) || null;
+    }
+    if (!datos.cuit && !documento) {
+      return NextResponse.json({ error: 'El cliente no tiene DNI cargado: sin CUIT ni DNI no se sabe a quién es la cuenta.' }, { status: 400 });
     }
 
     // Un CUIT por hotel. Se chequea antes para dar un mensaje que sirva
     // ("ya está cargado como X"); el índice único igual lo frena si dos
     // altas llegan a la vez.
-    const existente = await db.titularCuenta.findUnique({
-      where: { tenantId_cuit: { tenantId, cuit: datos.cuit } },
-      select: { nombre: true, activo: true },
-    });
+    const existente = datos.cuit
+      ? await db.titularCuenta.findUnique({
+        where: { tenantId_cuit: { tenantId, cuit: datos.cuit } },
+        select: { nombre: true, activo: true },
+      })
+      : null;
     if (existente) {
       return NextResponse.json({
         error: `Ese CUIT ya está cargado como "${existente.nombre}"${existente.activo ? '' : ' (desactivado)'}.`,
+      }, { status: 409 });
+    }
+    const mismoDni = documento
+      ? await db.titularCuenta.findUnique({
+        where: { tenantId_documento: { tenantId, documento } },
+        select: { nombre: true, activo: true },
+      })
+      : null;
+    if (mismoDni) {
+      return NextResponse.json({
+        error: `Ese DNI ya tiene cuenta como "${mismoDni.nombre}"${mismoDni.activo ? '' : ' (desactivada)'}.`,
       }, { status: 409 });
     }
 
@@ -162,7 +188,8 @@ export async function POST(req: NextRequest) {
           tenantId,
           tipo: datos.tipo,
           nombre: datos.nombre,
-          cuit: datos.cuit,
+          cuit: datos.cuit ?? null,
+          documento,
           condicionIva: datos.condicionIva ?? null,
           domicilioFiscal: datos.domicilioFiscal ?? null,
           contactoNombre: datos.contactoNombre ?? null,
@@ -175,7 +202,7 @@ export async function POST(req: NextRequest) {
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        return NextResponse.json({ error: 'Ese CUIT (o ese cliente) ya tiene un titular cargado.' }, { status: 409 });
+        return NextResponse.json({ error: 'Ese CUIT, ese DNI o ese cliente ya tiene una cuenta cargada.' }, { status: 409 });
       }
       throw error;
     }
@@ -183,7 +210,7 @@ export async function POST(req: NextRequest) {
     await auditar(db, {
       tenantId,
       tipo: TIPO.CUENTA_CORRIENTE,
-      detalle: `Alta de ${creado.tipo === 'empresa' ? 'la empresa' : 'la persona'} ${creado.nombre} (CUIT ${formatearCuit(creado.cuit)})`,
+      detalle: `Alta de ${creado.tipo === 'empresa' ? 'la empresa' : 'la persona'} ${creado.nombre} (${identificacionTitular(creado)})`,
       actor: { id: actorId, nombre: actorNombre },
     });
 

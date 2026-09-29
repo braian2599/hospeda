@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { api, type DbTitular } from '@/lib/api-client';
-import { normalizarCuit } from '@/lib/cuenta-corriente';
+import { normalizarCuit, normalizarDocumento } from '@/lib/cuenta-corriente';
 import FormTitular from './FormTitular';
 
 interface Props {
@@ -23,9 +23,16 @@ interface Props {
   /** Para precargar el nombre si hay que cargar uno nuevo. */
   nombreSugerido?: string;
   manejaCuenta: boolean;
+  /**
+   * Solo empresas (al pasar una deuda "a una empresa"): la cuenta del propio
+   * huésped se elige aparte, con un toque. Lo nuevo que se cargue es empresa.
+   */
+  soloEmpresas?: boolean;
+  /** Solo cuentas con CUIT (al facturar "con su CUIT"): una persona sin CUIT se factura como el huésped. */
+  soloConCuit?: boolean;
 }
 
-export default function ElegirTitular({ elegido, onElegir, clienteId, nombreSugerido, manejaCuenta }: Props) {
+export default function ElegirTitular({ elegido, onElegir, clienteId, nombreSugerido, manejaCuenta, soloEmpresas = false, soloConCuit = false }: Props) {
   const [titulares, setTitulares] = useState<DbTitular[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,22 +53,27 @@ export default function ElegirTitular({ elegido, onElegir, clienteId, nombreSuge
   const visibles = useMemo(() => {
     const texto = q.trim().toLowerCase();
     const digitos = normalizarCuit(q);
+    const documento = normalizarDocumento(q);
+    const base = titulares.filter(t => (!soloEmpresas || t.tipo === 'empresa') && (!soloConCuit || !!t.cuit));
     const filtrados = texto
-      ? titulares.filter(t => t.nombre.toLowerCase().includes(texto) || (digitos && t.cuit.includes(digitos)))
-      : titulares;
+      ? base.filter(t => t.nombre.toLowerCase().includes(texto)
+        || (!!digitos && (t.cuit ?? '').includes(digitos))
+        || (!!documento && (t.documento ?? '').includes(documento)))
+      : base;
     // El propio huésped primero, si tiene cuenta: es el caso más común de
     // "cliente habitual que paga a fin de mes".
     return clienteId
       ? [...filtrados].sort((a, b) => Number(b.clienteId === clienteId) - Number(a.clienteId === clienteId))
       : filtrados;
-  }, [titulares, q, clienteId]);
+  }, [titulares, q, clienteId, soloEmpresas, soloConCuit]);
 
   if (cargandoNuevo) {
     return (
       <div className="rounded-lg border p-3">
-        <p className="text-sm font-medium mb-3">Cargar una cuenta nueva</p>
+        <p className="text-sm font-medium mb-3">{soloEmpresas ? 'Cargar una empresa nueva' : 'Cargar una cuenta nueva'}</p>
         <FormTitular
-          nombreSugerido={nombreSugerido}
+          tipoFijo={soloEmpresas ? 'empresa' : undefined}
+          nombreSugerido={soloEmpresas ? undefined : nombreSugerido}
           manejaCuenta={manejaCuenta}
           onGuardado={t => {
             setTitulares(prev => [t, ...prev]);
@@ -82,13 +94,13 @@ export default function ElegirTitular({ elegido, onElegir, clienteId, nombreSuge
           <Input
             value={q}
             onChange={e => setQ(e.target.value)}
-            placeholder="Buscar por nombre o CUIT"
+            placeholder={soloEmpresas ? 'Buscar por razón social o CUIT' : 'Buscar por nombre, CUIT o DNI'}
             className="pl-8"
             aria-label="Buscar cuenta"
           />
         </div>
         <Button type="button" variant="outline" onClick={() => setCargandoNuevo(true)}>
-          <Plus className="w-4 h-4 mr-1" /> Nueva
+          <Plus className="w-4 h-4 mr-1" /> {soloEmpresas ? 'Nueva empresa' : 'Nueva'}
         </Button>
       </div>
 
@@ -101,9 +113,11 @@ export default function ElegirTitular({ elegido, onElegir, clienteId, nombreSuge
         {error && <p className="p-3 text-sm text-destructive">{error}</p>}
         {!cargando && !error && visibles.length === 0 && (
           <p className="p-3 text-sm text-muted-foreground">
-            {titulares.length === 0
-              ? 'Todavía no hay ninguna cuenta corriente. Cargá la primera con "Nueva".'
-              : 'Ninguna coincide. Si es nueva, cargala con "Nueva".'}
+            {soloEmpresas
+              ? (q.trim() ? 'Ninguna empresa coincide. Si es nueva, cargala con "Nueva empresa".' : 'Todavía no hay empresas cargadas. Cargá la primera con "Nueva empresa".')
+              : titulares.length === 0
+                ? 'Todavía no hay ninguna cuenta corriente. Cargá la primera con "Nueva".'
+                : 'Ninguna coincide. Si es nueva, cargala con "Nueva".'}
           </p>
         )}
         {visibles.map(t => {
@@ -122,7 +136,7 @@ export default function ElegirTitular({ elegido, onElegir, clienteId, nombreSuge
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate">{t.nombre}</p>
-                <p className="text-xs text-muted-foreground font-mono">{t.cuitFormateado}</p>
+                <p className="text-xs text-muted-foreground font-mono">{t.identificacion}</p>
               </div>
               {clienteId && t.clienteId === clienteId && (
                 <Badge variant="secondary" className="text-[10px] shrink-0">El mismo huésped</Badge>

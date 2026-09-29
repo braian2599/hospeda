@@ -37,14 +37,41 @@ también hay clientes habituales que pagan a mes.
 - **Persona:** se engancha a su ficha de `Cliente` existente (`clienteId`)
   para no tener a la misma persona dos veces.
 
-### Solo se pide el CUIT
+### La deuda a nombre del huésped o de una empresa (decisión del dueño, 29/09)
+Al hacer el check-out de una reserva sin ningún pago, se pregunta a nombre de
+quién queda la deuda. No hay opción "queda pendiente": una reserva cerrada sin
+pagos solo se salda por cuenta corriente (si se cierra el diálogo, la reserva
+sigue ofreciendo "A cuenta corriente").
+
+- **A nombre del huésped:** su propia cuenta, identificado con su **DNI**, sin
+  CUIT. Si no tiene cuenta se le abre sola, enganchada a su ficha; si la
+  reserva no tenía ficha se busca por DNI y, si no hay, se crea con los datos
+  de la reserva. Todo en la misma transacción que el cargo
+  (`POST /api/reservas/[id]/cuenta-corriente` con `{ aNombreDelHuesped: true }`).
+- **A una empresa:** se elige de la lista de empresas (solo empresas) o se carga
+  una nueva. La deuda pasa a su cuenta con los datos de la reserva: el concepto
+  lleva el número de reserva y las noches, y el estado de cuenta muestra con
+  "Ver reserva" huésped, DNI, habitación, personas, fechas, noches, total y si
+  está facturada.
+
+### El CUIT: obligatorio en empresas, opcional en personas
 A empresas y a personas que piden factura se les pide SOLO el CUIT. Con eso
 ARCA devuelve razón social, domicilio fiscal y condición de IVA (monotributo,
-responsable inscripto, exento...). El CUIT es obligatorio para crear un
-titular: sin CUIT no hay datos fiscales y no tiene sentido.
+responsable inscripto, exento...). Una empresa siempre tiene CUIT.
 
-La persona común sin condición frente al IVA no pasa por acá: se le hace
-factura a Consumidor Final como hasta ahora, con el DNI.
+Una persona puede no tenerlo: queda con su DNI (`TitularCuenta.documento`,
+copiado de su ficha para no depender de ella) y se le factura a Consumidor
+Final con ese DNI. Si después pide factura con CUIT, se le agrega en su ficha
+("Cuenta y facturación" → "Agregar CUIT"); la deuda y el historial no cambian.
+La base exige CUIT o DNI en toda cuenta, CUIT en toda empresa, y un DNI por
+hotel (migración `20260929_cuenta_corriente_cliente`).
+
+(Hasta el 29/09 el CUIT era obligatorio en toda cuenta: la regla "a las
+personas que piden factura solo se les pide el CUIT" se había aplicado mal
+también a quién puede tener cuenta corriente, y en la práctica quedaban solo
+las empresas.)
+
+No se puede borrar la ficha de un cliente que debe plata en su cuenta.
 
 ### La deuda se deriva COMPLETA, nunca parcial
 "Nadie que anota fiado deja un pago parcial: saca fiado todo y deja anotado
@@ -94,7 +121,8 @@ justamente los titulares de cuenta corriente.
 
 ### Datos fiscales en la ficha del cliente
 La ficha del cliente tiene dos pestañas: "Datos" (con los que reservó, lo de
-siempre) y "Datos fiscales" (el CUIT y lo que devuelve ARCA). La segunda es el
+siempre) y "Cuenta y facturación" (su CUIT o DNI, lo que debe y su estado de
+cuenta). La segunda es el
 `TitularCuenta` enganchado a ese cliente, mostrado ahí. No se agregan campos
 fiscales a `Cliente`: el 95% de los huéspedes nunca pide factura, y la razón
 social fiscal puede ser distinta del nombre del huésped (el monotributista con

@@ -849,9 +849,15 @@ model TitularCuenta {
   // Razón social (empresa) o nombre y apellido (persona). Puede ser distinto
   // del nombre del huésped: el monotributista que factura con nombre de fantasía.
   nombre           String
-  // Solo dígitos, 11. Obligatorio: es lo único que se le pide a quien quiere
-  // factura, y con esto ARCA devuelve el resto. Sin CUIT no hay titular.
-  cuit             String
+  // Solo dígitos, 11. Con esto ARCA devuelve el resto. Obligatorio en una
+  // empresa. Una persona puede no tenerlo: el huésped que se va debiendo
+  // queda con su DNI (documento) y se le factura a Consumidor Final.
+  // La base exige CUIT o DNI, y CUIT en toda empresa (migración
+  // 20260929_cuenta_corriente_cliente).
+  cuit             String?
+  // Solo dígitos. El DNI de la persona, copiado de su ficha al abrirle la
+  // cuenta: así la cuenta no depende de que la ficha siga existiendo.
+  documento        String?
   // Tal como lo devuelve ARCA (o como se cargó a mano). Decide la letra de la
   // factura junto con la condición del hotel.
   condicionIva     String?
@@ -877,6 +883,7 @@ model TitularCuenta {
   comprobantes     Comprobante[]
 
   @@unique([tenantId, cuit])
+  @@unique([tenantId, documento])
 }
 
 // La deuda de una reserva que se pasó a cuenta corriente. Se deriva el saldo
