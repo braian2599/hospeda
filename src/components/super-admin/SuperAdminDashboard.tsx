@@ -20,6 +20,7 @@ import {
   Clock,
   Hotel,
 } from 'lucide-react';
+import DelegacionesArca from './DelegacionesArca';
 
 // ─── Types ───
 interface MetricsData {
@@ -345,6 +346,9 @@ export default function SuperAdminDashboard() {
           Resumen general de la plataforma
         </p>
       </div>
+
+      {/* Solo aparece si algún hotel espera que aceptes su delegación. */}
+      <DelegacionesArca />
 
       {/* ─── Stat Cards ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

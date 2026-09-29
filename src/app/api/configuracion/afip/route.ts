@@ -23,6 +23,8 @@ export async function GET() {
       // Si Hospeda tiene su certificado cargado, el CUIT al que hay que
       // delegar. El certificado y la clave nunca salen del servidor.
       hospedaCuit: hospeda?.cuit || null,
+      // Cuándo le avisó a Hospeda que ya delegó (null si no avisó).
+      delegacionAvisadaEn: config?.delegacionAvisadaEn?.toISOString() || null,
       ultimaConexionOk: config?.ultimaConexionOk?.toISOString() || null,
       ultimoError: config?.ultimoError || null,
     });

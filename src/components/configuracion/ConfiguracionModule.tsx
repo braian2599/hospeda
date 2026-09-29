@@ -33,7 +33,7 @@ import {
   Settings, Copy, Info, BedDouble, KeyRound, Database, Receipt,
   Users, History, CheckCircle2, XCircle, Lock, Printer, MessageCircle,
   Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban, Instagram, Facebook, Zap, Share2,
-  CalendarClock,
+  CalendarClock, Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -923,6 +923,8 @@ interface AfipEstado {
   conHospeda: boolean;
   /** CUIT al que hay que delegar; null si Hospeda no tiene su certificado cargado. */
   hospedaCuit: string | null;
+  /** Cuándo le avisó a Hospeda que ya delegó. */
+  delegacionAvisadaEn: string | null;
   ultimaConexionOk: string | null;
   ultimoError: string | null;
 }
@@ -976,6 +978,18 @@ function AfipSection() {
       toast.success('Listo: ARCA aceptó la delegación. Ya podés facturar.');
       await cargarEstado();
     } catch { toast.error('Error de conexión'); } finally { setVerificando(false); }
+  };
+
+  const [avisando, setAvisando] = useState(false);
+  const avisarAHospeda = async () => {
+    setAvisando(true);
+    try {
+      const res = await fetch('/api/configuracion/afip/delegacion/aviso', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'No se pudo avisar a Hospeda'); return; }
+      toast.success('Listo, Hospeda ya tiene el aviso');
+      await cargarEstado();
+    } catch { toast.error('Error de conexión'); } finally { setAvisando(false); }
   };
 
   const dejarDeUsarHospeda = async () => {
@@ -1143,14 +1157,27 @@ function AfipSection() {
               <li>Entrá a ARCA con tu Clave Fiscal y abrí <strong>&quot;Administrador de Relaciones de Clave Fiscal&quot;</strong>.</li>
               <li>Tocá <strong>&quot;Nueva Relación&quot;</strong> → <strong>&quot;Buscar&quot;</strong> → ARCA → WebServices → <strong>&quot;Facturación Electrónica&quot;</strong>.</li>
               <li>En <strong>&quot;Representante&quot;</strong>, buscá el CUIT de Hospeda: <strong className="font-mono text-foreground">{formatoCuit(estado?.hospedaCuit || '')}</strong>, y confirmá.</li>
-              <li>Avisale a Hospeda que ya delegaste: Hospeda la acepta de su lado.</li>
-              <li>Cuando Hospeda te confirme, tocá <strong>&quot;Verificar delegación&quot;</strong>. No se emite ninguna factura.</li>
+              <li>Volvé acá y tocá <strong>&quot;Ya delegué, avisar a Hospeda&quot;</strong>. Hospeda la acepta de su lado y la conexión se activa sola.</li>
             </ol>
-            <p className="text-xs text-muted-foreground">ARCA puede tardar hasta 24 horas en registrar la delegación. Si la verificación falla, esperá y probá de nuevo.</p>
-            <div className="flex justify-end">
-              <Button onClick={verificarDelegacion} disabled={verificando} style={{ backgroundColor: forest }}>
+            {estado?.delegacionAvisadaEn && (
+              <div className="flex items-start gap-2 rounded-lg border p-3 bg-[#0284C70D] text-sm">
+                <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
+                <p className="text-muted-foreground">
+                  Le avisaste a Hospeda el {new Date(estado.delegacionAvisadaEn).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}.
+                  Cuando la acepte en ARCA, esta pantalla va a mostrar la conexión activa.
+                </p>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">ARCA puede tardar hasta 24 horas en registrar la delegación.</p>
+            <div className="flex flex-wrap justify-end gap-2">
+              {/* Por si Hospeda ya la aceptó y el hotel quiere comprobarlo sin esperar. */}
+              <Button variant="outline" onClick={verificarDelegacion} disabled={verificando || avisando}>
                 {verificando ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
                 Verificar delegación
+              </Button>
+              <Button onClick={avisarAHospeda} disabled={avisando || verificando} style={{ backgroundColor: forest }}>
+                {avisando ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                {estado?.delegacionAvisadaEn ? 'Avisar de nuevo' : 'Ya delegué, avisar a Hospeda'}
               </Button>
             </div>
           </CardContent>

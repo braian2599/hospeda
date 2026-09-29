@@ -59,6 +59,8 @@ export async function activarDelegacion(tenantId: string): Promise<ResultadoDele
     ...SIN_TICKETS_WSAA,
     ultimaConexionOk: new Date(),
     ultimoError: null,
+    // Ya no espera nada de Hospeda: sale de la lista del panel.
+    delegacionAvisadaEn: null,
   };
   await db.tenantAfip.upsert({ where: { tenantId }, create: { tenantId, ...datos }, update: datos });
 
@@ -68,6 +70,66 @@ export async function activarDelegacion(tenantId: string): Promise<ResultadoDele
     puntoVentaConfigurado,
     puntoVentaHabilitado: resultado.puntosDeVenta.some(p => p.numero === puntoVentaConfigurado),
   };
+}
+
+/**
+ * El hotel avisa que ya delegó en ARCA. Queda la fecha y el hotel aparece en
+ * el panel de Super Admin hasta que la delegación se verifique. No cambia
+ * cómo factura el hotel.
+ */
+export async function avisarDelegacion(tenantId: string): Promise<Date> {
+  if (!certificadoHospeda()) {
+    throw new AfipError('El certificado de Hospeda para ARCA no está configurado. Avisale a Hospeda.', 'NO_CERT');
+  }
+  const fiscal = await db.tenantConfig.findUnique({ where: { tenantId }, select: { hotelCuit: true } });
+  const cuit = (fiscal?.hotelCuit || '').replace(/\D/g, '');
+  if (cuit.length !== 11) {
+    throw new AfipError('Primero cargá y guardá el CUIT en "Datos de quien factura".', 'MISSING_CONFIG');
+  }
+  const actual = await db.tenantAfip.findUnique({ where: { tenantId } });
+  if (usaCertificadoHospeda(actual)) {
+    throw new AfipError('Este hotel ya factura con el certificado de Hospeda.', 'MISSING_CONFIG');
+  }
+
+  const ahora = new Date();
+  // Si el registro no existe se crea con el CUIT (el ambiente queda el de
+  // siempre y no se usa hasta verificar). Si existe, solo se anota la fecha.
+  await db.tenantAfip.upsert({
+    where: { tenantId },
+    create: { tenantId, cuit, delegacionAvisadaEn: ahora },
+    update: { delegacionAvisadaEn: ahora },
+  });
+  return ahora;
+}
+
+export interface DelegacionPendiente {
+  tenantId: string;
+  hotel: string;
+  cuit: string;
+  razonSocial: string | null;
+  avisadaEn: string;
+}
+
+/** Los hoteles que avisaron que delegaron y todavía no quedaron verificados. Más viejos primero. */
+export async function delegacionesPendientes(): Promise<DelegacionPendiente[]> {
+  const filas = await db.tenantAfip.findMany({
+    where: { delegacionAvisadaEn: { not: null } },
+    orderBy: { delegacionAvisadaEn: 'asc' },
+    select: {
+      tenantId: true, cuit: true, delegacionAvisadaEn: true, activo: true, certificadoPem: true, clavePrivadaPem: true,
+      tenant: { select: { nombre: true, configuracion: { select: { hotelRazonSocial: true } } } },
+    },
+  });
+  return filas
+    // Por si acaso: uno que ya factura con Hospeda no espera nada.
+    .filter(f => !usaCertificadoHospeda(f))
+    .map(f => ({
+      tenantId: f.tenantId,
+      hotel: f.tenant.nombre,
+      cuit: f.cuit,
+      razonSocial: f.tenant.configuracion?.hotelRazonSocial || null,
+      avisadaEn: f.delegacionAvisadaEn!.toISOString(),
+    }));
 }
 
 /** Deja de facturar con el certificado de Hospeda. No toca un certificado propio. */

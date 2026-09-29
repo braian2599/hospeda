@@ -734,6 +734,10 @@ model TenantAfip {
   wsaaPadronExpiracion DateTime?
   ultimaConexionOk DateTime? // último login WSAA exitoso (botón "Probar conexión")
   ultimoError      String?
+  // Cuándo avisó el hotel que le delegó la facturación a Hospeda en ARCA.
+  // Mientras tenga fecha, aparece en el panel de Super Admin para aceptarla.
+  // Se borra cuando la delegación se verifica. Ver lib/afip/delegacion.ts.
+  delegacionAvisadaEn DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
