@@ -9,7 +9,7 @@
 // - Notas de crédito y débito: autorizadas por ARCA (src/lib/afip/notas.ts).
 //   Se emiten desde su pestaña, eligiendo la factura, o desde la factura.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Search, Loader2, FileText, Trash2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,7 +27,9 @@ import { DOC_TIPO } from '@/lib/afip/config';
 import {
   VerComprobanteDialog, NOMBRE_TIPO_LISTA, type ComprobanteListado, type DatosFiscales, type TipoListado,
 } from '@/components/modules/ComprobantesModule';
+import PaginationBar from '@/components/ui/pagination-bar';
 import EmitirDocumentoDialog from './EmitirDocumentoDialog';
+import { useComprobantesPaginados, POR_PAGINA } from './useComprobantesPaginados';
 import NotaDialog, { type ClaseNota } from './NotaDialog';
 
 interface Props {
@@ -48,8 +50,6 @@ function docDelReceptor(c: ComprobanteListado): string {
 
 export default function DocumentosTab({ tipo, fiscal, version }: Props) {
   const reservas = useHotelStore(s => s.reservas);
-  const [items, setItems] = useState<ComprobanteListado[]>([]);
-  const [cargando, setCargando] = useState(true);
   const [q, setQ] = useState('');
   const [verItem, setVerItem] = useState<ComprobanteListado | null>(null);
   const [anulando, setAnulando] = useState<ComprobanteListado | null>(null);
@@ -57,27 +57,15 @@ export default function DocumentosTab({ tipo, fiscal, version }: Props) {
   const [nota, setNota] = useState<{ clase: ClaseNota; factura: ComprobanteListado | null } | null>(null);
   const [recarga, setRecarga] = useState(0);
 
-  useEffect(() => {
-    let cancelado = false;
-    fetch(`/api/comprobantes?tipo=${tipo}&take=100${tipo === 'Factura' ? '&conCae=1' : ''}`)
-      .then(r => r.json())
-      .then(data => { if (!cancelado && Array.isArray(data)) setItems(data); })
-      .catch(() => {})
-      .finally(() => { if (!cancelado) setCargando(false); });
-    return () => { cancelado = true; };
-  }, [tipo, version, recarga]);
+  // Una página por vez, pedida al servidor; la búsqueda también la hace el
+  // servidor (ver useComprobantesPaginados).
+  const lista = useComprobantesPaginados({ tipo, q, version: `${version}-${recarga}` });
+  const visibles = lista.items;
+  const cargando = lista.cargando;
 
-  const recargar = () => { setCargando(true); setRecarga(n => n + 1); };
+  const recargar = () => setRecarga(n => n + 1);
 
   const reservaPorId = useMemo(() => new Map(reservas.map(r => [r.id, r])), [reservas]);
-
-  const visibles = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    if (!t) return items;
-    return items.filter(c => c.razonSocialReceptor.toLowerCase().includes(t)
-      || c.numeroDisplay.includes(t) || (c.docReceptor ?? '').includes(t.replace(/\D/g, '') || t)
-      || (c.reservaId ? numeroDeReserva(reservaPorId.get(c.reservaId) ?? {}).includes(t) : false));
-  }, [items, q, reservaPorId]);
 
   const anular = async () => {
     if (!anulando) return;
@@ -107,7 +95,7 @@ export default function DocumentosTab({ tipo, fiscal, version }: Props) {
               <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={q} onChange={e => setQ(e.target.value)} className="pl-8"
-                placeholder={tipo === 'Factura' ? 'Buscar por número, receptor, DNI/CUIT o reserva' : 'Buscar por número o receptor'}
+                placeholder={tipo === 'Factura' ? 'Buscar por número, receptor, DNI/CUIT o reserva' : 'Buscar por número, receptor o DNI/CUIT'}
                 aria-label={`Buscar ${nombre.toLowerCase()}`}
               />
             </div>
@@ -143,7 +131,7 @@ export default function DocumentosTab({ tipo, fiscal, version }: Props) {
                   <TableRow><TableCell colSpan={columnas} className="text-center py-10"><Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
                 ) : visibles.length === 0 ? (
                   <TableRow><TableCell colSpan={columnas} className="text-center py-10 text-sm text-muted-foreground">
-                    {q.trim() ? 'Ninguno coincide con la búsqueda.' : `Todavía no hay ${nombre.toLowerCase()}s.`}
+                    {lista.buscando ? 'Ninguno coincide con la búsqueda.' : `Todavía no hay ${nombre.toLowerCase()}s.`}
                   </TableCell></TableRow>
                 ) : visibles.map(c => {
                   const anulado = c.estado === 'anulado';
@@ -206,6 +194,13 @@ export default function DocumentosTab({ tipo, fiscal, version }: Props) {
               </TableBody>
             </Table>
           </div>
+          <PaginationBar
+            page={lista.pagina}
+            totalPages={lista.totalPaginas}
+            onPageChange={lista.setPagina}
+            totalItems={lista.total}
+            pageSize={POR_PAGINA}
+          />
         </CardContent>
       </Card>
 

@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { letraPorTipoComprobante } from '@/lib/afip/config';
 import { saldoDesdeNotas } from '@/lib/afip/notas';
-import type { TipoComprobante } from '@prisma/client';
+import type { Prisma, TipoComprobante } from '@prisma/client';
 
 // ─────────────────────────────────────────────────────────
 // POST /api/comprobantes — Emite un Presupuesto (módulo ARCA, con su
@@ -179,28 +179,37 @@ export async function GET(req: NextRequest) {
     // conCae=1: solo lo autorizado por ARCA. Una "Factura" sin CAE es el
     // recibo interno de una reserva, que todavía no se facturó.
     const conCae = searchParams.get('conCae') === '1';
-    const take = Math.min(100, Math.max(1, Number(searchParams.get('take')) || 20));
+    // pagina=N: paginado del lado del servidor (ARCA y Comprobantes). Trae
+    // solo esa página y el total, en vez de cargar todo: con cientos de
+    // comprobantes la lista completa hacía lento el sistema. Sin "pagina",
+    // devuelve la lista como siempre (los primeros "take").
+    const pagina = searchParams.has('pagina') ? Math.max(1, Math.floor(Number(searchParams.get('pagina'))) || 1) : null;
+    const take = Math.min(100, Math.max(1, Number(searchParams.get('take')) || (pagina ? 15 : 20)));
 
-    const comprobantes = await db.comprobante.findMany({
-      where: {
-        tenantId,
-        ...(tipo ? { tipo: tipo as TipoComprobante } : {}),
-        ...(conCae ? { cae: { not: null } } : {}),
-        ...(q ? {
-          OR: [
-            { razonSocialReceptor: { contains: q, mode: 'insensitive' as const } },
-            { docReceptor: { contains: q.replace(/\D/g, '') || q } },
-          ],
-        } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      take,
-      include: {
-        comprobanteAsociado: { select: { tipo: true, letra: true, puntoVenta: true, numero: true } },
-        notasAsociadas: { select: { tipo: true, importe: true, cae: true } },
-      },
-    });
+    const where: Prisma.ComprobanteWhereInput = {
+      tenantId,
+      ...(tipo ? { tipo: tipo as TipoComprobante } : {}),
+      ...(conCae ? { cae: { not: null } } : {}),
+      ...(q ? { OR: condicionesDeBusqueda(q) } : {}),
+    };
 
+    const [comprobantes, total] = await Promise.all([
+      db.comprobante.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take,
+        ...(pagina ? { skip: (pagina - 1) * take } : {}),
+        include: {
+          comprobanteAsociado: { select: { tipo: true, letra: true, puntoVenta: true, numero: true } },
+          notasAsociadas: { select: { tipo: true, importe: true, cae: true } },
+        },
+      }),
+      pagina ? db.comprobante.count({ where }) : Promise.resolve(0),
+    ]);
+
+    if (pagina) {
+      return NextResponse.json({ items: comprobantes.map(formatComprobante), total, pagina, porPagina: take });
+    }
     return NextResponse.json(comprobantes.map(formatComprobante));
   } catch (error) {
     if (error instanceof AuthError) {
@@ -209,4 +218,31 @@ export async function GET(req: NextRequest) {
     console.error('GET comprobantes:', error);
     return NextResponse.json({ error: 'Error al listar comprobantes' }, { status: 500 });
   }
+}
+
+/**
+ * Qué busca el cuadro de búsqueda: el receptor (nombre o razón social), su
+ * DNI/CUIT, el número del comprobante ("0002-00000015", "15") y el número de
+ * la reserva ("#12", "12").
+ */
+function condicionesDeBusqueda(q: string): Prisma.ComprobanteWhereInput[] {
+  const condiciones: Prisma.ComprobanteWhereInput[] = [
+    { razonSocialReceptor: { contains: q, mode: 'insensitive' } },
+  ];
+  // El DNI/CUIT solo si se escribieron números (con o sin guiones): con un
+  // nombre como "Cliente 7" no se buscan documentos que tengan un 7.
+  const digitos = q.replace(/\D/g, '');
+  if (digitos && !/[a-zA-ZáéíóúñÁÉÍÓÚÑ]/.test(q)) condiciones.push({ docReceptor: { contains: digitos } });
+
+  // "0002-00000015": punto de venta y número.
+  const conPunto = q.match(/^(\d{1,5})-(\d{1,8})$/);
+  if (conPunto) {
+    condiciones.push({ puntoVenta: Number(conPunto[1]), numero: Number(conPunto[2]) });
+  } else if (/^#?\d{1,8}$/.test(q)) {
+    const n = Number(q.replace('#', ''));
+    // "#12" es solo el número de reserva; "12", el del comprobante o el de la reserva.
+    if (!q.startsWith('#')) condiciones.push({ numero: n });
+    condiciones.push({ reserva: { numero: n } });
+  }
+  return condiciones;
 }

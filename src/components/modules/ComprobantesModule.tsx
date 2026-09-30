@@ -24,12 +24,13 @@ import {
 import {
   Receipt, CreditCard, FileText, XCircle, DollarSign, CalendarDays, User,
   Building2, Phone, Mail, AlertTriangle, CheckCircle2, TrendingUp, Timer, Wallet,
-  Banknote, Printer, Hash, ArrowRight, CircleDollarSign, Download, Loader2, BookOpen, Landmark,
+  Banknote, Printer, Hash, ArrowRight, CircleDollarSign, Download, Loader2, BookOpen, Landmark, Search,
 } from 'lucide-react';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import CuentaCorrienteTab from '@/components/cuenta-corriente/CuentaCorrienteTab';
 import { toast } from 'sonner';
 import PaginationBar from '@/components/ui/pagination-bar';
+import { useComprobantesPaginados, POR_PAGINA } from '@/components/arca/useComprobantesPaginados';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import QRCode from 'qrcode';
 import { docReceptor, DOC_TIPO, letraPorTipoComprobante, notaSinValidezFiscal, desgloseParaMostrar, type TipoComprobanteGenerico } from '@/lib/afip/config';
@@ -1089,21 +1090,15 @@ export function useDatosFiscales(): DatosFiscales | null {
 function ComprobantesListaTab() {
   const [tipoActivo, setTipoActivo] = useState<TipoListado>('Factura');
   const fiscal = useDatosFiscales();
-  const [items, setItems] = useState<ComprobanteListado[]>([]);
-  const [loadingList, setLoadingList] = useState(true);
+  const [q, setQ] = useState('');
   const [verItem, setVerItem] = useState<ComprobanteListado | null>(null);
 
-  // Facturas: solo las autorizadas por ARCA. Una "Factura" sin CAE es el
+  // Una página por vez, pedida al servidor (ver useComprobantesPaginados).
+  // Facturas: solo las autorizadas por ARCA; una "Factura" sin CAE es el
   // recibo interno de una reserva, que se ve en el historial de pagos.
-  useEffect(() => {
-    let cancelado = false;
-    fetch(`/api/comprobantes?tipo=${tipoActivo}&take=100${tipoActivo === 'Factura' ? '&conCae=1' : ''}`)
-      .then(r => r.json())
-      .then(data => { if (!cancelado && Array.isArray(data)) setItems(data); })
-      .catch(() => {})
-      .finally(() => { if (!cancelado) setLoadingList(false); });
-    return () => { cancelado = true; };
-  }, [tipoActivo]);
+  const lista = useComprobantesPaginados({ tipo: tipoActivo, q });
+  const items = lista.items;
+  const loadingList = lista.cargando;
 
   return (
     <div className="space-y-4">
@@ -1111,11 +1106,18 @@ function ComprobantesListaTab() {
         {PILLS_TIPO.map(p => (
           <Button
             key={p.tipo} size="sm" variant={tipoActivo === p.tipo ? 'default' : 'outline'}
-            className="h-7 text-xs" onClick={() => { setLoadingList(true); setTipoActivo(p.tipo); }}
+            className="h-7 text-xs" onClick={() => { setTipoActivo(p.tipo); lista.setPagina(1); }}
           >
             {p.label}
           </Button>
         ))}
+        <div className="relative ml-auto w-full sm:w-72">
+          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={q} onChange={e => setQ(e.target.value)} className="pl-8 h-8 text-sm"
+            placeholder="Buscar por número, receptor o DNI/CUIT" aria-label="Buscar comprobante"
+          />
+        </div>
       </div>
 
       <Card>
@@ -1136,7 +1138,9 @@ function ComprobantesListaTab() {
                 {loadingList ? (
                   <TableRow><TableCell colSpan={6} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
                 ) : items.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Todavía no hay {NOMBRE_TIPO_LISTA[tipoActivo].toLowerCase()}s emitidos.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    {lista.buscando ? 'Ninguno coincide con la búsqueda.' : `Todavía no hay ${NOMBRE_TIPO_LISTA[tipoActivo].toLowerCase()}s emitidos.`}
+                  </TableCell></TableRow>
                 ) : (
                   items.map(item => {
                     const anulado = item.estado === 'anulado';
@@ -1163,6 +1167,13 @@ function ComprobantesListaTab() {
               </TableBody>
             </Table>
           </div>
+          <PaginationBar
+            page={lista.pagina}
+            totalPages={lista.totalPaginas}
+            onPageChange={lista.setPagina}
+            totalItems={lista.total}
+            pageSize={POR_PAGINA}
+          />
         </CardContent>
       </Card>
 

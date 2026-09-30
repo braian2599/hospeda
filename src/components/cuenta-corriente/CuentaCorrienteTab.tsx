@@ -18,6 +18,8 @@ import { api, type DbTitular } from '@/lib/api-client';
 import { useHotelStore } from '@/lib/store';
 import { formatMoney } from '@/lib/format';
 import { aPesos, normalizarCuit, normalizarDocumento } from '@/lib/cuenta-corriente';
+import PaginationBar from '@/components/ui/pagination-bar';
+import { POR_PAGINA } from '@/components/arca/useComprobantesPaginados';
 import EstadoDeCuenta from './EstadoDeCuenta';
 
 export default function CuentaCorrienteTab() {
@@ -27,6 +29,7 @@ export default function CuentaCorrienteTab() {
   const [q, setQ] = useState('');
   const [verDesactivados, setVerDesactivados] = useState(false);
   const [abierto, setAbierto] = useState<string | null>(null);
+  const [pagina, setPagina] = useState(1);
 
   const cargar = useCallback(async () => {
     try {
@@ -64,6 +67,11 @@ export default function CuentaCorrienteTab() {
     // Primero los que deben, de mayor a menor: es lo que se viene a mirar.
     return [...lista].sort((a, b) => (b.saldo ?? 0) - (a.saldo ?? 0) || a.nombre.localeCompare(b.nombre));
   }, [titulares, q]);
+
+  // De a POR_PAGINA; si la página quedó más allá del final, la última.
+  const totalPaginas = Math.max(1, Math.ceil(visibles.length / POR_PAGINA));
+  const paginaVisible = Math.min(pagina, totalPaginas);
+  const deLaPagina = visibles.slice((paginaVisible - 1) * POR_PAGINA, paginaVisible * POR_PAGINA);
 
   const resumen = useMemo(() => {
     const conDeuda = titulares.filter(t => (t.saldo ?? 0) > 0);
@@ -106,10 +114,10 @@ export default function CuentaCorrienteTab() {
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por nombre, CUIT o DNI" className="pl-8" aria-label="Buscar cuenta" />
+              <Input value={q} onChange={e => { setQ(e.target.value); setPagina(1); }} placeholder="Buscar por nombre, CUIT o DNI" className="pl-8" aria-label="Buscar cuenta" />
             </div>
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Switch checked={verDesactivados} onCheckedChange={setVerDesactivados} />
+              <Switch checked={verDesactivados} onCheckedChange={v => { setVerDesactivados(v); setPagina(1); }} />
               Ver desactivadas
             </label>
           </div>
@@ -145,7 +153,7 @@ export default function CuentaCorrienteTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {visibles.map(t => {
+                  {deLaPagina.map(t => {
                     const debe = aPesos(t.saldo ?? 0);
                     return (
                       <TableRow key={t.id} className={`cursor-pointer hover:bg-[#0F766E0D] ${t.activo ? '' : 'opacity-60'}`} onClick={() => setAbierto(t.id)}>
@@ -174,6 +182,7 @@ export default function CuentaCorrienteTab() {
                   })}
                 </TableBody>
               </Table>
+              <PaginationBar page={paginaVisible} totalPages={totalPaginas} onPageChange={setPagina} totalItems={visibles.length} pageSize={POR_PAGINA} />
             </div>
           )}
         </CardContent>

@@ -105,7 +105,7 @@ export async function POST(
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: 'Body inválido' }, { status: 400 });
+    return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
   }
 
   const tipo = typeof body.tipo === 'string' ? body.tipo.trim() : '';

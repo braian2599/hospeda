@@ -17,6 +17,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import PaginationBar from '@/components/ui/pagination-bar';
+import { POR_PAGINA } from './useComprobantesPaginados';
 import { formatMoney, formatFecha } from '@/lib/format';
 import FacturarAfipDialog from '@/components/comprobantes/FacturarAfipDialog';
 
@@ -82,6 +84,7 @@ export default function ParaFacturarTab({ onResumen, onFacturado }: Props) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState('');
+  const [pagina, setPagina] = useState(1);
   const [elegidas, setElegidas] = useState<Set<string>>(new Set());
   const [facturando, setFacturando] = useState<{ reservaId: string; numeroDisplay: string } | null>(null);
   const [preparando, setPreparando] = useState<string | null>(null);
@@ -119,8 +122,15 @@ export default function ParaFacturarTab({ onResumen, onFacturado }: Props) {
       || numeroCorto(r.numero).includes(t) || (r.cuentaCorriente?.titular.toLowerCase().includes(t) ?? false));
   }, [reservas, q]);
 
+  // De a POR_PAGINA: con "cualquier fecha" pueden ser cientos. Si la página
+  // quedó más allá del final (se facturaron las últimas), se muestra la última.
+  const totalPaginas = Math.max(1, Math.ceil(visibles.length / POR_PAGINA));
+  const paginaVisible = Math.min(pagina, totalPaginas);
+  const deLaPagina = visibles.slice((paginaVisible - 1) * POR_PAGINA, paginaVisible * POR_PAGINA);
+
   const seleccion = reservas.filter(r => elegidas.has(r.id));
-  const todasVisiblesElegidas = visibles.length > 0 && visibles.every(r => elegidas.has(r.id));
+  // "Seleccionar todas" marca las de la página que se ve.
+  const todasVisiblesElegidas = deLaPagina.length > 0 && deLaPagina.every(r => elegidas.has(r.id));
 
   const alternar = (id: string) => setElegidas(prev => {
     const n = new Set(prev);
@@ -129,8 +139,8 @@ export default function ParaFacturarTab({ onResumen, onFacturado }: Props) {
   });
   const alternarTodas = () => setElegidas(prev => {
     const n = new Set(prev);
-    if (todasVisiblesElegidas) visibles.forEach(r => n.delete(r.id));
-    else visibles.forEach(r => n.add(r.id));
+    if (todasVisiblesElegidas) deLaPagina.forEach(r => n.delete(r.id));
+    else deLaPagina.forEach(r => n.add(r.id));
     return n;
   });
 
@@ -159,11 +169,11 @@ export default function ParaFacturarTab({ onResumen, onFacturado }: Props) {
           <div className="flex flex-wrap items-center gap-3 p-4 border-b">
             <div className="relative flex-1 min-w-[220px] max-w-md">
               <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por huésped, DNI o N° de reserva" className="pl-8" aria-label="Buscar reserva" />
+              <Input value={q} onChange={e => { setQ(e.target.value); setPagina(1); }} placeholder="Buscar por huésped, DNI o N° de reserva" className="pl-8" aria-label="Buscar reserva" />
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Cobradas en</span>
-              <Select value={periodo} onValueChange={v => { setCargando(true); setPeriodo(v as Periodo); }}>
+              <Select value={periodo} onValueChange={v => { setCargando(true); setPeriodo(v as Periodo); setPagina(1); }}>
                 <SelectTrigger className="w-[200px]" aria-label="Período"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="30">los últimos 30 días</SelectItem>
@@ -208,7 +218,7 @@ export default function ParaFacturarTab({ onResumen, onFacturado }: Props) {
                 <TableHeader>
                   <TableRow className="bg-[#F1F5F94D]">
                     <TableHead className="w-10">
-                      <Checkbox checked={todasVisiblesElegidas} onCheckedChange={alternarTodas} aria-label="Seleccionar todas" />
+                      <Checkbox checked={todasVisiblesElegidas} onCheckedChange={alternarTodas} aria-label="Seleccionar todas las de esta página" />
                     </TableHead>
                     <TableHead>Reserva</TableHead>
                     <TableHead>Huésped</TableHead>
@@ -220,7 +230,7 @@ export default function ParaFacturarTab({ onResumen, onFacturado }: Props) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {visibles.map(r => {
+                  {deLaPagina.map(r => {
                     const estado = ESTADO[r.estado] ?? { texto: r.estado, clase: 'bg-muted text-muted-foreground' };
                     return (
                       <TableRow key={r.id} className={elegidas.has(r.id) ? 'bg-[#0F766E0D]' : ''}>
@@ -258,6 +268,7 @@ export default function ParaFacturarTab({ onResumen, onFacturado }: Props) {
                   })}
                 </TableBody>
               </Table>
+              <PaginationBar page={paginaVisible} totalPages={totalPaginas} onPageChange={setPagina} totalItems={visibles.length} pageSize={POR_PAGINA} />
             </div>
           )}
         </CardContent>

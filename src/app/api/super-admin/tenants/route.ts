@@ -227,7 +227,7 @@ export async function PATCH(req: NextRequest) {
     // ── Activar/Desactivar tenant ──
     if (action === 'toggleActive') {
       const tenant = await db.tenant.findUnique({ where: { id: tenantId } });
-      if (!tenant) return NextResponse.json({ error: 'Tenant no encontrado' }, { status: 404 });
+      if (!tenant) return NextResponse.json({ error: 'Hotel no encontrado' }, { status: 404 });
 
       const nuevoEstado = !tenant.activo;
       const updated = await db.tenant.update({
@@ -287,7 +287,7 @@ export async function PATCH(req: NextRequest) {
       }
 
       const tenant = await db.tenant.findUnique({ where: { id: tenantId }, select: { id: true } });
-      if (!tenant) return NextResponse.json({ error: 'Tenant no encontrado' }, { status: 404 });
+      if (!tenant) return NextResponse.json({ error: 'Hotel no encontrado' }, { status: 404 });
 
       const overrides = await setFeatureFlag(tenantId, flag as FeatureFlag, valorDeModo(modo));
       const planFlags = await getPlanFeatureFlags(tenantId);
@@ -438,7 +438,7 @@ export async function DELETE(req: NextRequest) {
     });
 
     if (!tenant) {
-      return NextResponse.json({ error: 'Tenant no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Hotel no encontrado' }, { status: 404 });
     }
 
     // Validar confirmación escrita: el nombre debe coincidir exactamente
