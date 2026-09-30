@@ -15,14 +15,14 @@ export const SUGERENCIAS: Record<ModuloId, string[]> = {
   checkin: ['¿Cómo hago un check-in?', 'Check-out de una sola cama', 'Cargar acompañantes'],
   limpieza: ['Marcar una habitación como limpia', 'Reportar un desperfecto', 'Bloquear por mantenimiento'],
   reservas: ['Cargar una reserva', 'Cobrar la seña', 'Reservar en una compartida'],
-  clientes: ['Buscar un huésped', 'Ver el historial de estadías'],
+  clientes: ['Buscar un huésped', '¿Cuánto debe un cliente?', 'Agregar el CUIT de un cliente'],
   tarifas: ['Crear una tarifa por cama', 'Noches de cortesía', 'Precio diferenciado de niños'],
-  comprobantes: ['Cobrar un saldo pendiente', 'Ver un recibo', 'Cobrarle a una cuenta corriente'],
+  comprobantes: ['Cobrar un saldo pendiente', 'Pasar una deuda a cuenta corriente', 'Cobrarle a una cuenta corriente'],
   arca: ['Facturar una reserva', 'Facturar a una empresa', '¿Qué es el CAE?'],
   caja: ['Abrir la caja', 'Cerrar el turno', 'Me da diferencia el cierre'],
   reportes: ['Ocupación del mes', '¿Qué es el ADR?', 'Horas trabajadas del equipo'],
   usuarios: ['Dar de alta a alguien del equipo', 'Qué ve cada rol'],
-  configuracion: ['Configurar la landing del hotel', 'Cargar los datos fiscales', 'Conectar Mercado Pago'],
+  configuracion: ['Conectar ARCA', 'Cargar los datos fiscales', 'Configurar la landing del hotel'],
 };
 
 /** Nombre del módulo tal cual aparece en el menú. Sale de MODULOS_SISTEMA. */
