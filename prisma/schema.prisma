@@ -424,6 +424,13 @@ model Tarifa {
   habitacionChofer     String?
   promoDescripcion     String?
   activa               Boolean  @default(true)
+  // Período en que vale la tarifa (las dos opcionales: sin fechas, vale
+  // siempre). Medianoche UTC, como las fechas de las reservas. La regla
+  // (decisión del dueño, 02/10): una tarifa vale para una estadía si está
+  // vigente el DÍA DE SALIDA, y entonces cobra la estadía entera con ella,
+  // sin mezclar tarifas. Ver src/lib/tarifa-vigencia.ts.
+  vigenciaDesde        DateTime?
+  vigenciaHasta        DateTime?
   orden                Int      @default(0)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
