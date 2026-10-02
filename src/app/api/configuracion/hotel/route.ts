@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireOwner, AuthError } from '@/lib/auth/utils';
 import { parseFeatureFlags, parseFlagOverrides, resolverFlags } from '@/lib/feature-flags';
+import { leerTarifasPublicas, tarifasPisadas, mensajePisada, type MapaTarifasPublicas } from '@/lib/tarifas-publicas';
+import { aFechaTexto } from '@/lib/tarifa-vigencia';
 
 // GET /api/configuracion/hotel (owner-only)
 export async function GET() {
@@ -71,7 +73,8 @@ export async function GET() {
       hotelTelefono: config.hotelTelefono || tenant.telefono || '',
       hotelEmail: config.hotelEmail || tenant.email,
       featureFlags,
-      tarifasPublicas: (config.tarifasPublicas && typeof config.tarifasPublicas === 'object') ? config.tarifasPublicas : {},
+      // Siempre como listas (una tarifa por período), aunque esté guardado con el formato viejo.
+      tarifasPublicas: leerTarifasPublicas(config.tarifasPublicas),
       mostrarSeccionAgencias: !!config.mostrarSeccionAgencias,
       textoAgencias: config.textoAgencias || '',
       modoCobroSena: (config.modoCobroSena as string) || 'mercadopago',
@@ -115,6 +118,30 @@ export async function PUT(req: NextRequest) {
     if (facebookUrl && (typeof facebookUrl !== 'string' || !/^https?:\/\//i.test(facebookUrl))) {
       return NextResponse.json({ error: 'El link de Facebook debe empezar con http:// o https://' }, { status: 400 });
     }
+    // Tarifas de la web: solo tarifas del hotel, y dos tarifas del mismo tipo
+    // de habitación no pueden valer el mismo día (ver src/lib/tarifas-publicas.ts).
+    let tarifasPublicasLimpias: MapaTarifasPublicas | undefined;
+    if (tarifasPublicas !== undefined) {
+      if (!tarifasPublicas || typeof tarifasPublicas !== 'object' || Array.isArray(tarifasPublicas)) {
+        return NextResponse.json({ error: 'Precios de la web inválidos' }, { status: 400 });
+      }
+      const tarifas = await db.tarifa.findMany({
+        where: { tenantId },
+        select: { id: true, nombre: true, vigenciaDesde: true, vigenciaHasta: true, activa: true },
+      });
+      const idsDelHotel = new Set(tarifas.map(t => t.id));
+      tarifasPublicasLimpias = {};
+      for (const [tipo, ids] of Object.entries(leerTarifasPublicas(tarifasPublicas))) {
+        const propias = ids.filter(id => idsDelHotel.has(id));
+        if (propias.length > 0) tarifasPublicasLimpias[tipo] = propias;
+      }
+      const pisada = tarifasPisadas(tarifasPublicasLimpias, tarifas.map(t => ({
+        id: t.id, nombre: t.nombre, activa: t.activa,
+        vigenciaDesde: aFechaTexto(t.vigenciaDesde), vigenciaHasta: aFechaTexto(t.vigenciaHasta),
+      })))[0];
+      if (pisada) return NextResponse.json({ error: mensajePisada(pisada) }, { status: 400 });
+    }
+
     let reservasHabilitadasHastaDate: Date | null | undefined;
     if (reservasHabilitadasHasta !== undefined) {
       if (reservasHabilitadasHasta === null || reservasHabilitadasHasta === '') {
@@ -155,9 +182,7 @@ export async function PUT(req: NextRequest) {
 
     // Campos opcionales de la landing (solo se tocan si vienen en el body)
     const configExtra: Record<string, unknown> = {};
-    if (tarifasPublicas && typeof tarifasPublicas === 'object' && !Array.isArray(tarifasPublicas)) {
-      configExtra.tarifasPublicas = tarifasPublicas;
-    }
+    if (tarifasPublicasLimpias !== undefined) configExtra.tarifasPublicas = tarifasPublicasLimpias;
     if (mostrarSeccionAgencias !== undefined) configExtra.mostrarSeccionAgencias = !!mostrarSeccionAgencias;
     if (textoAgencias !== undefined) configExtra.textoAgencias = textoAgencias;
     if (modoCobroSena !== undefined) configExtra.modoCobroSena = modoCobroSena;

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { leerFechaVigencia, errorAlGuardarVigencia, aFechaDb } from '@/lib/tarifa-api';
+import { aFechaTexto } from '@/lib/tarifa-vigencia';
 
 // GET /api/tarifas/[id] — Obtener una tarifa
 export async function GET(
@@ -46,8 +48,11 @@ export async function PUT(
       habitacionChofer,
       promoDescripcion,
       activa,
+      mostrarEnWeb,
       orden,
     } = body;
+    const vigenciaDesde = leerFechaVigencia(body.vigenciaDesde);
+    const vigenciaHasta = leerFechaVigencia(body.vigenciaHasta);
 
     // Buscar tarifa actual
     const tarifa = await db.tarifa.findFirst({
@@ -73,19 +78,44 @@ export async function PUT(
       return NextResponse.json({ error: 'precios debe ser un objeto JSON' }, { status: 400 });
     }
 
-    const updated = await db.tarifa.update({
-      where: { id },
-      data: {
-        ...(nuevoNombre !== tarifa.nombre && { nombre: nuevoNombre }),
-        ...(precios !== undefined && { precios }),
-        ...(camposPersonalizados !== undefined && { camposPersonalizados: camposPersonalizados ?? null }),
-        ...(choferCortesia !== undefined && { choferCortesia: Boolean(choferCortesia) }),
-        ...(habitacionChofer !== undefined && { habitacionChofer: habitacionChofer?.trim() || null }),
-        ...(promoDescripcion !== undefined && { promoDescripcion: promoDescripcion?.trim() || null }),
-        ...(activa !== undefined && { activa: Boolean(activa) }),
-        ...(orden !== undefined && { orden: parseInt(orden) || 0 }),
-      },
-    });
+    // Fechas y estado como quedarían, para validarlos juntos (aunque venga
+    // uno solo): "desde" no puede pasar a "hasta", y en la web no se puede
+    // pisar con otra tarifa del mismo tipo de habitación.
+    if (vigenciaDesde !== undefined || vigenciaHasta !== undefined || activa !== undefined) {
+      const errorVigencia = await errorAlGuardarVigencia(tenantId, id, {
+        vigenciaDesde: vigenciaDesde !== undefined ? vigenciaDesde : aFechaTexto(tarifa.vigenciaDesde),
+        vigenciaHasta: vigenciaHasta !== undefined ? vigenciaHasta : aFechaTexto(tarifa.vigenciaHasta),
+        activa: activa !== undefined ? Boolean(activa) : tarifa.activa,
+      });
+      if (errorVigencia) {
+        return NextResponse.json({ error: errorVigencia }, { status: 400 });
+      }
+    }
+
+    const data = {
+      ...(nuevoNombre !== tarifa.nombre && { nombre: nuevoNombre }),
+      ...(precios !== undefined && { precios }),
+      ...(camposPersonalizados !== undefined && { camposPersonalizados: camposPersonalizados ?? null }),
+      ...(choferCortesia !== undefined && { choferCortesia: Boolean(choferCortesia) }),
+      ...(habitacionChofer !== undefined && { habitacionChofer: habitacionChofer?.trim() || null }),
+      ...(promoDescripcion !== undefined && { promoDescripcion: promoDescripcion?.trim() || null }),
+      ...(activa !== undefined && { activa: Boolean(activa) }),
+      ...(mostrarEnWeb !== undefined && { mostrarEnWeb: Boolean(mostrarEnWeb) }),
+      ...(vigenciaDesde !== undefined && { vigenciaDesde: aFechaDb(vigenciaDesde) }),
+      ...(vigenciaHasta !== undefined && { vigenciaHasta: aFechaDb(vigenciaHasta) }),
+      ...(orden !== undefined && { orden: parseInt(orden) || 0 }),
+    };
+
+    // Las reservas guardan el NOMBRE de la tarifa: si cambia, se cambia
+    // también en ellas, en la misma operación. Antes solo se cambiaba en la
+    // pantalla y, al recargar, esas reservas quedaban con un nombre que ya
+    // no existía.
+    const updated = nuevoNombre !== tarifa.nombre
+      ? (await db.$transaction([
+          db.tarifa.update({ where: { id }, data }),
+          db.reserva.updateMany({ where: { tenantId, tipoTarifa: tarifa.nombre }, data: { tipoTarifa: nuevoNombre } }),
+        ]))[0]
+      : await db.tarifa.update({ where: { id }, data });
 
     return NextResponse.json(updated);
   } catch (error) {

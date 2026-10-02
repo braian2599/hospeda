@@ -16,6 +16,7 @@ import {
   normalizarRangos, calcularTotalSegunTarifa,
   type CalcTarifaOptions,
 } from './tarifa-calc';
+import { aFechaTexto } from './tarifa-vigencia';
 import { camasDeReserva, camasLibresDe, esCompartida, esEstadoDeOcupacion, ocupaHabitacionEntera, tieneCheckIn } from './ocupacion';
 import { sesionDesdeRespuesta } from './sesion';
 import { estaFacturada } from './facturacion-reserva';
@@ -257,6 +258,20 @@ function nochesEntre(checkin: string, checkout: string): number {
 }
 
 // ==================== TARIFA HELPERS ====================
+/** Todo lo que se edita de una tarifa en la ventana de Tarifas. */
+export interface DatosTarifaCompleta {
+  nombre: string;
+  modoCobro: ModoCobro;
+  rangos: RangoPrecio[];
+  camposPersonalizados: CampoPersonalizado[];
+  promociones?: PromocionesTarifa;
+  vigenciaDesde: string | null;
+  vigenciaHasta: string | null;
+  activa: boolean;
+  mostrarEnWeb: boolean;
+  promoDescripcion: string | null;
+}
+
 // Lógica pura extraída a @/lib/tarifa-calc (compartida con la API pública
 // de la landing, para que el precio sea idéntico en los dos lados).
 
@@ -444,7 +459,12 @@ interface HotelStore {
 
   // Tarifas
   actualizarPrecioTarifa: (tipo: string, personas: number, precio: number) => Promise<boolean>;
-  guardarTarifaCompleta: (tipoOriginal: string, datos: { nombre: string; modoCobro: ModoCobro; rangos: RangoPrecio[]; camposPersonalizados: CampoPersonalizado[]; promociones?: PromocionesTarifa }) => Promise<boolean>;
+  /**
+   * Crea (tipoOriginal = 'nueva') o modifica una tarifa. Devuelve null si
+   * salió bien, o el mensaje de error para mostrar (por ejemplo, si con esas
+   * fechas se pisa con otra tarifa en la página web).
+   */
+  guardarTarifaCompleta: (tipoOriginal: string, datos: DatosTarifaCompleta) => Promise<string | null>;
   agregarTipoTarifa: (tipo: string) => Promise<boolean>;
   eliminarTipoTarifa: (tipo: string) => Promise<boolean>;
   agregarMetodoPago: (metodo: MetodoPago) => Promise<boolean>;
@@ -1927,56 +1947,74 @@ export const useHotelStore = create<HotelStore>()(
       guardarTarifaCompleta: async (tipoOriginal, datos) => {
         const { tarifas, tiposTarifa, reservas, _tarifaIds } = get();
         const esNueva = tipoOriginal === 'nueva';
-        const nombre = datos.nombre;
+        const nombre = datos.nombre.trim();
+        if (esNueva || nombre.toLowerCase() !== tipoOriginal.toLowerCase()) {
+          if (tiposTarifa.some(t => t.toLowerCase() === nombre.toLowerCase())) return 'Ya existe una tarifa con ese nombre.';
+        }
         const nuevaTarifa: TarifaPrecios = {
           modoCobro: datos.modoCobro,
           rangos: datos.rangos,
           camposPersonalizados: datos.camposPersonalizados,
           promociones: datos.promociones,
+          vigenciaDesde: datos.vigenciaDesde,
+          vigenciaHasta: datos.vigenciaHasta,
+          activa: datos.activa,
+          mostrarEnWeb: datos.mostrarEnWeb,
+          promoDescripcion: datos.promoDescripcion,
         };
-        // Se envían promociones dentro del JSON de precios
-        const preciosJson: any = { modoCobro: datos.modoCobro, rangos: datos.rangos };
+        // Las promociones (con sus datos a pedir) van dentro del JSON de precios.
+        const preciosJson: Record<string, unknown> = { modoCobro: datos.modoCobro, rangos: datos.rangos };
         if (datos.promociones) preciosJson.promociones = datos.promociones;
         const apiPayload = {
           nombre,
           precios: preciosJson,
           camposPersonalizados: datos.camposPersonalizados,
+          vigenciaDesde: datos.vigenciaDesde,
+          vigenciaHasta: datos.vigenciaHasta,
+          activa: datos.activa,
+          mostrarEnWeb: datos.mostrarEnWeb,
+          promoDescripcion: datos.promoDescripcion,
           // Columnas viejas: siempre false/null (migración completa)
           choferCortesia: false,
           habitacionChofer: null,
         };
-        const prevState = { tarifas, tiposTarifa, reservas, _tarifaIds };
         try {
+          // Primero el servidor, después la pantalla: el servidor puede
+          // rechazar (fechas que se pisan en la web, nombre repetido) y así
+          // no queda nada a medio cambiar.
           if (esNueva) {
-            if (tiposTarifa.some(t => t.toLowerCase() === nombre.toLowerCase())) return false;
-            set({ tarifas: { ...tarifas, [nombre]: nuevaTarifa }, tiposTarifa: [...tiposTarifa, nombre] });
             const created = await api.tarifas.create(apiPayload);
-            const { _tarifaIds: currIds } = get();
-            set({ _tarifaIds: { ...currIds, [nombre]: created.id } });
-          } else {
-            const newTarifas = { ...tarifas };
-            const tarifaId = _tarifaIds[tipoOriginal] || _tarifaIds[nombre];
-            if (nombre !== tipoOriginal) {
-              newTarifas[nombre] = { ...tarifas[tipoOriginal], ...nuevaTarifa };
-              delete newTarifas[tipoOriginal];
-              const newTipos = tiposTarifa.map(t => t === tipoOriginal ? nombre : t);
-              const newReservas = reservas.map(r => r.tipoTarifa === tipoOriginal ? { ...r, tipoTarifa: nombre } : r);
-              const newTarifaIds = { ..._tarifaIds };
-              if (newTarifaIds[tipoOriginal]) { newTarifaIds[nombre] = newTarifaIds[tipoOriginal]; delete newTarifaIds[tipoOriginal]; }
-              set({ tarifas: newTarifas, tiposTarifa: newTipos, reservas: newReservas, _tarifaIds: newTarifaIds });
-            } else {
-              newTarifas[nombre] = { ...tarifas[nombre], ...nuevaTarifa };
-              set({ tarifas: newTarifas });
-            }
-            if (tarifaId) {
-              await api.tarifas.update(tarifaId, apiPayload);
-            }
+            const st = get();
+            set({
+              tarifas: { ...st.tarifas, [nombre]: nuevaTarifa },
+              tiposTarifa: [...st.tiposTarifa, nombre],
+              _tarifaIds: { ...st._tarifaIds, [nombre]: created.id },
+            });
+            return null;
           }
-          return true;
+          const tarifaId = _tarifaIds[tipoOriginal];
+          if (!tarifaId) return 'No se encontró la tarifa. Recargá la página.';
+          await api.tarifas.update(tarifaId, apiPayload);
+          const newTarifas = { ...tarifas };
+          delete newTarifas[tipoOriginal];
+          newTarifas[nombre] = { ...tarifas[tipoOriginal], ...nuevaTarifa };
+          if (nombre !== tipoOriginal) {
+            // El servidor ya cambió el nombre en las reservas; acá se refleja.
+            const newTarifaIds = { ..._tarifaIds, [nombre]: tarifaId };
+            delete newTarifaIds[tipoOriginal];
+            set({
+              tarifas: newTarifas,
+              tiposTarifa: tiposTarifa.map(t => t === tipoOriginal ? nombre : t),
+              reservas: reservas.map(r => r.tipoTarifa === tipoOriginal ? { ...r, tipoTarifa: nombre } : r),
+              _tarifaIds: newTarifaIds,
+            });
+          } else {
+            set({ tarifas: newTarifas });
+          }
+          return null;
         } catch (err) {
           console.error('[guardarTarifaCompleta] error:', err);
-          set(prevState);
-          return false;
+          return err instanceof Error && err.message ? err.message : 'No se pudo guardar la tarifa.';
         }
       },
 
@@ -2229,6 +2267,12 @@ export const useHotelStore = create<HotelStore>()(
               promociones: (preciosData?.promociones || undefined) as PromocionesTarifa | undefined,
               // Datos viejos (para migración en getPromocionesEfectivas)
               choferCortesia: t.choferCortesia, habitacionChofer: t.habitacionChofer || null,
+              // Vigencia y web (ver src/lib/tarifa-vigencia.ts)
+              vigenciaDesde: aFechaTexto(t.vigenciaDesde),
+              vigenciaHasta: aFechaTexto(t.vigenciaHasta),
+              activa: t.activa !== false,
+              mostrarEnWeb: !!t.mostrarEnWeb,
+              promoDescripcion: t.promoDescripcion || null,
             };
             tiposTarifa.push(t.nombre);
             _tarifaIds[t.nombre] = t.id;

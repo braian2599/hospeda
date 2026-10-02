@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
+import { leerFechaVigencia, errorAlGuardarVigencia, aFechaDb } from '@/lib/tarifa-api';
 
 // GET /api/tarifas — Listar todas las tarifas del tenant
 export async function GET() {
@@ -33,9 +34,13 @@ export async function POST(req: NextRequest) {
       camposPersonalizados,
       choferCortesia,
       habitacionChofer,
+      promoDescripcion,
       activa,
+      mostrarEnWeb,
       orden,
     } = body;
+    const vigenciaDesde = leerFechaVigencia(body.vigenciaDesde) ?? null;
+    const vigenciaHasta = leerFechaVigencia(body.vigenciaHasta) ?? null;
 
     // Validaciones
     if (!nombre?.trim()) {
@@ -44,6 +49,11 @@ export async function POST(req: NextRequest) {
 
     if (!precios || typeof precios !== 'object' || Array.isArray(precios)) {
       return NextResponse.json({ error: 'precios debe ser un objeto JSON' }, { status: 400 });
+    }
+
+    const errorVigencia = await errorAlGuardarVigencia(tenantId, null, { vigenciaDesde, vigenciaHasta, activa: activa !== false });
+    if (errorVigencia) {
+      return NextResponse.json({ error: errorVigencia }, { status: 400 });
     }
 
     // Verificar unicidad
@@ -62,7 +72,11 @@ export async function POST(req: NextRequest) {
         camposPersonalizados: camposPersonalizados ?? undefined,
         choferCortesia: Boolean(choferCortesia),
         habitacionChofer: habitacionChofer?.trim() || null,
+        promoDescripcion: typeof promoDescripcion === 'string' ? (promoDescripcion.trim() || null) : null,
         activa: activa !== false,
+        mostrarEnWeb: Boolean(mostrarEnWeb),
+        vigenciaDesde: aFechaDb(vigenciaDesde),
+        vigenciaHasta: aFechaDb(vigenciaHasta),
         orden: parseInt(orden) || 0,
       },
     });

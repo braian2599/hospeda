@@ -67,6 +67,8 @@ export default function HabitacionCard({
 
   const [consultando, setConsultando] = useState(false);
   const [error, setError] = useState('');
+  // Fechas sin tarifa cargada: se ofrece consultar por WhatsApp.
+  const [sinTarifa, setSinTarifa] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [redirigiendo, setRedirigiendo] = useState(false);
 
@@ -95,6 +97,7 @@ export default function HabitacionCard({
       return;
     }
     setConsultando(true);
+    setSinTarifa(false);
     try {
       const checkin = toISO(rango.from);
       const checkout = toISO(rango.to);
@@ -104,7 +107,12 @@ export default function HabitacionCard({
       if (!res.ok) throw new Error(data.error || 'Error al consultar disponibilidad');
       const encontrada = (data.resultados as { numero: string }[]).find((r) => r.numero === habitacion.numero);
       if (!encontrada) {
-        setError('No hay disponibilidad para esas fechas.');
+        // El hotel todavía no cargó la tarifa de esas fechas: no es que esté lleno.
+        const sinTarifa = Array.isArray(data.sinTarifa) && (data.sinTarifa as string[]).includes(habitacion.tipo);
+        setError(sinTarifa
+          ? 'Estas fechas todavía no se pueden reservar online. Escribinos y te pasamos el precio.'
+          : 'No hay disponibilidad para esas fechas.');
+        setSinTarifa(sinTarifa);
         return;
       }
       setConfirmando(true);
@@ -292,6 +300,16 @@ export default function HabitacionCard({
                   </div>
                 </div>
                 {error && <p className="text-xs text-destructive">{error}</p>}
+                {error && sinTarifa && telefonoHotel && (
+                  <a
+                    href={`https://wa.me/${telefonoHotel.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-md border text-sm font-medium px-3 py-2 hover:bg-muted transition-colors"
+                  >
+                    <WhatsAppIcon className="w-4 h-4" /> Consultar por WhatsApp
+                  </a>
+                )}
 
                 {confirmando ? (
                   <div className="rounded-lg border bg-[#0F766E0D] p-3 space-y-2.5">

@@ -37,6 +37,18 @@ export interface PromocionPublica {
   ninosDiferenciado: NinosDiferenciadoPublica | null;
   acompanante: AcompananteSinCargoPublica | null;
   camposPersonalizados: CampoPersonalizado[];
+  /** Período de la promoción (AAAA-MM-DD, null = sin límite): vale para estadías que salen dentro. */
+  vigenciaDesde?: string | null;
+  vigenciaHasta?: string | null;
+}
+
+/** "Válida para estadías que salen entre el 15/12/2026 y el 28/02/2027", o null si no tiene fechas. */
+function textoVigencia(p: PromocionPublica): string | null {
+  const f = (s: string) => s.split('-').reverse().join('/');
+  if (p.vigenciaDesde && p.vigenciaHasta) return `Válida para estadías que salen entre el ${f(p.vigenciaDesde)} y el ${f(p.vigenciaHasta)}`;
+  if (p.vigenciaDesde) return `Válida para estadías que salen desde el ${f(p.vigenciaDesde)}`;
+  if (p.vigenciaHasta) return `Válida para estadías que salen hasta el ${f(p.vigenciaHasta)}`;
+  return null;
 }
 
 interface ResultadoPromo {
@@ -165,6 +177,9 @@ export default function PromocionCard({
                 <IconCircle icon={Sparkles} />
                 <h3 className="text-lg font-semibold">{promocion.nombre}</h3>
               </div>
+              {textoVigencia(promocion) && (
+                <p className="text-sm text-muted-foreground pl-12">{textoVigencia(promocion)}</p>
+              )}
               {promocion.descripcion && (
                 <p className="text-sm text-muted-foreground whitespace-pre-line pl-12">{promocion.descripcion}</p>
               )}

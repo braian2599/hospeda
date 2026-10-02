@@ -16,7 +16,7 @@ export const SUGERENCIAS: Record<ModuloId, string[]> = {
   limpieza: ['Marcar una habitación como limpia', 'Reportar un desperfecto', 'Bloquear por mantenimiento'],
   reservas: ['Cargar una reserva', 'Cobrar la seña', 'Reservar en una compartida'],
   clientes: ['Buscar un huésped', '¿Cuánto debe un cliente?', 'Agregar el CUIT de un cliente'],
-  tarifas: ['Crear una tarifa por cama', 'Noches de cortesía', 'Precio diferenciado de niños'],
+  tarifas: ['Tarifa de temporada con fechas', 'Noches de cortesía', 'Mostrar una promoción en la web'],
   comprobantes: ['Cobrar un saldo pendiente', 'Pasar una deuda a cuenta corriente', 'Cobrarle a una cuenta corriente'],
   arca: ['Facturar una reserva', 'Facturar a una empresa', '¿Qué es el CAE?'],
   caja: ['Abrir la caja', 'Cerrar el turno', 'Me da diferencia el cierre'],

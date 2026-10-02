@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   getPublicTenant, parseFechasConsulta, parsePersonasConsulta, buscarDisponibilidad, buscarDisponibilidadPorTarifa,
-  resolverRequisitosTarifa,
+  resolverRequisitosTarifa, tarifaDePromocion,
 } from '@/lib/public-landing';
 import ReservaCheckoutForm from '@/components/public/ReservaCheckoutForm';
 
@@ -38,6 +38,12 @@ export default async function ReservarPage(
     return <AvisoVolver slug={slug} hotelNombre={tenant.nombre} mensaje="El link de reserva no es válido o venció." />;
   }
 
+  // Una promoción tiene que estar en la web y valer para esa salida.
+  if (tarifaId) {
+    const promo = tarifaDePromocion(tenant, tarifaId, checkout!);
+    if ('error' in promo) return <AvisoVolver slug={slug} hotelNombre={tenant.nombre} mensaje={promo.error} />;
+  }
+
   const resultados = tarifaId
     ? await buscarDisponibilidadPorTarifa(tenant, tarifaId, fechas, personas, ninos)
     : (await buscarDisponibilidad(tenant, fechas, personas)).resultados;
@@ -47,10 +53,9 @@ export default async function ReservarPage(
     return <AvisoVolver slug={slug} hotelNombre={tenant.nombre} mensaje="Esa habitación ya no está disponible para esas fechas — puede que se acabe de ocupar. Elegí otras fechas u otra habitación." />;
   }
 
-  // Cada tarifa es personalizada — leemos sus requisitos (campos extra, niños)
-  // para pedirlos en este formulario, sea la tarifa general del tipo o una
-  // tarifa promocional puntual.
-  const requisitos = resolverRequisitosTarifa(tenant, tarifaId ? { tarifaId } : { tipo: habitacion.tipo });
+  // Los requisitos de la tarifa que cobra esta reserva (datos a pedir, niños):
+  // la de la promoción elegida o la de la web para ese tipo y esa salida.
+  const requisitos = resolverRequisitosTarifa(tenant, tarifaId ? { tarifaId } : { tipo: habitacion.tipo }, fechas, ninos);
 
   return (
     <ReservaCheckoutForm

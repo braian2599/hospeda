@@ -431,6 +431,10 @@ model Tarifa {
   // sin mezclar tarifas. Ver src/lib/tarifa-vigencia.ts.
   vigenciaDesde        DateTime?
   vigenciaHasta        DateTime?
+  // Si aparece en la pestaña Promociones de la página web. Lo decide el
+  // dueño en cada tarifa: antes salía sola cualquier tarifa con una promoción
+  // prendida (también, por ejemplo, la de agencias con chofer sin cargo).
+  mostrarEnWeb         Boolean  @default(false)
   orden                Int      @default(0)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

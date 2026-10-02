@@ -19,7 +19,7 @@ export async function GET(
   const personas = parsePersonasConsulta(searchParams.get('personas') || '2');
   if (typeof personas !== 'number') return NextResponse.json({ error: personas.error }, { status: 400 });
 
-  const { resultados, combinaciones } = await buscarDisponibilidad(tenant, fechas, personas);
+  const { resultados, combinaciones, sinTarifa } = await buscarDisponibilidad(tenant, fechas, personas);
 
   return NextResponse.json({
     checkin: searchParams.get('checkin'),
@@ -39,6 +39,9 @@ export async function GET(
       badges: r.badges,
       desglose: r.desglose,
     })),
+    // Tipos sin tarifa para esa salida: la página avisa que esas fechas no
+    // se reservan online (en vez de "no hay disponibilidad").
+    sinTarifa,
     combinaciones: combinaciones.map((c) => ({
       legs: c.legs,
       capacidadTotal: c.capacidadTotal,

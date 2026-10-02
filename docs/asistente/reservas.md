@@ -11,9 +11,13 @@ El formulario tiene 3 pestañas, en este orden: **Disponibilidad → Cliente →
 ### 1. Disponibilidad
 - Fechas de check-in y check-out.
 - **Cantidad de personas** (campo "Personas" de búsqueda) — se carga acá, no después.
-- **Tarifa** — también se elige en este paso, no al final. El sistema filtra
-  los tipos de tarifa disponibles según el tipo de habitación que se busque
-  (por cama si es compartida, por grupo si es privada).
+- **Tarifa** — también se elige en este paso, no al final. La lista muestra
+  solo las tarifas que valen para las fechas elegidas (la que está vigente el
+  día de salida; ver `docs/asistente/tarifas.md`); abajo dice cuáles no valen
+  y por qué. Cualquier tipo de habitación se puede cobrar con cualquier tarifa.
+  Al editar, la reserva conserva su tarifa mientras no cambien las fechas.
+- **Datos a pedir**: los de toda reserva de esa tarifa y los de cada
+  promoción que se aplica (niños, noches gratis, acompañante).
 - Checkbox opcional "Solo habitaciones con cama matrimonial".
 - Botón "Buscar habitaciones" (deshabilitado hasta que haya fechas).
 - Resultado: tarjetas con las habitaciones disponibles (número, tipo, capacidad, camas).

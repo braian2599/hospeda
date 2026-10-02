@@ -20,8 +20,12 @@ Navegación por secciones (sidebar/menú), no todas visibles siempre:
    habitaciones se hace en el módulo Habitaciones, no acá).
 4. **Landing (Fotos)** — *solo visible si el plan incluye landing page
    pública (plan Elite)*: descripción del hotel, servicios, fotos
-   generales y por habitación, precios públicos (requiere tener tarifas
-   activas creadas primero), y una sección para agencias.
+   generales y por habitación, precios (para cada tipo de habitación, una o
+   varias tarifas, una por período; no deja guardar dos que valgan el mismo
+   día y avisa si quedan días sin tarifa), promociones (salen las tarifas
+   marcadas "Mostrar en la página web"), y una sección para agencias. Si
+   algún tipo tiene días sin tarifa en la web, arriba de Configuración hay
+   un aviso con "Revisar precios".
 5. **Integraciones** — *solo visible si el hotel tiene activado el cobro
    con seña online o la sincronización con Booking/Airbnb*:
    - Cobro de seña: Mercado Pago (conectar cuenta) o manual (WhatsApp/email/instrucciones).

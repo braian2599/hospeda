@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { getPublicTenant, promocionesPublicas } from '@/lib/public-landing';
+import { getPublicTenant, promocionesPublicas, tarifasWebDeTipo, type PublicTenant } from '@/lib/public-landing';
+import { aFechaTexto, estadoVigencia } from '@/lib/tarifa-vigencia';
+import { fechaArgentina } from '@/lib/format';
 import { getDevCompanyBranding } from '@/lib/dev-company';
 import { parseTarifaPrecios } from '@/lib/tarifa-calc';
 import { precioDesde, promoBadgesPublicos } from '@/lib/tarifas-format';
@@ -31,25 +33,25 @@ const PAGO_BANNER: Record<string, { icon: typeof Check; text: string; className:
   },
 };
 
-function precioPublicoDeHabitacion(
-  tipo: string,
-  tarifasPublicas: unknown,
-  tarifas: { id: string; precios: unknown }[]
-): { desde: number; badges: string[] } | null {
-  const mapa = (tarifasPublicas && typeof tarifasPublicas === 'object') ? (tarifasPublicas as Record<string, string>) : {};
-  const tarifaId = mapa[tipo];
-  if (!tarifaId) return null;
+/**
+ * "Desde $X" de un tipo de habitación: el precio más bajo entre sus tarifas
+ * de la web que no vencieron (puede haber una por período). Las promociones
+ * que se muestran son las de la que vale hoy o, si ninguna vale hoy, la
+ * próxima. Null si no hay ninguna: la tarjeta ofrece consultar por WhatsApp.
+ */
+function precioPublicoDeHabitacion(tenant: PublicTenant, tipo: string): { desde: number; badges: string[] } | null {
+  const hoy = fechaArgentina(new Date());
+  const vigentes = tarifasWebDeTipo(tenant, tipo)
+    .map(t => ({ t, fechas: { vigenciaDesde: aFechaTexto(t.vigenciaDesde), vigenciaHasta: aFechaTexto(t.vigenciaHasta) } }))
+    .filter(x => estadoVigencia(x.fechas, hoy) !== 'vencida')
+    .map(x => ({ ...x, precios: parseTarifaPrecios(x.t.precios) }))
+    .filter(x => x.precios.rangos.length > 0 && precioDesde(x.precios.rangos) > 0)
+    .sort((a, b) => (a.fechas.vigenciaDesde ?? '').localeCompare(b.fechas.vigenciaDesde ?? ''));
+  if (vigentes.length === 0) return null;
 
-  const tarifaDb = tarifas.find((t) => t.id === tarifaId);
-  if (!tarifaDb) return null;
-
-  const precios = parseTarifaPrecios(tarifaDb.precios);
-  if (precios.rangos.length === 0) return null;
-
-  const desde = precioDesde(precios.rangos);
-  if (desde <= 0) return null;
-
-  return { desde, badges: promoBadgesPublicos(precios) };
+  const desde = Math.min(...vigentes.map(x => precioDesde(x.precios.rangos)));
+  const deHoy = vigentes.find(x => estadoVigencia(x.fechas, hoy) === 'vigente') ?? vigentes[0];
+  return { desde, badges: promoBadgesPublicos(deHoy.precios) };
 }
 
 export async function generateMetadata(
@@ -85,8 +87,8 @@ export default async function HotelLandingPage(
   const tieneCoordenadas = tenant.mapaLat != null && tenant.mapaLng != null;
   const habitacionesConPrecio = tenant.habitaciones.map((h) => ({
     habitacion: h,
-    precioDesde: precioPublicoDeHabitacion(h.tipo, config?.tarifasPublicas, tenant.tarifas)?.desde ?? null,
-    badges: precioPublicoDeHabitacion(h.tipo, config?.tarifasPublicas, tenant.tarifas)?.badges ?? [],
+    precioDesde: precioPublicoDeHabitacion(tenant, h.tipo)?.desde ?? null,
+    badges: precioPublicoDeHabitacion(tenant, h.tipo)?.badges ?? [],
   }));
   const hayContacto = !!(tenant.telefono || tenant.email || tenant.instagramUrl || tenant.facebookUrl);
 

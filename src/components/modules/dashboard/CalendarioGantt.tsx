@@ -551,6 +551,7 @@ export default function CalendarioGantt({ fechaInicioBase }: { fechaInicioBase: 
     const pagado = calcularTotalPagado(r.id);
     const motivo = motivoParaNoMover(r, destino, {
       hoy: hoyStr, habitacionDestino: hab, libre, totalActual, nuevoTotal, pagado,
+      tarifa: tarifas[r.tipoTarifa || 'normal'],
     });
     return { motivo, totalActual, nuevoTotal, pagado };
   }, [habitaciones, buscarDisponibilidad, calcularTotalReserva, calcularTotalPagado, tarifas, hoyStr]);

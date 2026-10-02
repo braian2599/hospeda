@@ -22,8 +22,12 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { parseTarifaPrecios } from '@/lib/tarifa-calc';
 import { promoBadgesTab } from '@/lib/tarifas-format';
+import { aFechaTexto, estadoVigencia, describirVigencia } from '@/lib/tarifa-vigencia';
+import { leerTarifasPublicas, tarifasPisadas, mensajePisada, avisosDeHuecos, type MapaTarifasPublicas, type TarifaConFechas } from '@/lib/tarifas-publicas';
+import { fechaArgentina } from '@/lib/format';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import {
@@ -181,6 +185,9 @@ export default function ConfiguracionModule() {
   const [activeSection, setActiveSection] = useState<SectionId>('hotel');
   const [fotosHabilitadas, setFotosHabilitadas] = useState(false);
   const [arcaHabilitada, setArcaHabilitada] = useState(false);
+  // Para el aviso de días sin tarifa en la web.
+  const [tarifasWeb, setTarifasWeb] = useState<{ mapa: unknown; limite: string | null } | null>(null);
+  const [landingTabInicial, setLandingTabInicial] = useState<LandingTabId | undefined>(undefined);
   const { usuarioActual } = useHotelStore();
   const planActual = useHotelStore(s => s.planActual);
   const planes = usePlans();
@@ -192,6 +199,7 @@ export default function ConfiguracionModule() {
         const flags = data?.featureFlags;
         setFotosHabilitadas(!!flags?.landingPage);
         setArcaHabilitada(!!flags?.facturacionArca);
+        setTarifasWeb({ mapa: data?.tarifasPublicas, limite: data?.reservasHabilitadasHasta ? String(data.reservasHabilitadasHasta).slice(0, 10) : null });
       })
       .catch(() => {});
   }, []);
@@ -220,6 +228,14 @@ export default function ConfiguracionModule() {
   return (
     <div className="space-y-6">
       <ModuleHeader icon={Settings} title="Configuración" subtitle="Administrá tu hotel, plan y cuenta" />
+
+      {fotosHabilitadas && tarifasWeb && (
+        <AvisoTarifasWeb
+          tarifasPublicas={tarifasWeb.mapa}
+          reservasHabilitadasHasta={tarifasWeb.limite}
+          onRevisar={() => { setLandingTabInicial('precios'); setActiveSection('landing'); }}
+        />
+      )}
 
       {/* Secciones agrupadas por tema — cada cluster es su propio grupo de tabs */}
       <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as SectionId)}>
@@ -258,7 +274,13 @@ export default function ConfiguracionModule() {
           {activeSection === 'hotel' && <HotelSection />}
           {activeSection === 'fiscal' && <FiscalSection conArca={arcaHabilitada} />}
           {activeSection === 'habitaciones' && <HabitacionesSection />}
-          {activeSection === 'landing' && <LandingSection />}
+          {activeSection === 'landing' && (
+            <LandingSection
+              key={landingTabInicial ?? 'landing'}
+              tabInicial={landingTabInicial}
+              onTarifasWebGuardadas={(mapa) => setTarifasWeb((prev) => ({ mapa, limite: prev?.limite ?? null }))}
+            />
+          )}
           {activeSection === 'cuenta' && <CuentaSection />}
           {activeSection === 'exportar' && <ExportarSection />}
           {activeSection === 'suscripcion' && <SuscripcionSection />}
@@ -1300,7 +1322,17 @@ function PhotoGrid({
 }
 
 interface HabitacionFotoDTO { numero: string; tipo: string; fotos: string[]; descripcion: string; }
-interface TarifaDTO { id: string; nombre: string; activa: boolean; precios: unknown; promoDescripcion: string | null; }
+interface TarifaDTO {
+  id: string; nombre: string; activa: boolean; precios: unknown; promoDescripcion: string | null;
+  mostrarEnWeb?: boolean;
+  /** Como llega de la API (fecha ISO) o null = sin límite. */
+  vigenciaDesde?: string | null; vigenciaHasta?: string | null;
+}
+
+/** La tarifa con sus fechas como AAAA-MM-DD, para las reglas de src/lib/tarifa-vigencia.ts. */
+function conFechasDTO(t: TarifaDTO): TarifaConFechas {
+  return { id: t.id, nombre: t.nombre, activa: t.activa, vigenciaDesde: aFechaTexto(t.vigenciaDesde), vigenciaHasta: aFechaTexto(t.vigenciaHasta) };
+}
 
 type LandingTabId = 'ubicacion' | 'redes' | 'politicas' | 'fotos' | 'precios' | 'promociones' | 'cobro' | 'agencias';
 
@@ -1333,15 +1365,54 @@ const LANDING_TAB_GROUPS: { label: string; tabs: { id: LandingTabId; label: stri
   },
 ];
 
-/** Tarifas activas con una promoción activa (noches de cortesía / niños diferenciado) — misma lógica que la landing pública. */
+/**
+ * Las tarifas que salen en la pestaña Promociones de la web: marcadas
+ * "Mostrar en la página web", con alguna promoción prendida y sin vencer —
+ * misma regla que promocionesPublicas (src/lib/public-landing.ts).
+ */
 function tarifasConPromo(tarifas: TarifaDTO[]): (TarifaDTO & { badges: string[] })[] {
+  const hoy = fechaArgentina(new Date());
   return tarifas
+    .filter((t) => t.mostrarEnWeb && estadoVigencia(conFechasDTO(t), hoy) !== 'vencida')
     .map((t) => ({ ...t, badges: promoBadgesTab(parseTarifaPrecios(t.precios)) }))
     .filter((t) => t.badges.length > 0);
 }
 
-function LandingSection() {
-  const [landingTab, setLandingTab] = useState<LandingTabId>('ubicacion');
+/**
+ * Aviso arriba de Configuración: tipos de habitación que se venden por la web
+ * pero tienen días sin tarifa (esos días no se pueden reservar online). Lee
+ * las tarifas del panel y la configuración de la web.
+ */
+function AvisoTarifasWeb({ tarifasPublicas, reservasHabilitadasHasta, onRevisar }: {
+  tarifasPublicas: unknown;
+  reservasHabilitadasHasta: string | null;
+  onRevisar: () => void;
+}) {
+  const tarifas = useHotelStore(s => s.tarifas);
+  const tarifaIds = useHotelStore(s => s._tarifaIds);
+  const habitaciones = useHotelStore(s => s.habitaciones);
+  const avisos = useMemo(() => {
+    const lista: TarifaConFechas[] = Object.entries(tarifas).map(([nombre, t]) => ({
+      id: tarifaIds[nombre], nombre, activa: t.activa !== false, vigenciaDesde: t.vigenciaDesde ?? null, vigenciaHasta: t.vigenciaHasta ?? null,
+    }));
+    const tipos = [...new Set(Object.values(habitaciones).map(h => h.tipo))];
+    return avisosDeHuecos(leerTarifasPublicas(tarifasPublicas), lista, tipos, fechaArgentina(new Date()), reservasHabilitadasHasta);
+  }, [tarifas, tarifaIds, habitaciones, tarifasPublicas, reservasHabilitadasHasta]);
+  if (avisos.length === 0) return null;
+  return (
+    <div className="rounded-lg px-3.5 py-2.5 text-sm bg-[#D977061A] text-[#92400E] flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span>Página web: {avisos.join('. ')}. Esas fechas no se pueden reservar online.</span>
+      <button type="button" onClick={onRevisar} className="font-semibold underline">Revisar precios</button>
+    </div>
+  );
+}
+
+function LandingSection({ tabInicial, onTarifasWebGuardadas }: {
+  tabInicial?: LandingTabId;
+  /** Avisa a Configuración que cambiaron las tarifas de la web (para el aviso de arriba). */
+  onTarifasWebGuardadas?: (mapa: MapaTarifasPublicas) => void;
+}) {
+  const [landingTab, setLandingTab] = useState<LandingTabId>(tabInicial ?? 'ubicacion');
 
   // Ubicación
   const [ubicacion, setUbicacion] = useState({ direccion: '', ciudad: '', provincia: '', pais: 'Argentina', mapaLat: '', mapaLng: '' });
@@ -1372,7 +1443,10 @@ function LandingSection() {
 
   // Precios públicos
   const [tarifasList, setTarifasList] = useState<TarifaDTO[]>([]);
-  const [tarifasPublicas, setTarifasPublicas] = useState<Record<string, string>>({});
+  const [tarifasPublicas, setTarifasPublicas] = useState<MapaTarifasPublicas>({});
+  // Ventana para cambiar las tarifas de un tipo de habitación.
+  const [editandoTipo, setEditandoTipo] = useState<string | null>(null);
+  const [borradorTipo, setBorradorTipo] = useState<string[]>([]);
   const [savingTarifas, setSavingTarifas] = useState(false);
 
   // Promociones (tab aparte — no depende de tarifasPublicas)
@@ -1424,7 +1498,7 @@ function LandingSection() {
       setDescripcion(hotelData.descripcion || '');
       setFotosHotel(hotelData.fotos || []);
       setSlug(hotelData.slug || '');
-      setTarifasPublicas(hotelData.tarifasPublicas || {});
+      setTarifasPublicas(leerTarifasPublicas(hotelData.tarifasPublicas));
       setMostrarSeccionAgencias(!!hotelData.mostrarSeccionAgencias);
       setTextoAgencias(hotelData.textoAgencias || '');
       setServicios(hotelData.servicios || []);
@@ -1673,13 +1747,21 @@ function LandingSection() {
     }
   };
 
-  const handleGuardarTarifasPublicas = async () => {
+  // Guarda las tarifas de UN tipo (las demás quedan como estaban). El
+  // servidor no deja guardar si dos tarifas del mismo tipo valen el mismo día.
+  const handleGuardarTarifasDeTipo = async () => {
+    if (!editandoTipo) return;
+    const nuevo: MapaTarifasPublicas = { ...tarifasPublicas, [editandoTipo]: borradorTipo };
+    if (borradorTipo.length === 0) delete nuevo[editandoTipo];
     setSavingTarifas(true);
     try {
-      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tarifasPublicas }) });
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tarifasPublicas: nuevo }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success('Precios públicos guardados');
+      setTarifasPublicas(nuevo);
+      onTarifasWebGuardadas?.(nuevo);
+      setEditandoTipo(null);
+      toast.success(`Tarifas de la web guardadas para ${editandoTipo}.`);
     } catch (err: unknown) {
       toast.error((err as Error).message || 'Error al guardar');
     } finally {
@@ -2063,58 +2145,141 @@ function LandingSection() {
           {landingTab === 'precios' && (
             <Card className="card-hover">
               <CardHeader>
-                <CardTitle className="text-base">Precios públicos por tipo de habitación</CardTitle>
-                <CardDescription>Elegí qué tarifa mostrar como precio en la landing, para cada tipo de habitación.</CardDescription>
+                <CardTitle className="text-base">Precios en la página web</CardTitle>
+                <CardDescription>
+                  Para cada tipo de habitación, qué tarifas cobra la web. Puede haber una por período (por ejemplo,
+                  General hasta el 14/12 y Temporada alta desde el 15/12): la web cobra la estadía entera con la que
+                  vale el día de salida. Las fechas de cada tarifa se cambian en el módulo Tarifas.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {tiposPresentes.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No hay habitaciones cargadas todavía.</p>
                 ) : tarifasList.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No hay tarifas activas — creá una en Tarifas primero.</p>
+                  <p className="text-sm text-muted-foreground">No hay tarifas activas: creá una en Tarifas primero.</p>
                 ) : (
                   <>
-                    {tiposPresentes.map((tipo) => (
-                      <div key={tipo} className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-medium">{tipo}</span>
-                        <Select
-                          value={tarifasPublicas[tipo] || '__ninguna__'}
-                          onValueChange={(v) => setTarifasPublicas((prev) => ({ ...prev, [tipo]: v === '__ninguna__' ? '' : v }))}
-                        >
-                          <SelectTrigger className="w-56"><SelectValue placeholder="Sin precio público" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__ninguna__">Sin precio público</SelectItem>
-                            {tarifasList.map((t) => (
-                              <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="divide-y rounded-lg border">
+                      {tiposPresentes.map((tipo) => {
+                        const deTipo = (tarifasPublicas[tipo] || [])
+                          .map((id) => tarifasList.find((t) => t.id === id))
+                          .filter((t): t is TarifaDTO => !!t)
+                          .map(conFechasDTO)
+                          .sort((a, b) => (a.vigenciaDesde ?? '').localeCompare(b.vigenciaDesde ?? ''));
+                        return (
+                          <div key={tipo} className="flex flex-wrap items-center gap-2 px-3 py-2.5">
+                            <span className="text-sm font-semibold w-28 shrink-0">{tipo}</span>
+                            <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+                              {deTipo.length === 0 ? (
+                                <span className="text-sm text-muted-foreground">Sin tarifa: no se reserva desde la web</span>
+                              ) : deTipo.map((t, i) => (
+                                <span key={t.id} className="contents">
+                                  {i > 0 && <span className="text-xs text-muted-foreground">luego</span>}
+                                  <span className="rounded-full bg-[#0F766E14] text-primary text-xs font-semibold px-2.5 py-1">
+                                    {t.nombre} · {describirVigencia(t).toLowerCase()}
+                                  </span>
+                                </span>
+                              ))}
+                            </div>
+                            <Button
+                              size="sm" variant="ghost" className="text-primary font-semibold"
+                              onClick={() => { setEditandoTipo(tipo); setBorradorTipo(tarifasPublicas[tipo] || []); }}
+                            >
+                              {deTipo.length === 0 ? 'Elegir' : 'Cambiar'}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {avisosDeHuecos(
+                      tarifasPublicas, tarifasList.map(conFechasDTO), tiposPresentes,
+                      fechaArgentina(new Date()), politicas.reservasHabilitadasHasta || null,
+                    ).map((a) => (
+                      <p key={a} className="rounded-lg px-3 py-2 text-sm bg-[#D977061A] text-[#92400E]">
+                        {a}. Esas fechas no se van a poder reservar desde la web hasta que cargues una tarifa.
+                      </p>
                     ))}
-                    <Button onClick={handleGuardarTarifasPublicas} disabled={savingTarifas} size="sm">
-                      {savingTarifas ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                      Guardar
-                    </Button>
                   </>
                 )}
               </CardContent>
             </Card>
           )}
 
+          <Dialog open={editandoTipo !== null} onOpenChange={(v) => { if (!v && !savingTarifas) setEditandoTipo(null); }}>
+            <DialogContent size="chico">
+              <DialogHeader>
+                <DialogTitle>Tarifas de la web: {editandoTipo}</DialogTitle>
+                <DialogDescription>
+                  Elegí las tarifas que cobra la web para este tipo. Las fechas son las de cada tarifa: se cambian en el módulo Tarifas.
+                </DialogDescription>
+              </DialogHeader>
+              {(() => {
+                const elegidas = borradorTipo
+                  .map((id) => tarifasList.find((t) => t.id === id))
+                  .filter((t): t is TarifaDTO => !!t)
+                  .map(conFechasDTO)
+                  .sort((a, b) => (a.vigenciaDesde ?? '').localeCompare(b.vigenciaDesde ?? ''));
+                const disponibles = tarifasList.filter((t) => !borradorTipo.includes(t.id));
+                const pisada = editandoTipo ? tarifasPisadas({ [editandoTipo]: borradorTipo }, tarifasList.map(conFechasDTO))[0] : undefined;
+                return (
+                  <div className="space-y-3">
+                    {elegidas.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Sin tarifas: este tipo no se reserva desde la web.</p>
+                    ) : (
+                      <div className="divide-y rounded-lg border">
+                        {elegidas.map((t) => (
+                          <div key={t.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                            <span className="font-medium">{t.nombre}</span>
+                            <span className="text-muted-foreground">{describirVigencia(t).toLowerCase()}</span>
+                            <button type="button" className="ml-auto text-xs font-semibold text-primary" onClick={() => setBorradorTipo((prev) => prev.filter((x) => x !== t.id))}>
+                              Quitar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {disponibles.length > 0 && (
+                      <Select value="" onValueChange={(v) => setBorradorTipo((prev) => [...prev, v])}>
+                        <SelectTrigger className="w-64"><SelectValue placeholder="Agregar otra tarifa" /></SelectTrigger>
+                        <SelectContent>
+                          {disponibles.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.nombre} · {describirVigencia(conFechasDTO(t)).toLowerCase()}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {pisada && <p className="rounded-lg px-3 py-2 text-sm bg-[#DC262614] text-destructive">{mensajePisada(pisada)}</p>}
+                  </div>
+                );
+              })()}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditandoTipo(null)} disabled={savingTarifas}>Cancelar</Button>
+                <Button
+                  onClick={handleGuardarTarifasDeTipo}
+                  disabled={savingTarifas || (!!editandoTipo && tarifasPisadas({ [editandoTipo]: borradorTipo }, tarifasList.map(conFechasDTO)).length > 0)}
+                >
+                  {savingTarifas ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Guardar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           {landingTab === 'promociones' && (
             <Card className="card-hover">
               <CardHeader>
                 <CardTitle className="text-base">Promociones</CardTitle>
                 <CardDescription>
-                  Las tarifas activas con una promoción (noches de cortesía o niños con tarifa diferenciada) pasan
-                  directo al tab &quot;Promociones&quot; de tu página pública — no hace falta asignarlas a ningún tipo
-                  de habitación. Acá podés escribirles una descripción para mostrar en la landing.
+                  Salen en la pestaña &quot;Promociones&quot; de tu página las tarifas que marcaste &quot;Mostrar en la
+                  página web&quot; (módulo Tarifas → Promociones), con alguna promoción prendida y que no vencieron. Acá
+                  podés escribirles el texto que se muestra.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {tarifasConPromo(tarifasList).length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    Todavía no tenés tarifas con una promoción activa. Activá &quot;Noches de cortesía&quot; o &quot;Niños con tarifa diferenciada&quot;
-                    en una tarifa (módulo Tarifas) para que aparezca acá.
+                    Todavía no hay promociones en la web. En el módulo Tarifas, abrí una tarifa, prendé una promoción y en
+                    &quot;Página web&quot; prendé &quot;Mostrar en la página web como promoción&quot;.
                   </p>
                 ) : (
                   tarifasConPromo(tarifasList).map((t) => (

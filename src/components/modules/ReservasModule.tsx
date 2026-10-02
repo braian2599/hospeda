@@ -7,6 +7,8 @@ import { useFilterState } from '@/hooks/use-filter-state';
 import { cn } from '@/lib/utils';
 import { formatMoney, formatFecha, todayLocal, numeroDeReserva } from '@/lib/format';
 import type { Reserva, HabitacionDisponible, Cliente, CampoPersonalizado, TarifaPrecios, PromocionesTarifa } from '@/lib/types';
+import { camposAPedir, type GrupoDeCampos } from '@/lib/tarifa-calc';
+import { motivoNoVale, estadoVigencia } from '@/lib/tarifa-vigencia';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -663,11 +665,41 @@ export default function ReservasModule() {
  const [soloPagos, setSoloPagos] = useState(false);
  const corregirPagosReserva = useHotelStore(s => s.corregirPagosReserva);
 
- // ==================== COMPUTED: CAMPOS PERSONALIZADOS ====================
+ // ==================== COMPUTED: TARIFAS QUE VALEN PARA LAS FECHAS ====================
+ // Regla del dueño (src/lib/tarifa-vigencia.ts): vale la tarifa vigente el
+ // día de salida, y cobra la estadía entera. Al editar, la reserva puede
+ // conservar la tarifa que ya tenía mientras no se cambien las fechas (las
+ // reservas hechas no cambian aunque su tarifa venza).
+ const reservaEditada = editingId ? reservas.find(r => r.id === editingId) : undefined;
+ const hoyArg = todayLocal();
+ const opcionesTarifa = useMemo(() => {
+ const validas: string[] = [];
+ const fuera: string[] = [];
+ const mismasFechas = !!reservaEditada && form.checkin === reservaEditada.checkin && form.checkout === reservaEditada.checkout;
+ for (const n of tiposTarifa) {
+ const t = tarifas[n];
+ if (!t) continue;
+ const conservaLaSuya = mismasFechas && n === reservaEditada?.tipoTarifa;
+ const motivo = form.checkout ? motivoNoVale(t, form.checkout, hoyArg) : (t.activa === false ? 'está desactivada' : null);
+ if (!motivo || conservaLaSuya) validas.push(n);
+ else fuera.push(`${n} (${motivo})`);
+ }
+ if (mismasFechas && reservaEditada?.tipoTarifa && !validas.includes(reservaEditada.tipoTarifa)) validas.push(reservaEditada.tipoTarifa);
+ return { validas, fuera };
+ }, [tiposTarifa, tarifas, form.checkin, form.checkout, reservaEditada, hoyArg]);
+ const tarifaElegidaVale = opcionesTarifa.validas.includes(form.tipoTarifa);
+
+ // ==================== COMPUTED: DATOS A PEDIR ====================
+ // Los de toda reserva y los de cada promoción que se aplica en esta
+ // (src/lib/tarifa-calc.ts → camposAPedir), igual que en la web.
  const tarifaActual = tarifas[form.tipoTarifa];
- const camposPersonalizados: CampoPersonalizado[] = useMemo(() => {
- return tarifaActual?.camposPersonalizados || [];
- }, [tarifaActual]);
+ const gruposDeDatos: GrupoDeCampos[] = useMemo(() => {
+ // Sin una tarifa que valga para las fechas no se piden datos: se elige otra.
+ if (!tarifaActual || !tarifaElegidaVale) return [];
+ const noches = form.checkin && form.checkout ? nochesEntre(form.checkin, form.checkout) : 0;
+ const ninos = tarifaActual.promociones?.ninosDiferenciado?.activo ? (parseInt(form.ninos) || 0) : 0;
+ return camposAPedir(tarifaActual, { noches, ninos, checkin: form.checkin });
+ }, [tarifaActual, tarifaElegidaVale, form.checkin, form.checkout, form.ninos, nochesEntre]);
 
  // ==================== COMPUTED: PROMOCIONES EFECTIVAS ====================
  const promocionesEfectivas: PromocionesTarifa | null = useMemo(() => {
@@ -1006,6 +1038,10 @@ export default function ReservasModule() {
 
  const handleSearchDisponibilidad = () => {
  if (!form.checkin || !form.checkout) return;
+ if (!tarifaElegidaVale) {
+ toast.warning(form.tipoTarifa && tarifas[form.tipoTarifa] ? `La tarifa "${form.tipoTarifa}" no vale para esas fechas: elegí otra.` : 'Elegí una tarifa.');
+ return;
+ }
  // Al editar, excluir la propia reserva de la búsqueda: si no, su
  // habitación actual aparece como "no disponible" por conflicto consigo misma.
  const res = buscarDisponibilidad(form.checkin, form.checkout, editingId || undefined);
@@ -1227,6 +1263,11 @@ export default function ReservasModule() {
  }
 
  const errs: string[] = [];
+ if (!tarifaElegidaVale) {
+ errs.push(form.tipoTarifa && tarifas[form.tipoTarifa]
+ ? `La tarifa "${form.tipoTarifa}" no vale para esas fechas: elegí otra.`
+ : 'Elegí una tarifa.');
+ }
  if (!form.habitacion) errs.push('Debe seleccionar una habitación');
 
  // Ya NO se valida "tarifa por cama ↔ habitación compartida": cualquier
@@ -1267,12 +1308,11 @@ export default function ReservasModule() {
  if (!form.dni.trim()) errs.push('El DNI es obligatorio');
  if (!form.telefono.trim()) errs.push('El teléfono es obligatorio');
 
- // Validate custom fields
- for (const campo of camposPersonalizados) {
- if (campo.requerido) {
- const val = form.datosAdicionales[campo.nombre];
- if (!val || val.trim() === '') {
- errs.push(`El campo "${campo.nombre}" es obligatorio`);
+ // Datos a pedir (los de toda reserva y los de las promociones que se aplican)
+ for (const g of gruposDeDatos) {
+ for (const campo of g.campos) {
+ if (campo.requerido && !(form.datosAdicionales[campo.nombre] || '').trim()) {
+ errs.push(`El dato "${campo.nombre}" es obligatorio`);
  }
  }
  }
@@ -1313,7 +1353,13 @@ export default function ReservasModule() {
  vendedor: form.datosAdicionales['Vendedor / Agente'] || undefined,
  };
  } else if (Object.keys(form.datosAdicionales).length > 0) {
- datosAdicionales = { ...form.datosAdicionales };
+ // Solo los datos que se piden ahora: si se sacaron los niños, no queda
+ // guardado el dato de la promoción de niños. Los que la reserva ya tenía
+ // se conservan.
+ const pedidos = new Set(gruposDeDatos.flatMap(g => g.campos.map(c => c.nombre)));
+ const yaTenia = (reservaEditada as (Reserva & { datosAdicionales?: Record<string, string> }) | undefined)?.datosAdicionales || {};
+ const filtrados = Object.fromEntries(Object.entries(form.datosAdicionales).filter(([k, v]) => pedidos.has(k) || (k in yaTenia && v === yaTenia[k])));
+ if (Object.keys(filtrados).length > 0) datosAdicionales = filtrados;
  }
 
  const baseDatos: Parameters<typeof crearReserva>[0] = {
@@ -1861,7 +1907,12 @@ export default function ReservasModule() {
  </div>
  <div>
  <span className="text-muted-foreground">Tarifa:</span>
- <p className="font-medium capitalize">{detalleReserva.tipoTarifa || 'Normal'}</p>
+ <p className="font-medium capitalize">
+ {detalleReserva.tipoTarifa || 'Normal'}
+ {detalleReserva.tipoTarifa && tarifas[detalleReserva.tipoTarifa] && estadoVigencia(tarifas[detalleReserva.tipoTarifa], todayLocal()) === 'vencida' && (
+ <span className="normal-case font-normal text-muted-foreground"> (vencida)</span>
+ )}
+ </p>
  </div>
  </div>
 
@@ -2066,29 +2117,38 @@ export default function ReservasModule() {
  </div>
  <div className="grid gap-1.5">
  <Label>Tarifa</Label>
- <Select value={form.tipoTarifa} onValueChange={v => {
+ <Select value={tarifaElegidaVale ? form.tipoTarifa : ''} onValueChange={v => {
  updateForm({ tipoTarifa: v, datosAdicionales: {}, ninos: '0', habitacion: '', habitacion2: '', reservaMultiple: false });
  }}>
- <SelectTrigger><SelectValue /></SelectTrigger>
+ <SelectTrigger><SelectValue placeholder={opcionesTarifa.validas.length > 0 ? 'Elegí una tarifa' : 'Ninguna vale para estas fechas'} /></SelectTrigger>
  <SelectContent>
  {/* Sin filtrar por tipo de habitación: cualquier habitación se puede
- cobrar con cualquier tarifa. Filtrar acá además dejaba el desplegable
- vacío en hoteles con tarifas de una sola clase. */}
- {tiposTarifa
- .map(t => (
+ cobrar con cualquier tarifa. Sí por fechas: solo las que valen el
+ día de salida (src/lib/tarifa-vigencia.ts). */}
+ {opcionesTarifa.validas.map(t => (
  <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>
  ))}
  </SelectContent>
  </Select>
  </div>
  </div>
+ {form.checkout && !tarifaElegidaVale && form.tipoTarifa && tarifas[form.tipoTarifa] && (
+ <p className="text-xs text-warning -mt-1">
+ La tarifa &quot;{form.tipoTarifa}&quot; no vale para esas fechas ({motivoNoVale(tarifas[form.tipoTarifa], form.checkout, hoyArg)}). Elegí otra.
+ </p>
+ )}
+ {form.checkout && opcionesTarifa.fuera.length > 0 && (
+ <p className="text-xs text-muted-foreground -mt-1">
+ No valen para estas fechas: {opcionesTarifa.fuera.slice(0, 4).join(', ')}{opcionesTarifa.fuera.length > 4 ? ` y ${opcionesTarifa.fuera.length - 4} más` : ''}.
+ </p>
+ )}
 
- {/* Dynamic custom fields from tarifa */}
- {camposPersonalizados.length > 0 && (
- <div className="border rounded-lg p-3 bg-[#F1F5F94D]">
- <p className="text-sm font-medium mb-2">Campos adicionales</p>
+ {/* Datos a pedir: los de toda reserva y los de cada promoción que se aplica */}
+ {gruposDeDatos.map(grupo => (
+ <div key={grupo.promocion ?? 'general'} className="border rounded-lg p-3 bg-[#F1F5F94D]">
+ <p className="text-sm font-medium mb-2">{grupo.promocion ? `Datos por la promoción ${grupo.promocion}` : 'Datos a pedir'}</p>
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
- {camposPersonalizados.map(campo => (
+ {grupo.campos.map(campo => (
  <div key={campo.nombre} className="grid gap-1.5">
  <Label className="text-sm">
  {campo.nombre} {campo.requerido && <span className="text-destructive">*</span>}
@@ -2112,7 +2172,7 @@ export default function ReservasModule() {
  ))}
  </div>
  </div>
- )}
+ ))}
 
  {/* Filtro cama matrimonial */}
  <div className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { errorTarifaParaReservaNueva } from '@/lib/tarifa-api';
 import { db } from '@/lib/db';
 import { requirePermission, requireActiveSubscription, getAuthSession, AuthError } from '@/lib/auth/utils';
 import { auditar, TIPO } from '@/lib/auditoria';
@@ -154,6 +155,12 @@ export async function POST(req: NextRequest) {
         { error: 'La fecha de check-out debe ser posterior a la de check-in' },
         { status: 400 }
       );
+    }
+
+    // La tarifa tiene que valer el día de salida (src/lib/tarifa-vigencia.ts).
+    const errorTarifa = await errorTarifaParaReservaNueva(tenantId, tipoTarifa, checkout);
+    if (errorTarifa) {
+      return NextResponse.json({ error: errorTarifa }, { status: 400 });
     }
 
     if (personas && (parseInt(personas) < 1 || parseInt(personas) > 20)) {

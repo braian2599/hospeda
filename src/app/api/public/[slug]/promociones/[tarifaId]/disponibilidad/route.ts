@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  getPublicTenant, parseFechasConsulta, parsePersonasConsulta, buscarDisponibilidadPorTarifa,
+  getPublicTenant, parseFechasConsulta, parsePersonasConsulta, buscarDisponibilidadPorTarifa, tarifaDePromocion,
 } from '@/lib/public-landing';
 
 // GET /api/public/[slug]/promociones/[tarifaId]/disponibilidad?checkin&checkout&personas
@@ -23,6 +23,10 @@ export async function GET(
 
   const ninosRaw = searchParams.get('ninos');
   const ninos = ninosRaw ? Math.max(0, Math.min(20, parseInt(ninosRaw) || 0)) : 0;
+
+  // La promoción tiene que estar en la web y valer para ese día de salida.
+  const promo = tarifaDePromocion(tenant, tarifaId, fechas.checkout.toISOString().slice(0, 10));
+  if ('error' in promo) return NextResponse.json({ error: promo.error }, { status: 400 });
 
   const resultados = await buscarDisponibilidadPorTarifa(tenant, tarifaId, fechas, personas, ninos);
 

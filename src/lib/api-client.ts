@@ -501,14 +501,22 @@ export interface DbTarifa {
   precios: any; // { modoCobro?, rangos? } o formato viejo { "1": 35000, ... }
   camposPersonalizados?: { nombre: string; tipo: string; requerido: boolean }[] | null;
   choferCortesia: boolean; habitacionChofer?: string | null;
+  promoDescripcion?: string | null;
   activa: boolean; orden: number;
+  mostrarEnWeb?: boolean;
+  /** Fecha ISO a medianoche UTC, o null = sin límite. */
+  vigenciaDesde?: string | null; vigenciaHasta?: string | null;
 }
 export interface CreateTarifa {
   nombre: string;
   precios: any;
   camposPersonalizados?: { nombre: string; tipo: string; requerido: boolean }[];
   choferCortesia?: boolean; habitacionChofer?: string | null;
+  promoDescripcion?: string | null;
   activa?: boolean; orden?: number;
+  mostrarEnWeb?: boolean;
+  /** AAAA-MM-DD, o null = sin límite. */
+  vigenciaDesde?: string | null; vigenciaHasta?: string | null;
 }
 
 export interface DbMetodoPago {

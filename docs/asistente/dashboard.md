@@ -34,8 +34,9 @@ scroll vertical, de arriba a abajo:
      rápida** (`dashboard/ReservaRapidaDialog.tsx`). A la izquierda: huésped
      (nombre, DNI y teléfono, obligatorios; si el cliente ya vino aparece al
      escribir el nombre o el DNI; "+ Más datos" para email, nacionalidad,
-     nacimiento y domicilio), tarifa, adultos (y niños si la tarifa los
-     cobra aparte), campos propios de la tarifa, y cobro: Sin cobro ahora /
+     nacimiento y domicilio), tarifa (solo las que valen para esas fechas),
+     adultos (y niños si la tarifa los cobra aparte), datos a pedir de la
+     tarifa y de sus promociones, y cobro: Sin cobro ahora /
      Seña (mínimo 30%) / Total, con forma de pago y cuotas. A la derecha un
      resumen: habitación, entrada, noches (hasta donde esté libre), salida,
      huésped, personas, tarifa, forma de pago, detalle del precio, total,
@@ -50,7 +51,8 @@ scroll vertical, de arriba a abajo:
    - No deja mover: reservas facturadas o terminadas; a una habitación
      ocupada esas noches o con menos capacidad; a días que ya pasaron; si
      el huésped ya hizo el check-in, solo se puede cambiar la salida (no la
-     habitación ni la entrada); si la tarifa no tiene precios; si el total
+     habitación ni la entrada); si la tarifa no vale para las fechas nuevas
+     (hay que editar la reserva y elegir otra); si la tarifa no tiene precios; si el total
      está pasado a cuenta corriente y el precio cambia (primero se anula el
      pase); si lo cobrado supera el total nuevo (eso se hace desde Reservas,
      donde se corrigen los pagos). En celular no se arrastra.

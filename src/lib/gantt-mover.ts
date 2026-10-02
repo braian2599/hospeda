@@ -9,6 +9,7 @@
 // handleSubmit), para que mover desde el calendario y editar a mano den lo
 // mismo. Si se toca una, hay que tocar la otra.
 
+import { valeParaSalida, type ConVigencia } from './tarifa-vigencia';
 import type { Reserva, TarifaPrecios } from './types';
 import { calcularTotalSegunTarifa, getPromocionesEfectivas } from './tarifa-calc';
 import { esCompartida } from './ocupacion';
@@ -67,6 +68,12 @@ export interface ContextoMovimiento {
   habitacionDestino: { tipo: string; capacidad?: number } | undefined;
   /** Si la habitación destino está libre esas noches (sin contar a esta reserva). */
   libre: boolean;
+  /**
+   * La tarifa de la reserva (sus fechas de vigencia), o undefined si ya no
+   * existe. Con fechas nuevas tiene que valer el nuevo día de salida
+   * (src/lib/tarifa-vigencia.ts).
+   */
+  tarifa?: ConVigencia;
   totalActual: number;
   nuevoTotal: number | null;
   pagado: number;
@@ -104,6 +111,14 @@ export function motivoParaNoMover(
     return `La habitación ${destino.habitacion} es para ${hab.capacidad} ${hab.capacidad === 1 ? 'persona' : 'personas'} y la reserva es de ${personas}.`;
   }
   if (!ctx.libre) return `La habitación ${destino.habitacion} no está libre esas noches.`;
+
+  // Cambian las fechas: la tarifa tiene que valer el nuevo día de salida. Si
+  // no, se frena y se avisa (decisión del dueño): elegir otra tarifa cambia
+  // el precio, y eso se hace desde Reservas.
+  const cambianFechas = destino.checkin !== r.checkin || destino.checkout !== r.checkout;
+  if (cambianFechas && ctx.tarifa && !valeParaSalida(ctx.tarifa, destino.checkout)) {
+    return `La tarifa "${r.tipoTarifa || 'normal'}" no vale para esas fechas: editá la reserva para elegir otra.`;
+  }
 
   if (ctx.nuevoTotal === null) {
     return `La tarifa "${r.tipoTarifa || 'normal'}" no tiene precios cargados. Modificala desde Reservas.`;

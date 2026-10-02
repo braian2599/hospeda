@@ -17,7 +17,9 @@ import { useHotelStore, type NuevaReservaPrellenada } from '@/lib/store';
 import { formatMoney } from '@/lib/format';
 import { notifySuccess } from '@/lib/notify';
 import { modulosVisiblesPara } from '@/lib/plan-config';
-import { calcularDesgloseTarifa, getPromocionesEfectivas } from '@/lib/tarifa-calc';
+import { calcularDesgloseTarifa, getPromocionesEfectivas, camposAPedir } from '@/lib/tarifa-calc';
+import { valeParaSalida, motivoNoVale } from '@/lib/tarifa-vigencia';
+import { todayLocal } from '@/lib/format';
 import { sumarDiasFecha } from '@/lib/gantt-mover';
 import { esCompartida, lugaresPara } from '@/lib/ocupacion';
 import type { Cliente } from '@/lib/types';
@@ -114,7 +116,12 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [buscando, setBuscando] = useState<'huesped' | 'dni' | null>(null);
   const [masDatos, setMasDatos] = useState(false);
-  const [tipoTarifa, setTipoTarifa] = useState(tiposTarifa[0] || 'normal');
+  // Arranca con la primera tarifa que vale para 1 noche (salida al día
+  // siguiente). Si después se suman noches y deja de valer, se avisa.
+  const [tipoTarifa, setTipoTarifa] = useState(() => {
+    const salida = sumarDiasFecha(datos.checkin, 1);
+    return tiposTarifa.find(t => tarifas[t] && valeParaSalida(tarifas[t], salida)) || '';
+  });
   const [adultos, setAdultos] = useState(1);
   const [ninos, setNinos] = useState(0);
   const [camposTarifa, setCamposTarifa] = useState<Record<string, string>>({});
@@ -136,13 +143,19 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
     const libre = buscarDisponibilidad(datos.checkin, checkout).find(h => h.numero === datos.habitacion);
     return libre ? lugaresPara(libre) : 0;
   }, [hab, compartida, buscarDisponibilidad, datos.checkin, datos.habitacion, checkout]);
-  const tarifa = tarifas[tipoTarifa];
+  // Solo las tarifas que valen el día de salida (src/lib/tarifa-vigencia.ts).
+  const tarifasValidas = tiposTarifa.filter(t => tarifas[t] && valeParaSalida(tarifas[t], checkout));
+  const tarifaVale = tarifasValidas.includes(tipoTarifa);
+  const tarifa = tarifaVale ? tarifas[tipoTarifa] : undefined;
   const promos = tarifa ? getPromocionesEfectivas(tarifa) : {};
   const ninosAparte = !!promos.ninosDiferenciado?.activo;
   const ninosCuenta = ninosAparte ? ninos : 0;
   const acompanante = promos.acompananteSinCargo?.activo && promos.acompananteSinCargo.habitacionAsignada
     ? promos.acompananteSinCargo : null;
-  const camposPersonalizados = tarifa?.camposPersonalizados || [];
+  // Datos a pedir: los de toda reserva y los de las promociones que se
+  // aplican en esta (src/lib/tarifa-calc.ts → camposAPedir).
+  const gruposDeDatos = tarifa ? camposAPedir(tarifa, { noches, ninos: ninosCuenta, checkin: datos.checkin }) : [];
+  const camposPersonalizados = gruposDeDatos.flatMap(g => g.campos);
   const metodo = metodosPago.find(m => m.id === metodoId);
   const tieneCuotas = !!(metodo?.recargo && metodo.cuotas.length > 0);
   const recargoPct = cobro !== 'ninguno' && tieneCuotas ? parseFloat(cuotas.split('|')[1]) || 0 : 0;
@@ -265,7 +278,12 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
     for (const c of camposPersonalizados) {
       if (c.requerido && !(camposTarifa[c.nombre] || '').trim()) { errs.push(`Falta "${c.nombre}".`); faltan.add(`campo:${c.nombre}`); }
     }
-    if (!desglose) errs.push(`La tarifa "${tipoTarifa}" no tiene precios cargados.`);
+    if (tarifasValidas.length === 0) errs.push('Ninguna tarifa vale para estas fechas. Cargá una en Tarifas o cambiá las fechas.');
+    else if (!tarifaVale) {
+      errs.push(tipoTarifa && tarifas[tipoTarifa]
+        ? `La tarifa "${tipoTarifa}" no vale para estas fechas (${motivoNoVale(tarifas[tipoTarifa], checkout, todayLocal())}). Elegí otra.`
+        : 'Elegí una tarifa.');
+    } else if (!desglose) errs.push(`La tarifa "${tipoTarifa}" no tiene precios cargados.`);
     if (cobro !== 'ninguno' && !metodoId) { errs.push('Elegí la forma de pago.'); faltan.add('metodo'); }
     if (cobro === 'parcial' && cobradoAhora < senaMinima) { errs.push(`La seña mínima es ${formatMoney(senaMinima)}.`); faltan.add('monto'); }
     setMarcados(faltan);
@@ -274,7 +292,10 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
 
     setGuardando(true);
     try {
-      const datosAdicionales = Object.keys(camposTarifa).length > 0 ? { ...camposTarifa } : undefined;
+      // Solo los datos que se piden con la tarifa y las promociones de ahora.
+      const pedidos = new Set(camposPersonalizados.map(c => c.nombre));
+      const soloPedidos = Object.fromEntries(Object.entries(camposTarifa).filter(([k]) => pedidos.has(k)));
+      const datosAdicionales = Object.keys(soloPedidos).length > 0 ? soloPedidos : undefined;
       const agencia = tipoTarifa === 'agencia' && datosAdicionales
         ? {
             nombre: datosAdicionales['Nombre de la Agencia'] || '',
@@ -409,10 +430,10 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
           <Titulo>Tarifa</Titulo>
           <div className="grid grid-cols-2 sm:grid-cols-[1.6fr_1fr_1fr] gap-2">
             <Campo etiqueta="Tarifa" className="col-span-2 sm:col-span-1">
-              <Select value={tipoTarifa} onValueChange={cambiarTarifa}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <Select value={tarifaVale ? tipoTarifa : ''} onValueChange={cambiarTarifa}>
+                <SelectTrigger className="h-9"><SelectValue placeholder={tarifasValidas.length > 0 ? 'Elegí una tarifa' : 'Ninguna vale'} /></SelectTrigger>
                 <SelectContent>
-                  {tiposTarifa.map(t => <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}
+                  {tarifasValidas.map(t => <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </Campo>
@@ -426,6 +447,14 @@ function Formulario({ datos, onClose }: { datos: ReservaRapidaDatos; onClose: ()
               ? `Compartida: ${capacidad} ${capacidad === 1 ? 'cama libre' : 'camas libres'} esas noches (cada persona ocupa una cama).`
               : `Habitación ${datos.habitacion}: hasta ${capacidad} ${capacidad === 1 ? 'persona' : 'personas'}.`}
           </p>
+          {tiposTarifa.length > tarifasValidas.length && (
+            <p className="text-[11.5px] text-muted-foreground">
+              {tarifasValidas.length === 0
+                ? 'Ninguna tarifa vale para estas fechas. Cargá una en Tarifas o cambiá las noches.'
+                : `${tiposTarifa.length - tarifasValidas.length} ${tiposTarifa.length - tarifasValidas.length === 1 ? 'tarifa no vale' : 'tarifas no valen'} para estas fechas y no ${tiposTarifa.length - tarifasValidas.length === 1 ? 'aparece' : 'aparecen'} en la lista.`}
+              {!tarifaVale && tipoTarifa && tarifas[tipoTarifa] && ` "${tipoTarifa}" ${motivoNoVale(tarifas[tipoTarifa], checkout, todayLocal())}.`}
+            </p>
+          )}
           {camposPersonalizados.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
               {camposPersonalizados.map(c => (

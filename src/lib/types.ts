@@ -273,17 +273,23 @@ export interface AcompananteSinCargo {
   habitacionAsignada?: string;    // número de habitación donde va el acompañante
   cantidad: number;                // cuántos acompañantes sin cargo (default 1)
   personasHospedan?: number;       // si se define, el sistema valida que las personas buscadas coincidan
+  /** Datos a pedir cuando la reserva lleva esta promoción (siempre que la tarifa la tenga prendida). */
+  camposPersonalizados?: CampoPersonalizado[];
 }
 
 export interface NinosDiferenciado {
   activo: boolean;
   precioNino: number;             // precio por niño por noche (en pesos)
   edadMaxima?: number;            // informativo, para el recepcionista
+  /** Datos a pedir cuando la reserva trae niños. */
+  camposPersonalizados?: CampoPersonalizado[];
 }
 
 export interface NochesCortesia {
   activo: boolean;
   modalidad: ModalidadNochesCortesia;
+  /** Datos a pedir cuando la estadía tiene al menos una noche gratis. */
+  camposPersonalizados?: CampoPersonalizado[];
 }
 
 export interface PromocionesTarifa {
@@ -295,8 +301,16 @@ export interface PromocionesTarifa {
 export interface TarifaPrecios {
   modoCobro: ModoCobro;
   rangos: RangoPrecio[];
+  /** Datos a pedir en toda reserva con esta tarifa (columna propia en la base). */
   camposPersonalizados?: CampoPersonalizado[];
   promociones?: PromocionesTarifa;
+  // Columnas propias de la tarifa (no viven en el JSON de precios). Ver
+  // src/lib/tarifa-vigencia.ts para la regla de las fechas.
+  vigenciaDesde?: string | null;   // AAAA-MM-DD, null = sin límite
+  vigenciaHasta?: string | null;   // AAAA-MM-DD, incluye ese día como salida
+  activa?: boolean;
+  mostrarEnWeb?: boolean;          // sale en la pestaña Promociones de la web
+  promoDescripcion?: string | null; // texto para la web
   // Deprecated — migrado a promociones.acompananteSinCargo
   choferCortesia?: boolean;
   habitacionChofer?: string | null;

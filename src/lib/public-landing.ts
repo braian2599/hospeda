@@ -7,6 +7,10 @@ import { parseTarifaPrecios, calcularDesgloseTarifa, type DesgloseTarifa } from 
 import { promoBadgesPublicos, promoBadgesTab, describeNochesCortesia } from '@/lib/tarifas-format';
 import { agruparPorHabitacion, camasLibresDe } from '@/lib/ocupacion';
 import type { CampoPersonalizado } from '@/lib/types';
+import { camposAPedir } from '@/lib/tarifa-calc';
+import { aFechaTexto, tarifaParaSalida, estadoVigencia, motivoNoVale, fechaCorta, type ConVigencia } from '@/lib/tarifa-vigencia';
+import { leerTarifasPublicas } from '@/lib/tarifas-publicas';
+import { fechaArgentina } from '@/lib/format';
 
 const MAX_NOCHES_CONSULTA = 30;
 const MAX_PERSONAS_CONSULTA = 20;
@@ -61,7 +65,10 @@ export async function getPublicTenant(slug: string) {
       },
       tarifas: {
         where: { activa: true },
-        select: { id: true, nombre: true, precios: true, promoDescripcion: true, camposPersonalizados: true },
+        select: {
+          id: true, nombre: true, precios: true, promoDescripcion: true, camposPersonalizados: true,
+          vigenciaDesde: true, vigenciaHasta: true, mostrarEnWeb: true,
+        },
       },
     },
   });
@@ -93,6 +100,54 @@ export async function getPublicTenant(slug: string) {
 }
 
 export type PublicTenant = NonNullable<Awaited<ReturnType<typeof getPublicTenant>>>;
+type TarifaDb = PublicTenant['tarifas'][number];
+
+// ── Qué tarifa cobra la web (regla en src/lib/tarifa-vigencia.ts) ──
+// Para cada tipo de habitación, Configuración → Landing → Precios guarda
+// una o varias tarifas, una por período (src/lib/tarifas-publicas.ts). La web
+// cobra la estadía entera con la que vale el día de salida. Las desactivadas
+// ni llegan acá (getPublicTenant trae solo las activas).
+
+function conFechas(t: TarifaDb): ConVigencia {
+  return { vigenciaDesde: aFechaTexto(t.vigenciaDesde), vigenciaHasta: aFechaTexto(t.vigenciaHasta) };
+}
+
+/** Las tarifas de la web de un tipo de habitación (cualquier período). */
+export function tarifasWebDeTipo(tenant: PublicTenant, tipo: string): TarifaDb[] {
+  const ids = leerTarifasPublicas(tenant.configuracion?.tarifasPublicas)[tipo] || [];
+  return tenant.tarifas.filter(t => ids.includes(t.id));
+}
+
+/** La tarifa que cobra la web para ese tipo y esa salida (AAAA-MM-DD), o null si ninguna vale. */
+export function tarifaWebDeTipo(tenant: PublicTenant, tipo: string, checkout: string): TarifaDb | null {
+  const candidatas = tarifasWebDeTipo(tenant, tipo).map(t => ({ t, ...conFechas(t) }));
+  return tarifaParaSalida(candidatas, checkout)?.t ?? null;
+}
+
+/**
+ * La tarifa de una promoción de la pestaña Promociones. Tiene que estar
+ * marcada para la web ("Mostrar en la página web") y valer el día de salida;
+ * si no, devuelve el mensaje para el visitante. Sin el control de la marca,
+ * cualquiera podía reservar con una tarifa interna (por ejemplo, la de
+ * agencias) armando el link a mano.
+ */
+export function tarifaDePromocion(tenant: PublicTenant, tarifaId: string, checkout: string): { tarifa: TarifaDb } | { error: string } {
+  const t = tenant.tarifas.find(x => x.id === tarifaId);
+  if (!t || !t.mostrarEnWeb) return { error: 'Esta promoción ya no está disponible.' };
+  const v = conFechas(t);
+  if (motivoNoVale(v, checkout, fechaArgentina(new Date()))) {
+    const periodo = v.vigenciaDesde && v.vigenciaHasta
+      ? `entre el ${fechaCorta(v.vigenciaDesde)} y el ${fechaCorta(v.vigenciaHasta)}`
+      : v.vigenciaDesde ? `desde el ${fechaCorta(v.vigenciaDesde)}` : `hasta el ${fechaCorta(v.vigenciaHasta!)}`;
+    return { error: `Esta promoción vale para estadías que salen ${periodo}. Elegí otras fechas.` };
+  }
+  return { tarifa: t };
+}
+
+/** Fecha AAAA-MM-DD de una fecha validada por parseFechasConsulta (mediodía del servidor). */
+function diaDe(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
 
 export interface FechasValidadas {
   checkin: Date;
@@ -252,17 +307,14 @@ function aDesglosePublico(d: DesgloseTarifa): DesglosePublico {
   };
 }
 
-/** Precio + desglose del tipo dado para una cantidad de personas, o null si no tiene tarifa pública configurada. */
+/** Precio + desglose del tipo dado para una cantidad de personas, o null si ninguna tarifa de la web vale para esa salida. */
 function precioDeTipo(
   tenant: PublicTenant,
-  tarifasPublicas: Record<string, string>,
   tipo: string,
   personas: number,
   fechas: FechasValidadas
 ): { total: number; badges: string[]; desglose: DesglosePublico } | null {
-  const tarifaId = tarifasPublicas[tipo];
-  if (!tarifaId) return null;
-  const tarifaDb = tenant.tarifas.find((t) => t.id === tarifaId);
+  const tarifaDb = tarifaWebDeTipo(tenant, tipo, diaDe(fechas.checkout));
   if (!tarifaDb) return null;
 
   const precios = parseTarifaPrecios(tarifaDb.precios);
@@ -283,12 +335,13 @@ function precioDeTipo(
 function buscarCombinaciones(
   tenant: PublicTenant,
   libres: HabitacionLibre[],
-  tarifasPublicas: Record<string, string>,
   personas: number,
   fechas: FechasValidadas
 ): CombinacionDisponible[] {
-  // Solo habitaciones con tarifa pública configurada — si no tiene precio, no se puede ofrecer online.
-  const candidatas = libres.filter((h) => tarifasPublicas[h.tipo]);
+  // Solo habitaciones con una tarifa de la web que valga para esa salida —
+  // sin precio no se puede ofrecer online.
+  const salida = diaDe(fechas.checkout);
+  const candidatas = libres.filter((h) => tarifaWebDeTipo(tenant, h.tipo, salida));
   if (candidatas.length < 2) return [];
 
   const resultados: CombinacionDisponible[] = [];
@@ -307,8 +360,8 @@ function buscarCombinaciones(
       const personasB = personas - personasA;
       if (personasB < 1 || personasB > b.camasLibres) continue;
 
-      const precioA = precioDeTipo(tenant, tarifasPublicas, a.tipo, personasA, fechas);
-      const precioB = precioDeTipo(tenant, tarifasPublicas, b.tipo, personasB, fechas);
+      const precioA = precioDeTipo(tenant, a.tipo, personasA, fechas);
+      const precioB = precioDeTipo(tenant, b.tipo, personasB, fechas);
       if (!precioA || !precioB) continue;
 
       resultados.push({
@@ -331,11 +384,7 @@ export async function buscarDisponibilidad(
   tenant: PublicTenant,
   fechas: FechasValidadas,
   personas: number
-): Promise<{ resultados: HabitacionDisponiblePublica[]; combinaciones: CombinacionDisponible[] }> {
-  const tarifasPublicas = (tenant.configuracion?.tarifasPublicas && typeof tenant.configuracion.tarifasPublicas === 'object')
-    ? (tenant.configuracion.tarifasPublicas as Record<string, string>)
-    : {};
-
+): Promise<{ resultados: HabitacionDisponiblePublica[]; combinaciones: CombinacionDisponible[]; sinTarifa: string[] }> {
   const libres = await habitacionesLibres(tenant, fechas.checkin, fechas.checkout);
 
   // Cachear precio por tipo — todas las habitaciones del mismo tipo comparten tarifa.
@@ -346,7 +395,7 @@ export async function buscarDisponibilidad(
     if (h.camasLibres < personas) continue;
 
     if (!precioPorTipo.has(h.tipo)) {
-      precioPorTipo.set(h.tipo, precioDeTipo(tenant, tarifasPublicas, h.tipo, personas, fechas));
+      precioPorTipo.set(h.tipo, precioDeTipo(tenant, h.tipo, personas, fechas));
     }
     const precio = precioPorTipo.get(h.tipo);
     if (!precio) continue;
@@ -368,10 +417,17 @@ export async function buscarDisponibilidad(
   // Combinación de 2 habitaciones — solo tiene sentido ofrecerla cuando ninguna
   // habitación individual alcanza sola para el grupo completo.
   const combinaciones = (resultados.length === 0 && personas > 1)
-    ? buscarCombinaciones(tenant, libres, tarifasPublicas, personas, fechas)
+    ? buscarCombinaciones(tenant, libres, personas, fechas)
     : [];
 
-  return { resultados, combinaciones };
+  // Tipos que se venden por la web pero no tienen tarifa para esa salida
+  // (el dueño todavía no cargó la de ese período): la página avisa que esas
+  // fechas no se reservan online, en vez de decir "no hay disponibilidad".
+  const salida = diaDe(fechas.checkout);
+  const sinTarifa = [...new Set(tenant.habitaciones.map(h => h.tipo))]
+    .filter(tipo => tarifasWebDeTipo(tenant, tipo).length > 0 && !tarifaWebDeTipo(tenant, tipo, salida));
+
+  return { resultados, combinaciones, sinTarifa };
 }
 
 /**
@@ -407,22 +463,29 @@ export interface PromocionPublica {
   nochesCortesia: NochesCortesiaPublica | null;
   ninosDiferenciado: NinosDiferenciadoPublica | null;
   acompanante: AcompananteSinCargoPublica | null;
+  /** Los datos que se piden seguro al reservar: los de toda reserva y los del acompañante sin cargo. */
   camposPersonalizados: CampoPersonalizado[];
+  /** Período de la promoción, AAAA-MM-DD (null = sin límite). */
+  vigenciaDesde: string | null;
+  vigenciaHasta: string | null;
 }
 
 /**
- * Tarifas con una promoción activa (noches de cortesía / niños diferenciado /
- * acompañante sin cargo), para el tab "Promociones" de la landing —
- * independiente de si esa tarifa está asignada como tarifa pública de algún
- * tipo de habitación: cualquier tarifa activa con promoción pasa directo a
- * esta lista. Cada tarifa es personalizada: se exponen TODOS sus detalles
- * (etiqueta, condiciones, niños, campos extra) para que el cliente entienda
- * cómo funciona sin tener que adivinar — mismos textos que ve el hotel en
- * el módulo Tarifas.
+ * Tarifas para el tab "Promociones" de la landing: las que el dueño marcó
+ * "Mostrar en la página web", con al menos una promoción prendida (noches de
+ * cortesía / niños / acompañante sin cargo) y que no vencieron. Antes salía
+ * sola cualquier tarifa con una promoción (también la de agencias). Las que
+ * empiezan más adelante se muestran desde ya, con sus fechas. Se exponen
+ * todos sus detalles para que el cliente entienda cómo funciona — mismos
+ * textos que ve el hotel en el módulo Tarifas.
  */
 export function promocionesPublicas(tenant: PublicTenant): PromocionPublica[] {
   const promos: PromocionPublica[] = [];
+  const hoy = fechaArgentina(new Date());
   for (const tarifaDb of tenant.tarifas) {
+    if (!tarifaDb.mostrarEnWeb) continue;
+    const fechas = conFechas(tarifaDb);
+    if (estadoVigencia(fechas, hoy) === 'vencida') continue;
     const precios = parseTarifaPrecios(tarifaDb.precios);
     const promociones = precios.promociones;
 
@@ -454,39 +517,54 @@ export function promocionesPublicas(tenant: PublicTenant): PromocionPublica[] {
       nochesCortesia,
       ninosDiferenciado,
       acompanante,
-      camposPersonalizados: parseCamposPersonalizados(tarifaDb.camposPersonalizados),
+      camposPersonalizados: [
+        ...parseCamposPersonalizados(tarifaDb.camposPersonalizados),
+        ...(acom?.activo ? parseCamposPersonalizados(acom.camposPersonalizados) : []),
+      ],
+      vigenciaDesde: fechas.vigenciaDesde ?? null,
+      vigenciaHasta: fechas.vigenciaHasta ?? null,
     });
   }
   return promos;
 }
 
-/** Requisitos de una tarifa aplicada a una reserva pública (campos extra / niños), sea la tarifa general de un tipo o una tarifa promocional puntual. */
+/** Requisitos de la tarifa que cobra una reserva pública (datos a pedir, niños). */
 export interface RequisitosTarifa {
+  /** Los de toda reserva más los de cada promoción que se aplica en esta (ver camposAPedir). */
   camposPersonalizados: CampoPersonalizado[];
   tieneNinosDiferenciado: boolean;
   edadMaximaNinos: number | null;
 }
 
-/** Resuelve los requisitos (campos extra / niños) de la tarifa que se terminó usando en una reserva pública. */
+/**
+ * Requisitos de la tarifa que se usa en una reserva pública: la de la
+ * promoción elegida, o la de la web para ese tipo y esa salida.
+ */
 export function resolverRequisitosTarifa(
   tenant: PublicTenant,
-  { tipo, tarifaId }: { tipo?: string; tarifaId?: string }
+  { tipo, tarifaId }: { tipo?: string; tarifaId?: string },
+  fechas: FechasValidadas,
+  ninos: number,
 ): RequisitosTarifa | null {
-  let tarifaDb;
+  const salida = diaDe(fechas.checkout);
+  let tarifaDb: TarifaDb | null | undefined;
   if (tarifaId) {
-    tarifaDb = tenant.tarifas.find((t) => t.id === tarifaId);
+    const r = tarifaDePromocion(tenant, tarifaId, salida);
+    tarifaDb = 'tarifa' in r ? r.tarifa : null;
   } else if (tipo) {
-    const tarifasPublicas = (tenant.configuracion?.tarifasPublicas && typeof tenant.configuracion.tarifasPublicas === 'object')
-      ? (tenant.configuracion.tarifasPublicas as Record<string, string>)
-      : {};
-    tarifaDb = tenant.tarifas.find((t) => t.id === tarifasPublicas[tipo]);
+    tarifaDb = tarifaWebDeTipo(tenant, tipo, salida);
   }
   if (!tarifaDb) return null;
 
   const precios = parseTarifaPrecios(tarifaDb.precios);
+  const tieneNinos = !!precios.promociones?.ninosDiferenciado?.activo;
+  const grupos = camposAPedir(
+    { ...precios, camposPersonalizados: tarifaDb.camposPersonalizados },
+    { noches: fechas.noches, ninos: tieneNinos ? ninos : 0, checkin: diaDe(fechas.checkin) },
+  );
   return {
-    camposPersonalizados: parseCamposPersonalizados(tarifaDb.camposPersonalizados),
-    tieneNinosDiferenciado: !!precios.promociones?.ninosDiferenciado?.activo,
+    camposPersonalizados: grupos.flatMap(g => g.campos),
+    tieneNinosDiferenciado: tieneNinos,
     edadMaximaNinos: precios.promociones?.ninosDiferenciado?.edadMaxima ?? null,
   };
 }
@@ -503,8 +581,11 @@ export async function buscarDisponibilidadPorTarifa(
   personas: number,
   ninos: number = 0
 ): Promise<HabitacionDisponiblePublica[]> {
-  const tarifaDb = tenant.tarifas.find((t) => t.id === tarifaId);
-  if (!tarifaDb) return [];
+  // Solo promociones marcadas para la web y que valgan para esa salida. El
+  // motivo para el visitante lo da tarifaDePromocion (la API lo devuelve).
+  const r = tarifaDePromocion(tenant, tarifaId, diaDe(fechas.checkout));
+  if ('error' in r) return [];
+  const tarifaDb = r.tarifa;
   const precios = parseTarifaPrecios(tarifaDb.precios);
   if (precios.rangos.length === 0) return [];
 

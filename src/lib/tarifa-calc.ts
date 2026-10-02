@@ -4,7 +4,7 @@
 // precio que ve un visitante sea matemáticamente idéntico al que carga el
 // personal desde el panel.
 
-import type { RangoPrecio, PromocionesTarifa, ModoCobro, TarifaPrecios, ModalidadNochesCortesia } from '@/lib/types';
+import type { RangoPrecio, PromocionesTarifa, ModoCobro, TarifaPrecios, ModalidadNochesCortesia, CampoPersonalizado } from '@/lib/types';
 
 /**
  * Convierte datos de tarifa desde la BD (puede ser formato viejo o nuevo) a RangoPrecio[].
@@ -185,4 +185,63 @@ export function calcularTotalSegunTarifa(
   options?: CalcTarifaOptions
 ): number {
   return calcularDesgloseTarifa(tarifas, tipoTarifa, personas, noches, options)?.total ?? 0;
+}
+
+// ==================== DATOS A PEDIR AL RESERVAR ====================
+// Cada tarifa pide datos en toda reserva (columna camposPersonalizados) y,
+// además, cada promoción puede pedir los suyos, que se piden solo cuando esa
+// promoción se aplica en la reserva:
+//   - Precio para niños: si la reserva trae niños.
+//   - Noches de cortesía: si la estadía tiene al menos una noche gratis.
+//   - Acompañante sin cargo: siempre (la tarifa lo incluye en cada reserva).
+// Lo usan el panel (Reservas, reserva rápida) y la reserva desde la web, para
+// pedir y validar exactamente lo mismo.
+
+export interface GrupoDeCampos {
+  /** Para el título de la sección: "Por la promoción Acompañante sin cargo". null = de toda reserva. */
+  promocion: string | null;
+  campos: CampoPersonalizado[];
+}
+
+function camposValidos(raw: unknown): CampoPersonalizado[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((c): c is CampoPersonalizado =>
+    !!c && typeof c === 'object' && typeof (c as CampoPersonalizado).nombre === 'string' && !!(c as CampoPersonalizado).nombre.trim());
+}
+
+export function camposAPedir(
+  tarifa: Pick<TarifaPrecios, 'promociones' | 'choferCortesia' | 'habitacionChofer' | 'modoCobro' | 'rangos'> & { camposPersonalizados?: unknown },
+  reserva: { noches: number; ninos?: number; checkin?: string },
+): GrupoDeCampos[] {
+  const grupos: GrupoDeCampos[] = [];
+  const generales = camposValidos(tarifa.camposPersonalizados);
+  if (generales.length > 0) grupos.push({ promocion: null, campos: generales });
+
+  const promos = getPromocionesEfectivas(tarifa as TarifaPrecios);
+  const ninos = promos.ninosDiferenciado;
+  if (ninos?.activo && (reserva.ninos ?? 0) > 0) {
+    const campos = camposValidos(ninos.camposPersonalizados);
+    if (campos.length > 0) grupos.push({ promocion: 'Precio para niños', campos });
+  }
+  const noches = promos.nochesCortesia;
+  if (noches?.activo && calcularNochesGratis(promos, reserva.noches, reserva.checkin) > 0) {
+    const campos = camposValidos(noches.camposPersonalizados);
+    if (campos.length > 0) grupos.push({ promocion: 'Noches de cortesía', campos });
+  }
+  const acom = promos.acompananteSinCargo;
+  if (acom?.activo) {
+    const campos = camposValidos(acom.camposPersonalizados);
+    if (campos.length > 0) grupos.push({ promocion: acom.etiqueta || 'Acompañante sin cargo', campos });
+  }
+  return grupos;
+}
+
+/** El primer dato obligatorio que falta, o null si están todos. */
+export function campoObligatorioFaltante(grupos: GrupoDeCampos[], datos: Record<string, string | undefined>): string | null {
+  for (const g of grupos) {
+    for (const c of g.campos) {
+      if (c.requerido && !String(datos[c.nombre] ?? '').trim()) return c.nombre;
+    }
+  }
+  return null;
 }
