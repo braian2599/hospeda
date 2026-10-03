@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://hospeda.com/sitemap.xml
+Sitemap: https://www.mihospeda.com/sitemap.xml

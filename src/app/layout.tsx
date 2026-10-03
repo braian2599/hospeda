@@ -29,12 +29,12 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Hospi" }],
   creator: "Hospi",
-  metadataBase: new URL("https://hospeda.com"),
+  metadataBase: new URL("https://www.mihospeda.com"),
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: "es_AR",
-    url: "https://hospeda.com",
+    url: "https://www.mihospeda.com",
     siteName: "Hospi",
     title: "Hospi — Gestión Hotelera Simple",
     description:
