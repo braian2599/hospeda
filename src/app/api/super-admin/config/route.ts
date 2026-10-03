@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requireSuperAdmin } from '@/lib/super-admin/auth';
 import { encrypt, decrypt, isEncrypted } from '@/lib/crypto';
 import { PREFIJO_TICKET_HOSPEDA } from '@/lib/afip/wsaa';
+import { leerEstadoConfig } from '@/lib/super-admin/datos';
 
 // ─── Helpers ───
 
@@ -46,6 +47,8 @@ export async function GET() {
     }
 
     return NextResponse.json({
+      // Qué grupos están completos y qué falta (se muestra debajo de cada uno).
+      estado: await leerEstadoConfig(),
       config: maskedConfig,
       // Indica qué campos están enmascarados (para que el frontend sepa
       // que debe enviar el valor completo solo si el usuario lo edita)

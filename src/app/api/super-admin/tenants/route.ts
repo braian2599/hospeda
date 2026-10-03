@@ -13,36 +13,58 @@ import {
 import { setFeatureFlag, getPlanFeatureFlags } from '@/lib/feature-flags-server';
 import { deleteAllTenantObjects } from '@/lib/storage/r2';
 import bcrypt from 'bcryptjs';
+import { hotelesConEstado } from '@/lib/super-admin/datos';
+import { FILTROS_CUENTAS, pasaFiltro, compararHoteles, type FiltroCuentas } from '@/lib/super-admin/estado-hotel';
 
-// GET /api/super-admin/tenants — Listar todos los tenants con info de suscripción
+// GET /api/super-admin/tenants — Hoteles con su suscripción, para Cuentas.
+// Parámetros: search (nombre, email o slug), filtro (todos | resolver | debito
+// | prueba | cortados | desactivados), page, limit, tenantId (uno solo).
+// Los filtros y el orden se calculan con la misma regla que el Dashboard
+// (src/lib/super-admin/estado-hotel.ts), por eso se clasifican todos los
+// hoteles en memoria y recién después se trae el detalle de la página.
 export async function GET(req: NextRequest) {
   const { error } = await requireSuperAdmin();
   if (error) return error;
 
   try {
     const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const search = searchParams.get('search') || '';
-    const estadoFilter = searchParams.get('estado') || '';
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1') || 1);
+    const limit = Math.min(500, Math.max(1, parseInt(searchParams.get('limit') || '20') || 20));
+    const search = (searchParams.get('search') || '').trim().toLowerCase();
+    const filtroCrudo = searchParams.get('filtro') || 'todos';
+    const filtro: FiltroCuentas = (FILTROS_CUENTAS as readonly string[]).includes(filtroCrudo) ? filtroCrudo as FiltroCuentas : 'todos';
+    const soloUno = searchParams.get('tenantId');
 
-    const whereClause: Record<string, unknown> = {};
-    if (search) {
-      whereClause.OR = [
-        { nombre: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { slug: { contains: search, mode: 'insensitive' } },
-      ];
-    }
+    const todos = (await hotelesConEstado()).map(h => ({ ...h, creadoEn: h.createdAt }));
+    const buscados = search
+      ? todos.filter(h => h.nombre.toLowerCase().includes(search) || h.email.toLowerCase().includes(search))
+      : todos;
 
-    const tenants = await db.tenant.findMany({
-      where: whereClause,
+    const conteos = Object.fromEntries(
+      FILTROS_CUENTAS.map(f => [f, buscados.filter(h => pasaFiltro(h.estado, f)).length]),
+    ) as Record<FiltroCuentas, number>;
+
+    const filtrados = soloUno
+      ? todos.filter(h => h.id === soloUno)
+      : buscados.filter(h => pasaFiltro(h.estado, filtro)).sort(compararHoteles);
+    const total = filtrados.length;
+    const pagina = soloUno ? filtrados : filtrados.slice((page - 1) * limit, page * limit);
+    const ids = pagina.map(h => h.id);
+
+    const detalles = await db.tenant.findMany({
+      where: { id: { in: ids } },
       include: {
         subscription: { include: { plan: true } },
         configuracion: { select: { featureFlags: true } },
         users: {
           include: { user: { select: { id: true, email: true, name: true } } },
           where: { activo: true },
+        },
+        platformPayments: {
+          where: { estado: 'pagado' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { createdAt: true, monto: true, metodo: true },
         },
         _count: {
           select: {
@@ -52,25 +74,15 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
     });
+    const porId = new Map(detalles.map(t => [t.id, t]));
 
-    // Filtrar por estado de suscripción si se pidió
-    const filtered = estadoFilter
-      ? tenants.filter(t => t.subscription?.estado === estadoFilter)
-      : tenants;
-
-    const total = await db.tenant.count({ where: whereClause as any });
-
-    const result = filtered.map(t => {
+    const result = pagina.flatMap(h => {
+      const t = porId.get(h.id);
+      if (!t) return [];
       const sub = t.subscription;
-      const diasRestantes = sub?.fechaVencimiento
-        ? Math.max(0, Math.ceil((new Date(sub.fechaVencimiento).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-        : 0;
-
-      return {
+      const ultimo = t.platformPayments[0];
+      return [{
         id: t.id,
         nombre: t.nombre,
         slug: t.slug,
@@ -79,16 +91,20 @@ export async function GET(req: NextRequest) {
         pais: t.pais,
         activo: t.activo,
         creadoEn: t.createdAt.toISOString(),
+        estado: h.estado,
         suscripcion: sub ? {
           id: sub.id,
+          planId: sub.planId,
           plan: sub.plan.nombre,
           planType: sub.plan.type,
+          precioMensual: sub.plan.precioMensual,
           estado: sub.estado,
+          origen: sub.origen,
           fechaInicio: sub.fechaInicio.toISOString(),
           fechaVencimiento: sub.fechaVencimiento.toISOString(),
-          diasRestantes,
           paymentProviderId: sub.paymentProviderId,
         } : null,
+        ultimoPago: ultimo ? { fecha: ultimo.createdAt.toISOString(), monto: ultimo.monto, metodo: ultimo.metodo } : null,
         usuarios: t.users.map(tu => ({
           id: tu.id,
           nombre: tu.nombreCompleto || tu.user.name || '',
@@ -112,10 +128,10 @@ export async function GET(req: NextRequest) {
           parseFeatureFlags(sub?.plan?.featureFlags),
           parseFlagOverrides(t.configuracion?.featureFlags),
         ),
-      };
+      }];
     });
 
-    return NextResponse.json({ tenants: result, total, page, limit });
+    return NextResponse.json({ tenants: result, total, page, limit, conteos });
   } catch (error: unknown) {
     const err = error as Error;
     console.error('[/api/super-admin/tenants] Error:', err.message);

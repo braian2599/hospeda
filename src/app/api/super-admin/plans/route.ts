@@ -21,6 +21,13 @@ export async function GET() {
       _count: { _all: true },
     });
     const debitosPorPlan = new Map(debitos.map(d => [d.planId, d._count._all]));
+    // Hoteles (activos) que tienen cada plan.
+    const conPlan = await db.subscription.groupBy({
+      by: ['planId'],
+      where: { tenant: { activo: true } },
+      _count: { _all: true },
+    });
+    const hotelesPorPlan = new Map(conPlan.map(d => [d.planId, d._count._all]));
 
     return NextResponse.json({
       plans: plans.map(p => ({
@@ -39,6 +46,7 @@ export async function GET() {
         precioAnteriorMensual: p.precioAnteriorMensual,
         cambioPrecioDesde: p.cambioPrecioDesde?.toISOString() ?? null,
         debitosActivos: debitosPorPlan.get(p.id) ?? 0,
+        hoteles: hotelesPorPlan.get(p.id) ?? 0,
       })),
       // Días 10 que se pueden elegir para aplicar un precio nuevo a los débitos actuales.
       opcionesCambioPrecio: diezParaCambioDePrecio().map(d => d.toISOString()),

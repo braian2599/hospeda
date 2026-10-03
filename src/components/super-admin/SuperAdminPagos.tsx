@@ -1,38 +1,25 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+// Pagos del Super Admin: arriba lo cobrado en el mes, lo que se cobra el 10 y
+// los rechazados; abajo la lista con buscador y filtros en una fila. Desde
+// acá se registran los pagos hechos por fuera de Mercado Pago.
+
+import { useCallback, useEffect, useState } from 'react';
+import { Loader2, Search } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { fechaArgentina } from '@/lib/format';
+import { useSuperAdminSection } from './SuperAdminContext';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Plus, Loader2, Wallet } from 'lucide-react';
-import { toast } from 'sonner';
+  Cabecera, Chip, Numero, Paginas, Pildoras, pesos, fechaLarga, fechaCorta, NOMBRE_ESTADO_PAGO, NOMBRE_METODO,
+} from './comun';
 
-// ─── Types ───
 interface Payment {
   id: string;
   tenantId: string;
@@ -49,391 +36,340 @@ interface Payment {
   createdAt: string;
 }
 
-interface TenantOption {
-  id: string;
-  nombre: string;
-  email: string;
+interface Resumen {
+  mes: string;
+  mesPasado: string;
+  cobradoMes: number;
+  pagosMes: number;
+  cobradoMesPasado: number;
+  rechazadosMes: number;
+  cobroDiez: { fecha: string; total: number; cantidad: number };
 }
 
-// ─── Helpers ───
-function formatARS(cents: number) {
-  return `$${(cents / 100).toLocaleString('es-AR')}`;
+interface HotelOpcion { id: string; nombre: string; email: string; precioMensual: number | null; vence: string | null }
+
+type FiltroEstado = '' | 'pagado' | 'fallido' | 'devuelto' | 'pendiente';
+const LIMITE = 15;
+
+/** De dónde vino el pago, si no tiene nota. */
+function detalle(p: Payment): string {
+  if (p.nota) return p.nota;
+  if (p.metodo === 'mercadopago') return 'Débito automático';
+  return '—';
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+/** YYYY-MM-DD de hoy, o de una fecha, en Argentina. */
+const diaAR = (f: Date | string) => fechaArgentina(f);
+/** El mismo día un mes después (YYYY-MM-DD). */
+function unMesDespues(dia: string): string {
+  const [a, m, d] = dia.split('-').map(Number);
+  const f = new Date(Date.UTC(a, m, d, 12));
+  return f.toISOString().slice(0, 10);
 }
 
-function formatDateInput(iso: string) {
-  return new Date(iso).toLocaleDateString('en-CA');
-}
+const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-function estadoBadge(estado: string) {
-  const map: Record<string, string> = {
-    pendiente: 'bg-[#D9770626] text-warning border-[#D9770666]',
-    pagado: 'bg-[#05966926] text-success border-primary',
-    fallido: 'bg-[#EF44441A] text-destructive border-[#EF44444D]',
-    devuelto: 'bg-muted text-muted-foreground border-border',
-  };
-  return (
-    <Badge variant="outline" className={map[estado] || ''}>
-      {estado.charAt(0).toUpperCase() + estado.slice(1)}
-    </Badge>
-  );
-}
-
-// ─── Main Component ───
 export default function SuperAdminPagos() {
+  const { pedido, atenderPedido, recargarAvisos } = useSuperAdminSection();
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [tenants, setTenants] = useState<TenantOption[]>([]);
+  const [resumen, setResumen] = useState<Resumen | null>(null);
+  const [hoteles, setHoteles] = useState<HotelOpcion[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const limit = 15;
 
-  // Filters
-  const [estadoFilter, setEstadoFilter] = useState('');
-  const [metodoFilter, setMetodoFilter] = useState('');
+  const [busqueda, setBusqueda] = useState('');
+  const [q, setQ] = useState('');
+  const [estado, setEstado] = useState<FiltroEstado>('');
+  const [metodo, setMetodo] = useState('');
+  const [periodo, setPeriodo] = useState('3m');
 
-  // New payment dialog
-  const [newPayOpen, setNewPayOpen] = useState(false);
-  const [newPayForm, setNewPayForm] = useState({
-    tenantId: '',
-    monto: '',
-    periodoDesde: '',
-    periodoHasta: '',
-    nota: '',
-  });
-  const [submitting, setSubmitting] = useState(false);
+  const [nuevoOpen, setNuevoOpen] = useState(false);
+  const [form, setForm] = useState({ tenantId: '', monto: '', metodo: 'transferencia', desde: '', hasta: '', nota: '' });
+  const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => { setQ(busqueda.trim()); setPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [busqueda]);
 
   const fetchPayments = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-      });
-      if (estadoFilter) params.set('estado', estadoFilter);
-      if (metodoFilter) params.set('metodo', metodoFilter);
-
+      const params = new URLSearchParams({ page: String(page), limit: String(LIMITE), periodo });
+      if (estado) params.set('estado', estado);
+      if (metodo) params.set('metodo', metodo);
+      if (q) params.set('q', q);
       const res = await fetch(`/api/super-admin/payments?${params}`);
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error);
       setPayments(data.payments);
       setTotal(data.total);
+      setResumen(data.resumen);
     } catch {
-      toast.error('Error al cargar pagos');
+      toast.error('Error al cargar los pagos');
     } finally {
       setLoading(false);
     }
-  }, [page, estadoFilter, metodoFilter]);
+  }, [page, estado, metodo, q, periodo]);
 
-  useEffect(() => {
-    fetchPayments();
-  }, [fetchPayments]);
+  useEffect(() => { fetchPayments(); }, [fetchPayments]);
 
-  useEffect(() => {
-    // Fetch tenants for the dialog selector
-    fetch('/api/super-admin/tenants?limit=100')
-      .then((r) => r.json())
-      .then((data) => {
-        const opts = (data.tenants || []).map((t: { id: string; nombre: string; email: string }) => ({
-          id: t.id,
-          nombre: t.nombre,
-          email: t.email,
-        }));
-        setTenants(opts);
-      })
-      .catch(() => {});
+  const cargarHoteles = useCallback(async (): Promise<HotelOpcion[]> => {
+    try {
+      const res = await fetch('/api/super-admin/tenants?limit=500');
+      const data = await res.json();
+      const lista: HotelOpcion[] = (data.tenants || []).map((t: {
+        id: string; nombre: string; email: string;
+        suscripcion: { precioMensual: number; fechaVencimiento: string } | null;
+      }) => ({
+        id: t.id, nombre: t.nombre, email: t.email,
+        precioMensual: t.suscripcion?.precioMensual ?? null,
+        vence: t.suscripcion?.fechaVencimiento ?? null,
+      })).sort((a: HotelOpcion, b: HotelOpcion) => a.nombre.localeCompare(b.nombre));
+      setHoteles(lista);
+      return lista;
+    } catch {
+      return [];
+    }
   }, []);
 
-  const totalPages = Math.ceil(total / limit);
+  useEffect(() => { cargarHoteles(); }, [cargarHoteles]);
 
-  const handleSubmitPayment = async () => {
-    if (!newPayForm.tenantId || !newPayForm.monto || !newPayForm.periodoDesde || !newPayForm.periodoHasta) {
-      toast.error('Completá todos los campos requeridos');
+  /**
+   * Al elegir el hotel se completa lo más probable: el precio de su plan y un
+   * mes desde que vence lo que tiene (o desde hoy, si ya está cortado hace rato).
+   */
+  const elegirHotel = (id: string, lista: HotelOpcion[] = hoteles) => {
+    const h = lista.find(x => x.id === id);
+    const hoy = diaAR(new Date());
+    const desde = h?.vence ? diaAR(h.vence) : hoy;
+    setForm(f => ({
+      ...f,
+      tenantId: id,
+      monto: h?.precioMensual ? String(Math.round(h.precioMensual / 100)) : f.monto,
+      desde,
+      hasta: unMesDespues(desde),
+    }));
+  };
+
+  const abrirNuevo = (tenantId?: string, lista?: HotelOpcion[]) => {
+    setForm({ tenantId: '', monto: '', metodo: 'transferencia', desde: '', hasta: '', nota: '' });
+    if (tenantId) elegirHotel(tenantId, lista);
+    setNuevoOpen(true);
+  };
+
+  // "Registrar pago" desde el Dashboard o desde Cuentas.
+  useEffect(() => {
+    if (pedido?.tipo !== 'registrarPago') return;
+    const id = pedido.tenantId;
+    atenderPedido();
+    (hoteles.length ? Promise.resolve(hoteles) : cargarHoteles()).then(lista => abrirNuevo(id, lista));
+  }, [pedido]);
+
+  const registrar = async () => {
+    if (!form.tenantId || !form.monto || !form.desde || !form.hasta) {
+      toast.error('Completá el hotel, el monto y las fechas');
       return;
     }
-
-    setSubmitting(true);
+    const centavos = Math.round(parseFloat(form.monto.replace(/\./g, '').replace(',', '.')) * 100);
+    if (!(centavos > 0)) {
+      toast.error('El monto tiene que ser mayor a 0');
+      return;
+    }
+    setEnviando(true);
     try {
-      // monto comes in ARS (pesos), convert to cents
-      const montoCents = Math.round(parseFloat(newPayForm.monto) * 100);
-      if (montoCents <= 0) {
-        toast.error('El monto debe ser mayor a 0');
-        setSubmitting(false);
-        return;
-      }
-
       const res = await fetch('/api/super-admin/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tenantId: newPayForm.tenantId,
-          monto: montoCents,
-          metodo: 'manual',
-          periodoDesde: newPayForm.periodoDesde,
-          periodoHasta: newPayForm.periodoHasta,
-          nota: newPayForm.nota,
+          tenantId: form.tenantId,
+          monto: centavos,
+          metodo: form.metodo,
+          // 00:00 de Argentina, igual que el ciclo del 10 (src/lib/ciclo-cobro.ts).
+          periodoDesde: `${form.desde}T00:00:00-03:00`,
+          periodoHasta: `${form.hasta}T00:00:00-03:00`,
+          nota: form.nota.trim() || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success('Pago registrado correctamente');
-      setNewPayOpen(false);
-      setNewPayForm({ tenantId: '', monto: '', periodoDesde: '', periodoHasta: '', nota: '' });
+      toast.success(`Pago registrado. Queda pagado hasta el ${fechaLarga(data.vencimientoExtendido)}.`);
+      setNuevoOpen(false);
       fetchPayments();
+      cargarHoteles();
+      recargarAvisos();
     } catch (err: unknown) {
-      toast.error((err as Error).message || 'Error al registrar pago');
+      toast.error((err as Error).message || 'Error al registrar el pago');
     } finally {
-      setSubmitting(false);
+      setEnviando(false);
     }
   };
 
-  const selectedTenantName = tenants.find((t) => t.id === newPayForm.tenantId)?.nombre;
+  const totalPages = Math.ceil(total / LIMITE);
+  const hayFiltros = !!(q || estado || metodo || periodo !== '3m');
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Pagos</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Historial de pagos de la plataforma
-          </p>
-        </div>
-        <Button onClick={() => setNewPayOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Registrar pago manual
-        </Button>
+    <div className="flex flex-col gap-4">
+      <Cabecera titulo="Pagos" bajada="Lo que pagaron los hoteles: débitos de Mercado Pago, transferencias y pagos cargados a mano.">
+        <Button onClick={() => abrirNuevo()}>Registrar pago manual</Button>
+      </Cabecera>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Numero
+          etiqueta={resumen ? `Cobrado en ${resumen.mes}` : 'Cobrado en el mes'}
+          cargando={!resumen}
+          valor={resumen ? pesos(resumen.cobradoMes) : ''}
+          detalle={resumen && `${resumen.pagosMes} ${resumen.pagosMes === 1 ? 'pago' : 'pagos'} · ${capital(resumen.mesPasado)}: ${pesos(resumen.cobradoMesPasado)}`}
+        />
+        <Numero
+          etiqueta={resumen ? `Cobro del ${fechaCorta(resumen.cobroDiez.fecha)}` : 'Próximo cobro'}
+          cargando={!resumen}
+          valor={resumen ? pesos(resumen.cobroDiez.total) : ''}
+          detalle={resumen && (resumen.cobroDiez.cantidad
+            ? `${resumen.cobroDiez.cantidad} ${resumen.cobroDiez.cantidad === 1 ? 'débito automático' : 'débitos automáticos'} (estimado)`
+            : 'Ningún débito automático para ese día')}
+        />
+        <Numero
+          etiqueta="Rechazados en el mes"
+          cargando={!resumen}
+          valor={resumen?.rechazadosMes ?? 0}
+          tono={resumen && resumen.rechazadosMes > 0 ? 'warn' : undefined}
+          detalle={resumen && (resumen.rechazadosMes
+            ? 'Mercado Pago reintenta los días siguientes'
+            : 'Ningún cobro rechazado')}
+        />
       </div>
 
-      {/* ─── Filters ─── */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 max-w-xs">
-              <Select value={estadoFilter} onValueChange={(v) => { setEstadoFilter(v === '__all__' ? '' : v); setPage(1); }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todos los estados</SelectItem>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="pagado">Pagado</SelectItem>
-                  <SelectItem value="fallido">Fallido</SelectItem>
-                  <SelectItem value="devuelto">Devuelto</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1 max-w-xs">
-              <Select value={metodoFilter} onValueChange={(v) => { setMetodoFilter(v === '__all__' ? '' : v); setPage(1); }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Método" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todos los métodos</SelectItem>
-                  <SelectItem value="mercadopago">Mercado Pago</SelectItem>
-                  <SelectItem value="transferencia">Transferencia</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ─── Table ─── */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Hotel</TableHead>
-                  <TableHead>Monto</TableHead>
-                  <TableHead className="hidden md:table-cell">Método</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="hidden lg:table-cell">Período</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  Array.from({ length: 8 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: 6 }).map((_, j) => (
-                        <TableCell key={j}>
-                          <Skeleton className="h-5 w-16" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : payments.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No se encontraron pagos.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  payments.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="text-sm">
-                        {formatDate(p.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="text-sm font-medium">{p.tenantNombre}</p>
-                          <p className="text-xs text-muted-foreground md:hidden capitalize">{p.metodo}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium text-sm">
-                        {formatARS(p.monto)}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <span className="text-sm text-muted-foreground capitalize">
-                          {p.metodo === 'mercadopago' ? 'Mercado Pago' : p.metodo}
-                        </span>
-                      </TableCell>
-                      <TableCell>{estadoBadge(p.estado)}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
-                        {formatDate(p.periodoDesde)} — {formatDate(p.periodoHasta)}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ─── Pagination ─── */}
-      {!loading && totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {total} pago{total !== 1 ? 's' : ''} — Página {page} de {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage(page + 1)}
-            >
-              Siguiente
-            </Button>
-          </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-52">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar hotel…" className="pl-8 h-9" />
         </div>
-      )}
+        <Pildoras<FiltroEstado>
+          opciones={[
+            { valor: '', texto: 'Todos' },
+            { valor: 'pagado', texto: 'Pagados' },
+            { valor: 'fallido', texto: 'Rechazados' },
+            { valor: 'devuelto', texto: 'Devueltos' },
+          ]}
+          valor={estado}
+          onChange={v => { setEstado(v); setPage(1); }}
+        />
+        <Select value={metodo || '__todos__'} onValueChange={v => { setMetodo(v === '__todos__' ? '' : v); setPage(1); }}>
+          <SelectTrigger className="h-9 w-[190px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__todos__">Todos los métodos</SelectItem>
+            <SelectItem value="mercadopago">Mercado Pago</SelectItem>
+            <SelectItem value="transferencia">Transferencia</SelectItem>
+            <SelectItem value="manual">Otro (manual)</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={periodo} onValueChange={v => { setPeriodo(v); setPage(1); }}>
+          <SelectTrigger className="h-9 w-[165px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="3m">Últimos 3 meses</SelectItem>
+            <SelectItem value="12m">Último año</SelectItem>
+            <SelectItem value="todo">Todo</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-      {/* ─── Dialog: Registrar pago manual ─── */}
-      <Dialog open={newPayOpen} onOpenChange={setNewPayOpen}>
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="border-b text-left text-xs text-muted-foreground">
+                <th className="px-3 py-2.5 font-semibold">Fecha</th>
+                <th className="px-3 py-2.5 font-semibold">Hotel</th>
+                <th className="px-3 py-2.5 font-semibold text-right">Monto</th>
+                <th className="px-3 py-2.5 font-semibold">Método</th>
+                <th className="px-3 py-2.5 font-semibold">Estado</th>
+                <th className="px-3 py-2.5 font-semibold hidden md:table-cell">Paga el período</th>
+                <th className="px-3 py-2.5 font-semibold hidden lg:table-cell">Detalle</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && payments.length === 0 ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="border-b last:border-0"><td colSpan={7} className="px-3 py-2"><Skeleton className="h-6 w-full" /></td></tr>
+                ))
+              ) : payments.length === 0 ? (
+                <tr><td colSpan={7} className="px-3 py-10 text-center text-muted-foreground">
+                  {hayFiltros ? 'Ningún pago con estos filtros.' : 'Todavía no hay pagos.'}
+                </td></tr>
+              ) : (
+                payments.map(p => {
+                  const e = NOMBRE_ESTADO_PAGO[p.estado] ?? { texto: p.estado, tono: 'gris' as const };
+                  return (
+                    <tr key={p.id} className="border-b last:border-0">
+                      <td className="px-3 py-2 tabular-nums whitespace-nowrap">{fechaLarga(p.createdAt)}</td>
+                      <td className="px-3 py-2"><b className="font-semibold">{p.tenantNombre}</b></td>
+                      <td className="px-3 py-2 text-right tabular-nums">{pesos(p.monto)}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{NOMBRE_METODO[p.metodo] ?? p.metodo}</td>
+                      <td className="px-3 py-2"><Chip tono={e.tono}>{e.texto}</Chip></td>
+                      <td className="px-3 py-2 tabular-nums whitespace-nowrap hidden md:table-cell">{fechaCorta(p.periodoDesde)} → {fechaCorta(p.periodoHasta)}</td>
+                      <td className="px-3 py-2 text-muted-foreground hidden lg:table-cell max-w-[260px] truncate" title={detalle(p)}>{detalle(p)}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+        <Paginas total={total} nombre={['pago', 'pagos']} page={page} totalPages={totalPages} onPage={setPage} />
+      </div>
+
+      {/* ─── Registrar pago manual ─── */}
+      <Dialog open={nuevoOpen} onOpenChange={setNuevoOpen}>
         <DialogContent size="chico">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Wallet className="w-5 h-5" />
-              Registrar pago manual
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
+          <DialogHeader><DialogTitle>Registrar pago manual</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="space-y-1.5">
               <Label>Hotel</Label>
-              <Select
-                value={newPayForm.tenantId}
-                onValueChange={(v) => setNewPayForm((f) => ({ ...f, tenantId: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar hotel" />
-                </SelectTrigger>
+              <Select value={form.tenantId} onValueChange={id => elegirHotel(id)}>
+                <SelectTrigger><SelectValue placeholder="Elegir hotel" /></SelectTrigger>
                 <SelectContent>
-                  {tenants.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.nombre}
-                    </SelectItem>
-                  ))}
+                  {hoteles.map(h => <SelectItem key={h.id} value={h.id}>{h.nombre} · {h.email}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label>Monto (ARS)</Label>
-              <Input
-                type="number"
-                min={0}
-                step={0.01}
-                placeholder="Ej: 35000"
-                value={newPayForm.monto}
-                onChange={(e) => setNewPayForm((f) => ({ ...f, monto: e.target.value }))}
-              />
-            </div>
-
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Período desde</Label>
-                <Input
-                  type="date"
-                  value={newPayForm.periodoDesde}
-                  onChange={(e) => setNewPayForm((f) => ({ ...f, periodoDesde: e.target.value }))}
-                />
+              <div className="space-y-1.5">
+                <Label>Monto ($)</Label>
+                <Input inputMode="decimal" value={form.monto} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))} placeholder="Ej: 35000" />
               </div>
-              <div className="space-y-2">
-                <Label>Período hasta</Label>
-                <Input
-                  type="date"
-                  value={newPayForm.periodoHasta}
-                  onChange={(e) => setNewPayForm((f) => ({ ...f, periodoHasta: e.target.value }))}
-                />
+              <div className="space-y-1.5">
+                <Label>Método</Label>
+                <Select value={form.metodo} onValueChange={v => setForm(f => ({ ...f, metodo: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="transferencia">Transferencia</SelectItem>
+                    <SelectItem value="manual">Otro (manual)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Paga desde</Label>
+                <Input type="date" value={form.desde} onChange={e => setForm(f => ({ ...f, desde: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Hasta</Label>
+                <Input type="date" value={form.hasta} onChange={e => setForm(f => ({ ...f, hasta: e.target.value }))} />
               </div>
             </div>
-
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Nota (opcional)</Label>
-              <Input
-                placeholder="Ej: Pago por transferencia bancaria"
-                value={newPayForm.nota}
-                onChange={(e) => setNewPayForm((f) => ({ ...f, nota: e.target.value }))}
-              />
+              <Textarea rows={2} value={form.nota} onChange={e => setForm(f => ({ ...f, nota: e.target.value }))} placeholder="Ej: comprobante por WhatsApp" />
             </div>
-
-            {selectedTenantName && (
-              <div className="p-3 rounded-lg bg-[#F1F5F980] text-sm">
-                <p className="text-muted-foreground">Se registrará un pago para:</p>
-                <p className="font-medium">{selectedTenantName}</p>
-              </div>
-            )}
+            <p className="text-xs text-muted-foreground">
+              Al registrar, el hotel queda pagado hasta la fecha &quot;Hasta&quot; y, si estaba cortado, se desbloquea en el momento.
+            </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNewPayOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSubmitPayment}
-              disabled={
-                !newPayForm.tenantId ||
-                !newPayForm.monto ||
-                !newPayForm.periodoDesde ||
-                !newPayForm.periodoHasta ||
-                submitting
-              }
-            >
-              {submitting ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Plus className="w-4 h-4 mr-2" />
-              )}
-              Registrar pago
+            <Button variant="outline" onClick={() => setNuevoOpen(false)}>Cancelar</Button>
+            <Button onClick={registrar} disabled={enviando}>
+              {enviando && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Registrar
             </Button>
           </DialogFooter>
         </DialogContent>

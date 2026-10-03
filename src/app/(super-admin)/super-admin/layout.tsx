@@ -5,68 +5,22 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import AuthProvider from '@/components/providers/SessionProvider';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import {
-  LayoutDashboard,
-  Building2,
-  CreditCard,
-  Wallet,
-  Settings,
-  Menu,
-  X,
-  LogOut,
-  ArrowLeft,
-  Shield,
-  ShieldAlert,
-} from 'lucide-react';
+import { Menu, X, ArrowLeft, ShieldAlert } from 'lucide-react';
 import {
   SectionProvider,
+  useSuperAdminSection,
   type SuperAdminSection,
 } from '@/components/super-admin/SuperAdminContext';
 
-// ─── Navigation items ───
-const NAV_ITEMS = [
-  { key: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
-  { key: 'cuentas' as const, label: 'Cuentas', icon: Building2 },
-  { key: 'planes' as const, label: 'Planes', icon: CreditCard },
-  { key: 'pagos' as const, label: 'Pagos', icon: Wallet },
-  { key: 'config' as const, label: 'Configuración', icon: Settings },
+// ─── Menú ───
+const NAV_ITEMS: { key: SuperAdminSection; label: string }[] = [
+  { key: 'dashboard', label: 'Dashboard' },
+  { key: 'cuentas', label: 'Cuentas' },
+  { key: 'planes', label: 'Planes' },
+  { key: 'pagos', label: 'Pagos' },
+  { key: 'config', label: 'Configuración' },
 ];
-
-// ─── Sidebar Nav Button ───
-function SidebarButton({
-  item,
-  active,
-  onClick,
-  onClose,
-}: {
-  item: (typeof NAV_ITEMS)[number];
-  active: boolean;
-  onClick: () => void;
-  onClose: () => void;
-}) {
-  const Icon = item.icon;
-  return (
-    <button
-      onClick={() => {
-        onClick();
-        onClose();
-      }}
-      className={`
-        w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-        ${
-          active
-            ? 'bg-primary text-primary-foreground'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-        }
-      `}
-    >
-      <Icon className="w-4 h-4 shrink-0" />
-      <span>{item.label}</span>
-    </button>
-  );
-}
 
 // ─── Protected Guard ───
 // Verifica autenticación Y autorización de super-admin.
@@ -131,105 +85,87 @@ function ProtectedGuard({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// ─── Main Layout Shell ───
-function SuperAdminShell({ children }: { children: ReactNode }) {
-  const [activeSection, setActiveSection] = useState<SuperAdminSection>('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+// ─── Marco: menú a la izquierda y la sección a la derecha ───
+function Marco({ children }: { children: ReactNode }) {
+  const { activeSection, setActiveSection, avisos } = useSuperAdminSection();
+  const { data: session } = useSession();
+  const [menuAbierto, setMenuAbierto] = useState(false);
+
+  // El número que va al lado de cada sección del menú, si hay algo pendiente.
+  const contador = (key: SuperAdminSection) =>
+    key === 'dashboard' ? avisos?.paraResolver ?? 0
+      : key === 'config' ? avisos?.configIncompleta ?? 0
+        : 0;
 
   return (
-    <SectionProvider activeSection={activeSection} setActiveSection={setActiveSection}>
-      <div className="min-h-screen flex flex-col bg-background">
-        {/* ─── Top Bar ─── */}
-        <header className="sticky top-0 z-40 h-14 flex items-center gap-3 px-4 border-b bg-card">
-          <button
-            className="lg:hidden p-2 rounded-lg hover:bg-muted transition-colors"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Abrir menú"
-          >
-            <Menu className="w-5 h-5" />
+    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[208px_1fr]">
+      {/* Barra de arriba, solo en el celular */}
+      <header className="lg:hidden sticky top-0 z-40 h-14 flex items-center gap-3 px-4 border-b bg-card">
+        <button className="p-2 -ml-2 rounded-lg hover:bg-muted" onClick={() => setMenuAbierto(true)} aria-label="Abrir menú">
+          <Menu className="w-5 h-5" />
+        </button>
+        <span className="text-sm font-bold">Hospi Super Admin</span>
+      </header>
+
+      {menuAbierto && (
+        <div className="fixed inset-0 z-40 bg-[#00000080] lg:hidden" onClick={() => setMenuAbierto(false)} />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-[240px] lg:w-auto bg-card border-r flex flex-col
+          transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0
+          ${menuAbierto ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        <div className="h-14 flex items-center gap-2 px-4 border-b whitespace-nowrap">
+          <span className="w-6 h-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-xs font-extrabold">H</span>
+          <span className="text-[13px] font-extrabold">Hospi Super Admin</span>
+          <button className="ml-auto p-1.5 rounded-lg hover:bg-muted lg:hidden" onClick={() => setMenuAbierto(false)} aria-label="Cerrar menú">
+            <X className="w-4 h-4" />
           </button>
-
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
-            <h1 className="text-sm font-semibold hidden sm:block">Hospi Super Admin</h1>
-          </div>
-
-          <div className="ml-auto flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild>
-              <a href="/app">
-                <ArrowLeft className="w-4 h-4 mr-1.5" />
-                <span className="hidden sm:inline">Volver al sistema</span>
-              </a>
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: '/login' })}>
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
-        </header>
-
-        <div className="flex flex-1">
-          {/* ─── Sidebar Overlay (mobile) ─── */}
-          {sidebarOpen && (
-            <div
-              className="fixed inset-0 z-40 bg-[#00000080] lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
-
-          {/* ─── Sidebar ─── */}
-          <aside
-            className={`
-              fixed inset-y-0 left-0 z-50 w-64 bg-card border-r flex flex-col
-              transform transition-transform duration-200 ease-in-out
-              lg:sticky lg:top-14 lg:z-30 lg:translate-x-0
-              ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-            `}
-          >
-            {/* Mobile close */}
-            <div className="flex items-center justify-between h-14 px-4 lg:hidden border-b">
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-primary" />
-                <span className="text-sm font-semibold">Super Admin</span>
-              </div>
-              <button
-                className="p-2 rounded-lg hover:bg-muted"
-                onClick={() => setSidebarOpen(false)}
-                aria-label="Cerrar menú"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Nav items */}
-            <nav className="flex-1 p-3 space-y-1 mt-14 lg:mt-0">
-              {NAV_ITEMS.map((item) => (
-                <SidebarButton
-                  key={item.key}
-                  item={item}
-                  active={activeSection === item.key}
-                  onClick={() => setActiveSection(item.key)}
-                  onClose={() => setSidebarOpen(false)}
-                />
-              ))}
-            </nav>
-
-            {/* Footer info */}
-            <div className="p-3">
-              <Separator className="mb-3" />
-              <div className="px-3 py-2 text-xs text-muted-foreground">
-                Hospi — Panel de administración
-              </div>
-            </div>
-          </aside>
-
-          {/* ─── Main Content ─── */}
-          <main className="flex-1 min-w-0 bg-[#F1F5F980]">
-            <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
-              {children}
-            </div>
-          </main>
         </div>
-      </div>
+        <nav className="p-2.5 flex flex-col gap-0.5">
+          {NAV_ITEMS.map(item => {
+            const activo = activeSection === item.key;
+            const n = contador(item.key);
+            return (
+              <button
+                key={item.key}
+                onClick={() => { setActiveSection(item.key); setMenuAbierto(false); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[13.5px] transition-colors ${
+                  activo ? 'bg-[#0F766E1F] text-primary font-bold' : 'text-muted-foreground font-medium hover:bg-muted'
+                }`}
+              >
+                {item.label}
+                {n > 0 && (
+                  <span className="ml-auto rounded-full bg-[#D977061A] text-warning text-[11px] font-bold px-1.5 min-w-[20px] text-center">{n}</span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="mt-auto border-t px-4 py-3 flex flex-col gap-1.5 text-[12.5px]">
+          <span className="font-semibold text-foreground truncate">{session?.user?.email}</span>
+          <a href="/app" className="font-semibold text-primary hover:underline">← Volver al sistema</a>
+          <button onClick={() => signOut({ callbackUrl: '/login' })} className="text-left text-muted-foreground hover:text-foreground">
+            Cerrar sesión
+          </button>
+        </div>
+      </aside>
+
+      <main className="min-w-0">
+        <div className="px-4 py-5 md:px-6 max-w-[1280px]">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function SuperAdminShell({ children }: { children: ReactNode }) {
+  const [activeSection, setActiveSection] = useState<SuperAdminSection>('dashboard');
+  return (
+    <SectionProvider activeSection={activeSection} setActiveSection={setActiveSection}>
+      <Marco>{children}</Marco>
     </SectionProvider>
   );
 }

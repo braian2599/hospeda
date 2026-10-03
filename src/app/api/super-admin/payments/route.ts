@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import type { Prisma } from '@prisma/client';
 import { requireSuperAdmin } from '@/lib/super-admin/auth';
+import { fechaArgentina } from '@/lib/format';
+import { cobroDelProximoDiez } from '@/lib/super-admin/datos';
+
+/** Métodos que se pueden elegir al registrar un pago a mano. */
+const METODOS_MANUALES = new Set(['transferencia', 'manual']);
 
 // GET /api/super-admin/payments — Listar pagos de plataforma
 export async function GET(req: NextRequest) {
@@ -13,12 +19,36 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const estado = searchParams.get('estado') || '';
     const metodo = searchParams.get('metodo') || '';
+    const q = (searchParams.get('q') || '').trim();
+    // Período: últimos 3 meses (lo normal), 12 meses o todo.
+    const periodo = searchParams.get('periodo') || '3m';
+    const mesesAtras = periodo === '12m' ? 12 : periodo === 'todo' ? null : 3;
 
-    const whereClause: Record<string, unknown> = {};
+    const whereClause: Prisma.PlatformPaymentWhereInput = {};
     if (estado) whereClause.estado = estado;
     if (metodo) whereClause.metodo = metodo;
+    if (q) {
+      whereClause.tenant = {
+        OR: [
+          { nombre: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+        ],
+      };
+    }
+    if (mesesAtras) {
+      const desde = new Date();
+      desde.setMonth(desde.getMonth() - mesesAtras);
+      whereClause.createdAt = { gte: desde };
+    }
 
-    const [payments, total] = await Promise.all([
+    // Los números de arriba: lo cobrado en el mes (y el anterior), lo que se
+    // cobra el próximo 10 y los rechazados del mes. No dependen de los filtros.
+    const ahora = new Date();
+    const [anio, mes] = fechaArgentina(ahora).split('-').map(Number);
+    const inicioMes = new Date(Date.UTC(anio, mes - 1, 1, 3));
+    const inicioMesPasado = new Date(Date.UTC(anio, mes - 2, 1, 3));
+
+    const [payments, total, cobradoMes, cobradoMesPasado, rechazadosMes, cobroDiez] = await Promise.all([
       db.platformPayment.findMany({
         where: whereClause,
         include: {
@@ -28,8 +58,13 @@ export async function GET(req: NextRequest) {
         skip: (page - 1) * limit,
         take: limit,
       }),
-      db.platformPayment.count({ where: whereClause as any }),
+      db.platformPayment.count({ where: whereClause }),
+      db.platformPayment.aggregate({ where: { estado: 'pagado', createdAt: { gte: inicioMes } }, _sum: { monto: true }, _count: { id: true } }),
+      db.platformPayment.aggregate({ where: { estado: 'pagado', createdAt: { gte: inicioMesPasado, lt: inicioMes } }, _sum: { monto: true } }),
+      db.platformPayment.count({ where: { estado: 'fallido', createdAt: { gte: inicioMes } } }),
+      cobroDelProximoDiez(ahora),
     ]);
+    const nombreMes = (d: Date) => d.toLocaleDateString('es-AR', { month: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
 
     return NextResponse.json({
       payments: payments.map(p => ({
@@ -50,6 +85,15 @@ export async function GET(req: NextRequest) {
       total,
       page,
       limit,
+      resumen: {
+        mes: nombreMes(inicioMes),
+        mesPasado: nombreMes(inicioMesPasado),
+        cobradoMes: cobradoMes._sum.monto || 0,
+        pagosMes: cobradoMes._count.id,
+        cobradoMesPasado: cobradoMesPasado._sum.monto || 0,
+        rechazadosMes,
+        cobroDiez,
+      },
     });
   } catch (error: unknown) {
     const err = error as Error;
@@ -79,6 +123,9 @@ export async function POST(req: NextRequest) {
 
     if (monto <= 0) {
       return NextResponse.json({ error: 'El monto debe ser mayor a 0' }, { status: 400 });
+    }
+    if (metodo !== undefined && !METODOS_MANUALES.has(metodo)) {
+      return NextResponse.json({ error: 'El método tiene que ser transferencia u otro (manual)' }, { status: 400 });
     }
 
     // Log interno (no tenant-visible) para trazabilidad — el email del

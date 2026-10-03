@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,11 +14,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Pencil, Save, Loader2, Check, X, CreditCard } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { NOMBRES_MODULOS } from '@/lib/plan-config';
 import { MODULOS_SISTEMA, type ModuloId } from '@/lib/types';
 import { FEATURE_FLAGS, DEFAULT_FLAGS, type FeatureFlag } from '@/lib/feature-flags';
+import { Cabecera, Chip } from './comun';
 
 // ─── Types ───
 interface Plan {
@@ -42,6 +40,8 @@ interface Plan {
   cambioPrecioDesde: string | null;
   /** Hoteles con débito automático en este plan. */
   debitosActivos: number;
+  /** Hoteles activos con este plan. */
+  hoteles: number;
 }
 
 const fechaAR = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
@@ -52,7 +52,7 @@ function formatARS(cents: number) {
 }
 
 function limitDisplay(val: number) {
-  return val === 0 ? 'Ilimitado' : val.toString();
+  return val === 0 ? 'Sin límite' : val.toLocaleString('es-AR');
 }
 
 // ─── Main Component ───
@@ -81,6 +81,8 @@ export default function SuperAdminPlanes() {
   // o con el botón de la tarjeta. payload = cambios del plan a guardar junto.
   const [preguntaDebitos, setPreguntaDebitos] = useState<{ plan: Plan; precioNuevo: number; payload: Record<string, unknown> | null } | null>(null);
   const [fechaDebitos, setFechaDebitos] = useState<string>('no');
+  // Grupo abierto de la tabla (de a uno, así entra en la pantalla).
+  const [grupo, setGrupo] = useState<'limites' | 'modulos' | 'integraciones' | null>('limites');
 
   useEffect(() => {
     fetch('/api/super-admin/plans')
@@ -194,309 +196,211 @@ export default function SuperAdminPlanes() {
     }
   };
 
-  const planTypeColors: Record<string, string> = {
-    trial: 'bg-warning',
-    basico: 'bg-muted-foreground',
-    profesional: 'bg-info',
-    premium: 'bg-chart-5',
-    elite: 'bg-primary',
+  /** Abre la pregunta de desde cuándo pagan el precio actual los débitos de este plan. */
+  const preguntarDebitos = (plan: Plan) => {
+    const pendiente = plan.cambioPrecioDesde && new Date(plan.cambioPrecioDesde) > new Date();
+    setFechaDebitos(pendiente
+      ? (opcionesCambio.includes(plan.cambioPrecioDesde!) ? plan.cambioPrecioDesde! : 'no')
+      : opcionesCambio[0] ?? 'no');
+    setPreguntaDebitos({ plan, precioNuevo: plan.precioMensual, payload: null });
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Planes</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Configuración de planes de suscripción
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6 space-y-4">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-10 w-24" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const modulosDe = (plan: Plan) => new Set(plan.modulos);
+  const flagsDe = (plan: Plan) => ({ ...DEFAULT_FLAGS, ...plan.featureFlags } as Record<FeatureFlag, boolean>);
+  const FLAGS = Object.keys(FEATURE_FLAGS) as FeatureFlag[];
+
+  const Si = ({ si, inactivo }: { si: boolean; inactivo: boolean }) => (
+    <td className={`px-2 py-1.5 text-center font-extrabold ${inactivo ? 'opacity-50' : ''} ${si ? 'text-success' : 'text-border'}`}>{si ? '✓' : '–'}</td>
+  );
+
+  const FilaGrupo = ({ id, titulo, porPlan }: { id: 'limites' | 'modulos' | 'integraciones'; titulo: string; porPlan?: (p: Plan) => string }) => (
+    <tr className="bg-muted/60 cursor-pointer hover:bg-muted" onClick={() => setGrupo(g => (g === id ? null : id))}>
+      <td className="px-3 py-2 text-xs font-bold">
+        <span className="inline-block w-3">{grupo === id ? '▾' : '▸'}</span>{titulo}
+      </td>
+      {plans.map(p => (
+        <td key={p.id} className={`px-2 py-2 text-center text-xs font-semibold text-muted-foreground ${p.activo ? '' : 'opacity-50'}`}>
+          {porPlan?.(p)}
+        </td>
+      ))}
+    </tr>
+  );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Planes</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configuración de planes de suscripción
-        </p>
-      </div>
+    <div className="flex flex-col gap-4">
+      <Cabecera titulo="Planes" bajada={'Todos los planes juntos para comparar. "Editar" en cada columna.'} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {plans.map((plan) => (
-          <Card key={plan.id} className={!plan.activo ? 'opacity-60' : ''}>
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${planTypeColors[plan.type] || 'bg-muted-foreground'}`} />
-                  <div>
-                    <CardTitle className="text-lg">{plan.nombre}</CardTitle>
-                    <p className="text-xs text-muted-foreground capitalize mt-0.5">{plan.type}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {plan.activo ? (
-                    <Badge variant="outline" className="text-success border-primary">
-                      <Check className="w-3 h-3 mr-1" /> Activo
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-muted-foreground">
-                      <X className="w-3 h-3 mr-1" /> Inactivo
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Price */}
-              <div>
-                <p className="text-3xl font-bold">
-                  {plan.precioMensual === 0 ? 'Gratis' : formatARS(plan.precioMensual)}
-                </p>
-                {plan.precioMensual > 0 && (
-                  <p className="text-xs text-muted-foreground">/mes</p>
-                )}
-              </div>
-
-              {/* Limits */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg bg-[#F1F5F980]">
-                  <p className="text-xs text-muted-foreground">Habitaciones</p>
-                  <p className="text-sm font-semibold">{limitDisplay(plan.maxHabitaciones)}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-[#F1F5F980]">
-                  <p className="text-xs text-muted-foreground">Usuarios</p>
-                  <p className="text-sm font-semibold">{limitDisplay(plan.maxUsuarios)}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-[#F1F5F980]">
-                  <p className="text-xs text-muted-foreground">Tarifas</p>
-                  <p className="text-sm font-semibold">{limitDisplay(plan.maxTarifas)}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-[#F1F5F980]">
-                  <p className="text-xs text-muted-foreground">Reservas/mes</p>
-                  <p className="text-sm font-semibold">{limitDisplay(plan.maxReservasMes)}</p>
-                </div>
-              </div>
-
-              {/* Modules */}
-              <div>
-                <p className="text-xs text-muted-foreground mb-2">Módulos incluidos</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(plan.modulos as string[]).map((mod: string) => (
-                    <Badge key={mod} variant="secondary" className="text-xs font-normal">
-                      {NOMBRES_MODULOS[mod as keyof typeof NOMBRES_MODULOS] || mod}
-                    </Badge>
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="p-4 flex flex-col gap-2">{[0, 1, 2, 3, 4].map(i => <Skeleton key={i} className="h-8 w-full" />)}</div>
+          ) : (
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b">
+                  <th className="px-3 py-3 text-left w-[220px]" />
+                  {plans.map(p => (
+                    <th key={p.id} className={`px-2 py-3 text-center align-top font-normal ${p.activo ? '' : 'opacity-55'}`}>
+                      <div className="text-sm font-extrabold">{p.nombre}</div>
+                      <div className="text-lg font-extrabold tabular-nums my-0.5">{p.precioMensual === 0 ? 'Gratis' : formatARS(p.precioMensual)}</div>
+                      <Chip tono={p.activo ? 'ok' : 'gris'}>{p.activo ? 'Activo' : 'Inactivo'}</Chip>
+                      <div className="mt-1.5">
+                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openEdit(p)}>Editar</Button>
+                      </div>
+                    </th>
                   ))}
-                </div>
-              </div>
+                </tr>
+              </thead>
+              <tbody className="[&>tr]:border-b [&>tr:last-child]:border-0">
+                <tr>
+                  <td className="px-3 py-1.5 text-[12.5px] text-muted-foreground">Hoteles con este plan</td>
+                  {plans.map(p => <td key={p.id} className={`px-2 py-1.5 text-center tabular-nums ${p.activo ? '' : 'opacity-50'}`}>{p.hoteles}</td>)}
+                </tr>
+                <tr>
+                  <td className="px-3 py-1.5 text-[12.5px] text-muted-foreground">Pagan por débito automático</td>
+                  {plans.map(p => (
+                    <td key={p.id} className={`px-2 py-1.5 text-center tabular-nums ${p.activo ? '' : 'opacity-50'}`}>
+                      {p.precioMensual === 0 ? <span className="text-muted-foreground">—</span> : p.debitosActivos}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="px-3 py-1.5 text-[12.5px] text-muted-foreground">Precio de los débitos actuales</td>
+                  {plans.map(p => {
+                    const pendiente = p.cambioPrecioDesde && new Date(p.cambioPrecioDesde) > new Date();
+                    if (p.debitosActivos === 0) return <td key={p.id} className="px-2 py-1.5 text-center text-muted-foreground">—</td>;
+                    return (
+                      <td key={p.id} className="px-2 py-1.5 text-center">
+                        {pendiente ? (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <Chip tono="info">{formatARS(p.precioMensual)} desde el {fechaAR(p.cambioPrecioDesde!)}</Chip>
+                            {p.precioAnteriorMensual != null && <span className="text-[11px] text-muted-foreground">hoy pagan {formatARS(p.precioAnteriorMensual)}</span>}
+                            <button type="button" className="text-[11.5px] font-semibold text-primary hover:underline" onClick={() => preguntarDebitos(p)}>Cambiar la fecha o cancelar</button>
+                          </div>
+                        ) : (
+                          <button type="button" className="text-[11.5px] font-semibold text-primary hover:underline" onClick={() => preguntarDebitos(p)}>
+                            Actualizar al precio actual
+                          </button>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
 
-              {/* Integrations */}
-              {Object.entries(plan.featureFlags || {}).some(([, v]) => v) && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-2">Integraciones</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(Object.keys(FEATURE_FLAGS) as FeatureFlag[])
-                      .filter((flag) => plan.featureFlags?.[flag])
-                      .map((flag) => (
-                        <Badge key={flag} className="text-xs font-normal bg-[#0F766E26] text-primary border-[#0F766E4D]">
-                          {FEATURE_FLAGS[flag].label}
-                        </Badge>
-                      ))}
-                  </div>
-                </div>
-              )}
+                <FilaGrupo id="limites" titulo="Límites" />
+                {grupo === 'limites' && ([
+                  ['Habitaciones', 'maxHabitaciones'],
+                  ['Usuarios', 'maxUsuarios'],
+                  ['Tarifas', 'maxTarifas'],
+                  ['Reservas por mes', 'maxReservasMes'],
+                ] as const).map(([texto, campo]) => (
+                  <tr key={campo}>
+                    <td className="px-3 py-1.5 text-[12.5px] text-muted-foreground">{texto}</td>
+                    {plans.map(p => (
+                      <td key={p.id} className={`px-2 py-1.5 text-center tabular-nums ${p.activo ? '' : 'opacity-50'}`}>{limitDisplay(p[campo])}</td>
+                    ))}
+                  </tr>
+                ))}
 
-              {/* Débitos automáticos de este plan y cambio de precio programado */}
-              {plan.debitosActivos > 0 && (
-                <div className="p-3 rounded-lg border text-xs space-y-2">
-                  <p className="text-muted-foreground">
-                    {plan.debitosActivos} {plan.debitosActivos === 1 ? 'hotel paga' : 'hoteles pagan'} este plan por débito automático.
-                  </p>
-                  {plan.cambioPrecioDesde && new Date(plan.cambioPrecioDesde) > new Date() ? (
-                    <>
-                      <p className="text-[#075985]">
-                        Pasan a {formatARS(plan.precioMensual)} desde el {fechaAR(plan.cambioPrecioDesde)}
-                        {plan.precioAnteriorMensual != null && ` (hoy pagan ${formatARS(plan.precioAnteriorMensual)})`}. Lo ven avisado en su panel.
-                      </p>
-                      <Button
-                        variant="outline" size="sm" className="h-7 text-xs"
-                        onClick={() => {
-                          setFechaDebitos(plan.cambioPrecioDesde && opcionesCambio.includes(plan.cambioPrecioDesde) ? plan.cambioPrecioDesde : 'no');
-                          setPreguntaDebitos({ plan, precioNuevo: plan.precioMensual, payload: null });
-                        }}
-                      >
-                        Cambiar la fecha o cancelar
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      variant="outline" size="sm" className="h-7 text-xs"
-                      onClick={() => { setFechaDebitos(opcionesCambio[0] ?? 'no'); setPreguntaDebitos({ plan, precioNuevo: plan.precioMensual, payload: null }); }}
-                    >
-                      Actualizar débitos al precio actual
-                    </Button>
-                  )}
-                </div>
-              )}
+                <FilaGrupo id="modulos" titulo="Módulos" porPlan={p => `${MODULOS_SISTEMA.filter(m => modulosDe(p).has(m.id)).length} de ${MODULOS_SISTEMA.length}`} />
+                {grupo === 'modulos' && MODULOS_SISTEMA.map(m => (
+                  <tr key={m.id}>
+                    <td className="px-3 py-1 text-[12.5px] text-muted-foreground">{m.label}</td>
+                    {plans.map(p => <Si key={p.id} si={modulosDe(p).has(m.id)} inactivo={!p.activo} />)}
+                  </tr>
+                ))}
 
-              {/* Edit button */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => openEdit(plan)}
-              >
-                <Pencil className="w-4 h-4 mr-2" />
-                Editar plan
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+                <FilaGrupo id="integraciones" titulo="Integraciones" porPlan={p => `${FLAGS.filter(f => flagsDe(p)[f]).length} de ${FLAGS.length}`} />
+                {grupo === 'integraciones' && FLAGS.map(f => (
+                  <tr key={f}>
+                    <td className="px-3 py-1 text-[12.5px] text-muted-foreground">{FEATURE_FLAGS[f].label}</td>
+                    {plans.map(p => <Si key={p.id} si={flagsDe(p)[f]} inactivo={!p.activo} />)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Los planes inactivos no se ofrecen a hoteles nuevos; los que ya lo tienen lo siguen usando. Un hotel puede tener una
+        integración aunque su plan no la traiga: es una excepción que se carga en Cuentas → Funciones.
+      </p>
 
-      {/* ─── Edit Dialog ─── */}
+      {/* ─── Editar plan: dos columnas, sin scroll ─── */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent size="medio">
+        <DialogContent size="grande">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
-              Editar plan — {editPlan?.nombre}
-            </DialogTitle>
+            <DialogTitle>Editar plan: {editPlan?.nombre}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
-              <div>
-                <Label>Plan activo</Label>
-                <p className="text-xs text-muted-foreground">Si está apagado, no aparece como opción para nuevos hoteles.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-1">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 rounded-lg border px-3 py-2">
+                <div className="flex flex-col">
+                  <Label>Plan activo</Label>
+                  <span className="text-xs text-muted-foreground">Apagado: no se ofrece a hoteles nuevos.</span>
+                </div>
+                <Switch className="ml-auto" checked={formData.activo} onCheckedChange={checked => setFormData(f => ({ ...f, activo: checked }))} />
               </div>
-              <Switch
-                checked={formData.activo}
-                onCheckedChange={(checked) => setFormData((f) => ({ ...f, activo: checked }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nombre</Label>
-              <Input
-                value={formData.nombre}
-                onChange={(e) => setFormData((f) => ({ ...f, nombre: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Precio mensual (ARS)</Label>
-              <Input
-                type="number"
-                min={0}
-                step={0.01}
-                value={formData.precioMensual}
-                onChange={(e) => setFormData((f) => ({ ...f, precioMensual: e.target.value }))}
-              />
-              <p className="text-xs text-muted-foreground">
-                Ingresar el valor en pesos (ej: 15000 para $15.000)
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Máx. habitaciones</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={formData.maxHabitaciones}
-                  onChange={(e) => setFormData((f) => ({ ...f, maxHabitaciones: e.target.value }))}
-                />
-                <p className="text-xs text-muted-foreground">0 = ilimitado</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Nombre</Label>
+                  <Input value={formData.nombre} onChange={e => setFormData(f => ({ ...f, nombre: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Precio por mes ($)</Label>
+                  <Input type="number" min={0} step={1} value={formData.precioMensual} onChange={e => setFormData(f => ({ ...f, precioMensual: e.target.value }))} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Máx. usuarios</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={formData.maxUsuarios}
-                  onChange={(e) => setFormData((f) => ({ ...f, maxUsuarios: e.target.value }))}
-                />
-                <p className="text-xs text-muted-foreground">0 = ilimitado</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Máx. tarifas</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={formData.maxTarifas}
-                  onChange={(e) => setFormData((f) => ({ ...f, maxTarifas: e.target.value }))}
-                />
-                <p className="text-xs text-muted-foreground">0 = ilimitado</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Máx. reservas/mes</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={formData.maxReservasMes}
-                  onChange={(e) => setFormData((f) => ({ ...f, maxReservasMes: e.target.value }))}
-                />
-                <p className="text-xs text-muted-foreground">0 = ilimitado</p>
+              {editPlan && editPlan.debitosActivos > 0 && (
+                <p className="text-xs text-muted-foreground -mt-1">
+                  {editPlan.debitosActivos} {editPlan.debitosActivos === 1 ? 'hotel paga' : 'hoteles pagan'} este plan por débito automático.
+                  Si cambiás el precio, al guardar te pregunta desde qué cobro lo pagan.
+                </p>
+              )}
+              <p className="text-[13px] font-bold mt-1">Límites <span className="text-xs font-normal text-muted-foreground">(0 = sin límite)</span></p>
+              <div className="grid grid-cols-2 gap-3">
+                {([
+                  ['Habitaciones', 'maxHabitaciones'],
+                  ['Usuarios', 'maxUsuarios'],
+                  ['Tarifas', 'maxTarifas'],
+                  ['Reservas por mes', 'maxReservasMes'],
+                ] as const).map(([texto, campo]) => (
+                  <div key={campo} className="space-y-1.5">
+                    <Label>{texto}</Label>
+                    <Input type="number" min={0} value={formData[campo]} onChange={e => setFormData(f => ({ ...f, [campo]: e.target.value }))} />
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Módulos incluidos</Label>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-2 p-3 rounded-lg border bg-card">
-                {MODULOS_SISTEMA.map((mod) => (
-                  <label key={mod.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <Checkbox
-                      checked={formModulos.has(mod.id)}
-                      onCheckedChange={(checked) => toggleModulo(mod.id, checked === true)}
-                    />
+            <div className="flex flex-col gap-3">
+              <p className="text-[13px] font-bold">
+                Módulos <span className="text-xs font-normal text-muted-foreground">· {formModulos.size} de {MODULOS_SISTEMA.length}</span>
+              </p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 rounded-lg border px-3 py-2.5">
+                {MODULOS_SISTEMA.map(mod => (
+                  <label key={mod.id} className="flex items-center gap-2 text-[13px] cursor-pointer">
+                    <Checkbox checked={formModulos.has(mod.id)} onCheckedChange={checked => toggleModulo(mod.id, checked === true)} />
                     {mod.label}
                   </label>
                 ))}
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Integraciones</Label>
-              <div className="space-y-2">
-                {(Object.keys(FEATURE_FLAGS) as FeatureFlag[]).map((flag) => (
-                  <div key={flag} className="flex items-center justify-between p-2 rounded-lg border bg-card">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">{FEATURE_FLAGS[flag].label}</p>
-                      <p className="text-xs text-muted-foreground">{FEATURE_FLAGS[flag].description}</p>
-                    </div>
-                    <Switch
-                      checked={formFlags[flag]}
-                      onCheckedChange={(checked) => setFormFlags((f) => ({ ...f, [flag]: checked }))}
-                    />
-                  </div>
+              <p className="text-[13px] font-bold">Integraciones</p>
+              <div className="rounded-lg border px-3 py-1">
+                {FLAGS.map(flag => (
+                  <label key={flag} className="flex items-center gap-3 py-1.5 border-t first:border-t-0 text-[13px] cursor-pointer" title={FEATURE_FLAGS[flag].description}>
+                    {FEATURE_FLAGS[flag].label}
+                    <Switch className="ml-auto" checked={formFlags[flag]} onCheckedChange={checked => setFormFlags(f => ({ ...f, [flag]: checked }))} />
+                  </label>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Un hotel puede tener una integración activa igual sin que la traiga el plan — es una excepción puntual que se carga desde Cuentas.
-              </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-              Guardar
+              {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Guardar
             </Button>
           </DialogFooter>
         </DialogContent>

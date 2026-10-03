@@ -1,569 +1,286 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+// Dashboard del Super Admin: arriba 4 números, a la izquierda lo que hay que
+// resolver (con un botón para ir a hacerlo) y a la derecha cómo se reparten
+// los hoteles por plan y los últimos pagos.
+
+import { useCallback, useEffect, useState } from 'react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Building2,
-  TrendingUp,
-  DollarSign,
-  AlertTriangle,
-  Clock,
-  Hotel,
-} from 'lucide-react';
-import DelegacionesArca from './DelegacionesArca';
+import { useSuperAdminSection } from './SuperAdminContext';
+import { Cabecera, Chip, Numero, pesos, fechaCorta, NOMBRE_ESTADO_PAGO } from './comun';
 
-// ─── Types ───
-interface MetricsData {
-  generales: {
-    totalTenants: number;
-    tenantsActivos: number;
-    tenantsInactivos: number;
-    totalUsers: number;
-    totalHabitaciones: number;
-  };
-  ingresos: {
-    mesActual: number;
-    mesPasado: number;
-    variacionPorcentaje: number;
-    pagosMesActual: number;
-    pagosPendientes: number;
-  };
-  planes: {
-    porMes: {
-      mes: string;
-      total: number;
-      basico: number;
-      profesional: number;
-      premium: number;
-      trial: number;
-    }[];
-  };
-  alertas: {
-    vencimientos: {
-      tenantId: string;
-      tenantNombre: string;
-      tenantEmail: string;
-      planNombre: string;
-      planType: string;
-      origen: string;
-      comoLoTiene: string;
-      queVaAPasar: string;
-      estado: string;
-      renuevaSola: boolean;
-      vencida: boolean;
-      fechaVencimiento: string;
-      /** Negativo cuando ya venció. */
-      diasRestantes: number;
-      requiereAccion: boolean;
-    }[];
-    requierenAccion: number;
-    yaVencidas: number;
-    totalEnVentana: number;
-    diasAtras: number;
-    diasAdelante: number;
-  };
-  ultimosPagos: {
-    id: string;
-    tenantNombre: string;
-    monto: number;
-    metodo: string;
-    estado: string;
-    periodoDesde: string;
-    periodoHasta: string;
-    createdAt: string;
-  }[];
-  tenantsRecientes: {
-    id: string;
-    nombre: string;
-    email: string;
-    createdAt: string;
-    activo: boolean;
-    subscription: {
-      estado: string;
-      plan: { nombre: string };
-    } | null;
-  }[];
+interface Vencimiento {
+  tenantId: string;
+  nombre: string;
+  email: string;
+  cortado: boolean;
+  dias: number;
+  detalle: string;
 }
 
-// ─── Tabla de vencimientos ───
-
-type FilaVencimiento = MetricsData['alertas']['vencimientos'][number];
-
-/** Cómo consiguió el plan. La cortesía se marca distinto: nadie pagó por ella. */
-function BadgeOrigen({ fila }: { fila: FilaVencimiento }) {
-  const esCortesia = fila.origen === 'cortesia';
-  return (
-    <Badge
-      variant="outline"
-      className={esCortesia ? 'border-[#F59E0B80] text-warning' : undefined}
-    >
-      {fila.comoLoTiene}
-    </Badge>
-  );
+interface Metricas {
+  hoteles: { total: number; trabajando: number; cortados: number; desactivados: number };
+  prueba: { total: number; terminanEnLaSemana: number };
+  cobrado: { mes: string; mesPasado: string; totalMes: number; pagosMes: number; totalMesPasado: number };
+  cobroDiez: { fecha: string; total: number; cantidad: number };
+  paraResolver: Vencimiento[];
+  seRenuevanSolas: Vencimiento[];
+  porPlan: { nombre: string; type: string; activo: boolean; cantidad: number }[];
+  altas: { mes: number; mesPasado: number };
+  ultimosPagos: { id: string; hotel: string; monto: number; estado: string; fecha: string }[];
 }
 
-/**
- * Los días, en palabras.
- *
- * "-3d" no se entiende de un vistazo, y en esta tabla el signo es justamente
- * la diferencia entre "hay tiempo" y "el hotel está cortado ahora mismo".
- */
-function cuantoFalta(dias: number): string {
-  if (dias < 0) return `hace ${Math.abs(dias)} ${Math.abs(dias) === 1 ? 'día' : 'días'}`;
-  if (dias === 0) return 'hoy';
-  if (dias === 1) return 'mañana';
-  return `en ${dias} días`;
+interface Delegacion { tenantId: string; hotel: string; cuit: string; razonSocial: string | null; avisadaEn: string }
+
+const formatoCuit = (c: string) => (c.length === 11 ? `${c.slice(0, 2)}-${c.slice(2, 10)}-${c.slice(10)}` : c);
+const AYUDA_ARCA = 'En ARCA: aceptala en "Aceptación de Designación" y asociala a tu certificado (Administrador de Relaciones, con el CUIT del hotel como representado). Después tocá "Verificar": si ARCA la acepta, el hotel queda facturando.';
+
+function chipDias(v: Vencimiento) {
+  if (v.cortado) return <Chip tono="bad" punto>Cortado</Chip>;
+  const texto = v.dias <= 0 ? 'Hoy' : v.dias === 1 ? 'Mañana' : `${v.dias} días`;
+  return <Chip tono="warn" punto>{texto}</Chip>;
 }
 
-function TablaVencimientos({ filas, vacio }: { filas: FilaVencimiento[]; vacio: string }) {
-  if (filas.length === 0) {
-    return vacio ? <p className="text-sm text-muted-foreground text-center py-4">{vacio}</p> : null;
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Hotel</TableHead>
-            <TableHead className="hidden md:table-cell">Email</TableHead>
-            <TableHead>Plan</TableHead>
-            <TableHead>Cómo lo tiene</TableHead>
-            <TableHead>Vence</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filas.map((t) => (
-            <TableRow key={t.tenantId} className={t.vencida ? 'bg-[#EF444410]' : undefined}>
-              <TableCell className="font-medium">
-                {t.tenantNombre}
-                {t.vencida && (
-                  <span className="block text-xs font-normal text-destructive">
-                    Cortado: no puede cargar reservas ni abrir la caja
-                  </span>
-                )}
-              </TableCell>
-              <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
-                {t.tenantEmail}
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline">{t.planNombre}</Badge>
-              </TableCell>
-              <TableCell>
-                <BadgeOrigen fila={t} />
-                {!t.renuevaSola && !t.vencida && (
-                  <span className="block text-xs text-muted-foreground mt-0.5">no se renueva sola</span>
-                )}
-              </TableCell>
-              <TableCell className="text-sm whitespace-nowrap">
-                <span className={t.vencida ? 'text-destructive font-medium' : undefined}>
-                  {cuantoFalta(t.diasRestantes)}
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  {formatDate(t.fechaVencimiento)}
-                </span>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
+function hoyLargo() {
+  const t = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' });
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-// ─── Helpers ───
-function formatARS(cents: number) {
-  return `$${(cents / 100).toLocaleString('es-AR')}`;
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function getShortMonth(mesKey: string) {
-  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  const month = parseInt(mesKey.split('-')[1]);
-  return months[month - 1] || mesKey;
-}
-
-function estadoBadge(estado: string) {
-  const variants: Record<string, string> = {
-    pendiente: 'bg-[#D9770626] text-warning',
-    pagado: 'bg-[#05966926] text-success',
-    fallido: 'bg-[#EF44441A] text-destructive',
-    devuelto: 'bg-muted text-muted-foreground',
-  };
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-muted text-foreground'}`}>
-      {estado.charAt(0).toUpperCase() + estado.slice(1)}
-    </span>
-  );
-}
-
-function subEstadoBadge(estado: string) {
-  const variants: Record<string, string> = {
-    trial: 'bg-[#D9770626] text-warning',
-    activa: 'bg-[#05966926] text-success',
-    vencida: 'bg-[#EF44441A] text-destructive',
-    cancelada: 'bg-muted text-muted-foreground',
-    suspensa: 'bg-[#D9770626] text-warning',
-  };
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[estado] || 'bg-muted text-foreground'}`}>
-      {estado.charAt(0).toUpperCase() + estado.slice(1)}
-    </span>
-  );
-}
-
-// ─── Stat Card ───
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-  iconColor,
-  loading,
-}: {
-  title: string;
-  value: string;
-  subtitle?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  iconColor: string;
-  loading?: boolean;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-4 md:p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">{title}</p>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <p className="text-2xl font-bold">{value}</p>
-            )}
-            {subtitle && !loading && (
-              <p className="text-xs text-muted-foreground">{subtitle}</p>
-            )}
-          </div>
-          <div className={`p-2.5 rounded-xl ${iconColor}`}>
-            <Icon className="w-5 h-5" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ─── Simple Bar Chart ───
-function BarChart({ data, loading }: { data: MetricsData['planes']['porMes']; loading: boolean }) {
-  if (loading) {
-    return (
-      <div className="flex items-end gap-2 h-40">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center gap-2">
-            <Skeleton className="w-full h-32 rounded-t" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  const maxVal = Math.max(...data.map((d) => d.total), 1);
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-end gap-2 h-40">
-        {data.map((d) => (
-          <div key={d.mes} className="flex-1 flex flex-col items-center gap-1">
-            <span className="text-xs font-medium">{d.total}</span>
-            <div
-              className="w-full bg-[#0F766ECC] hover:bg-primary transition-colors rounded-t"
-              style={{ height: `${(d.total / maxVal) * 100}%`, minHeight: d.total > 0 ? 4 : 0 }}
-            />
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        {data.map((d) => (
-          <div key={d.mes} className="flex-1 text-center">
-            <span className="text-xs text-muted-foreground">{getShortMonth(d.mes)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Main Component ───
 export default function SuperAdminDashboard() {
-  const [data, setData] = useState<MetricsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { ir, recargarAvisos } = useSuperAdminSection();
+  const [data, setData] = useState<Metricas | null>(null);
+  const [delegaciones, setDelegaciones] = useState<Delegacion[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [verRenuevan, setVerRenuevan] = useState(false);
+  const [verificando, setVerificando] = useState<string | null>(null);
+
+  const cargarDelegaciones = useCallback(() => {
+    fetch('/api/super-admin/arca-delegaciones')
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d.pendientes)) setDelegaciones(d.pendientes); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch('/api/super-admin/metrics')
-      .then(async (res) => {
+      .then(async res => {
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error || 'Error al cargar métricas');
+        if (!res.ok) throw new Error(json.error || 'Error al cargar el resumen');
         return json;
       })
       .then(setData)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch(err => setError(err.message));
+    cargarDelegaciones();
+  }, [cargarDelegaciones]);
+
+  const verificar = async (d: Delegacion) => {
+    setVerificando(d.tenantId);
+    try {
+      const res = await fetch('/api/super-admin/arca-delegaciones', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId: d.tenantId }),
+      });
+      const json = await res.json();
+      if (!res.ok) { toast.error(json.error || 'ARCA todavía no la acepta'); return; }
+      toast.success(`${d.hotel} ya factura con el certificado de Hospeda`);
+      cargarDelegaciones();
+      recargarAvisos();
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setVerificando(null);
+    }
+  };
 
   if (error) {
     return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <AlertTriangle className="w-10 h-10 mx-auto mb-3 text-destructive" />
-          <p className="text-sm text-muted-foreground">{error}</p>
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border bg-card p-6 text-center">
+        <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-destructive" />
+        <p className="text-sm text-muted-foreground">{error}</p>
+      </div>
     );
   }
 
+  const cargando = !data;
+  const pendientes = (data?.paraResolver.length ?? 0) + delegaciones.length;
+  const maxPlan = Math.max(1, ...(data?.porPlan.map(p => p.cantidad) ?? [1]));
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Resumen general de la plataforma
-        </p>
-      </div>
+    <div className="flex flex-col gap-4">
+      <Cabecera
+        titulo="Dashboard"
+        bajada={`${hoyLargo()}${data ? ` · próximo cobro automático el ${fechaCorta(data.cobroDiez.fecha)}` : ''}`}
+      />
 
-      {/* Solo aparece si algún hotel espera que aceptes su delegación. */}
-      <DelegacionesArca />
-
-      {/* ─── Stat Cards ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Hoteles"
-          value={data?.generales.totalTenants?.toLocaleString('es-AR') ?? '—'}
-          subtitle={`${data?.generales.tenantsActivos ?? 0} activos`}
-          icon={Building2}
-          iconColor="bg-[#0F766E1A] text-primary"
-          loading={loading}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <Numero
+          etiqueta="Hoteles"
+          cargando={cargando}
+          valor={data?.hoteles.total ?? 0}
+          detalle={data && [
+            `${data.hoteles.trabajando} trabajando`,
+            data.hoteles.cortados ? `${data.hoteles.cortados} cortado${data.hoteles.cortados === 1 ? '' : 's'}` : null,
+            data.hoteles.desactivados ? `${data.hoteles.desactivados} desactivado${data.hoteles.desactivados === 1 ? '' : 's'}` : null,
+          ].filter(Boolean).join(' · ')}
         />
-        <StatCard
-          title="Hoteles Activos"
-          value={data?.generales.tenantsActivos?.toLocaleString('es-AR') ?? '—'}
-          subtitle={`${data?.generales.tenantsInactivos ?? 0} inactivos`}
-          icon={Hotel}
-          iconColor="bg-[#0F766E1A] text-primary"
-          loading={loading}
+        <Numero
+          etiqueta={data ? `Cobrado en ${data.cobrado.mes}` : 'Cobrado en el mes'}
+          cargando={cargando}
+          valor={data ? pesos(data.cobrado.totalMes) : ''}
+          detalle={data && `${data.cobrado.mesPasado.charAt(0).toUpperCase()}${data.cobrado.mesPasado.slice(1)}: ${pesos(data.cobrado.totalMesPasado)}`}
         />
-        <StatCard
-          title="Ingresos del Mes"
-          value={data ? formatARS(data.ingresos.mesActual) : '—'}
-          subtitle={
-            data && data.ingresos.variacionPorcentaje !== 0
-              ? `${data.ingresos.variacionPorcentaje > 0 ? '+' : ''}${data.ingresos.variacionPorcentaje}% vs mes anterior`
-              : undefined
-          }
-          icon={DollarSign}
-          iconColor="bg-[#0F766E1A] text-primary"
-          loading={loading}
+        <Numero
+          etiqueta={data ? `Cobro del ${fechaCorta(data.cobroDiez.fecha)}` : 'Próximo cobro'}
+          cargando={cargando}
+          valor={data ? pesos(data.cobroDiez.total) : ''}
+          detalle={data && (data.cobroDiez.cantidad
+            ? `${data.cobroDiez.cantidad} ${data.cobroDiez.cantidad === 1 ? 'hotel' : 'hoteles'} con débito automático`
+            : 'Ningún débito automático para ese día')}
         />
-        <StatCard
-          title="Pagos Pendientes"
-          value={data?.ingresos.pagosPendientes?.toString() ?? '—'}
-          subtitle={`${data?.ingresos.pagosMesActual ?? 0} pagos este mes`}
-          icon={AlertTriangle}
-          iconColor="bg-[#D9770626] text-warning"
-          loading={loading}
+        <Numero
+          etiqueta="En prueba gratis"
+          cargando={cargando}
+          valor={data?.prueba.total ?? 0}
+          detalle={data && (data.prueba.terminanEnLaSemana
+            ? `${data.prueba.terminanEnLaSemana} termina${data.prueba.terminanEnLaSemana === 1 ? '' : 'n'} esta semana`
+            : 'Ninguna termina esta semana')}
         />
       </div>
 
-      {/* ─── Chart: Suscripciones por mes ─── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Suscripciones por mes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <BarChart data={data?.planes.porMes ?? []} loading={loading} />
-        </CardContent>
-      </Card>
-
-      {/* ─── Vencimientos ───
-          La lista se parte en dos a propósito. Arriba lo que necesita que
-          alguien haga algo; abajo, plegado, lo que se cobra solo. Antes iba
-          todo mezclado y una suscripción recurrente de Mercado Pago —que no
-          requiere nada— ocupaba lugar y enterraba a una cortesía que estaba
-          por cortarle el sistema a un hotel. */}
-      <Card className={data && data.alertas.yaVencidas > 0 ? 'border-destructive' : undefined}>
-        <CardHeader>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Clock className={`w-4 h-4 ${data && data.alertas.requierenAccion > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
-            <CardTitle className="text-base">Vencimientos</CardTitle>
-            {data && data.alertas.yaVencidas > 0 && (
-              <Badge variant="destructive">{data.alertas.yaVencidas} ya cortado{data.alertas.yaVencidas === 1 ? '' : 's'}</Badge>
-            )}
-            <Badge variant={data && data.alertas.requierenAccion > 0 ? 'default' : 'secondary'} className="ml-auto">
-              {data?.alertas.requierenAccion ?? 0} por resolver
-            </Badge>
+      <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-4 items-start">
+        {/* ─── Para resolver ─── */}
+        <section className="rounded-xl border bg-card px-4 py-3.5 flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-bold">Para resolver</h3>
+            {!cargando && <Chip tono={pendientes ? 'warn' : 'ok'}>{pendientes}</Chip>}
+            <span className="ml-auto text-xs text-muted-foreground">Vencidos en los últimos 30 días y los que vencen en 7</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Últimos {data?.alertas.diasAtras ?? 30} días y próximos {data?.alertas.diasAdelante ?? 7}.
-            Lo que se cobra solo va aparte, abajo.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : !data || data.alertas.vencimientos.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              Ningún vencimiento en la ventana. Nada que resolver.
-            </p>
+
+          {cargando ? (
+            <div className="flex flex-col gap-2 py-1">{[0, 1, 2].map(i => <Skeleton key={i} className="h-11 w-full" />)}</div>
+          ) : pendientes === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">Nada para resolver. Lo que vence en los próximos 7 días se cobra solo.</p>
           ) : (
-            <div className="space-y-5">
-              <TablaVencimientos
-                filas={data.alertas.vencimientos.filter(v => v.requiereAccion)}
-                vacio="Nada por resolver: todo lo que vence en esta ventana se cobra solo."
-              />
-
-              {data.alertas.vencimientos.some(v => !v.requiereAccion) && (
-                <details className="group">
-                  <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
-                    {data.alertas.vencimientos.filter(v => !v.requiereAccion).length} se renuevan solas
-                    {' '}(no hace falta hacer nada) — ver
-                  </summary>
-                  <div className="mt-3">
-                    <TablaVencimientos filas={data.alertas.vencimientos.filter(v => !v.requiereAccion)} vacio="" />
+            <div className="flex flex-col">
+              {data!.paraResolver.map(v => (
+                <div key={v.tenantId} className="flex items-center gap-3 py-2.5 border-t first:border-t-0">
+                  {chipDias(v)}
+                  <div className="min-w-0 flex flex-col">
+                    <span className="text-[13px] font-semibold truncate">{v.nombre}</span>
+                    <span className="text-xs text-muted-foreground">{v.detalle}</span>
                   </div>
-                </details>
-              )}
-
-              {data.alertas.totalEnVentana > data.alertas.vencimientos.length && (
-                <p className="text-xs text-muted-foreground">
-                  Se muestran {data.alertas.vencimientos.length} de {data.alertas.totalEnVentana}.
-                </p>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ─── Últimos pagos ─── */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-primary" />
-            <CardTitle className="text-base">Últimos pagos</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
+                  {v.cortado ? (
+                    <Button variant="outline" size="sm" className="ml-auto h-8 shrink-0" onClick={() => ir('pagos', { tipo: 'registrarPago', tenantId: v.tenantId })}>
+                      Registrar pago
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" className="ml-auto h-8 shrink-0" onClick={() => ir('cuentas', { tipo: 'abrirHotel', tenantId: v.tenantId })}>
+                      Ver cuenta
+                    </Button>
+                  )}
+                </div>
               ))}
-            </div>
-          ) : data && data.ultimosPagos.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Hotel</TableHead>
-                    <TableHead>Monto</TableHead>
-                    <TableHead className="hidden md:table-cell">Método</TableHead>
-                    <TableHead>Estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.ultimosPagos.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="text-sm">
-                        {formatDate(p.createdAt)}
-                      </TableCell>
-                      <TableCell className="font-medium">{p.tenantNombre}</TableCell>
-                      <TableCell className="font-medium">
-                        {formatARS(p.monto)}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-sm capitalize text-muted-foreground">
-                        {p.metodo}
-                      </TableCell>
-                      <TableCell>{estadoBadge(p.estado)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              No hay pagos registrados.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ─── Hoteles recientes ─── */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-primary" />
-            <CardTitle className="text-base">Hoteles recientes</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-14 w-full" />
-              ))}
-            </div>
-          ) : data && data.tenantsRecientes.length > 0 ? (
-            <div className="space-y-2">
-              {data.tenantsRecientes.map((t) => (
-                <div
-                  key={t.id}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-[#F1F5F980] transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-[#0F766E1A] flex items-center justify-center shrink-0">
-                      <Hotel className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{t.nombre}</p>
-                      <p className="text-xs text-muted-foreground truncate">{t.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-3">
-                    {t.subscription && subEstadoBadge(t.subscription.estado)}
-                    <span className="text-xs text-muted-foreground hidden sm:block">
-                      {formatDate(t.createdAt)}
+              {delegaciones.map(d => (
+                <div key={d.tenantId} className="flex items-center gap-3 py-2.5 border-t first:border-t-0" title={AYUDA_ARCA}>
+                  <Chip tono="info">ARCA</Chip>
+                  <div className="min-w-0 flex flex-col">
+                    <span className="text-[13px] font-semibold truncate">{d.hotel}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Delegó la facturación a Hospeda · CUIT {formatoCuit(d.cuit)}{d.razonSocial ? ` · ${d.razonSocial}` : ''}. Aceptala en ARCA y tocá Verificar.
                     </span>
                   </div>
+                  <Button variant="outline" size="sm" className="ml-auto h-8 shrink-0" onClick={() => verificar(d)} disabled={verificando !== null}>
+                    {verificando === d.tenantId && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+                    Verificar en ARCA
+                  </Button>
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              No hay hoteles registrados.
-            </p>
           )}
-        </CardContent>
-      </Card>
+
+          {data && data.seRenuevanSolas.length > 0 && (
+            <div className="border-t pt-2">
+              <p className="text-xs text-muted-foreground">
+                {data.seRenuevanSolas.length} {data.seRenuevanSolas.length === 1 ? 'se renueva sola' : 'se renuevan solas'} por débito automático: no hace falta hacer nada.{' '}
+                <button type="button" className="font-semibold text-primary hover:underline" onClick={() => setVerRenuevan(v => !v)}>
+                  {verRenuevan ? 'Ocultar' : 'Ver'}
+                </button>
+              </p>
+              {verRenuevan && (
+                <div className="mt-1 flex flex-col">
+                  {data.seRenuevanSolas.map(v => (
+                    <div key={v.tenantId} className="flex items-center gap-3 py-2 border-t first:border-t-0">
+                      <Chip tono="ok">Débito</Chip>
+                      <div className="min-w-0 flex flex-col">
+                        <span className="text-[13px] font-semibold truncate">{v.nombre}</span>
+                        <span className="text-xs text-muted-foreground">{v.detalle}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
+        <div className="flex flex-col gap-4">
+          {/* ─── Hoteles por plan ─── */}
+          <section className="rounded-xl border bg-card px-4 py-3.5 flex flex-col gap-2.5">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold">Hoteles por plan</h3>
+              {data && (
+                <span className="ml-auto text-xs text-muted-foreground">
+                  Altas: {data.altas.mesPasado} en {data.cobrado.mesPasado} · {data.altas.mes} en {data.cobrado.mes}
+                </span>
+              )}
+            </div>
+            {cargando ? (
+              <div className="flex flex-col gap-2">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-4 w-full" />)}</div>
+            ) : (
+              data!.porPlan.map(p => (
+                <div key={p.nombre} className="grid grid-cols-[100px_1fr_28px] items-center gap-2 text-[12.5px]">
+                  <span className={`truncate ${p.activo ? '' : 'text-muted-foreground'}`}>{p.nombre}</span>
+                  <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${p.type === 'trial' ? 'bg-warning' : p.activo ? 'bg-primary' : 'bg-muted-foreground'}`}
+                      style={{ width: `${(p.cantidad / maxPlan) * 100}%` }}
+                    />
+                  </div>
+                  <b className="text-right tabular-nums">{p.cantidad}</b>
+                </div>
+              ))
+            )}
+          </section>
+
+          {/* ─── Últimos pagos ─── */}
+          <section className="rounded-xl border bg-card px-4 py-3.5 flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold">Últimos pagos</h3>
+              <button type="button" className="ml-auto text-xs font-semibold text-primary hover:underline" onClick={() => ir('pagos')}>Ver todos</button>
+            </div>
+            {cargando ? (
+              <div className="flex flex-col gap-2 pt-1">{[0, 1, 2].map(i => <Skeleton key={i} className="h-7 w-full" />)}</div>
+            ) : data!.ultimosPagos.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">Todavía no hay pagos.</p>
+            ) : (
+              data!.ultimosPagos.map(p => {
+                const e = NOMBRE_ESTADO_PAGO[p.estado] ?? { texto: p.estado, tono: 'gris' as const };
+                return (
+                  <div key={p.id} className="flex items-center gap-2.5 py-1.5 border-t first:border-t-0 text-[13px]">
+                    <span className="text-muted-foreground tabular-nums">{fechaCorta(p.fecha)}</span>
+                    <b className="truncate">{p.hotel}</b>
+                    <span className="ml-auto tabular-nums">{pesos(p.monto)}</span>
+                    <Chip tono={e.tono}>{e.texto}</Chip>
+                  </div>
+                );
+              })
+            )}
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
