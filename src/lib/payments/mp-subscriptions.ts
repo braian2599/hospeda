@@ -199,6 +199,25 @@ export async function cancelMPSubscription(preapprovalId: string): Promise<void>
 }
 
 /**
+ * Cambia el monto mensual de una suscripción en Mercado Pago (cambio de
+ * precio del plan). Rige desde el próximo cobro.
+ */
+export async function updateMPSubscriptionAmount(preapprovalId: string, montoPesos: number): Promise<void> {
+  const accessToken = await getMPAccessToken();
+  if (!accessToken) throw new Error('Mercado Pago no está configurado.');
+  const res = await fetch(`${MP_API_BASE}/preapproval/${encodeURIComponent(preapprovalId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+    body: JSON.stringify({ auto_recurring: { transaction_amount: montoPesos, currency_id: 'ARS' } }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    console.error('[MP Subscription] Error cambiando el monto:', JSON.stringify(data));
+    throw new Error(`Mercado Pago respondió ${res.status} al cambiar el monto de la suscripción ${preapprovalId}`);
+  }
+}
+
+/**
  * Pausa una suscripción recurrente en Mercado Pago.
  */
 export async function pauseMPSubscription(preapprovalId: string): Promise<void> {

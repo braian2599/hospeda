@@ -88,6 +88,14 @@ model Plan {
   modulos         Json
   featureFlags    Json           @default("{}")
   activo          Boolean        @default(true)
+  // Cambio de precio para los hoteles que ya tienen débito automático.
+  // precioMensual es el precio nuevo (lo pagan ya los que se suscriben de
+  // nuevo); los débitos que ya existen siguen con el monto que autorizaron
+  // hasta cambioPrecioDesde (un día 10), cuando la revisión diaria les
+  // actualiza el monto en Mercado Pago. precioAnteriorMensual es el que
+  // pagaban, para el aviso del panel. null = sin cambio programado.
+  precioAnteriorMensual Int?
+  cambioPrecioDesde     DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 

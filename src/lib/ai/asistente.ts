@@ -100,6 +100,7 @@ Los precios y el detalle fino de cada plan están en la página de Precios del s
 - Si el cobro del 10 falla (por ejemplo, tarjeta sin saldo), el sistema sigue funcionando 3 días más (10, 11 y 12) mientras Mercado Pago reintenta, con un aviso arriba. El 13 se bloquea hasta que se acredite el pago.
 - Abrir Mercado Pago y no terminar no cambia nada: el plan actual sigue igual.
 - Cancelar el débito no corta el servicio: sigue hasta la fecha que ya está paga, sin días de gracia.
+- Si cambia el precio de un plan, los hoteles que ya pagan por débito automático siguen con su precio hasta la fecha que fija la plataforma (un día 10); el aviso con el precio nuevo y la fecha aparece arriba en el panel y en Configuración → Suscripción. No tienen que hacer nada: se cobra solo.
 
 ## Integraciones con Booking.com / Airbnb
 Hoy existe solo una sincronización básica por iCal: bloquea disponibilidad, pero NO sincroniza tarifas ni trae reservas en tiempo real con todos los datos del huésped. Nunca digas que hay sincronización completa en tiempo real con Booking.com o Airbnb — todavía no existe, es una integración planeada a futuro.`;

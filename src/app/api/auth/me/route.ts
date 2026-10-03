@@ -51,7 +51,7 @@ const SELECTO_ESTABLE = {
               esRecurrente: true,
               mpPreapprovalId: true,
               proximoCobro: true,
-              plan: { select: { type: true, nombre: true, featureFlags: true } },
+              plan: { select: { type: true, nombre: true, featureFlags: true, precioMensual: true, precioAnteriorMensual: true, cambioPrecioDesde: true } },
             },
           },
           configuracion: { select: { featureFlags: true } },
@@ -261,6 +261,20 @@ async function buildSessionResponse(user: any, tenantUser: any, perfilEnLaSesion
       vencimiento: subscription?.fechaVencimiento?.toISOString() || null,
       seRenuevaSola: !!subscription?.esRecurrente && !!subscription?.mpPreapprovalId,
       proximoCobro: subscription?.proximoCobro?.toISOString() || null,
+      // Cambio de precio programado del plan, para avisarle al hotel que paga
+      // por débito automático (sale de la misma consulta).
+      cambioDePrecio: (() => {
+        const p = subscription?.plan;
+        const debito = !!subscription?.esRecurrente && !!subscription?.mpPreapprovalId;
+        if (!debito || !p?.cambioPrecioDesde || p.cambioPrecioDesde <= new Date()) return null;
+        if (p.precioAnteriorMensual != null && p.precioAnteriorMensual === p.precioMensual) return null;
+        return {
+          plan: p.nombre,
+          desde: p.cambioPrecioDesde.toISOString(),
+          precioNuevo: p.precioMensual,
+          precioAnterior: p.precioAnteriorMensual,
+        };
+      })(),
     },
     // Avisos de inicio de sesion. Viaja en esta respuesta, que ya se hace al
     // entrar: no agrega ni una consulta. La consulta usa include sin select,

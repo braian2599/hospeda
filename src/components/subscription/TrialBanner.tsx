@@ -25,7 +25,7 @@
 import { useState } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { proximoPlan, getPlanInfo, type PlanTipo } from '@/lib/plan-config';
-import { resumenDeSuscripcion } from '@/lib/suscripcion';
+import { resumenDeSuscripcion, textoCambioDePrecio } from '@/lib/suscripcion';
 import { usePlans } from '@/hooks/usePlans';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -74,18 +74,31 @@ export default function TrialBanner() {
   // el precio y la fecha del próximo cobro. Solo para el dueño.
   if (resumen.renuevaSola) {
     if (!esDuenio) return null;
+    // Con un cambio de precio programado, hasta esa fecha sigue pagando el
+    // precio anterior: se muestra ese, y abajo el aviso del precio nuevo.
+    const cambio = suscripcion.cambioDePrecio;
+    const precioQuePaga = cambio?.precioAnterior != null
+      ? `$${(cambio.precioAnterior / 100).toLocaleString('es-AR')}`
+      : planInfo.precioDisplay;
+    // En los días de gracia (el cobro del 10 todavía no entró) se resalta.
+    const esperandoCobro = resumen.tono === 'urgente';
     return (
       <>
-        <div className="flex items-center justify-between px-4 py-1.5 bg-[#F1F5F980] border-b border-border text-xs text-muted-foreground">
+        <div className={`flex items-center justify-between px-4 py-1.5 border-b text-xs ${esperandoCobro ? 'bg-[#D977061A] border-[#D9770633] text-[#92400E]' : 'bg-[#F1F5F980] border-border text-muted-foreground'}`}>
           <span>
             Plan <span className="font-medium text-foreground">{planInfo.nombre}</span>
-            <span className="ml-1">{planInfo.precioDisplay}/mes</span>
+            <span className="ml-1">{precioQuePaga}/mes</span>
             <span className="ml-2">· {resumen.queVaAPasar}</span>
           </span>
           <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={handleUpgrade}>
             Cambiar plan
           </Button>
         </div>
+        {cambio && (
+          <div className="px-4 py-1.5 border-b border-[#0284C733] bg-[#0284C714] text-xs text-[#075985]">
+            {textoCambioDePrecio(cambio)}
+          </div>
+        )}
         {/* Solo se monta para quien puede pagar: así el resto del personal ni
             siquiera se baja el paquete del checkout. */}
         {esDuenio && (

@@ -36,7 +36,15 @@ interface Plan {
   modulos: string[];
   featureFlags: Record<string, boolean>;
   activo: boolean;
+  /** Lo que pagan los débitos actuales hasta el cambio programado (centavos). */
+  precioAnteriorMensual: number | null;
+  /** Día 10 desde el que los débitos actuales pagan el precio nuevo (ISO). */
+  cambioPrecioDesde: string | null;
+  /** Hoteles con débito automático en este plan. */
+  debitosActivos: number;
 }
+
+const fechaAR = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
 
 // ─── Helpers ───
 function formatARS(cents: number) {
@@ -67,6 +75,12 @@ export default function SuperAdminPlanes() {
   const [formModulos, setFormModulos] = useState<Set<ModuloId>>(new Set());
   const [formFlags, setFormFlags] = useState<Record<FeatureFlag, boolean>>({ ...DEFAULT_FLAGS });
   const [saving, setSaving] = useState(false);
+  // Días 10 que se pueden elegir para aplicar un precio a los débitos actuales.
+  const [opcionesCambio, setOpcionesCambio] = useState<string[]>([]);
+  // Pregunta "¿actualizar también los débitos?": al guardar un precio nuevo
+  // o con el botón de la tarjeta. payload = cambios del plan a guardar junto.
+  const [preguntaDebitos, setPreguntaDebitos] = useState<{ plan: Plan; precioNuevo: number; payload: Record<string, unknown> | null } | null>(null);
+  const [fechaDebitos, setFechaDebitos] = useState<string>('no');
 
   useEffect(() => {
     fetch('/api/super-admin/plans')
@@ -74,6 +88,7 @@ export default function SuperAdminPlanes() {
       .then((data) => {
         if (data.error) throw new Error(data.error);
         setPlans(data.plans || []);
+        setOpcionesCambio(data.opcionesCambioPrecio || []);
       })
       .catch(() => toast.error('Error al cargar planes'))
       .finally(() => setLoading(false));
@@ -104,6 +119,45 @@ export default function SuperAdminPlanes() {
     });
   };
 
+  const recargar = async () => {
+    const plansRes = await fetch('/api/super-admin/plans');
+    const plansData = await plansRes.json();
+    setPlans(plansData.plans || []);
+    setOpcionesCambio(plansData.opcionesCambioPrecio || []);
+  };
+
+  /** Guarda en el servidor (cambios del plan y/o el cambio de precio de los débitos). */
+  const guardar = async (payload: Record<string, unknown>) => {
+    const res = await fetch('/api/super-admin/plans', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+  };
+
+  const confirmarDebitos = async () => {
+    if (!preguntaDebitos) return;
+    setSaving(true);
+    try {
+      await guardar({
+        ...(preguntaDebitos.payload ?? { id: preguntaDebitos.plan.id }),
+        cambioDebitos: { desde: fechaDebitos === 'no' ? null : fechaDebitos },
+      });
+      toast.success(fechaDebitos === 'no'
+        ? 'Guardado. Los débitos actuales siguen con su precio.'
+        : `Guardado. Los débitos actuales pasan al precio nuevo desde el ${fechaAR(fechaDebitos)}.`);
+      setPreguntaDebitos(null);
+      setEditOpen(false);
+      await recargar();
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!editPlan) return;
     setSaving(true);
@@ -121,20 +175,18 @@ export default function SuperAdminPlanes() {
         featureFlags: formFlags,
       };
 
-      const res = await fetch('/api/super-admin/plans', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      // Cambió el precio y hay hoteles pagando este plan por débito: antes de
+      // guardar se pregunta si a ellos también se les cambia, y desde cuándo.
+      const precioNuevo = payload.precioMensual as number;
+      if (precioNuevo !== editPlan.precioMensual && editPlan.debitosActivos > 0) {
+        setFechaDebitos('no');
+        setPreguntaDebitos({ plan: editPlan, precioNuevo, payload });
+        return;
+      }
+      await guardar(payload);
       toast.success('Plan actualizado correctamente');
       setEditOpen(false);
-
-      // Refresh
-      const plansRes = await fetch('/api/super-admin/plans');
-      const plansData = await plansRes.json();
-      setPlans(plansData.plans || []);
+      await recargar();
     } catch (err: unknown) {
       toast.error((err as Error).message || 'Error al guardar');
     } finally {
@@ -268,6 +320,39 @@ export default function SuperAdminPlanes() {
                         </Badge>
                       ))}
                   </div>
+                </div>
+              )}
+
+              {/* Débitos automáticos de este plan y cambio de precio programado */}
+              {plan.debitosActivos > 0 && (
+                <div className="p-3 rounded-lg border text-xs space-y-2">
+                  <p className="text-muted-foreground">
+                    {plan.debitosActivos} {plan.debitosActivos === 1 ? 'hotel paga' : 'hoteles pagan'} este plan por débito automático.
+                  </p>
+                  {plan.cambioPrecioDesde && new Date(plan.cambioPrecioDesde) > new Date() ? (
+                    <>
+                      <p className="text-[#075985]">
+                        Pasan a {formatARS(plan.precioMensual)} desde el {fechaAR(plan.cambioPrecioDesde)}
+                        {plan.precioAnteriorMensual != null && ` (hoy pagan ${formatARS(plan.precioAnteriorMensual)})`}. Lo ven avisado en su panel.
+                      </p>
+                      <Button
+                        variant="outline" size="sm" className="h-7 text-xs"
+                        onClick={() => {
+                          setFechaDebitos(plan.cambioPrecioDesde && opcionesCambio.includes(plan.cambioPrecioDesde) ? plan.cambioPrecioDesde : 'no');
+                          setPreguntaDebitos({ plan, precioNuevo: plan.precioMensual, payload: null });
+                        }}
+                      >
+                        Cambiar la fecha o cancelar
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="outline" size="sm" className="h-7 text-xs"
+                      onClick={() => { setFechaDebitos(opcionesCambio[0] ?? 'no'); setPreguntaDebitos({ plan, precioNuevo: plan.precioMensual, payload: null }); }}
+                    >
+                      Actualizar débitos al precio actual
+                    </Button>
+                  )}
                 </div>
               )}
 
@@ -410,6 +495,47 @@ export default function SuperAdminPlanes() {
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── ¿Actualizar también los débitos actuales? ─── */}
+      <Dialog open={preguntaDebitos !== null} onOpenChange={(v) => { if (!v && !saving) setPreguntaDebitos(null); }}>
+        <DialogContent size="chico">
+          <DialogHeader>
+            <DialogTitle>Precio para los débitos actuales</DialogTitle>
+          </DialogHeader>
+          {preguntaDebitos && (
+            <div className="space-y-3 text-sm">
+              <p>
+                {preguntaDebitos.plan.debitosActivos} {preguntaDebitos.plan.debitosActivos === 1 ? 'hotel paga' : 'hoteles pagan'} el
+                plan {preguntaDebitos.plan.nombre} por débito automático. ¿Desde cuándo pagan {formatARS(preguntaDebitos.precioNuevo)}?
+              </p>
+              <div className="space-y-1.5">
+                {opcionesCambio.map((o) => (
+                  <label key={o} className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="fecha-debitos" checked={fechaDebitos === o} onChange={() => setFechaDebitos(o)} />
+                    Desde el cobro del {fechaAR(o)}
+                  </label>
+                ))}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="fecha-debitos" checked={fechaDebitos === 'no'} onChange={() => setFechaDebitos('no')} />
+                  No, por ahora (siguen con su precio)
+                </label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Los que se suscriban de nuevo pagan el precio nuevo desde ya. A los actuales se les cambia el monto en Mercado
+                Pago unos días antes de la fecha elegida, y lo ven avisado en su panel desde hoy. Conviene avisarles también por
+                WhatsApp.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreguntaDebitos(null)} disabled={saving}>Volver</Button>
+            <Button onClick={confirmarDebitos} disabled={saving}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
               Guardar
             </Button>

@@ -136,3 +136,35 @@ export function enDiasDeGracia(s: EstadoDeAcceso, ahora: Date = new Date()): boo
   const venc = new Date(s.fechaVencimiento).getTime();
   return venc <= ahora.getTime() && puedeOperar(s, ahora);
 }
+
+// ─────────────────────────── Cambio de precio de un plan ───────────────────────────
+// Cuando cambia el precio de un plan, los hoteles que ya tienen débito
+// automático pasan a pagarlo desde un día 10 que elige el dueño de la
+// plataforma (src/lib/payments/cobros-suscripcion.ts lo aplica en Mercado Pago).
+
+/** Anticipación mínima: la revisión diaria corre una vez por día y tiene que alcanzar a actualizar el monto antes del 10. */
+const ANTICIPACION_CAMBIO_PRECIO_MS = 2 * DIA_MS;
+/** Desde cuántos días antes del 10 elegido se actualiza el monto en Mercado Pago. */
+export const DIAS_ANTES_DE_APLICAR_PRECIO = 3;
+
+/** Los próximos días 10 que se pueden elegir para aplicar un precio nuevo a los débitos actuales. */
+export function diezParaCambioDePrecio(ahora: Date = new Date(), cantidad = 3): Date[] {
+  const opciones: Date[] = [];
+  let d = proximoDiez(new Date(ahora.getTime() + ANTICIPACION_CAMBIO_PRECIO_MS));
+  while (opciones.length < cantidad) {
+    opciones.push(d);
+    d = proximoDiez(new Date(d.getTime() + DIA_MS));
+  }
+  return opciones;
+}
+
+/** ¿Ya hay que actualizar el monto en Mercado Pago? (desde 3 días antes del 10 elegido) */
+export function tocaAplicarPrecio(cambioPrecioDesde: Date | null, ahora: Date = new Date()): boolean {
+  if (!cambioPrecioDesde) return false;
+  return ahora.getTime() >= cambioPrecioDesde.getTime() - DIAS_ANTES_DE_APLICAR_PRECIO * DIA_MS;
+}
+
+/** ¿La fecha es un día 10 a las 00:00 de Argentina? */
+export function esDiaDeCobro(fecha: Date): boolean {
+  return proximoDiez(fecha).getTime() === fecha.getTime();
+}

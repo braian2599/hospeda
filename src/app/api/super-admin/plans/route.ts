@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requireSuperAdmin } from '@/lib/super-admin/auth';
 import { invalidatePlansCache } from '@/lib/plan-server';
 import { parseFeatureFlags } from '@/lib/feature-flags';
+import { diezParaCambioDePrecio, esDiaDeCobro } from '@/lib/ciclo-cobro';
 
 // GET /api/super-admin/plans — Listar todos los planes
 export async function GET() {
@@ -13,6 +14,13 @@ export async function GET() {
     const plans = await db.plan.findMany({
       orderBy: { precioMensual: 'asc' },
     });
+    // Hoteles con débito automático en cada plan (los que afecta un cambio de precio).
+    const debitos = await db.subscription.groupBy({
+      by: ['planId'],
+      where: { esRecurrente: true, mpPreapprovalId: { not: null } },
+      _count: { _all: true },
+    });
+    const debitosPorPlan = new Map(debitos.map(d => [d.planId, d._count._all]));
 
     return NextResponse.json({
       plans: plans.map(p => ({
@@ -28,7 +36,12 @@ export async function GET() {
         modulos: p.modulos,
         featureFlags: p.featureFlags,
         activo: p.activo,
+        precioAnteriorMensual: p.precioAnteriorMensual,
+        cambioPrecioDesde: p.cambioPrecioDesde?.toISOString() ?? null,
+        debitosActivos: debitosPorPlan.get(p.id) ?? 0,
       })),
+      // Días 10 que se pueden elegir para aplicar un precio nuevo a los débitos actuales.
+      opcionesCambioPrecio: diezParaCambioDePrecio().map(d => d.toISOString()),
     });
   } catch (error: unknown) {
     const err = error as Error;
@@ -79,6 +92,31 @@ export async function PUT(req: NextRequest) {
       }
     }
 
+    // Cambio de precio para los débitos que ya existen (src/lib/ciclo-cobro.ts):
+    // cambioDebitos.desde = día 10 desde el que pagan el precio nuevo, o null
+    // para no cambiarles el precio. Si no viene, no se toca.
+    let cambioPrecioDesde: Date | null | undefined;
+    if (data.cambioDebitos !== undefined) {
+      const desde = data.cambioDebitos?.desde;
+      if (desde == null) {
+        cambioPrecioDesde = null;
+      } else {
+        const fecha = new Date(desde);
+        const permitidas = diezParaCambioDePrecio(new Date(), 12).map(d => d.getTime());
+        if (Number.isNaN(fecha.getTime()) || !esDiaDeCobro(fecha) || !permitidas.includes(fecha.getTime())) {
+          return NextResponse.json({ error: 'La fecha para los débitos tiene que ser un día 10 de los próximos meses (con al menos 2 días de anticipación).' }, { status: 400 });
+        }
+        cambioPrecioDesde = fecha;
+      }
+    }
+    const cambiaPrecio = data.precioMensual !== undefined && data.precioMensual !== planAnterior.precioMensual;
+    // Lo que pagan hoy los que tienen débito: si ya había un cambio programado
+    // que todavía no llegó, siguen pagando el anterior a ese.
+    const hayCambioPendiente = !!planAnterior.cambioPrecioDesde && planAnterior.cambioPrecioDesde > new Date();
+    const precioAnteriorMensual = cambiaPrecio
+      ? (hayCambioPendiente && planAnterior.precioAnteriorMensual != null ? planAnterior.precioAnteriorMensual : planAnterior.precioMensual)
+      : undefined;
+
     // Validar que los límites sean no negativos
     for (const field of ['maxHabitaciones', 'maxUsuarios', 'maxTarifas', 'maxReservasMes']) {
       const val = data[field as keyof typeof data];
@@ -100,6 +138,8 @@ export async function PUT(req: NextRequest) {
         ...(data.modulos !== undefined && { modulos: data.modulos }),
         ...(data.featureFlags !== undefined && { featureFlags: parseFeatureFlags(data.featureFlags) }),
         ...(data.activo !== undefined && { activo: data.activo }),
+        ...(precioAnteriorMensual !== undefined && { precioAnteriorMensual }),
+        ...(cambioPrecioDesde !== undefined && { cambioPrecioDesde }),
       },
     });
 
@@ -110,6 +150,11 @@ export async function PUT(req: NextRequest) {
     }
     if (data.precioMensual !== undefined && data.precioMensual !== planAnterior.precioMensual) {
       cambios.push(`precio: $${(planAnterior.precioMensual / 100).toLocaleString('es-AR')} → $${(data.precioMensual / 100).toLocaleString('es-AR')}`);
+    }
+    if (cambioPrecioDesde !== undefined) {
+      cambios.push(cambioPrecioDesde
+        ? `débitos actuales: precio nuevo desde el ${cambioPrecioDesde.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}`
+        : 'débitos actuales: sin cambio de precio');
     }
     if (data.maxHabitaciones !== undefined && data.maxHabitaciones !== planAnterior.maxHabitaciones) {
       cambios.push(`max habitaciones: ${planAnterior.maxHabitaciones} → ${data.maxHabitaciones}`);

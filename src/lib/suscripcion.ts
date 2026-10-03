@@ -50,6 +50,25 @@ export interface Suscripcion {
   /** Se cobra solo todos los meses sin que nadie haga nada. */
   seRenuevaSola: boolean;
   proximoCobro: string | null;
+  /** Cambio de precio programado del plan (solo si paga por débito automático). */
+  cambioDePrecio?: CambioDePrecio | null;
+}
+
+export interface CambioDePrecio {
+  plan: string;
+  /** Día 10 desde el que se cobra el precio nuevo, en ISO. */
+  desde: string;
+  /** En centavos. */
+  precioNuevo: number;
+  precioAnterior: number | null;
+}
+
+/** "Desde el 10/12/2026 el plan Premium pasa a $70.000 por mes (antes $65.000)." */
+export function textoCambioDePrecio(c: CambioDePrecio): string {
+  const pesos = (centavos: number) => `$${(centavos / 100).toLocaleString('es-AR')}`;
+  return `Desde el ${comoFecha(c.desde)} el plan ${c.plan} pasa a ${pesos(c.precioNuevo)} por mes`
+    + (c.precioAnterior != null ? ` (antes ${pesos(c.precioAnterior)})` : '')
+    + '. Se cobra solo por el débito automático, no tenés que hacer nada.';
 }
 
 export type TonoSuscripcion = 'ok' | 'aviso' | 'urgente' | 'vencida';

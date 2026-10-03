@@ -21,7 +21,7 @@ import { camasDeReserva, camasLibresDe, esCompartida, esEstadoDeOcupacion, ocupa
 import { sesionDesdeRespuesta } from './sesion';
 import { estaFacturada } from './facturacion-reserva';
 import { fechaArgentina } from './format';
-import { origenValido, type Suscripcion } from './suscripcion';
+import { origenValido, type Suscripcion, type CambioDePrecio } from './suscripcion';
 
 /**
  * Una reserva nueva empezada fuera de Reservas (el calendario del Dashboard o
@@ -63,6 +63,13 @@ const SUSCRIPCION_VACIA: Suscripcion = {
  * anterior del sistema y el bloque no viene, se arma con lo que sí llegó en
  * vez de dejar al hotel sin ningún aviso de vencimiento.
  */
+function leerCambioDePrecio(v: unknown): CambioDePrecio | null {
+  if (!v || typeof v !== 'object') return null;
+  const c = v as Record<string, unknown>;
+  if (typeof c.plan !== 'string' || typeof c.desde !== 'string' || typeof c.precioNuevo !== 'number') return null;
+  return { plan: c.plan, desde: c.desde, precioNuevo: c.precioNuevo, precioAnterior: typeof c.precioAnterior === 'number' ? c.precioAnterior : null };
+}
+
 function suscripcionDesdeRespuesta(data: Record<string, unknown>): Suscripcion {
   const bloque = (data.suscripcion ?? {}) as Record<string, unknown>;
   const texto = (v: unknown) => (typeof v === 'string' && v ? v : null);
@@ -72,6 +79,7 @@ function suscripcionDesdeRespuesta(data: Record<string, unknown>): Suscripcion {
     vencimiento: texto(bloque.vencimiento) || texto(data.subscriptionVencimiento),
     seRenuevaSola: bloque.seRenuevaSola === true,
     proximoCobro: texto(bloque.proximoCobro),
+    cambioDePrecio: leerCambioDePrecio(bloque.cambioDePrecio),
   };
 }
 

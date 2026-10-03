@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useHotelStore } from '@/lib/store';
 import { api } from '@/lib/api-client';
 import { NOMBRES_MODULOS, type PlanTipo } from '@/lib/plan-config';
-import { resumenDeSuscripcion } from '@/lib/suscripcion';
+import { resumenDeSuscripcion, textoCambioDePrecio } from '@/lib/suscripcion';
 import { usePlans } from '@/hooks/usePlans';
 import { useBankDetails } from '@/hooks/useBankDetails';
 import { Button } from '@/components/ui/button';
@@ -3201,6 +3201,14 @@ function SuscripcionSection() {
                 {resumen.queVaAPasar}
               </p>
             </div>
+          </CardContent>
+        )}
+
+        {suscripcion.cambioDePrecio && (
+          <CardContent className="pt-0">
+            <p className="p-3 rounded-lg border border-[#0284C733] bg-[#0284C714] text-sm text-[#075985]">
+              {textoCambioDePrecio(suscripcion.cambioDePrecio)}
+            </p>
           </CardContent>
         )}
 

@@ -21,10 +21,10 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getMercadoPagoPayment } from '@/lib/payments/mercadopago';
 import {
-  getMPSubscription, getMPCobroAutorizado, cancelMPSubscription, type MPPreapprovalResponse,
+  getMPSubscription, getMPCobroAutorizado, cancelMPSubscription, updateMPSubscriptionAmount, type MPPreapprovalResponse,
 } from '@/lib/payments/mp-subscriptions';
 import { validatePreapprovalAmount, validatePaymentAmount } from '@/lib/payments/validation';
-import { inicioDelPeriodo, vencimientoTrasCobro } from '@/lib/ciclo-cobro';
+import { inicioDelPeriodo, vencimientoTrasCobro, tocaAplicarPrecio } from '@/lib/ciclo-cobro';
 
 const PLANES_PAGOS = new Set(['profesional', 'premium', 'elite']);
 
@@ -43,6 +43,24 @@ function montoCoincide(cobradoPesos: number, esperadoPesos: number): boolean {
 }
 
 const max = (a: Date, b: Date) => (a.getTime() >= b.getTime() ? a : b);
+
+/**
+ * Montos aceptados para un cobro del débito automático: el que tiene la
+ * suscripción en Mercado Pago, y el precio actual y el anterior del plan
+ * (alrededor de un cambio de precio puede entrar un cobro con cualquiera de
+ * los dos). Cualquier otro monto no se anota.
+ */
+async function cobroValido(cobradoPesos: number, pre: MPPreapprovalResponse | null, planTipo: string): Promise<boolean> {
+  const plan = PLANES_PAGOS.has(planTipo)
+    ? await db.plan.findFirst({ where: { type: planTipo as 'profesional' | 'premium' | 'elite' }, select: { precioMensual: true, precioAnteriorMensual: true } })
+    : null;
+  const candidatos = [
+    pre?.auto_recurring?.transaction_amount || 0,
+    plan ? plan.precioMensual / 100 : 0,
+    plan?.precioAnteriorMensual != null ? plan.precioAnteriorMensual / 100 : 0,
+  ];
+  return candidatos.some(c => montoCoincide(cobradoPesos, c));
+}
 
 // ─────────────────────────── Registrar un cobro ───────────────────────────
 
@@ -156,7 +174,11 @@ async function aplicarPreapproval(pre: MPPreapprovalResponse): Promise<string> {
   if (pre.status === 'authorized') {
     const monto = pre.auto_recurring?.transaction_amount || 0;
     const validacion = await validatePreapprovalAmount(ref.planTipo, monto);
-    if (!validacion.valid) return `suscripción ${pre.id} rechazada: ${validacion.reason}`;
+    // El monto se controla al ACTIVAR una suscripción. Una que ya está activa
+    // puede seguir con el precio que autorizó aunque el plan haya cambiado de
+    // precio (pasa al nuevo en la fecha programada): no se la rechaza.
+    const yaActiva = esLaActual && sub.esRecurrente;
+    if (!validacion.valid && !yaActiva) return `suscripción ${pre.id} rechazada: ${validacion.reason}`;
 
     // ¿Es una suscripción nueva que reemplaza a otra? Solo si es más nueva
     // que la que ya tiene (un aviso viejo que llega tarde no la pisa).
@@ -236,7 +258,7 @@ export async function procesarAvisoCobroMensual(id: string): Promise<string> {
   const monto = cobro.transaction_amount || 0;
   if (pago.status === 'approved') {
     // Se compara con el monto que el hotel autorizó en su suscripción.
-    if (!montoCoincide(monto, pre.auto_recurring?.transaction_amount || 0)) {
+    if (!(await cobroValido(monto, pre, ref.planTipo))) {
       return `cobro ${pago.id} con monto ${monto} distinto al de la suscripción (${pre.auto_recurring?.transaction_amount}): no se anota`;
     }
     return registrarCobroAprobado({
@@ -276,8 +298,7 @@ export async function procesarAvisoPago(paymentId: string): Promise<string> {
     if (sub.esRecurrente && sub.mpPreapprovalId) {
       // Cobro del débito automático que llegó como "payment".
       const pre = await getMPSubscription(sub.mpPreapprovalId);
-      const esperado = pre?.auto_recurring?.transaction_amount || 0;
-      if (!montoCoincide(monto, esperado)) return `pago ${paymentId} con monto ${monto} distinto al de la suscripción (${esperado}): no se anota`;
+      if (!(await cobroValido(monto, pre, ref.planTipo))) return `pago ${paymentId} con monto ${monto} distinto al de la suscripción (${pre?.auto_recurring?.transaction_amount}): no se anota`;
       return registrarCobroAprobado({
         tenantId: ref.tenantId, externalId: String(paymentId), montoPesos: monto, fechaPago,
         nota: `Débito automático Mercado Pago — pago ${paymentId} — plan ${ref.planTipo}`,
@@ -323,6 +344,7 @@ export async function revisarSuscripcion(subscriptionId: string): Promise<string
   }
 
   const resultados = [await aplicarPreapproval(pre)];
+  resultados.push(await aplicarCambioDePrecio(sub.id, pre));
 
   const ultimo = pre.summarized?.last_charged_date ? new Date(pre.summarized.last_charged_date) : null;
   const monto = pre.summarized?.last_charged_amount || 0;
@@ -330,7 +352,8 @@ export async function revisarSuscripcion(subscriptionId: string): Promise<string
     const pagadoHasta = vencimientoTrasCobro(ultimo);
     const actual = await db.subscription.findUnique({ where: { id: sub.id } });
     if (actual && pagadoHasta.getTime() > actual.fechaVencimiento.getTime()) {
-      if (!montoCoincide(monto, pre.auto_recurring?.transaction_amount || 0)) {
+      const ref = leerReferencia(pre.external_reference);
+      if (!ref || !(await cobroValido(monto, pre, ref.planTipo))) {
         resultados.push(`último cobro con monto ${monto} distinto al de la suscripción: no se anota`);
       } else {
         resultados.push(await registrarCobroAprobado({
@@ -344,4 +367,25 @@ export async function revisarSuscripcion(subscriptionId: string): Promise<string
     }
   }
   return resultados.join(' | ');
+}
+
+/**
+ * Si el plan tiene un cambio de precio programado y ya toca (desde 3 días
+ * antes del 10 elegido), le cambia el monto en Mercado Pago a este débito.
+ * Rige desde el próximo cobro.
+ */
+async function aplicarCambioDePrecio(subscriptionId: string, pre: MPPreapprovalResponse): Promise<string> {
+  if (pre.status !== 'authorized') return 'sin cambio de precio (suscripción no activa)';
+  const sub = await db.subscription.findUnique({
+    where: { id: subscriptionId },
+    select: { mpPreapprovalId: true, plan: { select: { precioMensual: true, cambioPrecioDesde: true } } },
+  });
+  if (!sub || sub.mpPreapprovalId !== pre.id) return 'sin cambio de precio';
+  const { precioMensual, cambioPrecioDesde } = sub.plan;
+  if (!tocaAplicarPrecio(cambioPrecioDesde)) return 'sin cambio de precio';
+  const nuevo = precioMensual / 100;
+  const actual = pre.auto_recurring?.transaction_amount || 0;
+  if (Math.abs(actual - nuevo) < 0.01) return 'monto ya actualizado';
+  await updateMPSubscriptionAmount(pre.id, nuevo);
+  return `monto actualizado en Mercado Pago: ${actual} → ${nuevo}`;
 }
