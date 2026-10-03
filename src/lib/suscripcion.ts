@@ -14,6 +14,8 @@
 // viejo que lo haría pasar por pagador. Por eso ahora el origen se ESCRIBE
 // cuando se toca la suscripción, en vez de adivinarse después.
 
+import { puedeOperar, enDiasDeGracia, limiteDeAcceso } from '@/lib/ciclo-cobro';
+
 export type OrigenSuscripcion =
   | 'trial'          // los 30 días que trae toda cuenta nueva
   | 'mercadopago'    // pagó por Mercado Pago (suscripción o pago único)
@@ -85,11 +87,10 @@ export function diasHasta(fechaISO: string | null, ahora: Date = new Date()): nu
 function comoFecha(fechaISO: string | null): string {
   if (!fechaISO) return '';
   const f = new Date(fechaISO);
-  return Number.isNaN(f.getTime()) ? '' : f.toLocaleDateString('es-AR');
+  // En hora argentina: el vencimiento es el 10 a las 00:00 de Argentina.
+  return Number.isNaN(f.getTime()) ? '' : f.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
 }
 
-/** Estados en los que el hotel no puede operar aunque la fecha no haya llegado. */
-const ESTADOS_CAIDOS = new Set(['vencida', 'cancelada', 'suspensa', 'pendiente_pago']);
 
 /**
  * Lo que hay que mostrarle al dueño del hotel.
@@ -102,8 +103,23 @@ export function resumenDeSuscripcion(s: Suscripcion, ahora: Date = new Date()): 
   const dias = diasHasta(s.vencimiento, ahora);
   const fecha = comoFecha(s.vencimiento);
   const comoLoTiene = NOMBRE_ORIGEN[s.origen];
-  const caido = ESTADOS_CAIDOS.has(s.estado);
-  const vencida = caido || (dias !== null && dias === 0);
+  // Misma regla que el servidor (src/lib/ciclo-cobro.ts): con débito
+  // automático hay 3 días de gracia después del vencimiento.
+  const acceso = { estado: s.estado, fechaVencimiento: s.vencimiento, seRenuevaSola: s.seRenuevaSola };
+  const vencida = !puedeOperar(acceso, ahora);
+
+  if (!vencida && enDiasDeGracia(acceso, ahora)) {
+    const limite = limiteDeAcceso(acceso);
+    const diasGracia = limite ? Math.max(1, Math.ceil((limite.getTime() - ahora.getTime()) / 86_400_000)) : 0;
+    return {
+      comoLoTiene,
+      queVaAPasar: `Estamos esperando el cobro del ${fecha} de Mercado Pago. Si no se acredita, el sistema se bloquea el ${comoFecha(limite?.toISOString() ?? null)}. Revisá que la tarjeta tenga saldo.`,
+      tono: 'urgente',
+      renuevaSola: true,
+      dias: diasGracia,
+      vencida: false,
+    };
+  }
 
   if (vencida) {
     return {

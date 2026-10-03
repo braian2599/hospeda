@@ -9,6 +9,7 @@ import { validateCsrfToken } from '@/lib/csrf';
 import { getServerPlan } from '@/lib/plan-server';
 import { getMPAccessToken } from '@/lib/payments/config';
 import { createMPSubscription } from '@/lib/payments/mp-subscriptions';
+import { primerCobro } from '@/lib/ciclo-cobro';
 import { handleApiError } from '@/lib/api-error';
 
 function validatePlan(planTipo: string): boolean {
@@ -60,22 +61,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar si ya tiene una suscripción recurrente activa
-    const existingSub = await db.subscription.findUnique({
+    // No se toca la suscripción actual hasta que Mercado Pago confirme: el
+    // aviso "authorized" la activa y, si es un cambio de plan, cancela la
+    // anterior (src/lib/payments/cobros-suscripcion.ts). Antes se ponía en
+    // "pendiente de pago" acá mismo, y si la persona cerraba Mercado Pago sin
+    // terminar el hotel quedaba bloqueado (y perdía el débito que ya tenía).
+    const actual = await db.subscription.findUnique({
       where: { tenantId: authTenantId },
+      select: { estado: true, fechaVencimiento: true, esRecurrente: true, mpPreapprovalId: true },
     });
 
-    if (existingSub?.mpPreapprovalId && existingSub?.esRecurrente && (existingSub.estado === 'activa' || existingSub.estado === 'pendiente_pago')) {
-      // Ya tiene suscripción recurrente — actualizar plan
-      const { cancelMPSubscription } = await import('@/lib/payments/mp-subscriptions');
-      try {
-        await cancelMPSubscription(existingSub.mpPreapprovalId);
-      } catch (e) {
-        console.warn('[create-subscription] No se pudo cancelar preapproval anterior:', e);
-      }
-    }
+    // Primer cobro: el primer 10 después de que termina lo que ya tiene
+    // (prueba, cortesía o pago anterior). Ver src/lib/ciclo-cobro.ts.
+    const fechaPrimerCobro = primerCobro(actual);
 
-    // Datos del tenant
     const tenant = await db.tenant.findUnique({
       where: { id: authTenantId },
       select: { nombre: true, email: true },
@@ -83,47 +82,22 @@ export async function POST(request: NextRequest) {
     const hotelNombre = tenant?.nombre || 'Hospi';
     const effectiveEmail = email || tenant?.email || 'guest@hospeda.com';
 
-    // Crear suscripción en MP
     const result = await createMPSubscription({
       planTipo: planTipo as 'profesional' | 'premium' | 'elite',
       tenantId: authTenantId,
       userEmail: effectiveEmail,
       hotelNombre,
+      primerCobro: fechaPrimerCobro,
     });
 
-    // Guardar el preapprovalId en la suscripción (aún pendiente de autorización)
-    // IMPORTANTE: NO cambiamos planId aquí — se actualiza solo cuando el webhook
-    // confirma el pago con monto válido. Esto previene que un usuario vea "Premium"
-    // antes de pagar (solo cambia el estado a pendiente_pago).
-    const planRecord = await db.plan.findFirst({ where: { type: planTipo as any } });
-    if (!planRecord) {
-      return NextResponse.json({ error: 'Plan no encontrado. Intentá de nuevo.' }, { status: 400 });
+    // Si todavía no tiene débito automático, se guarda el id de la nueva para
+    // que la revisión diaria la encuentre aunque se pierda el aviso de alta.
+    // Solo ese dato: no cambia el estado ni el acceso (sin débito activo,
+    // seRenuevaSola sigue en falso). Si ya tiene un débito activo (cambio de
+    // plan), no se toca: lo resuelve el aviso de alta.
+    if (actual && !actual.esRecurrente) {
+      await db.subscription.update({ where: { tenantId: authTenantId }, data: { mpPreapprovalId: result.preapprovalId } });
     }
-
-    const now = new Date();
-    const tenthOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10);
-
-    await db.subscription.upsert({
-      where: { tenantId: authTenantId },
-      create: {
-        tenantId: authTenantId,
-        planId: existingSub?.planId || planRecord.id, // en create usamos el plan actual o el nuevo
-        estado: 'pendiente_pago',
-        fechaInicio: now,
-        fechaVencimiento: existingSub?.fechaVencimiento || tenthOfNextMonth,
-        trialUsado: true,
-        mpPreapprovalId: result.preapprovalId,
-        esRecurrente: true,
-        proximoCobro: tenthOfNextMonth,
-      },
-      update: {
-        estado: 'pendiente_pago',
-        mpPreapprovalId: result.preapprovalId,
-        esRecurrente: true,
-        proximoCobro: tenthOfNextMonth,
-        // NO actualizamos planId aquí — se cambia solo cuando el webhook valida el pago
-      },
-    });
 
     return NextResponse.json({
       provider: 'mercadopago',
@@ -132,6 +106,7 @@ export async function POST(request: NextRequest) {
       sandbox: result.sandbox,
       planNombre: plan.nombre,
       precioDisplay: plan.precioDisplay,
+      primerCobro: fechaPrimerCobro.toISOString(),
       message: 'Te redirigimos a Mercado Pago para autorizar el débito automático mensual.',
     });
   } catch (error: unknown) {

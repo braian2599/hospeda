@@ -11,6 +11,7 @@ import { camposAPedir } from '@/lib/tarifa-calc';
 import { aFechaTexto, tarifaParaSalida, estadoVigencia, motivoNoVale, fechaCorta, type ConVigencia } from '@/lib/tarifa-vigencia';
 import { leerTarifasPublicas } from '@/lib/tarifas-publicas';
 import { fechaArgentina } from '@/lib/format';
+import { puedeOperar } from '@/lib/ciclo-cobro';
 
 const MAX_NOCHES_CONSULTA = 30;
 const MAX_PERSONAS_CONSULTA = 20;
@@ -45,6 +46,8 @@ export async function getPublicTenant(slug: string) {
         select: {
           estado: true,
           fechaVencimiento: true,
+          esRecurrente: true,
+          mpPreapprovalId: true,
           plan: { select: { featureFlags: true } },
         },
       },
@@ -82,8 +85,9 @@ export async function getPublicTenant(slug: string) {
   // requireActiveSubscription usa para el panel.
   const sub = tenant.subscription;
   if (!sub) return null;
-  if (sub.estado !== 'activa' && sub.estado !== 'trial') return null;
-  if (sub.fechaVencimiento && sub.fechaVencimiento < new Date()) return null;
+  // Misma regla que el panel, con los 3 días de gracia del débito automático
+  // (src/lib/ciclo-cobro.ts).
+  if (!puedeOperar({ estado: sub.estado, fechaVencimiento: sub.fechaVencimiento, seRenuevaSola: sub.esRecurrente && !!sub.mpPreapprovalId })) return null;
 
   // ── Flags efectivas ──
   // Se resuelve con resolverFlags, el mismo criterio que usa getFeatureFlags

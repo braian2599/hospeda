@@ -1,363 +1,66 @@
 // POST /api/payments/mercadopago/webhook
-// Recibe notificaciones (IPN) de Mercado Pago.
+// Avisos (webhooks) de Mercado Pago sobre las suscripciones de los hoteles a
+// Hospeda. Qué se hace con cada uno: src/lib/payments/cobros-suscripcion.ts.
+//
+// En Mercado Pago (Tus integraciones → Webhooks) tienen que estar marcados
+// "Pagos" y "Planes y suscripciones", con esta dirección.
+//
+// Respuestas: 200 cuando el aviso se procesó o no hace falta hacer nada (así
+// Mercado Pago no lo reintenta); 400 si la firma no es válida; 500 si algo
+// falló de nuestro lado o de Mercado Pago (así lo reintenta).
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
-import { getMercadoPagoPayment, verifyMercadoPagoSignature } from '@/lib/payments/mercadopago';
-import { getMPSubscription } from '@/lib/payments/mp-subscriptions';
-import { validatePaymentAmount, validatePreapprovalAmount } from '@/lib/payments/validation';
-import { db } from '@/lib/db';
+import { verifyMercadoPagoSignature } from '@/lib/payments/mercadopago';
+import {
+  procesarAvisoPago, procesarAvisoSuscripcion, procesarAvisoCobroMensual,
+} from '@/lib/payments/cobros-suscripcion';
 
 export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => ({})) as {
+    type?: string; topic?: string; action?: string; data?: { id?: string | number };
+  };
+  const params = request.nextUrl.searchParams;
+  const tipo = body.type || body.topic || params.get('type') || params.get('topic') || '';
+  const dataId = params.get('data.id') || (body.data?.id != null ? String(body.data.id) : '') || params.get('id') || '';
+
+  const firmaValida = await verifyMercadoPagoSignature(
+    request.headers.get('x-signature') || '',
+    request.headers.get('x-request-id'),
+    dataId || null,
+  );
+  if (!firmaValida) {
+    console.error(`[mp-webhook] Firma inválida — tipo=${tipo} id=${dataId}`);
+    return NextResponse.json({ error: 'Firma inválida' }, { status: 400 });
+  }
+  if (!dataId) return NextResponse.json({ received: true, ignorado: 'sin id' });
+
   try {
-    const body = await request.json();
-
-    // MP envía el topic y el resource ID
-    const { type, data } = body;
-
-    // Verificar firma (siempre en producción)
-    const xSignature = request.headers.get('x-signature') || '';
-    const xRequestId = request.headers.get('x-request-id') || data?.id || '';
-    const signatureValid = await verifyMercadoPagoSignature(xSignature, xRequestId);
-
-    if (!signatureValid) {
-      console.error('[mp-webhook] Firma inválida');
-      return NextResponse.json({ error: 'Firma inválida' }, { status: 400 });
-    }
-
-    // Procesar según tipo de evento
-    if (type === 'preapproval') {
-      return handlePreapprovalEvent(data?.id);
-    }
-
-    // Solo procesar pagos (incluye cobros recurrentes automáticos)
-    if (type !== 'payment') {
-      return NextResponse.json({ received: true });
-    }
-
-    const paymentId = data?.id;
-    if (!paymentId) {
-      return NextResponse.json({ error: 'No payment ID' }, { status: 400 });
-    }
-
-    // ── IDEMPOTENCIA: Verificar si ya procesamos este pago ──
-    const existingPayment = await db.platformPayment.findFirst({
-      where: { externalId: String(paymentId) },
-    });
-
-    if (existingPayment) {
-      console.log(`[mp-webhook] Pago ${paymentId} ya procesado (estado: ${existingPayment.estado}). Ignorando duplicado.`);
-      return NextResponse.json({ received: true, duplicate: true });
-    }
-
-    // Obtener detalles del pago
-    const payment = await getMercadoPagoPayment(String(paymentId));
-    if (!payment) {
-      return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
-    }
-
-    const status = payment.status; // 'approved', 'pending', 'rejected'
-    const externalRef = payment.external_reference || '';
-    const metadata = payment.metadata || {};
-    const mpAmount = Math.round((payment.transaction_amount || 0) * 100); // Convertir a centavos
-    const mpPaymentMethod = payment.payment_type_id || 'unknown'; // credit_card, transfer, etc.
-
-    console.log(`[mp-webhook] Pago ${paymentId}: status=${status}, ref=${externalRef}, amount=${mpAmount}`);
-
-    // Parsear external_reference: "tenantId:planTipo"
-    const [tenantId, planTipo] = externalRef.split(':');
-
-    if (!tenantId || !planTipo) {
-      console.error('[mp-webhook] external_reference malformado:', externalRef);
-      return NextResponse.json({ error: 'External reference inválido' }, { status: 400 });
-    }
-
-    // Buscar la suscripción del tenant
-    const subscription = await db.subscription.findUnique({ where: { tenantId } });
-    if (!subscription) {
-      console.error('[mp-webhook] Suscripción no encontrada para tenant:', tenantId);
-      return NextResponse.json({ error: 'Suscripción no encontrada' }, { status: 404 });
-    }
-
-    // Buscar el plan por tipo
-    const plan = await db.plan.findFirst({ where: { type: planTipo as any } });
-
-    // Manejar según estado del pago — wrapped en try/catch para manejar
-    // race conditions (dos webhooks simultáneos para el mismo paymentId).
-    // Si externalId ya existe (P2002 unique constraint), tratamos como duplicado.
-    try {
-      switch (status) {
-        case 'approved': {
-        console.log(`[mp-webhook] Pago aprobado: tenant=${tenantId}, plan=${planTipo}, amount=${mpAmount}`);
-
-        // ── VALIDACIÓN DE SEGURIDAD: verificar que el monto pagado coincida con el precio del plan ──
-        // Esto previene que un atacante pague $1 y active un plan premium
-        const amountValidation = await validatePaymentAmount(planTipo, mpAmount);
-        if (!amountValidation.valid) {
-          console.error(`[mp-webhook] Pago RECHAZADO — monto inválido. Tenant: ${tenantId}, Plan: ${planTipo}, Monto: ${mpAmount}. Motivo: ${amountValidation.reason}`);
-
-          // Registrar el pago como fallido para tener auditoría del intento
-          await db.platformPayment.create({
-            data: {
-              tenantId,
-              subscriptionId: subscription.id,
-              monto: mpAmount,
-              moneda: 'ARS',
-              metodo: 'mercadopago',
-              estado: 'fallido',
-              periodoDesde: new Date(),
-              periodoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-              externalId: String(paymentId),
-              nota: `PAGO RECHAZADO POR MONTO INSUFICIENTE — ${amountValidation.reason} — Plan solicitado: ${planTipo} — Método: ${mpPaymentMethod}`,
-            },
-          });
-
-          // NO activar la suscripción — salir
-          return NextResponse.json(
-            { received: true, rejected: true, reason: amountValidation.reason },
-            { status: 200 }
-          );
-        }
-
-        // Si es suscripción recurrente, extender al día 10 del mes próximo
-        let fechaVencimiento: Date;
-        if (subscription.esRecurrente) {
-          fechaVencimiento = new Date(
-            new Date().getFullYear(),
-            new Date().getMonth() + 1,
-            10
-          );
-          // Actualizar próximo cobro
-          await db.subscription.update({
-            where: { tenantId },
-            data: {
-              proximoCobro: new Date(
-                new Date().getFullYear(),
-                new Date().getMonth() + 2,
-                10
-              ),
-            },
-          });
-        } else {
-          // Pago único: extender 30 días desde el vencimiento actual o desde hoy
-          const baseDate = subscription.fechaVencimiento > new Date()
-            ? new Date(subscription.fechaVencimiento)
-            : new Date();
-          fechaVencimiento = new Date(baseDate);
-          fechaVencimiento.setDate(fechaVencimiento.getDate() + 30);
-        }
-
-        // Actualizar suscripción — el planId solo se actualiza si el pago fue validado
-        await db.subscription.update({
-          where: { tenantId },
-          data: {
-            estado: 'activa',
-            origen: 'mercadopago',
-            planId: amountValidation.plan?.id || plan?.id || subscription.planId,
-            paymentProviderId: String(paymentId),
-            trialUsado: true,
-            fechaVencimiento,
-          },
-        });
-
-        // Registrar el pago en PlatformPayment
-        const periodoDesde = subscription.esRecurrente
-          ? new Date(new Date().getFullYear(), new Date().getMonth(), 10)
-          : (subscription.fechaVencimiento > new Date()
-            ? new Date(subscription.fechaVencimiento)
-            : new Date());
-
-        await db.platformPayment.create({
-          data: {
-            tenantId,
-            subscriptionId: subscription.id,
-            monto: mpAmount,
-            moneda: 'ARS',
-            metodo: 'mercadopago',
-            estado: 'pagado',
-            periodoDesde,
-            periodoHasta: fechaVencimiento,
-            externalId: String(paymentId),
-            nota: subscription.esRecurrente
-              ? `Cobro recurrente MP ${paymentId} — Plan ${planTipo} — ${mpPaymentMethod}`
-              : `Pago MP ${paymentId} — Plan ${planTipo} — ${mpPaymentMethod}`,
-          },
-        });
-
-        console.log(`[mp-webhook] Suscripción activada hasta ${fechaVencimiento.toISOString()}`);
+    let resultado: string;
+    switch (tipo) {
+      case 'payment':
+        resultado = await procesarAvisoPago(dataId);
         break;
-      }
-
-      case 'pending': {
-        console.log(`[mp-webhook] Pago pendiente: tenant=${tenantId}`);
-
-        // Registrar como pago pendiente
-        await db.platformPayment.create({
-          data: {
-            tenantId,
-            subscriptionId: subscription.id,
-            monto: mpAmount,
-            moneda: 'ARS',
-            metodo: 'mercadopago',
-            estado: 'pendiente',
-            periodoDesde: new Date(),
-            periodoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            externalId: String(paymentId),
-            nota: `Pago pendiente MP ${paymentId} — Plan ${planTipo} — ${mpPaymentMethod}`,
-          },
-        });
+      case 'subscription_preapproval':
+      case 'preapproval':
+        resultado = await procesarAvisoSuscripcion(dataId);
         break;
-      }
-
-      case 'rejected': {
-        console.log(`[mp-webhook] Pago rechazado: tenant=${tenantId}`);
-
-        // Registrar pago fallido
-        await db.platformPayment.create({
-          data: {
-            tenantId,
-            subscriptionId: subscription.id,
-            monto: mpAmount,
-            moneda: 'ARS',
-            metodo: 'mercadopago',
-            estado: 'fallido',
-            periodoDesde: new Date(),
-            periodoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            externalId: String(paymentId),
-            nota: `Pago rechazado MP ${paymentId}`,
-          },
-        });
+      case 'subscription_authorized_payment':
+      case 'authorized_payment':
+        resultado = await procesarAvisoCobroMensual(dataId);
         break;
-      }
-
-      case 'refunded':
-      case 'cancelled': {
-        console.log(`[mp-webhook] Pago ${status}: tenant=${tenantId}`);
-
-        // Si por alguna razón no se creó antes (no debería pasar con la idempotencia)
-        // pero el pago ya existe de un flujo anterior
-        break;
-      }
-      }
-    } catch (error: unknown) {
-      // P2002 = unique constraint violation (externalId duplicado)
-      // Esto ocurre si dos webhooks simultáneos procesan el mismo paymentId.
-      // Tratamos como duplicado — no es un error.
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        console.log(`[mp-webhook] Pago ${paymentId} ya procesado por otro webhook (P2002). Ignorando duplicado.`);
-        return NextResponse.json({ received: true, duplicate: true });
-      }
-      throw error; // Re-lanzar otros errores
+      default:
+        resultado = `tipo ${tipo || '(vacío)'} ignorado`;
     }
-
+    // Queda en los registros de Vercel: es la forma de seguir cada aviso.
+    console.log(`[mp-webhook] ${tipo} ${dataId}: ${resultado}`);
     return NextResponse.json({ received: true });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('[mp-webhook] Error:', err.message);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error(`[mp-webhook] Error procesando ${tipo} ${dataId}:`, error instanceof Error ? error.message : error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
 
-// ── Handler para eventos de Preapproval (suscripciones recurrentes) ──
-async function handlePreapprovalEvent(preapprovalId: string | undefined) {
-  if (!preapprovalId) {
-    return NextResponse.json({ received: true });
-  }
-
-  console.log(`[mp-webhook] Preapproval event: id=${preapprovalId}`);
-
-  // Obtener detalles del preapproval desde MP
-  const preapproval = await getMPSubscription(preapprovalId);
-  if (!preapproval) {
-    console.error(`[mp-webhook] Preapproval ${preapprovalId} no encontrado en MP`);
-    return NextResponse.json({ error: 'Preapproval not found' }, { status: 404 });
-  }
-
-  const mpStatus = preapproval.status; // 'pending', 'authorized', 'paused', 'cancelled'
-  const externalRef = preapproval.external_reference || '';
-  const [tenantId, planTipo] = externalRef.split(':');
-
-  if (!tenantId) {
-    console.error('[mp-webhook] Preapproval sin external_reference válido:', externalRef);
-    return NextResponse.json({ received: true });
-  }
-
-  console.log(`[mp-webhook] Preapproval ${preapprovalId}: status=${mpStatus}, tenant=${tenantId}, plan=${planTipo}`);
-
-  switch (mpStatus) {
-    case 'authorized': {
-      // ── VALIDACIÓN DE SEGURIDAD: verificar que el monto del preapproval coincida con el precio del plan ──
-      const transactionAmount = preapproval.auto_recurring?.transaction_amount || 0;
-      const amountValidation = await validatePreapprovalAmount(planTipo, transactionAmount);
-      if (!amountValidation.valid) {
-        console.error(`[mp-webhook] Preapproval RECHAZADO — monto inválido. Tenant: ${tenantId}, Plan: ${planTipo}, Amount: ${transactionAmount}. Motivo: ${amountValidation.reason}`);
-        // No actualizamos la suscripción a 'activa' — queda en 'pendiente_pago'
-        return NextResponse.json(
-          { received: true, rejected: true, reason: amountValidation.reason },
-          { status: 200 }
-        );
-      }
-
-      // Suscripción autorizada — el usuario completó el flujo
-      const now = new Date();
-      const tenthOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10);
-
-      await db.subscription.update({
-        where: { mpPreapprovalId: preapprovalId },
-        data: {
-          estado: 'activa',
-          origen: 'mercadopago',
-          ...(amountValidation.plan ? { planId: amountValidation.plan.id } : {}),
-          trialUsado: true,
-          esRecurrente: true,
-          fechaVencimiento: tenthOfNextMonth,
-          proximoCobro: tenthOfNextMonth,
-        },
-      });
-
-      console.log(`[mp-webhook] Preapproval autorizado — suscripción activa para tenant=${tenantId}`);
-      break;
-    }
-
-    case 'paused': {
-      // Suscripción pausada (falta de pago, etc.)
-      await db.subscription.update({
-        where: { mpPreapprovalId: preapprovalId },
-        data: { estado: 'suspensa' },
-      });
-      console.log(`[mp-webhook] Preapproval pausado para tenant=${tenantId}`);
-      break;
-    }
-
-    case 'cancelled': {
-      // Suscripción cancelada por el usuario o MP
-      await db.subscription.update({
-        where: { mpPreapprovalId: preapprovalId },
-        data: {
-          estado: 'cancelada',
-          canceladaAt: new Date(),
-          esRecurrente: false,
-          mpPreapprovalId: null,
-          proximoCobro: null,
-        },
-      });
-      console.log(`[mp-webhook] Preapproval cancelado para tenant=${tenantId}`);
-      break;
-    }
-
-    default:
-      console.log(`[mp-webhook] Preapproval status no manejado: ${mpStatus}`);
-  }
-
-  return NextResponse.json({ received: true });
-}
-
-// GET para verificación de MP (a veces envían GET antes del POST)
-// POR SEGURIDAD: no devolvemos información de pagos sin validar firma.
-// MP usa el GET solo como ping de verificación, no necesita respuesta con datos.
+// Mercado Pago a veces prueba la dirección con un GET: no se devuelve nada.
 export async function GET() {
   return NextResponse.json({ received: true });
 }

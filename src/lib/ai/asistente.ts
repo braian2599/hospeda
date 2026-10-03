@@ -94,6 +94,13 @@ Algunas funciones dependen del plan contratado. A grandes rasgos:
 - Elite suma la sincronización con Booking.com y Airbnb.
 Los precios y el detalle fino de cada plan están en la página de Precios del sitio: para eso mandá ahí en vez de afirmar de memoria. Si más abajo te dicen el plan de este hotel y qué módulos ve la persona, usá ESO para contestar por qué no ve un módulo, en vez de mandarla a Precios.
 
+## Cobro de la suscripción
+- Se paga por débito automático de Mercado Pago, el día 10 de cada mes, por adelantado (el cobro del 10/11 cubre del 10/11 al 10/12). Se activa en Configuración → Suscripción, eligiendo un plan.
+- El primer cobro es el primer 10 después de que termina lo que el hotel ya tiene (la prueba de 30 días, una cortesía o un pago anterior). Suscribirse durante la prueba no la corta: se termina completa. Ejemplo: registro el 15/09, prueba hasta el 15/10, primer cobro el 10/11; los días entre el 15/10 y el 10/11 son de regalo.
+- Si el cobro del 10 falla (por ejemplo, tarjeta sin saldo), el sistema sigue funcionando 3 días más (10, 11 y 12) mientras Mercado Pago reintenta, con un aviso arriba. El 13 se bloquea hasta que se acredite el pago.
+- Abrir Mercado Pago y no terminar no cambia nada: el plan actual sigue igual.
+- Cancelar el débito no corta el servicio: sigue hasta la fecha que ya está paga, sin días de gracia.
+
 ## Integraciones con Booking.com / Airbnb
 Hoy existe solo una sincronización básica por iCal: bloquea disponibilidad, pero NO sincroniza tarifas ni trae reservas en tiempo real con todos los datos del huésped. Nunca digas que hay sincronización completa en tiempo real con Booking.com o Airbnb — todavía no existe, es una integración planeada a futuro.`;
 

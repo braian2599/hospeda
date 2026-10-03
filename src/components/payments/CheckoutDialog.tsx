@@ -49,6 +49,8 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [checkoutUrl, setCheckoutUrl] = useState('');
+  // Fecha del primer cobro que calculó el servidor (src/lib/ciclo-cobro.ts).
+  const [primerCobro, setPrimerCobro] = useState('');
 
   // Reset state when dialog opens/closes or plan changes
   const handleOpenChange = (newOpen: boolean) => {
@@ -108,6 +110,9 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
       const url = data.initPoint || data.url;
       if (url) {
         setCheckoutUrl(url);
+        setPrimerCobro(data.primerCobro
+          ? new Date(data.primerCobro).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+          : '');
         setStep('success');
         setTimeout(() => {
           window.open(url, '_blank', 'noopener,noreferrer');
@@ -190,7 +195,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
               <div className="flex items-center gap-2 p-3 bg-[#0F766E0D] rounded-lg border border-[#0F766E1A]">
                 <RefreshCw className="w-4 h-4 text-primary shrink-0" />
                 <p className="text-xs text-primary">
-                  <strong>Suscripción recurrente:</strong> El cobro se realiza automáticamente el día 10 de cada mes. Podés cancelar cuando quieras.
+                  <strong>Suscripción recurrente:</strong> El cobro se realiza automáticamente el día 10 de cada mes. El primer cobro es el primer 10 después de que termina tu prueba (o lo que ya tenés pago), así que no perdés ningún día. Podés cancelar cuando quieras.
                 </p>
               </div>
 
@@ -275,7 +280,8 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
                 <ExternalLink className="w-4 h-4" />
               </Button>
               <p className="text-xs text-muted-foreground max-w-xs">
-                Tu suscripción se activará una vez que autorices el débito. El primer cobro será el día 10 del mes que viene.
+                Tu suscripción se activará una vez que autorices el débito.{' '}
+                {primerCobro ? `El primer cobro será el ${primerCobro}.` : 'El primer cobro será el primer día 10 después de que termine tu prueba.'}
               </p>
               <Button
                 variant="ghost"

@@ -6,6 +6,7 @@
 import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { encrypt, decrypt } from '@/lib/crypto';
+import { firmaMercadoPagoValida } from '@/lib/payments/mp-firma';
 
 const OAUTH_AUTHORIZE_URL = 'https://auth.mercadopago.com/authorization';
 const OAUTH_TOKEN_URL = 'https://api.mercadopago.com/oauth/token';
@@ -29,46 +30,19 @@ function getSigningSecret(): string {
   return secret;
 }
 
-const WEBHOOK_MAX_AGE_SECONDS = 5 * 60; // anti-replay
-
 /**
- * Verifica la firma del webhook de la app de Mercado Pago Connect (OAuth).
- * Es la app usada para conectar las cuentas de los hoteles — tiene su propio
- * secreto de firma, distinto al de la app de cobro de suscripciones de la plataforma.
+ * Firma de los avisos de las señas. Es la app de Mercado Pago Connect (OAuth),
+ * la que conecta las cuentas de los hoteles: tiene su propia clave secreta,
+ * distinta a la de la app que cobra las suscripciones. Mismo formato que el
+ * resto: ver src/lib/payments/mp-firma.ts.
  */
-export function verifyMpConnectWebhookSignature(xSignature: string, xRequestId: string): boolean {
-  const secret = process.env.MP_CONNECT_WEBHOOK_SECRET;
-  if (!secret) {
+export function verifyMpConnectWebhookSignature(xSignature: string, xRequestId: string | null, dataId: string | null): boolean {
+  const secreto = process.env.MP_CONNECT_WEBHOOK_SECRET;
+  if (!secreto) {
     console.warn('[mp-connect webhook] MP_CONNECT_WEBHOOK_SECRET no configurado — rechazando webhook');
     return false;
   }
-
-  try {
-    const parts = xSignature.split(',');
-    let ts = '';
-    let hash = '';
-    for (const part of parts) {
-      const [key, value] = part.split('=');
-      if (key === 'ts') ts = value;
-      if (key === 'v1') hash = value;
-    }
-    if (!ts || !hash) return false;
-
-    const webhookTime = parseInt(ts, 10);
-    if (isNaN(webhookTime)) return false;
-    const ageSeconds = Math.floor(Date.now() / 1000) - webhookTime;
-    if (ageSeconds > WEBHOOK_MAX_AGE_SECONDS || ageSeconds < -60) return false;
-
-    const manifest = `id:${xRequestId};request-ts:${ts};`;
-    const expected = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
-
-    const expectedBuf = Buffer.from(expected, 'hex');
-    const hashBuf = Buffer.from(hash, 'hex');
-    if (expectedBuf.length !== hashBuf.length) return false;
-    return crypto.timingSafeEqual(expectedBuf, hashBuf);
-  } catch {
-    return false;
-  }
+  return firmaMercadoPagoValida({ secreto, xSignature, xRequestId, dataId });
 }
 
 export interface MpPayment {

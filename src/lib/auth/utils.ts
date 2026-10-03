@@ -282,20 +282,22 @@ export async function requireActiveSubscription(tenantId: string): Promise<void>
 
   const subscription = await db.subscription.findUnique({
     where: { tenantId },
-    select: { estado: true, fechaVencimiento: true },
+    select: { estado: true, fechaVencimiento: true, esRecurrente: true, mpPreapprovalId: true },
   });
 
   if (!subscription) {
     throw new AuthError('No hay suscripción activa. Contactá al administrador.', 403);
   }
 
-  // Estados permitidos para operar: 'activa' y 'trial'
-  if (subscription.estado !== 'activa' && subscription.estado !== 'trial') {
-    throw new AuthError(`Tu suscripción está ${subscription.estado}. Regularizá tu pago para continuar.`, 403);
-  }
-
-  // Verificar que no esté vencida (fechaVencimiento en el pasado)
-  if (subscription.fechaVencimiento && subscription.fechaVencimiento < new Date()) {
+  // Misma regla que la pantalla y la página web (src/lib/ciclo-cobro.ts):
+  // hasta el vencimiento y, con débito automático, 3 días de gracia por si
+  // el cobro del 10 falla.
+  const { puedeOperar } = await import('@/lib/ciclo-cobro');
+  if (!puedeOperar({
+    estado: subscription.estado,
+    fechaVencimiento: subscription.fechaVencimiento,
+    seRenuevaSola: subscription.esRecurrente && !!subscription.mpPreapprovalId,
+  })) {
     throw new AuthError('Tu suscripción está vencida. Regularizá tu pago para continuar.', 403);
   }
 }

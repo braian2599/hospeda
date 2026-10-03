@@ -6,6 +6,7 @@ import { PlanTipo, type PlanInfo } from '@/lib/plan-config';
 import { getServerPlan } from '@/lib/plan-server';
 import { getMPAccessToken, getMPWebhookSecret as fetchWebhookSecret } from '@/lib/payments/config';
 import type { PaymentMetadata, MercadoPagoCheckoutResponse } from '@/lib/payments/types';
+import { firmaMercadoPagoValida } from '@/lib/payments/mp-firma';
 
 /** Crea un cliente MP — SDK v3 auto-detecta sandbox por el token */
 async function createMPClient() {
@@ -14,8 +15,9 @@ async function createMPClient() {
     throw new Error('Mercado Pago no está configurado.');
   }
 
-  // En SDK v3, sandbox se detecta automáticamente por el access token
-  const isSandboxToken = accessToken.startsWith('TEST-') || accessToken.startsWith('APP_USR-');
+  // Solo las credenciales de prueba viejas empiezan con TEST-. Las de
+  // producción empiezan con APP_USR- (antes se las tomaba como de prueba).
+  const isSandboxToken = accessToken.startsWith('TEST-');
 
   console.log(`[MP] Client — sandbox: ${isSandboxToken}, token prefix: ${accessToken.substring(0, 8)}...`);
 
@@ -103,14 +105,32 @@ export async function createMercadoPagoCheckout(params: {
   };
 }
 
+export interface PagoMP {
+  id: number;
+  status: string; // approved | pending | in_process | rejected | refunded | cancelled | charged_back
+  status_detail?: string;
+  transaction_amount?: number;
+  external_reference?: string | null;
+  payment_type_id?: string;
+  date_approved?: string | null;
+  date_created?: string;
+}
+
 /**
- * Busca información de un pago en Mercado Pago por su ID.
+ * Busca un pago en Mercado Pago por su ID, con las credenciales de la
+ * plataforma. null si no existe; lanza error si Mercado Pago no responde
+ * (así el aviso devuelve error y Mercado Pago lo reintenta).
  */
-export async function getMercadoPagoPayment(paymentId: string) {
-  const { client, Payment } = await createMPClient();
-  const payment = new Payment(client);
-  const result = await payment.get({ id: paymentId });
-  return result;
+export async function getMercadoPagoPayment(paymentId: string): Promise<PagoMP | null> {
+  const accessToken = await getMPAccessToken();
+  if (!accessToken) throw new Error('Mercado Pago no está configurado.');
+  const res = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: 'no-store',
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Mercado Pago respondió ${res.status} al consultar el pago ${paymentId}`);
+  return await res.json() as PagoMP;
 }
 
 /**
@@ -120,19 +140,16 @@ export async function getMercadoPagoPayment(paymentId: string) {
 export { fetchWebhookSecret as getMPWebhookSecret };
 
 /**
- * Verifica la firma del webhook de Mercado Pago usando HMAC-SHA256.
- * También valida que el timestamp no sea demasiado viejo (anti-replay).
- * Un atacante que capture un webhook válido no puede reenviarlo después
- * de MAX_WEBHOOK_AGE_SECONDS porque el timestamp expiró.
+ * Verifica la firma de un aviso de Mercado Pago (ver src/lib/payments/mp-firma.ts).
+ * Sin clave secreta configurada se rechaza en producción.
  */
-const MAX_WEBHOOK_AGE_SECONDS = 5 * 60; // 5 minutos — prevenir replay attacks
-
 export async function verifyMercadoPagoSignature(
   xSignature: string,
-  xRequestId: string
+  xRequestId: string | null,
+  dataId: string | null,
 ): Promise<boolean> {
-  const secret = await fetchWebhookSecret();
-  if (!secret) {
+  const secreto = await fetchWebhookSecret();
+  if (!secreto) {
     if (process.env.NODE_ENV === 'production') {
       console.warn('[MP Webhook] Webhook secret no configurada — rechazando webhook en producción');
       return false;
@@ -140,51 +157,5 @@ export async function verifyMercadoPagoSignature(
     console.warn('[MP Webhook] Webhook secret no configurada — permitiendo en desarrollo');
     return true;
   }
-
-  try {
-    const crypto = await import('crypto');
-    const parts = xSignature.split(',');
-    let ts = '';
-    let hash = '';
-    for (const part of parts) {
-      const [key, value] = part.split('=');
-      if (key === 'ts') ts = value;
-      if (key === 'v1') hash = value;
-    }
-    if (!ts || !hash) return false;
-
-    // ── Anti-replay: validar que el timestamp no sea demasiado viejo ──
-    // MP envía el timestamp en segundos. Si pasó más de MAX_WEBHOOK_AGE_SECONDS,
-    // rechazamos el webhook (puede ser un replay attack).
-    const webhookTime = parseInt(ts, 10);
-    if (isNaN(webhookTime)) {
-      console.error('[MP Webhook] Timestamp inválido en firma:', ts);
-      return false;
-    }
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const ageSeconds = nowSeconds - webhookTime;
-    if (ageSeconds > MAX_WEBHOOK_AGE_SECONDS) {
-      console.error(`[MP Webhook] Webhook rechazado — timestamp expirado: ${ageSeconds}s > ${MAX_WEBHOOK_AGE_SECONDS}s`);
-      return false;
-    }
-    // También rechazar timestamps del futuro (clock skew extremo = sospechoso)
-    if (ageSeconds < -60) {
-      console.error(`[MP Webhook] Webhook rechazado — timestamp del futuro: ${ageSeconds}s`);
-      return false;
-    }
-
-    const manifest = `id:${xRequestId};request-ts:${ts};`;
-    const expected = crypto
-      .createHmac('sha256', secret)
-      .update(manifest)
-      .digest('hex');
-
-    // Usar timingSafeEqual para prevenir timing attacks
-    const expectedBuf = Buffer.from(expected, 'hex');
-    const hashBuf = Buffer.from(hash, 'hex');
-    if (expectedBuf.length !== hashBuf.length) return false;
-    return crypto.timingSafeEqual(expectedBuf, hashBuf);
-  } catch {
-    return false;
-  }
+  return firmaMercadoPagoValida({ secreto, xSignature, xRequestId, dataId });
 }

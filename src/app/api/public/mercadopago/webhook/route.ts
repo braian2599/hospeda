@@ -81,8 +81,9 @@ export async function POST(req: NextRequest) {
     }
 
     const xSignature = req.headers.get('x-signature') || '';
-    const xRequestId = req.headers.get('x-request-id') || String(paymentId);
-    if (!verifyMpConnectWebhookSignature(xSignature, xRequestId)) {
+    const xRequestId = req.headers.get('x-request-id');
+    const dataIdFirmado = req.nextUrl.searchParams.get('data.id') || String(paymentId);
+    if (!verifyMpConnectWebhookSignature(xSignature, xRequestId, dataIdFirmado)) {
       console.error('[mp-connect webhook] Firma inválida');
       return NextResponse.json({ error: 'Firma inválida' }, { status: 400 });
     }

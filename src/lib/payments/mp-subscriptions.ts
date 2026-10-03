@@ -7,7 +7,7 @@ import { getServerPlan } from '@/lib/plan-server';
 
 const MP_API_BASE = 'https://api.mercadopago.com';
 
-interface MPPreapprovalResponse {
+export interface MPPreapprovalResponse {
   id: string;
   status: string;
   init_point: string;
@@ -25,18 +25,25 @@ interface MPPreapprovalResponse {
   external_reference?: string;
   date_created: string;
   last_modified: string;
+  /** Fecha del próximo cobro que tiene programado Mercado Pago. */
+  next_payment_date?: string;
+  /** Resumen de cobros hechos (lo usa la revisión diaria). */
+  summarized?: {
+    charged_quantity?: number | null;
+    last_charged_date?: string | null;
+    last_charged_amount?: number | null;
+  };
 }
 
-/**
- * Obtiene el día 10 del próximo mes en formato ISO
- */
-function getTenthOfNextMonth(): string {
-  const now = new Date();
-  const tenthOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10, 3, 0, 0, 0);
-  // MP requiere formato ISO con milisegundos: 2026-08-10T03:00:00.000-03:00
-  const iso = tenthOfNextMonth.toISOString();
-  // toISOString() devuelve Z (UTC), MP acepta ese formato
-  return iso.replace(/\.\d{3}Z$/, '.000Z');
+/** Un cobro mensual de una suscripción ("factura" de Mercado Pago). */
+export interface CobroAutorizadoMP {
+  id: number | string;
+  preapproval_id: string;
+  status: string; // scheduled | processed | recycling | cancelled
+  transaction_amount?: number;
+  debit_date?: string;
+  retry_attempt?: number;
+  payment?: { id: number | string; status: string; status_detail?: string } | null;
 }
 
 /**
@@ -48,8 +55,10 @@ export async function createMPSubscription(params: {
   tenantId: string;
   userEmail: string;
   hotelNombre: string;
+  /** Primer cobro: un día 10 a las 00:00 de Argentina (ver src/lib/ciclo-cobro.ts). */
+  primerCobro: Date;
 }): Promise<{ preapprovalId: string; initPoint: string; sandbox: boolean }> {
-  const { planTipo, tenantId, userEmail, hotelNombre } = params;
+  const { planTipo, tenantId, userEmail, hotelNombre, primerCobro } = params;
   const plan = await getServerPlan(planTipo);
   const accessToken = await getMPAccessToken();
 
@@ -57,7 +66,9 @@ export async function createMPSubscription(params: {
     throw new Error('Mercado Pago no está configurado.');
   }
 
-  const isSandbox = accessToken.startsWith('TEST-') || accessToken.startsWith('APP_USR-');
+  // Solo las credenciales de prueba viejas empiezan con TEST-; las de
+  // producción empiezan con APP_USR- (antes se las tomaba como de prueba).
+  const isSandbox = accessToken.startsWith('TEST-');
 
   // El back_url DEBE coincidir exactamente con el dominio autorizado en la app de MP
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
@@ -72,7 +83,7 @@ export async function createMPSubscription(params: {
     frequency_type: 'months',
     transaction_amount: plan.precio / 100, // MP usa decimales, no centavos
     currency_id: 'ARS',
-    start_date: getTenthOfNextMonth(),
+    start_date: primerCobro.toISOString(),
   };
 
   const body: Record<string, unknown> = {
@@ -84,7 +95,7 @@ export async function createMPSubscription(params: {
   };
 
   console.log(`[MP Subscription] Creando preapproval para tenant=${tenantId}, plan=${planTipo}, sandbox=${isSandbox}`);
-  console.log(`[MP Subscription] Request body:`, JSON.stringify(body, null, 2));
+  console.log(`[MP Subscription] Primer cobro: ${primerCobro.toISOString()}, monto: ${autoRecurring.transaction_amount}`);
   console.log(`[MP Subscription] back_url:`, backUrl);
 
   const res = await fetch(`${MP_API_BASE}/preapproval`, {
@@ -114,7 +125,7 @@ export async function createMPSubscription(params: {
 
   const initPoint = isSandbox
     ? (data.sandbox_init_point || data.init_point)
-    : (data.init_point || data.sandbox_init_point);
+    : data.init_point;
 
   if (!initPoint) {
     console.error('[MP Subscription] No init_point en respuesta:', JSON.stringify(data, null, 2));
@@ -129,21 +140,35 @@ export async function createMPSubscription(params: {
 }
 
 /**
- * Obtiene los detalles de un Preapproval de Mercado Pago.
+ * Obtiene los detalles de un Preapproval de Mercado Pago. null si no existe;
+ * lanza error si Mercado Pago no responde (el aviso se reintenta).
  */
 export async function getMPSubscription(preapprovalId: string): Promise<MPPreapprovalResponse | null> {
   const accessToken = await getMPAccessToken();
-  if (!accessToken) return null;
+  if (!accessToken) throw new Error('Mercado Pago no está configurado.');
+  const res = await fetch(`${MP_API_BASE}/preapproval/${encodeURIComponent(preapprovalId)}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` },
+    cache: 'no-store',
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Mercado Pago respondió ${res.status} al consultar la suscripción ${preapprovalId}`);
+  return await res.json() as MPPreapprovalResponse;
+}
 
-  try {
-    const res = await fetch(`${MP_API_BASE}/preapproval/${preapprovalId}`, {
-      headers: { 'Authorization': `Bearer ${accessToken}` },
-    });
-    if (!res.ok) return null;
-    return await res.json() as MPPreapprovalResponse;
-  } catch {
-    return null;
-  }
+/**
+ * Obtiene un cobro mensual de una suscripción (aviso
+ * "subscription_authorized_payment"). null si no existe.
+ */
+export async function getMPCobroAutorizado(id: string): Promise<CobroAutorizadoMP | null> {
+  const accessToken = await getMPAccessToken();
+  if (!accessToken) throw new Error('Mercado Pago no está configurado.');
+  const res = await fetch(`${MP_API_BASE}/authorized_payments/${encodeURIComponent(id)}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` },
+    cache: 'no-store',
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Mercado Pago respondió ${res.status} al consultar el cobro ${id}`);
+  return await res.json() as CobroAutorizadoMP;
 }
 
 /**

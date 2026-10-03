@@ -37,7 +37,12 @@ Navegación por secciones (sidebar/menú), no todas visibles siempre:
 7. **Datos / Export**: descargar CSV de reservas, clientes, pagos, o un
    backup completo en JSON.
 8. **Suscripción**: plan actual, uso vs límites del plan, comparativa de
-   planes y pago (Mercado Pago o transferencia bancaria).
+   planes y pago (Mercado Pago o transferencia bancaria). El débito
+   automático de Mercado Pago cobra el día 10 de cada mes; el primer cobro
+   es el primer 10 después de que termina la prueba (o lo que ya tiene pago);
+   si un cobro falla hay 3 días de gracia (10, 11 y 12) y el 13 se bloquea.
+   Reglas en `src/lib/ciclo-cobro.ts`; avisos de Mercado Pago y revisión
+   diaria en `src/lib/payments/cobros-suscripcion.ts`.
 9. **Soporte**: formulario de contacto.
 
 ## Reglas importantes

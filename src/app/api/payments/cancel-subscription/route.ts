@@ -35,19 +35,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cancelar en Mercado Pago
+    // Primero en Mercado Pago. Si falla, NO se marca como cancelada: antes se
+    // cancelaba igual en la base y Mercado Pago seguía cobrando.
     try {
       await cancelMPSubscription(sub.mpPreapprovalId);
     } catch (e: any) {
-      console.warn('[cancel-subscription] Error cancelando en MP:', e.message);
-      // Continuamos — cancelamos en nuestra BD de todos modos
+      console.error('[cancel-subscription] Error cancelando en MP:', e.message);
+      return NextResponse.json(
+        { error: 'No se pudo cancelar el débito en Mercado Pago. Probá de nuevo en unos minutos.' },
+        { status: 502 },
+      );
     }
 
-    // Actualizar BD
+    // Deja de renovarse, pero sigue funcionando hasta lo que ya pagó (el
+    // estado no cambia; el acceso lo decide la fecha, ver src/lib/ciclo-cobro.ts).
+    // Antes se ponía "cancelada" y se cortaba en el momento.
     await db.subscription.update({
       where: { tenantId: authTenantId },
       data: {
-        estado: 'cancelada',
         mpPreapprovalId: null,
         esRecurrente: false,
         proximoCobro: null,
@@ -55,7 +60,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, message: 'Suscripción cancelada. Seguirás teniendo acceso hasta el vencimiento actual.' });
+    const hasta = sub.fechaVencimiento.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+    return NextResponse.json({ success: true, message: `Débito automático cancelado. Seguís teniendo acceso hasta el ${hasta}.` });
   } catch (error: any) {
     console.error('[cancel-subscription] Error:', error?.message || error);
 
