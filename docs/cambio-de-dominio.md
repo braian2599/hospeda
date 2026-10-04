@@ -101,5 +101,9 @@ Emails a hacer:
    (`prisma/migrations/20261004_aviso_plataforma/migration.sql`).
 5. ~~**Invitación a usuarios del hotel.**~~ No va (04/10): los perfiles del
    hotel entran siempre con el email de la cuenta del hotel, no con uno propio.
-6. A decidir: confirmación de reserva al huésped y aviso al hotel de una
-   reserva o seña nueva desde la página web.
+6. ~~**Reservas de la página web.**~~ Hecho (04/10): al huésped "reserva
+   confirmada" (Mercado Pago o cuando el hotel confirma la seña) y "falta la
+   seña" (cobro manual, solo con el botón de WhatsApp del hotel); al hotel
+   "nueva reserva" (a confirmar o seña pagada). Ver `src/lib/avisos-reserva.ts`.
+   El formulario de la web pide ahora WhatsApp con código de país y email
+   obligatorios (`src/lib/telefono.ts`).

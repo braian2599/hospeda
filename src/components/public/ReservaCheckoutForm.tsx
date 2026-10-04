@@ -7,6 +7,8 @@ import {
   User, CreditCard, Globe, Cake, MapPin, CalendarDays, Users, Sparkles, ShieldCheck,
 } from 'lucide-react';
 import type { CampoPersonalizado } from '@/lib/types';
+import { armarTelefono, PAIS_POR_DEFECTO } from '@/lib/telefono';
+import TelefonoConPais from './TelefonoConPais';
 
 interface Desglose {
   tarifa: string;
@@ -64,7 +66,7 @@ function Field({
   label, required, children,
 }: { label: string; required?: boolean; children: ReactNode }) {
   return (
-    <div className="grid gap-1.5">
+    <div className="grid content-start gap-1.5">
       <label className="text-sm font-medium text-[color:var(--foreground-a90)]">
         {label} {required && <span className="text-destructive">*</span>}
       </label>
@@ -105,6 +107,8 @@ export default function ReservaCheckoutForm({
   const [form, setForm] = useState({
     huesped: '', dni: '', telefono: '', email: '', nacionalidad: '', fechaNacimiento: '', domicilio: '',
   });
+  // El WhatsApp se escribe por partes (país + número) y se manda armado.
+  const [telPais, setTelPais] = useState(PAIS_POR_DEFECTO);
   const [datosAdicionales, setDatosAdicionales] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
@@ -115,8 +119,14 @@ export default function ReservaCheckoutForm({
 
   const confirmarReserva = async () => {
     setError('');
-    if (!form.huesped.trim() || !form.dni.trim() || !form.telefono.trim()) {
-      setError('Completá nombre, DNI y teléfono');
+    if (!form.huesped.trim() || !form.dni.trim() || !form.telefono.trim() || !form.email.trim()) {
+      setError('Completá nombre, DNI, WhatsApp y email');
+      return;
+    }
+    const tel = armarTelefono(telPais, form.telefono);
+    if ('error' in tel) { setError(tel.error); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setError('Revisá el email: parece incompleto.');
       return;
     }
     for (const campo of campos) {
@@ -140,6 +150,8 @@ export default function ReservaCheckoutForm({
           ...(tarifaId ? { tarifaId } : {}),
           ...(campos.length > 0 ? { datosAdicionales } : {}),
           ...form,
+          telefono: tel.telefono,
+          email: form.email.trim(),
         }),
       });
       const data = await res.json();
@@ -310,16 +322,23 @@ export default function ReservaCheckoutForm({
                       <IconInput icon={User} value={form.huesped} onChange={(e) => setForm((f) => ({ ...f, huesped: e.target.value }))} />
                     </Field>
                   </div>
+                  <div className="sm:col-span-2">
+                    <Field label="WhatsApp" required>
+                      <TelefonoConPais
+                        iso={telPais}
+                        numero={form.telefono}
+                        onChange={(iso, numero) => { setTelPais(iso); setForm((f) => ({ ...f, telefono: numero })); }}
+                      />
+                    </Field>
+                  </div>
                   <Field label="DNI / Pasaporte" required>
                     <IconInput icon={CreditCard} value={form.dni} onChange={(e) => setForm((f) => ({ ...f, dni: e.target.value }))} />
                   </Field>
-                  <Field label="Teléfono" required>
-                    <IconInput icon={Phone} value={form.telefono} onChange={(e) => setForm((f) => ({ ...f, telefono: e.target.value }))} />
-                  </Field>
-                  <div className="sm:col-span-2">
-                    <Field label="Email">
-                      <IconInput icon={Mail} type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+                  <div>
+                    <Field label="Email" required>
+                      <IconInput icon={Mail} type="email" autoComplete="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
                     </Field>
+                    <p className="text-xs text-muted-foreground mt-1">Te mandamos los datos de la reserva a este email.</p>
                   </div>
                   <Field label="Nacionalidad">
                     <IconInput icon={Globe} value={form.nacionalidad} onChange={(e) => setForm((f) => ({ ...f, nacionalidad: e.target.value }))} placeholder="Ej: Argentina" />

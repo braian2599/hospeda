@@ -18,7 +18,14 @@ import { APP_NAME, APP_URL, ENCABEZADO, type EmailArmado } from './plantilla';
 
 export { ENCABEZADO, type EmailArmado };
 
-const FROM = `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'mail.mihospeda.com'}>`;
+const DIRECCION_NOREPLY = `noreply@${process.env.RESEND_FROM_DOMAIN || 'mail.mihospeda.com'}`;
+const FROM = `${APP_NAME} <${DIRECCION_NOREPLY}>`;
+
+/** Remitente con otro nombre (ej. el del hotel). Sin comillas ni <> que rompan el encabezado. */
+function remitente(nombre?: string): string {
+  const limpio = (nombre || '').replace(/["<>\r\n]/g, '').trim();
+  return limpio ? `"${limpio}" <${DIRECCION_NOREPLY}>` : FROM;
+}
 
 export function isEmailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY;
@@ -218,7 +225,10 @@ export async function enviarEmail(e: EmailArmado, tipoLog: string): Promise<{ su
     return { success: true };
   }
   try {
-    const r = await getResendClient()!.emails.send({ from: FROM, to: e.para, subject: e.asunto, html: e.html });
+    const r = await getResendClient()!.emails.send({
+      from: remitente(e.deNombre), to: e.para, subject: e.asunto, html: e.html,
+      ...(e.responderA ? { replyTo: e.responderA } : {}),
+    });
     return resultado(r, tipoLog, e.para);
   } catch (error: unknown) {
     const mensaje = error instanceof Error ? error.message : String(error);

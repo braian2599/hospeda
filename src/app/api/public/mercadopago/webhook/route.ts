@@ -17,6 +17,7 @@ import {
   getValidAccessToken, getMpPayment, verifyMpConnectWebhookSignature, PORCENTAJE_SENA,
 } from '@/lib/payments/mp-connect';
 import { marcarEventoLanding } from '@/lib/eventos-landing';
+import { avisarSenaPagadaOnline } from '@/lib/avisos-reserva';
 
 const MONTO_TOLERANCIA = 1; // pesos, por redondeo
 
@@ -169,6 +170,10 @@ export async function POST(req: NextRequest) {
     // Va DESPUÉS de la transacción y es best-effort: si Redis falla, el pago ya
     // quedó guardado y el panel lo ve igual al no encontrar marca.
     await marcarEventoLanding(reserva.tenantId);
+
+    // Emails: al huésped "reserva confirmada" y al hotel "nueva reserva, seña
+    // pagada" (src/lib/avisos-reserva.ts). Nunca hacen fallar el aviso.
+    await avisarSenaPagadaOnline(reserva.id);
 
     return NextResponse.json({ received: true });
   } catch (err: unknown) {

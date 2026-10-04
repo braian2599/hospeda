@@ -19,6 +19,8 @@ import { lockTiposHabitacion } from '@/lib/db-lock';
 import { agruparPorHabitacion, camasDeReserva, camasLibresDe, hayLugarEn, ocupaHabitacionEntera } from '@/lib/ocupacion';
 import { calcularVencimiento, marcarReservaPorExpirar } from '@/lib/expiracion';
 import { marcarEventoLanding } from '@/lib/eventos-landing';
+import { telefonoArmadoValido } from '@/lib/telefono';
+import { avisarReservaAConfirmar } from '@/lib/avisos-reserva';
 
 function clientIp(req: NextRequest): string {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
@@ -128,9 +130,12 @@ export async function POST(
   if (!tipo) return NextResponse.json({ error: 'Falta el tipo de habitación' }, { status: 400 });
   if (!huesped || huesped.length < 2) return NextResponse.json({ error: 'Falta el nombre del huésped' }, { status: 400 });
   if (!dni || dni.length < 5) return NextResponse.json({ error: 'DNI inválido' }, { status: 400 });
-  if (!telefono || telefono.length < 6) return NextResponse.json({ error: 'Teléfono inválido' }, { status: 400 });
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
+  // WhatsApp con el código del país y email: obligatorios. Con el WhatsApp el
+  // hotel le escribe para coordinar la seña; al email le llegan los datos de
+  // la reserva (src/lib/telefono.ts, src/lib/email/reservas.ts).
+  if (!telefonoArmadoValido(telefono)) return NextResponse.json({ error: 'Revisá el número de WhatsApp.' }, { status: 400 });
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: 'Ingresá un email válido.' }, { status: 400 });
   }
   let fechaNacimiento: Date | null = null;
   if (fechaNacimientoStr) {
@@ -479,6 +484,10 @@ export async function POST(
     const senaMonto = Math.round(totalCombinadoPesos * PORCENTAJE_SENA);
 
     if (modoCobroSena === 'manual') {
+      // Emails: al huésped "falta la seña" y al hotel "nueva reserva a
+      // confirmar" (src/lib/avisos-reserva.ts). Con Mercado Pago salen recién
+      // cuando se acredita la seña.
+      await avisarReservaAConfirmar(r1.id);
       return NextResponse.json({
         success: true,
         modoPago: 'manual',

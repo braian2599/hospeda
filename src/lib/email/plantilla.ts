@@ -5,7 +5,15 @@
 export const APP_NAME = 'Hospi';
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.mihospeda.com';
 
-export interface EmailArmado { para: string; asunto: string; html: string }
+export interface EmailArmado {
+  para: string;
+  asunto: string;
+  html: string;
+  /** Nombre del remitente. Por defecto "Hospi"; los del huésped salen con el nombre del hotel. */
+  deNombre?: string;
+  /** A dónde llega si responden (los del huésped: al hotel). */
+  responderA?: string;
+}
 
 /**
  * Logo y nombre arriba de cada email. Es el logo del sistema (el del inicio

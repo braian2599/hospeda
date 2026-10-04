@@ -22,9 +22,9 @@
 // (Resend, la base, la tabla todavía no creada), se anota en el registro y
 // el cobro sigue su camino.
 
-import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { enviarEmail, enviarVariosEmails, type EmailArmado } from '@/lib/email';
+import { reservarEmail as reservar, liberarEmail as liberar, sinFrenar } from '@/lib/email/una-vez';
 import {
   emailDebitoActivado, emailCobroAprobado, emailCobroRechazado,
   emailTerminaPrueba, emailCambioDePrecio, emailDebitoCancelado,
@@ -34,26 +34,6 @@ import { limiteDeAcceso, primerCobro } from '@/lib/ciclo-cobro';
 const DIA_MS = 86_400_000;
 /** Con cuánta anticipación se avisa que termina la prueba o la cortesía. */
 export const DIAS_AVISO_VENCIMIENTO = 3;
-
-function mensajeDe(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
-
-/** Anota la clave. true = el email todavía no salió y lo manda quien llamó. */
-async function reservar(clave: string, tipo: string, tenantId: string | null): Promise<boolean> {
-  try {
-    await db.emailEnviado.create({ data: { clave, tipo, tenantId } });
-    return true;
-  } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return false;
-    console.error(`[avisos] No se pudo anotar el email ${clave}: ${mensajeDe(e)}`);
-    return false;
-  }
-}
-
-async function liberar(clave: string): Promise<void> {
-  await db.emailEnviado.delete({ where: { clave } }).catch(() => {});
-}
 
 /** Nombre del hotel y email de su cuenta (la del dueño). */
 async function datosDelHotel(tenantId: string): Promise<{ hotel: string; email: string } | null> {
@@ -81,15 +61,6 @@ async function mandarUno(clave: string, tipo: string, tenantId: string, armar: (
   if (!(await reservar(clave, tipo, tenantId))) return;
   const r = await enviarEmail(armar(datos.email, datos.hotel), tipo);
   if (!r.success) await liberar(clave);
-}
-
-/** Corre un aviso sin dejar que un error salga de acá. */
-async function sinFrenar(que: string, fn: () => Promise<void>): Promise<void> {
-  try {
-    await fn();
-  } catch (e) {
-    console.error(`[avisos] Falló el email de ${que}: ${mensajeDe(e)}`);
-  }
 }
 
 // ─────────────────────────── 1. Débito activado ───────────────────────────

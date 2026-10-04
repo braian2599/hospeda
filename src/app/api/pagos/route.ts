@@ -5,6 +5,7 @@ import { auditar, TIPO } from '@/lib/auditoria';
 import { Prisma } from '@prisma/client';
 import { ocupaHabitacionEntera } from '@/lib/ocupacion';
 import { estaFacturada, MENSAJE_RESERVA_FACTURADA } from '@/lib/facturacion-reserva';
+import { avisarSenaConfirmadaPorHotel } from '@/lib/avisos-reserva';
 
 // El cliente ya bloquea el cobro si su copia local de `caja.estado` no está
 // 'abierta', pero esa copia puede estar desactualizada (otra pestaña/usuario
@@ -217,6 +218,9 @@ export async function POST(req: NextRequest) {
         : `Cobro de $${(montoInt / 100).toLocaleString('es-AR')} (${metodoResuelto})`,
       actor: { id: actorId, nombre: actorNombre },
     });
+
+    // Seña de una reserva de la página web confirmada: email al huésped.
+    if (result.confirmada) await avisarSenaConfirmadaPorHotel(reservaId);
 
     // El id hace falta: la pantalla reemplaza con él el id provisorio del pago.
     // Sin él, el pago quedaba sin id hasta recargar y no se podía corregir.
