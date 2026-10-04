@@ -155,6 +155,11 @@ function OwnerPasswordSetup({ sessionData, onComplete }: {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {confirmPassword && (
+                password === confirmPassword
+                  ? <p className="text-xs text-emerald-600">Las contraseñas coinciden</p>
+                  : <p className="text-xs text-red-600">Las contraseñas no coinciden</p>
+              )}
             </div>
             <Button type="submit" className="w-full h-10" disabled={loading || !password || password.length < 8 || password !== confirmPassword}>
               {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Guardando...</> : 'Guardar y entrar al sistema'}
