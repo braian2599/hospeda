@@ -989,6 +989,18 @@ model PlatformPayment {
   @@index([estado, createdAt])
 }
 
+/// Emails automáticos ya mandados (src/lib/payments/avisos-suscripcion.ts).
+/// La clave dice qué email y de qué (por ejemplo "cobro-aprobado:<suscripción>:<hasta>"):
+/// el mismo aviso puede llegar dos veces (webhook y revisión diaria) y el email sale una sola.
+model EmailEnviado {
+  clave     String   @id
+  tenantId  String?
+  tipo      String
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
 // ═══════════════════════════════════════════════════════════
 // ENUMS
 // ═══════════════════════════════════════════════════════════

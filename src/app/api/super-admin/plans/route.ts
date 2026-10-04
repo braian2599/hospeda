@@ -4,6 +4,7 @@ import { requireSuperAdmin } from '@/lib/super-admin/auth';
 import { invalidatePlansCache } from '@/lib/plan-server';
 import { parseFeatureFlags } from '@/lib/feature-flags';
 import { diezParaCambioDePrecio, esDiaDeCobro } from '@/lib/ciclo-cobro';
+import { avisarCambioDePrecio } from '@/lib/payments/avisos-suscripcion';
 
 // GET /api/super-admin/plans — Listar todos los planes
 export async function GET() {
@@ -204,7 +205,11 @@ export async function PUT(req: NextRequest) {
     // Invalidar caches para que los cambios se reflejen inmediatamente
     invalidatePlansCache();
 
-    return NextResponse.json({ success: true, plan });
+    // Precio nuevo programado para los débitos actuales: se les avisa por email.
+    const avisados = cambioPrecioDesde ? await avisarCambioDePrecio(id) : 0;
+    if (avisados > 0) console.log(`[super-admin] Plan "${plan.nombre}": aviso de cambio de precio a ${avisados} hoteles`);
+
+    return NextResponse.json({ success: true, plan, avisados });
   } catch (error: unknown) {
     const err = error as Error;
     console.error('[/api/super-admin/plans PUT] Error:', err.message);

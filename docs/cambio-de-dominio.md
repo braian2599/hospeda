@@ -87,14 +87,14 @@ Configuración:
   manda; para recibir hay que configurar un servicio de reenvío o casilla).
 
 Emails a hacer:
-1. **Recuperar la contraseña.** El código existe pero está apagado
-   (`src/app/api/auth/forgot-password/route.ts`); hoy la pantalla dice que se
-   contacte al administrador.
-2. **Verificar el email al registrarse.** Ya se intenta mandar
-   (`src/app/api/auth/register/route.ts`); falla hasta verificar el dominio.
-3. **Suscripción:** alta del débito automático, cobro aprobado (recibo), cobro
-   rechazado (revisar la tarjeta, días de gracia), la prueba gratis o la
-   cortesía están por terminar, cambio de precio programado y baja.
+1. ~~**Recuperar la contraseña.**~~ Hecho: la de la cuenta y la del perfil
+   del dueño, por separado.
+2. ~~**Verificar el email al registrarse.**~~ Hecho.
+3. ~~**Suscripción.**~~ Hecho (04/10): débito activado, cobro aprobado
+   (comprobante), cobro rechazado, fin de la prueba o cortesía, cambio de
+   precio y débito cancelado. Ver `src/lib/payments/avisos-suscripcion.ts`.
+   Necesita la tabla `EmailEnviado`
+   (`prisma/migrations/20261004_email_enviado/migration.sql`).
 4. **Avisos de la plataforma** desde Super Admin a todos los dueños, p. ej.
    mantenimientos programados.
 5. **Invitación a usuarios del hotel**: la función existe

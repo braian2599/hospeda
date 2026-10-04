@@ -19,6 +19,17 @@ const APP_NAME = 'Hospi';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.mihospeda.com';
 const FROM = `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'mail.mihospeda.com'}>`;
 
+/**
+ * Logo y nombre arriba de cada email. Es el logo del sistema (el del inicio
+ * de sesión) en 112 px: public/logo-email.png. Los clientes de email no
+ * muestran SVG, por eso va en PNG y con la dirección completa.
+ */
+export const ENCABEZADO = `
+  <div style="text-align:center;padding:32px 0 24px">
+    <img src="${APP_URL}/logo-email.png" width="56" height="56" alt="${APP_NAME}" style="display:block;margin:0 auto 10px;width:56px;height:56px;border-radius:14px;border:0" />
+    <div style="font-size:22px;font-weight:700;color:#0F766E">${APP_NAME}</div>
+  </div>`;
+
 export function isEmailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY;
 }
@@ -61,9 +72,7 @@ export async function sendVerificationEmail(email: string, token: string) {
       subject: `Verificá tu email en ${APP_NAME}`,
       html: `
         <div style="max-width:480px;margin:0 auto;font-family:system-ui,sans-serif;color:#1a1a1a">
-          <div style="text-align:center;padding:32px 0 24px">
-            <h1 style="font-size:28px;font-weight:700;margin:0">🏨 ${APP_NAME}</h1>
-          </div>
+          ${ENCABEZADO}
           <div style="background:#f9fafb;border-radius:12px;padding:32px">
             <h2 style="font-size:18px;margin:0 0 8px">Verificá tu email</h2>
             <p style="font-size:14px;color:#6b7280;margin:0 0 24px">
@@ -131,9 +140,7 @@ export async function sendPasswordResetEmail(email: string, token: string, tipo:
       subject: t.asunto,
       html: `
         <div style="max-width:480px;margin:0 auto;font-family:system-ui,sans-serif;color:#1a1a1a">
-          <div style="text-align:center;padding:32px 0 24px">
-            <h1 style="font-size:28px;font-weight:700;margin:0">🏨 ${APP_NAME}</h1>
-          </div>
+          ${ENCABEZADO}
           <div style="background:#f9fafb;border-radius:12px;padding:32px">
             <h2 style="font-size:18px;margin:0 0 8px">${t.titulo}</h2>
             <p style="font-size:14px;color:#6b7280;margin:0 0 24px">
@@ -181,9 +188,7 @@ export async function sendInvitationEmail(email: string, token: string, hotelNom
       subject: `${inviterName} te invitó a ${hotelNombre} en ${APP_NAME}`,
       html: `
         <div style="max-width:480px;margin:0 auto;font-family:system-ui,sans-serif;color:#1a1a1a">
-          <div style="text-align:center;padding:32px 0 24px">
-            <h1 style="font-size:28px;font-weight:700;margin:0">🏨 ${APP_NAME}</h1>
-          </div>
+          ${ENCABEZADO}
           <div style="background:#f9fafb;border-radius:12px;padding:32px">
             <h2 style="font-size:18px;margin:0 0 8px">Te invitaron a un hotel</h2>
             <p style="font-size:14px;color:#6b7280;margin:0 0 8px">
@@ -211,4 +216,53 @@ export async function sendInvitationEmail(email: string, token: string, hotelNom
     console.error('Error sending invitation email:', error);
     return { success: false, error: error.message };
   }
+}
+
+export interface EmailArmado { para: string; asunto: string; html: string }
+
+/**
+ * Manda un email ya armado (los de la suscripción, src/lib/email/suscripcion.ts).
+ * Sin RESEND_API_KEY no manda nada y lo anota en el registro.
+ */
+export async function enviarEmail(e: EmailArmado, tipoLog: string): Promise<{ success: boolean; error?: string }> {
+  if (!isEmailConfigured()) {
+    console.log(`📧 [DEV] Email de ${tipoLog} NO enviado (sin RESEND_API_KEY) a ${e.para}: ${e.asunto}`);
+    return { success: true };
+  }
+  try {
+    const r = await getResendClient()!.emails.send({ from: FROM, to: e.para, subject: e.asunto, html: e.html });
+    return resultado(r, tipoLog, e.para);
+  } catch (error: unknown) {
+    const mensaje = error instanceof Error ? error.message : String(error);
+    console.error(`[email] Error mandando el email de ${tipoLog} a ${e.para}:`, mensaje);
+    return { success: false, error: mensaje };
+  }
+}
+
+/**
+ * Manda varios emails de una vez (de a 100, el máximo de Resend por pedido).
+ * Uno por uno chocaría con el límite de pedidos por segundo de Resend cuando
+ * son muchos hoteles, por ejemplo al avisar un cambio de precio.
+ * Devuelve, para cada email, si salió.
+ */
+export async function enviarVariosEmails(lista: EmailArmado[], tipoLog: string): Promise<boolean[]> {
+  if (lista.length === 0) return [];
+  if (!isEmailConfigured()) {
+    for (const e of lista) console.log(`📧 [DEV] Email de ${tipoLog} NO enviado (sin RESEND_API_KEY) a ${e.para}: ${e.asunto}`);
+    return lista.map(() => true);
+  }
+  const salieron: boolean[] = [];
+  for (let i = 0; i < lista.length; i += 100) {
+    const tanda = lista.slice(i, i + 100);
+    try {
+      const r = await getResendClient()!.batch.send(tanda.map(e => ({ from: FROM, to: e.para, subject: e.asunto, html: e.html })));
+      if (r.error) console.error(`[email] Resend rechazó ${tanda.length} emails de ${tipoLog}: ${r.error.name ?? ''} ${r.error.message}`);
+      else console.log(`[email] ${tanda.length} emails de ${tipoLog} enviados`);
+      salieron.push(...tanda.map(() => !r.error));
+    } catch (error: unknown) {
+      console.error(`[email] Error mandando ${tanda.length} emails de ${tipoLog}:`, error instanceof Error ? error.message : error);
+      salieron.push(...tanda.map(() => false));
+    }
+  }
+  return salieron;
 }

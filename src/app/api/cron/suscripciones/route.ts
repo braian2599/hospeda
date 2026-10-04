@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { isCronAuthorized, isCronConfigured } from '@/lib/cron-auth';
 import { revisarSuscripcion } from '@/lib/payments/cobros-suscripcion';
+import { avisarVencimientosProximos } from '@/lib/payments/avisos-suscripcion';
 
 // GET /api/cron/suscripciones — Revisión diaria de los débitos automáticos.
 //
@@ -12,6 +13,9 @@ import { revisarSuscripcion } from '@/lib/payments/cobros-suscripcion';
 //
 // Corre una vez por día (vercel.json). Los días 10, 11 y 12 importa: son los
 // días de gracia antes del bloqueo (src/lib/ciclo-cobro.ts).
+//
+// Además manda el email a los hoteles cuya prueba o cortesía termina en 3
+// días o menos (src/lib/payments/avisos-suscripcion.ts).
 export async function GET(req: NextRequest) {
   if (!isCronConfigured()) {
     return NextResponse.json({ error: 'CRON_SYNC_SECRET no configurado en el servidor' }, { status: 503 });
@@ -35,5 +39,8 @@ export async function GET(req: NextRequest) {
     }
   }
   for (const r of resultados) console.log(`[cron/suscripciones] ${r.tenantId}: ${r.resultado}`);
-  return NextResponse.json({ revisadas: resultados.length, resultados });
+
+  const avisosDeVencimiento = await avisarVencimientosProximos();
+  console.log(`[cron/suscripciones] avisos de fin de prueba o cortesía: ${avisosDeVencimiento}`);
+  return NextResponse.json({ revisadas: resultados.length, resultados, avisosDeVencimiento });
 }

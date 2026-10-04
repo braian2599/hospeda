@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { requireOwner, getAuthSession } from '@/lib/auth/utils';
 import { validateCsrfToken } from '@/lib/csrf';
 import { cancelMPSubscription } from '@/lib/payments/mp-subscriptions';
+import { avisarDebitoCancelado } from '@/lib/payments/avisos-suscripcion';
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,6 +60,9 @@ export async function POST(request: NextRequest) {
         canceladaAt: new Date(),
       },
     });
+    // El aviso de Mercado Pago llega después y ya no la reconoce como la
+    // actual (mpPreapprovalId quedó vacío): el email sale desde acá.
+    await avisarDebitoCancelado(authTenantId, sub.mpPreapprovalId);
 
     const hasta = sub.fechaVencimiento.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
     return NextResponse.json({ success: true, message: `Débito automático cancelado. Seguís teniendo acceso hasta el ${hasta}.` });

@@ -25,6 +25,9 @@ import {
 } from '@/lib/payments/mp-subscriptions';
 import { validatePreapprovalAmount, validatePaymentAmount } from '@/lib/payments/validation';
 import { inicioDelPeriodo, vencimientoTrasCobro, tocaAplicarPrecio } from '@/lib/ciclo-cobro';
+import {
+  avisarDebitoActivado, avisarCobroAprobado, avisarCobroRechazado, avisarDebitoCancelado,
+} from '@/lib/payments/avisos-suscripcion';
 
 const PLANES_PAGOS = new Set(['profesional', 'premium', 'elite']);
 
@@ -70,7 +73,8 @@ const PREFIJO_REVISION = 'mp-revision:';
 /**
  * Anota un cobro aprobado de la suscripción y extiende el acceso hasta el 10
  * siguiente al período que pagó. Idempotente: si ese pago ya está anotado
- * como pagado, no hace nada.
+ * como pagado, no hace nada. Si el cobro es nuevo, manda el comprobante por
+ * email (src/lib/payments/avisos-suscripcion.ts).
  */
 async function registrarCobroAprobado(p: {
   tenantId: string;
@@ -82,8 +86,10 @@ async function registrarCobroAprobado(p: {
 }): Promise<string> {
   const periodoDesde = inicioDelPeriodo(p.fechaPago);
   const pagadoHasta = vencimientoTrasCobro(p.fechaPago);
+  let mensaje: string;
+  let esNuevo = false;
   try {
-    return await db.$transaction(async (tx) => {
+    mensaje = await db.$transaction(async (tx) => {
       const sub = await tx.subscription.findUnique({ where: { tenantId: p.tenantId } });
       if (!sub) return `sin suscripción para ${p.tenantId}`;
 
@@ -113,6 +119,8 @@ async function registrarCobroAprobado(p: {
       if (existente) await tx.platformPayment.update({ where: { id: existente.id }, data: datos });
       else if (anotadoPorRevision) await tx.platformPayment.update({ where: { id: anotadoPorRevision.id }, data: datos });
       else await tx.platformPayment.create({ data: datos });
+      // Si ya lo había anotado la revisión diaria, el comprobante ya salió.
+      esNuevo = !anotadoPorRevision;
 
       const nuevoVencimiento = max(sub.fechaVencimiento, pagadoHasta);
       await tx.subscription.update({
@@ -134,10 +142,23 @@ async function registrarCobroAprobado(p: {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return `cobro ${p.externalId} ya anotado (simultáneo)`;
     throw e;
   }
+  if (esNuevo) {
+    await avisarCobroAprobado(p.tenantId, {
+      monto: Math.round(p.montoPesos * 100),
+      periodoDesde,
+      periodoHasta: pagadoHasta,
+      fechaPago: p.fechaPago,
+      operacion: p.externalId.startsWith(PREFIJO_REVISION) ? null : p.externalId,
+    });
+  }
+  return mensaje;
 }
 
-/** Anota un cobro rechazado (para que se vea en Super Admin). No cambia el acceso. */
-async function registrarCobroRechazado(tenantId: string, paymentId: string, montoPesos: number, nota: string): Promise<string> {
+/**
+ * Anota un cobro rechazado (para que se vea en Super Admin). No cambia el acceso.
+ * Con `avisar` (cobros del débito automático) manda el email de cobro rechazado.
+ */
+async function registrarCobroRechazado(tenantId: string, paymentId: string, montoPesos: number, nota: string, avisar = false): Promise<string> {
   const sub = await db.subscription.findUnique({ where: { tenantId } });
   if (!sub) return `sin suscripción para ${tenantId}`;
   try {
@@ -152,6 +173,7 @@ async function registrarCobroRechazado(tenantId: string, paymentId: string, mont
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return `rechazo ${paymentId} ya anotado`;
     throw e;
   }
+  if (avisar) await avisarCobroRechazado(tenantId, Math.round(montoPesos * 100));
   return `cobro ${paymentId} rechazado`;
 }
 
@@ -211,6 +233,16 @@ async function aplicarPreapproval(pre: MPPreapprovalResponse): Promise<string> {
         proximoCobro: proximo && !Number.isNaN(proximo.getTime()) ? proximo : null,
       },
     });
+    // La revisión diaria vuelve a aplicar la misma suscripción todos los
+    // días: el email sale solo cuando recién se activa.
+    const cobro1 = primerCobro && !Number.isNaN(primerCobro.getTime()) ? primerCobro : proximo;
+    if (!yaActiva && cobro1 && !Number.isNaN(cobro1.getTime())) {
+      await avisarDebitoActivado(ref.tenantId, pre.id, {
+        planId: validacion.plan?.id ?? sub.planId,
+        precio: Math.round(monto * 100),
+        primerCobro: cobro1,
+      });
+    }
     return `suscripción ${pre.id} activa (${ref.planTipo}), puede trabajar hasta ${vencimiento.toISOString()}`;
   }
 
@@ -225,6 +257,7 @@ async function aplicarPreapproval(pre: MPPreapprovalResponse): Promise<string> {
         ...(pre.status === 'cancelled' ? { mpPreapprovalId: null, canceladaAt: new Date() } : {}),
       },
     });
+    if (sub.esRecurrente) await avisarDebitoCancelado(ref.tenantId, pre.id, pre.status === 'paused');
     return `suscripción ${pre.id} ${pre.status}: deja de renovarse, sigue hasta ${sub.fechaVencimiento.toISOString()}`;
   }
 
@@ -271,7 +304,7 @@ export async function procesarAvisoCobroMensual(id: string): Promise<string> {
   }
   if (pago.status === 'rejected') {
     return registrarCobroRechazado(ref.tenantId, String(pago.id), monto,
-      `Débito automático rechazado — pago ${pago.id}${cobro.retry_attempt ? ` — intento ${cobro.retry_attempt}` : ''}${pago.status_detail ? ` — ${pago.status_detail}` : ''}`);
+      `Débito automático rechazado — pago ${pago.id}${cobro.retry_attempt ? ` — intento ${cobro.retry_attempt}` : ''}${pago.status_detail ? ` — ${pago.status_detail}` : ''}`, true);
   }
   return `cobro ${pago.id} en estado ${pago.status}: sin cambios`;
 }
@@ -316,7 +349,9 @@ export async function procesarAvisoPago(paymentId: string): Promise<string> {
     });
   }
   if (pago.status === 'rejected') {
-    return registrarCobroRechazado(ref.tenantId, String(paymentId), monto, `Pago rechazado Mercado Pago ${paymentId}${pago.status_detail ? ` — ${pago.status_detail}` : ''}`);
+    // Con débito automático, es el cobro del mes que llegó como "payment".
+    return registrarCobroRechazado(ref.tenantId, String(paymentId), monto, `Pago rechazado Mercado Pago ${paymentId}${pago.status_detail ? ` — ${pago.status_detail}` : ''}`,
+      sub.esRecurrente && !!sub.mpPreapprovalId);
   }
   // pending / in_process: todavía no hay nada que anotar; llega otro aviso
   // cuando se resuelva. (Antes se anotaba como "pendiente" con el mismo id y
@@ -340,6 +375,7 @@ export async function revisarSuscripcion(subscriptionId: string): Promise<string
       where: { id: sub.id },
       data: { esRecurrente: false, proximoCobro: null, mpPreapprovalId: null },
     });
+    if (sub.esRecurrente) await avisarDebitoCancelado(sub.tenantId, sub.mpPreapprovalId);
     return `suscripción ${sub.mpPreapprovalId} ya no existe en Mercado Pago: deja de renovarse`;
   }
 
