@@ -14,21 +14,11 @@
 // (lo devuelve en la respuesta), así que un rechazo pasaba por éxito.
 
 import { Resend } from 'resend';
+import { APP_NAME, APP_URL, ENCABEZADO, type EmailArmado } from './plantilla';
 
-const APP_NAME = 'Hospi';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.mihospeda.com';
+export { ENCABEZADO, type EmailArmado };
+
 const FROM = `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'mail.mihospeda.com'}>`;
-
-/**
- * Logo y nombre arriba de cada email. Es el logo del sistema (el del inicio
- * de sesión) en 112 px: public/logo-email.png. Los clientes de email no
- * muestran SVG, por eso va en PNG y con la dirección completa.
- */
-export const ENCABEZADO = `
-  <div style="text-align:center;padding:32px 0 24px">
-    <img src="${APP_URL}/logo-email.png" width="56" height="56" alt="${APP_NAME}" style="display:block;margin:0 auto 10px;width:56px;height:56px;border-radius:14px;border:0" />
-    <div style="font-size:22px;font-weight:700;color:#0F766E">${APP_NAME}</div>
-  </div>`;
 
 export function isEmailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY;
@@ -217,8 +207,6 @@ export async function sendInvitationEmail(email: string, token: string, hotelNom
     return { success: false, error: error.message };
   }
 }
-
-export interface EmailArmado { para: string; asunto: string; html: string }
 
 /**
  * Manda un email ya armado (los de la suscripción, src/lib/email/suscripcion.ts).

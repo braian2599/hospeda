@@ -5,17 +5,7 @@
 //
 // Todos van al email de la cuenta del hotel.
 
-import { ENCABEZADO, type EmailArmado } from '@/lib/email';
-
-const APP_NAME = 'Hospi';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.mihospeda.com';
-
-/** El nombre del hotel lo escribe el hotel: nunca va al HTML sin escapar. */
-function escapar(texto: string): string {
-  return texto
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
+import { APP_NAME, APP_URL, ENCABEZADO, escapar, type EmailArmado } from './plantilla';
 
 /** "10/11/2026", en hora argentina (los vencimientos son el 10 a las 00:00 de Argentina). */
 export function fechaEmail(fecha: Date): string {

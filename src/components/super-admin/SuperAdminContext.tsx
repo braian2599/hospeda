@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
-export type SuperAdminSection = 'dashboard' | 'cuentas' | 'planes' | 'pagos' | 'config';
+export type SuperAdminSection = 'dashboard' | 'cuentas' | 'planes' | 'pagos' | 'avisos' | 'config';
 
 /**
  * Algo que una sección le pide a otra al mandarte ahí. Ej: desde "Para

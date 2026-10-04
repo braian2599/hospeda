@@ -989,6 +989,29 @@ model PlatformPayment {
   @@index([estado, createdAt])
 }
 
+/// Avisos por email de la plataforma a los dueños de los hoteles (Super Admin → Avisos).
+model AvisoPlataforma {
+  id         String   @id @default(cuid())
+  /// mantenimiento | novedad | importante
+  tipo       String
+  asunto     String
+  mensaje    String
+  /// Solo mantenimiento: día (YYYY-MM-DD) y horario (HH:MM), hora de Argentina.
+  dia        String?
+  desde      String?
+  hasta      String?
+  /// Tipos de plan a los que se mandó. Vacío = todos los hoteles activos.
+  planes     String[] @default([])
+  total      Int      @default(0)
+  enviados   Int      @default(0)
+  /// Hoteles a los que no les salió: [{ hotel, email }].
+  fallidos   Json     @default("[]")
+  creadoPor  String
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 /// Emails automáticos ya mandados (src/lib/payments/avisos-suscripcion.ts).
 /// La clave dice qué email y de qué (por ejemplo "cobro-aprobado:<suscripción>:<hasta>"):
 /// el mismo aviso puede llegar dos veces (webhook y revisión diaria) y el email sale una sola.

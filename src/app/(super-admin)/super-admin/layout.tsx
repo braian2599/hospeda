@@ -19,6 +19,7 @@ const NAV_ITEMS: { key: SuperAdminSection; label: string }[] = [
   { key: 'cuentas', label: 'Cuentas' },
   { key: 'planes', label: 'Planes' },
   { key: 'pagos', label: 'Pagos' },
+  { key: 'avisos', label: 'Avisos' },
   { key: 'config', label: 'Configuración' },
 ];
 

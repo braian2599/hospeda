@@ -95,8 +95,10 @@ Emails a hacer:
    precio y débito cancelado. Ver `src/lib/payments/avisos-suscripcion.ts`.
    Necesita la tabla `EmailEnviado`
    (`prisma/migrations/20261004_email_enviado/migration.sql`).
-4. **Avisos de la plataforma** desde Super Admin a todos los dueños, p. ej.
-   mantenimientos programados.
+4. ~~**Avisos de la plataforma.**~~ Hecho (04/10): Super Admin → Avisos
+   (mantenimiento, novedad o importante; a todos o por plan; prueba antes de
+   mandar; historial). Necesita la tabla `AvisoPlataforma`
+   (`prisma/migrations/20261004_aviso_plataforma/migration.sql`).
 5. **Invitación a usuarios del hotel**: la función existe
    (`sendInvitationEmail`) pero no se usa.
 6. A decidir: confirmación de reserva al huésped y aviso al hotel de una

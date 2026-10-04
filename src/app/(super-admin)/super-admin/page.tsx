@@ -19,6 +19,10 @@ const SuperAdminPagos = dynamic(
   () => import('@/components/super-admin/SuperAdminPagos'),
   { ssr: false }
 );
+const SuperAdminAvisos = dynamic(
+  () => import('@/components/super-admin/SuperAdminAvisos'),
+  { ssr: false }
+);
 const SuperAdminConfig = dynamic(
   () => import('@/components/super-admin/SuperAdminConfig'),
   { ssr: false }
@@ -29,6 +33,7 @@ const SECTION_MAP: Record<SuperAdminSection, React.ComponentType> = {
   cuentas: SuperAdminCuentas,
   planes: SuperAdminPlanes,
   pagos: SuperAdminPagos,
+  avisos: SuperAdminAvisos,
   config: SuperAdminConfig,
 };
 
