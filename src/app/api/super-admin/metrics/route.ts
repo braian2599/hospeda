@@ -19,7 +19,7 @@ function nombreMes(inicio: Date): string {
   return MESES[Number(fechaArgentina(inicio).split('-')[1]) - 1];
 }
 
-/** "Profesional por transferencia · venció hace 3 días", para la lista "Para resolver". */
+/** "Profesional por pago manual · venció hace 3 días", para la lista "Para resolver". */
 function detalleVencimiento(plan: string, origen: string, e: EstadoHotel, fecha: Date): string {
   const o = origenValido(origen);
   const como = o === 'trial'

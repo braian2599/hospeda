@@ -3373,13 +3373,21 @@ function SoporteSection() {
   const [mensaje, setMensaje] = useState('');
   const [sending, setSending] = useState(false);
 
+  // Manda el mensaje por email a soporte (POST /api/soporte). La respuesta de
+  // soporte le llega al email de la cuenta del hotel. Antes solo esperaba un
+  // segundo y decía "Mensaje enviado" sin mandar nada.
   const handleSend = async () => {
     if (!asunto.trim() || !mensaje.trim()) { toast.error('Completá asunto y mensaje'); return; }
     setSending(true);
-    await new Promise(r => setTimeout(r, 1000));
-    toast.success('Mensaje enviado. Te responderemos a la brevedad.');
-    setAsunto(''); setMensaje('');
-    setSending(false);
+    try {
+      await api.soporte.enviar({ asunto: asunto.trim(), mensaje: mensaje.trim() });
+      toast.success('Mensaje enviado. Te respondemos al email de la cuenta del hotel.');
+      setAsunto(''); setMensaje('');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'No se pudo mandar el mensaje');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -3427,16 +3435,16 @@ function SoporteSection() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Contactar soporte</CardTitle>
-          <CardDescription>Envianos tu consulta y te responderemos a la brevedad</CardDescription>
+          <CardDescription>Envianos tu consulta: te respondemos al email de la cuenta del hotel</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 max-w-lg">
           <div className="space-y-1.5">
             <Label className="text-sm">Asunto</Label>
-            <Input value={asunto} onChange={e => setAsunto(e.target.value)} placeholder="¿En qué podemos ayudarte?" disabled={sending} />
+            <Input value={asunto} maxLength={150} onChange={e => setAsunto(e.target.value)} placeholder="¿En qué podemos ayudarte?" disabled={sending} />
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm">Mensaje</Label>
-            <Textarea value={mensaje} onChange={e => setMensaje(e.target.value)} placeholder="Describí tu consulta o problema..." rows={5} disabled={sending} />
+            <Textarea value={mensaje} maxLength={5000} onChange={e => setMensaje(e.target.value)} placeholder="Describí tu consulta o problema..." rows={5} disabled={sending} />
           </div>
           <Button onClick={handleSend} disabled={sending} style={{ backgroundColor: forest }}>
             {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Headphones className="w-4 h-4 mr-2" />}

@@ -20,7 +20,7 @@ export type OrigenSuscripcion =
   | 'trial'          // los 30 días que trae toda cuenta nueva
   | 'mercadopago'    // pagó por Mercado Pago (suscripción o pago único)
   | 'stripe'         // pagó por Stripe
-  | 'transferencia'  // pagó por transferencia y se registró a mano
+  | 'transferencia'  // pagó por fuera de Mercado Pago y se registró a mano ("Pago manual"; el nombre interno quedó de cuando se aceptaban transferencias)
   | 'cortesia';      // se lo dio la plataforma. NADIE PAGÓ.
 
 /** Cómo se le nombra al dueño del hotel. */
@@ -28,7 +28,7 @@ export const NOMBRE_ORIGEN: Record<OrigenSuscripcion, string> = {
   trial: 'Prueba gratuita',
   mercadopago: 'Mercado Pago',
   stripe: 'Tarjeta',
-  transferencia: 'Transferencia bancaria',
+  transferencia: 'Pago manual',
   cortesia: 'Cortesía',
 };
 

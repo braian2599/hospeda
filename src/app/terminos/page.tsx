@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: 'Términos y Condiciones de uso de la plataforma Hospi.',
 };
 
-const ULTIMA_ACTUALIZACION = '3 de septiembre de 2026';
+const ULTIMA_ACTUALIZACION = '4 de octubre de 2026';
 
 export default function TerminosPage() {
   return (
@@ -64,7 +64,7 @@ export default function TerminosPage() {
             <ul className="list-disc space-y-2 pl-5">
               <li>Ofrecemos un período de prueba gratuito de 30 días, sin necesidad de tarjeta de crédito.</li>
               <li>Finalizada la prueba, continuar usando el Servicio requiere contratar uno de los planes pagos vigentes, cuyos precios y características se detallan en la Plataforma y pueden modificarse con aviso previo razonable.</li>
-              <li>Los pagos se procesan a través de Mercado Pago (transferencia bancaria o suscripción recurrente, según el medio elegido). Hospi no almacena los datos de tu tarjeta de crédito o débito — esa información la procesa exclusivamente Mercado Pago.</li>
+              <li>Los pagos se procesan a través de Mercado Pago, con débito automático mensual que se cobra el día 10 de cada mes. Hospi no acepta transferencias bancarias. Hospi no almacena los datos de tu tarjeta de crédito o débito — esa información la procesa exclusivamente Mercado Pago.</li>
               <li>Las suscripciones se renuevan automáticamente por período mensual salvo cancelación previa por parte del Usuario, disponible desde el módulo de Suscripción.</li>
               <li>La falta de pago puede dar lugar a la suspensión o degradación del Servicio hasta regularizar la situación.</li>
             </ul>

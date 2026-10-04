@@ -85,7 +85,7 @@ export default function SuperAdminPagos() {
   const [periodo, setPeriodo] = useState('3m');
 
   const [nuevoOpen, setNuevoOpen] = useState(false);
-  const [form, setForm] = useState({ tenantId: '', monto: '', metodo: 'transferencia', desde: '', hasta: '', nota: '' });
+  const [form, setForm] = useState({ tenantId: '', monto: '', metodo: 'manual', desde: '', hasta: '', nota: '' });
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
@@ -154,7 +154,7 @@ export default function SuperAdminPagos() {
   };
 
   const abrirNuevo = (tenantId?: string, lista?: HotelOpcion[]) => {
-    setForm({ tenantId: '', monto: '', metodo: 'transferencia', desde: '', hasta: '', nota: '' });
+    setForm({ tenantId: '', monto: '', metodo: 'manual', desde: '', hasta: '', nota: '' });
     if (tenantId) elegirHotel(tenantId, lista);
     setNuevoOpen(true);
   };
@@ -211,7 +211,7 @@ export default function SuperAdminPagos() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Cabecera titulo="Pagos" bajada="Lo que pagaron los hoteles: débitos de Mercado Pago, transferencias y pagos cargados a mano.">
+      <Cabecera titulo="Pagos" bajada="Lo que pagaron los hoteles: débitos de Mercado Pago y pagos cargados a mano.">
         <Button onClick={() => abrirNuevo()}>Registrar pago manual</Button>
       </Cabecera>
 
@@ -335,19 +335,10 @@ export default function SuperAdminPagos() {
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              {/* Ya no se aceptan transferencias: el pago manual es siempre "Otro (manual)". */}
+              <div className="space-y-1.5 col-span-2">
                 <Label>Monto ($)</Label>
                 <Input inputMode="decimal" value={form.monto} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))} placeholder="Ej: 35000" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Método</Label>
-                <Select value={form.metodo} onValueChange={v => setForm(f => ({ ...f, metodo: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="transferencia">Transferencia</SelectItem>
-                    <SelectItem value="manual">Otro (manual)</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>Paga desde</Label>

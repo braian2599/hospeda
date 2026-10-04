@@ -476,13 +476,13 @@ export default function SuperAdminCuentas() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cortesia">No: cortesía o prueba de la plataforma</SelectItem>
-                  <SelectItem value="transferencia">Sí: pagó por transferencia</SelectItem>
+                  <SelectItem value="transferencia">Sí: pagó por fuera de Mercado Pago (pago manual)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {origenPlan === 'cortesia'
                   ? 'El hotel va a ver "Cortesía" y que no se renueva sola. Al vencer se le corta el servicio y tiene que elegir un plan.'
-                  : 'El hotel va a ver que está al día por transferencia, y que tiene que volver a pagar antes del vencimiento.'}
+                  : 'El hotel va a ver que está al día por un pago manual, y que tiene que volver a pagar antes del vencimiento.'}
               </p>
             </div>
           </div>

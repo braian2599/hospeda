@@ -6,7 +6,9 @@ import { fechaArgentina } from '@/lib/format';
 import { cobroDelProximoDiez } from '@/lib/super-admin/datos';
 
 /** Métodos que se pueden elegir al registrar un pago a mano. */
-const METODOS_MANUALES = new Set(['transferencia', 'manual']);
+// Ya no se aceptan transferencias: un pago cargado a mano es siempre 'manual'.
+// (Los pagos viejos con método 'transferencia' se siguen mostrando.)
+const METODOS_MANUALES = new Set(['manual']);
 
 // GET /api/super-admin/payments — Listar pagos de plataforma
 export async function GET(req: NextRequest) {
@@ -125,7 +127,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El monto debe ser mayor a 0' }, { status: 400 });
     }
     if (metodo !== undefined && !METODOS_MANUALES.has(metodo)) {
-      return NextResponse.json({ error: 'El método tiene que ser transferencia u otro (manual)' }, { status: 400 });
+      return NextResponse.json({ error: 'El método de un pago manual tiene que ser "manual"' }, { status: 400 });
     }
 
     // Log interno (no tenant-visible) para trazabilidad — el email del

@@ -31,7 +31,7 @@ export interface DatosHotel {
 export type TonoVence = 'bad' | 'warn' | 'ok' | 'gris' | 'normal';
 
 export interface EstadoHotel {
-  /** "Débito automático", "Transferencia", "Cortesía"… Vacío en la prueba gratis. */
+  /** "Débito automático", "Pago manual", "Cortesía"… Vacío en la prueba gratis. */
   comoLoPaga: string;
   esDebito: boolean;
   enPrueba: boolean;
@@ -58,7 +58,7 @@ function nombrePago(origen: string, esDebito: boolean): string {
   if (esDebito) return 'Débito automático';
   switch (origenValido(origen)) {
     case 'trial': return '';
-    case 'transferencia': return 'Transferencia';
+    case 'transferencia': return 'Pago manual';
     case 'mercadopago': return 'Mercado Pago';
     case 'stripe': return 'Tarjeta';
     default: return 'Cortesía';

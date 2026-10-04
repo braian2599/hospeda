@@ -105,6 +105,12 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 // ═══════════════════════════════════════════════════════════
 
 export const api = {
+  // ── Soporte: "Contactar soporte" de Configuración → Soporte ──
+  soporte: {
+    enviar: (data: { asunto: string; mensaje: string }) =>
+      apiFetch<{ ok: true }>('/soporte', { method: 'POST', body: JSON.stringify(data) }),
+  },
+
   // ── Habitaciones ──
   habitaciones: {
     list: () => apiFetch<DbHabitacion[]>('/habitaciones'),
