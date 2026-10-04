@@ -99,7 +99,7 @@ Emails a hacer:
    (mantenimiento, novedad o importante; a todos o por plan; prueba antes de
    mandar; historial). Necesita la tabla `AvisoPlataforma`
    (`prisma/migrations/20261004_aviso_plataforma/migration.sql`).
-5. **Invitación a usuarios del hotel**: la función existe
-   (`sendInvitationEmail`) pero no se usa.
+5. ~~**Invitación a usuarios del hotel.**~~ No va (04/10): los perfiles del
+   hotel entran siempre con el email de la cuenta del hotel, no con uno propio.
 6. A decidir: confirmación de reserva al huésped y aviso al hotel de una
    reserva o seña nueva desde la página web.
