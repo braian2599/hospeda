@@ -7,6 +7,7 @@ import { lockHabitacion, ReservaConflictError } from '@/lib/db-lock';
 import { chequearLugar } from '@/lib/disponibilidad';
 import { estaFacturada, MENSAJE_RESERVA_FACTURADA } from '@/lib/facturacion-reserva';
 import { camasDeReserva, camasLibresDe, esCompartida, ocupaHabitacionEntera } from '@/lib/ocupacion';
+import { avisarCambio } from '@/lib/channex/sync';
 
 // ─────────────────────────────────────────────────────────
 // GET /api/reservas/[id] — Obtener reserva con pagos y acompañantes
@@ -317,6 +318,7 @@ export async function PUT(
       return nueva;
     });
 
+    avisarCambio(tenantId); // Canales de venta: manda el cambio a Channex
     return NextResponse.json(updated);
   } catch (error) {
     if (error instanceof AuthError) {
@@ -413,6 +415,7 @@ export async function DELETE(
       actor,
     });
 
+    avisarCambio(tenantId); // Canales de venta: manda el cambio a Channex
     return NextResponse.json(cancelled);
   } catch (error) {
     if (error instanceof AuthError) {

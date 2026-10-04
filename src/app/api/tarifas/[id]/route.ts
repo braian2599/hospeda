@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { leerFechaVigencia, errorAlGuardarVigencia, aFechaDb } from '@/lib/tarifa-api';
 import { aFechaTexto } from '@/lib/tarifa-vigencia';
+import { avisarCambio } from '@/lib/channex/sync';
 
 // GET /api/tarifas/[id] — Obtener una tarifa
 export async function GET(
@@ -117,6 +118,7 @@ export async function PUT(
         ]))[0]
       : await db.tarifa.update({ where: { id }, data });
 
+    avisarCambio(tenantId); // Canales de venta: manda el cambio a Channex
     return NextResponse.json(updated);
   } catch (error) {
     if (error instanceof AuthError) {
@@ -161,6 +163,7 @@ export async function DELETE(
 
     await db.tarifa.delete({ where: { id } });
 
+    avisarCambio(tenantId); // Canales de venta: manda el cambio a Channex
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof AuthError) {

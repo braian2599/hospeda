@@ -4,6 +4,7 @@ import { requirePermission, requireActiveSubscription, AuthError, getAuthSession
 import { auditar, TIPO } from '@/lib/auditoria';
 import { ocupaHabitacionEntera } from '@/lib/ocupacion';
 import { estaFacturada } from '@/lib/facturacion-reserva';
+import { avisarCambio } from '@/lib/channex/sync';
 
 // ─────────────────────────────────────────────────────────
 // POST /api/reservas/[id]/checkout — Realizar check-out
@@ -185,6 +186,7 @@ export async function POST(
       actor,
     });
 
+    avisarCambio(tenantId); // Canales de venta: manda el cambio a Channex
     return NextResponse.json({
       success: true,
       // El panel necesita saber si la habitación quedó vacía: si no, no la

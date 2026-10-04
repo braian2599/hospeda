@@ -1,39 +1,64 @@
-# Channel manager (Booking.com / Airbnb)
+# Canales de venta (Channex)
 
-## Estado actual
+Booking.com, Airbnb, Expedia y otros se conectan por su API a través de
+Channex (channel manager). No se usa iCal (se descartó el 04/10/2026).
 
-Sync vía iCal (`src/lib/ical.ts`, `src/lib/ical-sync.ts`, `CanalExterno` en Prisma):
-solo disponibilidad (bloqueo de fechas), una URL por habitación y por canal, sin
-tarifas ni push de reservas en tiempo real. Es el fallback mientras no haya
-presupuesto para un channel manager con API.
+Hoy funciona en **modo prueba**, contra el servidor de pruebas de Channex.
 
-Booking.com y Airbnb no dan acceso directo a la Connectivity/Partner API a un
-PMS chico sin invitación (ver contexto de la conversación que originó este doc).
-El camino viable es un agregador white-label que ya tiene esas partnerships.
+## Variables (en Vercel, nunca en el código)
 
-## Decisión: Channex.io cuando haya presupuesto
+- `CHANNEX_API_KEY`: la clave de la cuenta de Channex.
+- `CHANNEX_API_URL`: `https://staging.channex.io/api/v1` (prueba) o
+  `https://secure.channex.io/api/v1` (real). Mientras no sea `secure`, la
+  pantalla dice "Modo prueba".
 
-Evaluado contra Rentals United, Su (ex Staah) y NextPax — Channex es el único
-con precio público apto para reventa multi-tenant:
+## Quién lo ve
 
-- Base: USD 130/mes + USD 7/mes por hotel con al menos un canal activo.
-- Sin costo de setup, sin permanencia.
-- REST API + webhooks: tarifas, disponibilidad y reservas en tiempo real
-  para Booking.com, Airbnb, Expedia y 60+ canales más, con una sola integración.
+La integración "Canales de venta" (`canalesVenta` en `feature-flags.ts`) se
+prende por plan o por hotel desde Super Admin. Reemplazó a "Sincronización
+Booking.com" y "Sincronización Airbnb" (la migración `20261004_channex` pasó
+las dos a esta). Solo el dueño entra a Configuración → Canales de venta.
 
-Rentals United y Su son candidatos de segunda instancia si el volumen de
-hoteles conectados crece mucho (piden cotización, no tienen precio público).
-NextPax queda descartado por el piso de USD 250/mes.
+## Cómo funciona
 
-## Dónde engancha en el código actual
+Código en `src/lib/channex/`:
 
-`CanalExterno` ya está desacoplado del feature flag (`bookingSync` /
-`airbnbSync` en `feature-flags.ts`) y no asume iCal en su forma pública —
-la ruta `/api/integraciones/canales` habla en términos de "canal", no de
-mecanismo de sync. Cuando haya presupuesto para Channex, la sync real
-(`syncCanalExterno` en `ical-sync.ts`) se reemplaza por llamadas a la API de
-Channex; el resto (flags, permisos por plan, UI de conexión) no debería
-necesitar cambios grandes.
+- `api.ts`: lo único que habla con Channex.
+- `ari.ts` (puro): disponibilidad y precios por día, 500 días hacia adelante,
+  y qué cambió desde el último envío.
+- `sync.ts`: conectar el hotel, qué se vende y el envío de disponibilidad y
+  precios. `avisarCambio(tenantId)` se llama después de cada cambio en
+  reservas, habitaciones, mantenimiento y tarifas: manda solo lo que cambió,
+  un envío por hotel a la vez (lock).
+- `reservas.ts`: las reservas que llegan (nuevas, modificadas, canceladas).
 
-No se agregaron campos ni código para Channex todavía — no hay nada que
-mapear sin una cuenta real, y hacerlo antes es código muerto.
+Tablas: `ChannexConexion` (el hotel en Channex), `ChannexTipo` (tipo de
+habitación = room type), `ChannexTarifa` (tarifa por tipo = rate plan) y
+`ChannexReserva` (cada novedad recibida y qué se hizo).
+
+### Reglas
+
+- Ocupan lugar las reservas Confirmada, CheckIn y A confirmar (las de la web
+  sin seña también, para no vender dos veces la misma habitación).
+- No se venden: Fuera de servicio, Mantenimiento con "sacar de
+  disponibilidad" (hasta su fecha), ni las habitaciones compartidas.
+- Precio por grupo o por cama → un precio según cuántas personas; por
+  habitación → un solo precio. Fuera de las fechas de la tarifa, cerrada.
+- Una reserva que llega se ubica en la primera habitación libre del tipo. Si
+  no hay, no se pisa nada: queda "Sin lugar" en Reservas recibidas y en la
+  actividad del hotel.
+
+### Cuándo entran las reservas
+
+- Al momento: Channex avisa a `/api/public/channex/webhook?token=…` (el token
+  es un secreto de cada hotel) y Hospi las lee de Channex.
+- Botón "Buscar reservas nuevas" en Reservas recibidas.
+- Una vez por día: `/api/cron/channex` (también suma el día nuevo al final de
+  los 500).
+
+## Falta para pasar a real
+
+- Probar en el servidor de pruebas de Channex (reservas de prueba).
+- Certificación de Channex y cambiar `CHANNEX_API_URL` a `secure`.
+- Sacar lo que queda del iCal viejo (`CanalExterno`, `/api/integraciones/canales`,
+  `/api/cron/ical-sync`).

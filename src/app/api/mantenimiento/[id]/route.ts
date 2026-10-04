@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireTenantId, requireActor, AuthError, getAuthSession } from '@/lib/auth/utils';
 import { auditar, TIPO } from '@/lib/auditoria';
+import { avisarCambio } from '@/lib/channex/sync';
 
 // PUT /api/mantenimiento/[id] — Resolver reporte de mantenimiento
 // Si hay monto > 0, SIEMPRE crea un Gasto.
@@ -138,6 +139,7 @@ export async function PUT(
       actor: { id: actor.actorId, nombre: actor.nombre },
     });
 
+    avisarCambio(tenantId); // Canales de venta: manda el cambio a Channex
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof AuthError) {

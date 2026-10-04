@@ -6,8 +6,8 @@ import type { FeatureFlag } from '@/lib/feature-flags';
 import { olvidarQueNoHayCanales } from '@/lib/ical-portero';
 
 const CANAL_FLAG: Record<string, FeatureFlag> = {
-  booking: 'bookingSync',
-  airbnb: 'airbnbSync',
+  booking: 'canalesVenta',
+  airbnb: 'canalesVenta',
 };
 
 function exportUrl(req: NextRequest, token: string): string {

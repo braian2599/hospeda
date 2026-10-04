@@ -136,11 +136,11 @@ export default function PreciosPage() {
     },
     {
       title: 'Integraciones',
-      // bookingSync/airbnbSync quedan afuera de esta tabla: mostrarlas acá con ✓
-      // da a entender que ya están funcionando incluidas en el plan, y no es así
-      // todavía (ver sección "Futuras integraciones" debajo).
+      // Canales de venta queda afuera de esta tabla: mostrarla acá con ✓ da a
+      // entender que ya está funcionando incluida en el plan, y todavía está en
+      // modo prueba (ver sección "Futuras integraciones" debajo).
       rows: (Object.keys(FEATURE_FLAGS) as FeatureFlag[])
-        .filter((f) => f !== 'bookingSync' && f !== 'airbnbSync')
+        .filter((f) => f !== 'canalesVenta')
         .map((f) => ({
           label: FEATURE_FLAGS[f].label,
           profesional: !!p.featureFlags[f],

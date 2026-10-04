@@ -2,16 +2,12 @@
 // Sin dependencias de servidor (Prisma) — importable desde componentes cliente.
 // Los helpers que tocan la BD viven en @/lib/feature-flags-server.
 
-export type FeatureFlag = 'bookingSync' | 'airbnbSync' | 'facturacionArca' | 'landingPage' | 'asistente';
+export type FeatureFlag = 'canalesVenta' | 'facturacionArca' | 'landingPage' | 'asistente';
 
 export const FEATURE_FLAGS: Record<FeatureFlag, { label: string; description: string }> = {
-  bookingSync: {
-    label: 'Sincronización Booking.com',
-    description: 'Sincronización de disponibilidad vía iCal con Booking.com',
-  },
-  airbnbSync: {
-    label: 'Sincronización Airbnb',
-    description: 'Sincronización de disponibilidad vía iCal con Airbnb',
+  canalesVenta: {
+    label: 'Canales de venta',
+    description: 'Vender en Booking, Airbnb, Expedia y otros por su API, a través de Channex',
   },
   facturacionArca: {
     label: 'Facturación ARCA/AFIP',
@@ -28,8 +24,7 @@ export const FEATURE_FLAGS: Record<FeatureFlag, { label: string; description: st
 };
 
 export const DEFAULT_FLAGS: Record<FeatureFlag, boolean> = {
-  bookingSync: false,
-  airbnbSync: false,
+  canalesVenta: false,
   facturacionArca: false,
   landingPage: false,
   asistente: false,

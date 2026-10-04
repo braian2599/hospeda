@@ -5,6 +5,7 @@ import { auditar, TIPO } from '@/lib/auditoria';
 import { TIPOS_HABITACION_VALIDOS } from '@/lib/types';
 import { deleteObjectsBestEffort } from '@/lib/storage/r2';
 import { esCompartida, estadoValidoParaTipo, picoDeOcupacion } from '@/lib/ocupacion';
+import { avisarCambio } from '@/lib/channex/sync';
 
 // PUT /api/habitaciones/[numero] — Editar habitación
 export async function PUT(
@@ -155,6 +156,7 @@ export async function PUT(
       actor: { id: actorId, nombre: actorNombre },
     });
 
+    avisarCambio(tenantId); // Canales de venta: manda el cambio a Channex
     return NextResponse.json(updated);
   } catch (error) {
     if (error instanceof AuthError) {
@@ -215,6 +217,7 @@ export async function DELETE(
       actor: { id: actorId, nombre: actorNombre },
     });
 
+    avisarCambio(tenantId); // Canales de venta: manda el cambio a Channex
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof AuthError) {

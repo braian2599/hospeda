@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireTenantId, AuthError } from '@/lib/auth/utils';
 import { ocupaHabitacionEntera } from '@/lib/ocupacion';
+import { avisarCambio } from '@/lib/channex/sync';
 
 // GET /api/mantenimiento — Listar reportes de mantenimiento
 export async function GET(req: NextRequest) {
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
+    avisarCambio(tenantId); // Canales de venta: manda el cambio a Channex
     return NextResponse.json(reporte, { status: 201 });
   } catch (error) {
     if (error instanceof AuthError) {

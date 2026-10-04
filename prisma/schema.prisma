@@ -69,6 +69,10 @@ model Tenant {
   titularesCuenta       TitularCuenta[]
   cargosCuentaCorriente CargoCuentaCorriente[]
   pagosCuentaCorriente  PagoCuentaCorriente[]
+  channex               ChannexConexion?
+  channexTipos          ChannexTipo[]
+  channexTarifas        ChannexTarifa[]
+  channexReservas       ChannexReserva[]
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1022,6 +1026,91 @@ model EmailEnviado {
   createdAt DateTime @default(now())
 
   @@index([tenantId, createdAt])
+}
+
+// ═══════════════════════════════════════════════════════════
+// CANALES DE VENTA (Channex) — Booking, Airbnb y otros por su API
+// Ver src/lib/channex/.
+// ═══════════════════════════════════════════════════════════
+
+/// La conexión del hotel con Channex: un hotel en Hospi = una "property" allá.
+model ChannexConexion {
+  id            String    @id @default(cuid())
+  tenantId      String    @unique
+  propertyId    String    @unique
+  /// Si se conectó contra la cuenta de prueba de Channex (staging).
+  modoPrueba    Boolean   @default(true)
+  /// Secreto de la URL del webhook: Channex lo manda en cada aviso.
+  webhookToken  String    @unique
+  webhookId     String?
+  /// Lo último que se mandó a Channex (disponibilidad y precios por día),
+  /// para mandar solo lo que cambió.
+  ultimoEnvio   Json      @default("{}")
+  ultimoEnvioAt DateTime?
+  ultimoError   String?
+  ultimoErrorAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+/// Un tipo de habitación de Hospi (Doble, Triple…) = un "room type" en Channex.
+model ChannexTipo {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tipo       String
+  roomTypeId String
+  activo     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tipo])
+}
+
+/// Una tarifa de Hospi para un tipo = un "rate plan" en Channex.
+model ChannexTarifa {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tipo       String
+  tarifaId   String
+  ratePlanId String
+  activo     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tipo, tarifaId])
+}
+
+/// Cada novedad de una reserva que llegó desde un canal (nueva, modificada o
+/// cancelada) y qué hizo Hospi con ella. Es la página "Reservas recibidas".
+model ChannexReserva {
+  id           String   @id @default(cuid())
+  tenantId     String
+  revisionId   String   @unique
+  bookingId    String
+  canal        String
+  codigo       String?
+  /// new | modified | cancelled (como lo manda Channex)
+  novedad      String
+  huesped      String
+  checkin      DateTime
+  checkout     DateTime
+  habitaciones String
+  /// importada | sin_lugar | error
+  resultado    String
+  detalle      String?
+  reservaId    String?
+  createdAt    DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, bookingId])
 }
 
 // ═══════════════════════════════════════════════════════════

@@ -102,8 +102,9 @@ Los precios y el detalle fino de cada plan están en la página de Precios del s
 - Cancelar el débito no corta el servicio: sigue hasta la fecha que ya está paga, sin días de gracia.
 - Si cambia el precio de un plan, los hoteles que ya pagan por débito automático siguen con su precio hasta la fecha que fija la plataforma (un día 10); el aviso con el precio nuevo y la fecha aparece arriba en el panel y en Configuración → Suscripción. No tienen que hacer nada: se cobra solo.
 
-## Integraciones con Booking.com / Airbnb
-Hoy existe solo una sincronización básica por iCal: bloquea disponibilidad, pero NO sincroniza tarifas ni trae reservas en tiempo real con todos los datos del huésped. Nunca digas que hay sincronización completa en tiempo real con Booking.com o Airbnb — todavía no existe, es una integración planeada a futuro.`;
+## Integraciones con Booking.com / Airbnb (Canales de venta)
+La conexión con Booking.com, Airbnb, Expedia y otros se hace por su API a través de Channex, en Configuración → Canales de venta (solo la ve el dueño, y solo si su hotel la tiene habilitada). Hoy está en MODO PRUEBA: no está conectada todavía a los Booking o Airbnb reales. Nunca digas que ya funciona con los canales reales.
+Cómo se usa: 1) Conexión: "Conectar con Channex" da de alta el hotel. 2) Habitaciones y tarifas: se eligen los tipos de habitación y las tarifas que se venden, y "Guardar y enviar a Channex". Después, la disponibilidad y los precios se mandan solos cada vez que cambian en el sistema. Las habitaciones compartidas no se venden en los canales. 3) Canales: ahí se conecta cada canal. 4) Reservas recibidas: las reservas que llegan de los canales entran solas a Reservas; si no hay lugar, quedan marcadas "Sin lugar" para revisarlas.`;
 
 export interface MensajeAsistente {
   role: 'user' | 'assistant';

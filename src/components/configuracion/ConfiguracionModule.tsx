@@ -46,6 +46,7 @@ import {
   type ReservaTicketData, type PagoDetalleTicket, type DatosFiscales, type ComprobanteDisplay,
 } from '@/components/modules/ComprobantesModule';
 import { tipoComprobantePorCondicionIva, nombreTipoComprobante } from '@/lib/afip/config';
+import CanalesVentaSection, { type PaginaCanales } from './CanalesVenta';
 
 const CheckoutDialog = dynamic(
   () => import('@/components/payments/CheckoutDialog'),
@@ -163,6 +164,8 @@ export default function ConfiguracionModule() {
   const [fotosHabilitadas, setFotosHabilitadas] = useState(false);
   const [arcaHabilitada, setArcaHabilitada] = useState(false);
   const [canalesHabilitados, setCanalesHabilitados] = useState(false);
+  // Se muestra "Modo prueba" mientras Channex apunte a su servidor de pruebas.
+  const [canalesModoPrueba, setCanalesModoPrueba] = useState(false);
   const [slug, setSlug] = useState('');
   // Para el aviso de días sin tarifa en la web.
   const [tarifasWeb, setTarifasWeb] = useState<{ mapa: unknown; limite: string | null } | null>(null);
@@ -177,7 +180,7 @@ export default function ConfiguracionModule() {
         const flags = data?.featureFlags;
         setFotosHabilitadas(!!flags?.landingPage);
         setArcaHabilitada(!!flags?.facturacionArca);
-        setCanalesHabilitados(!!flags?.bookingSync || !!flags?.airbnbSync);
+        setCanalesHabilitados(!!flags?.canalesVenta);
         setSlug(data?.slug || '');
         setTarifasWeb({ mapa: data?.tarifasPublicas, limite: data?.reservasHabilitadasHasta ? String(data.reservasHabilitadasHasta).slice(0, 10) : null });
       })
@@ -207,7 +210,12 @@ export default function ConfiguracionModule() {
     }] : []),
     ...(canalesHabilitados ? [{
       id: 'canales' as const, grupo: 'Ventas' as const, titulo: 'Canales de venta', resumen: 'Booking, Airbnb y otros', icon: Share2,
-      paginas: [{ id: 'conexion', titulo: 'Conexión con los canales', bajada: 'Booking, Airbnb, Expedia y otros, conectados directo por su API.' }],
+      paginas: [
+        { id: 'conexion', titulo: 'Conexión', bajada: 'Conectá el hotel con Channex para vender en Booking, Airbnb y otros.' },
+        { id: 'habitaciones', titulo: 'Habitaciones y tarifas', bajada: 'Qué se vende en los canales. La disponibilidad y los precios se mandan solos cuando cambian.' },
+        { id: 'canales', titulo: 'Canales', bajada: 'Conectá cada canal con tu cuenta de ese canal.' },
+        { id: 'reservas', titulo: 'Reservas recibidas', bajada: 'Las reservas que entraron por los canales. Están también en Reservas.' },
+      ],
     }] : []),
     {
       id: 'datos', grupo: 'Sistema', titulo: 'Datos y exportación', resumen: 'Descargá tus datos', icon: Database,
@@ -315,7 +323,12 @@ export default function ConfiguracionModule() {
             )}
             <div className="flex flex-wrap items-end gap-3">
               <div className="min-w-0">
-                <h2 className="text-lg font-bold">{paginaActual.titulo}</h2>
+                <h2 className="text-lg font-bold flex flex-wrap items-center gap-2">
+                  {paginaActual.titulo}
+                  {actual.id === 'canales' && canalesModoPrueba && (
+                    <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">🧪 Modo prueba</span>
+                  )}
+                </h2>
                 <p className="text-[13px] text-muted-foreground">{paginaActual.bajada}</p>
               </div>
               {actual.id === 'web' && slug && (
@@ -342,7 +355,13 @@ export default function ConfiguracionModule() {
                 onTarifasWebGuardadas={(mapa) => setTarifasWeb((prev) => ({ mapa, limite: prev?.limite ?? null }))}
               />
             )}
-            {actual.id === 'canales' && <CanalesSection />}
+            {actual.id === 'canales' && (
+              <CanalesVentaSection
+                pagina={paginaActual.id as PaginaCanales}
+                irA={(p) => ir('canales', p)}
+                onModoPrueba={setCanalesModoPrueba}
+              />
+            )}
             {actual.id === 'datos' && <ExportarSection />}
             {actual.id === 'soporte' && <SoporteSection />}
           </div>
@@ -2391,52 +2410,6 @@ function LandingSection({ tab, onTarifasWebGuardadas }: {
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════
-// CANALES DE VENTA (Booking, Airbnb, Expedia y otros)
-// ═══════════════════════════════════════════
-// Conexión directa con la API de cada canal a través de Channex (channel
-// manager). Esta página queda lista para conectarlo: el próximo paso es la
-// conexión en modo prueba. No se usa iCal: la sincronización por calendario
-// se descartó (04/10) en favor de la conexión directa.
-const CANALES_PREVISTOS: { nombre: string; color: string; letra: string }[] = [
-  { nombre: 'Booking.com', color: '#003580', letra: 'B' },
-  { nombre: 'Airbnb', color: '#FF5A5F', letra: 'A' },
-  { nombre: 'Expedia', color: '#1E243A', letra: 'E' },
-];
-
-function CanalesSection() {
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-base">Estado de la conexión</CardTitle>
-            <Badge variant="secondary">Sin conectar</Badge>
-          </div>
-          <CardDescription>
-            Con la conexión, la disponibilidad y los precios se actualizan solos en cada canal, y las reservas de los canales entran al sistema al momento.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {CANALES_PREVISTOS.map(c => (
-              <div key={c.nombre} className="flex items-center gap-2.5 rounded-lg border p-3">
-                <span className="w-7 h-7 rounded-md flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor: c.color }}>{c.letra}</span>
-                <span className="text-sm font-medium flex-1">{c.nombre}</span>
-                <span className="text-xs text-muted-foreground">Sin conectar</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-3 border-t pt-4">
-            <p className="text-sm text-muted-foreground flex-1 min-w-[220px]">La conexión con los canales está en preparación. Mientras tanto, las reservas de esos canales se cargan a mano en Reservas.</p>
-            <Button disabled>Conectar canales</Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

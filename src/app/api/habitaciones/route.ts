@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requirePermission, AuthError } from '@/lib/auth/utils';
 import { auditar, TIPO } from '@/lib/auditoria';
 import { TIPOS_HABITACION_VALIDOS } from '@/lib/types';
+import { avisarCambio } from '@/lib/channex/sync';
 
 // GET /api/habitaciones — Listar todas las habitaciones del tenant
 export async function GET(req: NextRequest) {
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
       actor: { id: actorId, nombre: actorNombre },
     });
 
+    avisarCambio(tenantId); // Canales de venta: manda el cambio a Channex
     return NextResponse.json(habitacion, { status: 201 });
   } catch (error) {
     if (error instanceof AuthError) {

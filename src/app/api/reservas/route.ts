@@ -9,6 +9,7 @@ import { createReservaSchema, formatZodError } from '@/lib/validation-schemas';
 import { lockHabitacion, ReservaConflictError } from '@/lib/db-lock';
 import { chequearLugar } from '@/lib/disponibilidad';
 import { camasDeReserva, camasLibresDe, esCompartida, ocupaHabitacionEntera } from '@/lib/ocupacion';
+import { avisarCambio } from '@/lib/channex/sync';
 
 // ─────────────────────────────────────────────────────────
 // GET /api/reservas — Listar reservas con filtros
@@ -289,6 +290,7 @@ export async function POST(req: NextRequest) {
       return nueva;
     });
 
+    avisarCambio(tenantId); // Canales de venta: manda el cambio a Channex
     return NextResponse.json(reserva, { status: 201 });
   } catch (error) {
     if (error instanceof AuthError) {

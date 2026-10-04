@@ -21,6 +21,7 @@ import { calcularVencimiento, marcarReservaPorExpirar } from '@/lib/expiracion';
 import { marcarEventoLanding } from '@/lib/eventos-landing';
 import { telefonoArmadoValido } from '@/lib/telefono';
 import { avisarReservaAConfirmar } from '@/lib/avisos-reserva';
+import { avisarCambio } from '@/lib/channex/sync';
 
 function clientIp(req: NextRequest): string {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
@@ -477,6 +478,7 @@ export async function POST(
     // Best-effort y fuera de la transacción: si Redis falla, la reserva del
     // huésped no se cae por eso, y el panel consulta igual al no ver marca.
     await marcarEventoLanding(tenant.id, r1.createdAt.getTime());
+    avisarCambio(tenant.id); // Canales de venta: manda el cambio a Channex
 
     // r1.total/r2.total están en centavos (recién guardados así arriba) — todo lo que
     // sigue (Mercado Pago, la respuesta al widget) trabaja en pesos.
@@ -561,6 +563,7 @@ export async function POST(
       }
     }
 
+    avisarCambio(tenant.id); // Canales de venta: manda el cambio a Channex
     console.error('POST /api/public/[slug]/reservar:', err);
     return NextResponse.json({ error: 'Error al generar el cobro de la seña. Intentá de nuevo.' }, { status: 500 });
   }

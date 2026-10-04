@@ -100,6 +100,59 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return data as T;
 }
 
+// ── Canales de venta (Channex) ──
+
+export interface EstadoCanales {
+  configurado: boolean;
+  modoPrueba: boolean;
+  hotel: { nombre: string; email: string; moneda: string; timezone: string } | null;
+  conexion: {
+    propertyId: string;
+    avisoDeReservas: boolean;
+    ultimoEnvioAt: string | null;
+    ultimoError: string | null;
+    ultimoErrorAt: string | null;
+    conectadoDesde: string;
+  } | null;
+  tiposActivos: number;
+  tarifasActivas: number;
+  reservasRecibidas: number;
+  reservasConProblema: number;
+}
+
+export interface QueSeVende {
+  tipos: { tipo: string; cantidad: number; capacidad: number; compartida: boolean; activo: boolean; conectado: boolean }[];
+  tarifas: {
+    tipo: string; tarifaId: string; nombre: string; precio: number | null;
+    vigenciaDesde: string | null; vigenciaHasta: string | null; activo: boolean; conectado: boolean;
+  }[];
+}
+
+export interface ReservaRecibida {
+  id: string;
+  canal: string;
+  codigo: string | null;
+  novedad: string;
+  huesped: string;
+  checkin: string;
+  checkout: string;
+  habitaciones: string;
+  resultado: 'importada' | 'sin_lugar' | 'error';
+  detalle: string | null;
+  reservaId: string | null;
+  numero: number | null;
+  habitacion: string | null;
+  createdAt: string;
+}
+
+export interface ReservasRecibidas {
+  pagina: number;
+  paginas: number;
+  total: number;
+  porPagina: number;
+  reservas: ReservaRecibida[];
+}
+
 // ═══════════════════════════════════════════════════════════
 // API ENDPOINTS
 // ═══════════════════════════════════════════════════════════
@@ -109,6 +162,22 @@ export const api = {
   soporte: {
     enviar: (data: { asunto: string; mensaje: string }) =>
       apiFetch<{ ok: true }>('/soporte', { method: 'POST', body: JSON.stringify(data) }),
+  },
+
+  // ── Canales de venta (Channex): Configuración → Canales de venta ──
+  canalesVenta: {
+    estado: () => apiFetch<EstadoCanales>('/canales-venta'),
+    conectar: () => apiFetch<{ ok: true }>('/canales-venta', { method: 'POST' }),
+    desconectar: () => apiFetch<{ ok: true }>('/canales-venta', { method: 'DELETE' }),
+    queSeVende: () => apiFetch<QueSeVende>('/canales-venta/que-se-vende'),
+    guardarQueSeVende: (data: {
+      tipos: { tipo: string; activo: boolean }[];
+      tarifas: { tipo: string; tarifaId: string; activo: boolean }[];
+    }) => apiFetch<QueSeVende>('/canales-venta/que-se-vende', { method: 'PUT', body: JSON.stringify(data) }),
+    pantallaCanales: () => apiFetch<{ url: string }>('/canales-venta/canales', { method: 'POST' }),
+    reservas: (pagina: number) => apiFetch<ReservasRecibidas>(`/canales-venta/reservas?pagina=${pagina}`),
+    buscarReservas: () => apiFetch<{ nuevas: number }>('/canales-venta/reservas', { method: 'POST' }),
+    enviarTodo: () => apiFetch<{ ok: true }>('/canales-venta/enviar', { method: 'POST' }),
   },
 
   // ── Habitaciones ──
