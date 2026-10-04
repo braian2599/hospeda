@@ -1,8 +1,8 @@
 'use client';
 
-// Configuración del Super Admin: 4 grupos en un menú a la izquierda, con lo
+// Configuración del Super Admin: 3 grupos en un menú a la izquierda, con lo
 // que falta completar debajo de cada uno. Cada grupo se guarda solo: guardar
-// los datos del banco no toca las claves de Mercado Pago.
+// el contacto no toca las claves de Mercado Pago.
 
 import { useCallback, useEffect, useState } from 'react';
 import { Eye, EyeOff, Image as ImageIcon, Loader2, Upload, X } from 'lucide-react';
@@ -24,20 +24,17 @@ const MAX_LOGO_BYTES = 4 * 1024 * 1024;
 const ALLOWED_LOGO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const RUTA_WEBHOOK = '/api/payments/mercadopago/webhook';
 
-type GrupoId = 'mercadopago' | 'transferencia' | 'contacto' | 'creditos';
+type GrupoId = 'mercadopago' | 'contacto' | 'creditos';
 
 /** Las claves de cada grupo (las que se mandan al guardar ese grupo). */
 const CLAVES: Record<GrupoId, string[]> = {
   mercadopago: ['mp_access_token', 'mp_public_key', 'mp_webhook_secret'],
-  transferencia: ['bank_banco', 'bank_titular', 'bank_cuit', 'bank_cbu', 'bank_alias',
-    'bank_comprobante_email', 'bank_comprobante_whatsapp', 'bank_comprobante_telefono'],
-  contacto: ['plataforma_email', 'support_email'],
+  contacto: ['plataforma_email', 'plataforma_instagram', 'plataforma_facebook', 'plataforma_whatsapp'],
   creditos: ['dev_company_nombre', 'dev_company_logo_url', 'dev_company_logo_width', 'dev_company_logo_height'],
 };
 
 const GRUPOS: { id: GrupoId; titulo: string }[] = [
   { id: 'mercadopago', titulo: 'Mercado Pago' },
-  { id: 'transferencia', titulo: 'Transferencia bancaria' },
   { id: 'contacto', titulo: 'Contacto y soporte' },
   { id: 'creditos', titulo: 'Créditos en la web' },
 ];
@@ -276,27 +273,6 @@ export default function SuperAdminConfig() {
               </>
             )}
 
-            {grupo === 'transferencia' && (
-              <>
-                {cabeceraPanel('transferencia', 'Transferencia bancaria')}
-                <p className="text-xs text-muted-foreground">Se muestran al hotel en Configuración → Suscripción, cuando elige pagar por transferencia. Si no cargás nada, no se ofrece.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {campo('bank_banco', 'Banco', { placeholder: 'Ej: Banco Nación' })}
-                  {campo('bank_titular', 'Titular', { placeholder: 'Ej: Hospi S.A.' })}
-                  {campo('bank_cuit', 'CUIT', { placeholder: '30-12345678-9', mono: true })}
-                  {campo('bank_cbu', 'CBU', { placeholder: '22 dígitos', mono: true, className: 'sm:col-span-2' })}
-                  {campo('bank_alias', 'Alias', { placeholder: 'Ej: hospi.pago.mp', mono: true })}
-                </div>
-                <div className="border-t" />
-                <h4 className="text-[13px] font-bold">Dónde mandan el comprobante <span className="text-xs font-normal text-muted-foreground">(al menos uno)</span></h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {campo('bank_comprobante_email', 'Email', { placeholder: 'pagos@hospeda.com', tipo: 'email' })}
-                  {campo('bank_comprobante_whatsapp', 'WhatsApp', { placeholder: '+54 11 1234-5678', tipo: 'tel', ayuda: 'Se muestra como botón de WhatsApp.' })}
-                  {campo('bank_comprobante_telefono', 'Otro teléfono (opcional)', { placeholder: '+54 11 1234-5678', tipo: 'tel' })}
-                </div>
-              </>
-            )}
-
             {grupo === 'contacto' && (
               <>
                 {cabeceraPanel('contacto', 'Contacto y soporte')}
@@ -304,10 +280,15 @@ export default function SuperAdminConfig() {
                   tipo: 'email', placeholder: 'soporte@hospi.com',
                   ayuda: 'Aparece en la página web (pie y /contacto) y en "Contactar soporte" y "Reportar error" dentro del sistema. Vacío: esos botones no se muestran.',
                 })}
-                {campo('support_email', 'Email para pedir una contraseña nueva', {
-                  tipo: 'email', placeholder: 'tu@email.com',
-                  ayuda: 'Se muestra en "¿Olvidaste tu contraseña?". Los usuarios escriben a este email.',
-                })}
+                <p className="text-xs text-muted-foreground -mt-1.5">Las respuestas a los emails que el sistema les manda a los hoteles también llegan a este email.</p>
+                <div className="border-t" />
+                <h4 className="text-[13px] font-bold">Redes sociales <span className="text-xs font-normal text-muted-foreground">(opcionales)</span></h4>
+                <p className="text-xs text-muted-foreground -mt-1.5">Se muestran en la página web de Hospi (pie y /contacto) y en Configuración → Soporte dentro del sistema. Vacío: no se muestra.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {campo('plataforma_instagram', 'Instagram', { tipo: 'url', placeholder: 'https://instagram.com/…' })}
+                  {campo('plataforma_facebook', 'Facebook', { tipo: 'url', placeholder: 'https://facebook.com/…' })}
+                  {campo('plataforma_whatsapp', 'Enlace de WhatsApp', { tipo: 'url', placeholder: 'https://wa.me/549…' })}
+                </div>
               </>
             )}
 

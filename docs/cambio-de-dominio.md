@@ -83,8 +83,12 @@ Configuración:
 - Variable `RESEND_FROM_DOMAIN` en Vercel. `RESEND_API_KEY` ya está cargada.
 - Hoy, como hay clave pero el dominio no está verificado, los emails que el
   sistema intenta mandar (verificación al registrarse) fallan sin avisar.
-- Recibir emails en `soporte@mihospeda.com` necesita un reenvío aparte (Resend
-  manda; para recibir hay que configurar un servicio de reenvío o casilla).
+- ~~Recibir emails en `soporte@mihospeda.com`.~~ Hecho (04/10): reenvío con
+  ImprovMX (MX `mx1`/`mx2.improvmx.com` y SPF `include:spf.improvmx.com` en
+  el dominio principal, en el DNS de Vercel) al Gmail del dueño.
+- El email de contacto (Super Admin → Configuración → Contacto y soporte) es
+  también el Reply-To de los emails que el sistema les manda a los hoteles.
+  Los del huésped responden al hotel.
 
 Emails a hacer:
 1. ~~**Recuperar la contraseña.**~~ Hecho: la de la cuenta y la del perfil

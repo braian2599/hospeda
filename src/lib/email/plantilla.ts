@@ -11,8 +11,12 @@ export interface EmailArmado {
   html: string;
   /** Nombre del remitente. Por defecto "Hospi"; los del huésped salen con el nombre del hotel. */
   deNombre?: string;
-  /** A dónde llega si responden (los del huésped: al hotel). */
-  responderA?: string;
+  /**
+   * A dónde llega si responden. Sin poner: al email de contacto de la
+   * plataforma (soporte, Super Admin → Configuración). null: a ningún lado
+   * especial (un huésped de un hotel que no cargó email).
+   */
+  responderA?: string | null;
 }
 
 /**

@@ -10,6 +10,7 @@ import { leerEstadoConfig } from '@/lib/super-admin/datos';
 // Campos que contienen credenciales sensibles.
 // Se cifran en la BD con AES-256-GCM y se enmascaran en el GET.
 const SENSITIVE_KEYS = new Set(['mp_access_token', 'mp_webhook_secret']);
+const CLAVES_REDES = ['plataforma_instagram', 'plataforma_facebook', 'plataforma_whatsapp'];
 
 // Enmascara un valor sensible: muestra solo los primeros y últimos 4 caracteres.
 // Ej: "APP_USR-1234567890-abcdef" → "APP_...cdef"
@@ -63,21 +64,13 @@ export async function GET() {
         hasAccessToken: !!configMap.mp_access_token,
         hasWebhookSecret: !!configMap.mp_webhook_secret,
       },
-      banco: {
-        banco: configMap.bank_banco || '',
-        titular: configMap.bank_titular || '',
-        cbu: configMap.bank_cbu || '',
-        alias: configMap.bank_alias || '',
-        cuit: configMap.bank_cuit || '',
-        comprobanteEmail: configMap.bank_comprobante_email || '',
-        comprobanteWhatsapp: configMap.bank_comprobante_whatsapp || '',
-        comprobanteTelefono: configMap.bank_comprobante_telefono || '',
-      },
       plataforma: {
         nombre: configMap.plataforma_nombre || 'Hospi',
         emailContacto: configMap.plataforma_email || '',
         moneda: configMap.plataforma_moneda || 'ARS',
-        supportEmail: configMap.support_email || '',
+        instagram: configMap.plataforma_instagram || '',
+        facebook: configMap.plataforma_facebook || '',
+        whatsapp: configMap.plataforma_whatsapp || '',
       },
       empresaDesarrolladora: {
         nombre: configMap.dev_company_nombre || '',
@@ -116,10 +109,19 @@ export async function PUT(req: NextRequest) {
       existingMap[c.key] = c.value; // puede estar cifrado o plaintext
     }
 
+    // Las redes sociales se muestran como links: solo direcciones https.
+    for (const key of CLAVES_REDES) {
+      const v = typeof config[key] === 'string' ? config[key].trim() : '';
+      if (v && !/^https:\/\/[^\s"'<>]+$/.test(v)) {
+        return NextResponse.json({ error: 'Los enlaces de redes sociales tienen que empezar con https://' }, { status: 400 });
+      }
+    }
+
     // Upsert cada key
     for (const [key, rawValue] of Object.entries(config)) {
       if (key.startsWith(PREFIJO_TICKET_HOSPEDA)) continue;
       let value = String(rawValue);
+      if (CLAVES_REDES.includes(key)) value = value.trim();
 
       // Si es un campo sensible:
       // 1. Si viene enmascarado (con "...") → el usuario no lo editó, conservar el existente

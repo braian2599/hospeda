@@ -27,6 +27,31 @@ function remitente(nombre?: string): string {
   return limpio ? `"${limpio}" <${DIRECCION_NOREPLY}>` : FROM;
 }
 
+/**
+ * Email de contacto de la plataforma (Super Admin → Configuración → Contacto y
+ * soporte): las respuestas a los emails que el sistema manda a los hoteles
+ * llegan ahí, en vez de perderse en noreply@. Se guarda 5 minutos.
+ */
+let soporte: { email: string | null; hasta: number } | null = null;
+async function emailDeSoporte(): Promise<string | null> {
+  if (soporte && soporte.hasta > Date.now()) return soporte.email;
+  try {
+    const { db } = await import('@/lib/db');
+    const fila = await db.platformConfig.findUnique({ where: { key: 'plataforma_email' }, select: { value: true } });
+    const email = fila?.value?.trim() || null;
+    soporte = { email: email && email.includes('@') ? email : null, hasta: Date.now() + 5 * 60 * 1000 };
+  } catch {
+    soporte = { email: null, hasta: Date.now() + 60 * 1000 };
+  }
+  return soporte.email;
+}
+
+/** El Reply-To de un email: el que pide el email, o soporte si no pide ninguno. */
+async function responderA(pedido?: string | null): Promise<{ replyTo?: string }> {
+  const email = pedido === undefined ? await emailDeSoporte() : pedido;
+  return email ? { replyTo: email } : {};
+}
+
 export function isEmailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY;
 }
@@ -65,6 +90,7 @@ export async function sendVerificationEmail(email: string, token: string) {
   try {
     const r = await resend.emails.send({
       from: FROM,
+      ...(await responderA()),
       to: email,
       subject: `Verificá tu email en ${APP_NAME}`,
       html: `
@@ -133,6 +159,7 @@ export async function sendPasswordResetEmail(email: string, token: string, tipo:
   try {
     const r = await resend.emails.send({
       from: FROM,
+      ...(await responderA()),
       to: email,
       subject: t.asunto,
       html: `
@@ -181,6 +208,7 @@ export async function sendInvitationEmail(email: string, token: string, hotelNom
   try {
     const r = await resend.emails.send({
       from: FROM,
+      ...(await responderA()),
       to: email,
       subject: `${inviterName} te invitó a ${hotelNombre} en ${APP_NAME}`,
       html: `
@@ -227,7 +255,7 @@ export async function enviarEmail(e: EmailArmado, tipoLog: string): Promise<{ su
   try {
     const r = await getResendClient()!.emails.send({
       from: remitente(e.deNombre), to: e.para, subject: e.asunto, html: e.html,
-      ...(e.responderA ? { replyTo: e.responderA } : {}),
+      ...(await responderA(e.responderA)),
     });
     return resultado(r, tipoLog, e.para);
   } catch (error: unknown) {
@@ -253,7 +281,8 @@ export async function enviarVariosEmails(lista: EmailArmado[], tipoLog: string):
   for (let i = 0; i < lista.length; i += 100) {
     const tanda = lista.slice(i, i + 100);
     try {
-      const r = await getResendClient()!.batch.send(tanda.map(e => ({ from: FROM, to: e.para, subject: e.asunto, html: e.html })));
+      const respuestas = await Promise.all(tanda.map(e => responderA(e.responderA)));
+      const r = await getResendClient()!.batch.send(tanda.map((e, j) => ({ from: FROM, to: e.para, subject: e.asunto, html: e.html, ...respuestas[j] })));
       if (r.error) console.error(`[email] Resend rechazó ${tanda.length} emails de ${tipoLog}: ${r.error.name ?? ''} ${r.error.message}`);
       else console.log(`[email] ${tanda.length} emails de ${tipoLog} enviados`);
       salieron.push(...tanda.map(() => !r.error));

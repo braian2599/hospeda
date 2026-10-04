@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label';
 import PublicNavbar from '@/components/public/PublicNavbar';
 import PublicFooter from '@/components/public/PublicFooter';
 import FadeIn from '@/components/public/FadeIn';
-import { Sparkles, Mail, Send, ArrowRight, MessageSquare } from 'lucide-react';
-import { useContactEmail } from '@/hooks/useContactEmail';
+import { Sparkles, Mail, Send, ArrowRight, MessageSquare, Instagram, Facebook } from 'lucide-react';
+import { useContactoPlataforma } from '@/hooks/useContactEmail';
+import WhatsAppIcon from '@/components/public/WhatsAppIcon';
 
 /* ============================================================
  * Page
@@ -22,7 +23,13 @@ export default function ContactoPage() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
-  const contactEmail = useContactEmail();
+  const contacto = useContactoPlataforma();
+  const contactEmail = contacto.email;
+  const redes = [
+    { href: contacto.whatsapp, texto: 'WhatsApp', Icono: WhatsAppIcon },
+    { href: contacto.instagram, texto: 'Instagram', Icono: Instagram },
+    { href: contacto.facebook, texto: 'Facebook', Icono: Facebook },
+  ].filter(r => r.href);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -147,6 +154,27 @@ export default function ContactoPage() {
                   >
                     {contactEmail}
                   </a>
+                </div>
+              )}
+
+              {/* Redes — solo las configuradas en Super Admin */}
+              {redes.length > 0 && (
+                <div className="rounded-2xl border border-border bg-card p-6">
+                  <h3 className="text-lg font-semibold text-foreground">También estamos en</h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {redes.map(({ href, texto, Icono }) => (
+                      <a
+                        key={texto}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+                      >
+                        <Icono className="h-4 w-4" />
+                        {texto}
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
 

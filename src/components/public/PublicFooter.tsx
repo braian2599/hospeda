@@ -2,20 +2,27 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail } from 'lucide-react';
-import { useContactEmail } from '@/hooks/useContactEmail';
+import { Mail, Instagram, Facebook } from 'lucide-react';
+import { useContactoPlataforma } from '@/hooks/useContactEmail';
+import WhatsAppIcon from './WhatsAppIcon';
 import { useDevCompany } from '@/hooks/useDevCompany';
 
 /**
  * Public site footer — dark teal background, 4-column layout.
- * Client component: necesita useContactEmail() para no depender de un
- * email hardcodeado — lee el configurado por el super-admin.
+ * Client component: el email y las redes salen de Super Admin → Configuración
+ * → Contacto y soporte (useContactoPlataforma), nada hardcodeado.
  * Uses inline style for the brand-deep color to avoid any Tailwind
  * resolution issues across builds.
  */
 export default function PublicFooter() {
   const year = new Date().getFullYear();
-  const contactEmail = useContactEmail();
+  const contacto = useContactoPlataforma();
+  const contactEmail = contacto.email;
+  const redes = [
+    { href: contacto.whatsapp, texto: 'WhatsApp', Icono: WhatsAppIcon },
+    { href: contacto.instagram, texto: 'Instagram', Icono: Instagram },
+    { href: contacto.facebook, texto: 'Facebook', Icono: Facebook },
+  ].filter(r => r.href);
   const devCompany = useDevCompany();
   return (
     <footer style={{ backgroundColor: '#0F2B28' }} className="text-white">
@@ -73,20 +80,35 @@ export default function PublicFooter() {
             </ul>
           </div>
 
-          {/* Contacto — solo si hay un email configurado en Super Admin */}
-          {contactEmail && (
+          {/* Contacto — solo lo que esté configurado en Super Admin */}
+          {(contactEmail || redes.length > 0) && (
             <div>
               <h4 className="text-sm font-semibold uppercase tracking-wider text-[#FFFFFFCC]">Contacto</h4>
               <ul className="mt-4 space-y-2 text-sm">
-                <li>
-                  <a
-                    href={`mailto:${contactEmail}`}
-                    className="flex items-center gap-2 text-[#FFFFFFB3] transition-colors hover:text-white"
-                  >
-                    <Mail className="h-4 w-4" />
-                    {contactEmail}
-                  </a>
-                </li>
+                {contactEmail && (
+                  <li>
+                    <a
+                      href={`mailto:${contactEmail}`}
+                      className="flex items-center gap-2 text-[#FFFFFFB3] transition-colors hover:text-white"
+                    >
+                      <Mail className="h-4 w-4" />
+                      {contactEmail}
+                    </a>
+                  </li>
+                )}
+                {redes.map(({ href, texto, Icono }) => (
+                  <li key={texto}>
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[#FFFFFFB3] transition-colors hover:text-white"
+                    >
+                      <Icono className="h-4 w-4" />
+                      {texto}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
           )}

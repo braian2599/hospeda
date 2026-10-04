@@ -5,8 +5,9 @@ import { useHotelStore } from '@/lib/store';
 import { api } from '@/lib/api-client';
 import { NOMBRES_MODULOS, type PlanTipo } from '@/lib/plan-config';
 import { resumenDeSuscripcion, textoCambioDePrecio } from '@/lib/suscripcion';
+import { useContactoPlataforma } from '@/hooks/useContactEmail';
+import WhatsAppIcon from '@/components/public/WhatsAppIcon';
 import { usePlans } from '@/hooks/usePlans';
-import { useBankDetails } from '@/hooks/useBankDetails';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,7 +36,7 @@ import {
   Crown, Check, Loader2, Save, Eye, EyeOff, Star, ArrowRight,
   AlertTriangle, Hotel, Mail, Phone, MapPin, Globe, Clock, DollarSign,
   Settings, Copy, Info, BedDouble, KeyRound, Database, Receipt,
-  Users, History, CheckCircle2, XCircle, Lock, Printer, MessageCircle,
+  Users, History, CheckCircle2, XCircle, Lock, Printer,
   Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban, Instagram, Facebook, Zap, Share2,
   CalendarClock, Send,
 } from 'lucide-react';
@@ -3131,10 +3132,7 @@ function SuscripcionSection() {
   const [loading, setLoading] = useState(true);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Exclude<PlanTipo, 'trial'> | null>(null);
-  const [showTransfer, setShowTransfer] = useState(false);
-  const [copiedField, setCopiedField] = useState('');
   const plans = usePlans();
-  const bankDetails = useBankDetails();
 
   const fetchUsage = useCallback(async () => {
     try {
@@ -3157,13 +3155,6 @@ function SuscripcionSection() {
   const handlePagar = (tipo: Exclude<PlanTipo, 'trial'>) => {
     setSelectedPlan(tipo);
     setCheckoutOpen(true);
-  };
-
-  const copyToClipboard = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    toast.success('Copiado al portapapeles');
-    setTimeout(() => setCopiedField(''), 2000);
   };
 
   return (
@@ -3356,128 +3347,6 @@ function SuscripcionSection() {
         </div>
       </div>
 
-      {/* Transferencia bancaria */}
-      <div>
-        <button
-          type="button"
-          onClick={() => setShowTransfer(!showTransfer)}
-          className="flex items-center gap-3 group w-full text-left"
-        >
-          <div className="w-9 h-9 rounded-xl bg-[#0284C71A] flex items-center justify-center shrink-0">
-            <Building2 className="w-4 h-4 text-info" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold group-hover:text-primary transition-colors">
-              Pago por transferencia bancaria
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Realizá la transferencia y enviá el comprobante
-            </p>
-          </div>
-          <ArrowRight className={`w-4 h-4 text-muted-foreground transition-transform ${showTransfer ? 'rotate-90' : ''}`} />
-        </button>
-
-        {showTransfer && (
-          <Card className="mt-3">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-start gap-2 p-2.5 bg-[#0284C70D] rounded-lg">
-                <Info className="w-3.5 h-3.5 text-info shrink-0 mt-0.5" />
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Luego de realizar la transferencia, enviá el comprobante con tu nombre de hotel y el plan elegido. Un administrador activará tu suscripción una vez verificado el pago.
-                </p>
-              </div>
-
-              {bankDetails.loading ? (
-                <div className="space-y-2 py-2">
-                  <div className="h-4 bg-muted animate-pulse rounded" />
-                  <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
-                  <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
-                </div>
-              ) : !bankDetails.hasBankData ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <Building2 className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-xs">
-                    Los datos bancarios aún no fueron configurados por el administrador.
-                    Contactate con soporte para obtener la información de transferencia.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {[
-                    { label: 'Banco', value: bankDetails.banco },
-                    { label: 'Titular', value: bankDetails.titular },
-                    { label: 'CBU', value: bankDetails.cbu, copyable: true },
-                    { label: 'Alias', value: bankDetails.alias, copyable: true },
-                    { label: 'CUIT', value: bankDetails.cuit },
-                  ].filter(item => item.value).map(item => (
-                    <div key={item.label} className="flex items-center justify-between py-1">
-                      <span className="text-xs text-muted-foreground">{item.label}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium font-mono">{item.value}</span>
-                        {item.copyable && (
-                          <button
-                            type="button"
-                            onClick={() => copyToClipboard(item.value, item.label)}
-                            className="p-1 rounded hover:bg-accent transition-colors"
-                          >
-                            {copiedField === item.label
-                              ? <Check className="w-3 h-3 text-primary" />
-                              : <Copy className="w-3 h-3 text-muted-foreground" />}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Enviar comprobante */}
-                  {(bankDetails.comprobanteEmail ||
-                    bankDetails.comprobanteWhatsapp ||
-                    bankDetails.comprobanteTelefono) && (
-                    <div className="border-t pt-3 mt-3 space-y-2">
-                      <h4 className="text-xs font-semibold flex items-center gap-1.5">
-                        <MessageCircle className="w-3.5 h-3.5 text-primary" />
-                        Enviar comprobante
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {bankDetails.comprobanteWhatsapp && (
-                          <a
-                            href={`https://wa.me/${bankDetails.comprobanteWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hola, les envío el comprobante de transferencia para activar mi suscripción a Hospi.')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#05966926] text-success hover:bg-[#05966940] transition-colors text-xs font-medium"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            WhatsApp
-                          </a>
-                        )}
-                        {bankDetails.comprobanteEmail && (
-                          <a
-                            href={`mailto:${bankDetails.comprobanteEmail}?subject=${encodeURIComponent('Comprobante de transferencia - Hospi')}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0284C726] text-info hover:bg-[#0284C740] transition-colors text-xs font-medium"
-                          >
-                            <Mail className="w-3.5 h-3.5" />
-                            {bankDetails.comprobanteEmail}
-                          </a>
-                        )}
-                        {bankDetails.comprobanteTelefono && (
-                          <a
-                            href={`tel:${bankDetails.comprobanteTelefono.replace(/[^0-9+]/g, '')}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground hover:bg-[#F1F5F9B3] transition-colors text-xs font-medium"
-                          >
-                            <Phone className="w-3.5 h-3.5" />
-                            {bankDetails.comprobanteTelefono}
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
       {/* Checkout Dialog (Mercado Pago) */}
       <CheckoutDialog
         open={checkoutOpen}
@@ -3492,6 +3361,14 @@ function SuscripcionSection() {
 // 7. SOPORTE
 // ═══════════════════════════════════════════
 function SoporteSection() {
+  // Email y redes de Hospi: Super Admin → Configuración → Contacto y soporte.
+  const contacto = useContactoPlataforma();
+  const canales = [
+    ...(contacto.email ? [{ href: `mailto:${contacto.email}`, texto: contacto.email, Icono: Mail, externo: false }] : []),
+    ...(contacto.whatsapp ? [{ href: contacto.whatsapp, texto: 'WhatsApp', Icono: WhatsAppIcon, externo: true }] : []),
+    ...(contacto.instagram ? [{ href: contacto.instagram, texto: 'Instagram', Icono: Instagram, externo: true }] : []),
+    ...(contacto.facebook ? [{ href: contacto.facebook, texto: 'Facebook', Icono: Facebook, externo: true }] : []),
+  ];
   const [asunto, setAsunto] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [sending, setSending] = useState(false);
@@ -3524,6 +3401,28 @@ function SoporteSection() {
           </div>
         </CardContent>
       </Card>
+
+      {canales.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Escribinos</CardTitle>
+            <CardDescription>Email y redes de Hospi</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {canales.map(({ href, texto, Icono, externo }) => (
+              <a
+                key={texto}
+                href={href}
+                {...(externo ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
+              >
+                <Icono className="w-4 h-4" />
+                {texto}
+              </a>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

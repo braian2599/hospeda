@@ -186,7 +186,8 @@ export function emailReservaConfirmada(h: HotelEmail, r: ReservaEmail, como: 'me
   return {
     para: r.email || '',
     deNombre: h.nombre,
-    responderA: h.email || undefined,
+    // Si responde, le llega al hotel; nunca a soporte de Hospi.
+    responderA: h.email || null,
     asunto: como === 'mercadopago' ? `✅ Tu reserva en ${h.nombre} está confirmada` : `✅ ${h.nombre} confirmó tu reserva`,
     html: marcoHuesped(h, `
       <h2 style="font-size:18px;margin:0 0 8px">${titulo}</h2>
@@ -212,7 +213,8 @@ export function emailFaltaSena(h: HotelEmail, r: ReservaEmail, vence: Date): Ema
   return {
     para: r.email || '',
     deNombre: h.nombre,
-    responderA: h.email || undefined,
+    // Si responde, le llega al hotel; nunca a soporte de Hospi.
+    responderA: h.email || null,
     asunto: `Tu reserva en ${h.nombre}: falta pagar la seña`,
     html: marcoHuesped(h, `
       <h2 style="font-size:18px;margin:0 0 8px">Recibimos tu reserva: falta la seña</h2>
