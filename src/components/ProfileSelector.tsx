@@ -29,27 +29,27 @@ interface ProfileSelectorProps {
   userName: string;
   email: string;
   hotelNombre: string;
-  isPasswordLogin?: boolean;
+  /** Abre directo la contraseña de este perfil (el servidor la pide siempre). */
+  pedirPasswordDe?: string | null;
   onSelected: () => void;
 }
 
-export default function ProfileSelector({ perfiles, userName, email, hotelNombre, isPasswordLogin, onSelected }: ProfileSelectorProps) {
+export default function ProfileSelector({ perfiles, userName, email, hotelNombre, pedirPasswordDe, onSelected }: ProfileSelectorProps) {
   const router = useRouter();
   const { update } = useSession();
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [passwordPrompt, setPasswordPrompt] = useState<{ profileId: string; nombre: string } | null>(null);
+  const [passwordPrompt, setPasswordPrompt] = useState<{ profileId: string; nombre: string } | null>(() => {
+    const p = pedirPasswordDe ? perfiles.find(x => x.profileId === pedirPasswordDe) : null;
+    return p ? { profileId: p.profileId, nombre: p.nombreCompleto } : null;
+  });
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [pwdError, setPwdError] = useState('');
   const [pwdLoading, setPwdLoading] = useState(false);
 
   const handleCardClick = (profileId: string, tienePassword: boolean) => {
-    // Si viene de login con contraseña, ya está verificado → entrar directo
-    if (isPasswordLogin) {
-      selectProfile(profileId);
-      return;
-    }
-    // Si el perfil tiene contraseña, pedir antes de entrar
+    // Si el perfil tiene contraseña, se pide SIEMPRE antes de entrar (también
+    // si se inició sesión con email y contraseña). Ver src/lib/auth/desbloqueo-perfil.ts.
     if (tienePassword) {
       const perfil = perfiles.find(p => p.profileId === profileId);
       setPasswordPrompt({ profileId, nombre: perfil?.nombreCompleto || '' });
@@ -68,6 +68,15 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
       const data = await res.json();
       if (data.error) {
         alert(data.error);
+        setLoadingId(null);
+        return;
+      }
+      // El servidor pide la contraseña de este perfil: se abre la pantalla.
+      if (data.selectProfile) {
+        const perfil = perfiles.find(p => p.profileId === profileId);
+        setPasswordPrompt({ profileId, nombre: perfil?.nombreCompleto || '' });
+        setPassword('');
+        setPwdError('');
         setLoadingId(null);
         return;
       }
@@ -104,7 +113,8 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
       }
       const store = useHotelStore.getState();
       store.loginFromSession(data);
-      if (data.tenantId) await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId });
+      // El comprobante `desbloqueo` es lo que hace que el JWT acepte el perfil.
+      if (data.tenantId) await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId, desbloqueo: data.desbloqueo });
       setPasswordPrompt(null);
       onSelected();
       router.push('/app');
@@ -199,7 +209,7 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {p.tienePassword && !isPasswordLogin && (
+                    {p.tienePassword && (
                       <Lock className="w-3.5 h-3.5 text-muted-foreground" />
                     )}
                     {loadingId === p.profileId ? (

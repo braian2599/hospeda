@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { crearDesbloqueo } from '@/lib/auth/desbloqueo-perfil';
 import { authOptions } from '@/lib/auth/config';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
@@ -29,6 +30,14 @@ export async function POST(req: NextRequest) {
     const tenantUser = await db.tenantUser.findFirst({
       where: { userId: (session.user as any).id, rol: 'owner', activo: true },
     });
+
+    // Si el dueño ya tiene contraseña, cambiarla acá solo se puede desde su
+    // propio perfil abierto. Si no, otro perfil de la misma cuenta podría
+    // pisarla y entrar al del dueño sin saberla.
+    const perfilEnLaSesion = (session.user as Record<string, unknown>).tenantUserId as string | undefined;
+    if (tenantUser?.password && perfilEnLaSesion !== tenantUser.id) {
+      return NextResponse.json({ error: 'Para cambiar la contraseña del dueño, entrá a su perfil.' }, { status: 403 });
+    }
 
     if (tenantUser) {
       // Guardar contraseña y nombre en el TenantUser (perfil del owner)
@@ -69,7 +78,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ message: 'Perfil actualizado correctamente' });
+    return NextResponse.json({
+      message: 'Perfil actualizado correctamente',
+      // Recién creó la contraseña: con esto el JWT acepta abrir su perfil
+      // (src/lib/auth/desbloqueo-perfil.ts).
+      ...(tenantUser ? { desbloqueo: crearDesbloqueo(tenantUser.userId, tenantUser.id) } : {}),
+    });
   } catch (error: unknown) {
     console.error('Complete profile error:', error);
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });

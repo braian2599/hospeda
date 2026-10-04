@@ -4,6 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { desbloqueoValido } from './desbloqueo-perfil';
 import { rateLimit } from '@/lib/validation';
 import { loginSchema, formatZodError } from '@/lib/validation-schemas';
 
@@ -116,30 +117,39 @@ export const authOptions: NextAuthOptions = {
         }
         const proposedTenantId = (session as Record<string, unknown>).tenantId as string | undefined;
         const proposedTenantUserId = (session as Record<string, unknown>).tenantUserId as string | undefined;
-        if (proposedTenantId && token.id) {
+        const desbloqueo = (session as Record<string, unknown>).desbloqueo;
+        // Siempre con el perfil exacto: sin él, findFirst podía elegir
+        // cualquier perfil de la cuenta en ese hotel (incluso uno con contraseña).
+        if (proposedTenantId && proposedTenantUserId && token.id) {
           try {
-            // Validar contra la DB: filtrar por tenantId Y por el perfil específico
-            const whereClause: Record<string, unknown> = {
-              userId: token.id as string,
-              tenantId: proposedTenantId,
-              activo: true,
-            };
-            if (proposedTenantUserId) {
-              whereClause.id = proposedTenantUserId;
-            }
             const tu = await db.tenantUser.findFirst({
-              where: whereClause,
+              where: {
+                id: proposedTenantUserId,
+                userId: token.id as string,
+                tenantId: proposedTenantId,
+                activo: true,
+              },
               // nombreCompleto se suma a la MISMA consulta. Con el nombre del
               // perfil adentro del JWT, cualquier ruta puede auditar "quién
               // hizo esto" sin ir a la base. Antes las rutas usaban
               // session.user.name, que es el nombre de la CUENTA.
-              select: { tenantId: true, rol: true, id: true, nombreCompleto: true },
+              select: { tenantId: true, rol: true, id: true, nombreCompleto: true, password: true },
             });
-            if (tu) {
+            // Un perfil con contraseña solo entra con el comprobante de que se
+            // escribió (src/lib/auth/desbloqueo-perfil.ts). El que ya está
+            // abierto en esta sesión no lo necesita: es una recarga.
+            const permitido = !!tu && (
+              !tu.password
+              || token.tenantUserId === tu.id
+              || desbloqueoValido(desbloqueo, token.id as string, tu.id)
+            );
+            if (tu && permitido) {
               token.tenantId = tu.tenantId;
               token.tenantRole = tu.rol;
               token.tenantUserId = tu.id;
               token.tenantUserNombre = tu.nombreCompleto || null;
+            } else if (tu) {
+              console.warn(`[jwt:update] Perfil ${tu.id} con contraseña sin desbloquear: no se abre`);
             }
           } catch (err) {
             console.error('[jwt:update] Error al validar tenant en BD:', err);

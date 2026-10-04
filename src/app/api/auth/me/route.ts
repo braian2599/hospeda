@@ -8,6 +8,7 @@ import { db } from '@/lib/db';
 import { rateLimit } from '@/lib/validation';
 import bcrypt from 'bcryptjs';
 import { parseAvisosVistos } from '@/lib/avisos';
+import { crearDesbloqueo } from '@/lib/auth/desbloqueo-perfil';
 import { parseFeatureFlags, parseFlagOverrides, resolverFlags } from '@/lib/feature-flags';
 
 /**
@@ -123,10 +124,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ needsSetup: true, userId: user.id, name: user.name, email: user.email });
     }
 
-    // Determinar si es login con contraseña o Google
-    const matchedProfileIds = (session.user as Record<string, unknown>).matchedProfileIds as string[] | undefined;
-    const isPasswordLogin = matchedProfileIds && Array.isArray(matchedProfileIds) && matchedProfileIds.length > 0;
-
     // ── Obtener perfiles del hotel ──
     // Agrupar por tenant único
     const uniqueTenants = [...new Map(user.tenants.map(tu => [tu.tenantId, tu])).values()];
@@ -148,11 +145,6 @@ export async function GET(req: NextRequest) {
       ? user.tenants.filter(tu => tu.tenantId === requestedTenantId)
       : user.tenants;
 
-    // Login con contraseña: solo mostrar perfiles que matchearon
-    if (isPasswordLogin) {
-      profilesInHotel = profilesInHotel.filter(tu => matchedProfileIds!.includes(tu.id));
-    }
-
     if (profilesInHotel.length === 0) {
       return NextResponse.json({ error: 'Sin acceso' }, { status: 403 });
     }
@@ -160,24 +152,27 @@ export async function GET(req: NextRequest) {
     // Ordenar perfiles por createdAt para selección determinística
     profilesInHotel.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-    // Múltiples perfiles → selector "¿Qué usuario sos?"
-    if (profilesInHotel.length > 1 && !requestedProfileId) {
-      const perfiles = profilesInHotel.map(tu => ({
+    // El selector "¿Qué usuario sos?". `pedirPasswordDe` le dice que abra
+    // directo la contraseña de ese perfil.
+    const selector = (pedirPasswordDe: string | null) => NextResponse.json({
+      selectProfile: true,
+      pedirPasswordDe,
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      tenantId: profilesInHotel[0].tenant.id,
+      tenantNombre: profilesInHotel[0].tenant.nombre,
+      perfiles: profilesInHotel.map(tu => ({
         profileId: tu.id,
         nombreCompleto: tu.nombreCompleto || user.name || 'Sin nombre',
         rol: tu.rol,
         tienePassword: !!tu.password,
-      }));
-      return NextResponse.json({
-        selectProfile: true,
-        isPasswordLogin,
-        userId: user.id,
-        name: user.name,
-        email: user.email,
-        tenantId: profilesInHotel[0].tenant.id,
-        tenantNombre: profilesInHotel[0].tenant.nombre,
-        perfiles,
-      });
+      })),
+    });
+
+    // Múltiples perfiles → selector
+    if (profilesInHotel.length > 1 && !requestedProfileId) {
+      return selector(null);
     }
 
     // Seleccionar el perfil (el primero ordenado por createdAt = determinístico)
@@ -187,6 +182,15 @@ export async function GET(req: NextRequest) {
 
     if (!tenantUser) {
       return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 403 });
+    }
+
+    // Un perfil con contraseña la pide SIEMPRE, sin excepciones: también al
+    // entrar con email y contraseña y aunque sea el único perfil. Solo se
+    // saltea si ese perfil ya está abierto en esta sesión (una recarga). La
+    // contraseña se verifica en el POST de abajo; el JWT tampoco lo acepta sin
+    // ese paso (src/lib/auth/desbloqueo-perfil.ts).
+    if (tenantUser.password && tenantUser.id !== perfilEnLaSesion) {
+      return selector(tenantUser.id);
     }
 
     return buildSessionResponse(user, tenantUser, perfilEnLaSesion);
@@ -292,7 +296,7 @@ async function buildSessionResponse(user: any, tenantUser: any, perfilEnLaSesion
 }
 
 // POST /api/auth/me?profileId=xxx&verifyPassword=1
-// Verifica la contraseña de un perfil (usado desde el selector con Google login)
+// Verifica la contraseña de un perfil. Es el único camino para entrar a un perfil con contraseña.
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -368,7 +372,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Contraseña incorrecta' }, { status: 401 });
     }
 
-    return buildSessionResponse(tenantUser.user, tenantUser, perfilEnLaSesion);
+    // Con el comprobante, el JWT acepta este perfil (ver desbloqueo-perfil.ts).
+    const respuesta = await buildSessionResponse(tenantUser.user, tenantUser, perfilEnLaSesion);
+    const datos = await respuesta.json();
+    return NextResponse.json({ ...datos, desbloqueo: crearDesbloqueo(tenantUser.user.id, tenantUser.id) });
 
   } catch (error: unknown) {
     const err = error as Error;

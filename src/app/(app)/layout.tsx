@@ -22,10 +22,8 @@ import { toast } from 'sonner';
 function HotelSelector({ hoteles, userName, onSelected }: {
   hoteles: { tenantId: string; tenantNombre: string; tenantSlug: string; rol: string; plan: string }[];
   userName: string;
-  onSelected: () => void;
+  onSelected: (data: Record<string, any>) => void;
 }) {
-  const router = useRouter();
-  const { update } = useSession();
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const handleSelect = async (tenantId: string) => {
@@ -34,17 +32,10 @@ function HotelSelector({ hoteles, userName, onSelected }: {
       const res = await fetch(`/api/auth/me?tenantId=${tenantId}`);
       const data = await res.json();
       if (data.error) { alert(data.error); setLoadingId(null); return; }
-      if (data.needsProfile) {
-        // Will be handled by processMeData
-        onSelected();
-        return;
-      }
-      const store = useHotelStore.getState();
-      store.loginFromSession(data);
-      if (data.tenantId) await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId });
-      onSelected();
-      router.push('/app');
-      router.refresh();
+      // Lo que sigue (elegir perfil, contraseña, entrar) lo resuelve el mismo
+      // flujo que al iniciar sesión. Antes acá se entraba directo al primer
+      // perfil, sin pedir su contraseña.
+      onSelected(data);
     } catch { setLoadingId(null); }
   };
 
@@ -120,7 +111,7 @@ function OwnerPasswordSetup({ sessionData, onComplete }: {
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Error'); setLoading(false); return; }
       toast.success('Contraseña guardada');
-      onComplete({ ...sessionData, needsPassword: false, nombre: nombre.trim(), nombreCompleto: nombre.trim() });
+      onComplete({ ...sessionData, needsPassword: false, nombre: nombre.trim(), nombreCompleto: nombre.trim(), desbloqueo: data.desbloqueo });
     } catch { toast.error('Error de conexion'); }
     setLoading(false);
   };
@@ -189,7 +180,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     userName: string;
     email: string;
     hotelNombre: string;
-    isPasswordLogin: boolean;
+    pedirPasswordDe: string | null;
   } | null>(null);
   const [passwordSetup, setPasswordSetup] = useState<Record<string, any> | null>(null);
   const router = useRouter();
@@ -225,11 +216,11 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
     // 1) Actualizar JWT PRIMERO para que las API routes tengan tenantId
     if (data.tenantId) {
       try {
-        await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId });
+        await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId, desbloqueo: data.desbloqueo });
       } catch (e) {
         console.warn('[SessionLoader] JWT update falló, reintentando...', e);
         try {
-          await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId });
+          await update({ tenantId: data.tenantId, tenantRole: data.rol, tenantUserId: data.tenantUserId, desbloqueo: data.desbloqueo });
         } catch (e2) {
           console.error('[SessionLoader] JWT update falló definitivamente:', e2);
         }
@@ -269,7 +260,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         userName: data.name,
         email: data.email,
         hotelNombre: data.tenantNombre,
-        isPasswordLogin: !!data.isPasswordLogin,
+        pedirPasswordDe: data.pedirPasswordDe ?? null,
       });
       setLoading(false);
       return;
@@ -289,7 +280,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
       cerrarSesion();
       return;
     }
-    // Un solo perfil con contraseña → login directo
+    // Un perfil ya habilitado (sin contraseña, o ya abierto en esta sesión) → entrar
     loginAndUpdateSession(data);
     setLoading(false);
   }, [loginAndUpdateSession]);
@@ -398,7 +389,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         userName={profileSelection.userName}
         email={profileSelection.email}
         hotelNombre={profileSelection.hotelNombre}
-        isPasswordLogin={profileSelection.isPasswordLogin}
+        pedirPasswordDe={profileSelection.pedirPasswordDe}
         onSelected={() => setProfileSelection(null)}
       />
     );
@@ -410,7 +401,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
       <HotelSelector
         hoteles={hotelSelection.hoteles}
         userName={hotelSelection.userName}
-        onSelected={() => setHotelSelection(null)}
+        onSelected={(data) => { setHotelSelection(null); processMeData(data); }}
       />
     );
   }
