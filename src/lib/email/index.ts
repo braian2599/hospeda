@@ -1,39 +1,43 @@
-// ── Servicio de emails — Preparado para Resend ──
+// ── Servicio de emails (Resend) ──
 //
-// Configuración futura (cuando tengas dominio propio):
-// 1. Crear cuenta en https://resend.com
-// 2. Verificar tu dominio en Resend (DNS: TXT, MX, DKIM, SPF)
-// 3. Agregar a .env:
-//    RESEND_API_KEY=re_xxxxxxxx
-//    RESEND_FROM_DOMAIN=tudominio.com
-// 4. Instalar el paquete: bun add resend
+// Configuración (Vercel, Production):
+//   RESEND_API_KEY      clave de Resend
+//   RESEND_FROM_DOMAIN  dominio verificado en Resend (mail.mihospeda.com)
+// Los emails salen desde noreply@<RESEND_FROM_DOMAIN>.
 //
-// Mientras tanto, todas las funciones devuelven { success: true, devUrl }
-// y loggean la URL a la consola (modo dev).
-// Nadie puede recibir emails hasta que Resend esté configurado,
-// pero el sistema no se rompe.
+// Sin RESEND_API_KEY no se manda nada: cada función devuelve la URL en
+// `devUrl` y la anota en el registro (para probar en desarrollo).
+//
+// Antes la librería `resend` se cargaba con un import escondido en un eval y
+// nunca estuvo instalada: los emails no salían y solo quedaba anotado
+// "Resend not installed". Además Resend no tira error cuando rechaza un envío
+// (lo devuelve en la respuesta), así que un rechazo pasaba por éxito.
+
+import { Resend } from 'resend';
 
 const APP_NAME = 'Hospi';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://hospeda.com';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.mihospeda.com';
+const FROM = `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'mail.mihospeda.com'}>`;
 
 export function isEmailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY;
 }
 
-/**
- * Carga dinámica del módulo 'resend' sin romper el build si no está instalado.
- * Usa eval para evitar que Turbopack/Webpack intente resolver el import.
- */
-async function getResendClient(): Promise<any | null> {
+let cliente: Resend | null = null;
+function getResendClient(): Resend | null {
   if (!isEmailConfigured()) return null;
-  try {
-    // @ts-ignore — el módulo puede no estar instalado
-    const mod = await eval('import("resend")');
-    return new mod.Resend(process.env.RESEND_API_KEY);
-  } catch {
-    console.error('[email] Módulo "resend" no instalado. Ejecutá: bun add resend');
-    return null;
+  if (!cliente) cliente = new Resend(process.env.RESEND_API_KEY);
+  return cliente;
+}
+
+/** Resend devuelve { data, error } en vez de tirar: un rechazo se anota y se devuelve como fallo. */
+function resultado(r: { data: { id: string } | null; error: { message: string; name?: string } | null }, tipo: string, para: string) {
+  if (r.error) {
+    console.error(`[email] Resend rechazó el email de ${tipo} a ${para}: ${r.error.name ?? ''} ${r.error.message}`);
+    return { success: false, error: r.error.message };
   }
+  console.log(`[email] Email de ${tipo} enviado a ${para} (id ${r.data?.id})`);
+  return { success: true };
 }
 
 /**
@@ -48,15 +52,11 @@ export async function sendVerificationEmail(email: string, token: string) {
     return { success: true, devUrl: verifyUrl };
   }
 
-  const resend = await getResendClient();
-  if (!resend) {
-    console.log(`📧 [DEV] Resend not installed. URL: ${verifyUrl}`);
-    return { success: true, devUrl: verifyUrl };
-  }
+  const resend = getResendClient()!;
 
   try {
-    await resend.emails.send({
-      from: `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'hospeda.com'}>`,
+    const r = await resend.emails.send({
+      from: FROM,
       to: email,
       subject: `Verificá tu email en ${APP_NAME}`,
       html: `
@@ -83,7 +83,7 @@ export async function sendVerificationEmail(email: string, token: string) {
         </div>
       `,
     });
-    return { success: true };
+    return resultado(r, 'verificación', email);
   } catch (error: any) {
     console.error('Error sending verification email:', error);
     return { success: false, error: error.message };
@@ -102,15 +102,11 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     return { success: true, devUrl: resetUrl };
   }
 
-  const resend = await getResendClient();
-  if (!resend) {
-    console.log(`📧 [DEV] Resend not installed. URL: ${resetUrl}`);
-    return { success: true, devUrl: resetUrl };
-  }
+  const resend = getResendClient()!;
 
   try {
-    await resend.emails.send({
-      from: `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'hospeda.com'}>`,
+    const r = await resend.emails.send({
+      from: FROM,
       to: email,
       subject: `Restablecé tu contraseña en ${APP_NAME}`,
       html: `
@@ -137,7 +133,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
         </div>
       `,
     });
-    return { success: true };
+    return resultado(r, 'recuperación de contraseña', email);
   } catch (error: any) {
     console.error('Error sending password reset email:', error);
     return { success: false, error: error.message };
@@ -156,15 +152,11 @@ export async function sendInvitationEmail(email: string, token: string, hotelNom
     return { success: true, devUrl: inviteUrl };
   }
 
-  const resend = await getResendClient();
-  if (!resend) {
-    console.log(`📧 [DEV] Resend not installed. URL: ${inviteUrl}`);
-    return { success: true, devUrl: inviteUrl };
-  }
+  const resend = getResendClient()!;
 
   try {
-    await resend.emails.send({
-      from: `${APP_NAME} <noreply@${process.env.RESEND_FROM_DOMAIN || 'hospeda.com'}>`,
+    const r = await resend.emails.send({
+      from: FROM,
       to: email,
       subject: `${inviterName} te invitó a ${hotelNombre} en ${APP_NAME}`,
       html: `
@@ -194,7 +186,7 @@ export async function sendInvitationEmail(email: string, token: string, hotelNom
         </div>
       `,
     });
-    return { success: true };
+    return resultado(r, 'invitación', email);
   } catch (error: any) {
     console.error('Error sending invitation email:', error);
     return { success: false, error: error.message };
