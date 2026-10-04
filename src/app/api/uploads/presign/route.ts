@@ -12,18 +12,18 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { tipo, habitacion, contentType, size } = body as {
-      tipo?: 'hotel' | 'habitacion' | 'factura';
+      tipo?: 'hotel' | 'habitacion' | 'factura' | 'logo';
       habitacion?: string;
       contentType?: string;
       size?: number;
     };
 
-    if (tipo !== 'hotel' && tipo !== 'habitacion' && tipo !== 'factura') {
-      return NextResponse.json({ error: 'tipo debe ser "hotel", "habitacion" o "factura"' }, { status: 400 });
+    if (tipo !== 'hotel' && tipo !== 'habitacion' && tipo !== 'factura' && tipo !== 'logo') {
+      return NextResponse.json({ error: 'tipo debe ser "hotel", "habitacion", "factura" o "logo"' }, { status: 400 });
     }
-    // El logo de landing/habitaciones requiere el feature flag de landing page.
-    // El logo de factura es parte del módulo base de Facturación (no de la
-    // landing), así que no se gatea con ese flag.
+    // Las fotos de landing/habitaciones requieren el feature flag de landing
+    // page. El logo de factura y el logo del hotel (Configuración → Datos del
+    // hotel) son de todos los planes, así que no se gatean con ese flag.
     if (tipo === 'hotel' || tipo === 'habitacion') {
       await requireFeatureFlag(tenantId, 'landingPage');
     }
@@ -46,6 +46,8 @@ export async function POST(req: NextRequest) {
       key = `tenants/${tenantId}/habitaciones/${habitacion.trim()}/${randomUUID()}.${extForContentType(contentType)}`;
     } else if (tipo === 'factura') {
       key = `tenants/${tenantId}/factura/${randomUUID()}.${extForContentType(contentType)}`;
+    } else if (tipo === 'logo') {
+      key = `tenants/${tenantId}/logo/${randomUUID()}.${extForContentType(contentType)}`;
     } else {
       key = `tenants/${tenantId}/hotel/${randomUUID()}.${extForContentType(contentType)}`;
     }

@@ -17,7 +17,6 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
@@ -29,7 +28,6 @@ import { promoBadgesTab } from '@/lib/tarifas-format';
 import { aFechaTexto, estadoVigencia, describirVigencia } from '@/lib/tarifa-vigencia';
 import { leerTarifasPublicas, tarifasPisadas, mensajePisada, avisosDeHuecos, type MapaTarifasPublicas, type TarifaConFechas } from '@/lib/tarifas-publicas';
 import { fechaArgentina } from '@/lib/format';
-import { AnimatedNumber } from '@/components/ui/animated-number';
 import ModuleHeader from '@/components/layout/ModuleHeader';
 import {
   CreditCard, Building2, FileText, Shield, Headphones, Download,
@@ -54,44 +52,21 @@ const CheckoutDialog = dynamic(
   { ssr: false }
 );
 
-// ─── Sections, agrupadas por tema (se muestran como clusters separados en la
-// barra de navegación en vez de una fila plana de 8 tabs sueltas) ───
-type SectionId = 'hotel' | 'fiscal' | 'habitaciones' | 'landing' | 'cuenta' | 'exportar' | 'suscripcion' | 'soporte';
+// ─── Secciones ───
+// Menú a la izquierda (en el celular, una lista arriba). Cada sección tiene
+// páginas cortas: antes era una barra de pestañas agrupadas y cada pestaña
+// era un scroll largo con todo mezclado.
+type SeccionId = 'mihotel' | 'facturacion' | 'web' | 'canales' | 'datos' | 'soporte';
 
-interface SectionMeta { id: SectionId; label: string; icon: React.ComponentType<{ className?: string }>; }
-
-const SECTION_GROUPS: { label: string; sections: SectionMeta[] }[] = [
-  {
-    label: 'Hotel',
-    sections: [
-      { id: 'hotel', label: 'Hotel Info', icon: Building2 },
-      // Una sola pestaña para facturar: antes había "Fiscal" y "AFIP/ARCA",
-      // que pedían el mismo CUIT dos veces. La conexión con ARCA va adentro.
-      { id: 'fiscal', label: 'Facturación', icon: FileText },
-      { id: 'habitaciones', label: 'Habitaciones', icon: BedDouble },
-    ],
-  },
-  {
-    label: 'Landing page',
-    sections: [
-      { id: 'landing', label: 'Landing', icon: ImageIcon },
-    ],
-  },
-  {
-    label: 'Cuenta',
-    sections: [
-      { id: 'cuenta', label: 'Cuenta y Contraseña', icon: KeyRound },
-    ],
-  },
-  {
-    label: 'Sistema',
-    sections: [
-      { id: 'exportar', label: 'Datos / Export', icon: Database },
-      { id: 'suscripcion', label: 'Suscripción', icon: CreditCard },
-      { id: 'soporte', label: 'Soporte', icon: Headphones },
-    ],
-  },
-];
+interface Pagina { id: string; titulo: string; bajada: string }
+interface Seccion {
+  id: SeccionId;
+  grupo: 'Hotel' | 'Ventas' | 'Sistema';
+  titulo: string;
+  resumen: string;
+  icon: React.ComponentType<{ className?: string }>;
+  paginas: Pagina[];
+}
 
 // ─── Static helpers ───
 
@@ -183,38 +158,75 @@ const forestAlpha = (alpha: 15) => `var(--primary-a${alpha})`;
 
 // ─── Main module ───
 export default function ConfiguracionModule() {
-  const [activeSection, setActiveSection] = useState<SectionId>('hotel');
+  const [seccion, setSeccion] = useState<SeccionId>('mihotel');
+  const [pagina, setPagina] = useState('datos');
   const [fotosHabilitadas, setFotosHabilitadas] = useState(false);
   const [arcaHabilitada, setArcaHabilitada] = useState(false);
+  const [canalesHabilitados, setCanalesHabilitados] = useState(false);
+  const [slug, setSlug] = useState('');
   // Para el aviso de días sin tarifa en la web.
   const [tarifasWeb, setTarifasWeb] = useState<{ mapa: unknown; limite: string | null } | null>(null);
-  const [landingTabInicial, setLandingTabInicial] = useState<LandingTabId | undefined>(undefined);
   const { usuarioActual } = useHotelStore();
-  const planActual = useHotelStore(s => s.planActual);
-  const planes = usePlans();
 
   useEffect(() => {
     fetch('/api/configuracion/hotel')
       .then((r) => r.json())
       .then((data) => {
+        // Las flags ya vienen resueltas (plan + la excepción de este hotel):
+        // no se vuelven a combinar con el plan acá.
         const flags = data?.featureFlags;
         setFotosHabilitadas(!!flags?.landingPage);
         setArcaHabilitada(!!flags?.facturacionArca);
+        setCanalesHabilitados(!!flags?.bookingSync || !!flags?.airbnbSync);
+        setSlug(data?.slug || '');
         setTarifasWeb({ mapa: data?.tarifasPublicas, limite: data?.reservasHabilitadasHasta ? String(data.reservasHabilitadasHasta).slice(0, 10) : null });
       })
       .catch(() => {});
   }, []);
 
-  // Las flags que devuelve /api/configuracion/hotel YA vienen resueltas (plan
-  // + la excepción cargada para este hotel), así que acá no hay que volver a
-  // combinarlas con el plan: hacerlo revivía una integración que Super Admin
-  // hubiera forzado apagada para este hotel puntual.
-  const visibleGroups = SECTION_GROUPS
-    .map(g => ({
-      ...g,
-      sections: g.sections.filter(s => s.id !== 'landing' || fotosHabilitadas),
-    }))
-    .filter(g => g.sections.length > 0);
+  const secciones: Seccion[] = [
+    {
+      id: 'mihotel', grupo: 'Hotel', titulo: 'Mi hotel y cuenta', resumen: 'Datos, plan y contraseñas', icon: Building2,
+      paginas: [
+        { id: 'datos', titulo: 'Datos del hotel', bajada: 'Los datos que salen en los comprobantes, los emails y la página web.' },
+        { id: 'plan', titulo: 'Plan y suscripción', bajada: 'Tu plan, cuánto usás y cómo se paga.' },
+        { id: 'contrasenas', titulo: 'Contraseñas', bajada: 'Son dos contraseñas distintas: la de la cuenta del hotel y la de tu perfil de dueño.' },
+      ],
+    },
+    {
+      id: 'facturacion', grupo: 'Hotel', titulo: 'Facturación', resumen: arcaHabilitada ? 'Datos fiscales y ARCA' : 'Datos fiscales', icon: FileText,
+      paginas: [
+        { id: 'fiscal', titulo: 'Datos fiscales', bajada: 'Los datos de quien factura. Salen en cada comprobante.' },
+        { id: 'comprobantes', titulo: 'Comprobantes', bajada: 'Numeración, logo y cómo se ve la factura.' },
+        ...(arcaHabilitada ? [{ id: 'arca', titulo: 'Conexión con ARCA', bajada: 'Para emitir cada factura con su CAE.' }] : []),
+      ],
+    },
+    ...(fotosHabilitadas ? [{
+      id: 'web' as const, grupo: 'Ventas' as const, titulo: 'Página web', resumen: 'Lo que ven tus huéspedes', icon: Globe,
+      paginas: LANDING_TAB_GROUPS.flatMap(g => g.tabs.map(t => ({ id: t.id, titulo: t.label, bajada: BAJADA_LANDING[t.id] }))),
+    }] : []),
+    ...(canalesHabilitados ? [{
+      id: 'canales' as const, grupo: 'Ventas' as const, titulo: 'Canales de venta', resumen: 'Booking, Airbnb y otros', icon: Share2,
+      paginas: [{ id: 'conexion', titulo: 'Conexión con los canales', bajada: 'Booking, Airbnb, Expedia y otros, conectados directo por su API.' }],
+    }] : []),
+    {
+      id: 'datos', grupo: 'Sistema', titulo: 'Datos y exportación', resumen: 'Descargá tus datos', icon: Database,
+      paginas: [{ id: 'exportar', titulo: 'Exportar', bajada: 'Planillas para el contador o un respaldo completo.' }],
+    },
+    {
+      id: 'soporte', grupo: 'Sistema', titulo: 'Soporte', resumen: 'Escribinos', icon: Headphones,
+      paginas: [{ id: 'contacto', titulo: 'Soporte', bajada: 'Te respondemos al email de la cuenta del hotel.' }],
+    },
+  ];
+
+  const actual = secciones.find(x => x.id === seccion) ?? secciones[0];
+  const paginaActual = actual.paginas.find(p => p.id === pagina) ?? actual.paginas[0];
+  const ir = (s: SeccionId, p?: string) => {
+    const destino = secciones.find(x => x.id === s);
+    if (!destino) return;
+    setSeccion(s);
+    setPagina(p ?? destino.paginas[0].id);
+  };
 
   if (!usuarioActual || usuarioActual.rol !== 'owner') {
     return (
@@ -226,68 +238,116 @@ export default function ConfiguracionModule() {
     );
   }
 
+  let grupoAnterior = '';
   return (
-    <div className="space-y-6">
-      <ModuleHeader icon={Settings} title="Configuración" subtitle="Administrá tu hotel, plan y cuenta" />
+    <div className="space-y-5">
+      <ModuleHeader icon={Settings} title="Configuración" subtitle="Administrá tu hotel, tu cuenta y tu página web" />
 
       {fotosHabilitadas && tarifasWeb && (
         <AvisoTarifasWeb
           tarifasPublicas={tarifasWeb.mapa}
           reservasHabilitadasHasta={tarifasWeb.limite}
-          onRevisar={() => { setLandingTabInicial('precios'); setActiveSection('landing'); }}
+          onRevisar={() => ir('web', 'precios')}
         />
       )}
 
-      {/* Secciones agrupadas por tema — cada cluster es su propio grupo de tabs */}
-      <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as SectionId)}>
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="flex flex-nowrap sm:flex-wrap items-start gap-4 sm:gap-5 min-w-max sm:min-w-0">
-            {visibleGroups.map((group, gi) => (
-              <div
-                key={group.label}
-                className="flex flex-col gap-1.5 animate-slide-up"
-                style={{ animationDelay: `${gi * 50}ms` }}
-              >
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--muted-foreground-a70)] px-0.5">
-                  {group.label}
-                </span>
-                <TabsList className="flex flex-nowrap h-auto gap-0.5 bg-[#F1F5F980]">
-                  {group.sections.map(s => {
-                    const Icon = s.icon;
-                    return (
-                      <TabsTrigger
-                        key={s.id}
-                        value={s.id}
-                        className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"
+      <div className="grid gap-5 lg:grid-cols-[250px_1fr] items-start">
+        {/* Menú: en la computadora, a la izquierda */}
+        <nav className="hidden lg:flex flex-col rounded-xl border bg-card p-2 sticky top-4" aria-label="Secciones de Configuración">
+          {secciones.map(sec => {
+            const Icon = sec.icon;
+            const on = sec.id === actual.id;
+            const titulo = sec.grupo !== grupoAnterior ? sec.grupo : null;
+            grupoAnterior = sec.grupo;
+            return (
+              <div key={sec.id}>
+                {titulo && <div className="px-2.5 pt-2.5 pb-1 text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground">{titulo}</div>}
+                <button
+                  type="button"
+                  onClick={() => ir(sec.id)}
+                  className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors ${on ? 'bg-[color:var(--primary-a5)] shadow-[inset_3px_0_0_var(--primary)]' : 'hover:bg-muted'}`}
+                >
+                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${on ? 'bg-[color:var(--primary-a15)] text-primary' : 'bg-muted text-muted-foreground'}`}>
+                    <Icon className="w-4 h-4" />
+                  </span>
+                  <span className="flex flex-col min-w-0">
+                    <span className={`text-[13.5px] font-semibold ${on ? 'text-primary' : ''}`}>{sec.titulo}</span>
+                    <span className="text-[11.5px] text-muted-foreground truncate">{sec.resumen}</span>
+                  </span>
+                </button>
+                {on && sec.paginas.length > 1 && (
+                  <div className="ml-[46px] my-1 flex flex-col border-l">
+                    {sec.paginas.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setPagina(p.id)}
+                        className={`-ml-px border-l-2 px-2.5 py-1.5 text-left text-[13px] transition-colors ${p.id === paginaActual.id ? 'border-primary text-primary font-semibold' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                       >
-                        <Icon className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                        <span>{s.label}</span>
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
+                        {p.titulo}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+            );
+          })}
+        </nav>
+
+        {/* Menú: en el celular, una lista arriba */}
+        <div className="lg:hidden">
+          <Select value={`${actual.id}/${paginaActual.id}`} onValueChange={v => { const [s, p] = v.split('/'); ir(s as SeccionId, p); }}>
+            <SelectTrigger className="h-11 w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {secciones.flatMap(sec => sec.paginas.map(p => (
+                <SelectItem key={`${sec.id}/${p.id}`} value={`${sec.id}/${p.id}`}>
+                  {sec.paginas.length > 1 ? `${sec.titulo} › ${p.titulo}` : sec.titulo}
+                </SelectItem>
+              )))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="mt-6 content-fade-switch" key={activeSection}>
-          {activeSection === 'hotel' && <HotelSection />}
-          {activeSection === 'fiscal' && <FiscalSection conArca={arcaHabilitada} />}
-          {activeSection === 'habitaciones' && <HabitacionesSection />}
-          {activeSection === 'landing' && (
-            <LandingSection
-              key={landingTabInicial ?? 'landing'}
-              tabInicial={landingTabInicial}
-              onTarifasWebGuardadas={(mapa) => setTarifasWeb((prev) => ({ mapa, limite: prev?.limite ?? null }))}
-            />
-          )}
-          {activeSection === 'cuenta' && <CuentaSection />}
-          {activeSection === 'exportar' && <ExportarSection />}
-          {activeSection === 'suscripcion' && <SuscripcionSection />}
-          {activeSection === 'soporte' && <SoporteSection />}
-        </div>
-      </Tabs>
+        <section className="min-w-0 space-y-4">
+          <div>
+            {actual.paginas.length > 1 && (
+              <p className="text-[12.5px] text-muted-foreground">{actual.titulo} › <b className="text-foreground">{paginaActual.titulo}</b></p>
+            )}
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold">{paginaActual.titulo}</h2>
+                <p className="text-[13px] text-muted-foreground">{paginaActual.bajada}</p>
+              </div>
+              {actual.id === 'web' && slug && (
+                <a href={`/h/${slug}`} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                  <Globe className="w-4 h-4" /> Ver mi página web
+                </a>
+              )}
+            </div>
+          </div>
+
+          <div className="content-fade-switch" key={`${actual.id}/${actual.id === 'web' ? '' : paginaActual.id}`}>
+            {actual.id === 'mihotel' && paginaActual.id === 'datos' && <HotelSection />}
+            {actual.id === 'mihotel' && paginaActual.id === 'plan' && <SuscripcionSection />}
+            {actual.id === 'mihotel' && paginaActual.id === 'contrasenas' && <CuentaSection />}
+            {actual.id === 'facturacion' && paginaActual.id === 'arca' && <AfipSection />}
+            {actual.id === 'facturacion' && paginaActual.id !== 'arca' && (
+              <FiscalSection conArca={arcaHabilitada} parte={paginaActual.id === 'comprobantes' ? 'comprobantes' : 'datos'} />
+            )}
+            {/* La página web queda montada al cambiar de página: así no
+                vuelve a cargar todo ni se pierde lo que se está escribiendo. */}
+            {actual.id === 'web' && (
+              <LandingSection
+                tab={paginaActual.id as LandingTabId}
+                onTarifasWebGuardadas={(mapa) => setTarifasWeb((prev) => ({ mapa, limite: prev?.limite ?? null }))}
+              />
+            )}
+            {actual.id === 'canales' && <CanalesSection />}
+            {actual.id === 'datos' && <ExportarSection />}
+            {actual.id === 'soporte' && <SoporteSection />}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
@@ -296,145 +356,81 @@ export default function ConfiguracionModule() {
 // 1. DATOS DEL HOTEL (enhanced)
 // ═══════════════════════════════════════════
 function HotelSection() {
-  const { planActual } = useHotelStore();
-  const plans = usePlans();
-  const [form, setForm] = useState({
-    nombre: '', email: '', telefono: '', moneda: 'ARS',
-    timezone: 'America/Argentina/Buenos_Aires', logoUrl: '', heroUrl: '',
-  });
+  const VACIO = { nombre: '', email: '', telefono: '', moneda: 'ARS', timezone: 'America/Argentina/Buenos_Aires', logoUrl: '' };
+  const [form, setForm] = useState(VACIO);
+  const [guardado, setGuardado] = useState(VACIO);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [metrics, setMetrics] = useState<{ habitaciones: number; usuarios: number } | null>(null);
+  const [subiendoLogo, setSubiendoLogo] = useState(false);
 
   useEffect(() => {
     fetch('/api/configuracion/hotel')
       .then(r => r.json())
       .then(data => {
-        if (!data.error) setForm({
+        if (data.error) return;
+        const v = {
           nombre: data.nombre || '',
           email: data.email || '',
           telefono: data.telefono || '',
           moneda: data.moneda || 'ARS',
           timezone: data.timezone || 'America/Argentina/Buenos_Aires',
           logoUrl: data.logoUrl || '',
-          heroUrl: data.heroUrl || '',
-        });
+        };
+        setForm(v);
+        setGuardado(v);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-    // Fetch metrics (habitaciones / usuarios counts)
-    fetch('/api/configuracion/usage')
-      .then(r => r.json())
-      .then(data => {
-        if (!data.error) setMetrics({ habitaciones: data.habitaciones ?? 0, usuarios: data.usuarios ?? 0 });
-      })
-      .catch(() => {});
   }, []);
+
+  const hayCambios = (Object.keys(form) as (keyof typeof form)[]).some(k => form[k] !== guardado[k]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Only send fields the API knows about — heroUrl stays client-side.
-      const payload = {
-        nombre: form.nombre, email: form.email, telefono: form.telefono,
-        moneda: form.moneda, timezone: form.timezone, logoUrl: form.logoUrl,
-      };
-      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Error'); return; }
+      // El logo anterior ya no lo usa nadie: se borra del almacenamiento.
+      if (guardado.logoUrl && guardado.logoUrl !== form.logoUrl) {
+        fetch('/api/uploads/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: guardado.logoUrl }) }).catch(() => {});
+      }
+      setGuardado(form);
       toast.success('Datos del hotel guardados');
-    } catch { toast.error('Error de conexión'); }
-    setSaving(false);
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const subirLogo = async (file: File) => {
+    setSubiendoLogo(true);
+    try {
+      const url = await uploadFoto(file, 'logo');
+      setForm(f => ({ ...f, logoUrl: url }));
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error al subir el logo');
+    } finally {
+      setSubiendoLogo(false);
+    }
   };
 
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
 
-  const planNombre = plans?.[planActual]?.nombre ?? planActual;
-
   return (
-    <div className="space-y-6">
-      {/* Hero + Hotel name */}
-      <Card className="overflow-hidden card-hover animate-slide-up">
-        <div
-          className="h-32 md:h-40 w-full bg-primary relative"
-          aria-hidden
-        >
-          {form.heroUrl ? (
-            <img
-              src={form.heroUrl}
-              alt="Imagen del hotel"
-              className="h-full w-full object-cover"
-              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-            />
-          ) : null}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A33] to-transparent" />
-        </div>
-        <CardContent className="p-4 md:p-6 -mt-12 relative">
-          <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-            {/* Logo placeholder */}
-            <div className="w-20 h-20 rounded-2xl border-4 border-background bg-muted flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-              {form.logoUrl ? (
-                <img src={proxiedImageUrl(form.logoUrl)} alt="Logo" className="w-full h-full object-contain" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-              ) : (
-                <Hotel className="w-8 h-8 text-muted-foreground" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0 pb-1">
-              <h3 className="text-xl font-bold truncate">{form.nombre || 'Sin nombre'}</h3>
-              <p className="text-sm text-muted-foreground truncate">
-                {form.email || 'Sin email'} · {form.moneda}
-              </p>
-            </div>
-            <Badge variant="secondary" className="self-start sm:self-end capitalize">
-              <Crown className="w-3 h-3 mr-1" />
-              {planNombre}
-            </Badge>
-          </div>
-
-          {/* Hotel metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-5">
-            <MetricCard
-              icon={Hotel}
-              label="Habitaciones"
-              value={metrics?.habitaciones ?? 0}
-              color={forest}
-            />
-            <MetricCard
-              icon={Users}
-              label="Usuarios"
-              value={metrics?.usuarios ?? 0}
-              color={forestAccent}
-            />
-            <MetricCard
-              icon={Crown}
-              label="Plan actual"
-              value={planNombre}
-              isText
-              color={forest}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Contact info cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 card-grid-stagger">
-        <ContactInfoCard icon={Phone} label="Teléfono" value={form.telefono} color={forestAccent} />
-        <ContactInfoCard icon={Mail} label="Email" value={form.email} color={forest} />
-        <ContactInfoCard icon={DollarSign} label="Moneda" value={form.moneda} color={forestAccent} />
-      </div>
-
-      {/* Editable form */}
-      <Card className="card-hover">
+    <div className="space-y-4">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Información del Hotel</CardTitle>
-          <CardDescription>Datos que aparecen en comprobantes y la interfaz del sistema</CardDescription>
+          <CardTitle className="text-base">Identidad</CardTitle>
+          <CardDescription>Cómo se presenta el hotel.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ConfigField label="Nombre del hotel" icon={Hotel}>
               <Input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre comercial" />
             </ConfigField>
-            <ConfigField label="Email de contacto" icon={Mail} hint="Email público del hotel para huéspedes">
+            <ConfigField label="Email de contacto" icon={Mail} hint="El email público del hotel, para los huéspedes">
               <Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="hotel@ejemplo.com" />
             </ConfigField>
             <ConfigField label="Teléfono" icon={Phone}>
@@ -442,7 +438,7 @@ function HotelSection() {
             </ConfigField>
             <ConfigField label="Moneda" icon={DollarSign}>
               <Select value={form.moneda} onValueChange={v => setForm({ ...form, moneda: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ARS">ARS - Peso Argentino</SelectItem>
                   <SelectItem value="USD">USD - Dólar Estadounidense</SelectItem>
@@ -453,83 +449,84 @@ function HotelSection() {
                 </SelectContent>
               </Select>
             </ConfigField>
-            <ConfigField label="Zona horaria" icon={Clock}>
-              <Select value={form.timezone} onValueChange={v => setForm({ ...form, timezone: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</SelectItem>
-                  <SelectItem value="America/Argentina/Cordoba">Argentina (Córdoba)</SelectItem>
-                  <SelectItem value="America/Argentina/Mendoza">Argentina (Mendoza)</SelectItem>
-                  <SelectItem value="America/Argentina/Tucuman">Argentina (Tucumán)</SelectItem>
-                  <SelectItem value="America/Santiago">Chile</SelectItem>
-                  <SelectItem value="America/Montevideo">Uruguay</SelectItem>
-                  <SelectItem value="America/Sao_Paulo">Brasil (São Paulo)</SelectItem>
-                  <SelectItem value="America/Bogota">Colombia</SelectItem>
-                  <SelectItem value="America/Mexico_City">México</SelectItem>
-                  <SelectItem value="America/Lima">Perú</SelectItem>
-                  <SelectItem value="America/New_York">EE.UU. (New York)</SelectItem>
-                  <SelectItem value="Europe/Madrid">España</SelectItem>
-                </SelectContent>
-              </Select>
-            </ConfigField>
-            <ConfigField label="URL del Logo" icon={Globe} hint="Pegá la URL de la imagen de tu logo">
-              <Input value={form.logoUrl} onChange={e => setForm({ ...form, logoUrl: e.target.value })} placeholder="https://ejemplo.com/logo.png" />
-            </ConfigField>
-            <ConfigField label="URL de imagen destacada (hero)" icon={Building2} hint="Aparece como banner superior del hotel">
-              <Input value={form.heroUrl} onChange={e => setForm({ ...form, heroUrl: e.target.value })} placeholder="https://ejemplo.com/hero.jpg" />
-            </ConfigField>
-          </div>
-
-          {form.logoUrl && (
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F1F5F980]">
-              <img src={proxiedImageUrl(form.logoUrl)} alt="Logo" className="w-12 h-12 rounded-lg object-contain bg-white p-1" onError={e => (e.currentTarget.style.display = 'none')} />
-              <span className="text-sm text-muted-foreground">Vista previa del logo</span>
+            <div className="md:col-span-2">
+              <ConfigField label="Zona horaria" icon={Clock}>
+                <Select value={form.timezone} onValueChange={v => setForm({ ...form, timezone: v })}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</SelectItem>
+                    <SelectItem value="America/Argentina/Cordoba">Argentina (Córdoba)</SelectItem>
+                    <SelectItem value="America/Argentina/Mendoza">Argentina (Mendoza)</SelectItem>
+                    <SelectItem value="America/Argentina/Tucuman">Argentina (Tucumán)</SelectItem>
+                    <SelectItem value="America/Santiago">Chile</SelectItem>
+                    <SelectItem value="America/Montevideo">Uruguay</SelectItem>
+                    <SelectItem value="America/Sao_Paulo">Brasil (São Paulo)</SelectItem>
+                    <SelectItem value="America/Bogota">Colombia</SelectItem>
+                    <SelectItem value="America/Mexico_City">México</SelectItem>
+                    <SelectItem value="America/Lima">Perú</SelectItem>
+                    <SelectItem value="America/New_York">EE.UU. (New York)</SelectItem>
+                    <SelectItem value="Europe/Madrid">España</SelectItem>
+                  </SelectContent>
+                </Select>
+              </ConfigField>
             </div>
-          )}
-
-          <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: forest }}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-              Guardar cambios
-            </Button>
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Logo</CardTitle>
+          <CardDescription>Sale en la página web y en los emails a los huéspedes. El logo de las facturas se carga en Facturación.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="w-20 h-20 rounded-xl border bg-white flex items-center justify-center overflow-hidden shrink-0">
+              {form.logoUrl
+                ? <img src={proxiedImageUrl(form.logoUrl)} alt="Logo del hotel" className="w-full h-full object-contain" />
+                : <Hotel className="w-8 h-8 text-muted-foreground" />}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={subiendoLogo} asChild>
+                <label className="cursor-pointer">
+                  {subiendoLogo ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Upload className="w-4 h-4 mr-1.5" />}
+                  {form.logoUrl ? 'Cambiar logo' : 'Subir logo'}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={subiendoLogo}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) subirLogo(f); e.target.value = ''; }} />
+                </label>
+              </Button>
+              {form.logoUrl && (
+                <Button variant="ghost" size="sm" onClick={() => setForm({ ...form, logoUrl: '' })} disabled={subiendoLogo}>
+                  <Trash2 className="w-4 h-4 mr-1.5" /> Quitar
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground w-full">JPG, PNG o WEBP. Mejor si es cuadrado.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <BarraGuardar visible={hayCambios} guardando={saving} onGuardar={handleSave} onDescartar={() => setForm(guardado)} />
     </div>
   );
 }
 
-function MetricCard({ icon: Icon, label, value, isText, color }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; value: number | string; isText?: boolean; color: string }) {
+/** Aparece abajo, fija, solo cuando hay cambios sin guardar. */
+function BarraGuardar({ visible, guardando, onGuardar, onDescartar }: {
+  visible: boolean; guardando: boolean; onGuardar: () => void; onDescartar: () => void;
+}) {
+  if (!visible) return null;
   return (
-    <div className="rounded-xl border bg-card p-3 flex flex-col gap-1">
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Icon className="w-3 h-3" style={{ color }} />
-        <span>{label}</span>
+    <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-xl border bg-card px-4 py-2.5 shadow-lg">
+      <span className="text-sm font-medium text-warning">● Tenés cambios sin guardar</span>
+      <div className="ml-auto flex gap-2">
+        <Button variant="outline" size="sm" onClick={onDescartar} disabled={guardando}>Descartar</Button>
+        <Button size="sm" onClick={onGuardar} disabled={guardando} style={{ backgroundColor: forest }}>
+          {guardando ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+          Guardar cambios
+        </Button>
       </div>
-      {isText ? (
-        <span className="text-base font-bold leading-tight capitalize">{value}</span>
-      ) : (
-        <span className="text-2xl font-bold tabular-nums" style={{ color }}>
-          <AnimatedNumber value={Number(value) || 0} duration={500} format={n => String(Math.round(n))} />
-        </span>
-      )}
     </div>
-  );
-}
-
-function ContactInfoCard({ icon: Icon, label, value, color }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; value: string; color: string }) {
-  return (
-    <Card className="overflow-hidden card-hover">
-      <CardContent className="p-4 flex items-start gap-3">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}15` }}>
-          <Icon className="w-5 h-5" style={{ color }} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
-          <p className="text-sm font-medium truncate mt-0.5">{value || '—'}</p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -537,11 +534,12 @@ function ContactInfoCard({ icon: Icon, label, value, color }: { icon: React.Comp
 // 2. DATOS FISCALES (enhanced)
 // ═══════════════════════════════════════════
 /**
- * Configuración → Facturación. Arriba los datos de quien factura (salen en
- * cada comprobante); abajo, solo si el plan tiene facturación con ARCA, la
- * conexión. El CUIT se carga una sola vez, acá.
+ * Configuración → Facturación, en dos páginas que comparten los datos y el
+ * guardado: "datos" (quien factura: salen en cada comprobante; el CUIT se
+ * carga una sola vez, acá) y "comprobantes" (punto de venta, numeración,
+ * logo y la vista previa). La conexión con ARCA es una página aparte.
  */
-function FiscalSection({ conArca }: { conArca: boolean }) {
+function FiscalSection({ conArca, parte }: { conArca: boolean; parte: 'datos' | 'comprobantes' }) {
   const [mostrarNumeracion, setMostrarNumeracion] = useState(false);
   const [trayendoArca, setTrayendoArca] = useState(false);
   const [form, setForm] = useState({ cuit: '', iva: '', direccionFiscal: '', ciudad: '', puntoVenta: 1, numeroInicio: 1, razonSocial: '', facturaLogoUrl: '' });
@@ -671,12 +669,17 @@ function FiscalSection({ conArca }: { conArca: boolean }) {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <FileText className="w-4 h-4" style={{ color: forest }} />
-            Datos de quien factura
+            {parte === 'datos' ? 'Datos de quien factura' : 'Numeración y logo'}
           </CardTitle>
-          <CardDescription>Salen en cada comprobante. Si el hotel está a nombre de una persona, van los datos de esa persona.</CardDescription>
+          <CardDescription>
+            {parte === 'datos'
+              ? 'Salen en cada comprobante. Si el hotel está a nombre de una persona, van los datos de esa persona.'
+              : 'Cómo se numeran los comprobantes y qué logo llevan.'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {parte === 'datos' && (<>
             <div className="space-y-1.5 md:col-span-2">
               <Label className="text-sm font-medium flex items-center gap-2">
                 <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
@@ -752,10 +755,11 @@ function FiscalSection({ conArca }: { conArca: boolean }) {
               </Label>
               <Input value={form.ciudad} onChange={e => setForm({ ...form, ciudad: e.target.value })} placeholder="Ciudad Autónoma de Buenos Aires" />
             </div>
+            </>)}
             {/* El punto de venta solo importa para facturar con ARCA: es el
                 que el hotel dio de alta allá para factura electrónica. Sin
                 ARCA queda en 1 y no se pregunta. */}
-            {conArca && (
+            {parte === 'comprobantes' && conArca && (
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
@@ -770,7 +774,7 @@ function FiscalSection({ conArca }: { conArca: boolean }) {
           {/* La numeración inicial le sirve solo a quien viene de un talonario
               y quiere seguir su numeración. Casi nadie: va escondida. Con el
               primer comprobante emitido ya no se puede cambiar. */}
-          {!numeracionYaUsada && (
+          {parte === 'comprobantes' && !numeracionYaUsada && (
             mostrarNumeracion ? (
               <div className="space-y-1.5 max-w-xs">
                 <Label className="text-sm font-medium flex items-center gap-2">
@@ -790,6 +794,7 @@ function FiscalSection({ conArca }: { conArca: boolean }) {
             )
           )}
 
+          {parte === 'comprobantes' && (
           <div className="space-y-1.5">
             <Label className="text-sm font-medium flex items-center gap-2">
               <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />
@@ -823,6 +828,7 @@ function FiscalSection({ conArca }: { conArca: boolean }) {
             </div>
             <p className="text-xs text-muted-foreground">Aparece en el encabezado del comprobante en formato A4. JPG, PNG o WEBP, hasta 8MB.</p>
           </div>
+          )}
 
           <div className="flex justify-end">
             <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: forest }}>
@@ -833,12 +839,10 @@ function FiscalSection({ conArca }: { conArca: boolean }) {
         </CardContent>
       </Card>
 
-      {conArca && <AfipSection />}
-
       {/* Vista previa del comprobante — usa los mismos componentes que
           Comprobantes, con datos de ejemplo, así nunca puede desincronizarse
           de cómo se ve realmente al emitir uno. */}
-      <FiscalPreviewCard form={form} invoicePreview={invoicePreview} />
+      {parte === 'comprobantes' && <FiscalPreviewCard form={form} invoicePreview={invoicePreview} />}
     </div>
   );
 }
@@ -1254,7 +1258,7 @@ function AfipSection() {
 const MAX_FOTO_BYTES = 8 * 1024 * 1024;
 const ALLOWED_FOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
-async function uploadFoto(file: File, tipo: 'hotel' | 'habitacion' | 'factura', habitacion?: string): Promise<string> {
+async function uploadFoto(file: File, tipo: 'hotel' | 'habitacion' | 'factura' | 'logo', habitacion?: string): Promise<string> {
   if (!ALLOWED_FOTO_TYPES.has(file.type)) {
     throw new Error('Formato no permitido (solo jpg, png, webp)');
   }
@@ -1366,6 +1370,18 @@ const LANDING_TAB_GROUPS: { label: string; tabs: { id: LandingTabId; label: stri
   },
 ];
 
+/** La explicación de cada página de "Página web" (debajo del título). */
+const BAJADA_LANDING: Record<LandingTabId, string> = {
+  ubicacion: 'Dónde está el hotel, para la página web y el mapa.',
+  redes: 'Salen en la página web del hotel.',
+  politicas: 'Horarios, cancelación y hasta cuándo se puede reservar.',
+  fotos: 'Las fotos del hotel, de cada tipo de habitación y los servicios.',
+  precios: 'Qué tarifas se ven en la web.',
+  promociones: 'Las promociones que se muestran en la web.',
+  cobro: 'Cómo se cobra la seña de las reservas de la web.',
+  agencias: 'Un bloque en la web para captar convenios con agencias.',
+};
+
 /**
  * Las tarifas que salen en la pestaña Promociones de la web: marcadas
  * "Mostrar en la página web", con alguna promoción prendida y sin vencer —
@@ -1408,12 +1424,13 @@ function AvisoTarifasWeb({ tarifasPublicas, reservasHabilitadasHasta, onRevisar 
   );
 }
 
-function LandingSection({ tabInicial, onTarifasWebGuardadas }: {
-  tabInicial?: LandingTabId;
+function LandingSection({ tab, onTarifasWebGuardadas }: {
+  /** La página que se ve: la elige el menú de Configuración. */
+  tab: LandingTabId;
   /** Avisa a Configuración que cambiaron las tarifas de la web (para el aviso de arriba). */
   onTarifasWebGuardadas?: (mapa: MapaTarifasPublicas) => void;
 }) {
-  const [landingTab, setLandingTab] = useState<LandingTabId>(tabInicial ?? 'ubicacion');
+  const landingTab = tab;
 
   // Ubicación
   const [ubicacion, setUbicacion] = useState({ direccion: '', ciudad: '', provincia: '', pais: 'Argentina', mapaLat: '', mapaLng: '' });
@@ -1841,56 +1858,7 @@ function LandingSection({ tabInicial, onTarifasWebGuardadas }: {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Landing page</h3>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Todo lo que ven tus huéspedes en tu página pública, en un solo lugar. Función en prueba.
-        </p>
-      </div>
-
-      {slug && (
-        <a
-          href={`/h/${slug}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 text-sm text-primary hover:underline"
-        >
-          <Globe className="w-4 h-4" /> Ver mi página pública (/h/{slug})
-        </a>
-      )}
-
-      <Tabs value={landingTab} onValueChange={(v) => setLandingTab(v as LandingTabId)}>
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="flex flex-nowrap sm:flex-wrap items-start gap-4 sm:gap-5 min-w-max sm:min-w-0">
-            {LANDING_TAB_GROUPS.map((group, gi) => (
-              <div
-                key={group.label}
-                className="flex flex-col gap-1.5 animate-slide-up"
-                style={{ animationDelay: `${gi * 50}ms` }}
-              >
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--muted-foreground-a70)] px-0.5">
-                  {group.label}
-                </span>
-                <TabsList className="flex flex-nowrap h-auto gap-0.5">
-                  {group.tabs.map((t) => {
-                    const Icon = t.icon;
-                    return (
-                      <TabsTrigger
-                        key={t.id}
-                        value={t.id}
-                        className="data-[state=active]:bg-primary data-[state=active]:text-white gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 transition-all"
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                        <span>{t.label}</span>
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4 content-fade-switch" key={landingTab}>
+        <div className="content-fade-switch" key={landingTab}>
           {landingTab === 'ubicacion' && (
             <Card className="card-hover">
               <CardHeader>
@@ -2422,320 +2390,51 @@ function LandingSection({ tabInicial, onTarifasWebGuardadas }: {
             </Card>
           )}
         </div>
-      </Tabs>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════
-// INTEGRACIONES (Booking.com / Airbnb — sync iCal)
-//
-// Se decidió no seguir este camino por ahora (solo se sigue con ARCA a
-// futuro). Se saca del menú de Configuración pero se deja el código y la
-// lógica intactos por si se retoma más adelante — por eso queda sin
-// referenciar desde ConfiguracionModule. El bloque de "Cobro de seña" que
-// tenía esta sección se movió a LandingSection (sub-tab "Cobro de seña").
-// ═══════════════════════════════════════════
-
-interface CanalExternoDTO {
-  id: string;
-  habitacion: string;
-  canal: 'booking' | 'airbnb';
-  activo: boolean;
-  importUrl: string | null;
-  exportUrl: string;
-  lastSyncAt: string | null;
-  lastSyncError: string | null;
-}
-
-const CANAL_LABEL: Record<string, string> = { booking: 'Booking.com', airbnb: 'Airbnb' };
-
-function IntegracionesSection() {
-  const { habitaciones } = useHotelStore();
-  const [canales, setCanales] = useState<CanalExternoDTO[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [nuevaHabitacion, setNuevaHabitacion] = useState('');
-  const [nuevoCanal, setNuevoCanal] = useState<'booking' | 'airbnb'>('booking');
-  const [creando, setCreando] = useState(false);
-  const [syncingId, setSyncingId] = useState<string | null>(null);
-  const [importDrafts, setImportDrafts] = useState<Record<string, string>>({});
-
-  const fetchCanales = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/integraciones/canales');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setCanales(data);
-      setImportDrafts(Object.fromEntries(data.map((c: CanalExternoDTO) => [c.id, c.importUrl || ''])));
-    } catch {
-      toast.error('Error al cargar integraciones');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchCanales(); }, [fetchCanales]);
-
-  const roomOptions = Object.values(habitaciones).map((h) => h.numero);
-
-  const handleCrear = async () => {
-    if (!nuevaHabitacion) {
-      toast.error('Elegí una habitación');
-      return;
-    }
-    setCreando(true);
-    try {
-      const res = await fetch('/api/integraciones/canales', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ habitacion: nuevaHabitacion, canal: nuevoCanal }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Conexión creada');
-      setNuevaHabitacion('');
-      fetchCanales();
-    } catch (err: unknown) {
-      toast.error((err as Error).message || 'Error al crear la conexión');
-    } finally {
-      setCreando(false);
-    }
-  };
-
-  const handleEliminar = async (id: string) => {
-    try {
-      const res = await fetch(`/api/integraciones/canales/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Conexión eliminada');
-      fetchCanales();
-    } catch (err: unknown) {
-      toast.error((err as Error).message || 'Error al eliminar');
-    }
-  };
-
-  const handleGuardarUrl = async (id: string) => {
-    try {
-      const res = await fetch(`/api/integraciones/canales/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ importUrl: importDrafts[id] || '' }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('URL guardada');
-      fetchCanales();
-    } catch (err: unknown) {
-      toast.error((err as Error).message || 'Error al guardar');
-    }
-  };
-
-  const handleSincronizar = async (id: string) => {
-    setSyncingId(id);
-    try {
-      const res = await fetch(`/api/integraciones/canales/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ importUrl: importDrafts[id] || '', sync: true }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      // Una sincronización que importó 18 de 20 no es un éxito a secas: si
-      // hubo choques, quien apretó el botón tiene que enterarse ACÁ, no
-      // descubriéndolo en el mostrador cuando llegan dos huéspedes.
-      const omitidos: unknown[] = Array.isArray(data.omitidos) ? data.omitidos : [];
-      if (omitidos.length > 0) {
-        toast.warning(
-          `Importadas ${data.eventosImportados}. ${omitidos.length} no se ${omitidos.length === 1 ? 'importó' : 'importaron'} por chocar con reservas que ya tenías.`,
-          { description: 'El detalle quedó en la actividad reciente del hotel.', duration: 10_000 },
-        );
-      } else {
-        toast.success(`Sincronizado: ${data.eventosImportados} evento(s)`);
-      }
-      fetchCanales();
-    } catch (err: unknown) {
-      toast.error((err as Error).message || 'Error al sincronizar');
-    } finally {
-      setSyncingId(null);
-    }
-  };
-
-  const copiar = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copiado');
-  };
-
-  if (loading) {
-    return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
-  }
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold flex items-center gap-2"><Globe className="w-4 h-4" /> Integraciones</h3>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Sincronizá disponibilidad por habitación con Booking.com y Airbnb vía iCal. Función en prueba.
-        </p>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Nueva conexión</CardTitle>
-          <CardDescription>Elegí una habitación y un canal para generar el link de exportación.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row gap-3">
-          <Select value={nuevaHabitacion} onValueChange={setNuevaHabitacion}>
-            <SelectTrigger className="sm:w-48"><SelectValue placeholder="Habitación" /></SelectTrigger>
-            <SelectContent>
-              {roomOptions.map((numero) => (
-                <SelectItem key={numero} value={numero}>Hab. {numero}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={nuevoCanal} onValueChange={(v) => setNuevoCanal(v as 'booking' | 'airbnb')}>
-            <SelectTrigger className="sm:w-48"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="booking">Booking.com</SelectItem>
-              <SelectItem value="airbnb">Airbnb</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={handleCrear} disabled={creando}>
-            {creando ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Crear conexión
-          </Button>
-        </CardContent>
-      </Card>
-
-      {canales.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Todavía no creaste ninguna conexión.</p>
-      ) : (
-        <div className="space-y-4">
-          {canales.map((c) => (
-            <Card key={c.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Hab. {c.habitacion} — {CANAL_LABEL[c.canal]}</CardTitle>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleEliminar(c.id)} title="Eliminar">
-                    <XCircle className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ConfigField label="Link para exportar a este canal" icon={Download} hint="Pegá esta URL en la configuración de calendario de tu propiedad en Booking/Airbnb, para que ellos vean tu disponibilidad.">
-                  <div className="flex gap-2">
-                    <Input readOnly value={c.exportUrl} className="font-mono text-xs" />
-                    <Button variant="outline" size="icon" onClick={() => copiar(c.exportUrl)}><Copy className="w-4 h-4" /></Button>
-                  </div>
-                </ConfigField>
-
-                <ConfigField label={`Link de ${CANAL_LABEL[c.canal]} para importar`} icon={Globe} hint="Pegá acá la URL de exportación .ics que te da Booking/Airbnb, para bloquear estas fechas en Hospi.">
-                  <div className="flex gap-2">
-                    <Input
-                      value={importDrafts[c.id] ?? ''}
-                      onChange={(e) => setImportDrafts((prev) => ({ ...prev, [c.id]: e.target.value }))}
-                      placeholder="https://..."
-                      className="font-mono text-xs"
-                    />
-                    <Button variant="outline" onClick={() => handleGuardarUrl(c.id)}>Guardar</Button>
-                    <Button onClick={() => handleSincronizar(c.id)} disabled={syncingId === c.id || !importDrafts[c.id]}>
-                      {syncingId === c.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sincronizar ahora'}
-                    </Button>
-                  </div>
-                </ConfigField>
-
-                <div className="text-xs text-muted-foreground">
-                  {/* lastSyncError puede ser dos cosas distintas: que la
-                      sincronización no se pudo hacer (el feed no respondió), o
-                      que se hizo pero hubo reservas que no se importaron por
-                      chocar con algo ya vendido. Se distinguen por lastSyncAt:
-                      si hay fecha, la sincronización SÍ corrió. Decir "el
-                      intento falló" en ese caso sería mentira, y encima taparía
-                      lo importante, que es que hay un choque para resolver. */}
-                  {c.lastSyncError && c.lastSyncAt ? (
-                    <span className="text-destructive">
-                      ⚠ {c.lastSyncError}
-                      <span className="block text-muted-foreground">
-                        Última sincronización: {new Date(c.lastSyncAt).toLocaleString('es-AR')}
-                      </span>
-                    </span>
-                  ) : c.lastSyncError ? (
-                    <span className="text-destructive">Último intento falló: {c.lastSyncError}</span>
-                  ) : c.lastSyncAt ? (
-                    <span>Última sincronización: {new Date(c.lastSyncAt).toLocaleString('es-AR')}</span>
-                  ) : (
-                    <span>Todavía no se sincronizó</span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
 
 // ═══════════════════════════════════════════
-// 3. HABITACIONES
+// CANALES DE VENTA (Booking, Airbnb, Expedia y otros)
 // ═══════════════════════════════════════════
-function HabitacionesSection() {
-  const { habitaciones } = useHotelStore();
+// Conexión directa con la API de cada canal a través de Channex (channel
+// manager). Esta página queda lista para conectarlo: el próximo paso es la
+// conexión en modo prueba. No se usa iCal: la sincronización por calendario
+// se descartó (04/10) en favor de la conexión directa.
+const CANALES_PREVISTOS: { nombre: string; color: string; letra: string }[] = [
+  { nombre: 'Booking.com', color: '#003580', letra: 'B' },
+  { nombre: 'Airbnb', color: '#FF5A5F', letra: 'A' },
+  { nombre: 'Expedia', color: '#1E243A', letra: 'E' },
+];
 
-  // Compute room type summary from store
-  const roomSummary = useMemo(() => {
-    const list = Object.values(habitaciones);
-    const byTipo: Record<string, { count: number; camasMatrimoniales: number; camasSimples: number }> = {};
-    list.forEach(h => {
-      const t = h.tipo || 'Otros';
-      if (!byTipo[t]) byTipo[t] = { count: 0, camasMatrimoniales: 0, camasSimples: 0 };
-      byTipo[t].count += 1;
-      byTipo[t].camasMatrimoniales += h.camasMatrimoniales || 0;
-      byTipo[t].camasSimples += h.camasSimples || 0;
-    });
-    return byTipo;
-  }, [habitaciones]);
-
-  const totalHabitaciones = Object.values(habitaciones).length;
-
+function CanalesSection() {
   return (
-    <div className="space-y-6">
-      {/* Room summary */}
+    <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Resumen de habitaciones</CardTitle>
-          <CardDescription>Distribución actual de habitaciones por tipo</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between p-3 rounded-lg border">
-            <div className="flex items-center gap-2 text-sm">
-              <Hotel className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium">Total de habitaciones</span>
-            </div>
-            <span className="text-2xl font-bold tabular-nums" style={{ color: forest }}>
-              <AnimatedNumber value={totalHabitaciones} duration={500} format={n => String(Math.round(n))} />
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="text-base">Estado de la conexión</CardTitle>
+            <Badge variant="secondary">Sin conectar</Badge>
           </div>
-
-          {Object.keys(roomSummary).length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No hay habitaciones cargadas.</p>
-          ) : (
-            <div className="space-y-2">
-              {Object.entries(roomSummary).map(([tipo, info]) => (
-                <div key={tipo} className="flex items-center justify-between p-3 rounded-lg border bg-[#F1F5F94D]">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <BedDouble className="w-4 h-4 shrink-0" style={{ color: forestAccent }} />
-                    <span className="text-sm font-medium capitalize truncate">{tipo}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-                    <span><strong className="text-foreground">{info.count}</strong> hab.</span>
-                    <span><strong className="text-foreground">{info.camasMatrimoniales}</strong> c. matr.</span>
-                    <span><strong className="text-foreground">{info.camasSimples}</strong> c. sim.</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <CardDescription>
+            Con la conexión, la disponibilidad y los precios se actualizan solos en cada canal, y las reservas de los canales entran al sistema al momento.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {CANALES_PREVISTOS.map(c => (
+              <div key={c.nombre} className="flex items-center gap-2.5 rounded-lg border p-3">
+                <span className="w-7 h-7 rounded-md flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor: c.color }}>{c.letra}</span>
+                <span className="text-sm font-medium flex-1">{c.nombre}</span>
+                <span className="text-xs text-muted-foreground">Sin conectar</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 border-t pt-4">
+            <p className="text-sm text-muted-foreground flex-1 min-w-[220px]">La conexión con los canales está en preparación. Mientras tanto, las reservas de esos canales se cargan a mano en Reservas.</p>
+            <Button disabled>Conectar canales</Button>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -2743,26 +2442,55 @@ function HabitacionesSection() {
 }
 
 // ═══════════════════════════════════════════
-// 4. CUENTA Y CONTRASEÑA (enhanced)
+// 4. CONTRASEÑAS: la de la cuenta del hotel (por link) y la del perfil del dueño
 // ═══════════════════════════════════════════
 function CuentaSection() {
   const { usuarioActual } = useHotelStore();
+  const emailCuenta = usuarioActual?.email || '';
   const [currentPass, setCurrentPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showPass, setShowPass] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [lastChanged, setLastChanged] = useState<Date | null>(null);
+  const [mandandoLink, setMandandoLink] = useState(false);
+  const [linkEnviado, setLinkEnviado] = useState('');
 
   const strength = useMemo(() => getPasswordStrength(newPass), [newPass]);
   const passwordsMatch = confirmPass.length > 0 && newPass === confirmPass;
   const passwordsMismatch = confirmPass.length > 0 && newPass !== confirmPass;
+  // Las mismas reglas que valida el servidor.
+  const requisitos = [
+    { ok: newPass.length >= 8, texto: 'Al menos 8 caracteres' },
+    { ok: /[A-ZÁÉÍÓÚÑ]/.test(newPass), texto: 'Una mayúscula' },
+    { ok: /[0-9]/.test(newPass), texto: 'Un número' },
+  ];
+  const cumple = requisitos.every(r => r.ok);
+
+  // La contraseña de la cuenta del hotel se cambia con el link por email
+  // (la misma recuperación de "¿La olvidaste?"): así no la cambia cualquiera
+  // que tenga la sesión abierta.
+  const mandarLink = async () => {
+    if (!emailCuenta) return;
+    setMandandoLink(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailCuenta }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'No se pudo mandar el link'); return; }
+      setLinkEnviado(emailCuenta);
+      toast.success(`Te mandamos el link a ${emailCuenta}`);
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setMandandoLink(false);
+    }
+  };
 
   const handleChangePassword = async () => {
     if (!currentPass) { toast.error('Ingresá tu contraseña actual'); return; }
-    if (newPass.length < 6) { toast.error('Mínimo 6 caracteres'); return; }
+    if (!cumple) { toast.error('La contraseña nueva no cumple los requisitos'); return; }
     if (newPass !== confirmPass) { toast.error('Las contraseñas no coinciden'); return; }
 
     setSaving(true);
@@ -2773,168 +2501,88 @@ function CuentaSection() {
         body: JSON.stringify({ currentPassword: currentPass, newPassword: newPass }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error || 'Error'); setSaving(false); return; }
-      toast.success('Contraseña actualizada');
+      if (!res.ok) { toast.error(data.error || 'Error'); return; }
+      toast.success('Contraseña del perfil del dueño actualizada');
       setCurrentPass(''); setNewPass(''); setConfirmPass('');
-      setLastChanged(new Date());
-    } catch { toast.error('Error de conexión'); }
-    setSaving(false);
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setSaving(false);
+    }
   };
 
+  const campoClave = (label: string, value: string, onChange: (v: string) => void, placeholder: string, extra = '') => (
+    <div className="space-y-1.5">
+      <Label className="text-sm">{label}</Label>
+      <div className="relative">
+        <Input type={showPass ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className={`pr-10 ${extra}`} />
+        <button type="button" onClick={() => setShowPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showPass ? 'Ocultar' : 'Mostrar'}>
+          {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      {/* Account info */}
+    <div className="grid gap-4 lg:grid-cols-2 items-start">
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Users className="w-4 h-4" style={{ color: forest }} />
-            Cuenta vinculada
+          <CardTitle className="text-base flex items-center gap-2">
+            <KeyRound className="w-4 h-4" style={{ color: forest }} />
+            Contraseña de la cuenta del hotel
           </CardTitle>
-          <CardDescription>Tu cuenta está vinculada con Google</CardDescription>
+          <CardDescription>Con la que se inicia sesión. La conocen también los empleados.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div className="space-y-1">
-              <span className="text-muted-foreground">Email</span>
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium">{usuarioActual?.email || '—'}</span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <span className="text-muted-foreground">Rol</span>
-              <Badge variant="secondary" className="capitalize">{usuarioActual?.rol}</Badge>
-            </div>
-            <div className="space-y-1">
-              <span className="text-muted-foreground">Nombre del perfil</span>
-              <p className="font-medium">{usuarioActual?.nombreCompleto || '—'}</p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-muted-foreground">Hotel</span>
-              <p className="font-medium">{usuarioActual?.tenantNombre || '—'}</p>
-            </div>
+        <CardContent className="space-y-3">
+          <div className="rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+            <span className="text-muted-foreground">Email de la cuenta: </span>
+            <b>{emailCuenta || '—'}</b>
           </div>
+          <p className="text-sm text-muted-foreground">
+            Por seguridad se cambia con un link que llega a ese email. El link vence en 1 hora.
+          </p>
+          <Button variant="outline" onClick={mandarLink} disabled={!emailCuenta || mandandoLink}>
+            {mandandoLink ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Mail className="w-4 h-4 mr-2" />}
+            Mandarme el link
+          </Button>
+          {linkEnviado && <p className="text-xs text-primary">Listo: revisá {linkEnviado} (y la carpeta de spam).</p>}
         </CardContent>
       </Card>
 
-      {/* Change password */}
       <Card>
         <CardHeader>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <KeyRound className="w-4 h-4" style={{ color: forest }} />
-                Cambiar contraseña
-              </CardTitle>
-              <CardDescription>Esta es la contraseña que usás para ingresar con email + contraseña</CardDescription>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-              <Clock className="w-3 h-3" />
-              <span>
-                {lastChanged
-                  ? `Actualizada: ${lastChanged.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })}`
-                  : 'Sin cambios recientes'}
-              </span>
-            </div>
-          </div>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Lock className="w-4 h-4" style={{ color: forest }} />
+            Contraseña del perfil del dueño
+          </CardTitle>
+          <CardDescription>La que se pide al entrar a tu perfil. Tiene que ser distinta de la de la cuenta del hotel.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 max-w-md">
-          {/* Current password */}
-          <div className="space-y-1.5">
-            <Label className="text-sm">Contraseña actual</Label>
-            <div className="relative">
-              <Input type={showCurrent ? 'text' : 'password'} value={currentPass} onChange={e => setCurrentPass(e.target.value)} placeholder="Tu contraseña actual" className="pr-10" />
-              <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showCurrent ? 'Ocultar' : 'Mostrar'}>
-                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* New password */}
-          <div className="space-y-1.5">
-            <Label className="text-sm">Nueva contraseña</Label>
-            <div className="relative">
-              <Input type={showNew ? 'text' : 'password'} value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Mínimo 6 caracteres" className="pr-10" />
-              <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showNew ? 'Ocultar' : 'Mostrar'}>
-                {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-
-            {/* Strength meter */}
-            {newPass.length > 0 && (
-              <div className="space-y-1.5">
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-300 ${strength.color}`}
-                    style={{ width: `${strength.pct}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Fortaleza</span>
-                  <span className={`font-medium ${strength.textColor}`}>{strength.label}</span>
-                </div>
-                <ul className="text-xs text-muted-foreground space-y-0.5 mt-1" aria-label="Requisitos de contraseña">
-                  <li className="flex items-center gap-1.5">
-                    {newPass.length >= 6 ? <CheckCircle2 className="w-3 h-3 text-primary" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
-                    Al menos 6 caracteres
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    {/[a-zA-Z]/.test(newPass) && /[0-9]/.test(newPass) ? <CheckCircle2 className="w-3 h-3 text-primary" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
-                    Letras y números
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    {newPass.length >= 10 && (/[!@#$%^&*(),.?":{}|<>_\-+=/[\]\\;'`~]/.test(newPass) || (/[a-z]/.test(newPass) && /[A-Z]/.test(newPass))) ? <CheckCircle2 className="w-3 h-3 text-primary" /> : <XCircle className="w-3 h-3 text-muted-foreground" />}
-                    10+ caracteres con símbolos o mayúsculas
-                  </li>
-                </ul>
+        <CardContent className="space-y-3">
+          {campoClave('Contraseña actual', currentPass, setCurrentPass, 'La de tu perfil de dueño')}
+          {campoClave('Nueva contraseña', newPass, setNewPass, 'Mínimo 8 caracteres')}
+          {newPass.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-300 ${strength.color}`} style={{ width: `${strength.pct}%` }} />
               </div>
-            )}
-          </div>
-
-          {/* Confirm password */}
-          <div className="space-y-1.5">
-            <Label className="text-sm">Confirmar nueva contraseña</Label>
-            <div className="relative">
-              <Input
-                type={showConfirm ? 'text' : 'password'}
-                value={confirmPass}
-                onChange={e => setConfirmPass(e.target.value)}
-                placeholder="Repetí la nueva contraseña"
-                className={`pr-10 ${passwordsMismatch ? 'border-destructive focus-visible:ring-[#EF44444D]' : passwordsMatch ? 'border-primary focus-visible:ring-[#0596694D]' : ''}`}
-              />
-              <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showConfirm ? 'Ocultar' : 'Mostrar'}>
-                {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-              {confirmPass.length > 0 && (
-                <span className="absolute right-10 top-1/2 -translate-y-1/2">
-                  {passwordsMatch
-                    ? <CheckCircle2 className="w-4 h-4 text-primary" />
-                    : <XCircle className="w-4 h-4 text-destructive" />}
-                </span>
-              )}
+              <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label="Requisitos de contraseña">
+                {requisitos.map(r => (
+                  <li key={r.texto} className="flex items-center gap-1">
+                    {r.ok ? <CheckCircle2 className="w-3 h-3 text-primary" /> : <XCircle className="w-3 h-3" />}
+                    {r.texto}
+                  </li>
+                ))}
+              </ul>
             </div>
-            {passwordsMismatch && (
-              <p className="text-xs text-destructive flex items-center gap-1">
-                <XCircle className="w-3 h-3" />
-                Las contraseñas no coinciden
-              </p>
-            )}
-            {passwordsMatch && (
-              <p className="text-xs text-primary flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                Las contraseñas coinciden
-              </p>
-            )}
-          </div>
-
-          <div className="flex justify-end">
-            <Button
-              onClick={handleChangePassword}
-              disabled={saving || !newPass || !confirmPass || !currentPass || passwordsMismatch}
-              style={{ backgroundColor: forest }}
-            >
+          )}
+          {campoClave('Repetí la nueva', confirmPass, setConfirmPass, 'Repetí la nueva contraseña',
+            passwordsMismatch ? 'border-destructive' : passwordsMatch ? 'border-primary' : '')}
+          {passwordsMismatch && <p className="text-xs text-destructive">Las contraseñas no coinciden</p>}
+          {passwordsMatch && <p className="text-xs text-primary">Las contraseñas coinciden</p>}
+          <div className="flex justify-end pt-1">
+            <Button onClick={handleChangePassword} disabled={saving || !currentPass || !cumple || !passwordsMatch} style={{ backgroundColor: forest }}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
-              Actualizar contraseña
+              Cambiar contraseña
             </Button>
           </div>
         </CardContent>
