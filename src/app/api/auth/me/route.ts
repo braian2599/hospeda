@@ -372,6 +372,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Contraseña incorrecta' }, { status: 401 });
     }
 
+    // La contraseña del dueño no puede ser la de la cuenta del hotel (los
+    // empleados también la conocen). En los hoteles que la tienen igual, antes
+    // de entrar tiene que crear una nueva: se manda a esa pantalla con un
+    // comprobante que sirve solo para cambiarla, no para entrar.
+    if (tenantUser.rol === 'owner') {
+      const cuenta = await db.user.findUnique({ where: { id: tenantUser.user.id }, select: { password: true } });
+      if (cuenta?.password && await bcrypt.compare(password, cuenta.password)) {
+        const respuesta = await buildSessionResponse(tenantUser.user, { ...tenantUser, password: null }, perfilEnLaSesion);
+        const datos = await respuesta.json();
+        return NextResponse.json({
+          ...datos,
+          needsPassword: true,
+          motivoPassword: 'igual-a-cuenta',
+          desbloqueoCambio: crearDesbloqueo(tenantUser.user.id, tenantUser.id, 'cambio'),
+        });
+      }
+    }
+
     // Con el comprobante, el JWT acepta este perfil (ver desbloqueo-perfil.ts).
     const respuesta = await buildSessionResponse(tenantUser.user, tenantUser, perfilEnLaSesion);
     const datos = await respuesta.json();

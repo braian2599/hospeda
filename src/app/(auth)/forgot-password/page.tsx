@@ -1,157 +1,97 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import AuthShell from '../AuthShell';
-import { Mail, Copy, Check, AlertCircle, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
 import Link from 'next/link';
+import { Mail, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import AuthShell from '../AuthShell';
 
 /**
- * ForgotPasswordPage — Página de "¿Olvidaste tu contraseña?"
- *
- * Diseño compacto: los datos y el email van lado a lado en desktop
- * para evitar scroll vertical.
- *
- * Seguridad:
- * - No se generan tokens (endpoint forgot-password sigue deshabilitado)
- * - El email debe enviarse desde el email registrado (verificación manual)
- * - El email de soporte viene de la BD (configurable desde super-admin)
- * - Rate limit en /api/support-email
+ * "¿La olvidaste?" del login: manda por email el link para crear una
+ * contraseña nueva de la CUENTA DEL HOTEL (con la que se inicia sesión).
+ * No cambia las contraseñas de los perfiles. La del perfil del dueño se
+ * recupera aparte, desde la pantalla de su contraseña.
  */
 export default function ForgotPasswordPage() {
-  const [supportEmail, setSupportEmail] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [enviado, setEnviado] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch('/api/support-email')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data && !data.error && data.email) {
-          setSupportEmail(data.email);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  const emailTemplate = `Para: ${supportEmail}
-Asunto: Reset de contraseña - Hospi
-
-Solicito el reseteo de mi contraseña de Hospi.
-
-Datos verificatorios:
-- Nombre del hotel: [completá]
-- Nombre del titular: [completá]
-- Email de la cuenta: [completá]
-- DNI: [completá]
-- Teléfono: [completá]
-
-⚠️ IMPORTANTE: Este email debe enviarse desde el email registrado en Hospi.`;
-
-  const handleCopy = async () => {
+  const enviar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) { toast.error('Ingresá el email de la cuenta del hotel'); return; }
+    setLoading(true);
     try {
-      await navigator.clipboard.writeText(emailTemplate);
-      setCopied(true);
-      toast.success('Copiado al portapapeles', {
-        description: 'Pegalo en tu cliente de email y completá los datos.',
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
       });
-      setTimeout(() => setCopied(false), 3000);
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'No se pudo mandar el email'); return; }
+      setEnviado(data.message);
     } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = emailTemplate;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      setCopied(true);
-      toast.success('Copiado al portapapeles');
-      setTimeout(() => setCopied(false), 3000);
+      toast.error('Error de conexión. Intentá de nuevo.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <AuthShell maxWidth={520}>
-      {/* Header compacto */}
-      <div className="text-center mb-4">
-        <div className="mx-auto w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center mb-3">
-          <Mail className="w-6 h-6 text-amber-600" />
+  if (enviado) {
+    return (
+      <AuthShell maxWidth={420}>
+        <div className="text-center">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-[#0F766E1A] border border-[#0F766E33] flex items-center justify-center mb-4">
+            <CheckCircle2 className="w-7 h-7 text-primary" />
+          </div>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">Revisá tu email</h1>
+          <p className="text-sm text-slate-500 mb-1">{enviado}</p>
+          <p className="text-xs text-slate-400 mb-6">El link vence en 1 hora. Si no lo ves, mirá en spam.</p>
+          <Link href="/login" className="text-sm text-primary hover:text-[#0F766ECC] inline-flex items-center gap-1">
+            <ArrowLeft className="w-3.5 h-3.5" /> Volver a iniciar sesión
+          </Link>
         </div>
-        <h1 className="text-xl font-bold text-slate-900 mb-0.5">Recuperar contraseña</h1>
-        <p className="text-xs text-slate-500">Enviá un email con tus datos para verificar tu identidad</p>
-      </div>
+      </AuthShell>
+    );
+  }
 
-      {/* Aviso de seguridad — compacto */}
-      <div className="mb-4 rounded-lg border border-[#0F766E33] bg-[#0F766E0D] p-2.5 flex items-start gap-2">
-        <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-        <p className="text-[11px] text-slate-600 leading-relaxed">
-          Por seguridad, el reseteo es manual. El administrador verificará tu identidad antes de resetear.
+  return (
+    <AuthShell maxWidth={420}>
+      <div className="text-center mb-5">
+        <div className="mx-auto w-12 h-12 rounded-xl bg-[#0F766E1A] border border-[#0F766E33] flex items-center justify-center mb-3">
+          <Mail className="w-6 h-6 text-primary" />
+        </div>
+        <h1 className="text-xl font-bold text-slate-900 mb-1">Recuperar contraseña de la cuenta</h1>
+        <p className="text-xs text-slate-500">
+          Te mandamos un link para crear una contraseña nueva de la cuenta del hotel. Las contraseñas de los perfiles no cambian.
         </p>
       </div>
 
-      {/* Grid de 2 columnas en desktop: datos | email destino */}
-      <div className="grid sm:grid-cols-2 gap-3 mb-4">
-        {/* Columna 1: Datos requeridos */}
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <h3 className="text-xs font-semibold text-slate-900 mb-2">Datos a enviar</h3>
-          <ul className="space-y-1">
-            {['Nombre del hotel', 'Titular de la cuenta', 'Email de Hospi', 'DNI', 'Teléfono'].map((item) => (
-              <li key={item} className="text-[11px] text-slate-700 flex items-center gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-primary shrink-0" />
-                {item}
-              </li>
-            ))}
-          </ul>
+      <form onSubmit={enviar} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="email" className="text-xs text-slate-500">Email de la cuenta del hotel</Label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="hotel@ejemplo.com"
+            autoComplete="email"
+            disabled={loading}
+            className="h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900"
+          />
         </div>
+        <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-primary hover:bg-[#0F766EE6] text-primary-foreground font-medium">
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Enviando…</> : 'Mandarme el link'}
+        </Button>
+      </form>
 
-        {/* Columna 2: Email destino + botón copiar */}
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 flex flex-col">
-          <h3 className="text-xs font-semibold text-slate-900 mb-2">Enviar email a</h3>
-          {loading ? (
-            <div className="h-7 bg-slate-100 animate-pulse rounded mb-2" />
-          ) : supportEmail ? (
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2 py-1.5 mb-2">
-              <Mail className="w-3.5 h-3.5 text-primary shrink-0" />
-              <span className="text-xs font-mono text-slate-900 break-all">{supportEmail}</span>
-            </div>
-          ) : (
-            <p className="text-[11px] text-amber-700 mb-2">
-              No configurado. Contactá al administrador directamente.
-            </p>
-          )}
-          {supportEmail && (
-            <Button
-              onClick={handleCopy}
-              className="w-full h-8 rounded-lg bg-primary hover:bg-[#0F766EE6] text-white text-xs font-medium transition flex items-center justify-center gap-1.5 mt-auto"
-            >
-              {copied ? (
-                <><Check className="w-3.5 h-3.5" /> Copiado</>
-              ) : (
-                <><Copy className="w-3.5 h-3.5" /> Copiar email y datos</>
-              )}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Aviso crítico — compacto */}
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 mb-4">
-        <div className="flex items-start gap-2">
-          <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-          <p className="text-[11px] text-amber-800 leading-relaxed">
-            <strong>Importante:</strong> El email debe enviarse desde la misma cuenta con la que te registraste.
-          </p>
-        </div>
-      </div>
-
-      {/* Volver */}
-      <div className="text-center">
-        <Link
-          href="/login"
-          className="text-xs text-primary hover:text-[#0F766ECC] transition-colors inline-flex items-center gap-1"
-        >
-          ← Volver a iniciar sesión
+      <div className="text-center mt-5">
+        <Link href="/login" className="text-sm text-primary hover:text-[#0F766ECC] inline-flex items-center gap-1">
+          <ArrowLeft className="w-3.5 h-3.5" /> Volver a iniciar sesión
         </Link>
       </div>
     </AuthShell>

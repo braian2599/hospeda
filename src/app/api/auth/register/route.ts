@@ -101,7 +101,11 @@ export async function POST(req: NextRequest) {
           userId: user.id,
           rol: 'owner',
           nombreCompleto: name,
-          password: hashedPassword,
+          // Sin contraseña a propósito: la del perfil del dueño es distinta de
+          // la de la cuenta del hotel y la crea él en la primera entrada.
+          // Antes se copiaba la de la cuenta, y quien sabía la de la cuenta
+          // (los empleados también la usan) entraba como dueño.
+          password: null,
           permisos: [
             'dashboard', 'habitaciones', 'reservas', 'checkin',
             'comprobantes', 'limpieza', 'caja', 'clientes',

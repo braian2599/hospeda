@@ -15,6 +15,12 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const email = searchParams.get('email');
+  // Dos contraseñas distintas: la de la cuenta del hotel o la del perfil del dueño.
+  const tipo = searchParams.get('tipo') === 'duenio' ? 'duenio' : 'cuenta';
+  const titulo = tipo === 'duenio' ? 'Nueva contraseña del perfil del dueño' : 'Nueva contraseña de la cuenta del hotel';
+  const detalle = tipo === 'duenio'
+    ? 'Tiene que ser distinta de la contraseña de la cuenta del hotel.'
+    : 'Es la que se usa para iniciar sesión. Tiene que ser distinta de la del perfil del dueño.';
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -32,7 +38,7 @@ function ResetPasswordForm() {
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Enlace inválido</h2>
           <p className="text-sm text-slate-500 mb-6">
-            Faltan parámetros o el enlace es inválido. Contactá al administrador para resetear tu contraseña.
+            Faltan datos o el enlace es inválido. Pedí uno nuevo desde "¿La olvidaste?".
           </p>
           <Button
             variant="outline"
@@ -55,7 +61,11 @@ function ResetPasswordForm() {
             <CheckCircle2 className="w-8 h-8 text-primary" />
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Contraseña actualizada</h2>
-          <p className="text-sm text-slate-500 mb-6">Ya podés iniciar sesión con tu nueva contraseña.</p>
+          <p className="text-sm text-slate-500 mb-6">
+            {tipo === 'duenio'
+              ? 'Ya podés entrar al perfil del dueño con la contraseña nueva.'
+              : 'Ya podés iniciar sesión con la contraseña nueva de la cuenta.'}
+          </p>
           <Button
             className="w-full h-11 rounded-xl bg-primary hover:bg-[#0F766EE6] text-primary-foreground font-medium shadow-lg shadow-[#0F766E40]"
             onClick={() => router.push('/login')}
@@ -83,7 +93,7 @@ function ResetPasswordForm() {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, email, password }),
+        body: JSON.stringify({ token, email, password, tipo }),
       });
 
       const data = await res.json();
@@ -105,8 +115,8 @@ function ResetPasswordForm() {
   return (
     <AuthShell maxWidth={440}>
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">Nueva contraseña</h1>
-        <p className="text-sm text-slate-500">Ingresá y confirmá tu nueva contraseña</p>
+        <h1 className="text-xl font-bold text-slate-900 mb-1">{titulo}</h1>
+        <p className="text-sm text-slate-500">{detalle}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">

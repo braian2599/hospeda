@@ -37,10 +37,13 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const tenantUser = await db.tenantUser.findFirst({
-      where: { userId, tenantId, activo: true },
-      select: { id: true, password: true },
-    });
+    // El perfil ABIERTO en la sesión. Antes se tomaba el primer perfil de la
+    // cuenta en el hotel, que no siempre era el que estaba cambiando la suya.
+    const perfilId = session.user.tenantUserId;
+    const tenantUser = perfilId ? await db.tenantUser.findFirst({
+      where: { id: perfilId, userId, tenantId, activo: true },
+      select: { id: true, password: true, rol: true },
+    }) : null;
 
     if (!tenantUser) {
       return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
@@ -54,6 +57,14 @@ export async function PUT(req: NextRequest) {
       }
     } else {
       return NextResponse.json({ error: 'Este perfil no tiene contraseña configurada' }, { status: 400 });
+    }
+
+    // La del dueño tiene que ser distinta de la de la cuenta del hotel.
+    if (tenantUser.rol === 'owner') {
+      const cuenta = await db.user.findUnique({ where: { id: userId }, select: { password: true } });
+      if (cuenta?.password && await bcrypt.compare(newPassword, cuenta.password)) {
+        return NextResponse.json({ error: 'Tiene que ser distinta de la contraseña de la cuenta del hotel.' }, { status: 400 });
+      }
     }
 
     // Hashear y guardar nueva contraseña

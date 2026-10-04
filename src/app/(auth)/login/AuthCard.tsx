@@ -164,7 +164,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
           />
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="login-password" className="text-xs text-slate-500">Contraseña</Label>
+              <Label htmlFor="login-password" className="text-xs text-slate-500">Contraseña de la cuenta del hotel</Label>
               <Link href="/forgot-password" className="text-xs text-primary hover:text-[#0F766ECC] transition-colors">¿La olvidaste?</Link>
             </div>
             <div className="relative">
@@ -172,7 +172,7 @@ export default function AuthCard({ defaultMode = 'login' }: AuthCardProps) {
               <Input
                 id="login-password"
                 type={showLoginPwd ? 'text' : 'password'}
-                placeholder="Tu contraseña"
+                placeholder="Contraseña de la cuenta"
                 value={loginPassword}
                 onChange={e => setLoginPassword(e.target.value)}
                 className="pl-10 pr-10 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-[#0F766E80] focus:ring-[#0F766E33]"

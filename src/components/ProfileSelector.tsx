@@ -32,16 +32,35 @@ interface ProfileSelectorProps {
   /** Abre directo la contraseña de este perfil (el servidor la pide siempre). */
   pedirPasswordDe?: string | null;
   onSelected: () => void;
+  /** El dueño tiene que crear su contraseña (no tiene, o es igual a la de la cuenta). */
+  onNecesitaPassword: (data: Record<string, any>) => void;
 }
 
-export default function ProfileSelector({ perfiles, userName, email, hotelNombre, pedirPasswordDe, onSelected }: ProfileSelectorProps) {
+export default function ProfileSelector({ perfiles, userName, email, hotelNombre, pedirPasswordDe, onSelected, onNecesitaPassword }: ProfileSelectorProps) {
   const router = useRouter();
   const { update } = useSession();
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [passwordPrompt, setPasswordPrompt] = useState<{ profileId: string; nombre: string } | null>(() => {
+  const [passwordPrompt, setPasswordPrompt] = useState<{ profileId: string; nombre: string; rol: string } | null>(() => {
     const p = pedirPasswordDe ? perfiles.find(x => x.profileId === pedirPasswordDe) : null;
-    return p ? { profileId: p.profileId, nombre: p.nombreCompleto } : null;
+    return p ? { profileId: p.profileId, nombre: p.nombreCompleto, rol: p.rol } : null;
   });
+  const [olvide, setOlvide] = useState<{ cargando: boolean; mensaje: string | null }>({ cargando: false, mensaje: null });
+
+  /** "Olvidé la contraseña del dueño": manda el link al email de la cuenta del hotel. */
+  const olvideDuenio = async () => {
+    setOlvide({ cargando: true, mensaje: null });
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: 'duenio' }),
+      });
+      const data = await res.json();
+      setOlvide({ cargando: false, mensaje: res.ok ? data.message : (data.error || 'No se pudo mandar el email') });
+    } catch {
+      setOlvide({ cargando: false, mensaje: 'Error de conexión' });
+    }
+  };
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [pwdError, setPwdError] = useState('');
@@ -52,7 +71,7 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
     // si se inició sesión con email y contraseña). Ver src/lib/auth/desbloqueo-perfil.ts.
     if (tienePassword) {
       const perfil = perfiles.find(p => p.profileId === profileId);
-      setPasswordPrompt({ profileId, nombre: perfil?.nombreCompleto || '' });
+      setPasswordPrompt({ profileId, nombre: perfil?.nombreCompleto || '', rol: perfil?.rol || '' });
       setPassword('');
       setPwdError('');
       return;
@@ -71,10 +90,16 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
         setLoadingId(null);
         return;
       }
+      // El dueño todavía no tiene su contraseña: primero la crea.
+      if (data.needsPassword) {
+        setLoadingId(null);
+        onNecesitaPassword(data);
+        return;
+      }
       // El servidor pide la contraseña de este perfil: se abre la pantalla.
       if (data.selectProfile) {
         const perfil = perfiles.find(p => p.profileId === profileId);
-        setPasswordPrompt({ profileId, nombre: perfil?.nombreCompleto || '' });
+        setPasswordPrompt({ profileId, nombre: perfil?.nombreCompleto || '', rol: perfil?.rol || '' });
         setPassword('');
         setPwdError('');
         setLoadingId(null);
@@ -109,6 +134,13 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
       if (data.error) {
         setPwdError(data.error);
         setPwdLoading(false);
+        return;
+      }
+      // La contraseña del dueño era igual a la de la cuenta: tiene que crear otra.
+      if (data.needsPassword) {
+        setPwdLoading(false);
+        setPasswordPrompt(null);
+        onNecesitaPassword(data);
         return;
       }
       const store = useHotelStore.getState();
@@ -168,6 +200,19 @@ export default function ProfileSelector({ perfiles, userName, email, hotelNombre
             <Button variant="ghost" className="w-full" onClick={() => setPasswordPrompt(null)} disabled={pwdLoading}>
               Volver
             </Button>
+            {passwordPrompt.rol === 'owner' && (
+              <div className="text-center space-y-1">
+                <button
+                  type="button"
+                  onClick={olvideDuenio}
+                  disabled={olvide.cargando}
+                  className="text-sm text-primary hover:underline disabled:opacity-50"
+                >
+                  {olvide.cargando ? 'Enviando…' : 'Olvidé la contraseña del dueño'}
+                </button>
+                {olvide.mensaje && <p className="text-xs text-muted-foreground">{olvide.mensaje}</p>}
+              </div>
+            )}
           </div>
         </div>
       </div>

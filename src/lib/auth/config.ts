@@ -50,34 +50,20 @@ export const authOptions: NextAuthOptions = {
         const user = await db.user.findUnique({
           where: { email: credentials.email.toLowerCase().trim() },
         });
-        if (!user) return null;
+        if (!user?.password) return null;
 
-        // Buscar TenantUsers activos con contraseña
-        const tenantUsers = await db.tenantUser.findMany({
-          where: { userId: user.id, activo: true, password: { not: null } },
-        });
-
-        // Verificar contra cada perfil y recolectar TODOS los que coincidan
-        const matchedProfileIds: string[] = [];
-        let firstMatch = tenantUsers[0] || null;
-        for (const tu of tenantUsers) {
-          if (tu.password) {
-            const isValid = await bcrypt.compare(credentials.password, tu.password);
-            if (isValid) {
-              if (matchedProfileIds.length === 0) firstMatch = tu;
-              matchedProfileIds.push(tu.id);
-            }
-          }
-        }
-
-        if (matchedProfileIds.length === 0) return null;
+        // Se entra a la cuenta del hotel SOLO con la contraseña de la cuenta.
+        // Antes se comparaba con la contraseña de cada perfil: un empleado con
+        // la de su perfil abría la cuenta. Las contraseñas de los perfiles se
+        // piden después, al elegir el perfil (ver desbloqueo-perfil.ts).
+        const valida = await bcrypt.compare(credentials.password, user.password);
+        if (!valida) return null;
 
         return {
           id: user.id,
           email: user.email,
-          name: firstMatch?.nombreCompleto || user.name,
+          name: user.name,
           image: user.image,
-          matchedProfileIds,
         };
       },
     }),
@@ -97,8 +83,6 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.email = user.email;
-        // Guardar IDs de perfiles que coincidieron con la contraseña
-        token.matchedProfileIds = (user as unknown as Record<string, unknown>).matchedProfileIds as string[] | undefined;
         // Limpiar datos del tenant del usuario anterior para evitar sesión cruzada
         delete token.tenantId;
         delete token.tenantRole;
@@ -138,8 +122,10 @@ export const authOptions: NextAuthOptions = {
             // Un perfil con contraseña solo entra con el comprobante de que se
             // escribió (src/lib/auth/desbloqueo-perfil.ts). El que ya está
             // abierto en esta sesión no lo necesita: es una recarga.
+            // El dueño sin contraseña tampoco: primero la crea (complete-profile
+            // devuelve el comprobante). Un empleado sin contraseña entra directo.
             const permitido = !!tu && (
-              !tu.password
+              (!tu.password && tu.rol !== 'owner')
               || token.tenantUserId === tu.id
               || desbloqueoValido(desbloqueo, token.id as string, tu.id)
             );
@@ -176,7 +162,6 @@ export const authOptions: NextAuthOptions = {
         (session.user as Record<string, unknown>).tenantRole = token.tenantRole;
         (session.user as Record<string, unknown>).tenantUserId = token.tenantUserId;
         (session.user as Record<string, unknown>).tenantUserNombre = token.tenantUserNombre;
-        (session.user as Record<string, unknown>).matchedProfileIds = token.matchedProfileIds;
         (session.user as Record<string, unknown>).isSuperAdmin = token.isSuperAdmin;
       }
       return session;

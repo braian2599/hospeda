@@ -106,7 +106,9 @@ function OwnerPasswordSetup({ sessionData, onComplete }: {
       const res = await fetch('/api/auth/complete-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: nombre.trim(), password }),
+        // desbloqueoCambio: viene cuando la contraseña del dueño era igual a la
+        // de la cuenta y la acaba de escribir; permite reemplazarla.
+        body: JSON.stringify({ nombre: nombre.trim(), password, desbloqueo: sessionData.desbloqueoCambio }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Error'); setLoading(false); return; }
@@ -123,9 +125,11 @@ function OwnerPasswordSetup({ sessionData, onComplete }: {
           <div className="mx-auto w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mb-3 shadow-lg">
             <KeyRound className="w-8 h-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-xl">Creá tu contraseña</CardTitle>
+          <CardTitle className="text-xl">Creá la contraseña de tu perfil de dueño</CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
-            Elegí una contraseña para ingresar al sistema cuando crees otros usuarios
+            {sessionData.motivoPassword === 'igual-a-cuenta'
+              ? 'La contraseña de tu perfil de dueño es igual a la de la cuenta del hotel, que también usan los empleados. Creá una distinta para tu perfil.'
+              : 'Es la contraseña de tu perfil de dueño. Tiene que ser distinta de la contraseña de la cuenta del hotel, que también usan los empleados.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -135,7 +139,7 @@ function OwnerPasswordSetup({ sessionData, onComplete }: {
               <Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Como queres que te vean" disabled={loading} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Contraseña</Label>
+              <Label className="text-xs">Contraseña del perfil del dueño</Label>
               <div className="relative">
                 <Input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres, una mayúscula y un número" className="pr-10" disabled={loading} />
                 <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
@@ -391,6 +395,7 @@ function SessionLoader({ children }: { children: React.ReactNode }) {
         hotelNombre={profileSelection.hotelNombre}
         pedirPasswordDe={profileSelection.pedirPasswordDe}
         onSelected={() => setProfileSelection(null)}
+        onNecesitaPassword={(data) => { setProfileSelection(null); setPasswordSetup(data); }}
       />
     );
   }

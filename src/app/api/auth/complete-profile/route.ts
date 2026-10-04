@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { crearDesbloqueo } from '@/lib/auth/desbloqueo-perfil';
+import { crearDesbloqueo, desbloqueoValido } from '@/lib/auth/desbloqueo-perfil';
 import { authOptions } from '@/lib/auth/config';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
@@ -17,27 +17,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const { nombre, password } = await req.json();
+    const { nombre, password, desbloqueo } = await req.json();
 
     const pwError = validatePassword(password);
     if (pwError) {
       return NextResponse.json({ error: pwError }, { status: 400 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const userId = (session.user as Record<string, unknown>).id as string;
 
     // Buscar el TenantUser owner activo
     const tenantUser = await db.tenantUser.findFirst({
-      where: { userId: (session.user as any).id, rol: 'owner', activo: true },
+      where: { userId, rol: 'owner', activo: true },
     });
 
     // Si el dueño ya tiene contraseña, cambiarla acá solo se puede desde su
-    // propio perfil abierto. Si no, otro perfil de la misma cuenta podría
-    // pisarla y entrar al del dueño sin saberla.
+    // propio perfil abierto, o con el comprobante de que recién escribió la
+    // actual y era igual a la de la cuenta (POST /api/auth/me). Si no, otro
+    // perfil de la misma cuenta podría pisarla y entrar al del dueño.
     const perfilEnLaSesion = (session.user as Record<string, unknown>).tenantUserId as string | undefined;
-    if (tenantUser?.password && perfilEnLaSesion !== tenantUser.id) {
+    if (tenantUser?.password
+      && perfilEnLaSesion !== tenantUser.id
+      && !desbloqueoValido(desbloqueo, userId, tenantUser.id, 'cambio')) {
       return NextResponse.json({ error: 'Para cambiar la contraseña del dueño, entrá a su perfil.' }, { status: 403 });
     }
+
+    // La del dueño tiene que ser distinta de la de la cuenta del hotel: la de
+    // la cuenta la conocen también los empleados.
+    const cuenta = await db.user.findUnique({ where: { id: userId }, select: { password: true } });
+    if (cuenta?.password && await bcrypt.compare(password, cuenta.password)) {
+      return NextResponse.json(
+        { error: 'Tiene que ser distinta de la contraseña de la cuenta del hotel.' },
+        { status: 400 },
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     if (tenantUser) {
       // Guardar contraseña y nombre en el TenantUser (perfil del owner)
@@ -82,7 +97,7 @@ export async function POST(req: NextRequest) {
       message: 'Perfil actualizado correctamente',
       // Recién creó la contraseña: con esto el JWT acepta abrir su perfil
       // (src/lib/auth/desbloqueo-perfil.ts).
-      ...(tenantUser ? { desbloqueo: crearDesbloqueo(tenantUser.userId, tenantUser.id) } : {}),
+      ...(tenantUser ? { desbloqueo: crearDesbloqueo(tenantUser.userId, tenantUser.id, 'entrar') } : {}),
     });
   } catch (error: unknown) {
     console.error('Complete profile error:', error);
