@@ -7,6 +7,7 @@ import PublicNavbar from '@/components/public/PublicNavbar';
 import PublicFooter from '@/components/public/PublicFooter';
 import FadeIn from '@/components/public/FadeIn';
 import ScreenshotFrame from '@/components/public/ScreenshotFrame';
+import { LOGOS_CANALES, LogoDeCanal } from '@/components/public/LogosCanales';
 import {
   CalendarCheck,
   Receipt,
@@ -20,7 +21,13 @@ import {
   Sparkles,
   Clock,
   Globe,
-  LayoutGrid,
+  Landmark,
+  Check,
+  Plus,
+  CreditCard,
+  Mail,
+  Settings,
+  type LucideIcon,
 } from 'lucide-react';
 
 /* ============================================================
@@ -35,22 +42,25 @@ const SOCIAL_PROOF = [
   { icon: Coffee, label: 'B&B' },
 ];
 
-const FUTURAS_INTEGRACIONES = [
-  {
-    icon: Globe,
-    nombre: 'Booking.com',
-    desc: 'Tarifas, disponibilidad y reservas sincronizadas en tiempo real, sin cargar nada a mano.',
-  },
-  {
-    icon: Home,
-    nombre: 'Airbnb',
-    desc: 'Conexión directa para evitar el doble booking y actualizar precios al instante.',
-  },
-  {
-    icon: LayoutGrid,
-    nombre: 'Y más canales',
-    desc: 'Expedia, Despegar y otras plataformas se irán sumando a medida que avance la integración.',
-  },
+const ASISTENTE_PUNTOS = [
+  'Responde en español, corto y con pasos claros.',
+  'Sabe en qué pantalla estás y te sugiere preguntas útiles.',
+  'Ideal para el personal nuevo: aprende a usar Hospi sin capacitaciones largas.',
+  'No ve los datos de tus huéspedes: solo te guía en el sistema.',
+];
+
+const ARCA_PUNTOS = [
+  'Facturas A, B o C según tu condición frente al IVA.',
+  'A nombre del huésped o de una empresa con CUIT.',
+  'Notas de crédito y débito, y presupuestos.',
+  'Lista de reservas cobradas sin facturar, para que no se te pase ninguna.',
+];
+
+const WEB_PUNTOS: { icon: LucideIcon; texto: string }[] = [
+  { icon: CreditCard, texto: 'Cobro de la seña con Mercado Pago, directo a tu cuenta, o de forma manual.' },
+  { icon: CalendarCheck, texto: 'La disponibilidad sale del sistema: no se vende dos veces la misma habitación.' },
+  { icon: Mail, texto: 'Emails automáticos al huésped y al hotel con cada reserva.' },
+  { icon: Settings, texto: 'Fotos, políticas, ubicación y redes, todo desde Configuración.' },
 ];
 
 // Only 3 preview cards on the home page — the full list lives on /funciones.
@@ -71,6 +81,21 @@ const FEATURE_PREVIEW = [
     desc: 'Dashboards con métricas clave: ocupación, ingresos, tasa de cancelación y más.',
   },
 ];
+
+function ListaConCheck({ puntos }: { puntos: string[] }) {
+  return (
+    <ul className="mt-8 space-y-3">
+      {puntos.map(p => (
+        <li key={p} className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0F766E1A]">
+            <Check className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <span className="text-foreground">{p}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /* ============================================================
  * Page
@@ -97,8 +122,9 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-              La plataforma todo-en-uno para hoteles, hostels y alojamientos en Argentina.
-              Reservas, facturación, caja y reportes en un solo lugar.
+              La plataforma todo en uno para hoteles, hostels y alojamientos en Argentina.
+              Reservas, facturación con ARCA, caja, reportes y tu propia página web con reservas
+              online.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -123,7 +149,7 @@ export default function HomePage() {
           {/* Right 50% — screenshot más grande */}
           <FadeIn delay={150} className="hidden lg:block">
             <ScreenshotFrame
-              src="/screenshots/dashboard-new.png"
+              src="/capturas/dashboard.png"
               alt="Panel de control de Hospi"
               priority
             />
@@ -192,33 +218,127 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── Futuras integraciones ─── */}
+      {/* ─── Asistente con IA ─── */}
       <section className="border-y border-border bg-[#F1F5F980] py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <FadeIn className="mx-auto max-w-2xl text-center">
+            <Badge className="mb-4 gap-1 bg-[#0F766E1A] text-primary">
+              <Sparkles className="h-3 w-3" />
+              Novedad
+            </Badge>
+            <h2 className="text-4xl font-bold text-foreground">
+              Tu asistente con inteligencia artificial
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Hospi trae un asistente que te explica cómo usar el sistema, en el momento y en la
+              pantalla en la que estás. Preguntale como le preguntarías a un compañero.
+            </p>
+          </FadeIn>
+
+          <div className="mt-14 grid grid-cols-1 items-center gap-12 lg:grid-cols-[1fr_1.15fr]">
+            <FadeIn>
+              <ListaConCheck puntos={ASISTENTE_PUNTOS} />
+            </FadeIn>
+            <FadeIn delay={150}>
+              <ScreenshotFrame
+                src="/capturas/asistente.png"
+                alt="Asistente de Hospi abierto sobre el panel"
+              />
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Facturación con ARCA ─── */}
+      <section className="bg-background py-24">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1.15fr_1fr]">
+          <FadeIn delay={150} className="order-2 lg:order-1">
+            <ScreenshotFrame src="/capturas/arca.png" alt="Módulo ARCA de Hospi" />
+          </FadeIn>
+          <FadeIn className="order-1 lg:order-2">
+            <Badge className="mb-4 gap-1 bg-[#0F766E1A] text-primary">
+              <Landmark className="h-3 w-3" />
+              Facturación electrónica
+            </Badge>
+            <h2 className="text-4xl font-bold text-foreground">Facturá con ARCA sin salir de Hospi</h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Conectá tu CUIT con ARCA desde Configuración y emití el comprobante de cada reserva,
+              con su CAE.
+            </p>
+            <ListaConCheck puntos={ARCA_PUNTOS} />
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ─── Página web del hotel ─── */}
+      <section className="border-y border-border bg-[#F1F5F980] py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <FadeIn className="mx-auto max-w-2xl text-center">
+            <Badge className="mb-4 gap-1 bg-[#0F766E1A] text-primary">
+              <Globe className="h-3 w-3" />
+              Reservas online
+            </Badge>
+            <h2 className="text-4xl font-bold text-foreground">
+              La página web de tu hotel, lista para vender
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Cada hotel tiene su propia página con fotos, habitaciones, precios y promociones. Tus
+              huéspedes reservan solos y la reserva entra directo al sistema.
+            </p>
+            <p className="mt-5 inline-block rounded-lg bg-muted px-3 py-1.5 font-mono text-sm text-foreground">
+              www.mihospeda.com/h/tu-hotel
+            </p>
+          </FadeIn>
+
+          <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {WEB_PUNTOS.map(({ icon: Icon, texto }, i) => (
+              <FadeIn key={texto} delay={i * 80}>
+                <div className="h-full rounded-2xl border border-border bg-card p-6">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F766E1A]">
+                    <Icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <p className="mt-5 text-sm text-foreground">{texto}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Próximamente: canales de venta ─── */}
+      <section className="bg-background py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <FadeIn className="mx-auto max-w-2xl text-center">
             <Badge variant="secondary" className="mb-4 gap-1">
               <Clock className="h-3 w-3" />
               Próximamente
             </Badge>
-            <h2 className="text-4xl font-bold text-foreground">Más canales, un solo lugar</h2>
+            <h2 className="text-4xl font-bold text-foreground">
+              Vendé en Booking, Airbnb y más, desde un solo lugar
+            </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Estamos preparando la sincronización directa con las plataformas de reservas más usadas,
-              para que gestiones todo desde Hospi sin cargar nada dos veces.
+              Estamos preparando la conexión directa con los canales de venta más usados: la
+              disponibilidad y los precios se actualizan solos, y las reservas entran directo a Hospi.
             </p>
           </FadeIn>
 
-          <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {FUTURAS_INTEGRACIONES.map(({ icon: Icon, nombre, desc }, i) => (
-              <FadeIn key={nombre} delay={i * 80}>
-                <div className="h-full rounded-2xl border border-dashed border-border bg-[color:var(--card-a60)] p-6 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
-                    <Icon className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <h3 className="mt-5 text-lg font-semibold text-foreground">{nombre}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
+          <div className="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            {LOGOS_CANALES.map((logo, i) => (
+              <FadeIn key={logo.nombre} delay={i * 60}>
+                <div className="flex h-full flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card px-3 py-6 text-center">
+                  <LogoDeCanal logo={logo} />
+                  <span className="text-sm font-semibold text-foreground">{logo.nombre}</span>
                 </div>
               </FadeIn>
             ))}
+            <FadeIn delay={LOGOS_CANALES.length * 60}>
+              <div className="flex h-full flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card px-3 py-6 text-center">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                  <Plus className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <span className="text-sm font-semibold text-muted-foreground">Despegar y más</span>
+              </div>
+            </FadeIn>
           </div>
         </div>
       </section>

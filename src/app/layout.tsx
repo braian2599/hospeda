@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s | Hospi",
   },
   description:
-    "Sistema de gestión hotelera completo para Argentina. Reservas, check-in/out, facturación, limpieza, caja y reportes. Todo en un solo lugar. 30 días gratis.",
+    "Sistema de gestión hotelera completo para Argentina. Reservas, check-in/out, facturación con ARCA, limpieza, caja, reportes y página web con reservas online. Todo en un solo lugar. 30 días gratis.",
   keywords: [
     "gestión hotelera", "hotel software", "reservas online",
     "sistema hotelero", "hoteles Argentina", "hostel management",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     siteName: "Hospi",
     title: "Hospi — Gestión Hotelera Simple",
     description:
-      "La plataforma todo-en-uno para hoteles, hostels y alojamientos en Argentina. Reservas, facturación, caja y reportes en un solo lugar.",
+      "La plataforma todo en uno para hoteles, hostels y alojamientos en Argentina. Reservas, facturación con ARCA, caja, reportes y tu propia página web con reservas online.",
     images: [
       {
         url: "/og-image.png",
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Hospi — Gestión Hotelera Simple",
     description:
-      "Gestión hotelera completa. Reservas, facturación, caja y reportes. 30 días gratis.",
+      "Gestión hotelera completa. Reservas, facturación con ARCA, caja, reportes y página web con reservas online. 30 días gratis.",
     images: ["/og-image.png"],
   },
   robots: { index: true, follow: true },

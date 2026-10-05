@@ -13,6 +13,8 @@ import {
   LogIn,
   BedDouble,
   Receipt,
+  Landmark,
+  Bot,
   BarChart3,
   Users,
   Check,
@@ -29,7 +31,7 @@ import {
 } from 'lucide-react';
 
 /* ============================================================
- * Features principales (6) — con screenshot grande
+ * Features principales (8) — con screenshot grande
  * ========================================================== */
 
 const FEATURES = [
@@ -39,7 +41,7 @@ const FEATURES = [
     desc: 'Calendario visual, control de disponibilidad y prevención de overbooking.',
     long:
       'Gestioná todas tus reservas desde un calendario visual. Arrastrá y soltá para reasignar habitaciones, evitá el overbooking con validación automática y mantené el control total de tu ocupación.',
-    screenshot: '/screenshots/reservas-new.png',
+    screenshot: '/capturas/reservas.png',
   },
   {
     icon: LogIn,
@@ -47,7 +49,23 @@ const FEATURES = [
     desc: 'Gestión de ingresos y egresos de huéspedes con un solo clic.',
     long:
       'Registrá la entrada y salida de huéspedes en segundos. Cargá sus datos, asigná la habitación y dejá todo listo para la siguiente reserva sin papeleo manual.',
-    screenshot: '/screenshots/checkin-new.png',
+    screenshot: '/capturas/checkin.png',
+  },
+  {
+    icon: Receipt,
+    title: 'Cobros y comprobantes',
+    desc: 'Cobros de las reservas, recibos y cuenta corriente.',
+    long:
+      'Registrá los pagos de cada reserva en efectivo, tarjeta o transferencia, mirá qué falta cobrar y llevá la cuenta corriente de clientes y empresas, con sus recibos y comprobantes.',
+    screenshot: '/capturas/facturacion.png',
+  },
+  {
+    icon: Landmark,
+    title: 'Facturación con ARCA',
+    desc: 'Facturas A, B o C con CAE, notas de crédito y débito, y presupuestos.',
+    long:
+      'Conectá tu CUIT con ARCA y emití el comprobante de cada reserva sin salir de Hospi, a nombre del huésped o de una empresa con CUIT. La lista de reservas cobradas sin facturar te muestra qué falta.',
+    screenshot: '/capturas/arca.png',
   },
   {
     icon: BedDouble,
@@ -55,15 +73,7 @@ const FEATURES = [
     desc: 'Vista de tablero con estados visuales: disponible, ocupada, limpieza o mantenimiento.',
     long:
       'Vea el estado de cada habitación en tiempo real. Colores claros para disponible, ocupada, en limpieza o mantenimiento, para que todo el equipo sepa qué hacer en cada momento.',
-    screenshot: '/screenshots/habitaciones-new.png',
-  },
-  {
-    icon: Receipt,
-    title: 'Facturación',
-    desc: 'Emisión de comprobantes, registro de pagos y control financiero total.',
-    long:
-      'Emití facturas y recibos, registrá pagos en efectivo, tarjeta o transferencia y mantené la caja siempre cuadrada. Compatible con tus requisitos fiscales argentinos.',
-    screenshot: '/screenshots/facturacion-new.png',
+    screenshot: '/capturas/habitaciones.png',
   },
   {
     icon: BarChart3,
@@ -71,7 +81,7 @@ const FEATURES = [
     desc: 'Dashboards con métricas clave: ocupación, ingresos, tasa de cancelación y más.',
     long:
       'Visualizá la salud de tu negocio con reportes claros. Ocupación diaria, ingresos por período, tarifa promedio diaria (ADR) y Revenue per Available Room (RevPAR).',
-    screenshot: '/screenshots/reportes-new.png',
+    screenshot: '/capturas/reportes.png',
   },
   {
     icon: Users,
@@ -79,7 +89,15 @@ const FEATURES = [
     desc: 'Roles granulares, datos aislados por hotel y permisos por usuario.',
     long:
       'Creá usuarios para tu equipo con roles específicos: recepción, administración, supervisión. Cada uno ve solo lo que necesita y los datos de cada hotel quedan aislados.',
-    screenshot: '/screenshots/usuarios-new.png',
+    screenshot: '/capturas/usuarios.png',
+  },
+  {
+    icon: Bot,
+    title: 'Asistente con IA',
+    desc: 'Te explica cómo usar el sistema, en la pantalla en la que estás.',
+    long:
+      'Preguntale como le preguntarías a un compañero: responde en español, con pasos claros, y te sugiere preguntas según el módulo que tenés abierto. No ve los datos de tus huéspedes.',
+    screenshot: '/capturas/asistente.png',
   },
 ];
 
@@ -92,31 +110,31 @@ const MORE_FEATURES = [
     icon: Wallet,
     title: 'Caja',
     desc: 'Control de turnos de caja con apertura y cierre, registro de movimientos de ingresos y egresos, y cierre con conteo de denominaciones de billetes y monedas.',
-    screenshot: '/screenshots/caja-new.png',
+    screenshot: '/capturas/caja.png',
   },
   {
     icon: UserCircle,
     title: 'Clientes',
     desc: 'Ficha completa de cada huésped con historial de estadías, documentos, datos de contacto y preferencias. Llevá un registro detallado de cada cliente.',
-    screenshot: '/screenshots/clientes-new.png',
+    screenshot: '/capturas/clientes.png',
   },
   {
     icon: Tags,
     title: 'Tarifas',
     desc: 'Configurá tarifas por tipo de habitación y temporada. Precios diferenciados, campos personalizados y tarifas especiales para convenios.',
-    screenshot: '/screenshots/tarifas-new.png',
+    screenshot: '/capturas/tarifas.png',
   },
   {
     icon: Sparkle,
     title: 'Limpieza y Mantenimiento',
     desc: 'Asignación de tareas de housekeeping por habitación, seguimiento de estados y reporte de problemas de mantenimiento con prioridades.',
-    screenshot: '/screenshots/limpieza-new.png',
+    screenshot: '/capturas/limpieza.png',
   },
   {
     icon: Settings,
     title: 'Configuración',
     desc: 'Personalizá los datos de tu hotel, información fiscal, precios por cama, punto de venta, numeración de facturas y preferencias del sistema.',
-    screenshot: '/screenshots/configuracion-new.png',
+    screenshot: '/capturas/configuracion.png',
   },
 ];
 
@@ -245,7 +263,7 @@ export default function FuncionesPage() {
         </div>
       </section>
 
-      {/* ─── Features grid (6 cards with screenshots) ─── */}
+      {/* ─── Features grid (8 cards with screenshots) ─── */}
       <section className="bg-background pb-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
@@ -314,7 +332,7 @@ export default function FuncionesPage() {
 
           <FadeIn delay={150}>
             <ScreenshotFrame
-              src="/screenshots/reservas-new.png"
+              src="/capturas/reservas.png"
               alt="Vista de reservas en Hospi"
               className="shadow-xl"
             />
