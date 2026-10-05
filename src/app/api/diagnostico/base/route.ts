@@ -11,7 +11,6 @@
 import { NextResponse } from 'next/server';
 import { requireOwner, AuthError } from '@/lib/auth/utils';
 import { hayQueBarrer, CLAVE_PENDIENTES } from '@/lib/expiracion';
-import { hayQueSincronizar } from '@/lib/ical-portero';
 import { hayQueConsultar } from '@/lib/eventos-landing';
 import { hayPresupuesto } from '@/lib/ai/tope-gasto';
 import { Redis } from '@upstash/redis';
@@ -27,9 +26,8 @@ export async function GET() {
     // acá puede tomar esa marca y hacer que el cron siguiente NO haga el
     // barrido periódico. Es aceptable —el barrido igual ocurre por pendientes—
     // y se avisa en la respuesta para que nadie se sorprenda.
-    const [expirar, ical, landing, presupuesto] = await Promise.all([
+    const [expirar, landing, presupuesto] = await Promise.all([
       hayQueBarrer(ahora),
-      hayQueSincronizar(ahora),
       hayQueConsultar('diagnostico', ahora),
       hayPresupuesto(tenantId),
     ]);
@@ -61,10 +59,6 @@ export async function GET() {
         expirarReservas: {
           despiertaPostgres: expirar.barrer,
           motivo: expirar.motivo,
-        },
-        icalSync: {
-          despiertaPostgres: ical.sincronizar,
-          motivo: ical.motivo,
         },
         avisosLanding: {
           despiertaPostgres: landing.consultar,

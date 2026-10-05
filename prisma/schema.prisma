@@ -61,7 +61,6 @@ model Tenant {
   tareasLimpieza TareaLimpieza[]
   configuracion  TenantConfig?
   platformPayments PlatformPayment[]
-  canalesExternos CanalExterno[]
   mercadoPago    TenantMercadoPago?
   afip           TenantAfip?
   comprobantes   Comprobante[]
@@ -685,28 +684,6 @@ model TenantConfig {
   updatedAt           DateTime @updatedAt
 
   tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-}
-
-// ═══════════════════════════════════════════════════════════
-// CANALES EXTERNOS (Booking.com / Airbnb) — sincronización iCal
-// ═══════════════════════════════════════════════════════════
-
-model CanalExterno {
-  id            String    @id @default(cuid())
-  tenantId      String
-  habitacion    String
-  canal         String    // 'booking' | 'airbnb'
-  exportToken   String    @unique @default(cuid())
-  importUrl     String?
-  activo        Boolean   @default(true)
-  lastSyncAt    DateTime?
-  lastSyncError String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, habitacion, canal])
 }
 
 // ═══════════════════════════════════════════════════════════

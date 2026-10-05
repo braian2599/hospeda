@@ -35,6 +35,18 @@ interface PagoEvento {
   createdAt: string;
 }
 
+/** Una novedad de una reserva de Booking, Airbnb… (Canales de venta). */
+interface CanalEvento {
+  id: string;
+  canal: string;
+  /** new | modified | cancelled */
+  novedad: string;
+  huesped: string;
+  /** importada | sin_lugar | error */
+  resultado: string;
+  createdAt: string;
+}
+
 // ═══════════════════════════════════════════════════════════
 // HOOK
 // ═══════════════════════════════════════════════════════════
@@ -116,10 +128,40 @@ export function useLandingEventsPolling() {
         });
       }
 
+      const canales = (data.canalesNuevas as CanalEvento[] | undefined) ?? [];
+      for (const c of canales) {
+        const quien = c.huesped || 'Huésped sin nombre';
+        if (c.resultado !== 'importada') {
+          notify({
+            type: 'error',
+            category: 'reserva',
+            priority: 'warning',
+            title: c.resultado === 'sin_lugar' ? `Reserva de ${c.canal} sin lugar` : `Reserva de ${c.canal} que no entró`,
+            message: `${quien}. Revisala en Configuración → Canales de venta → Reservas recibidas.`,
+            actionUrl: 'configuracion',
+            actionLabel: 'Ver',
+            persisted: true,
+          });
+          continue;
+        }
+        const titulo = c.novedad === 'cancelled'
+          ? `Reserva de ${c.canal} cancelada`
+          : c.novedad === 'modified' ? `Reserva de ${c.canal} modificada` : `Nueva reserva de ${c.canal}`;
+        notify({
+          type: c.novedad === 'cancelled' ? 'warning' : 'success',
+          category: 'reserva',
+          priority: 'info',
+          title: titulo,
+          message: quien,
+          actionUrl: 'reservas',
+          actionLabel: 'Ver reservas',
+          persisted: true,
+        });
+      }
+
       // Si llegó algo (de la web o de Booking, Airbnb…), se recargan los datos
       // para que el calendario y Reservas lo muestren sin apretar F5.
       const reservas = (data.reservasNuevas as ReservaEvento[] | undefined) ?? [];
-      const canales = (data.canalesNuevas as unknown[] | undefined) ?? [];
       if (reservas.length || pagos.length || canales.length) {
         void useHotelStore.getState().syncFromServer();
       }

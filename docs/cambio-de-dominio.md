@@ -15,8 +15,7 @@ Siempre se usa `https://www.mihospeda.com` (con www): sin www hay una
 redirección y Mercado Pago y Google no siempre la siguen (sobre todo los avisos).
 
 La dirección vieja tiene que seguir andando porque quedó guardada afuera:
-los calendarios iCal que los hoteles pegaron en Booking y Airbnb
-(`/api/ical/...`), las señas ya pedidas por Mercado Pago (su
+las señas ya pedidas por Mercado Pago (su
 `notification_url`), el cron externo que llama a `/api/cron/expirar-reservas`
 y los links a `/h/<hotel>` ya compartidos.
 

@@ -50,6 +50,7 @@ import { es } from 'date-fns/locale';
 import PaginationBar from '@/components/ui/pagination-bar';
 
 import { exportToCSV } from '@/lib/csv-export';
+import { esReservaDeCanal, nombreDelCanal, mensajeNoCancelar } from '@/lib/reservas-canal';
 
 // ==================== DATE PICKER HELPER ====================
 
@@ -1189,6 +1190,12 @@ export default function ReservasModule() {
  };
 
  const openCancel = (id: string) => {
+ // Las de Booking, Airbnb… se cancelan desde el canal (src/lib/reservas-canal.ts).
+ const r = reservas.find(x => x.id === id);
+ if (r && esReservaDeCanal(r)) {
+ toast.info('No se cancela desde Hospi', { description: mensajeNoCancelar(nombreDelCanal(r)) });
+ return;
+ }
  setCancelId(id);
  setModalCancelOpen(true);
  };

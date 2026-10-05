@@ -12,6 +12,7 @@ import { TIPOS_HABITACION_VALIDOS } from './types';
 import { type PlanTipo, type PlanInfo, modulosEfectivos as calcModulosEfectivos, moduloDisponible, PLANES } from './plan-config';
 import { api } from './api-client';
 import { useNotificationStore, type NotificationCategory, type NotificationPriority } from './notification-store';
+import { esReservaDeCanal } from './reservas-canal';
 import {
   normalizarRangos, calcularTotalSegunTarifa,
   type CalcTarifaOptions,
@@ -1511,8 +1512,12 @@ export const useHotelStore = create<HotelStore>()(
 
         const empleado = get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema';
 
-        // Si no se saca de disponibilidad, no hay reservas que cancelar.
-        const reservasACancelar = bloquear ? get().reservasAfectadasPorMantenimiento(numero, hasta) : [];
+        // Si no se saca de disponibilidad, no hay reservas que cancelar. Las de
+        // Booking, Airbnb… no se cancelan desde acá (se cancelan desde el canal):
+        // quedan para moverlas a otra habitación.
+        const reservasACancelar = bloquear
+          ? get().reservasAfectadasPorMantenimiento(numero, hasta).filter(r => !esReservaDeCanal(r))
+          : [];
 
         try {
           // 1. Cancelar las reservas afectadas por el bloqueo (si aplica) via API,

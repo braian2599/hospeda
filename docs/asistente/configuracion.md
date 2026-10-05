@@ -29,9 +29,7 @@ Navegación por secciones (sidebar/menú), no todas visibles siempre:
 5. **Integraciones** — *solo visible si el hotel tiene activado el cobro
    con seña online o la sincronización con Booking/Airbnb*:
    - Cobro de seña: Mercado Pago (conectar cuenta) o manual (WhatsApp/email/instrucciones).
-   - Sincronización iCal con Booking.com/Airbnb, por habitación y canal
-     (ver detalle del estado real de esta integración: hoy es solo
-     bloqueo de disponibilidad, no tiempo real).
+   - Booking.com, Airbnb y otros: ver Canales de venta (Channex, en modo prueba).
 6. **Cuenta y Contraseña**: datos de la cuenta y cambio de contraseña
    (mínimo 6 caracteres).
 7. **Datos / Export**: descargar CSV de reservas, clientes, pagos, o un

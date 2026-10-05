@@ -6,7 +6,7 @@
 //
 // ⚠️ ESTE PORTERO FALLA **CERRADO**, AL REVÉS QUE TODOS LOS DEMÁS.
 //
-// Los otros porteros del sistema (expiración, iCal, avisos de la landing)
+// Los otros porteros del sistema (expiración, avisos de la landing)
 // fallan ABIERTOS: ante la duda consultan Postgres y a lo sumo se gasta una
 // consulta de más. Acá la duda se paga con dinero real y sin límite conocido.
 // Si no se puede contar, no se gasta. El peor caso de fallar cerrado es que el

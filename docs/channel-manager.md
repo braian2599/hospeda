@@ -1,7 +1,8 @@
 # Canales de venta (Channex)
 
 Booking.com, Airbnb, Expedia y otros se conectan por su API a través de
-Channex (channel manager). No se usa iCal (se descartó el 04/10/2026).
+Channex (channel manager). No se usa iCal: se descartó el 04/10/2026 y su
+código se borró el 05/10/2026 (la tabla `CanalExterno` quedó en la base, sin uso).
 
 Hoy funciona en **modo prueba**, contra el servidor de pruebas de Channex.
 
@@ -44,6 +45,10 @@ habitación = room type), `ChannexTarifa` (tarifa por tipo = rate plan) y
   disponibilidad" (hasta su fecha), ni las habitaciones compartidas.
 - Precio por grupo o por cama → un precio según cuántas personas; por
   habitación → un solo precio. Fuera de las fechas de la tarifa, cerrada.
+- Una reserva de un canal no se cancela desde Hospi (ni la cancela un
+  mantenimiento): se cancela desde el canal y llega sola
+  (`src/lib/reservas-canal.ts`).
+- Cada novedad que llega sale como aviso en la campanita.
 - Una reserva que llega se ubica en la primera habitación libre del tipo. Si
   no hay, no se pisa nada: queda "Sin lugar" en Reservas recibidas y en la
   actividad del hotel.
@@ -60,5 +65,3 @@ habitación = room type), `ChannexTarifa` (tarifa por tipo = rate plan) y
 
 - Probar en el servidor de pruebas de Channex (reservas de prueba).
 - Certificación de Channex y cambiar `CHANNEX_API_URL` a `secure`.
-- Sacar lo que queda del iCal viejo (`CanalExterno`, `/api/integraciones/canales`,
-  `/api/cron/ical-sync`).
