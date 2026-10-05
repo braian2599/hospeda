@@ -50,7 +50,7 @@ import { es } from 'date-fns/locale';
 import PaginationBar from '@/components/ui/pagination-bar';
 
 import { exportToCSV } from '@/lib/csv-export';
-import { esReservaDeCanal, nombreDelCanal, mensajeNoCancelar } from '@/lib/reservas-canal';
+import { esReservaDeCanal, nombreDelCanal, avisoCancelarEnCanal } from '@/lib/reservas-canal';
 
 // ==================== DATE PICKER HELPER ====================
 
@@ -1190,12 +1190,6 @@ export default function ReservasModule() {
  };
 
  const openCancel = (id: string) => {
- // Las de Booking, Airbnb… se cancelan desde el canal (src/lib/reservas-canal.ts).
- const r = reservas.find(x => x.id === id);
- if (r && esReservaDeCanal(r)) {
- toast.info('No se cancela desde Hospi', { description: mensajeNoCancelar(nombreDelCanal(r)) });
- return;
- }
  setCancelId(id);
  setModalCancelOpen(true);
  };
@@ -2630,6 +2624,11 @@ export default function ReservasModule() {
  <p className="text-sm text-muted-foreground">
  Habitación {cancelReserva.habitacion} · {formatFecha(cancelReserva.checkin)} → {formatFecha(cancelReserva.checkout)}
  </p>
+ {esReservaDeCanal(cancelReserva) && (
+ <p className="text-sm rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+ {avisoCancelarEnCanal(nombreDelCanal(cancelReserva))}
+ </p>
+ )}
  <p className="text-sm text-destructive">Esta acción no se puede deshacer.</p>
  </div>
  )}

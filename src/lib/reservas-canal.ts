@@ -2,9 +2,10 @@
 // Booking, Airbnb, etc. (Canales de venta, src/lib/channex/). Puro: lo usan
 // el servidor y las pantallas.
 //
-// Una reserva de un canal NO se cancela desde Hospi: el canal no se entera,
-// la reserva sigue viva allá, y Hospi le ofrecería la habitación a otro.
-// Se cancela desde el canal, y la cancelación llega sola.
+// Se pueden cancelar desde Hospi: la habitación se libera en todos los
+// canales al momento. Pero Booking, Airbnb, etc. no dejan que otro sistema
+// les cancele la reserva de un huésped, así que también hay que cancelarla
+// en el canal. Al cancelar, se le avisa eso a quien la cancela.
 
 /** Las reservas de los canales se guardan con externalUid "channex:<reserva>:<n>". */
 export function esReservaDeCanal(r: { externalUid?: string | null; datosAdicionales?: unknown }): boolean {
@@ -19,6 +20,6 @@ export function nombreDelCanal(r: { datosAdicionales?: unknown }): string {
   return d && typeof d === 'object' && typeof d.canal === 'string' && d.canal ? d.canal : 'el canal';
 }
 
-export function mensajeNoCancelar(canal: string): string {
-  return `Esta reserva es de ${canal}: cancelala desde ${canal}. La cancelación llega sola a Hospi.`;
+export function avisoCancelarEnCanal(canal: string): string {
+  return `Es una reserva de ${canal}. Al cancelarla acá, la habitación se libera en todos los canales. Cancelala también en ${canal}: ${canal} no deja que otro sistema le cancele la reserva al huésped.`;
 }

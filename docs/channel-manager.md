@@ -45,8 +45,10 @@ habitación = room type), `ChannexTarifa` (tarifa por tipo = rate plan) y
   disponibilidad" (hasta su fecha), ni las habitaciones compartidas.
 - Precio por grupo o por cama → un precio según cuántas personas; por
   habitación → un solo precio. Fuera de las fechas de la tarifa, cerrada.
-- Una reserva de un canal no se cancela desde Hospi (ni la cancela un
-  mantenimiento): se cancela desde el canal y llega sola
+- Una reserva de un canal se puede cancelar desde Hospi (o la cancela un
+  mantenimiento): la habitación se libera en todos los canales. Booking,
+  Airbnb, etc. no dejan que otro sistema les cancele la reserva al huésped,
+  así que al cancelar se avisa que hay que cancelarla también en el canal
   (`src/lib/reservas-canal.ts`).
 - Cada novedad que llega sale como aviso en la campanita.
 - Una reserva que llega se ubica en la primera habitación libre del tipo. Si

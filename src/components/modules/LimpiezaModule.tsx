@@ -184,13 +184,12 @@ export default function LimpiezaModule() {
   // ── Affected reservations for report form ──
   // Mismo cálculo que usa el store al reportar — así el número que ve el
   // usuario siempre coincide con lo que realmente se va a cancelar.
-  // Las de Booking, Airbnb… no se cancelan: hay que moverlas a otra habitación.
+  // De esas, cuántas son de Booking, Airbnb… (hay que cancelarlas también en el canal).
   const { reservasAfectadas, reservasDeCanalAfectadas } = useMemo(() => {
     if (!repHab || !repBloquear) return { reservasAfectadas: 0, reservasDeCanalAfectadas: 0 };
     const hasta = repFinBloqueo === 'fecha' ? (repFechaFin || null) : null;
     const todas = reservasAfectadasPorMantenimiento(repHab, hasta);
-    const deCanal = todas.filter(r => esReservaDeCanal(r)).length;
-    return { reservasAfectadas: todas.length - deCanal, reservasDeCanalAfectadas: deCanal };
+    return { reservasAfectadas: todas.length, reservasDeCanalAfectadas: todas.filter(r => esReservaDeCanal(r)).length };
   }, [repHab, repBloquear, repFinBloqueo, repFechaFin, reservasAfectadasPorMantenimiento, reservas]);
 
   // ── Filtered & paginated maintenance history ──
@@ -256,7 +255,7 @@ export default function LimpiezaModule() {
   const handleReportar = async () => {
     if (!repHab || !repDesc.trim()) return;
     if (repBloquear && repFinBloqueo === 'fecha' && !repFechaFin) return;
-    if ((reservasAfectadas > 0 || reservasDeCanalAfectadas > 0) && !repConfirm) {
+    if (reservasAfectadas > 0 && !repConfirm) {
       setRepConfirm(true);
       return;
     }
@@ -480,12 +479,12 @@ export default function LimpiezaModule() {
             <DialogTitle>Reportar mantenimiento</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            {repConfirm && (reservasAfectadas > 0 || reservasDeCanalAfectadas > 0) && (
+            {repConfirm && reservasAfectadas > 0 && (
               <div className="flex items-center gap-2 p-2.5 bg-[#D9770626] rounded-lg text-warning text-sm">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>
-                  {reservasAfectadas > 0 && <>Esta habitación tiene <strong>{reservasAfectadas}</strong> reserva{reservasAfectadas !== 1 ? 's' : ''} activa{reservasAfectadas !== 1 ? 's' : ''} que serán canceladas.{' '}</>}
-                  {reservasDeCanalAfectadas > 0 && <>Tiene <strong>{reservasDeCanalAfectadas}</strong> reserva{reservasDeCanalAfectadas !== 1 ? 's' : ''} de Booking, Airbnb u otro canal que no se cancela{reservasDeCanalAfectadas !== 1 ? 'n' : ''}: movela{reservasDeCanalAfectadas !== 1 ? 's' : ''} a otra habitación.</>}
+                  Esta habitación tiene <strong>{reservasAfectadas}</strong> reserva{reservasAfectadas !== 1 ? 's' : ''} activa{reservasAfectadas !== 1 ? 's' : ''} que serán canceladas.
+                  {reservasDeCanalAfectadas > 0 && <>{' '}{reservasDeCanalAfectadas === 1 ? 'Una es' : `${reservasDeCanalAfectadas} son`} de Booking, Airbnb u otro canal: cancelala{reservasDeCanalAfectadas !== 1 ? 's' : ''} también en el canal.</>}
                 </span>
                 <Button size="sm" variant="ghost" className="h-6 w-6 p-0 ml-auto" onClick={() => setRepConfirm(false)}>
                   <X className="w-3.5 h-3.5" />

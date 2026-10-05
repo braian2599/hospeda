@@ -8,7 +8,6 @@ import { chequearLugar } from '@/lib/disponibilidad';
 import { estaFacturada, MENSAJE_RESERVA_FACTURADA } from '@/lib/facturacion-reserva';
 import { camasDeReserva, camasLibresDe, esCompartida, ocupaHabitacionEntera } from '@/lib/ocupacion';
 import { avisarCambio } from '@/lib/channex/sync';
-import { esReservaDeCanal, nombreDelCanal, mensajeNoCancelar } from '@/lib/reservas-canal';
 
 // ─────────────────────────────────────────────────────────
 // GET /api/reservas/[id] — Obtener reserva con pagos y acompañantes
@@ -365,10 +364,6 @@ export async function DELETE(
     }
     if (estaFacturada(reserva.comprobanteCae)) {
       return NextResponse.json({ error: MENSAJE_RESERVA_FACTURADA }, { status: 409 });
-    }
-    // Las de Booking, Airbnb… se cancelan desde el canal (src/lib/reservas-canal.ts).
-    if (esReservaDeCanal(reserva)) {
-      return NextResponse.json({ error: mensajeNoCancelar(nombreDelCanal(reserva)) }, { status: 409 });
     }
 
     // Cancel the reserva. Con la condición en el mismo UPDATE: si justo la

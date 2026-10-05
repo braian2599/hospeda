@@ -105,7 +105,7 @@ Los precios y el detalle fino de cada plan están en la página de Precios del s
 ## Integraciones con Booking.com / Airbnb (Canales de venta)
 La conexión con Booking.com, Airbnb, Expedia y otros se hace por su API a través de Channex, en Configuración → Canales de venta (solo la ve el dueño, y solo si su hotel la tiene habilitada). Hoy está en MODO PRUEBA: no está conectada todavía a los Booking o Airbnb reales. Nunca digas que ya funciona con los canales reales.
 Cómo se usa: 1) Conexión: "Conectar con Channex" da de alta el hotel. 2) Habitaciones y tarifas: se eligen los tipos de habitación y las tarifas que se venden, y "Guardar y enviar a Channex". Después, la disponibilidad y los precios se mandan solos cada vez que cambian en el sistema. Las habitaciones compartidas no se venden en los canales. 3) Canales: ahí se conecta cada canal. 4) Reservas recibidas: las reservas que llegan de los canales entran solas a Reservas; si no hay lugar, quedan marcadas "Sin lugar" para revisarlas.
-Una reserva de Booking, Airbnb u otro canal no se puede cancelar desde Hospi: se cancela desde el canal y la cancelación llega sola.`;
+Una reserva de Booking, Airbnb u otro canal se puede cancelar desde Hospi y la habitación se libera en todos los canales, pero también hay que cancelarla en el canal (Booking o Airbnb no dejan que otro sistema la cancele). Si se cancela en el canal, llega sola a Hospi.`;
 
 export interface MensajeAsistente {
   role: 'user' | 'assistant';
