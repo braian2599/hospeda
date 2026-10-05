@@ -23,6 +23,14 @@ export async function GET() {
       db.cliente.findMany({
         where: { tenantId },
         orderBy: { createdAt: 'desc' },
+        // Sus estadías (se anotan en cada check-out): sin esto el panel
+        // mostraba a todos los clientes con 0 estadías y 0 recurrentes.
+        include: {
+          estadias: {
+            select: { fechaCheckin: true, fechaCheckout: true, habitacion: true, gastoTotal: true },
+            orderBy: { fechaCheckin: 'asc' },
+          },
+        },
       }),
       db.reserva.findMany({
         where: { tenantId },

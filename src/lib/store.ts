@@ -2225,7 +2225,13 @@ export const useHotelStore = create<HotelStore>()(
             fechaNacimiento: c.fechaNacimiento ? String(c.fechaNacimiento).split('T')[0] : undefined,
             nacionalidad: c.nacionalidad || undefined,
             domicilio: c.domicilio || undefined,
-            historialEstadias: [], fechaCreacion: c.createdAt?.split('T')[0] || '',
+            historialEstadias: (c.estadias ?? []).map((e: any) => ({
+              fechaCheckin: String(e.fechaCheckin).split('T')[0],
+              fechaCheckout: String(e.fechaCheckout).split('T')[0],
+              habitacion: e.habitacion,
+              gastoTotal: e.gastoTotal,
+            })),
+            fechaCreacion: c.createdAt?.split('T')[0] || '',
           }));
 
           // Map reservas
