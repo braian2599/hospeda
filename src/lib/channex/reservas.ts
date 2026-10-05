@@ -58,6 +58,8 @@ export interface Novedad {
   checkin: string;
   checkout: string;
   total: number | null;
+  /** Moneda del total (ARS, USD…), como la manda el canal. */
+  moneda: string | null;
   notas: string | null;
   habitaciones: HabitacionPedida[];
 }
@@ -108,6 +110,7 @@ export function leerNovedad(id: string, a: Record<string, unknown>): Novedad | n
     checkin,
     checkout,
     total: numero(a.amount),
+    moneda: texto(a.currency).toUpperCase() || null,
     notas: texto(a.notes) || null,
     habitaciones,
   };
@@ -194,7 +197,17 @@ async function guardarNovedad(tenantId: string, n: Novedad): Promise<Resultado> 
   }
 
   const origen = origenDeCanal(n.canal);
-  const notas = [`Reserva de ${n.canal}${n.codigo ? ` · código ${n.codigo}` : ''}.`, n.notas].filter(Boolean).join('\n');
+  // Los totales de Hospi están en centavos y en la moneda del hotel. Si el
+  // canal cobra en otra moneda, no se carga un total en pesos que no es: se
+  // deja anotado para que el hotel lo cargue.
+  const hotel = await db.tenant.findUnique({ where: { id: tenantId }, select: { moneda: true } });
+  const otraMoneda = !!n.moneda && n.moneda !== (hotel?.moneda || 'ARS');
+  const aCentavos = (x: number | null) => (x == null || otraMoneda ? null : Math.round(x * 100));
+  const notas = [
+    `Reserva de ${n.canal}${n.codigo ? ` · código ${n.codigo}` : ''}.`,
+    otraMoneda && n.total != null ? `Total en ${n.canal}: ${n.total.toLocaleString('es-AR')} ${n.moneda}. Cargá el total en pesos.` : null,
+    n.notas,
+  ].filter(Boolean).join('\n');
   const sinLugar: string[] = [];
   const pisadas: string[] = [];
   let primera: string | null = null;
@@ -227,7 +240,7 @@ async function guardarNovedad(tenantId: string, n: Novedad): Promise<Resultado> 
         huesped: n.huesped.slice(0, 200),
         telefono: n.telefono.slice(0, 50),
         email: n.email?.slice(0, 200) ?? null,
-        total: h.total != null ? Math.round(h.total) : (i === 0 && n.total != null ? Math.round(n.total) : null),
+        total: h.total != null ? aCentavos(h.total) : (i === 0 ? aCentavos(n.total) : null),
         notas,
         estado: 'Confirmada' as const,
         datosAdicionales: { canal: n.canal, codigo: n.codigo, channexBookingId: n.bookingId } as Prisma.InputJsonValue,
