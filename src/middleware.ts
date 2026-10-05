@@ -36,6 +36,7 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 const PUBLIC_ROUTES = [
   '/api/bank-details',
   '/api/support-email',
+  '/api/contacto',
   '/api/plans',
   '/api/payments/create-checkout',
   '/api/payments/create-subscription',

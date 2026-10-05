@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import PublicNavbar from '@/components/public/PublicNavbar';
 import PublicFooter from '@/components/public/PublicFooter';
 import FadeIn from '@/components/public/FadeIn';
-import { Sparkles, Mail, Send, ArrowRight, MessageSquare, Instagram, Facebook } from 'lucide-react';
+import { Sparkles, Mail, Send, ArrowRight, MessageSquare, Instagram, Facebook, Loader2, CheckCircle2 } from 'lucide-react';
 import { useContactoPlataforma } from '@/hooks/useContactEmail';
 import WhatsAppIcon from '@/components/public/WhatsAppIcon';
 
@@ -22,7 +22,11 @@ export default function ContactoPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  // Campo trampa para robots: una persona no lo ve ni lo llena.
+  const [sitio, setSitio] = useState('');
+  const [enviando, setEnviando] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
   const contacto = useContactoPlataforma();
   const contactEmail = contacto.email;
   const redes = [
@@ -31,16 +35,32 @@ export default function ContactoPage() {
     { href: contacto.facebook, texto: 'Facebook', Icono: Facebook },
   ].filter(r => r.href);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  // Se manda por el sistema al email de soporte (POST /api/contacto). Antes
+  // abría el programa de correo del visitante y, si no tenía uno, no salía.
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!contactEmail) return;
-    const subject = encodeURIComponent(`Consulta de ${name || 'un interesado'}`);
-    const body = encodeURIComponent(
-      `Nombre: ${name}\nEmail: ${email}\n\n${message}`,
-    );
-    // Open the user's email client with prefilled subject + body
-    window.location.href = `mailto:${contactEmail}?subject=${subject}&body=${body}`;
-    setSent(true);
+    setEnviando(true);
+    setError('');
+    try {
+      const res = await fetch('/api/contacto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: name, email, mensaje: message, sitio }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'No se pudo mandar el mensaje. Probá de nuevo en un rato.');
+        return;
+      }
+      setSent(true);
+      setName('');
+      setEmail('');
+      setMessage('');
+    } catch {
+      setError('No se pudo mandar el mensaje. Revisá tu conexión e intentá de nuevo.');
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
@@ -73,7 +93,7 @@ export default function ContactoPage() {
             <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
               <h2 className="text-xl font-semibold text-foreground">Envíanos un mensaje</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Completá el formulario y se abrirá tu cliente de email con todo cargado.
+                Completá el formulario y te respondemos a tu email.
               </p>
 
               <form onSubmit={handleSubmit} className="mt-6 space-y-5">
@@ -113,22 +133,31 @@ export default function ContactoPage() {
                   />
                 </div>
 
-                <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={!contactEmail}>
-                  <Send className="mr-2 h-4 w-4" />
-                  Enviar mensaje
+                {/* Campo trampa: oculto para las personas. */}
+                <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+                  <label htmlFor="sitio">No completar</label>
+                  <input id="sitio" type="text" tabIndex={-1} autoComplete="off" value={sitio} onChange={e => setSitio(e.target.value)} />
+                </div>
+
+                <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={enviando}>
+                  {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                  {enviando ? 'Enviando…' : 'Enviar mensaje'}
                 </Button>
 
-                {sent && contactEmail && (
-                  <p className="rounded-md bg-[#0F766E1A] px-4 py-3 text-sm text-primary">
-                    ¡Listo! Abrimos tu cliente de email con el mensaje cargado.
-                    Si no se abrió automáticamente, escribinos a{' '}
-                    <a
-                      href={`mailto:${contactEmail}`}
-                      className="font-semibold underline underline-offset-2"
-                    >
-                      {contactEmail}
-                    </a>
-                    .
+                {sent && (
+                  <p className="flex items-start gap-2 rounded-md bg-[#0F766E1A] px-4 py-3 text-sm text-primary">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                    ¡Listo! Recibimos tu mensaje y te respondemos a tu email a la brevedad.
+                  </p>
+                )}
+                {error && (
+                  <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
+                    {error}
+                    {contactEmail && (
+                      <> También podés escribirnos a{' '}
+                        <a href={`mailto:${contactEmail}`} className="font-semibold underline underline-offset-2">{contactEmail}</a>.
+                      </>
+                    )}
                   </p>
                 )}
               </form>
