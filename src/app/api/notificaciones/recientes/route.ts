@@ -4,7 +4,8 @@ import { requirePermission, getAuthSession, AuthError } from '@/lib/auth/utils';
 import { hayQueConsultar } from '@/lib/eventos-landing';
 
 // GET /api/notificaciones/recientes?since=<ISO> — Reservas y pagos de seña
-// llegados desde la landing pública después de `since`. Alimenta el panel de
+// llegados desde la landing pública después de `since`, y las novedades de
+// reservas de los canales de venta (Booking, Airbnb…). Alimenta el panel de
 // notificaciones vía polling (el stack no tiene websockets/SSE): sin esto, el
 // personal no se entera de una reserva o un pago online mientras tiene el
 // sistema abierto, salvo que recargue la página.
@@ -45,13 +46,14 @@ export async function GET(req: NextRequest) {
         ahora: ahora.toISOString(),
         reservasNuevas: [],
         pagosNuevos: [],
+        canalesNuevas: [],
       });
     }
 
     // ── Camino completo: ahora sí, permisos y datos ──
     const { tenantId } = await requirePermission(['comprobantes', 'reservas', 'checkin']);
 
-    const [reservasCrudas, pagosCrudos] = await Promise.all([
+    const [reservasCrudas, pagosCrudos, canalesNuevas] = await Promise.all([
       db.reserva.findMany({
         where: { tenantId, origen: 'landing', createdAt: { gt: since } },
         select: {
@@ -71,6 +73,13 @@ export async function GET(req: NextRequest) {
           id: true, reservaId: true, monto: true, createdAt: true,
           reserva: { select: { huesped: true, habitacion: true } },
         },
+        orderBy: { createdAt: 'asc' },
+        take: 50,
+      }),
+      // Novedades de reservas de Booking, Airbnb, etc. (Canales de venta).
+      db.channexReserva.findMany({
+        where: { tenantId, createdAt: { gt: since } },
+        select: { id: true, canal: true, novedad: true, huesped: true, resultado: true, createdAt: true },
         orderBy: { createdAt: 'asc' },
         take: 50,
       }),
@@ -114,7 +123,7 @@ export async function GET(req: NextRequest) {
       createdAt: p.createdAt.toISOString(),
     }));
 
-    return NextResponse.json({ ahora: ahora.toISOString(), reservasNuevas, pagosNuevos });
+    return NextResponse.json({ ahora: ahora.toISOString(), reservasNuevas, pagosNuevos, canalesNuevas });
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });

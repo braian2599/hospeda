@@ -24,6 +24,7 @@ import { auditar, TIPO, ACTOR_SISTEMA } from '@/lib/auditoria';
 import { chequearLugar } from '@/lib/disponibilidad';
 import { lockTiposHabitacion } from '@/lib/db-lock';
 import { aFechaDb, esFechaValida, fechaCorta } from '@/lib/tarifa-vigencia';
+import { marcarEventoLanding } from '@/lib/eventos-landing';
 import * as cx from './api';
 import { enviarDisponibilidadYPrecios } from './sync';
 
@@ -325,7 +326,12 @@ export async function traerReservas(tenantId: string): Promise<number> {
     guardadas++;
   }
 
-  // Lo que entró ocupa lugar: la disponibilidad de los otros canales tiene que bajar.
-  if (guardadas > 0) await enviarDisponibilidadYPrecios(tenantId).catch(() => {});
+  if (guardadas > 0) {
+    // El panel abierto se entera en menos de un minuto y recarga el calendario
+    // (la misma marca que usan las reservas de la página web).
+    await marcarEventoLanding(tenantId);
+    // Lo que entró ocupa lugar: la disponibilidad de los otros canales tiene que bajar.
+    await enviarDisponibilidadYPrecios(tenantId).catch(() => {});
+  }
   return guardadas;
 }

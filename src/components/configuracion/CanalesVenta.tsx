@@ -20,6 +20,7 @@ import {
 import PaginationBar from '@/components/ui/pagination-bar';
 import { Check, Loader2, RefreshCw, Send, AlertTriangle, Info, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHotelStore } from '@/lib/store';
 
 export type PaginaCanales = 'conexion' | 'habitaciones' | 'canales' | 'reservas';
 
@@ -522,6 +523,8 @@ function Reservas({ recargarEstado }: { recargarEstado: () => Promise<void> }) {
     try {
       const r = await api.canalesVenta.buscarReservas();
       toast.success(r.nuevas > 0 ? `Entraron ${r.nuevas} novedad${r.nuevas === 1 ? '' : 'es'}` : 'No hay reservas nuevas');
+      // Que el calendario y Reservas las muestren sin recargar la página.
+      if (r.nuevas > 0) void useHotelStore.getState().syncFromServer();
       setPagina(1);
       await cargar(1);
       await recargarEstado();

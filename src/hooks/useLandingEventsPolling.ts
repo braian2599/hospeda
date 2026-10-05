@@ -102,7 +102,8 @@ export function useLandingEventsPolling() {
         }
       }
 
-      for (const p of (data.pagosNuevos as PagoEvento[] | undefined) ?? []) {
+      const pagos = (data.pagosNuevos as PagoEvento[] | undefined) ?? [];
+      for (const p of pagos) {
         notify({
           type: 'success',
           category: 'pago',
@@ -113,6 +114,14 @@ export function useLandingEventsPolling() {
           actionLabel: 'Ver reserva',
           persisted: true,
         });
+      }
+
+      // Si llegó algo (de la web o de Booking, Airbnb…), se recargan los datos
+      // para que el calendario y Reservas lo muestren sin apretar F5.
+      const reservas = (data.reservasNuevas as ReservaEvento[] | undefined) ?? [];
+      const canales = (data.canalesNuevas as unknown[] | undefined) ?? [];
+      if (reservas.length || pagos.length || canales.length) {
+        void useHotelStore.getState().syncFromServer();
       }
     } catch {
       // Silencioso — se reintenta en el próximo poll
