@@ -9,7 +9,7 @@
 // Channex responde en formato JSON:API: { data: { type, id, attributes } }.
 // La clave va en el encabezado "user-api-key".
 
-const TIEMPO_MAXIMO_MS = 25_000;
+const TIEMPO_MAXIMO_MS = 15_000;
 
 export interface ConfigChannex {
   url: string;
@@ -27,7 +27,7 @@ export function configChannex(): ConfigChannex | null {
 }
 
 export class ChannexError extends Error {
-  constructor(message: string, public status: number) {
+  constructor(message: string, public status: number, public esperarMs: number | null = null) {
     super(message);
   }
 }
@@ -52,7 +52,46 @@ function textoDeError(cuerpo: unknown, status: number): string {
   return `Channex respondió ${status}.`;
 }
 
-async function pedir(metodo: 'GET' | 'POST' | 'PUT' | 'DELETE', ruta: string, cuerpo?: unknown): Promise<unknown> {
+// ── REINTENTOS ──
+// 429 (Channex pide esperar): Channex no procesó el pedido, así que siempre
+// se puede repetir. Se espera lo que dice su encabezado Retry-After (con un
+// tope), o unos segundos.
+// Error de conexión, demora o 5xx: solo se repite si repetir no hace daño
+// (mandar disponibilidad y precios, leer o confirmar reservas, actualizar).
+// Crear un hotel, un tipo o una tarifa no se repite: si Channex lo creó y la
+// respuesta se perdió, quedaría duplicado.
+// Si los 3 intentos fallan, el error sube y sync.ts lo deja pendiente para
+// reintentarlo a los pocos minutos (src/lib/channex/reintentos.ts).
+const INTENTOS = 3;
+const ESPERAS_MS = [2_000, 6_000];
+const ESPERA_MAXIMA_MS = 30_000;
+
+const dormir = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+function esperaDe(retryAfter: string | null): number | null {
+  if (!retryAfter) return null;
+  const seg = Number(retryAfter);
+  if (Number.isFinite(seg) && seg >= 0) return seg * 1000;
+  const fecha = Date.parse(retryAfter);
+  return Number.isFinite(fecha) ? Math.max(0, fecha - Date.now()) : null;
+}
+
+async function pedir(
+  metodo: 'GET' | 'POST' | 'PUT' | 'DELETE', ruta: string, cuerpo?: unknown, repetible = false,
+): Promise<unknown> {
+  for (let intento = 1; ; intento++) {
+    try {
+      return await pedirUnaVez(metodo, ruta, cuerpo);
+    } catch (e) {
+      const err = e as ChannexError;
+      const sePuede = err.status === 429 || (repetible && (err.status >= 500 || err.status === 502 || err.status === 504));
+      if (!sePuede || intento >= INTENTOS) throw err;
+      await dormir(Math.min(ESPERA_MAXIMA_MS, err.esperarMs ?? ESPERAS_MS[intento - 1] ?? ESPERAS_MS[ESPERAS_MS.length - 1]));
+    }
+  }
+}
+
+async function pedirUnaVez(metodo: 'GET' | 'POST' | 'PUT' | 'DELETE', ruta: string, cuerpo?: unknown): Promise<unknown> {
   const cfg = configChannex();
   if (!cfg) throw new ChannexError('Faltan las variables de Channex en Vercel.', 503);
   const control = new AbortController();
@@ -68,7 +107,7 @@ async function pedir(metodo: 'GET' | 'POST' | 'PUT' | 'DELETE', ruta: string, cu
     const texto = await res.text();
     let json: unknown = null;
     try { json = texto ? JSON.parse(texto) : null; } catch { json = null; }
-    if (!res.ok) throw new ChannexError(textoDeError(json, res.status), res.status);
+    if (!res.ok) throw new ChannexError(textoDeError(json, res.status), res.status, esperaDe(res.headers.get('retry-after')));
     return json;
   } catch (e) {
     if (e instanceof ChannexError) throw e;
@@ -111,7 +150,7 @@ export async function crearPropiedad(d: DatosPropiedad): Promise<string> {
 }
 
 export async function actualizarPropiedad(id: string, d: DatosPropiedad): Promise<void> {
-  await pedir('PUT', `/properties/${id}`, { property: sinVacios(d) });
+  await pedir('PUT', `/properties/${id}`, { property: sinVacios(d) }, true);
 }
 
 // ─────────────────────────── Tipos de habitación (room types) ───────────────────────────
@@ -130,7 +169,7 @@ export async function crearTipo(propertyId: string, d: DatosTipo): Promise<strin
 }
 
 export async function actualizarTipo(id: string, propertyId: string, d: DatosTipo): Promise<void> {
-  await pedir('PUT', `/room_types/${id}`, { room_type: { property_id: propertyId, ...d } });
+  await pedir('PUT', `/room_types/${id}`, { room_type: { property_id: propertyId, ...d } }, true);
 }
 
 // ─────────────────────────── Tarifas (rate plans) ───────────────────────────
@@ -158,7 +197,7 @@ export async function crearTarifa(propertyId: string, roomTypeId: string, d: Dat
 export async function actualizarTarifa(id: string, propertyId: string, roomTypeId: string, d: DatosTarifa): Promise<void> {
   await pedir('PUT', `/rate_plans/${id}`, {
     rate_plan: { property_id: propertyId, room_type_id: roomTypeId, rate_mode: 'manual', ...d },
-  });
+  }, true);
 }
 
 // ─────────────────────────── Disponibilidad y precios (ARI) ───────────────────────────
@@ -188,13 +227,13 @@ const POR_ENVIO = 1000;
 
 export async function mandarDisponibilidad(values: ValorDisponibilidad[]): Promise<void> {
   for (let i = 0; i < values.length; i += POR_ENVIO) {
-    await pedir('POST', '/availability', { values: values.slice(i, i + POR_ENVIO) });
+    await pedir('POST', '/availability', { values: values.slice(i, i + POR_ENVIO) }, true);
   }
 }
 
 export async function mandarRestricciones(values: ValorRestriccion[]): Promise<void> {
   for (let i = 0; i < values.length; i += POR_ENVIO) {
-    await pedir('POST', '/restrictions', { values: values.slice(i, i + POR_ENVIO) });
+    await pedir('POST', '/restrictions', { values: values.slice(i, i + POR_ENVIO) }, true);
   }
 }
 
@@ -228,7 +267,7 @@ export interface NovedadReserva {
 
 /** Las novedades de reservas que Hospi todavía no confirmó haber recibido. */
 export async function leerNovedades(propertyId: string): Promise<NovedadReserva[]> {
-  const json = await pedir('GET', `/booking_revisions/feed?filter[property_id]=${encodeURIComponent(propertyId)}`);
+  const json = await pedir('GET', `/booking_revisions/feed?filter[property_id]=${encodeURIComponent(propertyId)}`, undefined, true);
   const data = (json as { data?: unknown })?.data;
   if (!Array.isArray(data)) return [];
   return data
@@ -239,7 +278,7 @@ export async function leerNovedades(propertyId: string): Promise<NovedadReserva[
 
 /** Le avisa a Channex que la novedad ya se guardó en Hospi (si no, la vuelve a mandar). */
 export async function confirmarNovedad(revisionId: string): Promise<void> {
-  await pedir('POST', `/booking_revisions/${encodeURIComponent(revisionId)}/ack`);
+  await pedir('POST', `/booking_revisions/${encodeURIComponent(revisionId)}/ack`, undefined, true);
 }
 
 // ─────────────────────────── Pantalla de canales (iframe) ───────────────────────────

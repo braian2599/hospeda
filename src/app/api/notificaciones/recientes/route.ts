@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePermission, getAuthSession, AuthError } from '@/lib/auth/utils';
 import { hayQueConsultar } from '@/lib/eventos-landing';
+import { tocaReintentar } from '@/lib/channex/reintentos';
+import { enviarDisponibilidadYPrecios } from '@/lib/channex/sync';
 
 // GET /api/notificaciones/recientes?since=<ISO> — Reservas y pagos de seña
 // llegados desde la landing pública después de `since`, y las novedades de
@@ -36,6 +38,13 @@ export async function GET(req: NextRequest) {
     const tenantDelToken = sesion?.user?.tenantId;
     if (!sesion?.user?.id || !tenantDelToken) {
       throw new AuthError('Sesión expirada. Volvé a ingresar.', 401);
+    }
+
+    // Canales de venta: si un envío a Channex quedó pendiente y ya es hora,
+    // se reintenta después de responder (solo mira Redis; ver
+    // src/lib/channex/reintentos.ts).
+    if (await tocaReintentar(tenantDelToken)) {
+      after(() => enviarDisponibilidadYPrecios(tenantDelToken).catch(() => {}));
     }
 
     const decision = await hayQueConsultar(tenantDelToken, since.getTime());

@@ -32,6 +32,32 @@ Código en `src/lib/channex/`:
   reservas, habitaciones, mantenimiento y tarifas: manda solo lo que cambió,
   un envío por hotel a la vez (lock).
 - `reservas.ts`: las reservas que llegan (nuevas, modificadas, canceladas).
+- `reintentos.ts`: si un envío falla, se reintenta solo (ver abajo).
+
+### Si Channex falla o pide esperar (429)
+
+1. En el momento (`api.ts`): hasta 3 intentos. Un 429 siempre se repite,
+   esperando lo que diga `Retry-After` (tope 30 s) o 2 y 6 s. Un error de
+   conexión o 5xx solo se repite en lo que no duplica nada (disponibilidad,
+   precios, actualizar, leer y confirmar reservas); crear no se repite.
+2. Si igual falla: el error se ve en Conexión y el hotel queda pendiente en
+   Redis. Se reintenta a los 2, 5, 15 y 60 minutos (después cada 60) desde el
+   aviso del panel, que pregunta cada minuto mientras alguien usa el sistema.
+   Además lo reintentan el próximo cambio, la próxima reserva de un canal y la
+   revisión diaria.
+3. No se pierde nada: lo que se manda sale de comparar con lo último que
+   Channex recibió bien (`ChannexConexion.ultimoEnvio`), que solo se actualiza
+   cuando el envío salió bien.
+
+### Dónde se llama a Channex
+
+- `POST /availability` y `POST /restrictions`: `src/lib/channex/api.ts`
+  (`mandarDisponibilidad`, `mandarRestricciones`), usados solo por
+  `enviarDisponibilidadYPrecios` en `src/lib/channex/sync.ts`.
+- A esa función la llaman, después de guardar: reservas (`api/reservas`,
+  `api/reservas/[id]`, check-out, reserva web), habitaciones, mantenimiento y
+  tarifas (`avisarCambio`), las reservas que llegan de los canales, el
+  reintento pendiente y `api/cron/channex`.
 
 Tablas: `ChannexConexion` (el hotel en Channex), `ChannexTipo` (tipo de
 habitación = room type), `ChannexTarifa` (tarifa por tipo = rate plan) y

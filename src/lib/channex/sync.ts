@@ -23,6 +23,7 @@ import { aFechaTexto } from '@/lib/tarifa-vigencia';
 import { PAISES } from '@/lib/telefono';
 import { leerTarifasPublicas } from '@/lib/tarifas-publicas';
 import * as cx from './api';
+import { anotarFallo, borrarPendiente } from './reintentos';
 import {
   DIAS_A_MANDAR, listaDeDias, disponibilidadDeTipo, preciosParaCanal, valorDeTarifa, leerEstado, cambios, aRestriccion,
   CERRADA, type EstadoAri, type PreciosCanal,
@@ -143,6 +144,7 @@ export async function desconectarHotel(tenantId: string): Promise<void> {
   if (conexion.webhookId) {
     await cx.borrarWebhook(conexion.webhookId).catch(e => console.error('[channex] No se pudo borrar el webhook:', e));
   }
+  await borrarPendiente(tenantId);
   await db.$transaction([
     db.channexTarifa.deleteMany({ where: { tenantId } }),
     db.channexTipo.deleteMany({ where: { tenantId } }),
@@ -302,7 +304,7 @@ export async function guardarQueSeVende(tenantId: string, eleccion: Eleccion): P
 
 export async function enviarDisponibilidadYPrecios(tenantId: string, opciones: { todo?: boolean } = {}): Promise<{ cambios: number }> {
   try {
-    return await db.$transaction(async (tx) => {
+    const r = await db.$transaction(async (tx) => {
       await lockDelHotel(tx, 'ari', tenantId);
       const conexion = await tx.channexConexion.findUnique({ where: { tenantId } });
       if (!conexion) return { cambios: 0 };
@@ -386,8 +388,12 @@ export async function enviarDisponibilidadYPrecios(tenantId: string, opciones: {
       });
       return { cambios: c.disponibilidad.length + c.tarifas.length };
     }, { timeout: 120_000, maxWait: 60_000 });
+    await borrarPendiente(tenantId);
+    return r;
   } catch (e) {
     await anotarError(tenantId, e);
+    // Se reintenta solo a los pocos minutos (src/lib/channex/reintentos.ts).
+    await anotarFallo(tenantId);
     throw e;
   }
 }
