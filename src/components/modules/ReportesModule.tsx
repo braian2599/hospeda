@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import {
   Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext,
 } from '@/components/ui/pagination';
+import PaginationBar from '@/components/ui/pagination-bar';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
@@ -273,12 +274,25 @@ function esTurnoCerrado(t: TurnoCaja): t is TurnoCajaCerrado {
   return t.cierre !== null;
 }
 
+// ==================== PAGINADO ====================
+
+const POR_PAGINA = 15;
+
+/** Página de una lista. Si la página quedó fuera de rango (porque un filtro
+ *  achicó la lista), muestra la última que existe. */
+function paginar<T>(lista: T[], pagina: number) {
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+  const actual = Math.min(Math.max(1, pagina), totalPaginas);
+  const desde = (actual - 1) * POR_PAGINA;
+  return { items: lista.slice(desde, desde + POR_PAGINA), pagina: actual, totalPaginas, desde };
+}
+
 // ==================== COMPONENT ====================
 
 export default function ReportesModule() {
   const {
     reservas, pagos, gastos, auditoria, habitaciones, caja, clientes,
-    categoriasGastos, agregarGasto,
+    categoriasGastos, agregarGasto, metodosPago,
     _synced, usuarioActual,
   } = useHotelStore();
 
@@ -316,7 +330,7 @@ export default function ReportesModule() {
 
   // Gasto dialog
   const [gastoModal, setGastoModal] = useState(false);
-  const [gastoForm, setGastoForm] = useState({ tipo: '', descripcion: '', monto: '', fecha: hoy() });
+  const [gastoForm, setGastoForm] = useState({ tipo: '', descripcion: '', monto: '', fecha: hoy(), metodo: '' });
 
   // Caja detail dialog
   const [cajaDetailIdx, setCajaDetailIdx] = useState<number | null>(null);
@@ -368,6 +382,11 @@ export default function ReportesModule() {
   // Pagination
   const [auditPage, setAuditPage] = useState(1);
   const AUDIT_PER_PAGE = 15;
+  const [pagosPage, setPagosPage] = useState(1);
+  const [gastosPage, setGastosPage] = useState(1);
+  const [cajaPage, setCajaPage] = useState(1);
+  const [habPage, setHabPage] = useState(1);
+  const [clientesPage, setClientesPage] = useState(1);
 
   // Filters
   const [finMetodo, setFinMetodo] = useState('todos');
@@ -752,10 +771,10 @@ export default function ReportesModule() {
 
   // Handlers
   const handleAgregarGasto = () => {
-    if (!gastoForm.tipo || !gastoForm.descripcion || !gastoForm.monto) return;
-    const { tipo, descripcion, monto, fecha } = gastoForm;
-    agregarGasto({ tipo, descripcion, monto: Number(monto), fecha });
-    setGastoForm({ tipo: '', descripcion: '', monto: '', fecha: hoy() });
+    if (!gastoForm.tipo || !gastoForm.descripcion || !gastoForm.monto || !gastoForm.metodo) return;
+    const { tipo, descripcion, monto, fecha, metodo } = gastoForm;
+    agregarGasto({ tipo, descripcion, monto: Number(monto), fecha, metodo });
+    setGastoForm({ tipo: '', descripcion: '', monto: '', fecha: hoy(), metodo: '' });
     setGastoModal(false);
     toast.success('Gasto registrado', { description: `${tipo}: ${formatMoneda(Number(monto))}` });
   };
@@ -782,8 +801,8 @@ export default function ReportesModule() {
         downloadCSV(`reporte_ingresos_${dateLabel}.csv`, headers, rows);
         toast.success('CSV exportado', { description: `${rows.length} pagos exportados` });
       } else if (activeTab === 'gastos') {
-        const headers = ['Fecha', 'Tipo', 'Descripción', 'Monto', 'Empleado'];
-        const rows = gastosFiltrados.map(g => [formatFecha(g.fecha), g.tipo, g.descripcion, g.monto, g.empleado || '']);
+        const headers = ['Fecha', 'Tipo', 'Descripción', 'Monto', 'Forma de pago', 'Empleado'];
+        const rows = gastosFiltrados.map(g => [formatFecha(g.fecha), g.tipo, g.descripcion, g.monto, g.metodo || '', g.empleado || '']);
         downloadCSV(`reporte_gastos_${dateLabel}.csv`, headers, rows);
         toast.success('CSV exportado', { description: `${rows.length} gastos exportados` });
       } else if (activeTab === 'habitaciones') {
@@ -843,6 +862,13 @@ export default function ReportesModule() {
 
   const cajaTurnosAMostrar = (cajaHistorialFiltrado || caja.historial).filter(esTurnoCerrado);
 
+  // Listas paginadas (los totales y las exportaciones usan la lista entera).
+  const pagosPag = paginar(pagosFiltrados, pagosPage);
+  const gastosPag = paginar(gastosFiltrados, gastosPage);
+  const cajaPag = paginar(cajaTurnosAMostrar, cajaPage);
+  const habPag = paginar(habResumen.habs, habPage);
+  const clientesPag = paginar(clientesFrecuentes, clientesPage);
+
   const handleExportPDF = useCallback(() => {
     const hotelName = usuarioActual?.tenantNombre || 'Hospi';
     const dateRange = `${formatFecha(desde)} al ${formatFecha(hasta)}`;
@@ -895,8 +921,8 @@ export default function ReportesModule() {
           tables: [
             {
               title: `Gastos del periodo (${gastosFiltrados.length})`,
-              headers: ['Fecha', 'Tipo', 'Descripción', 'Monto', 'Empleado'],
-              rows: gastosFiltrados.map(g => [formatFecha(g.fecha), g.tipo, g.descripcion, formatMoneda(g.monto), g.empleado || '']),
+              headers: ['Fecha', 'Tipo', 'Descripción', 'Monto', 'Forma de pago', 'Empleado'],
+              rows: gastosFiltrados.map(g => [formatFecha(g.fecha), g.tipo, g.descripcion, formatMoneda(g.monto), g.metodo || '—', g.empleado || '']),
             },
             ...(gastosPorCategoria.length > 0 ? [{
               title: 'Distribución por Categoría',
@@ -1361,7 +1387,7 @@ export default function ReportesModule() {
                   {pagosFiltrados.length === 0 ? (
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No hay pagos en este periodo.</TableCell></TableRow>
                   ) : (
-                    pagosFiltrados.map(p => {
+                    pagosPag.items.map(p => {
                       const reserva = reservaMap.get(p.idReserva);
                       return (
                         <TableRow key={p.id}>
@@ -1377,6 +1403,7 @@ export default function ReportesModule() {
                 </TableBody>
               </Table>
             </div>
+            <PaginationBar page={pagosPag.pagina} totalPages={pagosPag.totalPaginas} onPageChange={setPagosPage} totalItems={pagosFiltrados.length} pageSize={POR_PAGINA} />
           </Card>
         </TabsContent>
 
@@ -1573,19 +1600,26 @@ export default function ReportesModule() {
                     <TableHead className="text-center">Tipo</TableHead>
                     <TableHead className="text-center hidden sm:table-cell">Descripción</TableHead>
                     <TableHead className="text-center">Monto</TableHead>
+                    <TableHead className="text-center">Forma de pago</TableHead>
                     <TableHead className="text-center hidden md:table-cell">Empleado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {gastosFiltrados.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No hay gastos que coincidan.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No hay gastos que coincidan.</TableCell></TableRow>
                   ) : (
-                    gastosFiltrados.map(g => (
+                    gastosPag.items.map(g => (
                       <TableRow key={g.id}>
                         <TableCell className="text-center whitespace-nowrap text-xs sm:text-sm">{formatFecha(g.fecha)}</TableCell>
                         <TableCell className="text-center"><Badge variant="secondary" className="text-xs">{g.tipo}</Badge></TableCell>
                         <TableCell className="text-center hidden sm:table-cell text-xs sm:text-sm">{g.descripcion}</TableCell>
                         <TableCell className="text-center font-medium text-destructive text-xs sm:text-sm">-{formatMoneda(g.monto)}</TableCell>
+                        <TableCell className="text-center text-xs sm:text-sm">
+                          <span className="inline-flex flex-wrap items-center justify-center gap-1">
+                            {g.metodo || '—'}
+                            {g.fuente === 'caja' && <Badge variant="outline" className="text-[10px]">De caja</Badge>}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-center hidden md:table-cell text-xs sm:text-sm">{g.empleado}</TableCell>
                       </TableRow>
                     ))
@@ -1593,6 +1627,7 @@ export default function ReportesModule() {
                 </TableBody>
               </Table>
             </div>
+            <PaginationBar page={gastosPag.pagina} totalPages={gastosPag.totalPaginas} onPageChange={setGastosPage} totalItems={gastosFiltrados.length} pageSize={POR_PAGINA} />
           </Card>
         </TabsContent>
 
@@ -1796,7 +1831,9 @@ export default function ReportesModule() {
                   ) : cajaTurnosAMostrar.length === 0 ? (
                     <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No hay turnos de caja registrados.</TableCell></TableRow>
                   ) : (
-                    cajaTurnosAMostrar.map((turno, idx) => (
+                    cajaPag.items.map((turno, i) => {
+                      const idx = cajaPag.desde + i;
+                      return (
                       <TableRow key={idx}>
                         <TableCell className="text-center font-medium hidden sm:table-cell text-xs sm:text-sm">{turno.apertura.empleado}</TableCell>
                         <TableCell className="text-center whitespace-nowrap text-xs sm:text-sm">{formatFechaHora(turno.apertura.fecha)}</TableCell>
@@ -1811,11 +1848,13 @@ export default function ReportesModule() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
             </div>
+            <PaginationBar page={cajaPag.pagina} totalPages={cajaPag.totalPaginas} onPageChange={setCajaPage} totalItems={cajaTurnosAMostrar.length} pageSize={POR_PAGINA} />
           </Card>
         </TabsContent>
 
@@ -1975,7 +2014,7 @@ export default function ReportesModule() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {habResumen.habs.map(h => {
+                  {habPag.items.map(h => {
                     const pct = ocupacionPorHabitacion[h.numero] || 0;
                     return (
                       <TableRow key={h.numero} className="hover:bg-[#0F766E1A] transition-colors">
@@ -1996,6 +2035,7 @@ export default function ReportesModule() {
                 </TableBody>
               </Table>
             </div>
+            <PaginationBar page={habPag.pagina} totalPages={habPag.totalPaginas} onPageChange={setHabPage} totalItems={habResumen.habs.length} pageSize={POR_PAGINA} />
           </Card>
         </TabsContent>
 
@@ -2111,11 +2151,11 @@ export default function ReportesModule() {
                   {clientesFrecuentes.length === 0 ? (
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No hay clientes que coincidan.</TableCell></TableRow>
                   ) : (
-                    clientesFrecuentes.map((c, i) => (
+                    clientesPag.items.map((c, i) => (
                       <TableRow key={c.id} className={`${i % 2 === 1 ? 'bg-[#0F766E0D]' : ''} hover:bg-[#0F766E1A] transition-colors`}>
                         <TableCell className="text-center font-medium text-xs sm:text-sm">
                           <span className="inline-flex items-center gap-1.5">
-                            {i === 0 && <Crown className="w-3.5 h-3.5 text-warning" />}
+                            {clientesPag.desde + i === 0 && <Crown className="w-3.5 h-3.5 text-warning" />}
                             {c.nombre}
                           </span>
                         </TableCell>
@@ -2129,6 +2169,7 @@ export default function ReportesModule() {
                 </TableBody>
               </Table>
             </div>
+            <PaginationBar page={clientesPag.pagina} totalPages={clientesPag.totalPaginas} onPageChange={setClientesPage} totalItems={clientesFrecuentes.length} pageSize={POR_PAGINA} />
           </Card>
         </TabsContent>
 
@@ -2255,10 +2296,22 @@ export default function ReportesModule() {
                 <Input type="date" value={gastoForm.fecha} onChange={e => setGastoForm({ ...gastoForm, fecha: e.target.value })} />
               </div>
             </div>
+            <div className="grid gap-1.5">
+              <Label>Forma de pago *</Label>
+              <Select value={gastoForm.metodo} onValueChange={v => setGastoForm({ ...gastoForm, metodo: v })}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar forma de pago" /></SelectTrigger>
+                <SelectContent>
+                  {metodosPago.map(m => <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Este gasto no se descuenta de la caja. Lo que sale de la caja se carga como egreso en el módulo Caja.
+            </p>
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="secondary">Cancelar</Button></DialogClose>
-            <Button onClick={handleAgregarGasto} disabled={!gastoForm.tipo || !gastoForm.descripcion || !gastoForm.monto}>Guardar</Button>
+            <Button onClick={handleAgregarGasto} disabled={!gastoForm.tipo || !gastoForm.descripcion || !gastoForm.monto || !gastoForm.metodo}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

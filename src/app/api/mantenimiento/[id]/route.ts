@@ -81,6 +81,7 @@ export async function PUT(
             empleadoId: empleadoId || null,
             empleado: empleadoNombre,
             fuente,
+            metodo: esDeCaja ? 'Efectivo' : null,
           },
         });
 

@@ -608,10 +608,11 @@ export interface CreateMetodoPago {
 export interface DbGasto {
   id: string; tipo: string; descripcion: string;
   monto: number; fecha: string; empleado: string;
+  metodo?: string | null; fuente?: string | null;
 }
 export interface CreateGasto {
   tipo: string; descripcion: string; monto: number;
-  fecha: string; empleado?: string;
+  fecha: string; empleado?: string; metodo?: string;
 }
 
 export interface DbCategoriaGasto { id: string; nombre: string; orden: number; }

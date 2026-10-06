@@ -459,7 +459,7 @@ interface HotelStore {
   eliminarMovimientoCaja: (movimientoId: string) => Promise<boolean>;
 
   // Gastos
-  agregarGasto: (datos: { tipo: string; descripcion: string; monto: number; fecha?: string }) => Promise<Gasto | null>;
+  agregarGasto: (datos: { tipo: string; descripcion: string; monto: number; fecha?: string; metodo: string }) => Promise<Gasto | null>;
   eliminarGasto: (id: string) => Promise<boolean>;
 
   // Usuarios: las operaciones crear/actualizar/eliminar se hacen directamente
@@ -1599,7 +1599,7 @@ export const useHotelStore = create<HotelStore>()(
 
         // Construir nuevos estados optimistas sin mutar state directamente
         const newGastos = montoNum > 0
-          ? [...prevGastos, { id: generarId(), tipo: 'Mantenimiento', descripcion: `Habitación ${numero}: ${reparacion}`, monto: montoNum, fecha: todayLocal(), empleado } as Gasto]
+          ? [...prevGastos, { id: generarId(), tipo: 'Mantenimiento', descripcion: `Habitación ${numero}: ${reparacion}`, monto: montoNum, fecha: todayLocal(), empleado, metodo: esDeCaja ? 'Efectivo' : null, fuente: esDeCaja ? 'caja' : 'pago_aparte' } as Gasto]
           : prevGastos;
         const tempGastoId = montoNum > 0 ? newGastos[newGastos.length - 1].id : undefined;
 
@@ -1710,6 +1710,7 @@ export const useHotelStore = create<HotelStore>()(
           const nuevoGasto: Gasto = {
             id: tempGastoId, tipo: categoriaGastoNombre, descripcion,
             monto: montoNum, fecha: todayLocal(), empleado,
+            metodo: metodo || 'Efectivo', fuente: 'caja',
           };
           set({ gastos: [...gastos, nuevoGasto], caja: { ...caja, movimientos: [...caja.movimientos, { ...mov, gastoId: tempGastoId }] } });
         } else {
@@ -1874,18 +1875,24 @@ export const useHotelStore = create<HotelStore>()(
       },
 
       // ===== GASTOS =====
+      // Gasto cargado desde Reportes: NO toca la caja (los egresos de la caja
+      // se cargan en Caja, con registrarMovimientoCaja).
       agregarGasto: async (datos) => {
         const prevGastos = get().gastos;
-        const nuevo: Gasto = { id: generarId(), tipo: datos.tipo, descripcion: datos.descripcion, monto: parseFloat(String(datos.monto)), fecha: datos.fecha || todayLocal(), empleado: get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema' };
+        const nuevo: Gasto = { id: generarId(), tipo: datos.tipo, descripcion: datos.descripcion, monto: parseFloat(String(datos.monto)), fecha: datos.fecha || todayLocal(), empleado: get().usuarioActual?.nombreCompleto || get().usuarioActual?.nombre || 'Sistema', metodo: datos.metodo, fuente: null };
         set({ gastos: [...prevGastos, nuevo] });
         try {
-          await api.gastos.create({ tipo: datos.tipo, descripcion: datos.descripcion, monto: Math.round(parseFloat(String(datos.monto)) * 100), fecha: datos.fecha || todayLocal(), empleado: get().usuarioActual?.nombreCompleto || 'Sistema' });
+          const creado = await api.gastos.create({ tipo: datos.tipo, descripcion: datos.descripcion, monto: Math.round(parseFloat(String(datos.monto)) * 100), fecha: datos.fecha || todayLocal(), empleado: get().usuarioActual?.nombreCompleto || 'Sistema', metodo: datos.metodo });
+          // El id temporal se cambia por el de la base: si no, borrar el gasto
+          // recién cargado falla hasta recargar la página.
+          const conId = { ...nuevo, id: creado.id };
+          set({ gastos: get().gastos.map(g => g.id === nuevo.id ? conId : g) });
+          return conId;
         } catch (err) {
           console.error('[agregarGasto] API error, rolling back:', err);
           set({ gastos: prevGastos });
           return null;
         }
-        return nuevo;
       },
 
       eliminarGasto: async (id) => {
@@ -2258,6 +2265,7 @@ export const useHotelStore = create<HotelStore>()(
           const gastos: Gasto[] = data.gastos.map((g: any) => ({
             id: g.id, tipo: g.tipo, descripcion: g.descripcion, monto: g.monto / 100,
             fecha: g.fecha?.split('T')[0] || g.fecha, empleado: g.empleado || 'Sistema',
+            metodo: g.metodo ?? null, fuente: g.fuente ?? null,
           }));
 
           // Map tarifas (con migración automática del formato viejo al nuevo)

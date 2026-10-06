@@ -49,12 +49,13 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/gastos — Crear gasto
+// POST /api/gastos — Crear gasto (desde Reportes). NO toca la caja: los
+// egresos que salen de la caja se cargan en Caja (/api/caja/movimiento).
 export async function POST(req: NextRequest) {
   try {
     const { tenantId, actorId, nombre: actorNombre } = await requirePermission('comprobantes');
     const body = await req.json();
-    const { tipo, descripcion, monto, fecha, empleadoId, empleado } = body;
+    const { tipo, descripcion, monto, fecha, empleadoId, empleado, metodo } = body;
 
     // Validaciones
     if (!tipo?.trim()) {
@@ -69,6 +70,9 @@ export async function POST(req: NextRequest) {
     if (!fecha) {
       return NextResponse.json({ error: 'La fecha es obligatoria' }, { status: 400 });
     }
+    if (typeof metodo !== 'string' || !metodo.trim()) {
+      return NextResponse.json({ error: 'La forma de pago es obligatoria' }, { status: 400 });
+    }
 
     const gasto = await db.gasto.create({
       data: {
@@ -79,13 +83,14 @@ export async function POST(req: NextRequest) {
         fecha: new Date(fecha),
         empleadoId: empleadoId?.trim() || null,
         empleado: empleado?.trim() || 'Sistema',
+        metodo: metodo.trim(),
       },
     });
 
     await auditar(db, {
       tenantId,
       tipo: TIPO.GASTO,
-      detalle: `Registro: ${tipo.trim()} — ${descripcion.trim()} — $${(Number(monto) / 100).toLocaleString('es-AR')}`,
+      detalle: `Registro: ${tipo.trim()} — ${descripcion.trim()} — $${(Number(monto) / 100).toLocaleString('es-AR')} (${metodo.trim()})`,
       actor: { id: actorId, nombre: actorNombre },
     });
 

@@ -551,6 +551,9 @@ model Gasto {
   empleadoId     String?
   empleado       String
   fuente         String?
+  // Forma de pago (nombre de un MetodoPago del hotel). Los gastos de la caja
+  // llevan la de su movimiento; los cargados en Reportes no tocan la caja.
+  metodo         String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 

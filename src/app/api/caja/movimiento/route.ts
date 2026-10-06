@@ -110,6 +110,7 @@ export async function POST(req: NextRequest) {
             empleadoId: empleadoId || null,
             empleado: actorNombre,
             fuente: 'caja',
+            metodo: metodo?.trim() || 'Efectivo',
           },
         });
 

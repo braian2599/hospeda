@@ -183,6 +183,10 @@ export interface Gasto {
   monto: number;
   fecha: string;
   empleado: string;
+  /** Forma de pago. Puede faltar en gastos viejos. */
+  metodo?: string | null;
+  /** 'caja' = salió de la caja. Los cargados en Reportes no tocan la caja. */
+  fuente?: string | null;
 }
 
 export interface AuditoriaEntry {
