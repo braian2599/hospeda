@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  getPublicTenant, parseFechasConsulta, parsePersonasConsulta, buscarDisponibilidadPorTarifa, tarifaDePromocion,
+  getPublicTenant, parseFechasConsulta, parsePersonasConsulta, buscarDisponibilidadPromocion, promocionDeLaWeb,
 } from '@/lib/public-landing';
 
-// GET /api/public/[slug]/promociones/[tarifaId]/disponibilidad?checkin&checkout&personas
+// GET /api/public/[slug]/promociones/[promocionId]/disponibilidad?checkin&checkout&personas
 // Disponibilidad de TODAS las habitaciones del hotel cotizadas con la tarifa
-// promocional puntual — no está atada a ningún tipo de habitación.
+// de la promoción — no está atada a ningún tipo de habitación.
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ slug: string; tarifaId: string }> }
+  { params }: { params: Promise<{ slug: string; promocionId: string }> }
 ) {
-  const { slug, tarifaId } = await params;
+  const { slug, promocionId } = await params;
   const tenant = await getPublicTenant(slug);
   if (!tenant) return NextResponse.json({ error: 'Hotel no encontrado' }, { status: 404 });
 
@@ -24,11 +24,12 @@ export async function GET(
   const ninosRaw = searchParams.get('ninos');
   const ninos = ninosRaw ? Math.max(0, Math.min(20, parseInt(ninosRaw) || 0)) : 0;
 
-  // La promoción tiene que estar en la web y valer para ese día de salida.
-  const promo = tarifaDePromocion(tenant, tarifaId, fechas.checkout.toISOString().slice(0, 10));
+  // La promoción tiene que estar en la web, la estadía dentro de sus fechas y
+  // su tarifa valer para ese día de salida.
+  const promo = promocionDeLaWeb(tenant, promocionId, fechas.checkin.toISOString().slice(0, 10), fechas.checkout.toISOString().slice(0, 10));
   if ('error' in promo) return NextResponse.json({ error: promo.error }, { status: 400 });
 
-  const resultados = await buscarDisponibilidadPorTarifa(tenant, tarifaId, fechas, personas, ninos);
+  const resultados = await buscarDisponibilidadPromocion(tenant, promocionId, fechas, personas, ninos);
 
   return NextResponse.json({
     checkin: searchParams.get('checkin'),

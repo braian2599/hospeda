@@ -47,6 +47,7 @@ import {
 } from '@/components/modules/ComprobantesModule';
 import { tipoComprobantePorCondicionIva, nombreTipoComprobante } from '@/lib/afip/config';
 import CanalesVentaSection, { type PaginaCanales } from './CanalesVenta';
+import PromocionesWeb from './PromocionesWeb';
 
 const CheckoutDialog = dynamic(
   () => import('@/components/payments/CheckoutDialog'),
@@ -1347,8 +1348,7 @@ function PhotoGrid({
 
 interface HabitacionFotoDTO { numero: string; tipo: string; fotos: string[]; descripcion: string; }
 interface TarifaDTO {
-  id: string; nombre: string; activa: boolean; precios: unknown; promoDescripcion: string | null;
-  mostrarEnWeb?: boolean;
+  id: string; nombre: string; activa: boolean; precios: unknown;
   /** Como llega de la API (fecha ISO) o null = sin límite. */
   vigenciaDesde?: string | null; vigenciaHasta?: string | null;
 }
@@ -1400,19 +1400,6 @@ const BAJADA_LANDING: Record<LandingTabId, string> = {
   cobro: 'Cómo se cobra la seña de las reservas de la web.',
   agencias: 'Un bloque en la web para captar convenios con agencias.',
 };
-
-/**
- * Las tarifas que salen en la pestaña Promociones de la web: marcadas
- * "Mostrar en la página web", con alguna promoción prendida y sin vencer —
- * misma regla que promocionesPublicas (src/lib/public-landing.ts).
- */
-function tarifasConPromo(tarifas: TarifaDTO[]): (TarifaDTO & { badges: string[] })[] {
-  const hoy = fechaArgentina(new Date());
-  return tarifas
-    .filter((t) => t.mostrarEnWeb && estadoVigencia(conFechasDTO(t), hoy) !== 'vencida')
-    .map((t) => ({ ...t, badges: promoBadgesTab(parseTarifaPrecios(t.precios)) }))
-    .filter((t) => t.badges.length > 0);
-}
 
 /**
  * Aviso arriba de Configuración: tipos de habitación que se venden por la web
@@ -1487,8 +1474,6 @@ function LandingSection({ tab, onTarifasWebGuardadas }: {
   const [savingTarifas, setSavingTarifas] = useState(false);
 
   // Promociones (tab aparte — no depende de tarifasPublicas)
-  const [promoDescripciones, setPromoDescripciones] = useState<Record<string, string>>({});
-  const [savingPromoId, setSavingPromoId] = useState<string | null>(null);
 
   // Cobro de seña
   const [modoCobroSena, setModoCobroSena] = useState<'mercadopago' | 'manual'>('mercadopago');
@@ -1550,7 +1535,6 @@ function LandingSection({ tab, onTarifasWebGuardadas }: {
       setHabitacionSeleccionada((prev) => prev || habs[0]?.numero || '');
       const tarifasActivas: TarifaDTO[] = Array.isArray(tarifasData) ? tarifasData.filter((t: TarifaDTO) => t.activa) : [];
       setTarifasList(tarifasActivas);
-      setPromoDescripciones(Object.fromEntries(tarifasActivas.map((t) => [t.id, t.promoDescripcion || ''])));
       setMpConectado(!!mpData.conectado);
       setMpUserId(mpData.mpUserId || null);
     } catch {
@@ -1803,25 +1787,6 @@ function LandingSection({ tab, onTarifasWebGuardadas }: {
       toast.error((err as Error).message || 'Error al guardar');
     } finally {
       setSavingTarifas(false);
-    }
-  };
-
-  const handleGuardarPromoDescripcion = async (tarifaId: string) => {
-    setSavingPromoId(tarifaId);
-    try {
-      const res = await fetch(`/api/tarifas/${tarifaId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ promoDescripcion: promoDescripciones[tarifaId] || '' }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setTarifasList((prev) => prev.map((t) => (t.id === tarifaId ? { ...t, promoDescripcion: data.promoDescripcion } : t)));
-      toast.success('Descripción guardada');
-    } catch (err: unknown) {
-      toast.error((err as Error).message || 'Error al guardar');
-    } finally {
-      setSavingPromoId(null);
     }
   };
 
@@ -2254,51 +2219,10 @@ function LandingSection({ tab, onTarifasWebGuardadas }: {
           </Dialog>
 
           {landingTab === 'promociones' && (
-            <Card className="card-hover">
-              <CardHeader>
-                <CardTitle className="text-base">Promociones</CardTitle>
-                <CardDescription>
-                  Salen en la pestaña &quot;Promociones&quot; de tu página las tarifas que marcaste &quot;Mostrar en la
-                  página web&quot; (módulo Tarifas → Promociones), con alguna promoción prendida y que no vencieron. Acá
-                  podés escribirles el texto que se muestra.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {tarifasConPromo(tarifasList).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Todavía no hay promociones en la web. En el módulo Tarifas, abrí una tarifa, prendé una promoción y en
-                    &quot;Página web&quot; prendé &quot;Mostrar en la página web como promoción&quot;.
-                  </p>
-                ) : (
-                  tarifasConPromo(tarifasList).map((t) => (
-                    <div key={t.id} className="rounded-lg border p-4 space-y-2.5">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="font-medium text-sm">{t.nombre}</span>
-                        <div className="flex flex-wrap gap-1.5 justify-end">
-                          {t.badges.map((b) => (
-                            <Badge key={b} className="bg-[#0F766E1A] text-primary border-0 text-[11px]">
-                              <Zap className="w-3 h-3 mr-1" />{b}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <Textarea
-                        value={promoDescripciones[t.id] ?? ''}
-                        onChange={(e) => setPromoDescripciones((prev) => ({ ...prev, [t.id]: e.target.value }))}
-                        placeholder="Descripción para mostrar en la landing (opcional)"
-                        rows={2}
-                      />
-                      <div className="flex justify-end">
-                        <Button onClick={() => handleGuardarPromoDescripcion(t.id)} disabled={savingPromoId === t.id} size="sm">
-                          {savingPromoId === t.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                          Guardar
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
+            <PromocionesWeb
+              tarifas={tarifasList.map((t) => ({ id: t.id, nombre: t.nombre }))}
+              subirFoto={(file) => uploadFoto(file, 'hotel')}
+            />
           )}
 
           {landingTab === 'cobro' && (

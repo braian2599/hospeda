@@ -72,6 +72,7 @@ model Tenant {
   channexTipos          ChannexTipo[]
   channexTarifas        ChannexTarifa[]
   channexReservas       ChannexReserva[]
+  promociones           Promocion[]
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1033,6 +1034,29 @@ model ChannexConexion {
   updatedAt     DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+/// Promoción de la página web del hotel. La crea el dueño en Configuración →
+/// Página web → Promociones. Se cobra con la tarifa elegida y vale para
+/// estadías con entrada y salida dentro de [desde, hasta].
+model Promocion {
+  id          String   @id @default(cuid())
+  tenantId    String
+  nombre      String
+  descripcion String?
+  fotoUrl     String?
+  desde       DateTime @db.Date
+  hasta       DateTime @db.Date
+  terminos    String?
+  tarifaId    String
+  activa      Boolean  @default(true)
+  orden       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, hasta])
 }
 
 /// Un tipo de habitación de Hospi (Doble, Triple…) = un "room type" en Channex.

@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { auditar, TIPO, ACTOR_LANDING } from '@/lib/auditoria';
 import { rateLimit } from '@/lib/validation';
 import {
-  getPublicTenant, parseFechasConsulta, parsePersonasConsulta, tarifaWebDeTipo, tarifasWebDeTipo, tarifaDePromocion,
+  getPublicTenant, parseFechasConsulta, parsePersonasConsulta, tarifaWebDeTipo, tarifasWebDeTipo, promocionDeLaWeb,
   type PublicTenant,
 } from '@/lib/public-landing';
 import { parseTarifaPrecios, calcularTotalSegunTarifa, camposAPedir, campoObligatorioFaltante } from '@/lib/tarifa-calc';
@@ -37,25 +37,30 @@ interface TarifaResuelta {
   tarifaNombre: string;
   precios: TarifaPrecios;
   camposPersonalizados: CampoPersonalizado[];
+  /** Si se reservó desde una promoción, su nombre (queda en la nota de la reserva). */
+  promocionNombre: string | null;
 }
 
 /**
  * La tarifa que cobra esta reserva, o el motivo para el visitante:
- * - Desde Promociones: la de la promoción, si está en la web y vale el día
- *   de salida (tarifaDePromocion).
+ * - Desde Promociones: la de la promoción, si está en la web, la estadía cae
+ *   en sus fechas y la tarifa vale el día de salida (promocionDeLaWeb).
  * - Desde Habitaciones: la de la web para ese tipo que vale el día de salida
  *   (puede haber una por período; src/lib/tarifa-vigencia.ts).
  */
 function resolverTarifa(
   tenant: PublicTenant,
-  { tipo, tarifaId }: { tipo: string; tarifaId?: string },
+  { tipo, promocionId }: { tipo: string; promocionId?: string },
+  checkin: string,
   checkout: string,
 ): TarifaResuelta | { error: string } {
   let tarifaDb: PublicTenant['tarifas'][number] | null;
-  if (tarifaId) {
-    const r = tarifaDePromocion(tenant, tarifaId, checkout);
+  let promocionNombre: string | null = null;
+  if (promocionId) {
+    const r = promocionDeLaWeb(tenant, promocionId, checkin, checkout);
     if ('error' in r) return r;
     tarifaDb = r.tarifa;
+    promocionNombre = r.promo.nombre;
   } else {
     tarifaDb = tarifaWebDeTipo(tenant, tipo, checkout);
     if (!tarifaDb) {
@@ -66,7 +71,7 @@ function resolverTarifa(
   }
   const precios = parseTarifaPrecios(tarifaDb.precios);
   if (precios.rangos.length === 0) return { error: 'Ese tipo de habitación no está disponible para reservar online' };
-  return { tarifaNombre: tarifaDb.nombre, precios, camposPersonalizados: parseCamposPersonalizados(tarifaDb.camposPersonalizados) };
+  return { tarifaNombre: tarifaDb.nombre, precios, camposPersonalizados: parseCamposPersonalizados(tarifaDb.camposPersonalizados), promocionNombre };
 }
 
 /**
@@ -116,7 +121,7 @@ export async function POST(
   }
 
   const tipo = typeof body.tipo === 'string' ? body.tipo.trim() : '';
-  const tarifaIdPromo = typeof body.tarifaId === 'string' ? body.tarifaId.trim() : '';
+  const promocionId = typeof body.promocionId === 'string' ? body.promocionId.trim() : '';
   const habitacionSolicitada = typeof body.habitacion === 'string' ? body.habitacion.trim() : '';
   const tipo2 = typeof body.tipo2 === 'string' ? body.tipo2.trim() : '';
   const habitacion2Solicitada = typeof body.habitacion2 === 'string' ? body.habitacion2.trim() : '';
@@ -169,7 +174,7 @@ export async function POST(
 
   // La tarifa se elige por el día de salida (src/lib/tarifa-vigencia.ts).
   const salida = fechas.checkout.toISOString().slice(0, 10);
-  const resuelta1 = resolverTarifa(tenant, { tipo, tarifaId: tarifaIdPromo || undefined }, salida);
+  const resuelta1 = resolverTarifa(tenant, { tipo, promocionId: promocionId || undefined }, fechas.checkin.toISOString().slice(0, 10), salida);
   if ('error' in resuelta1) return NextResponse.json({ error: resuelta1.error }, { status: 400 });
   const tarifa1 = resuelta1;
   const ninosEfectivos = tarifa1.precios.promociones?.ninosDiferenciado?.activo ? ninos : 0;
@@ -186,7 +191,7 @@ export async function POST(
 
   let tarifa2: { tarifaNombre: string; precios: TarifaPrecios } | null = null;
   if (tipo2) {
-    const resuelta2 = resolverTarifa(tenant, { tipo: tipo2 }, salida);
+    const resuelta2 = resolverTarifa(tenant, { tipo: tipo2 }, fechas.checkin.toISOString().slice(0, 10), salida);
     if ('error' in resuelta2) return NextResponse.json({ error: 'La segunda habitación de la combinación no está disponible para reservar online en esas fechas' }, { status: 400 });
     tarifa2 = resuelta2;
   }
@@ -320,11 +325,11 @@ export async function POST(
           tipoTarifa: tarifa1.tarifaNombre,
           total: Math.round(total1 * 100),
           origen: 'landing',
-          notas: modoCobroSena === 'manual'
+          notas: (tarifa1.promocionNombre ? `Promoción: ${tarifa1.promocionNombre}. ` : '') + (modoCobroSena === 'manual'
             ? 'Reserva creada desde la página pública del hotel — pendiente de que el huésped coordine y el personal confirme el pago de la seña.'
             : (tipo2
               ? 'Reserva combinada (2 habitaciones) creada desde la página pública del hotel — pendiente de pago de seña.'
-              : 'Reserva creada desde la página pública del hotel — pendiente de pago de seña.'),
+              : 'Reserva creada desde la página pública del hotel — pendiente de pago de seña.')),
         },
       });
 

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
-  getPublicTenant, parseFechasConsulta, parsePersonasConsulta, buscarDisponibilidad, buscarDisponibilidadPorTarifa,
-  resolverRequisitosTarifa, tarifaDePromocion,
+  getPublicTenant, parseFechasConsulta, parsePersonasConsulta, buscarDisponibilidad, buscarDisponibilidadPromocion,
+  resolverRequisitosTarifa, promocionDeLaWeb,
 } from '@/lib/public-landing';
 import ReservaCheckoutForm from '@/components/public/ReservaCheckoutForm';
 
@@ -21,11 +21,11 @@ function AvisoVolver({ slug, hotelNombre, mensaje }: { slug: string; hotelNombre
 export default async function ReservarPage(
   { params, searchParams }: {
     params: Promise<{ slug: string }>;
-    searchParams: Promise<{ habitacion?: string; checkin?: string; checkout?: string; personas?: string; ninos?: string; tarifaId?: string }>;
+    searchParams: Promise<{ habitacion?: string; checkin?: string; checkout?: string; personas?: string; ninos?: string; promocion?: string }>;
   }
 ) {
   const { slug } = await params;
-  const { habitacion: numero, checkin, checkout, personas: personasStr, ninos: ninosStr, tarifaId } = await searchParams;
+  const { habitacion: numero, checkin, checkout, personas: personasStr, ninos: ninosStr, promocion: promocionId } = await searchParams;
   const tenant = await getPublicTenant(slug);
   if (!tenant) return <AvisoVolver slug={slug} hotelNombre="el hotel" mensaje="No encontramos este hotel." />;
 
@@ -38,14 +38,15 @@ export default async function ReservarPage(
     return <AvisoVolver slug={slug} hotelNombre={tenant.nombre} mensaje="El link de reserva no es válido o venció." />;
   }
 
-  // Una promoción tiene que estar en la web y valer para esa salida.
-  if (tarifaId) {
-    const promo = tarifaDePromocion(tenant, tarifaId, checkout!);
+  // Una promoción tiene que estar en la web, la estadía dentro de sus fechas
+  // y su tarifa valer para esa salida.
+  if (promocionId) {
+    const promo = promocionDeLaWeb(tenant, promocionId, checkin!, checkout!);
     if ('error' in promo) return <AvisoVolver slug={slug} hotelNombre={tenant.nombre} mensaje={promo.error} />;
   }
 
-  const resultados = tarifaId
-    ? await buscarDisponibilidadPorTarifa(tenant, tarifaId, fechas, personas, ninos)
+  const resultados = promocionId
+    ? await buscarDisponibilidadPromocion(tenant, promocionId, fechas, personas, ninos)
     : (await buscarDisponibilidad(tenant, fechas, personas)).resultados;
   const resultado = resultados.find((r) => r.numero === numero);
 
@@ -55,7 +56,7 @@ export default async function ReservarPage(
 
   // Los requisitos de la tarifa que cobra esta reserva (datos a pedir, niños):
   // la de la promoción elegida o la de la web para ese tipo y esa salida.
-  const requisitos = resolverRequisitosTarifa(tenant, tarifaId ? { tarifaId } : { tipo: habitacion.tipo }, fechas, ninos);
+  const requisitos = resolverRequisitosTarifa(tenant, promocionId ? { promocionId } : { tipo: habitacion.tipo }, fechas, ninos);
 
   return (
     <ReservaCheckoutForm
@@ -68,7 +69,7 @@ export default async function ReservarPage(
       personas={personas}
       ninos={requisitos?.tieneNinosDiferenciado ? ninos : undefined}
       resultado={resultado}
-      tarifaId={tarifaId}
+      promocionId={promocionId}
       camposPersonalizados={requisitos?.camposPersonalizados || []}
     />
   );

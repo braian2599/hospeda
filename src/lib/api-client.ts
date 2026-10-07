@@ -100,6 +100,19 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return data as T;
 }
 
+// ── Promociones de la página web ──
+
+export interface DatosPromocionDTO {
+  nombre: string; descripcion: string; fotoUrl: string | null;
+  desde: string; hasta: string; terminos: string; tarifaId: string; activa: boolean;
+}
+export interface PromocionDTO {
+  id: string; nombre: string; descripcion: string | null; fotoUrl: string | null;
+  /** Fechas de la estadía, AAAA-MM-DD. */
+  desde: string; hasta: string;
+  terminos: string | null; tarifaId: string; activa: boolean; orden: number;
+}
+
 // ── Canales de venta (Channex) ──
 
 export interface EstadoCanales {
@@ -165,6 +178,15 @@ export const api = {
   },
 
   // ── Canales de venta (Channex): Configuración → Canales de venta ──
+  promociones: {
+    listar: () => apiFetch<PromocionDTO[]>('/promociones'),
+    crear: (data: DatosPromocionDTO) =>
+      apiFetch<PromocionDTO>('/promociones', { method: 'POST', body: JSON.stringify(data) }),
+    editar: (id: string, data: DatosPromocionDTO) =>
+      apiFetch<PromocionDTO>(`/promociones/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    borrar: (id: string) => apiFetch<{ ok: true }>(`/promociones/${id}`, { method: 'DELETE' }),
+  },
+
   canalesVenta: {
     estado: () => apiFetch<EstadoCanales>('/canales-venta'),
     conectar: () => apiFetch<{ ok: true }>('/canales-venta', { method: 'POST' }),

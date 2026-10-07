@@ -344,7 +344,7 @@ function VentanaTarifa({ abierta, onCerrar, original, inicial }: {
   const sub: Record<Seccion, string> = {
     datos: errores.datos || (form.activa ? describirVigencia({ vigenciaDesde: form.vigenciaDesde || null, vigenciaHasta: form.vigenciaHasta || null }) : 'Desactivada'),
     precios: errores.precios || (form.modoCobro === 'porGrupo' ? `Por grupo, ${form.rangos.length} precio${form.rangos.length !== 1 ? 's' : ''}` : modoLabel(form.modoCobro)),
-    promos: errores.promos || `${prendidas} de 3 prendidas${form.mostrarEnWeb ? ', en la web' : ''}`,
+    promos: errores.promos || `${prendidas} de 3 prendidas`,
   };
   const titulos: Record<Seccion, string> = { datos: 'Datos y vigencia', precios: 'Precios por noche', promos: 'Promociones' };
 
@@ -589,24 +589,6 @@ function VentanaTarifa({ abierta, onCerrar, original, inicial }: {
           onChange={c => setPromo({ acompananteSinCargo: { activo: true, etiqueta: '', cantidad: 1, ...acom, camposPersonalizados: c } })} />
       </FilaPromo>
 
-      <FilaPromo
-        titulo="Página web" resumen={form.mostrarEnWeb ? 'Se muestra en Promociones' : 'No se muestra'}
-        abierta={promoAbierta === 'web'} onAbrir={() => abrir('web')}
-      >
-        <label className="flex items-center gap-2 text-[13px]">
-          <Switch checked={form.mostrarEnWeb} onCheckedChange={v => set({ mostrarEnWeb: v })} />
-          Mostrar en la página web como promoción
-        </label>
-        {form.mostrarEnWeb && prendidas === 0 && (
-          <p className="text-xs text-warning">Prendé al menos una promoción para que aparezca en la web.</p>
-        )}
-        <Textarea
-          rows={2} className="text-[13px] min-h-0"
-          placeholder="Texto para la pestaña Promociones (opcional)"
-          value={form.promoDescripcion}
-          onChange={e => set({ promoDescripcion: e.target.value })}
-        />
-      </FilaPromo>
     </div>
   );
 
@@ -750,7 +732,6 @@ function VentanaComparar({ nombres, onCerrar }: { nombres: string[]; onCerrar: (
     { label: 'Noches de cortesía', valor: t => { const x = getPromocionesEfectivas(t).nochesCortesia; return x?.activo ? describeNochesCortesia(x.modalidad) : '—'; } },
     { label: 'Acompañante sin cargo', valor: t => { const x = getPromocionesEfectivas(t).acompananteSinCargo; return x?.activo ? `${x.cantidad || 1} ${x.etiqueta || ''}`.trim() : '—'; } },
     { label: 'Datos a pedir', valor: t => (t.camposPersonalizados || []).map(c => c.nombre).join(', ') || '—' },
-    { label: 'En la web', valor: t => (t.mostrarEnWeb ? 'Sí, en Promociones' : 'No') },
   ];
   return (
     <Dialog open onOpenChange={v => { if (!v) onCerrar(); }}>
@@ -800,7 +781,6 @@ function exportarCSV(nombre: string, t: TarifaPrecios) {
   if (promos.nochesCortesia?.activo) filas.push(['Noches de cortesía', describeNochesCortesia(promos.nochesCortesia.modalidad)]);
   if (promos.acompananteSinCargo?.activo) filas.push(['Acompañante sin cargo', `${promos.acompananteSinCargo.cantidad || 1} ${promos.acompananteSinCargo.etiqueta || ''}`.trim()]);
   for (const c of t.camposPersonalizados || []) filas.push(['Dato a pedir', `${c.nombre}${c.requerido ? ' (obligatorio)' : ''}`]);
-  filas.push(['En la web', t.mostrarEnWeb ? 'Sí' : 'No']);
   const csv = filas.map(f => f.map(c => { const s = String(c); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }).join(',')).join('\n');
   const url = URL.createObjectURL(new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' }));
   const a = document.createElement('a');
@@ -988,7 +968,6 @@ export default function TarifasTab() {
                     </TableCell>
                     <TableCell className="text-[13px]">
                       {promos.length > 0 ? promos.join(', ') : <span className="text-muted-foreground">Ninguna</span>}
-                      {t.mostrarEnWeb && promos.length > 0 && <div className="text-xs text-muted-foreground">En la web</div>}
                     </TableCell>
                     <TableCell>
                       <span className={cn('inline-block rounded-full px-2 py-0.5 text-xs font-semibold', t.activa === false ? 'bg-muted text-muted-foreground' : 'bg-[#0596691A] text-success')}>

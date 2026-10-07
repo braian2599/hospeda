@@ -231,7 +231,7 @@ export default function LandingTabs({
             <SectionTitle>Promociones vigentes</SectionTitle>
             <div className="mx-auto max-w-4xl space-y-5">
               {promociones.map((p, i) => (
-                <FadeIn key={p.tarifaId} delay={i * 60}>
+                <FadeIn key={p.id} delay={i * 60}>
                   <PromocionCard
                     slug={slug}
                     moneda={moneda}

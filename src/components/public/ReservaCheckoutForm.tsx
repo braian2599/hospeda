@@ -90,7 +90,7 @@ function IconInput({
 }
 
 export default function ReservaCheckoutForm({
-  slug, hotelNombre, moneda, habitacion, checkin, checkout, personas, ninos, resultado, tarifaId, camposPersonalizados,
+  slug, hotelNombre, moneda, habitacion, checkin, checkout, personas, ninos, resultado, promocionId, camposPersonalizados,
 }: {
   slug: string;
   hotelNombre: string;
@@ -101,7 +101,7 @@ export default function ReservaCheckoutForm({
   personas: number;
   ninos?: number;
   resultado: { total: number; desglose: Desglose };
-  tarifaId?: string;
+  promocionId?: string;
   camposPersonalizados?: CampoPersonalizado[];
 }) {
   const [form, setForm] = useState({
@@ -147,7 +147,7 @@ export default function ReservaCheckoutForm({
           checkout,
           personas,
           ...(ninos ? { ninos } : {}),
-          ...(tarifaId ? { tarifaId } : {}),
+          ...(promocionId ? { promocionId } : {}),
           ...(campos.length > 0 ? { datosAdicionales } : {}),
           ...form,
           telefono: tel.telefono,

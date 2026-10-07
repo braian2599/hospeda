@@ -30,25 +30,24 @@ export interface AcompananteSinCargoPublica {
 }
 
 export interface PromocionPublica {
-  tarifaId: string;
+  id: string;
   nombre: string;
   descripcion: string | null;
+  fotoUrl: string | null;
+  terminos: string | null;
+  /** Fechas de la estadía (AAAA-MM-DD): entrada y salida tienen que caer dentro. */
+  desde: string;
+  hasta: string;
   nochesCortesia: NochesCortesiaPublica | null;
   ninosDiferenciado: NinosDiferenciadoPublica | null;
   acompanante: AcompananteSinCargoPublica | null;
   camposPersonalizados: CampoPersonalizado[];
-  /** Período de la promoción (AAAA-MM-DD, null = sin límite): vale para estadías que salen dentro. */
-  vigenciaDesde?: string | null;
-  vigenciaHasta?: string | null;
 }
 
-/** "Válida para estadías que salen entre el 15/12/2026 y el 28/02/2027", o null si no tiene fechas. */
-function textoVigencia(p: PromocionPublica): string | null {
+/** "Válida para estadías del 01/11/2026 al 30/11/2026" */
+function textoVigencia(p: PromocionPublica): string {
   const f = (s: string) => s.split('-').reverse().join('/');
-  if (p.vigenciaDesde && p.vigenciaHasta) return `Válida para estadías que salen entre el ${f(p.vigenciaDesde)} y el ${f(p.vigenciaHasta)}`;
-  if (p.vigenciaDesde) return `Válida para estadías que salen desde el ${f(p.vigenciaDesde)}`;
-  if (p.vigenciaHasta) return `Válida para estadías que salen hasta el ${f(p.vigenciaHasta)}`;
-  return null;
+  return `Válida para estadías del ${f(p.desde)} al ${f(p.hasta)}`;
 }
 
 interface ResultadoPromo {
@@ -102,9 +101,16 @@ export default function PromocionCard({
 }) {
   const router = useRouter();
   const [dialogAbierto, setDialogAbierto] = useState(false);
+  const [terminosAbierto, setTerminosAbierto] = useState(false);
 
   // El día límite todavía se puede reservar — el hotel lo habilitó hasta esa fecha inclusive.
-  const fechaLimite = reservasHabilitadasHasta ? new Date(`${reservasHabilitadasHasta}T23:59:59`) : null;
+  const fechaLimiteHotel = reservasHabilitadasHasta ? new Date(`${reservasHabilitadasHasta}T23:59:59`) : null;
+  // Entrada y salida tienen que caer dentro de las fechas de la promoción.
+  const promoDesde = new Date(`${promocion.desde}T00:00:00`);
+  const promoHasta = new Date(`${promocion.hasta}T23:59:59`);
+  const fechaLimite = fechaLimiteHotel && fechaLimiteHotel < promoHasta ? fechaLimiteHotel : promoHasta;
+  const hoy = new Date();
+  const primerDia = promoDesde > hoy ? promoDesde : hoy;
   const [rango, setRango] = useState<DateRange>();
   const [calendarioAbierto, setCalendarioAbierto] = useState(false);
   const [personas, setPersonas] = useState(2);
@@ -135,7 +141,7 @@ export default function PromocionCard({
         checkin: toISO(rango.from), checkout: toISO(rango.to), personas: String(personas),
         ...(tieneNinos ? { ninos: String(ninos) } : {}),
       });
-      const res = await fetch(`/api/public/${slug}/promociones/${promocion.tarifaId}/disponibilidad?${params}`);
+      const res = await fetch(`/api/public/${slug}/promociones/${promocion.id}/disponibilidad?${params}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al consultar disponibilidad');
       setResultados(data.resultados as ResultadoPromo[]);
@@ -154,7 +160,7 @@ export default function PromocionCard({
       checkin: toISO(rango.from),
       checkout: toISO(rango.to),
       personas: String(personas),
-      tarifaId: promocion.tarifaId,
+      promocion: promocion.id,
       ...(tieneNinos && ninos > 0 ? { ninos: String(ninos) } : {}),
     });
     router.push(`/h/${slug}/reservar?${destino}`);
@@ -169,7 +175,12 @@ export default function PromocionCard({
   return (
     <>
       <div className="group rounded-2xl border bg-card overflow-hidden transition-all hover:shadow-lg hover:border-[color:var(--primary-a30)]">
-        <div className="h-1.5 bg-gradient-to-r from-primary to-[color:var(--primary-a30)]" />
+        {promocion.fotoUrl ? (
+           
+          <img src={promocion.fotoUrl} alt={promocion.nombre} className="w-full h-48 sm:h-56 object-cover" />
+        ) : (
+          <div className="h-1.5 bg-gradient-to-r from-primary to-[color:var(--primary-a30)]" />
+        )}
         <div className="p-6 sm:p-8 space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
             <div className="space-y-2.5 min-w-0">
@@ -177,11 +188,14 @@ export default function PromocionCard({
                 <IconCircle icon={Sparkles} />
                 <h3 className="text-lg font-semibold">{promocion.nombre}</h3>
               </div>
-              {textoVigencia(promocion) && (
-                <p className="text-sm text-muted-foreground pl-12">{textoVigencia(promocion)}</p>
-              )}
+              <p className="text-sm text-muted-foreground pl-12">{textoVigencia(promocion)}</p>
               {promocion.descripcion && (
                 <p className="text-sm text-muted-foreground whitespace-pre-line pl-12">{promocion.descripcion}</p>
+              )}
+              {promocion.terminos && (
+                <button type="button" onClick={() => setTerminosAbierto(true)} className="text-sm text-primary underline underline-offset-2 pl-12">
+                  Ver términos y condiciones
+                </button>
               )}
             </div>
             <button
@@ -275,15 +289,14 @@ export default function PromocionCard({
                     mode="range"
                     selected={rango}
                     onSelect={handleSelectRango}
-                    disabled={fechaLimite ? { before: new Date(), after: fechaLimite } : { before: new Date() }}
+                    disabled={{ before: primerDia, after: fechaLimite }}
+                    defaultMonth={primerDia}
                     numberOfMonths={2}
                     min={1}
                   />
-                  {fechaLimite && (
-                    <p className="px-3 pb-2.5 text-xs text-muted-foreground text-center">
-                      Reservas disponibles hasta el {fechaLimite.toLocaleDateString('es-AR')}
-                    </p>
-                  )}
+                  <p className="px-3 pb-2.5 text-xs text-muted-foreground text-center">
+                    {textoVigencia(promocion)}
+                  </p>
                 </PopoverContent>
               </Popover>
               <div className="flex items-center gap-2 rounded-md border px-3 py-2 bg-background">
@@ -406,6 +419,14 @@ export default function PromocionCard({
           </div>
         </DialogContent>
       </Dialog>
+      {promocion.terminos && (
+        <Dialog open={terminosAbierto} onOpenChange={setTerminosAbierto}>
+          <DialogContent size="medio">
+            <DialogTitle>Términos y condiciones · {promocion.nombre}</DialogTitle>
+            <p className="text-sm text-muted-foreground whitespace-pre-line">{promocion.terminos}</p>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
