@@ -179,12 +179,14 @@ export default function HabitacionCard({
         </button>
       </div>
 
-      {/* Ventana fija, sin scroll: foto a la izquierda y datos + reserva a la
-          derecha (en el celular, una arriba de la otra, con la foto más baja). */}
+      {/* Ventana fija, sin scroll (opción A, elegida por el dueño): foto grande
+          con miniaturas a la izquierda y datos + reserva a la derecha. En el
+          celular, una arriba de la otra, con la foto más baja. */}
       <Dialog open={detalleAbierto} onOpenChange={setDetalleAbierto}>
-        <DialogContent size="medio" scrollBody={false} className="p-0 gap-0 overflow-hidden">
-          <div className="grid sm:grid-cols-[1.1fr_1fr]">
-            <div className="relative h-40 sm:h-full sm:min-h-[340px] bg-muted">
+        <DialogContent size="grande" scrollBody={false} className="p-0 gap-0 overflow-hidden">
+          <div className="grid sm:grid-cols-[1.55fr_1fr] sm:h-[540px]">
+            <div className="flex flex-col gap-2 p-3 bg-muted/60 min-h-0">
+            <div className="relative h-44 sm:h-auto sm:flex-1 rounded-xl overflow-hidden bg-muted">
               {habitacion.fotos.length > 0 ? (
                 <img src={habitacion.fotos[fotoIndex]} alt="" className="absolute inset-0 w-full h-full object-cover" />
               ) : (
@@ -214,10 +216,27 @@ export default function HabitacionCard({
                 </>
               )}
             </div>
+            {habitacion.fotos.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto shrink-0">
+                {habitacion.fotos.map((url, i) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => setFotoIndex(i)}
+                    className={`relative h-12 sm:h-[70px] w-16 sm:w-[96px] shrink-0 rounded-lg overflow-hidden ${i === fotoIndex ? '' : 'opacity-75 hover:opacity-100'}`}
+                    aria-label={`Ver foto ${i + 1}`}
+                  >
+                    <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    {i === fotoIndex && <span className="absolute inset-0 ring-[3px] ring-primary ring-inset rounded-lg" />}
+                  </button>
+                ))}
+              </div>
+            )}
+            </div>
 
-            <div className="p-5 flex flex-col gap-3 min-w-0">
+            <div className="p-5 sm:p-6 flex flex-col gap-3 min-w-0 min-h-0">
               <div className="pr-8">
-                <DialogTitle className="text-lg">{habitacion.tipo}</DialogTitle>
+                <DialogTitle className="text-xl">{habitacion.tipo}</DialogTitle>
                 <p className="text-xs text-muted-foreground">{habitacion.numero}</p>
               </div>
               <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -237,10 +256,10 @@ export default function HabitacionCard({
                 </div>
               )}
               {habitacion.descripcion && (
-                <p className="text-sm text-muted-foreground line-clamp-3" title={habitacion.descripcion}>{habitacion.descripcion}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4 sm:line-clamp-6" title={habitacion.descripcion}>{habitacion.descripcion}</p>
               )}
 
-              <div className="mt-auto pt-3 border-t space-y-2">
+              <div className="mt-auto rounded-xl border bg-muted/40 p-3.5 space-y-2">
                 {precioDesde === null ? (
                   telefonoHotel && (
                     <a
@@ -288,7 +307,7 @@ export default function HabitacionCard({
                             selected={rango}
                             onSelect={handleSelectRango}
                             disabled={fechaLimite ? { before: new Date(), after: fechaLimite } : { before: new Date() }}
-                            numberOfMonths={1}
+                            numberOfMonths={2}
                             min={1}
                           />
                           {fechaLimite && (
