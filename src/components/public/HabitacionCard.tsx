@@ -179,14 +179,17 @@ export default function HabitacionCard({
         </button>
       </div>
 
+      {/* Ventana fija, sin scroll: foto a la izquierda y datos + reserva a la
+          derecha (en el celular, una arriba de la otra, con la foto más baja). */}
       <Dialog open={detalleAbierto} onOpenChange={setDetalleAbierto}>
-        <DialogContent size="grande">
-        <div className="space-y-4">
-          <DialogTitle>{habitacion.tipo} — {habitacion.numero}</DialogTitle>
-
-          {habitacion.fotos.length > 0 && (
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
-              <img src={habitacion.fotos[fotoIndex]} alt="" className="w-full h-full object-cover" />
+        <DialogContent size="medio" scrollBody={false} className="p-0 gap-0 overflow-hidden">
+          <div className="grid sm:grid-cols-[1.1fr_1fr]">
+            <div className="relative h-40 sm:h-full sm:min-h-[340px] bg-muted">
+              {habitacion.fotos.length > 0 ? (
+                <img src={habitacion.fotos[fotoIndex]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center"><BedDouble className="w-10 h-10 text-muted-foreground" /></div>
+              )}
               {habitacion.fotos.length > 1 && (
                 <>
                   <button
@@ -211,111 +214,47 @@ export default function HabitacionCard({
                 </>
               )}
             </div>
-          )}
 
-          <div className="space-y-3">
-            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Users className="w-4 h-4 shrink-0" /> Hasta {habitacion.capacidad} persona{habitacion.capacidad !== 1 ? 's' : ''}
-              </span>
-              {camas && (
-                <span className="flex items-center gap-1">
-                  <span aria-hidden>·</span> <Bed className="w-4 h-4 shrink-0" /> {camas}
-                </span>
-              )}
-              {precioDesde !== null && (
-                <span className="flex items-center gap-1 font-semibold text-foreground">
-                  <span aria-hidden>·</span> Desde {formatMoney(precioDesde, moneda)}
-                </span>
-              )}
-            </p>
-
-            {badges.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {badges.map((b) => (
-                  <span key={b} className="inline-flex items-center gap-1 rounded-full bg-[#0F766E1A] text-primary text-[11px] px-2 py-0.5">
-                    <Zap className="w-3 h-3" /> {b}
-                  </span>
-                ))}
+            <div className="p-5 flex flex-col gap-3 min-w-0">
+              <div className="pr-8">
+                <DialogTitle className="text-lg">{habitacion.tipo}</DialogTitle>
+                <p className="text-xs text-muted-foreground">{habitacion.numero}</p>
               </div>
-            )}
-
-            {habitacion.descripcion && (
-              <p className="text-sm text-muted-foreground whitespace-pre-line">{habitacion.descripcion}</p>
-            )}
-
-            {precioDesde === null ? (
-              telefonoHotel && (
-                <a
-                  href={`https://wa.me/${telefonoHotel.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-md border text-sm font-medium px-3 py-2 hover:bg-muted transition-colors"
-                >
-                  <WhatsAppIcon className="w-4 h-4" /> Consultar por WhatsApp
-                </a>
-              )
-            ) : (
-              <div className="pt-2 border-t space-y-2.5">
-                <h4 className="text-sm font-semibold">Reservar</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <Popover open={calendarioAbierto} onOpenChange={setCalendarioAbierto}>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        className="w-full flex items-center gap-2 rounded-md border px-3 py-2 text-sm bg-background text-left"
-                      >
-                        <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
-                        {etiquetaFechas}
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="range"
-                        selected={rango}
-                        onSelect={handleSelectRango}
-                        disabled={fechaLimite ? { before: new Date(), after: fechaLimite } : { before: new Date() }}
-                        numberOfMonths={2}
-                        min={1}
-                      />
-                      {fechaLimite && (
-                        <p className="px-3 pb-2.5 text-xs text-muted-foreground text-center">
-                          Reservas disponibles hasta el {fechaLimite.toLocaleDateString('es-AR')}
-                        </p>
-                      )}
-                    </PopoverContent>
-                  </Popover>
-                  <div className="flex items-center gap-2 rounded-md border px-3 py-2 bg-background">
-                    <Users className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <input
-                      type="number"
-                      min={1}
-                      max={habitacion.capacidad}
-                      value={personas}
-                      onChange={(e) => handleCambiarPersonas(Math.min(habitacion.capacidad, Math.max(1, parseInt(e.target.value) || 1)))}
-                      className="w-full text-sm bg-transparent outline-none"
-                      aria-label="Cantidad de personas"
-                    />
-                    <span className="text-xs text-muted-foreground shrink-0">máx. {habitacion.capacidad}</span>
-                  </div>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1"><Users className="w-4 h-4 shrink-0" />Hasta {habitacion.capacidad}</span>
+                {camas && <span className="flex items-center gap-1"><Bed className="w-4 h-4 shrink-0" />{camas}</span>}
+              </div>
+              {precioDesde !== null && (
+                <p className="text-sm">Desde <span className="text-lg font-bold">{formatMoney(precioDesde, moneda)}</span> <span className="text-muted-foreground">/ noche</span></p>
+              )}
+              {badges.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {badges.map((b) => (
+                    <span key={b} className="inline-flex items-center gap-1 rounded-full bg-[#0F766E1A] text-primary text-[11px] px-2 py-0.5">
+                      <Zap className="w-3 h-3" /> {b}
+                    </span>
+                  ))}
                 </div>
-                {error && <p className="text-xs text-destructive">{error}</p>}
-                {error && sinTarifa && telefonoHotel && (
-                  <a
-                    href={`https://wa.me/${telefonoHotel.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 rounded-md border text-sm font-medium px-3 py-2 hover:bg-muted transition-colors"
-                  >
-                    <WhatsAppIcon className="w-4 h-4" /> Consultar por WhatsApp
-                  </a>
-                )}
+              )}
+              {habitacion.descripcion && (
+                <p className="text-sm text-muted-foreground line-clamp-3" title={habitacion.descripcion}>{habitacion.descripcion}</p>
+              )}
 
-                {confirmando ? (
-                  <div className="rounded-lg border bg-[#0F766E0D] p-3 space-y-2.5">
-                    <p className="text-sm">
-                      Hay disponibilidad para <strong>{etiquetaFechas}</strong>. ¿Deseás reservar?
-                    </p>
+              <div className="mt-auto pt-3 border-t space-y-2">
+                {precioDesde === null ? (
+                  telefonoHotel && (
+                    <a
+                      href={`https://wa.me/${telefonoHotel.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-md border text-sm font-medium px-3 py-2 hover:bg-muted transition-colors"
+                    >
+                      <WhatsAppIcon className="w-4 h-4" /> Consultar por WhatsApp
+                    </a>
+                  )
+                ) : confirmando ? (
+                  <div className="rounded-lg border bg-[#0F766E0D] p-3 space-y-2">
+                    <p className="text-sm">Hay disponibilidad para <strong>{etiquetaFechas}</strong>.</p>
                     <div className="flex gap-2">
                       <button
                         onClick={irAReservar}
@@ -323,30 +262,79 @@ export default function HabitacionCard({
                         className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
                       >
                         {redirigiendo ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                        Sí, reservar
+                        Reservar
                       </button>
                       <button
                         onClick={() => setConfirmando(false)}
                         className="rounded-md border text-sm font-medium px-3 py-2 hover:bg-muted transition-colors shrink-0"
                       >
-                        Elegir otras fechas
+                        Otras fechas
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <button
-                    onClick={consultarDisponibilidad}
-                    disabled={consultando}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
-                  >
-                    {consultando ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                    Consultar disponibilidad
-                  </button>
+                  <>
+                    <div className="grid grid-cols-[1fr_auto] gap-2">
+                      <Popover open={calendarioAbierto} onOpenChange={setCalendarioAbierto}>
+                        <PopoverTrigger asChild>
+                          <button type="button" className="w-full flex items-center gap-2 rounded-md border px-3 py-2 text-sm bg-background text-left min-w-0">
+                            <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <span className="truncate">{etiquetaFechas}</span>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="range"
+                            selected={rango}
+                            onSelect={handleSelectRango}
+                            disabled={fechaLimite ? { before: new Date(), after: fechaLimite } : { before: new Date() }}
+                            numberOfMonths={1}
+                            min={1}
+                          />
+                          {fechaLimite && (
+                            <p className="px-3 pb-2.5 text-xs text-muted-foreground text-center">
+                              Reservas disponibles hasta el {fechaLimite.toLocaleDateString('es-AR')}
+                            </p>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                      <label className="flex items-center gap-1.5 rounded-md border px-2.5 py-2 bg-background" title={`Máximo ${habitacion.capacidad}`}>
+                        <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <input
+                          type="number"
+                          min={1}
+                          max={habitacion.capacidad}
+                          value={personas}
+                          onChange={(e) => handleCambiarPersonas(Math.min(habitacion.capacidad, Math.max(1, parseInt(e.target.value) || 1)))}
+                          className="w-10 text-sm bg-transparent outline-none"
+                          aria-label="Cantidad de personas"
+                        />
+                      </label>
+                    </div>
+                    {error && <p className="text-xs text-destructive">{error}</p>}
+                    {error && sinTarifa && telefonoHotel && (
+                      <a
+                        href={`https://wa.me/${telefonoHotel.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-md border text-sm font-medium px-3 py-2 hover:bg-muted transition-colors"
+                      >
+                        <WhatsAppIcon className="w-4 h-4" /> Consultar por WhatsApp
+                      </a>
+                    )}
+                    <button
+                      onClick={consultarDisponibilidad}
+                      disabled={consultando}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground text-sm font-medium px-3 py-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+                    >
+                      {consultando ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                      Consultar disponibilidad
+                    </button>
+                  </>
                 )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
         </DialogContent>
       </Dialog>
     </div>
