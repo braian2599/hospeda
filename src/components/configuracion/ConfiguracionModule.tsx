@@ -37,6 +37,7 @@ import {
   Users, History, CheckCircle2, XCircle, Lock, Printer,
   Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban, Instagram, Facebook, Zap, Share2,
   CalendarClock, Send,
+  Package,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -48,6 +49,7 @@ import {
 import { tipoComprobantePorCondicionIva, nombreTipoComprobante } from '@/lib/afip/config';
 import CanalesVentaSection, { type PaginaCanales } from './CanalesVenta';
 import PromocionesWeb from './PromocionesWeb';
+import PaquetesWeb from './PaquetesWeb';
 
 const CheckoutDialog = dynamic(
   () => import('@/components/payments/CheckoutDialog'),
@@ -1358,7 +1360,7 @@ function conFechasDTO(t: TarifaDTO): TarifaConFechas {
   return { id: t.id, nombre: t.nombre, activa: t.activa, vigenciaDesde: aFechaTexto(t.vigenciaDesde), vigenciaHasta: aFechaTexto(t.vigenciaHasta) };
 }
 
-type LandingTabId = 'ubicacion' | 'redes' | 'politicas' | 'fotos' | 'precios' | 'promociones' | 'cobro' | 'agencias';
+type LandingTabId = 'ubicacion' | 'redes' | 'politicas' | 'fotos' | 'precios' | 'promociones' | 'paquetes' | 'cobro' | 'agencias';
 
 // Agrupadas por tema — antes eran 7 tabs sueltas en una sola fila (y "Redes
 // sociales" ni siquiera tenía tab propia, vivía escondida dentro de
@@ -1378,6 +1380,7 @@ const LANDING_TAB_GROUPS: { label: string; tabs: { id: LandingTabId; label: stri
     tabs: [
       { id: 'precios', label: 'Precios', icon: DollarSign },
       { id: 'promociones', label: 'Promociones', icon: Zap },
+      { id: 'paquetes', label: 'Paquetes', icon: Package },
     ],
   },
   {
@@ -1397,6 +1400,7 @@ const BAJADA_LANDING: Record<LandingTabId, string> = {
   fotos: 'Las fotos del hotel, de cada tipo de habitación y los servicios.',
   precios: 'Qué tarifas se ven en la web.',
   promociones: 'Las promociones que se muestran en la web.',
+  paquetes: 'Alojamiento con excursiones y servicios, para consultar desde la web.',
   cobro: 'Cómo se cobra la seña de las reservas de la web.',
   agencias: 'Un bloque en la web para captar convenios con agencias.',
 };
@@ -2223,6 +2227,10 @@ function LandingSection({ tab, onTarifasWebGuardadas }: {
               tarifas={tarifasList.map((t) => ({ id: t.id, nombre: t.nombre }))}
               subirFoto={(file) => uploadFoto(file, 'hotel')}
             />
+          )}
+
+          {landingTab === 'paquetes' && (
+            <PaquetesWeb subirFoto={(file) => uploadFoto(file, 'hotel')} />
           )}
 
           {landingTab === 'cobro' && (

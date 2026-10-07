@@ -113,6 +113,20 @@ export interface PromocionDTO {
   terminos: string | null; tarifaId: string; activa: boolean; orden: number;
 }
 
+// ── Paquetes de la página web ──
+
+export interface DatosPaqueteDTO {
+  nombre: string; descripcion: string; fotoUrl: string | null; noches: number | null;
+  agencia: string; incluye: string[];
+  /** En pesos. null = "Consultar precio". */
+  precio: number | null; precioModo: 'persona' | 'paquete'; activo: boolean;
+}
+export interface PaqueteDTO {
+  id: string; nombre: string; descripcion: string | null; fotoUrl: string | null; noches: number | null;
+  agencia: string | null; incluye: string[]; precio: number | null; precioModo: 'persona' | 'paquete';
+  activo: boolean; orden: number;
+}
+
 // ── Canales de venta (Channex) ──
 
 export interface EstadoCanales {
@@ -185,6 +199,15 @@ export const api = {
     editar: (id: string, data: DatosPromocionDTO) =>
       apiFetch<PromocionDTO>(`/promociones/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     borrar: (id: string) => apiFetch<{ ok: true }>(`/promociones/${id}`, { method: 'DELETE' }),
+  },
+
+  paquetes: {
+    listar: () => apiFetch<PaqueteDTO[]>('/paquetes'),
+    crear: (data: DatosPaqueteDTO) =>
+      apiFetch<PaqueteDTO>('/paquetes', { method: 'POST', body: JSON.stringify(data) }),
+    editar: (id: string, data: DatosPaqueteDTO) =>
+      apiFetch<PaqueteDTO>(`/paquetes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    borrar: (id: string) => apiFetch<{ ok: true }>(`/paquetes/${id}`, { method: 'DELETE' }),
   },
 
   canalesVenta: {

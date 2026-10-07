@@ -4,11 +4,12 @@ import type { ReactNode } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import HabitacionCard, { type HabitacionPublica } from './HabitacionCard';
 import PromocionCard, { type PromocionPublica } from './PromocionCard';
+import PaqueteCard, { type PaquetePublico } from './PaqueteCard';
 import FadeIn from './FadeIn';
 import WhatsAppIcon from './WhatsAppIcon';
 import {
   BedDouble, Info, Zap, Wifi, Coffee, Tv, Waves, Car, Wind, Check,
-  LogIn, LogOut, Ban, MapPin, Building2,
+  LogIn, LogOut, Ban, MapPin, Building2, Package,
 } from 'lucide-react';
 
 const SERVICIO_ICONOS: { match: RegExp; icon: typeof Check }[] = [
@@ -43,6 +44,7 @@ interface LandingTabsProps {
   slug: string;
   moneda: string;
   telefonoHotel: string;
+  emailHotel: string;
   habitaciones: HabitacionConPrecio[];
   horaCheckin: string;
   horaCheckout: string;
@@ -55,16 +57,17 @@ interface LandingTabsProps {
   nombreHotel: string;
   galeria: string[];
   promociones: PromocionPublica[];
+  paquetes: PaquetePublico[];
   mostrarSeccionAgencias: boolean;
   textoAgencias: string | null;
   reservasHabilitadasHasta: string | null;
 }
 
 export default function LandingTabs({
-  slug, moneda, telefonoHotel, habitaciones,
+  slug, moneda, telefonoHotel, emailHotel, habitaciones,
   horaCheckin, horaCheckout, politicaCancelacion, servicios,
   direccionCompleta, tieneCoordenadas, mapaLat, mapaLng, nombreHotel,
-  galeria, promociones, mostrarSeccionAgencias, textoAgencias,
+  galeria, promociones, paquetes, mostrarSeccionAgencias, textoAgencias,
   reservasHabilitadasHasta,
 }: LandingTabsProps) {
   const hayPoliticas = !!(horaCheckin || horaCheckout || politicaCancelacion);
@@ -73,7 +76,7 @@ export default function LandingTabs({
 
   return (
     <Tabs defaultValue="reservas">
-      <TabsList className="mx-auto max-w-xl w-full grid grid-cols-3 h-auto rounded-full p-1">
+      <TabsList className={`mx-auto w-full grid h-auto rounded-full p-1 ${paquetes.length > 0 ? 'max-w-2xl grid-cols-4' : 'max-w-xl grid-cols-3'}`}>
         <TabsTrigger value="reservas" className="py-2.5 gap-1.5 rounded-full">
           <BedDouble className="w-4 h-4" /> Reservas
         </TabsTrigger>
@@ -83,6 +86,11 @@ export default function LandingTabs({
         <TabsTrigger value="promos" className="py-2.5 gap-1.5 rounded-full">
           <Zap className="w-4 h-4" /> Promociones
         </TabsTrigger>
+        {paquetes.length > 0 && (
+          <TabsTrigger value="paquetes" className="py-2.5 gap-1.5 rounded-full">
+            <Package className="w-4 h-4" /> Paquetes
+          </TabsTrigger>
+        )}
       </TabsList>
 
       {/* ==================== RESERVAS ==================== */}
@@ -273,6 +281,23 @@ export default function LandingTabs({
           </FadeIn>
         )}
       </TabsContent>
+
+      {/* ==================== PAQUETES ==================== */}
+      {paquetes.length > 0 && (
+        <TabsContent value="paquetes" className="pt-8">
+          <FadeIn className="space-y-4">
+            <SectionTitle>Paquetes</SectionTitle>
+            <p className="text-sm text-muted-foreground text-center">Alojamiento con excursiones y servicios incluidos. Consultá y te armamos la reserva.</p>
+            <div className="mx-auto max-w-4xl space-y-5">
+              {paquetes.map((p, i) => (
+                <FadeIn key={p.id} delay={i * 60}>
+                  <PaqueteCard paquete={p} moneda={moneda} telefonoHotel={telefonoHotel} emailHotel={emailHotel} />
+                </FadeIn>
+              ))}
+            </div>
+          </FadeIn>
+        </TabsContent>
+      )}
     </Tabs>
   );
 }

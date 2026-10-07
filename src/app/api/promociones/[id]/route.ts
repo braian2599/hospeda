@@ -1,21 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { validarPromocion } from '@/lib/promociones';
-import { permisoPromociones, tarifasActivas, fotoDelHotel, aPromocionDTO, respuestaDeError } from '@/lib/promociones-api';
+import { permisoPaginaWeb, tarifasActivas, fotoDelHotel, aPromocionDTO, respuestaDeError, borrarFoto } from '@/lib/pagina-web-api';
 import { aFechaDb } from '@/lib/tarifa-vigencia';
-import { deleteObject, extractKeyFromPublicUrl } from '@/lib/storage/r2';
-
-/** Borra de R2 una foto que ya no usa nadie. Si falla, no frena nada. */
-async function borrarFoto(tenantId: string, url: string | null) {
-  const key = url ? extractKeyFromPublicUrl(url) : null;
-  if (!key || !key.startsWith(`tenants/${tenantId}/`)) return;
-  await deleteObject(key).catch((e) => console.error('[promociones] no se pudo borrar la foto:', e));
-}
 
 // PUT /api/promociones/[id] — edita una promoción.
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const tenantId = await permisoPromociones(req, true);
+    const tenantId = await permisoPaginaWeb(req, true);
     const { id } = await params;
     const actual = await db.promocion.findFirst({ where: { id, tenantId } });
     if (!actual) return NextResponse.json({ error: 'La promoción no existe.' }, { status: 404 });
@@ -42,7 +34,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 // DELETE /api/promociones/[id] — borra una promoción (las reservas ya hechas no cambian).
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const tenantId = await permisoPromociones(req, true);
+    const tenantId = await permisoPaginaWeb(req, true);
     const { id } = await params;
     const actual = await db.promocion.findFirst({ where: { id, tenantId } });
     if (!actual) return NextResponse.json({ error: 'La promoción no existe.' }, { status: 404 });

@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { getPublicTenant, promocionesPublicas, tarifasWebDeTipo, type PublicTenant } from '@/lib/public-landing';
+import { getPublicTenant, promocionesPublicas, paquetesPublicos, tarifasWebDeTipo, type PublicTenant } from '@/lib/public-landing';
 import { aFechaTexto, estadoVigencia } from '@/lib/tarifa-vigencia';
 import { fechaArgentina } from '@/lib/format';
 import { getDevCompanyBranding } from '@/lib/dev-company';
@@ -82,6 +82,7 @@ export default async function HotelLandingPage(
   const [heroFoto, ...galeria] = tenant.fotos;
   const config = tenant.configuracion;
   const promociones = promocionesPublicas(tenant);
+  const paquetes = paquetesPublicos(tenant);
   const pagoBanner = pago ? PAGO_BANNER[pago] : null;
   const direccionCompleta = [tenant.direccion, tenant.ciudad, tenant.provincia, tenant.pais].filter(Boolean).join(', ');
   const tieneCoordenadas = tenant.mapaLat != null && tenant.mapaLng != null;
@@ -189,6 +190,7 @@ export default async function HotelLandingPage(
           slug={slug}
           moneda={tenant.moneda}
           telefonoHotel={tenant.telefono || ''}
+          emailHotel={tenant.email || ''}
           habitaciones={habitacionesConPrecio}
           horaCheckin={tenant.horaCheckin || ''}
           horaCheckout={tenant.horaCheckout || ''}
@@ -201,6 +203,7 @@ export default async function HotelLandingPage(
           nombreHotel={tenant.nombre}
           galeria={galeria}
           promociones={promociones}
+          paquetes={paquetes}
           mostrarSeccionAgencias={!!config?.mostrarSeccionAgencias}
           textoAgencias={config?.textoAgencias || null}
           reservasHabilitadasHasta={config?.reservasHabilitadasHasta ? new Date(config.reservasHabilitadasHasta).toISOString().slice(0, 10) : null}

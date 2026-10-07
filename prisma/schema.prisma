@@ -73,6 +73,7 @@ model Tenant {
   channexTarifas        ChannexTarifa[]
   channexReservas       ChannexReserva[]
   promociones           Promocion[]
+  paquetes              Paquete[]
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1057,6 +1058,33 @@ model Promocion {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, hasta])
+}
+
+/// Paquete de la página web del hotel (alojamiento con excursiones y otros
+/// servicios, por ejemplo armado con una agencia). Se carga en Configuración
+/// → Página web → Paquetes. En la web se consulta por WhatsApp o email; no
+/// se reserva online.
+model Paquete {
+  id          String   @id @default(cuid())
+  tenantId    String
+  nombre      String
+  descripcion String?
+  fotoUrl     String?
+  noches      Int?
+  agencia     String?
+  incluye     String[] @default([])
+  /// En centavos de la moneda del hotel. null = "Consultar precio".
+  precio      Int?
+  /// 'persona' (por persona) o 'paquete' (precio total del paquete).
+  precioModo  String   @default("persona")
+  activo      Boolean  @default(true)
+  orden       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 /// Un tipo de habitación de Hospi (Doble, Triple…) = un "room type" en Channex.

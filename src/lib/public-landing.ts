@@ -82,6 +82,14 @@ export async function getPublicTenant(slug: string) {
         },
         orderBy: [{ orden: 'asc' }, { createdAt: 'asc' }],
       },
+      paquetes: {
+        where: { activo: true },
+        select: {
+          id: true, nombre: true, descripcion: true, fotoUrl: true, noches: true, agencia: true,
+          incluye: true, precio: true, precioModo: true,
+        },
+        orderBy: [{ orden: 'asc' }, { createdAt: 'asc' }],
+      },
     },
   });
   if (!tenant || !tenant.activo) return null;
@@ -552,6 +560,28 @@ export function promocionesPublicas(tenant: PublicTenant): PromocionPublica[] {
     });
   }
   return promos;
+}
+
+export interface PaquetePublico {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  fotoUrl: string | null;
+  noches: number | null;
+  agencia: string | null;
+  incluye: string[];
+  /** En pesos (o la moneda del hotel). null = "Consultar precio". */
+  precio: number | null;
+  precioModo: 'persona' | 'paquete';
+}
+
+/** Los paquetes prendidos del hotel (Configuración → Página web → Paquetes). Se consultan, no se reservan online. */
+export function paquetesPublicos(tenant: PublicTenant): PaquetePublico[] {
+  return tenant.paquetes.map(p => ({
+    id: p.id, nombre: p.nombre, descripcion: p.descripcion, fotoUrl: p.fotoUrl, noches: p.noches,
+    agencia: p.agencia, incluye: p.incluye, precio: p.precio == null ? null : p.precio / 100,
+    precioModo: p.precioModo === 'paquete' ? 'paquete' : 'persona',
+  }));
 }
 
 /** Requisitos de la tarifa que cobra una reserva pública (datos a pedir, niños). */
