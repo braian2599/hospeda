@@ -7,23 +7,12 @@ import PromocionCard, { type PromocionPublica } from './PromocionCard';
 import PaqueteCard, { type PaquetePublico } from './PaqueteCard';
 import FadeIn from './FadeIn';
 import WhatsAppIcon from './WhatsAppIcon';
+import IconoServicio from './IconoServicio';
+import type { ServicioWeb, DatoSobre } from '@/lib/contenido-web';
 import {
-  BedDouble, Info, Zap, Wifi, Coffee, Tv, Waves, Car, Wind, Check,
+  BedDouble, Info, Zap,
   LogIn, LogOut, Ban, MapPin, Building2, Package,
 } from 'lucide-react';
-
-const SERVICIO_ICONOS: { match: RegExp; icon: typeof Check }[] = [
-  { match: /wi.?fi|internet/i, icon: Wifi },
-  { match: /desayuno/i, icon: Coffee },
-  { match: /tv|televisi/i, icon: Tv },
-  { match: /pileta|piscina/i, icon: Waves },
-  { match: /estacionamiento|cochera|parking/i, icon: Car },
-  { match: /aire|climatizaci/i, icon: Wind },
-];
-
-function iconoServicio(nombre: string): typeof Check {
-  return SERVICIO_ICONOS.find((s) => s.match.test(nombre))?.icon || Check;
-}
 
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
@@ -49,7 +38,8 @@ interface LandingTabsProps {
   horaCheckin: string;
   horaCheckout: string;
   politicaCancelacion: string;
-  servicios: string[];
+  servicios: ServicioWeb[];
+  sobre: { titulo: string | null; texto: string | null; fotoUrl: string | null; datos: DatoSobre[] };
   direccionCompleta: string;
   tieneCoordenadas: boolean;
   mapaLat: number | null;
@@ -65,7 +55,7 @@ interface LandingTabsProps {
 
 export default function LandingTabs({
   slug, moneda, telefonoHotel, emailHotel, habitaciones,
-  horaCheckin, horaCheckout, politicaCancelacion, servicios,
+  horaCheckin, horaCheckout, politicaCancelacion, servicios, sobre,
   direccionCompleta, tieneCoordenadas, mapaLat, mapaLng, nombreHotel,
   galeria, promociones, paquetes, mostrarSeccionAgencias, textoAgencias,
   reservasHabilitadasHasta,
@@ -118,23 +108,49 @@ export default function LandingTabs({
 
       {/* ==================== ACERCA DEL HOTEL ==================== */}
       <TabsContent value="info" className="pt-8 space-y-12">
+        {(sobre.titulo || sobre.texto) && (
+          <FadeIn className={`grid gap-8 items-center ${sobre.fotoUrl ? 'md:grid-cols-2' : 'max-w-2xl mx-auto'}`}>
+            {sobre.fotoUrl && (
+              <img src={sobre.fotoUrl} alt={sobre.titulo || nombreHotel} className="w-full h-64 md:h-80 object-cover rounded-2xl border" />
+            )}
+            <div className="space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-primary">Sobre nosotros</p>
+              {sobre.titulo && <h2 className="text-2xl font-semibold">{sobre.titulo}</h2>}
+              {sobre.texto && <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">{sobre.texto}</p>}
+              {sobre.datos.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                  {sobre.datos.map((d) => (
+                    <div key={d.etiqueta} className="rounded-xl border bg-card p-3">
+                      <p className="text-xl font-bold text-primary">{d.valor}</p>
+                      <p className="text-xs text-muted-foreground">{d.etiqueta}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </FadeIn>
+        )}
+
         {(servicios.length > 0 || hayPoliticas) && (
           <div className="grid md:grid-cols-2 gap-10">
             {servicios.length > 0 && (
               <FadeIn className="space-y-4">
                 <SectionTitle>Servicios</SectionTitle>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {servicios.map((s) => {
-                    const Icono = iconoServicio(s);
-                    return (
-                      <span
-                        key={s}
-                        className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm transition-all hover:border-[color:var(--primary-a40)] hover:shadow-sm hover:-translate-y-0.5"
-                      >
-                        <Icono className="w-4 h-4 text-primary shrink-0" /> {s}
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {servicios.map((s) => (
+                    <div
+                      key={s.nombre}
+                      className="flex items-start gap-3 rounded-xl border bg-card p-3 transition-all hover:border-[color:var(--primary-a40)] hover:shadow-sm hover:-translate-y-0.5"
+                    >
+                      <span className="w-9 h-9 rounded-lg bg-[color:var(--primary-a10)] flex items-center justify-center shrink-0">
+                        <IconoServicio icono={s.icono} nombre={s.nombre} className="w-4 h-4 text-primary" />
                       </span>
-                    );
-                  })}
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium">{s.nombre}</span>
+                        {s.detalle && <span className="block text-xs text-muted-foreground">{s.detalle}</span>}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </FadeIn>
             )}

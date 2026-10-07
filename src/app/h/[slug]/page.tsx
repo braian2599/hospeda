@@ -8,6 +8,7 @@ import { getDevCompanyBranding } from '@/lib/dev-company';
 import { parseTarifaPrecios } from '@/lib/tarifa-calc';
 import { precioDesde, promoBadgesPublicos } from '@/lib/tarifas-format';
 import LandingTabs from '@/components/public/LandingTabs';
+import { leerServiciosWeb, leerDatosSobre } from '@/lib/contenido-web';
 import FadeIn from '@/components/public/FadeIn';
 import WhatsAppIcon from '@/components/public/WhatsAppIcon';
 import {
@@ -195,7 +196,8 @@ export default async function HotelLandingPage(
           horaCheckin={tenant.horaCheckin || ''}
           horaCheckout={tenant.horaCheckout || ''}
           politicaCancelacion={tenant.politicaCancelacion || ''}
-          servicios={tenant.servicios}
+          servicios={leerServiciosWeb(tenant.serviciosWeb)}
+          sobre={{ titulo: tenant.sobreTitulo, texto: tenant.sobreTexto, fotoUrl: tenant.sobreFotoUrl, datos: leerDatosSobre(tenant.sobreDatos) }}
           direccionCompleta={direccionCompleta}
           tieneCoordenadas={tieneCoordenadas}
           mapaLat={tenant.mapaLat}

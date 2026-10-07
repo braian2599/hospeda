@@ -37,7 +37,7 @@ import {
   Users, History, CheckCircle2, XCircle, Lock, Printer,
   Image as ImageIcon, Upload, Trash2, LogIn, LogOut, Ban, Instagram, Facebook, Zap, Share2,
   CalendarClock, Send,
-  Package,
+  Package, ConciergeBell,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -50,6 +50,9 @@ import { tipoComprobantePorCondicionIva, nombreTipoComprobante } from '@/lib/afi
 import CanalesVentaSection, { type PaginaCanales } from './CanalesVenta';
 import PromocionesWeb from './PromocionesWeb';
 import PaquetesWeb from './PaquetesWeb';
+import ServiciosWeb from './ServiciosWeb';
+import SobreNosotrosWeb, { type SobreNosotros } from './SobreNosotrosWeb';
+import type { ServicioWeb } from '@/lib/contenido-web';
 
 const CheckoutDialog = dynamic(
   () => import('@/components/payments/CheckoutDialog'),
@@ -1360,7 +1363,7 @@ function conFechasDTO(t: TarifaDTO): TarifaConFechas {
   return { id: t.id, nombre: t.nombre, activa: t.activa, vigenciaDesde: aFechaTexto(t.vigenciaDesde), vigenciaHasta: aFechaTexto(t.vigenciaHasta) };
 }
 
-type LandingTabId = 'ubicacion' | 'redes' | 'politicas' | 'fotos' | 'precios' | 'promociones' | 'paquetes' | 'cobro' | 'agencias';
+type LandingTabId = 'ubicacion' | 'redes' | 'politicas' | 'fotos' | 'servicios' | 'nosotros' | 'precios' | 'promociones' | 'paquetes' | 'cobro' | 'agencias';
 
 // Agrupadas por tema — antes eran 7 tabs sueltas en una sola fila (y "Redes
 // sociales" ni siquiera tenía tab propia, vivía escondida dentro de
@@ -1373,6 +1376,8 @@ const LANDING_TAB_GROUPS: { label: string; tabs: { id: LandingTabId; label: stri
       { id: 'redes', label: 'Redes sociales', icon: Share2 },
       { id: 'politicas', label: 'Políticas', icon: Ban },
       { id: 'fotos', label: 'Fotos', icon: ImageIcon },
+      { id: 'servicios', label: 'Servicios', icon: ConciergeBell },
+      { id: 'nosotros', label: 'Sobre nosotros', icon: Info },
     ],
   },
   {
@@ -1397,7 +1402,9 @@ const BAJADA_LANDING: Record<LandingTabId, string> = {
   ubicacion: 'Dónde está el hotel, para la página web y el mapa.',
   redes: 'Salen en la página web del hotel.',
   politicas: 'Horarios, cancelación y hasta cuándo se puede reservar.',
-  fotos: 'Las fotos del hotel, de cada tipo de habitación y los servicios.',
+  fotos: 'La descripción, las fotos del hotel y las de cada tipo de habitación.',
+  servicios: 'Lo que ofrece el hotel, con ícono y un detalle corto.',
+  nosotros: 'La historia del hotel, una foto y algunos números.',
   precios: 'Qué tarifas se ven en la web.',
   promociones: 'Las promociones que se muestran en la web.',
   paquetes: 'Alojamiento con excursiones y servicios, para consultar desde la web.',
@@ -1460,9 +1467,8 @@ function LandingSection({ tab, onTarifasWebGuardadas }: {
   const [slug, setSlug] = useState('');
   const [habitacionesList, setHabitacionesList] = useState<HabitacionFotoDTO[]>([]);
   const [habitacionSeleccionada, setHabitacionSeleccionada] = useState('');
-  const [servicios, setServicios] = useState<string[]>([]);
-  const [nuevoServicio, setNuevoServicio] = useState('');
-  const [savingServicios, setSavingServicios] = useState(false);
+  const [serviciosWeb, setServiciosWeb] = useState<ServicioWeb[]>([]);
+  const [sobreNosotros, setSobreNosotros] = useState<SobreNosotros>({ sobreTitulo: '', sobreTexto: '', sobreFotoUrl: '', sobreDatos: [] });
   const [uploadingHotel, setUploadingHotel] = useState(false);
   const [uploadingHabitacion, setUploadingHabitacion] = useState(false);
   const [descripcionHabitacionDraft, setDescripcionHabitacionDraft] = useState('');
@@ -1527,7 +1533,11 @@ function LandingSection({ tab, onTarifasWebGuardadas }: {
       setTarifasPublicas(leerTarifasPublicas(hotelData.tarifasPublicas));
       setMostrarSeccionAgencias(!!hotelData.mostrarSeccionAgencias);
       setTextoAgencias(hotelData.textoAgencias || '');
-      setServicios(hotelData.servicios || []);
+      setServiciosWeb(Array.isArray(hotelData.serviciosWeb) ? hotelData.serviciosWeb : []);
+      setSobreNosotros({
+        sobreTitulo: hotelData.sobreTitulo || '', sobreTexto: hotelData.sobreTexto || '',
+        sobreFotoUrl: hotelData.sobreFotoUrl || '', sobreDatos: Array.isArray(hotelData.sobreDatos) ? hotelData.sobreDatos : [],
+      });
       setModoCobroSena(hotelData.modoCobroSena === 'manual' ? 'manual' : 'mercadopago');
       setSenaWhatsapp(hotelData.senaWhatsapp || '');
       setSenaEmail(hotelData.senaEmail || '');
@@ -1808,35 +1818,6 @@ function LandingSection({ tab, onTarifasWebGuardadas }: {
     }
   };
 
-  const guardarServicios = async (next: string[]) => {
-    setSavingServicios(true);
-    try {
-      const res = await fetch('/api/configuracion/hotel', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ servicios: next }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setServicios(next);
-    } catch (err: unknown) {
-      toast.error((err as Error).message || 'Error al guardar');
-    } finally {
-      setSavingServicios(false);
-    }
-  };
-
-  const handleAgregarServicio = () => {
-    const valor = nuevoServicio.trim();
-    if (!valor) return;
-    if (servicios.includes(valor)) {
-      toast.error('Ese servicio ya está agregado');
-      return;
-    }
-    setNuevoServicio('');
-    guardarServicios([...servicios, valor]);
-  };
-
-  const handleQuitarServicio = (valor: string) => {
-    guardarServicios(servicios.filter((s) => s !== valor));
-  };
-
   const tiposPresentes = Array.from(new Set(habitacionesList.map((h) => h.tipo)));
 
   if (loading) {
@@ -2004,41 +1985,6 @@ function LandingSection({ tab, onTarifasWebGuardadas }: {
                     {savingDescripcion ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                     Guardar
                   </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle className="text-base">Servicios del hotel</CardTitle>
-                  <CardDescription>Ej: Desayuno incluido, Wi-Fi, TV, Pileta, Estacionamiento.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      value={nuevoServicio}
-                      onChange={(e) => setNuevoServicio(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAgregarServicio(); } }}
-                      placeholder="Ej: Wi-Fi"
-                    />
-                    <Button onClick={handleAgregarServicio} disabled={savingServicios} size="sm">Agregar</Button>
-                  </div>
-                  {servicios.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {servicios.map((s) => (
-                        <span key={s} className="inline-flex items-center gap-1.5 rounded-full bg-muted text-sm px-3 py-1">
-                          {s}
-                          <button
-                            type="button"
-                            onClick={() => handleQuitarServicio(s)}
-                            className="text-muted-foreground hover:text-destructive"
-                            title="Quitar"
-                          >
-                            <XCircle className="w-3.5 h-3.5" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
@@ -2227,6 +2173,14 @@ function LandingSection({ tab, onTarifasWebGuardadas }: {
               tarifas={tarifasList.map((t) => ({ id: t.id, nombre: t.nombre }))}
               subirFoto={(file) => uploadFoto(file, 'hotel')}
             />
+          )}
+
+          {landingTab === 'servicios' && (
+            <ServiciosWeb inicial={serviciosWeb} onGuardado={setServiciosWeb} />
+          )}
+
+          {landingTab === 'nosotros' && (
+            <SobreNosotrosWeb inicial={sobreNosotros} subirFoto={(file) => uploadFoto(file, 'hotel')} onGuardado={setSobreNosotros} />
           )}
 
           {landingTab === 'paquetes' && (

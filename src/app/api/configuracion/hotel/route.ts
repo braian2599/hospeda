@@ -4,6 +4,9 @@ import { requireOwner, AuthError } from '@/lib/auth/utils';
 import { parseFeatureFlags, parseFlagOverrides, resolverFlags } from '@/lib/feature-flags';
 import { leerTarifasPublicas, tarifasPisadas, mensajePisada, type MapaTarifasPublicas } from '@/lib/tarifas-publicas';
 import { aFechaTexto } from '@/lib/tarifa-vigencia';
+import type { Prisma } from '@prisma/client';
+import { leerServiciosWeb, leerDatosSobre, validarServiciosWeb, validarSobre } from '@/lib/contenido-web';
+import { fotoDelHotel, borrarFoto } from '@/lib/pagina-web-api';
 
 // GET /api/configuracion/hotel (owner-only)
 export async function GET() {
@@ -17,6 +20,7 @@ export async function GET() {
         horaCheckin: true, horaCheckout: true, politicaCancelacion: true, mapaLat: true, mapaLng: true,
         instagramUrl: true, facebookUrl: true,
         descripcion: true, fotos: true, servicios: true,
+        serviciosWeb: true, sobreTitulo: true, sobreTexto: true, sobreFotoUrl: true, sobreDatos: true,
         configuracion: {
           select: {
             hotelNombre: true, hotelDireccion: true, hotelCiudad: true,
@@ -65,6 +69,11 @@ export async function GET() {
       descripcion: tenant.descripcion || '',
       fotos: tenant.fotos || [],
       servicios: tenant.servicios || [],
+      serviciosWeb: leerServiciosWeb(tenant.serviciosWeb),
+      sobreTitulo: tenant.sobreTitulo || '',
+      sobreTexto: tenant.sobreTexto || '',
+      sobreFotoUrl: tenant.sobreFotoUrl || '',
+      sobreDatos: leerDatosSobre(tenant.sobreDatos),
       // Config overrides
       hotelNombre: config.hotelNombre || tenant.nombre,
       hotelDireccion: config.hotelDireccion || tenant.direccion || '',
@@ -157,6 +166,7 @@ export async function PUT(req: NextRequest) {
 
     // Update Tenant
     const updateData: Record<string, unknown> = {};
+    let fotoSobreAnterior: string | null = null;
     if (nombre?.trim()) updateData.nombre = nombre.trim();
     if (email?.trim()) updateData.email = email.trim().toLowerCase();
     if (telefono !== undefined) updateData.telefono = telefono;
@@ -176,9 +186,22 @@ export async function PUT(req: NextRequest) {
     if (instagramUrl !== undefined) updateData.instagramUrl = instagramUrl?.trim() || null;
     if (facebookUrl !== undefined) updateData.facebookUrl = facebookUrl?.trim() || null;
     if (Array.isArray(fotos)) updateData.fotos = fotos.filter((f: unknown) => typeof f === 'string');
+    if (body.serviciosWeb !== undefined) {
+      const lista = validarServiciosWeb(body.serviciosWeb);
+      if ('error' in lista) return NextResponse.json({ error: lista.error }, { status: 400 });
+      updateData.serviciosWeb = lista as unknown as Prisma.InputJsonValue;
+    }
+    if (body.sobreTitulo !== undefined || body.sobreTexto !== undefined || body.sobreFotoUrl !== undefined || body.sobreDatos !== undefined) {
+      const sobre = validarSobre(body, fotoDelHotel(tenantId));
+      if ('error' in sobre) return NextResponse.json({ error: sobre.error }, { status: 400 });
+      const anterior = await db.tenant.findUnique({ where: { id: tenantId }, select: { sobreFotoUrl: true } });
+      fotoSobreAnterior = anterior?.sobreFotoUrl && anterior.sobreFotoUrl !== sobre.sobreFotoUrl ? anterior.sobreFotoUrl : null;
+      Object.assign(updateData, { ...sobre, sobreDatos: sobre.sobreDatos as unknown as Prisma.InputJsonValue });
+    }
     if (Array.isArray(servicios)) updateData.servicios = servicios.filter((s: unknown) => typeof s === 'string' && s.trim()).map((s: string) => s.trim());
 
     await db.tenant.update({ where: { id: tenantId }, data: updateData });
+    if (fotoSobreAnterior) await borrarFoto(tenantId, fotoSobreAnterior);
 
     // Campos opcionales de la landing (solo se tocan si vienen en el body)
     const configExtra: Record<string, unknown> = {};

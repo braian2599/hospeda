@@ -37,6 +37,14 @@ model Tenant {
   timezone       String            @default("America/Argentina/Buenos_Aires")
   logoUrl        String?
   descripcion    String?
+  /// Servicios de la página web: [{ icono, nombre, detalle }] (src/lib/contenido-web.ts).
+  serviciosWeb   Json              @default("[]")
+  /// "Sobre nosotros" de la página web.
+  sobreTitulo    String?
+  sobreTexto     String?
+  sobreFotoUrl   String?
+  /// Números destacados: [{ valor, etiqueta }], hasta 4.
+  sobreDatos     Json              @default("[]")
   fotos          String[]          @default([])
   servicios      String[]          @default([])
   activo         Boolean           @default(true)
