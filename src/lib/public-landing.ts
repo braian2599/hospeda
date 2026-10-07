@@ -24,6 +24,7 @@ export async function getPublicTenant(slug: string) {
       id: true,
       nombre: true,
       descripcion: true,
+      logoUrl: true,
       fotos: true,
       servicios: true,
       serviciosWeb: true,
