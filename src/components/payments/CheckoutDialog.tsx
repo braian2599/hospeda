@@ -11,8 +11,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Loader2,
   Check,
@@ -45,7 +43,6 @@ const PLAN_MODULOS_EXTRA: Record<string, string[]> = {
 
 export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: CheckoutDialogProps) {
   const [step, setStep] = useState<'email' | 'processing' | 'success' | 'error'>('email');
-  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [checkoutUrl, setCheckoutUrl] = useState('');
@@ -57,7 +54,6 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
     if (!newOpen) {
       setTimeout(() => {
         setStep('email');
-        setEmail('');
         setLoading(false);
         setErrorMessage('');
         setCheckoutUrl('');
@@ -71,7 +67,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
 
   // Create subscription (recurring)
   const handleCheckout = async () => {
-    if (!selectedPlan || !email.trim()) return;
+    if (!selectedPlan) return;
 
     setLoading(true);
     setStep('processing');
@@ -94,10 +90,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
           'Content-Type': 'application/json',
           ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         },
-        body: JSON.stringify({
-          planTipo: selectedPlan,
-          email: email.trim(),
-        }),
+        body: JSON.stringify({ planTipo: selectedPlan }),
       });
 
       const data = await res.json();
@@ -171,23 +164,16 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
 
         {/* Body */}
         <div className="px-6 pb-6 overflow-y-auto">
-          {/* ── STEP 1: Email ── */}
+          {/* ── STEP 1: Confirmar ── */}
           {step === 'email' && (
             <div className="space-y-4 mt-2">
-              <div className="space-y-2">
-                <Label htmlFor="checkout-email">Email para recibir el comprobante</Label>
-                <Input
-                  id="checkout-email"
-                  type="email"
-                  placeholder="tu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-11"
-                  autoFocus
-                  onKeyDown={(e) => { if (e.key === 'Enter' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) handleCheckout(); }}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Te redirigiremos a Mercado Pago para configurar el débito automático con tarjeta.
+              {/* Con plan, Mercado Pago deja pagar con cualquier cuenta (ver
+                  /api/payments/create-subscription). */}
+              <div className="flex items-start gap-2 p-3 rounded-lg border bg-[#0284C70D] border-[#0284C733]">
+                <CreditCard className="w-4 h-4 text-info shrink-0 mt-0.5" />
+                <p className="text-xs text-foreground">
+                  <strong>Podés pagar con cualquier cuenta de Mercado Pago</strong>, no hace falta que sea la del email del hotel.
+                  Te llevamos a Mercado Pago para que entres con tu cuenta y cargues la tarjeta del débito automático.
                 </p>
               </div>
 
@@ -228,7 +214,7 @@ export default function CheckoutDialog({ open, onOpenChange, selectedPlan }: Che
               <Button
                 className="w-full h-11 text-base"
                 onClick={handleCheckout}
-                disabled={!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || loading}
+                disabled={loading}
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />

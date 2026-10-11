@@ -23,6 +23,8 @@ export interface MPPreapprovalResponse {
   };
   payer_email?: string;
   external_reference?: string;
+  /** Si salió del link de un plan (createMPSubscriptionPlan), el id del plan. */
+  preapproval_plan_id?: string;
   date_created: string;
   last_modified: string;
   /** Fecha del próximo cobro que tiene programado Mercado Pago. */
@@ -137,6 +139,105 @@ export async function createMPSubscription(params: {
     initPoint,
     sandbox: isSandbox,
   };
+}
+
+/**
+ * Crea un plan de suscripción en Mercado Pago para UN hotel y devuelve el
+ * link para suscribirse. Con plan, Mercado Pago deja pagar con cualquier
+ * cuenta: no se le pasa ningún email (sin plan, el email que se mandaba tenía
+ * que coincidir con la cuenta que pagaba, y si no, Mercado Pago rechazaba).
+ *
+ * El primer cobro tiene que caer en `primerCobro` (un día 10, ver
+ * src/lib/ciclo-cobro.ts). El plan no acepta una fecha de inicio, así que se
+ * le pone una prueba gratis de los días que faltan hasta ese 10; después
+ * cobra cada mes.
+ *
+ * La suscripción que sale de este link no trae la referencia "<hotel>:<plan>":
+ * quien llama guarda el id del plan con el hotel (tabla SuscripcionPlanMP).
+ */
+export async function createMPSubscriptionPlan(params: {
+  planTipo: 'profesional' | 'premium' | 'elite';
+  hotelNombre: string;
+  primerCobro: Date;
+  ahora?: Date;
+}): Promise<{ planId: string; initPoint: string; sandbox: boolean; diasDePrueba: number }> {
+  const { planTipo, hotelNombre, primerCobro } = params;
+  const plan = await getServerPlan(planTipo);
+  const accessToken = await getMPAccessToken();
+  if (!accessToken) throw new Error('Mercado Pago no está configurado.');
+  const isSandbox = accessToken.startsWith('TEST-');
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+  if (!appUrl) {
+    throw new Error('NEXT_PUBLIC_APP_URL no está configurada. Agrégala al .env (ej: NEXT_PUBLIC_APP_URL=https://tudominio.com)');
+  }
+
+  const diasDePrueba = diasHastaPrimerCobro(primerCobro, params.ahora ?? new Date());
+  const body = {
+    reason: `Hospi — Plan ${plan.nombre} — ${hotelNombre}`.slice(0, 250),
+    auto_recurring: {
+      frequency: 1,
+      frequency_type: 'months',
+      transaction_amount: plan.precio / 100,
+      currency_id: 'ARS',
+      free_trial: { frequency: diasDePrueba, frequency_type: 'days' },
+    },
+    back_url: `${appUrl}/api/payments/success?subscription=1`,
+  };
+
+  console.log(`[MP Plan] Creando plan ${planTipo} para "${hotelNombre}", ${diasDePrueba} días hasta el primer cobro (${primerCobro.toISOString()})`);
+  const res = await fetch(`${MP_API_BASE}/preapproval_plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({})) as { id?: string; init_point?: string; message?: string; cause?: { description?: string; message?: string }[] };
+  if (!res.ok || !data.id || !data.init_point) {
+    console.error('[MP Plan] Error creando el plan — HTTP', res.status, JSON.stringify(data));
+    throw new Error(data.message || data.cause?.[0]?.description || data.cause?.[0]?.message || `Error de Mercado Pago al crear el plan (${res.status})`);
+  }
+  return { planId: data.id, initPoint: data.init_point, sandbox: isSandbox, diasDePrueba };
+}
+
+/**
+ * Días de prueba gratis para que el primer cobro caiga en `primerCobro`. Se
+ * redondea para arriba: así nunca cobra antes de ese día (a lo sumo, unas
+ * horas después). Mínimo 1.
+ */
+export function diasHastaPrimerCobro(primerCobro: Date, ahora: Date): number {
+  return Math.max(1, Math.ceil((primerCobro.getTime() - ahora.getTime()) / 86_400_000));
+}
+
+/** Las suscripciones que salieron del link de un plan (para la revisión diaria). */
+export async function buscarSuscripcionesDePlan(planId: string): Promise<MPPreapprovalResponse[]> {
+  const accessToken = await getMPAccessToken();
+  if (!accessToken) throw new Error('Mercado Pago no está configurado.');
+  const res = await fetch(`${MP_API_BASE}/preapproval/search?preapproval_plan_id=${encodeURIComponent(planId)}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Mercado Pago respondió ${res.status} al buscar las suscripciones del plan ${planId}`);
+  const data = await res.json() as { results?: MPPreapprovalResponse[] };
+  return Array.isArray(data.results) ? data.results : [];
+}
+
+/**
+ * Cambia el monto mensual de un plan (cambio de precio). Las suscripciones
+ * que salieron de ese plan toman el monto del plan.
+ */
+export async function updateMPPlanAmount(planId: string, montoPesos: number): Promise<void> {
+  const accessToken = await getMPAccessToken();
+  if (!accessToken) throw new Error('Mercado Pago no está configurado.');
+  const res = await fetch(`${MP_API_BASE}/preapproval_plan/${encodeURIComponent(planId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+    body: JSON.stringify({ auto_recurring: { transaction_amount: montoPesos, currency_id: 'ARS' } }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    console.error('[MP Plan] Error cambiando el monto:', JSON.stringify(data));
+    throw new Error(`Mercado Pago respondió ${res.status} al cambiar el monto del plan ${planId}`);
+  }
 }
 
 /**

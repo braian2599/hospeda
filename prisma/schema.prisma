@@ -82,6 +82,7 @@ model Tenant {
   channexReservas       ChannexReserva[]
   promociones           Promocion[]
   paquetes              Paquete[]
+  planesMP              SuscripcionPlanMP[]
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -143,6 +144,23 @@ model Subscription {
 
   plan              Plan      @relation(fields: [planId], references: [id])
   tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+/// Un plan de Mercado Pago que Hospi creó para que un hotel se suscriba.
+/// Con plan, Mercado Pago deja pagar con CUALQUIER cuenta (sin pedir que
+/// coincida el email). La suscripción que sale de ese link no trae la
+/// referencia de Hospi, así que el hotel se reconoce por el id del plan.
+/// Ver src/lib/payments/mp-subscriptions.ts y cobros-suscripcion.ts.
+model SuscripcionPlanMP {
+  /// id del plan en Mercado Pago (preapproval_plan_id).
+  id        String   @id
+  tenantId  String
+  planTipo  String
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
 }
 
 // ═══════════════════════════════════════════════════════════

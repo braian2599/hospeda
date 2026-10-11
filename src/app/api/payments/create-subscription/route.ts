@@ -1,6 +1,9 @@
 // POST /api/payments/create-subscription
-// Crea una suscripción recurrente (Preapproval) en Mercado Pago
-// y devuelve la URL de autorización al frontend.
+// Crea un plan de suscripción en Mercado Pago solo para este hotel y devuelve
+// el link para suscribirse. Con plan, Mercado Pago deja pagar con CUALQUIER
+// cuenta: antes se creaba la suscripción con un email y, si la persona
+// entraba a Mercado Pago con otra cuenta, la rechazaba. El hotel se reconoce
+// después por el id del plan (tabla SuscripcionPlanMP).
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
@@ -8,7 +11,7 @@ import { requireOwner, getAuthSession } from '@/lib/auth/utils';
 import { validateCsrfToken } from '@/lib/csrf';
 import { getServerPlan } from '@/lib/plan-server';
 import { getMPAccessToken } from '@/lib/payments/config';
-import { createMPSubscription } from '@/lib/payments/mp-subscriptions';
+import { createMPSubscriptionPlan } from '@/lib/payments/mp-subscriptions';
 import { primerCobro } from '@/lib/ciclo-cobro';
 import { handleApiError } from '@/lib/api-error';
 
@@ -30,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { planTipo, email } = body as { planTipo: string; email?: string };
+    const { planTipo } = body as { planTipo: string };
 
     if (!planTipo || !validatePlan(planTipo)) {
       return NextResponse.json(
@@ -77,31 +80,24 @@ export async function POST(request: NextRequest) {
 
     const tenant = await db.tenant.findUnique({
       where: { id: authTenantId },
-      select: { nombre: true, email: true },
+      select: { nombre: true },
     });
     const hotelNombre = tenant?.nombre || 'Hospi';
-    const effectiveEmail = email || tenant?.email || 'guest@hospeda.com';
 
-    const result = await createMPSubscription({
+    const result = await createMPSubscriptionPlan({
       planTipo: planTipo as 'profesional' | 'premium' | 'elite',
-      tenantId: authTenantId,
-      userEmail: effectiveEmail,
       hotelNombre,
       primerCobro: fechaPrimerCobro,
     });
 
-    // Si todavía no tiene débito automático, se guarda el id de la nueva para
-    // que la revisión diaria la encuentre aunque se pierda el aviso de alta.
-    // Solo ese dato: no cambia el estado ni el acceso (sin débito activo,
-    // seRenuevaSola sigue en falso). Si ya tiene un débito activo (cambio de
-    // plan), no se toca: lo resuelve el aviso de alta.
-    if (actual && !actual.esRecurrente) {
-      await db.subscription.update({ where: { tenantId: authTenantId }, data: { mpPreapprovalId: result.preapprovalId } });
-    }
+    // De qué hotel es el plan: la suscripción que sale del link no trae la
+    // referencia de Hospi. No cambia el estado ni el acceso: eso lo hace el
+    // aviso de alta (o la revisión diaria, que busca por este plan).
+    await db.suscripcionPlanMP.create({ data: { id: result.planId, tenantId: authTenantId, planTipo } });
 
     return NextResponse.json({
       provider: 'mercadopago',
-      preapprovalId: result.preapprovalId,
+      planId: result.planId,
       initPoint: result.initPoint,
       sandbox: result.sandbox,
       planNombre: plan.nombre,

@@ -21,7 +21,8 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getMercadoPagoPayment } from '@/lib/payments/mercadopago';
 import {
-  getMPSubscription, getMPCobroAutorizado, cancelMPSubscription, updateMPSubscriptionAmount, type MPPreapprovalResponse,
+  getMPSubscription, getMPCobroAutorizado, cancelMPSubscription, updateMPSubscriptionAmount, updateMPPlanAmount,
+  buscarSuscripcionesDePlan, type MPPreapprovalResponse,
 } from '@/lib/payments/mp-subscriptions';
 import { validatePreapprovalAmount, validatePaymentAmount } from '@/lib/payments/validation';
 import { inicioDelPeriodo, vencimientoTrasCobro, tocaAplicarPrecio } from '@/lib/ciclo-cobro';
@@ -37,6 +38,21 @@ function leerReferencia(ref: string | null | undefined): { tenantId: string; pla
   const [tenantId, planTipo] = ref.split(':');
   if (!tenantId || !planTipo || !PLANES_PAGOS.has(planTipo)) return null;
   return { tenantId, planTipo };
+}
+
+/**
+ * De qué hotel y plan es una suscripción de Mercado Pago. Las que crea Hospi
+ * sin plan traen la referencia "<hotel>:<plan>"; las que salen del link de un
+ * plan (las que dejan pagar con cualquier cuenta) no la traen, y se reconocen
+ * por el id del plan, guardado al crearlo (tabla SuscripcionPlanMP).
+ */
+async function referenciaDe(pre: MPPreapprovalResponse | null | undefined): Promise<{ tenantId: string; planTipo: string } | null> {
+  if (!pre) return null;
+  const ref = leerReferencia(pre.external_reference);
+  if (ref) return ref;
+  if (!pre.preapproval_plan_id) return null;
+  const plan = await db.suscripcionPlanMP.findUnique({ where: { id: pre.preapproval_plan_id }, select: { tenantId: true, planTipo: true } });
+  return plan && PLANES_PAGOS.has(plan.planTipo) ? plan : null;
 }
 
 /** ¿El monto cobrado es el de la suscripción? (1% de tolerancia por redondeos) */
@@ -187,7 +203,7 @@ async function registrarCobroRechazado(tenantId: string, paymentId: string, mont
  * - paused / cancelled: deja de renovarse; sigue hasta lo que ya pagó.
  */
 async function aplicarPreapproval(pre: MPPreapprovalResponse): Promise<string> {
-  const ref = leerReferencia(pre.external_reference);
+  const ref = await referenciaDe(pre);
   if (!ref) return `suscripción ${pre.id} sin referencia de Hospeda`;
   const sub = await db.subscription.findUnique({ where: { tenantId: ref.tenantId } });
   if (!sub) return `sin suscripción para ${ref.tenantId}`;
@@ -214,8 +230,14 @@ async function aplicarPreapproval(pre: MPPreapprovalResponse): Promise<string> {
       }
     }
 
-    const primerCobro = pre.auto_recurring?.start_date ? new Date(pre.auto_recurring.start_date) : null;
-    const proximo = pre.next_payment_date ? new Date(pre.next_payment_date) : primerCobro;
+    // Primer cobro: sin plan es start_date (un día 10 futuro). Con plan,
+    // start_date es el día que se suscribió y el primer cobro es después de
+    // la prueba gratis (next_payment_date). Se toma el más lejano.
+    const fecha = (v?: string | null) => { const d = v ? new Date(v) : null; return d && !Number.isNaN(d.getTime()) ? d : null; };
+    const inicio = fecha(pre.auto_recurring?.start_date);
+    const siguiente = fecha(pre.next_payment_date);
+    const primerCobro = inicio && siguiente ? max(inicio, siguiente) : (siguiente ?? inicio);
+    const proximo = siguiente ?? primerCobro;
     // Hasta el primer cobro puede trabajar (días de regalo). Nunca se acorta
     // lo que ya tenía pago.
     const vencimiento = primerCobro && !Number.isNaN(primerCobro.getTime()) ? max(sub.fechaVencimiento, primerCobro) : sub.fechaVencimiento;
@@ -279,7 +301,7 @@ export async function procesarAvisoCobroMensual(id: string): Promise<string> {
   if (!pago?.id) return `cobro mensual ${id} todavía sin pago (${cobro.status})`;
 
   const pre = await getMPSubscription(cobro.preapproval_id);
-  const ref = leerReferencia(pre?.external_reference);
+  const ref = await referenciaDe(pre);
   if (!pre || !ref) return `cobro mensual ${id}: suscripción ${cobro.preapproval_id} sin referencia de Hospeda`;
 
   // Si el aviso de alta de la suscripción se perdió, se aplica ahora.
@@ -388,7 +410,7 @@ export async function revisarSuscripcion(subscriptionId: string): Promise<string
     const pagadoHasta = vencimientoTrasCobro(ultimo);
     const actual = await db.subscription.findUnique({ where: { id: sub.id } });
     if (actual && pagadoHasta.getTime() > actual.fechaVencimiento.getTime()) {
-      const ref = leerReferencia(pre.external_reference);
+      const ref = await referenciaDe(pre);
       if (!ref || !(await cobroValido(monto, pre, ref.planTipo))) {
         resultados.push(`último cobro con monto ${monto} distinto al de la suscripción: no se anota`);
       } else {
@@ -422,6 +444,40 @@ async function aplicarCambioDePrecio(subscriptionId: string, pre: MPPreapprovalR
   const nuevo = precioMensual / 100;
   const actual = pre.auto_recurring?.transaction_amount || 0;
   if (Math.abs(actual - nuevo) < 0.01) return 'monto ya actualizado';
+  // Las que salieron del link de un plan toman el monto del plan (el plan es
+  // solo de este hotel): se cambia el plan.
+  if (pre.preapproval_plan_id) {
+    await updateMPPlanAmount(pre.preapproval_plan_id, nuevo);
+    return `monto del plan ${pre.preapproval_plan_id} actualizado en Mercado Pago: ${actual} → ${nuevo}`;
+  }
   await updateMPSubscriptionAmount(pre.id, nuevo);
   return `monto actualizado en Mercado Pago: ${actual} → ${nuevo}`;
+}
+
+// ─────────────────────────── Altas por link de plan ───────────────────────────
+
+/**
+ * Red de seguridad para las suscripciones que salen del link de un plan: si
+ * el aviso de alta se perdió, el hotel no tiene todavía el id de la
+ * suscripción y la revisión diaria no la encontraría. Busca en Mercado Pago
+ * las suscripciones de los planes creados en las últimas 2 semanas y aplica
+ * las activas.
+ */
+export async function revisarAltasPorPlan(ahora = new Date()): Promise<string[]> {
+  const desde = new Date(ahora.getTime() - 14 * 86_400_000);
+  const planes = await db.suscripcionPlanMP.findMany({ where: { createdAt: { gte: desde } }, select: { id: true, tenantId: true } });
+  const resultados: string[] = [];
+  for (const p of planes) {
+    try {
+      const sub = await db.subscription.findUnique({ where: { tenantId: p.tenantId }, select: { mpPreapprovalId: true, esRecurrente: true } });
+      const altas = (await buscarSuscripcionesDePlan(p.id)).filter(x => x.status === 'authorized');
+      for (const pre of altas) {
+        if (sub?.esRecurrente && sub.mpPreapprovalId === pre.id) continue;
+        resultados.push(`${p.tenantId}: ${await aplicarPreapproval(pre)}`);
+      }
+    } catch (e) {
+      resultados.push(`${p.tenantId}: error en plan ${p.id}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+  return resultados;
 }

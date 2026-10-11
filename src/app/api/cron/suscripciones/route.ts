@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { isCronAuthorized, isCronConfigured } from '@/lib/cron-auth';
-import { revisarSuscripcion } from '@/lib/payments/cobros-suscripcion';
+import { revisarSuscripcion, revisarAltasPorPlan } from '@/lib/payments/cobros-suscripcion';
 import { avisarVencimientosProximos } from '@/lib/payments/avisos-suscripcion';
 
 // GET /api/cron/suscripciones — Revisión diaria de los débitos automáticos.
@@ -40,7 +40,11 @@ export async function GET(req: NextRequest) {
   }
   for (const r of resultados) console.log(`[cron/suscripciones] ${r.tenantId}: ${r.resultado}`);
 
+  // Suscripciones hechas desde el link de un plan cuyo aviso de alta se perdió.
+  const altasPorPlan = await revisarAltasPorPlan();
+  for (const r of altasPorPlan) console.log(`[cron/suscripciones] alta por plan — ${r}`);
+
   const avisosDeVencimiento = await avisarVencimientosProximos();
   console.log(`[cron/suscripciones] avisos de fin de prueba o cortesía: ${avisosDeVencimiento}`);
-  return NextResponse.json({ revisadas: resultados.length, resultados, avisosDeVencimiento });
+  return NextResponse.json({ revisadas: resultados.length, resultados, altasPorPlan, avisosDeVencimiento });
 }
